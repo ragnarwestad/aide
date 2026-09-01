@@ -4,7 +4,7 @@
 
 import { ICON_CHEVRON, btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import type { BranchView, QueueRowView } from "../../ui/job-state.ts";
+import type { QueueRowView } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import {
   FROM_LIST_FIELD,
@@ -79,33 +79,6 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
 // `mergeForm`, `mergeReadyLabel` and `isCodeRepo` went with it —
 // `isCodeRepo` existed only so the button's own sentence could say
 // whether it would land the plan or the code.
-
-// Every repo the spec pushed to, each with its own compare link and its
-// own merge state. Never one link standing in for two: the two branches
-// share a NAME and nothing else.
-export function branchList(branches: BranchView[]): string {
-  if (branches.length === 0) return "";
-  // A lead-in, because bare repo names read as words that fell out of
-  // something else (asked for 2026-08-19).
-  return (
-    `<span class="branchlist"><span class="lbl">Repos:</span>` +
-    branches
-      .map(
-        (b) =>
-          `<span class="branch"><a class="small" href="${esc(b.url)}" ` +
-          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>` +
-          // Beside the compare link, never instead of it: one says where
-          // the work is, the other where it can be tried.
-          (b.previewUrl
-            ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
-              `title="open this branch's own build">preview</a>`
-            : "") +
-          `</span>`,
-      )
-      .join("") +
-    `</span>`
-  );
-}
 
 /** The one action an archived spec offers (spec 198, on its row since
  *  spec 221). The same `POST /api/queue` with `steps=reopen` the spec's

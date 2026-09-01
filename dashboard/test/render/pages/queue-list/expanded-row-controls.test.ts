@@ -67,8 +67,6 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     return cells[1] ?? "";
   };
 
-  const branch = [{ label: "aide", url: "https://example.test/c" }];
-
   /** The two things a header row is ALLOWED to differ by, removed before
    *  the two renders are compared:
    *  1. the fold control itself, which exists to say which way it points
@@ -108,7 +106,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   for (const state of ["queued", "running"] as const) {
     test(`a ${state} spec's header row is byte-identical open or shut (criterion 1)`, () => {
       const { shut, opened } = shutAndOpen(
-        [row({ id: "j1", specFolder: "109-busy", state, branchUrls: branch })],
+        [row({ id: "j1", specFolder: "109-busy", state })],
         [target("109-busy")],
         "109-busy",
       );
@@ -118,7 +116,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
 
   test("a settled spec with an unmerged branch keeps its header line too (criterion 1)", () => {
     const { shut, opened } = shutAndOpen(
-      [row({ id: "j1", specFolder: "109-merge", state: "done", branchUrls: branch })],
+      [row({ id: "j1", specFolder: "109-merge", state: "done" })],
       [target("109-merge")],
       "109-merge",
     );
@@ -149,7 +147,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   for (const state of ["queued", "running"] as const) {
     test(`a ${state} spec offers Cancel beside its state (criterion 3)`, () => {
       const html = rows(
-        [row({ id: "j1", specFolder: "109-busy", state, branchUrls: branch })],
+        [row({ id: "j1", specFolder: "109-busy", state })],
         [target("109-busy")],
         open("109-busy"),
       );

@@ -3,7 +3,7 @@
 // none it took.
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import { anyCostUnmeasured, inFlight, type BranchView, type QueueRowView } from "../../../ui/job-state.ts";
+import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
 import { activityMs, phasesFor, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
@@ -14,19 +14,6 @@ import {
   type QueueTarget,
   type SpecGroup,
 } from "./types.ts";
-
-/** Fold branch entries by label, most-recently-active row winning a
- *  given label. The rows arrive newest-first, so the first sighting of
- *  a label is the one to keep. */
-function branchesOf(recent: QueueRowView[]): BranchView[] {
-  const byLabel = new Map<string, BranchView>();
-  for (const row of recent) {
-    for (const b of row.branchUrls ?? []) {
-      if (!byLabel.has(b.label)) byLabel.set(b.label, b);
-    }
-  }
-  return [...byLabel.values()];
-}
 
 // A spec with no job is still a spec. It is the ONLY row on this page
 // where the whole workflow is still ahead of you, which is exactly the
@@ -41,7 +28,6 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     state: "not-started",
     spentUsd: 0,
     costUnmeasured: false,
-    branches: [],
     phases,
     totalDurationMs: totalDurationOf(phases),
     ...fromTarget(t),
@@ -193,7 +179,6 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     // money — reliable for every archived spec with per-phase Tracking
     // info, unlike the one-shot queue-history stamp this replaces.
     totalDurationMs: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.timeSpentMs ?? 0), 0),
-    branches: [],
     // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
     // format — wins over `s.models[step]` — spec 244's old,
     // `4-status.md`-only format — when both could theoretically apply.
@@ -257,9 +242,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     spentTokens: all.some((r) => r.spentTokens !== undefined)
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
-    branches: branchesOf(recent),
-    // Newest-first, so the first job that reported one wins — the same
-    // rule `branchesOf` folds branch labels by.
+    // Newest-first, so the first job that reported one wins.
     prUrl: recent.find((r) => r.prUrl)?.prUrl,
     prError: recent.find((r) => r.prError)?.prError,
     phases,

@@ -3,20 +3,6 @@
 
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
 
-/** One repo a spec pushed a branch to, as a page sees it: a NAME and a
- *  link, never the path git will be run in. The server re-derives every
- *  root itself when the Merge button posts back. */
-export interface BranchView {
-  /** The repo's directory basename — `aide`, `aide-specs`. */
-  label: string;
-  url: string;
-  /** Where this branch can be TRIED, when the project's host builds a
-   *  preview per branch (`.aide/project.yaml`'s `deployment.preview`).
-   *  Set only on the repo that IS the project's own code — a repo
-   *  holding a plan has nothing to try. */
-  previewUrl?: string;
-}
-
 export interface QueueRowView {
   id: string;
   project: string;
@@ -51,17 +37,10 @@ export interface QueueRowView {
   createdAt: string;
   startedAt?: string;
   stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap";
-  /** Every repo this job pushed to, one entry each — a list even when it
-   *  holds one, because `paceup` and `atlasaurus` (specs inside the
-   *  project repo, one branch per job) are the NORMAL shape and must
-   *  render through the same code as a two-repo job, not a fork of it.
-   *  Derived live from git at render time, never stored on the job: the
-   *  answer changes long after the job stops running. */
-  branchUrls?: BranchView[];
   /** The pull request a `pr`-mode run opened for this job's code branch
-   *  (spec 220). Stored on the job rather than derived at render time,
-   *  unlike `branchUrls`: only the run that called `gh` knows the URL,
-   *  and there is nothing on this machine to re-derive it from. */
+   *  (spec 220). Stored on the job rather than derived at render time —
+   *  only the run that called `gh` knows the URL, and there is nothing
+   *  on this machine to re-derive it from. */
   prUrl?: string;
   /** Why `gh` opened none. Shown BESIDE the branch rather than as the
    *  job's error, because the step succeeded and the code really is on

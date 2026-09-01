@@ -105,11 +105,7 @@ describe("spec 103: a collapsed row shows status only", () => {
   test("a collapsed row with an unmerged branch offers no Merge at all (spec 132)", () => {
     const cell = actionCell(
       controlsLine(
-        rows(
-          [row({ id: "j1", specFolder: "103-merge", state: "done",
-                 branchUrls: [{ label: "aide", url: "https://example.test/c" }] })],
-          [target("103-merge")],
-        ),
+        rows([row({ id: "j1", specFolder: "103-merge", state: "done" })], [target("103-merge")]),
         "103-merge",
       ),
     );
@@ -142,11 +138,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     for (const state of ["queued", "running"] as const) {
       const cell = actionCell(
         controlsLine(
-          rows(
-            [row({ id: "j1", specFolder: "103-busy-branch", state,
-                   branchUrls: [{ label: "aide", url: "https://example.test/c" }] })],
-            [target("103-busy-branch")],
-          ),
+          rows([row({ id: "j1", specFolder: "103-busy-branch", state })], [target("103-busy-branch")]),
           "103-busy-branch",
         ),
       );

@@ -88,7 +88,7 @@ table.list thead a { color: var(--muted); }
    own left edge — a step to the left of everything they belong to
    (asked for 2026-08-23). The offset is the control's own footprint:
    its width, its margin, and the flex gap after it. */
-.spec-title, .branchlist {
+.spec-title {
   margin-left: calc(24px + var(--sp-1) + var(--sp-2)); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 27rem; }
@@ -249,9 +249,6 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .fold:hover { background: var(--surface-2); color: var(--text); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }
-.branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
-  font-weight: 400; font-family: var(--sans); }
-.branch { white-space: nowrap; }
 /* The letter row and the pip row repeat the same 21px width and 3px
    gap per column (matching `.pip`'s own width below) so a letter
    always sits centred over its own pip whatever the viewport — same

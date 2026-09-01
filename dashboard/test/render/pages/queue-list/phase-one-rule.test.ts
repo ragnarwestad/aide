@@ -241,12 +241,7 @@ describe("a dependency is named once, on the title line, and not in the state ce
     (rowHtml(html, folder).split("<td")[3] ?? "").match(
       /<div class="muted small">([\s\S]*?)<\/div><\/td>/,
     )?.[1] ?? "";
-  const unmerged = (specFolder: string) =>
-    row({
-      specFolder,
-      state: "done",
-      branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
-    });
+  const unmerged = (specFolder: string) => row({ specFolder, state: "done" });
 
   test("an unmerged dependency puts nothing in the state cell", () => {
     const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);

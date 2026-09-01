@@ -109,15 +109,7 @@ describe("the primary button's label per row state (the design sheet's table)", 
   // branch still open says which PHASE is next, in the State column and
   // there alone — the repo list carries links and nothing else.
   test("a finished spec with an open branch offers no merge, and asks for none", () => {
-    const html = rows(
-      [
-        row({
-          state: "done",
-          branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
-        }),
-      ],
-      { targets: [target()] },
-    );
+    const html = rows([row({ state: "done" })], { targets: [target()] });
     expect(buttons(html)).not.toContain("Merge");
     expect(html).not.toContain("ready to merge");
     expect(html).not.toContain("waiting for archive");
@@ -147,16 +139,7 @@ describe("no Resolve control (spec 171)", () => {
   };
 
   const conflicted = (opts: Partial<QueuePageOptions> = {}) =>
-    rows(
-      [
-        row({
-          state: "done",
-          branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
-          ...CONFLICT,
-        }),
-      ],
-      { targets: [target()], ...opts },
-    );
+    rows([row({ state: "done", ...CONFLICT })], { targets: [target()], ...opts });
 
   test("a conflict refusal draws no control of its own", () => {
     const html = conflicted();
@@ -184,16 +167,7 @@ describe("no Resolve control (spec 171)", () => {
       "merged locally in /repos/aide, but the push of main failed",
       CONFLICT.error,
     ]) {
-      const html = rows(
-        [
-          row({
-            state: "done",
-            branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
-            error,
-          }),
-        ],
-        { targets: [target()] },
-      );
+      const html = rows([row({ state: "done", error })], { targets: [target()] });
       expect(`${error}: ${html.includes("resolveform")}`).toBe(`${error}: false`);
     }
   });
