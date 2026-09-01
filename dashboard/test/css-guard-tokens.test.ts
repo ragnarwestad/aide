@@ -106,8 +106,11 @@ describe("the page's width comes from the frame rule alone", () => {
     // without protecting anything.
     expect(rule).toContain("padding");
     expect(rule).not.toContain("max-width");
-    // and the frame rule, which is the one that actually decides it
-    expect(CSS).toMatch(/header, body > nav\.tabbar, main \{[^}]*max-width: \d+rem/);
+    // and the frame rule, which is the one that actually decides it.
+    // `calc(...)` as well as a bare `<n>rem`: spec 325 compensates the
+    // cap for the padding `box-sizing: border-box` now subtracts, and
+    // what this guards is WHERE the width is declared, not its shape.
+    expect(CSS).toMatch(/header, body > nav\.tabbar, main \{[^}]*max-width: (?:\d+rem|calc\()/);
   });
 });
 
