@@ -438,6 +438,87 @@ describe("landing an archived spec (spec 136)", () => {
     });
   });
 
+  // --- spec 330: one landing error names one path for one checkout ----------
+  //
+  // `rootsStillHolding`'s raw roots come from `specRoots()`, which is not
+  // guaranteed to be a repo's own git top-level — `machinerySpecsRoot()`
+  // can be a subdirectory of it. The main merge loop's own failure
+  // sentence, by contrast, always names the run's own recorded root
+  // (already the true top-level). Two sentences, two different strings,
+  // one repository.
+  describe("one landing error names one path for one checkout (spec 330)", () => {
+    test("the post-loop sentence names the same resolved root the merge loop already failed for", async () => {
+      const resolvedRoot = "/repos/aide-specs-real-root";
+      let specsRoot = "";
+      const inner = gitFor({ conflicting: [resolvedRoot] });
+      const git = {
+        calls: inner.calls,
+        run: async (dir: string, args: string[]) => {
+          if (dir === specsRoot) {
+            const a = args.join(" ");
+            if (a === "rev-parse --show-toplevel") {
+              inner.calls.push({ dir, args });
+              return { code: 0, stdout: `${resolvedRoot}\n` };
+            }
+            if (a.startsWith("ls-remote --heads")) {
+              inner.calls.push({ dir, args });
+              return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+            }
+          }
+          return inner.run(dir, args);
+        },
+      };
+      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+      specsRoot = join(dir, "root", "aide", "specs");
+      const job = await runStep(base, "archive");
+      writeFileSync(
+        join(results, `${job.id}.json`),
+        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: resolvedRoot, url: "https://example.test/aide-specs" }] }),
+      );
+      const failed = await settle(base, job.id, (j) => !!j.error);
+
+      const errorText = String(failed.error);
+      expect(errorText).toContain(resolvedRoot);
+      expect(errorText).not.toContain(specsRoot);
+    });
+
+    // A project whose specs live inside its own code repository:
+    // `specRoots()` returns the code root and a subdirectory of that same
+    // repo as two separate entries. Both still holding the branch must
+    // read as one repository, not two.
+    test("two specRoots entries resolving to one repo produce one still-on-origin sentence", async () => {
+      let specsRoot = "";
+      let codeRoot = "";
+      const inner = gitFor();
+      const git = {
+        calls: inner.calls,
+        run: async (dir: string, args: string[]) => {
+          const a = args.join(" ");
+          if ((dir === specsRoot || dir === codeRoot) && a === "rev-parse --show-toplevel") {
+            inner.calls.push({ dir, args });
+            return { code: 0, stdout: `${codeRoot}\n` };
+          }
+          if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
+            inner.calls.push({ dir, args });
+            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+          }
+          return inner.run(dir, args);
+        },
+      };
+      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+      specsRoot = join(dir, "root", "aide", "specs");
+      codeRoot = join(dir, "root", "aide");
+      const job = await runStep(base, "archive");
+      writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+      const failed = await settle(base, job.id, (j) => !!j.error);
+
+      const errorText = String(failed.error);
+      const stillOnOrigin = errorText.split("still on origin").length - 1;
+      expect(stillOnOrigin).toBe(1);
+      expect(errorText).toContain(codeRoot);
+    });
+  });
+
   // Criterion 6. Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same
   // checkout — 111 and 112 were both stranded by a first-try loss.

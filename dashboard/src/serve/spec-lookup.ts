@@ -199,12 +199,12 @@ export async function rootsStillHolding(
   branch: string,
   fresh: boolean,
 ): Promise<string[]> {
-  const held: string[] = [];
+  const held = new Set<string>();
   for (const root of specRoots(ctx, project)) {
     const open = await ctx.branchStatus.openSpecBranches(root, fresh);
-    if (open?.has(branch)) held.push(root);
+    if (open?.has(branch)) held.add(await specsRoot(ctx, root));
   }
-  return held;
+  return [...held];
 }
 
 /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
