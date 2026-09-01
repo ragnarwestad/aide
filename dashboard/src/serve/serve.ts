@@ -25,7 +25,7 @@ import { Notifier } from "../integrations/notify.ts";
 import { MergeEventReporter } from "../integrations/merge-event.ts";
 import { QueueStore, type Job, type ProjectResolver } from "../queue/queue.ts";
 
-import { QUEUE_DEFAULTS, navFromSite } from "./serve-helpers.ts";
+import { QUEUE_DEFAULTS, navFromSite, compressResponse } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
 export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
@@ -312,13 +312,11 @@ export function createServer(opts: ServerOptions) {
       const url = new URL(req.url);
       const path = url.pathname;
 
-      if (isQueuePath(path)) {
-        const denied = queueGuard(req, url);
-        if (denied) return denied;
-        return handleQueue(queueCtx, req, url, path);
-      }
+      const response = isQueuePath(path)
+        ? (queueGuard(req, url) ?? (await handleQueue(queueCtx, req, url, path)))
+        : await handleCore(coreCtx, req, url, path);
 
-      return handleCore(coreCtx, req, url, path);
+      return compressResponse(req, response);
     },
   });
   state.server = server;

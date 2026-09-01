@@ -5,17 +5,8 @@ import { field, tokenField, btn } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page.ts";
-import { EDITABLE_SPEC_FILE } from "./tabs.ts";
+import { activeJob, EDITABLE_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
-
-/** REQ-6: a spec with a job queued or running draws no Save form on any
- *  tab, on the read side — the route refuses it too (spec-edit.ts), but
- *  a control that only ever gets refused is not a control to draw. The
- *  same `lead`/state check `overview.ts`'s own `canTick` already makes
- *  for the Checks tab, extended to the four document tabs. */
-function activeJob(view: SpecPageView): boolean {
-  return view.lead?.state === "queued" || view.lead?.state === "running";
-}
 
 /** The read-only shape every document tab falls back to: archived, a
  *  job in flight, or (spec 303) the same WYSIWYG mount/raw pair a

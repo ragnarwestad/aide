@@ -4,7 +4,8 @@
 // archived spec.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import {
   TOKEN, SPEC, EDIT, SAVE, DESCRIPTION_TAB, CHECKS_TAB, ANALYSIS_TAB, SOLUTION_TAB, STATUS_TAB, PAGE,
@@ -15,6 +16,29 @@ import {
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
+
+// REQ-4: a job queued or running is simulated the same way
+// queue-detail-spec-page-routes.test.ts does — enqueue for real, then
+// overwrite the mirror's own state, since a job in flight is not
+// otherwise reachable from a fixture that answers everything else
+// synchronously.
+async function enqueueJob(base: string, steps: string[] = ["analyze"]): Promise<string> {
+  const res = await fetch(`${base}/api/queue`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    body: JSON.stringify({ project: "aide", specFolder: SPEC, steps }),
+  });
+  const body = (await res.json()) as { job: { id: string } };
+  return body.job.id;
+}
+
+function seedJobState(dir: string, id: string, state: string): string {
+  const mirror = join(dir, "queue.json");
+  const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+  jobs.find((j) => j.id === id)!.state = state;
+  writeFileSync(mirror, JSON.stringify(jobs));
+  return mirror;
+}
 
 // --- spec 212, criterion 8: the second page is gone -------------------------
 //
@@ -60,45 +84,50 @@ describe("GET the edit page", () => {
     expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`, auth)).status).toBe(404);
   });
 
-  // REQ-1/REQ-6: the Toast UI Editor bundle is heavy (~900 KB
-  // unminified — 2-analysis.md's own risk analysis) — it ships on the
-  // ONE tab that has an editable textarea and nowhere else, mirroring
-  // how queueClientScript() already scopes itself. REQ-5's own CSS-
-  // embedding check rides along: the bundle must carry the editor's
-  // stylesheet too, not just its JS (a known Toast UI selector proves
-  // it, since `minify: true` would otherwise make a literal-class grep
-  // fragile).
-  test("the Description tab carries the editor's client script and CSS; other tabs do not", async () => {
+  // REQ-1: the editor bundle is served from its own file and referenced
+  // with <script src>, never inlined — on the ONE tab that has an
+  // editable textarea and nowhere else, mirroring how
+  // queueClientScript() already scopes itself.
+  test("the Description tab references the editor's script by src; other tabs do not", async () => {
     const { base } = start(savable("/host"));
     const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(descHtml).toContain("spec-editor-host");
-    expect(descHtml).toContain(".toastui-editor-defaultUI");
+    expect(descHtml).toContain('<script src="/spec-editor.js">');
+    // REQ-1: the bundle's own source no longer travels inline at all.
+    expect(descHtml).not.toContain(".toastui-editor-defaultUI");
     // Not `PAGE` (the bare URL): spec 294 made "description" the
     // default tab a bare URL resolves to (dropping "overview"), so
     // `PAGE` now serves the SAME tab this test just checked — asking
     // explicitly for another tab is what "other tabs do not" needs.
     const checksHtml = await (await fetch(`${base}${CHECKS_TAB}`, auth)).text();
     expect(checksHtml).not.toContain("spec-editor-host");
-    expect(checksHtml).not.toContain(".toastui-editor-defaultUI");
-    // The bundle itself (Toast UI Editor + ProseMirror + its CSS) is
-    // tens of KB even minified — a difference this large is only
-    // explained by the Description tab carrying it and Checks not.
-    expect(descHtml.length - checksHtml.length).toBeGreaterThan(20_000);
+    expect(checksHtml).not.toContain('<script src="/spec-editor.js">');
+    // REQ-1: with the bundle no longer inlined, a document tab's own
+    // page is only a little larger than one with no editor at all —
+    // nowhere near the tens of KB gap the inline bundle used to cost.
+    expect(descHtml.length - checksHtml.length).toBeLessThan(2_000);
   });
 
-  // REQ-1: the render side (`spec-page.ts`) already defaulted a missing
-  // tab to "description"; the script-loading side did not, so a bare
-  // URL — the link every spec row and every "back to spec" link on this
-  // dashboard uses — rendered the mount markup with no script to fill
-  // it. `PAGE` (no `?tab=`) is the exact URL that bug lived on.
-  test("the bare spec page (no ?tab=) also carries the editor's client script and CSS", async () => {
+  // REQ-1/REQ-5: the render side (`spec-page.ts`) already defaulted a
+  // missing tab to "description"; the script-loading side did not, so a
+  // bare URL — the link every spec row and every "back to spec" link on
+  // this dashboard uses — rendered the mount markup with no script to
+  // fill it. `PAGE` (no `?tab=`) is the exact URL that bug lived on,
+  // and this is also REQ-5's page-level cold-start case: a fresh
+  // server's very first request to this URL already carries a working
+  // reference, not just the asset route in isolation.
+  test("a fresh server's first request to the bare spec page carries the editor's script src", async () => {
     const { base } = start(savable("/host"));
     const html = await (await fetch(`${base}${PAGE}`, auth)).text();
     expect(html).toContain("spec-editor-host");
-    expect(html).toContain(".toastui-editor-defaultUI");
+    expect(html).toContain('<script src="/spec-editor.js">');
+    // REQ-5: the browser's own follow-up fetch of that reference works
+    // too, on the same freshly started process.
+    const asset = await fetch(`${base}/spec-editor.js`);
+    expect(asset.status).toBe(200);
   });
 
-  // REQ-1/REQ-6: Analysis, Solution and Status carry the same editable
+  // REQ-1/REQ-4: Analysis, Solution and Status carry the same editable
   // mount/textarea pair Description's own form does (spec 310) — proven
   // by matching the exact markup shape
   // `spec-page-description-and-depends.test.ts` already pins for
@@ -110,28 +139,59 @@ describe("GET the edit page", () => {
       ["solution", SOLUTION_TAB, "One must-fix."],
       ["status", STATUS_TAB, "Workflow steps completed"],
     ] as const) {
-      test(`the ${tab} tab shows its WYSIWYG mount on the first request`, async () => {
+      test(`the ${tab} tab shows its WYSIWYG mount and the editor's script src on the first request`, async () => {
         const { base, dir } = start(savable("/host"));
         fillAnalysisAndSolution(dir);
         const html = await (await fetch(`${base}${path}`, auth)).text();
         expect(html).toContain("spec-editor-host");
-        expect(html).toContain(".toastui-editor-defaultUI");
+        expect(html).toContain('<script src="/spec-editor.js">');
         expect(html).toContain('<div class="spec-editor-mount" id="spec-editor-host"></div>');
         expect(html).toContain('class="spec-editor-raw">');
         expect(html.indexOf('id="spec-editor-host"')).toBeLessThan(html.indexOf('class="spec-editor-raw"'));
         expect(html).toContain(needle);
       });
     }
+
+    // REQ-4: before /aide-analyze has ever run, Analysis and Solution's
+    // panels have no mount point at all — so they carry no reference to
+    // the editor either. (4-status.md is always written by the harness
+    // fixture, so the Status tab has no "unwritten" state to test here.)
+    for (const [tab, path] of [
+      ["analysis", ANALYSIS_TAB],
+      ["solution", SOLUTION_TAB],
+    ] as const) {
+      test(`an unwritten ${tab} tab carries no editor script`, async () => {
+        const { base } = start(savable("/host"));
+        const html = await (await fetch(`${base}${path}`, auth)).text();
+        expect(html).not.toContain('<script src="/spec-editor.js">');
+      });
+    }
   });
 
-  // Criterion 11 (spec 163): an archived spec is a record. Hiding the
-  // control is not the guard — the save endpoint is — but the tab must
-  // not offer a box that only gets refused.
-  test("an archived spec's Description tab is read-only", async () => {
+  // Criterion 11 (spec 163) / REQ-4: an archived spec is a record.
+  // Hiding the control is not the guard — the save endpoint is — but
+  // the tab must not offer a box that only gets refused, or load the
+  // editor bundle for a page that cannot be edited.
+  test("an archived spec's Description tab is read-only and carries no editor script", async () => {
     const { base } = startArchived(savable("/host"));
     const res = await fetch(`${base}/specs/aide/${ARCHIVED}?tab=description`, auth);
     expect(res.status).toBe(200);
-    expect(await res.text()).not.toContain("<textarea");
+    const html = await res.text();
+    expect(html).not.toContain("<textarea");
+    expect(html).not.toContain('<script src="/spec-editor.js">');
+  });
+
+  // REQ-4: a job queued or running makes every document tab read-only
+  // on the render side already (panels.ts); the script-loading side
+  // must agree, or a read-only page would load an editor it never
+  // mounts.
+  test("a document tab carries no editor script while a job is queued or running", async () => {
+    const { base, dir } = start(savable("/host"));
+    const id = await enqueueJob(base);
+    const mirror = seedJobState(dir, id, "running");
+    const { base: base2 } = start(savable("/host"), { queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}${DESCRIPTION_TAB}`, auth)).text();
+    expect(html).not.toContain('<script src="/spec-editor.js">');
   });
 });
 

@@ -1,6 +1,7 @@
 // The spec page's paths, its tabs, and which file/phase each one names.
 
 import { pickTab } from "../job-page.ts";
+import type { SpecPageView } from "./types.ts";
 
 /** The path this page lives at. One function, because the server routes
  *  on it and the list links to it. */
@@ -85,6 +86,30 @@ export const TAB_FILES: Partial<Record<SpecTab, string>> = {
 export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
   Object.entries(TAB_FILES).map(([tab, file]) => [file, tab as SpecTab]),
 );
+
+/** A job for this spec is queued or running (moved from panels.ts,
+ *  spec 315 — the route layer needs the same fact the render layer
+ *  already computed). Note: `overview.ts`'s Checks-tab code has its own,
+ *  independent copy of this same check (`view.lead?.state === "queued"
+ *  || "running"`, spec-page/overview.ts:109) — untouched here, since
+ *  nothing in this spec reads it and no REQ asks for that consolidation;
+ *  named so it is not mistaken for a gap this move should have closed. */
+export function activeJob(view: SpecPageView): boolean {
+  return view.lead?.state === "queued" || view.lead?.state === "running";
+}
+
+/** REQ-4 (spec 315): does this tab's panel actually mount the editor?
+ *  The one place both `panels.ts` (what to draw) and `spec-edit.ts`
+ *  (whether to fetch the bundle at all) ask the same question —
+ *  mirroring `documentPanel`'s own branching exactly, so the two can
+ *  never again disagree the way spec 303 had to fix once for the
+ *  default tab. */
+export function documentTabNeedsEditor(view: SpecPageView, tab: SpecTab): boolean {
+  const file = TAB_FILES[tab];
+  if (!file || view.archived || activeJob(view)) return false;
+  if (tab === "description") return true; // always has a form, even empty
+  return (view.files.find((f) => f.label === file)?.text ?? null) !== null;
+}
 
 /** Which tab a phase's own link opens (spec 237): the tab that shows
  *  what that phase MADE, or — for archive, which writes no file of its

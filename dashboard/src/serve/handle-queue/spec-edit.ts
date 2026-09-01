@@ -6,10 +6,10 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../project/parse-status.ts";
 import {
-  EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, TAB_FILES, renderResetSpecPage, renderSpecPage, resolveBackHref,
-  resolveSpecTab, specPagePath, specTabPath,
+  EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabNeedsEditor, renderResetSpecPage, renderSpecPage,
+  resolveBackHref, resolveSpecTab, specPagePath, specTabPath,
 } from "../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specEditorClientScript, specsRedirect, tickMessage } from "../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specsRedirect, tickMessage } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 export async function handleSpecEditRoutes(
@@ -109,14 +109,10 @@ export async function handleSpecEditRoutes(
       url.searchParams.get("tab") ?? undefined,
     );
     if (!view) return new Response("not found", { status: 404 });
-    // REQ-1: resolved through the SAME function the render side uses
+    // Resolved through the SAME function the render side uses
     // (`spec-page.ts`), rather than each computing its own default —
     // that mismatch was spec 303's actual bug: a bare URL rendered the
-    // Description panel while loading no editor script for it. REQ-2:
-    // the bundle ships for every document tab, not just Description
-    // (`TAB_FILES` names all four and no others) — the other two tabs,
-    // Checks and Steps, render read-only text with nothing for it to
-    // enhance.
+    // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     const html = renderSpecPage(
       {
@@ -132,7 +128,12 @@ export async function handleSpecEditRoutes(
       {
         tab,
         step: url.searchParams.get("step") ?? undefined,
-        script: TAB_FILES[tab] ? await specEditorClientScript() : undefined,
+        // REQ-1/REQ-4 (spec 315): a src= reference to the bundle's own
+        // route, fetched once and reused across every tab and page —
+        // and only when this tab's panel actually mounts the editor
+        // (`documentTabNeedsEditor`, the same predicate `panels.ts`
+        // uses to decide what to draw).
+        scriptSrc: documentTabNeedsEditor(view, tab) ? SPEC_EDITOR_ASSET_PATH : undefined,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

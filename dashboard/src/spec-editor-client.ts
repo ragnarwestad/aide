@@ -14,12 +14,12 @@
 //
 // The editor's own stylesheets are pulled in as raw TEXT (`with { type:
 // "text" }`), not as a CSS import: `Bun.build({ format: "iife" })`
-// splits a plain CSS import into a SEPARATE output asset, which
-// `specEditorClientScript()` (`serve-helpers/static.ts`) has no second
-// place to serve — this dashboard inlines exactly one script per page
-// and nothing else. Importing the file as text instead folds its
-// content into this same bundle, so one script, appended once at mount
-// time, is still the whole story.
+// splits a plain CSS import into a SEPARATE output asset, and this
+// bundle is served from its own route (`GET /spec-editor.js`, spec
+// 315) but still as ONE file — a second output asset is still a second
+// thing to serve, cache and keep in step with the first. Importing the
+// file as text instead folds its content into this same bundle, so one
+// script, appended once at mount time, is still the whole story.
 import editorCss from "@toast-ui/editor/dist/toastui-editor.css" with { type: "text" };
 // REQ-5: the light stylesheet carries no `.toastui-editor-dark` rule at
 // all (checked directly) — the dark theme is a SEPARATE file, imported

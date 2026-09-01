@@ -243,6 +243,10 @@ export function pageShell(
   opts: {
     refreshInNoscript?: boolean;
     script?: string;
+    /** A second, distinct script tag (spec 315) — `src=` rather than
+     *  inline text, for the one script this dashboard wants a browser
+     *  to fetch once and reuse rather than re-send with every page. */
+    scriptSrc?: string;
     docTitle?: string;
     hideHeading?: boolean;
     /** When this page is part of a static build: its generation time,
@@ -265,6 +269,7 @@ export function pageShell(
   // mirror-image reason — it has to decide a colour before the body is
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
+  const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -282,7 +287,7 @@ ${aboutDialog(opts.buildStamp)}
 ${tabBar(entries, currentPath)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
-</main>${script}
+</main>${script}${scriptSrc}
 </body>
 </html>
 `;
