@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { CSS } from "./css-guard-fixtures.ts";
+import { CSS, oneRule } from "./css-guard-fixtures.ts";
 
 // --- the gap lives in the container (spec 120) ------------------------------
 //
@@ -150,6 +150,25 @@ describe("the state trigger reads as a control, not plain text", () => {
   test("the filled mark is selected by aria-checked=true, not aria-current", () => {
     expect(CSS).toContain(".menu.state a[aria-checked=\"true\"] .check");
     expect(CSS).not.toMatch(/\.menu\.state a\[aria-current\]/);
+  });
+});
+
+// --- the State column alone gets the table's spare width (spec 336) -------
+//
+// An auto-layout table hands its leftover width to whichever columns
+// declare no preference. Spec, Created, Time and Cost each pin their
+// header to `width: 1%`, which floors them at their own content and
+// stops them sharing in the surplus; State carries no such pin, so it
+// is the one column left to receive it.
+
+describe("the State column alone gets the table's spare width", () => {
+  test("Spec, Created, Time and Cost are pinned to their content width, State is not", () => {
+    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="spec"]'));
+    expect(rule.selectors).toContain('th[data-col="created"]');
+    expect(rule.selectors).toContain('th[data-col="started"]');
+    expect(rule.selectors).toContain('th[data-col="cost"]');
+    expect(rule.selectors).not.toContain('data-col="state"');
+    expect(rule.body).toContain("width: 1%");
   });
 });
 

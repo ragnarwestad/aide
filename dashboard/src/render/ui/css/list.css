@@ -46,6 +46,24 @@ table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); 
 table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
   vertical-align: middle; }
 table.list thead a { color: var(--muted); }
+/* The State column alone gets the table's spare width (spec 336):
+   every other column is pinned to its own content by a specified
+   `width`, however small — the standard trick for an auto-layout
+   table, since a browser hands its LEFTOVER width to whichever
+   columns declare no preference, never to the ones that already did.
+   Spec spans two real columns (its `colspan="2"`, unchanged) and the
+   pin sits on that one header cell, which the algorithm distributes
+   across both; Created, Time and Cost pin their own single column the
+   same way. State carries no `data-col` and no width of its own, so
+   it is the one column left standing, and gets back what the other
+   five hand over. `white-space: nowrap` keeps each short heading label
+   from wrapping now that its column has stopped taking more than it
+   needs — the content underneath still floors the column at whatever
+   it actually needs; this only caps the SURPLUS share. */
+table.list th[data-col="spec"],
+table.list th[data-col="created"],
+table.list th[data-col="started"],
+table.list th[data-col="cost"] { width: 1%; white-space: nowrap; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
 .sortlink { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px;
