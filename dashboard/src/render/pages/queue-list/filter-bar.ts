@@ -4,7 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../site.ts";
-import { ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
+import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import {
   ARCHIVED_STATE,
@@ -50,11 +50,10 @@ export function queueHref(f: QueueFilter, patch: QueueFilter): string {
 // five-second refresh, and fine for that: nothing here is being typed
 // into.
 function runsHelp(): string {
-  return (
-    `<details class="intro"><summary title="What the search reads" ` +
-    `aria-label="What the search reads">?</summary>` +
-    `<p>Searches the ${SEARCHED.join(", the ")} — the whole description, ` +
-    `including the part the row does not show.</p></details>`
+  return helpPopover(
+    "What the search reads",
+    `Searches the ${SEARCHED.join(", the ")} — the whole description, ` +
+      `including the part the row does not show.`,
   );
 }
 

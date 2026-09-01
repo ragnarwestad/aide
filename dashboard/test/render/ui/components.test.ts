@@ -3,7 +3,7 @@
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
-import { backLink, resolveBackHref } from "../../../src/render/ui/components.ts";
+import { backLink, helpPopover, resolveBackHref } from "../../../src/render/ui/components.ts";
 import { CSS } from "../../../src/render/ui/css.ts";
 
 describe("backLink", () => {
@@ -65,5 +65,41 @@ describe("resolveBackHref", () => {
 
   test("a malformed referer falls back rather than throwing", () => {
     expect(resolveBackHref("not a url", ORIGIN, "/fallback")).toBe("/fallback");
+  });
+});
+
+// Spec 311: the shared "(?)" popover — `runsHelp()` in filter-bar.ts was
+// the only one, module-private and styled against `.specsearch >`. This
+// is the version any render file can call.
+describe("helpPopover", () => {
+  test("a details.intro disclosure, summary titled and aria-labelled from `what`, body inside <p> (REQ-1, REQ-7)", () => {
+    expect(helpPopover("What this shows", "Explanation.")).toBe(
+      '<details class="intro"><summary title="What this shows" aria-label="What this shows">?' +
+        "</summary><p>Explanation.</p></details>",
+    );
+  });
+
+  test("escapes `what`", () => {
+    const html = helpPopover('"><script>alert(1)</script>', "Explanation.");
+    expect(html).not.toContain("<script>alert(1)</script>");
+  });
+
+  // `body` is trusted, developer-authored HTML — the same convention
+  // every other component here follows (rowMessage, field) — so it is
+  // NOT escaped, unlike `what`. `TAB_HELP`'s own strings rely on this to
+  // carry `<code>` tags.
+  test("does not escape `body` — it is developer-authored markup, not reader input", () => {
+    expect(helpPopover("What this shows", "See <code>1-description.md</code>.")).toContain(
+      "<code>1-description.md</code>",
+    );
+  });
+});
+
+// Spec 311, REQ-2: the popover's CSS no longer depends on sitting inside
+// `.specsearch` — freed the same way `.menu`/`.menupanel` already are.
+describe(".intro popover CSS (spec 311)", () => {
+  test("details.intro carries no .specsearch > prefix, so it works as a shared component anywhere", () => {
+    expect(CSS).not.toContain(".specsearch > details.intro");
+    expect(CSS).toContain("details.intro { position: relative; }");
   });
 });
