@@ -1,13 +1,14 @@
 # Branches and landing
 
-How each step's branch is merged into the default branch, what `archive` does when that merge conflicts, and how
-origin decides whether a landing finished. The queue that makes the branches is on [Running specs](running-specs.md).
+How each step's branch is merged into the default branch, what `archive` does when that merge conflicts, how origin
+decides whether a landing finished, and how a project keeps its code branch open for review. The queue that makes the branches is on [Running specs](running-specs.md).
 
 ## Table of contents
 
 - [Branches, and merging them](#branches-and-merging-them)
 - [Archive resolves the conflict itself](#archive-resolves-the-conflict-itself)
 - [Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)
+- [A project can ask for its code branch to stay open](#a-project-can-ask-for-its-code-branch-to-stay-open)
 
 ---
 
@@ -105,6 +106,31 @@ and no control on the page draws off `errorReason`.
 - **Archive's cost and duration vary.** A run that meets no conflict is short and cheap; one that does is as big a
   piece of work as the resolution, under the same `timeoutSec.default` and model.
 
+**`archive` is therefore the one step that can touch the worktree and fail to finish, and the generic commit loop
+guards against that.** Every other step either succeeds or refuses before touching the tree. `archive` is handed an
+open merge and can be interrupted (crash, cancellation, a budget stop) after the merge opens but before the skill
+commits or aborts it. Left alone, the script's generic `git add -A` + commit loop would stage the conflict markers and
+commit them as the resolution. `core/scripts/aide-run-spec` aborts an unfinished merge before that loop runs, but only
+when `command_name` is `archive` — every other step is unaffected. The "leaves the branch as it found it" contract for
+a failed resolution therefore holds structurally, not only because the skill behaves well.
+
+**Most of what `archive` does is a script, not an AI session.** `core/scripts/aide-archive-spec` resolves the spec
+argument to a folder, checks whether a merge is open, reads `4-status.md`'s `Workflow steps completed:` bullet, and —
+when every step is there — stamps and moves the folder, before any model is asked to. It never inspects a Phase table's
+Status cell. The two things that genuinely need judgment stay with the skill: resolving an actual merge conflict, and
+deciding what documentation should outlive the spec (`core/skills/aide-archive/SKILL.md`'s Step 2). `aide-run-spec`
+calls the same script once, right after worktree setup, purely to decide whether spawning `claude`/`codex` is worth
+doing at all — its `terminalReason` of `not-implemented-yet` or `held-back` skips the spawn entirely, the same "a
+script decides success and reports it, no session runs" shape `already_landed()` has for a landed spec. Every other
+outcome (`conflict-open`, `archived`) still spawns the model, because Step 2's doc-feedback judgment needs it whenever
+the work is done, conflict or not.
+
+**The script runs twice in one archive step, and that is by design.** `aide-run-spec`'s own pre-check may already have
+moved the folder into `archive/` by the time the skill's own Step 1 calls the script again — idempotency is the guard,
+not "call it once": a folder already under `archive/` is reported as `already-archived` (carrying the same
+`specFolder`/`needsDocFeedback` the fresh `archived` outcome does, so Step 2 still runs) rather than moved, or
+erroring, a second time.
+
 ## Origin decides whether a landing finished
 
 The archive STEP can succeed while its landing fails: the folder moves into `archive/` before the code merge is even
@@ -145,3 +171,34 @@ land is not finished, and its row has to say so.**
   second between
   `complete()` writing `done` and the landing settling still reads
   `done`; the correction arrives a moment later.
+
+On the script's side, a re-run of `archive` has to find a folder that has already moved: `aide-run-spec` resolves
+`--spec` for `archive` against the active folder first and `archive/` second — the same "try the active folder, then
+`archive/`" pattern `aide_resolve_spec`, `resolve_dependency_folder` and `status_file_for` use
+(`core/scripts/_aide-spec-lib.sh`, `core/scripts/aide-run-spec`) — gated on the candidate's branch still being on
+origin. Not found falls through to the same "unknown spec" refusal, so a genuinely finished spec still refuses a
+further `archive`.
+
+## A project can ask for its code branch to stay open
+
+`codeLanding: pr` in the COMMITTED `.aide/project.yaml` says this project's code is reviewed before it reaches the
+default branch, and it does two things that must never be separated: the dashboard runs every one of that project's
+steps with `--push pr`, so `aide-run-spec` opens the request, and `landBranch` skips `mergeBranchIntoDefault` for the
+CODE root of an `archive` landing. Either half alone is worse than neither — a landing left open with nothing
+describing it, or a pull request merged past moments after it was opened. Four things not to get backwards:
+
+- **The manifest and NOTHING else.** Unlike `worktreeLinks`, there is no `.aide/config` fallback: whether code is
+  reviewed is a team policy, and `.aide/config` is gitignored — a policy a fresh clone cannot read is not a policy.
+  Absent, unrecognized or unparseable all resolve to `merge`.
+- **The manifest is a DEFAULT for `--push`, never an override.** A `--push` typed at a terminal wins;
+  `push_mode_explicit` in `aide-run-spec` is what tells "typed" from "left standing".
+- **The CODE root only, and `archive` only.** The specs root keeps auto-merging in every mode — an archive commit
+  moving a folder is bookkeeping, not a change anyone reviews — and `create`/`analyze` never reach a code root in the
+  gated position. A specs root INSIDE the project is the same repository and therefore the same branch, so a
+  single-repo project leaves its one branch open and that IS the pull request.
+- **`errorReason` has no member for this.** A branch left open on purpose is a success; that pair classifies failures a
+  person can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen` in
+  `src/serve/serve.ts` is the subset that is open deliberately, and `PR_OPEN` in
+  `src/render/pages/queue-list/row-shared.ts` is what such a row says instead of `NOT_LANDED`. The set itself is the
+  same, so the row stays on the list and `archive` stays enqueueable for it. `assessProjectReadiness` never looks at
+  `codeLanding`: every value is valid to run with, so it is never a reason to refuse a run.

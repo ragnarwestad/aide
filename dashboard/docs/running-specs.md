@@ -16,6 +16,7 @@ Four pages sit beside this one: [A job's states](job-states.md) — the state ma
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
+- [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [Notifications](#notifications)
 - [Telling claude-usage a branch landed](#telling-claude-usage-a-branch-landed)
 - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -353,6 +354,42 @@ Two consequences worth knowing:
 A project whose checkout has no `origin` gets no clone of its own. It runs in the person's checkout, and its readiness
 line says so, so the one project where a run and a person's editing can still
 meet is named rather than silent.
+
+## How a run touches the repositories
+
+**`aide-run-spec` branches EVERY repo it touches, not just the project.** An `analyze` step changes only the specs
+repo, so branching the project alone would leave the analysis committed on `main` — the one thing `push branch` exists
+to prevent. A repo whose HEAD did not move during the run is not pushed at all, and the compare link is built from the
+repos that actually changed (`branchUrls` in the result; `branchUrl` keeps the single most interesting one). **HEAD
+movement is the test, not `changedFiles`** — that field counts only what the run's own commit loop found uncommitted,
+and a step that commits its own work (archive does) leaves it at `0` with real commits on the branch.
+
+**It branches them in `git worktree` checkouts of its own**, under `$HOME/aide-worktrees/<project>/<spec>/`. The real
+checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
+can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a person can use the
+checkout meanwhile. Two consequences worth knowing before changing anything here:
+
+- The result's `repos[].root` is the MAIN checkout, not the directory the work happened in — the dashboard spawns git
+  in that path after the run is over, and a worktree path is deleted when the run ends. `repos[].worktree` carries the
+  throwaway one.
+- A worktree carries tracked files only, so `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in
+  the COMMITTED `.aide/project.yaml` — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
+  gitignore rule does not match a symlink. `.aide/config`'s `AIDE_WORKTREE_LINKS` is still read when the manifest names
+  none — the manifest wins where both do, and the run reports which file it read (`worktreeLinksSource` in the result
+  blob, and a line on stderr).
+
+**A run reaches the project and its specs root, and nothing else.** A repo the run was not told about is not touched,
+and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
+deliberately.
+
+**`aide-run-spec` runs from a private copy of itself, and that is load-bearing:** an `implement` step reinstalls aide,
+which copies the script over itself while bash is still reading it by byte offset. The copy's marker holds its own
+path and is unset before `claude` starts — a bare exported flag would be inherited by `claude`, and the next nested
+invocation would delete the installed script.
+
+**`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
+available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
+`array+=(...)` instead.
 
 ## Notifications
 

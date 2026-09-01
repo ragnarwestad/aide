@@ -60,7 +60,7 @@ hand-started process is not the service.
 ## Reading the documentation
 
 **Grep the long pages; do not read one whole.** `docs/AI_NEWS_LOG.md` is 650 lines and the dashboard's docs
-pages run to 400; they are written to be searched. Where to look:
+pages run to 450; they are written to be searched. Where to look:
 
 | Question | Page |
 |---|---|

@@ -95,8 +95,13 @@ Three fields say something the state alone does not, and each is read by the pag
 - **`landing`** is set on a job while its finished step's branch is being merged, and cleared once the whole landing
   promise settles. While ANY job carries it the runner starts nothing, because a landing writes to the shared main
   checkout that no worktree isolates. It is never restored from the persisted mirror: a flag that survived a restart
-  would hold the queue shut with nothing left to clear it. An `onLanded` callback runs before its own job's flag is
-  cleared, so code there cannot trust that one row's `landing`.
+  would hold the queue shut with nothing left to clear it. **An `onLanded` callback runs before its own job's flag is
+  cleared.** `Runner.complete()` in `src/queue/runner.ts` is synchronous: it starts the landing work (`onStepDone`,
+  e.g. `landArchivedSpec` for `archive`), writes `landing: true` onto the job's own store row, and only clears that
+  flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
+  that reads `queue.list()` sees its own triggering job still marked `landing: true` even though the landing calling
+  it has already succeeded, and must treat that one row as settled by hand; every other row's flag is as trustworthy
+  as ever.
 - **`stopReason`** is `budget`, `timeout`, `provider-limit` or `job-cap`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under tight caps a cap-stop is a common, healthy outcome.
 - **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running
