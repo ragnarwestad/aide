@@ -1,5 +1,7 @@
-// The two kinds of link on this page: one that stays and swaps the
-// rows in place, one that leaves for another document.
+// The row-swap link on this page: one that stays and swaps the rows in
+// place rather than loading a new document. The other kind — a link
+// that leaves the page — is `nav-busy.ts`'s now, run on every page
+// rather than wired up here (spec 312).
 
 import { swapRows } from "./row-swap.ts";
 import { AWAITING } from "./state.ts";
@@ -20,22 +22,4 @@ export function navigate(event: MouseEvent): void {
   // the page stays and the rows are what get replaced.
   document.getElementById("jobrows")?.classList.add(AWAITING);
   void swapRows();
-}
-
-/** A click on a link that leaves this page for another document — a
- *  spec's own name, or a tab (spec 208).
- *
- *  It does NOT `preventDefault()`. There is nothing to intercept: the
- *  browser's own navigation is the correct behaviour, and
- *  re-implementing a page load in script to get a spinner would be a
- *  bad trade. The only thing wrong today is that the click is
- *  invisible — the new document does not start arriving until the
- *  server has finished rendering it, so the reader sees the OLD page,
- *  unchanged, for the whole wait.
- *
- *  On the DOCUMENT, not on `#jobrows`: the tab bar sits outside it. */
-export function markGoing(event: MouseEvent): void {
-  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-  const link = (event.target as Element | null)?.closest?.("a[data-goto]") as HTMLAnchorElement | null;
-  link?.classList.add(AWAITING);
 }

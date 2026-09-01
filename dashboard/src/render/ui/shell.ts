@@ -46,6 +46,10 @@ const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
 // real form and wait — the spec editor's takes two or three seconds to
 // commit and push. Same tag as the others, for the same reason.
 const FORM_BUSY_SCRIPT = transpile("form-busy.ts");
+// The sixth: a link that leaves the page says so the moment it is
+// clicked, on every page (spec 312) — `queue-client.ts` used to own
+// this for the one page it loads on.
+const NAV_BUSY_SCRIPT = transpile("nav-busy.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -266,7 +270,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}

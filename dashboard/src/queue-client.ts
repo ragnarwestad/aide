@@ -37,7 +37,7 @@ import {
 } from "./queue-client/forms.ts";
 import { formatElapsed } from "./queue-client/elapsed.ts";
 import { connect, onVisibility } from "./queue-client/live.ts";
-import { markGoing, navigate } from "./queue-client/navigation.ts";
+import { navigate } from "./queue-client/navigation.ts";
 import { postPendingModel } from "./queue-client/pending-model.ts";
 import { postForm } from "./queue-client/press.ts";
 import { relabelRunButton } from "./queue-client/row-swap.ts";
@@ -79,9 +79,6 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
-// Spec 208: on the document, because the tab bar is not inside
-// `#jobrows` and a tab is exactly the click 1-description.md measured.
-document.addEventListener("click", markGoing as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control

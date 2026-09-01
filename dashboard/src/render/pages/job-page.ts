@@ -319,7 +319,9 @@ export function tabBar<T extends string>(
         const label = TAB_LABELS[t] ?? t[0]!.toUpperCase() + t.slice(1);
         const n = counts[t] || undefined;
         return (
-          `<a class="tab" data-nav href="${esc(basePath)}?tab=${t}"` +
+          // data-goto (spec 312): a real page load, same as the top
+          // row's own tabs (shell.ts) — nav-busy.ts marks it waiting.
+          `<a class="tab" data-nav data-goto href="${esc(basePath)}?tab=${t}"` +
           `${t === current ? ` aria-current="page"` : ""}>` +
           `${esc(label)}${n === undefined ? "" : ` (${n})`}</a>`
         );

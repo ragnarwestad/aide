@@ -316,7 +316,9 @@ describe("the spec page is a page of this site like any other", () => {
     expect(html).not.toContain('data-filter="tab"');
     // The open one is marked the way the site's tabs mark theirs — the
     // Description tab, since it is the new default (spec 294).
-    expect(html).toMatch(/<a class="tab" data-nav href="[^"]*\?tab=description" aria-current="page">Description<\/a>/);
+    expect(html).toMatch(
+      /<a class="tab" data-nav data-goto href="[^"]*\?tab=description" aria-current="page">Description<\/a>/,
+    );
   });
 
   test("no Live right now panel exists here either", () => {

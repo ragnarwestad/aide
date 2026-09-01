@@ -3,8 +3,6 @@
 // fold chevron, a real navigation), parameterized on the harness state
 // they need rather than closing over it.
 
-import { classes } from "./fixtures-controls.ts";
-
 type Listener = (e: unknown) => void | Promise<void>;
 
 /** Every navigation/event-firing helper `harness()` returns, built
@@ -61,40 +59,8 @@ export function buildNavigation(
     closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
   };
   const clickFold = () => fire("click", foldLink);
-  /** A real navigation — the spec's own name, and the tab bar's links
-   *  (spec 208). Both leave the page for a different document, so
-   *  neither goes through `swapRows`; what they need is for the click
-   *  to stop being invisible. `data-goto` is the marker, and the
-   *  listener is on the DOCUMENT because the tab bar sits outside
-   *  `#jobrows`. */
-  const gotoLink = (href: string) => {
-    const el = { className: "", getAttribute: (n: string) => (n === "href" ? href : null) } as {
-      className: string;
-      getAttribute: (n: string) => string | null;
-      closest: (sel: string) => unknown;
-      classList: ReturnType<typeof classes>;
-    };
-    el.closest = (sel: string) => (sel.includes("data-goto") ? el : null);
-    el.classList = classes(el);
-    return el;
-  };
-  const clickGoto = (el: ReturnType<typeof gotoLink>, extra: Partial<{ defaultPrevented: boolean }> = {}) => {
-    let prevented = extra.defaultPrevented ?? false;
-    const event = {
-      target: el,
-      button: 0,
-      get defaultPrevented() {
-        return prevented;
-      },
-      preventDefault: () => {
-        prevented = true;
-      },
-    };
-    on["doc:click"]?.(event);
-    return prevented;
-  };
 
-  return { submit, submitCreate, click, clickFold, gotoLink, clickGoto, fire };
+  return { submit, submitCreate, click, clickFold, fire };
 }
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers

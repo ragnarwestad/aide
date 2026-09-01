@@ -4,10 +4,11 @@ import { harness } from "./fixtures.ts";
 // Spec 208: every action says at once that it registered.
 //
 // Buttons have done this since spec 96/101 — the `busy` look, set
-// synchronously on the press, before the answer exists. The three
-// actions `1-description.md` names got none of it: opening a row,
-// folding or sorting the list, and moving between the top-level tabs.
-// Seven silent seconds read as a dead app.
+// synchronously on the press, before the answer exists. This file
+// covers the in-place case: opening a row, folding or sorting the
+// list. A real navigation — a spec's own name, a tab bar link — is
+// `nav-busy.ts`'s own since spec 312, tested in
+// `test/render/ui/nav-busy.test.ts`.
 describe("a click that leaves the page waiting says so at once (spec 208)", () => {
   // Criterion 12. The fold and sort links go through `navigate()`, which
   // swaps the rows in place: the page stays, so the container is what
@@ -30,37 +31,5 @@ describe("a click that leaves the page waiting says so at once (spec 208)", () =
     await h.clickFold();
     await new Promise((r) => setTimeout(r, 0));
     expect(h.rows.classList.contains("awaiting")).toBe(false);
-  });
-
-  // Criterion 13. A spec's own name and the tab bar's links are REAL
-  // navigations — a different document, which no script can swap in.
-  // So the click is marked and the browser is left to get on with it.
-  test("a spec's name marks itself and does not stop the browser navigating", () => {
-    const h = harness(() => ({ ok: true }));
-    const link = h.gotoLink("/specs/aide/208-the-app-answers-at-once");
-    const prevented = h.clickGoto(link);
-    expect(link.classList.contains("awaiting")).toBe(true);
-    // The whole point: the navigation still happens. Intercepting it
-    // would mean re-implementing a page load in script.
-    expect(prevented).toBe(false);
-  });
-
-  test("a tab bar link does the same, though it sits outside #jobrows", () => {
-    const h = harness(() => ({ ok: true }));
-    const tab = h.gotoLink("/projects");
-    const prevented = h.clickGoto(tab);
-    expect(tab.classList.contains("awaiting")).toBe(true);
-    expect(prevented).toBe(false);
-  });
-
-  // A click already spoken for — a modifier held, a middle button, or
-  // something upstream having called `preventDefault` — opens a new tab
-  // or does nothing at all. Marking the link in either case would leave
-  // a permanent look on a page nobody navigated away from.
-  test("a click that is not a plain navigation is left alone", () => {
-    const h = harness(() => ({ ok: true }));
-    const link = h.gotoLink("/projects");
-    h.clickGoto(link, { defaultPrevented: true });
-    expect(link.classList.contains("awaiting")).toBe(false);
   });
 });
