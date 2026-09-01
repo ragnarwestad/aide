@@ -9,7 +9,9 @@
 
 Longer pages of their own:
 
-- [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, branches and landing
+- [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
+- [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
+- [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app
 
@@ -28,20 +30,20 @@ two — no host is named anywhere in this repo.
 ## URL scheme
 
 This is the map. The rules behind each page — what a row says, what a tab shows, what a route refuses — are in
-[Running specs](docs/running-specs.md). Every served page and every `/api/queue*` route requires
+[The specs list and the spec page](docs/the-specs-list.md) and [Running specs](docs/running-specs.md). Every served page and every `/api/queue*` route requires
 [the token](docs/running-specs.md#the-token); the generated `.html` pages and the app-install files do not.
 
 Pages:
 
 - `/` — the spec list: one row per spec of every allowlisted project, phases beneath, run and cancel from the row.
   `?state=` picks a chip and `?q=` searches;
-  see [Filtering and searching the list](docs/running-specs.md#filtering-and-searching-the-list).
+  see [Filtering and searching the list](docs/the-specs-list.md#filtering-and-searching-the-list).
 - `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done nothing.
 - `/projects` — every project with its spec counts, plus the panel that adds and removes them.
 - `/projects/<name>` — one project: what its `.aide/config` says, whether a run could start there, and the settings
   that can be edited inline.
 - `/settings` — the default AI and model per step.
-- `/specs/<project>/<spec>` — the whole spec in seven tabs; see [The spec page](docs/running-specs.md#the-spec-page).
+- `/specs/<project>/<spec>` — the whole spec in seven tabs; see [The spec page](docs/the-specs-list.md#the-spec-page).
 - `/specs/<id>` — one job, in full. Nothing links here any more; the route stays because an old link is a promise.
 - `/<slug>.html` — one generated page per project (slug = lowercased name, non-alphanumerics → hyphens; collisions get
   `-2`, `-3`, …; `index`, `about` and `projects` are reserved). It is what a site published by

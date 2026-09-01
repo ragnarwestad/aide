@@ -45,6 +45,8 @@ docs:
   - docs/SKILL_GUIDE.md
   - dashboard/README.md
   - dashboard/docs/running-specs.md
+  - dashboard/docs/the-specs-list.md
+  - dashboard/docs/landing.md
   - dashboard/docs/design-system.md
   - dashboard/docs/deploying.md
   - .claude/rules/development.md

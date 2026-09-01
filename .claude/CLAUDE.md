@@ -60,13 +60,15 @@ hand-started process is not the service.
 ## Reading the documentation
 
 **Grep the long pages; do not read one whole.**
-`dashboard/docs/running-specs.md` is 980 lines and `docs/AI_NEWS_LOG.md`
+`dashboard/docs/running-specs.md` is 600 lines and `docs/AI_NEWS_LOG.md`
 650; both are written to be searched. Where to look:
 
 | Question | Page |
 |---|---|
 | What the dashboard is, its URLs, live runs | `dashboard/README.md` |
-| How the queue, the runner, branches and landing work | `dashboard/docs/running-specs.md` |
+| How the queue, the runner and the checkouts work | `dashboard/docs/running-specs.md` |
+| What a row on the specs list says, the spec page | `dashboard/docs/the-specs-list.md` |
+| How a step's branch is merged, conflicts, unlanded work | `dashboard/docs/landing.md` |
 | Tokens, components and the CSS class vocabulary | `dashboard/docs/design-system.md` |
 | Serving it, HTTPS, moving it to another host | `dashboard/docs/deploying.md` |
 | Installation layout, what goes where, the gotchas | `.claude/rules/development.md` |
