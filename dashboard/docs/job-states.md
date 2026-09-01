@@ -79,7 +79,8 @@ server restarted while this step was running"). A job whose process is gone but 
 normally from that file — nothing about a restart is guessed at.
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` alone. It sends `SIGTERM` to the job's process group when there
-is one and writes `cancelled`; it does not look at the state it is replacing.
+is one and writes `cancelled`. A job that has already finished is refused with 409 and keeps its state: `done`,
+`failed`, `stopped` and the rest are history, and Cancel does not rewrite history.
 
 **Done to failed** is the one transition made after the fact. The step succeeded, so `complete()` has already written
 `done`, and the landing runs afterwards. When that landing is refused for a conflict, or `archive`'s landing finds the

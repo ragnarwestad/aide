@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   renderQueuePage,
 } from "../../src/render.ts";
@@ -326,6 +328,32 @@ describe("token configured", () => {
     };
     expect(after.jobs.find((j) => j.id === id)?.state).toBe("cancelled");
     expect((await fetch(`${base}/api/queue/nope/cancel`, { method: "POST", headers })).status).toBe(404);
+  });
+
+  // Only a job that still owns its work can be cancelled. A finished
+  // job's state is history — done, failed, stopped — and Cancel must not
+  // rewrite it to "cancelled" as though someone had ended the run.
+  test("cancel refuses a job that has already finished, and leaves its state alone", async () => {
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"]) {
+      const site = mkdtempSync(join(tmpdir(), "aide-cancel-finished-"));
+      ownDirs.push(site);
+      const id = `fin-${state}`;
+      writeFileSync(join(site, "queue.json"), JSON.stringify([{
+        id, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0, state,
+        budgetUsd: 3, jobCapUsd: 10, timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
+        createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
+      }]));
+      const { base } = start({ queueToken: TOKEN, queueMirrorPath: join(site, "queue.json") });
+      const res = await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toContain(state);
+      const after = (await (await fetch(`${base}/api/queue`, { headers })).json()) as {
+        jobs: { id: string; state: string }[];
+      };
+      expect(after.jobs.find((j) => j.id === id)?.state).toBe(state);
+      harness.cleanup();
+    }
   });
 });
 
