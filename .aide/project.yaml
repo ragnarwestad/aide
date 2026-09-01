@@ -48,6 +48,7 @@ docs:
   - dashboard/docs/the-specs-list.md
   - dashboard/docs/landing.md
   - dashboard/docs/projects.md
+  - dashboard/docs/job-states.md
   - dashboard/docs/design-system.md
   - dashboard/docs/deploying.md
   - .claude/rules/development.md
