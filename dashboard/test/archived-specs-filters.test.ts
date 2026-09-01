@@ -11,17 +11,23 @@ afterEach(() => harness.cleanup());
 // --- criterion 1: the default view is the reading view, unchanged ----------
 
 describe("the default filter", () => {
-  test("is a chip of its own, and it is the one the bare page resolves to", async () => {
+  test("is All, and it is the one the bare page resolves to", async () => {
     const html = await specsList(start().base);
-    expect(html).toContain(">Active");
-    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>Active/);
+    expect(html).toContain(">All");
+    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>All/);
   });
 
-  // Every archived spec in this fixture has landed — `gitDated` answers
-  // no `ls-remote` — which is what makes this the plain case. The one
-  // exception is spec 193's, and it has a test of its own below.
-  test("holds the live specs and no archived one at all (criterion 1)", async () => {
+  // A spec that reaches the archive stays on the list the reader is
+  // already looking at. The Active chip is what cuts them now, and has
+  // its own test below.
+  test("holds the live specs AND the archived ones", async () => {
     const html = await specsList(start().base);
+    expect(html).toContain(LIVE);
+    for (const folder of Object.keys(ARCHIVED)) expect(html).toContain(folder);
+  });
+
+  test("the Active chip is what holds the archived ones back", async () => {
+    const html = await specsList(start().base, "?state=not-archived");
     expect(html).toContain(LIVE);
     for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     // Not the folder alone: the title and the description are what a

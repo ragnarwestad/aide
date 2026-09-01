@@ -114,12 +114,15 @@ describe("an archived spec whose branch is still on origin", () => {
   // not finished, and a reading view that dropped it would hide the
   // exact failure spec 193 exists to surface. Its landed siblings are
   // not there, so the archive itself is still not being paid for.
-  test("keeps its row on the default view, where its landed siblings have none", async () => {
+  // Every archived spec has a row on the default view now that All is
+  // the default chip; what still sets this one apart is the MARK it
+  // wears — its own branch is still on origin, so its work never landed.
+  test("wears the not-landed mark its landed siblings do not", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await listUntil(base, "not landed");
     expect(rowFor(html, STAMPED).toLowerCase()).toContain("not landed");
     for (const folder of [UNSTAMPED, SAME_DAY, UNDATED, OTHER]) {
-      expect(html).not.toContain(folder);
+      expect(rowFor(html, folder).toLowerCase()).not.toContain("not landed");
     }
   });
 

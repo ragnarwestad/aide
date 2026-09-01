@@ -212,19 +212,31 @@ describe("spec 221: archived specs on the spec list", () => {
   const folders = (html: string): string[] =>
     [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)"/g)].map((m) => m[1]!);
 
-  test("the default chip is the new one, and it comes first", () => {
+  // All is the default now, and first in the panel with it — a spec that
+  // reaches the archive stays on the list the reader is already looking
+  // at instead of dropping off it.
+  test("All is the default chip, and it comes first", () => {
     const html = rows({ archivedSpecs: [archivedSpec("50-archived")] });
     // Nothing is passed as the filter at all: this is the fallback every
     // reader with a bare `/` gets.
-    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>Active/);
-    expect(html.indexOf(">Active")).toBeLessThan(html.indexOf(">All"));
+    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>All/);
+    expect(html.indexOf(">All")).toBeLessThan(html.indexOf(">Active"));
   });
 
-  test("the default chip hides an archived row even when the data is there", () => {
+  test("the default chip keeps an archived row on the list beside a live one", () => {
+    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], targets: [live("60-live")] });
+    expect(folders(html).sort()).toEqual(["50-archived", "60-live"]);
+  });
+
+  test("the Active chip is what cuts an archived row now", () => {
     // The server gates the data too (criterion 10), but the renderer
     // must not depend on that: a row that reached it must still be cut
     // by the filter, or the two halves of one rule could disagree.
-    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], targets: [live("60-live")] });
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      targets: [live("60-live")],
+      filter: { state: "not-archived" },
+    });
     expect(folders(html)).toEqual(["60-live"]);
   });
 

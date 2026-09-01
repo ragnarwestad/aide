@@ -38,21 +38,21 @@ describe("the state dropdown (spec 289)", () => {
   test("all six options appear in order inside the panel, each a data-nav link", () => {
     const html = page();
     const panel = panelOf(html);
-    const order = ["Active", "All", "Running", "Done", "Problems", "Archived"];
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
     for (const label of order) expect(optionByLabel(panel, label)).not.toBe("");
     const positions = order.map((label) => panel.indexOf(optionByLabel(panel, label)));
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  test("with no state param, Active carries aria-current and the trigger shows no count", () => {
+  test("with no state param, All carries aria-current and the trigger shows no count", () => {
     const html = page();
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Active")).toContain('aria-current="true"');
+    expect(optionByLabel(panel, "All")).toContain('aria-current="true"');
     const trigger = panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
     expect(trigger).toContain("State");
-    expect(trigger).toContain("Active");
+    expect(trigger).toContain("All");
     // The count sits on each OPTION, never on the closed trigger.
-    expect(trigger).not.toMatch(/Active\s*\(/);
+    expect(trigger).not.toMatch(/All\s*\(/);
   });
 
   test("with state=problem, Problems carries aria-current and Active does not", () => {

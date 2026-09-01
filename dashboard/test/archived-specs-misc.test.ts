@@ -61,21 +61,26 @@ describe("building the archived rows", () => {
 
   test("and the gate answers for every chip there is", async () => {
     const { filterShowsArchived } = await import("../src/render/pages/queue-list.ts");
-    expect(filterShowsArchived(undefined)).toBe(false);
-    expect(filterShowsArchived("not-archived")).toBe(false);
+    // Absent resolves to the default chip, which is All.
+    expect(filterShowsArchived(undefined)).toBe(true);
     expect(filterShowsArchived("all")).toBe(true);
     expect(filterShowsArchived("archived")).toBe(true);
+    expect(filterShowsArchived("not-archived")).toBe(false);
     for (const key of ["active", "done", "problem"]) {
       expect(filterShowsArchived(key)).toBe(false);
     }
-    // A stale bookmark falls back to the default, which shows none.
-    expect(filterShowsArchived("nonsense")).toBe(false);
+    // A stale bookmark falls back to the same default.
+    expect(filterShowsArchived("nonsense")).toBe(true);
   });
 
   test("the rows fragment the live refresh asks for is gated the same way", async () => {
     const { base } = start();
+    // Default (All): the fragment carries the archived rows too.
     const rows = await (await fetch(`${base}/?rows=1`, auth)).text();
-    for (const folder of Object.keys(ARCHIVED)) expect(rows).not.toContain(folder);
+    for (const folder of Object.keys(ARCHIVED)) expect(rows).toContain(folder);
+    // Active: the chip that cuts them cuts them here as well.
+    const activeRows = await (await fetch(`${base}/?rows=1&state=not-archived`, auth)).text();
+    for (const folder of Object.keys(ARCHIVED)) expect(activeRows).not.toContain(folder);
     const archivedRows = await (await fetch(`${base}/?rows=1&state=archived`, auth)).text();
     expect(archivedRows).toContain(STAMPED);
   });
