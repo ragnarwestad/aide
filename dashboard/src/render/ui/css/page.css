@@ -54,6 +54,25 @@ main { padding: var(--sp-5) var(--sp-6); }
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
 header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
+/* The Specs page only (spec 320), scoped by :has(#jobrows) — the id only
+   that one page ever writes. Its own box (.tablewrap, list.css) is the
+   only thing meant to scroll; everywhere else keeps the ordinary
+   min-height: 100vh above, which lets a page grow past the viewport and
+   the browser scroll it normally (REQ-5). overflow: hidden lives on body
+   alone, not on main too — an ancestor's overflow: hidden clips
+   everything inside it regardless of what an element between the two
+   says, and main staying at its default overflow: visible is what keeps
+   a dropdown this page opens (the state filter, the header menus) from
+   being clipped if it ever opened near an edge. */
+body:has(#jobrows) { height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column; }
+/* min-height: 0 is the flexbox rule an item needs before it will actually
+   shrink to the space flex-grow hands it, rather than growing to fit its
+   content and pushing the page taller regardless (list.css carries the
+   matching rule on #jobrows and .tablewrap, the next two links in the
+   same chain). */
+body:has(#jobrows) main { flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; }
 /* Window Controls Overlay (asked 2026-08-31): when Chrome has actually
    folded the OS title bar into the page — a person has to opt in per
    window, so `display_override` in the manifest is necessary but not

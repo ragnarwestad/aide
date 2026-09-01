@@ -38,6 +38,21 @@
   table.speclist tr:not(.spechead):not(.subrow) > td { display: block; }
   .tabbar .tab { min-width: 0; }
 
+  /* The desktop chain above (spec 320: page.css's body/main rules,
+     list.css's #jobrows/.tablewrap rules) is undone here, full circle:
+     .speclist is already stacked blocks at this width (above), and a box
+     bounded to "whatever's left of the viewport" would be a small window
+     to read them through — the page goes back to scrolling normally
+     instead, and the filter row scrolls away with the rows like
+     everything else (REQ-4). Every selector below repeats its desktop
+     rule's own text, per this file's stated convention: the override
+     wins by coming later in the cascade, not by being written shorter or
+     more specific. */
+  body:has(#jobrows) { height: auto; overflow: visible; display: block; }
+  body:has(#jobrows) main { flex: none; min-height: 0; display: block; }
+  #jobrows { display: block; flex: none; min-height: 0; }
+  #jobrows .tablewrap { flex: none; min-height: 0; overflow-y: visible; }
+
   /* The spec header line (design handoff, mobile-spec-row): the mock
      puts the fold/name/pips alone on the first line and the badge, the
      Archive button and the date/cost together on a second — one flex

@@ -205,8 +205,12 @@ describe("every wide table scrolls inside its own box", () => {
   test(".tablewrap is a scroll box at every width, like .specfile", () => {
     expect(CSS).toMatch(/\.tablewrap \{[^}]*overflow-x:\s*auto/);
     // Unconditional: a table three columns wider than the window is not
-    // a phone-only problem, and .specfile does not gate it either.
-    expect(NARROW).not.toContain(".tablewrap");
+    // a phone-only problem, and .specfile does not gate it either. A
+    // vertical-scroll override for #jobrows now legitimately exists in
+    // the narrow block (spec 320, REQ-4), so this checks only that no
+    // narrow rule touching .tablewrap sets overflow-x — the horizontal
+    // guarantee, not the class name's mere presence.
+    expect(NARROW).not.toMatch(/\.tablewrap[^{]*\{[^}]*overflow-x/);
   });
 
   test("the spec list's table is wrapped", () => {
@@ -230,23 +234,77 @@ describe("every wide table scrolls inside its own box", () => {
 
     test("the list's box has a height to scroll inside (criterion 2)", () => {
       expect(listWrap()).toMatch(/overflow-y:\s*auto/);
-      expect(listWrap()).toMatch(/max-height:\s*\S+/);
+      expect(listWrap()).toMatch(/flex:\s*1/);
+      expect(listWrap()).toMatch(/min-height:\s*0/);
     });
 
     // The page still scrolls the ordinary way everywhere else — the
-    // rule is on the list's wrapper, never on `main` or `body`.
+    // BARE main/body rules (checked below, "the bare body/main rules
+    // stay ordinary") carry no cap; spec 320 adds one, but only on a
+    // rule scoped to this one page (`body:has(#jobrows)`), never on
+    // the unscoped rules this assertion reads.
     test("nothing else on the page is bounded to make it work", () => {
       expect(CSS).not.toMatch(/\bmain \{[^}]*overflow/);
       expect(CSS).not.toMatch(/\bbody \{[^}]*overflow/);
     });
 
+    // The middle link in the chain (spec 320): #jobrows itself has to
+    // be a flex column, or .tablewrap has nothing to grow into.
+    test("#jobrows is the flex column .tablewrap grows inside", () => {
+      const m = /#jobrows \{([^}]*)\}/.exec(CSS);
+      expect(m).not.toBeNull();
+      expect(m![1]).toMatch(/display:\s*flex/);
+      expect(m![1]).toMatch(/flex-direction:\s*column/);
+      expect(m![1]).toMatch(/min-height:\s*0/);
+    });
+
+    // Spec 320: the fixed 70vh guess is gone, replaced by a scoped
+    // body/main chain that hands the list whatever space is actually
+    // left over. Scoped with :has(#jobrows) — the id only this page
+    // ever writes — so no other page's body/main is touched (REQ-5).
+    test("body/main are capped to the viewport on this page only", () => {
+      const body = /body:has\(#jobrows\) \{([^}]*)\}/.exec(CSS);
+      expect(body).not.toBeNull();
+      expect(body![1]).toMatch(/height:\s*100vh/);
+      expect(body![1]).toMatch(/overflow:\s*hidden/);
+
+      const main = /body:has\(#jobrows\) main \{([^}]*)\}/.exec(CSS);
+      expect(main).not.toBeNull();
+      expect(main![1]).toMatch(/flex:\s*1/);
+      expect(main![1]).toMatch(/min-height:\s*0/);
+      // Risk 2's mitigation: overflow stays off this scoped `main`
+      // rule, or a dropdown opening near the bottom edge gets clipped.
+      expect(main![1]).not.toMatch(/overflow/);
+    });
+
+    // REQ-5, checked directly rather than only by the scoped rules
+    // above existing: the BARE (unscoped) body/main rules must carry
+    // none of this page's cap. A regex on the word "height" alone
+    // would trip on page.css's own pre-existing `min-height: 100vh`
+    // on body and on the new scoped `main` rule's `min-height: 0`, so
+    // this excludes anything immediately preceded by the :has() scope.
+    test("the bare body/main rules stay ordinary (REQ-5)", () => {
+      const bareBody = /(?<!:has\([^)]*\)\s)\bbody \{([^}]*)\}/.exec(CSS);
+      expect(bareBody).not.toBeNull();
+      expect(bareBody![1]).not.toMatch(/overflow:\s*hidden/);
+      expect(bareBody![1]).not.toMatch(/(?<!min-)height:\s*100vh/);
+
+      const bareMain = /(?<!:has\([^)]*\)\s)\bmain \{([^}]*)\}/.exec(CSS);
+      expect(bareMain).not.toBeNull();
+      expect(bareMain![1]).not.toMatch(/display:\s*flex/);
+      expect(bareMain![1]).not.toMatch(/overflow:\s*hidden/);
+    });
+
     // Risk 3: at phone width `.speclist` leaves table layout for
-    // stacked flex blocks. The wrapper is present in both layouts and
-    // the rule is unconditional, so the box works there too — a rule
-    // the narrow block quietly overrode would be a list that scrolled
-    // on a desktop and ran off the page on a phone.
-    test("the narrow-width block does not take it away", () => {
-      expect(NARROW).not.toContain("tablewrap");
+    // stacked flex blocks, and REQ-4 wants the box gone entirely there
+    // — a fixed-height box makes no sense once the table is stacked
+    // blocks. The narrow block now overrides the desktop chain back to
+    // normal flow instead of leaving it untouched.
+    test("the narrow-width block undoes the box (REQ-4)", () => {
+      expect(NARROW).toMatch(/#jobrows \.tablewrap \{[^}]*overflow-y:\s*visible/);
+      expect(NARROW).not.toMatch(/#jobrows \.tablewrap \{[^}]*flex:\s*1/);
+      expect(NARROW).toMatch(/body:has\(#jobrows\) \{[^}]*display:\s*block/);
+      expect(NARROW).toMatch(/body:has\(#jobrows\) \{[^}]*overflow:\s*visible/);
     });
 
     // Criterion 2's other half: the chips, the "?", New spec and the
