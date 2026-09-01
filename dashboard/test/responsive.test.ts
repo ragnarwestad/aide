@@ -387,3 +387,43 @@ describe("the search row stays on one line at phone width", () => {
     expect(desktop).toContain("width: 26rem; max-width: 100%");
   });
 });
+
+// Spec 325: on the Specs page, `body:has(#jobrows)` (spec 320) makes
+// `body` a flex column, and a flex item whose cross-axis margins are
+// both `auto` is never stretched to the container's width — it shrinks
+// to its own content instead. `header`, the tab bar and `main` need an
+// explicit, content-independent width to stay equal there, not just on
+// every other page where block layout already gave them one for free.
+describe("the frame keeps one width, and the tabs sit in the middle of it", () => {
+  /** The shared frame rule's own body. */
+  const frameRule = (): string => {
+    const m = /header, body > nav\.tabbar, main \{([^}]*)\}/.exec(CSS);
+    expect(m).not.toBeNull();
+    return m![1]!;
+  };
+
+  test("header, the tab bar and main share an explicit, content-independent width (REQ-1, REQ-5)", () => {
+    expect(frameRule()).toMatch(/width:\s*100%/);
+    expect(frameRule()).toMatch(/box-sizing:\s*border-box/);
+    expect(frameRule()).toMatch(/max-width:\s*calc\(72rem \+ 2 \* var\(--sp-6\)\)/);
+  });
+
+  test("the frame stays centred (REQ-2)", () => {
+    expect(frameRule()).toMatch(/margin-inline:\s*auto/);
+  });
+
+  test("the top-level tab bar centres its tabs as a rule of its own (REQ-3)", () => {
+    const m = /body > nav\.tabbar \{([^}]*)\}/.exec(CSS);
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/justify-content:\s*center/);
+  });
+
+  // Guard: the inner (spec/job) tab row shares the `.tabbar` class but
+  // is a different selector entirely and must not pick up the same
+  // centring — it takes the page's width, not the frame's.
+  test("the inner subtabs row is not centred by the same rule", () => {
+    const m = /nav\.tabbar\.subtabs \{([^}]*)\}/.exec(CSS);
+    expect(m).not.toBeNull();
+    expect(m![1]).not.toMatch(/justify-content:\s*center/);
+  });
+});
