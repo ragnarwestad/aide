@@ -170,9 +170,22 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
       "AIDE_SPECS_PATH", "AIDE_WORKTREE_LINKS", "AIDE_TEST_CMD", "AIDE_LINT_CMD",
       "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD", "AIDE_JIRA_BASE_URL",
     ]) {
-      expect(html).toContain(`<td>${key}</td>`);
+      // The raw key sits beside its plain-language label now (spec 318,
+      // REQ-2), not alone in the cell.
+      expect(html).toMatch(new RegExp(`<td>[^<]*<span class="muted">${key}</span></td>`));
     }
     expect(html).toContain("<td>Code landing</td>");
+  });
+
+  // Spec 318, REQ-2: the Worktree links row names both the
+  // plain-language label and the exact env-var name, so a reader who
+  // followed the Health tab's warning here recognizes the row, and a
+  // reader editing `.aide/config` by hand still has the exact key.
+  test("the Worktree links row shows its plain-language label beside the raw key (REQ-2)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("Worktree links");
+    expect(html).toContain("AIDE_WORKTREE_LINKS");
   });
   test("a configured test command is shown as configured (criterion 1)", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });

@@ -2,6 +2,7 @@
 // in one `<table>`.
 
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
+import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";
@@ -115,7 +116,7 @@ export function unifiedSettingsTable(
         // fact (`project-settings.ts` reads it verbatim).
         const problem = r.problem ? rowMessage("warn", r.problem) : "";
         return (
-          `<tr><td>${esc(r.key)}</td>` +
+          `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
           `<td>${settingValueCell(r, editing, opts)}</td>` +
           `<td>${esc(r.purpose)} — ${originText(r)}${problem}</td></tr>`
         );

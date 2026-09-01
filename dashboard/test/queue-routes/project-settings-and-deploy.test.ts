@@ -295,7 +295,10 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { ok: boolean; error?: string };
     expect(body.ok).toBe(false);
-    expect(body.error).toContain("AIDE_INSTALL_CMD");
+    // Spec 318 (REQ-1): the refusal names the setting in plain words,
+    // not the raw env-var key.
+    expect(body.error).toContain("install command");
+    expect(body.error).not.toContain("AIDE_INSTALL_CMD");
     for (const forbidden of ["fetch", "pull"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
     }

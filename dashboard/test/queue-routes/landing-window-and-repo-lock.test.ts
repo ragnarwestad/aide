@@ -484,6 +484,29 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(0);
   });
 
+  // Spec 318 (REQ-1): the post-merge note names the setting in plain
+  // words, not the raw env-var key.
+  test("installAfterMerge names the setting in plain words when none is configured (REQ-1)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-318-install-unset-"));
+    ownDirs.push(dir);
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    const lock = createRootLock();
+    const { hook } = restartSpy();
+    const ctx = {
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+      queueInstallTimeoutMs: undefined,
+    } as unknown as LandContext;
+    const result: RepoMergeResult = { root: dir, ok: true };
+
+    await installAfterMerge(ctx, result);
+
+    expect(result.installError).toContain("install command");
+    expect(result.installError).not.toContain("AIDE_INSTALL_CMD");
+  });
+
   test("installAfterMerge restarts once a successful install clears (companion to criterion 4)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
     ownDirs.push(dir);
