@@ -222,6 +222,48 @@ describe("branchesFor", () => {
   });
 });
 
+// Spec 319: the row-level sibling of `pullRequestFor` — newest job wins,
+// and a spec no job ever recorded one for reads as absent rather than as
+// a claim.
+describe("branchDeleteErrorFor", () => {
+  test("a spec no job recorded one for has none", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    store.update(r.job.id, { state: "done" });
+    expect(store.branchDeleteErrorFor("aide", "81-queue-and-runner")).toBeUndefined();
+  });
+
+  test("the newest job that recorded one wins", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const older = store.enqueue({ ...REQ, steps: ["analyze"] });
+    if (!older.ok) throw new Error(older.error);
+    store.update(older.job.id, {
+      state: "done",
+      startedAt: "2026-08-17T09:00:00Z",
+      branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: old reason",
+    });
+    const newer = store.enqueue({ ...REQ, steps: ["implement"] });
+    if (!newer.ok) throw new Error(newer.error);
+    store.update(newer.job.id, {
+      state: "done",
+      startedAt: "2026-08-17T11:00:00Z",
+      branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
+    });
+    expect(store.branchDeleteErrorFor("aide", "81-queue-and-runner")).toBe(
+      "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
+    );
+  });
+
+  test("another spec's recorded reason is not this spec's", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    store.update(r.job.id, { state: "done", branchDeleteError: "merged, but deleting failed: reason" });
+    expect(store.branchDeleteErrorFor("aide-dashboard", "01-first")).toBeUndefined();
+  });
+});
+
 // Two jobs for the same spec and the same step is never what anyone
 // meant: it happened on 2026-08-16 when the same analyze was posted
 // from the API and from the page seconds apart, and the queue took

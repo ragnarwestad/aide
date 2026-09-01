@@ -123,6 +123,9 @@ describe("spec 231: the Reset control", () => {
     expect(html).toContain("Reset");
     expect(html).toContain("a job is running");
     expect(html).not.toContain('href="/reset-confirm"');
+    // Spec 321: the markup already says aria-disabled, but nothing
+    // styled it until button.css gained the matching selector.
+    expect(html).toContain('aria-disabled="true"');
   });
 
   test("the confirmation explains every effect and requires the exact folder", () => {

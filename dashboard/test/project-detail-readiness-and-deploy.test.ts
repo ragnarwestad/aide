@@ -155,12 +155,34 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     expect(html).not.toContain("deploy is a hand step");
   });
 
-  test("a project level with origin says so, with no button (criterion 3)", async () => {
+  test("a project level with origin says so, with a disabled Deploy button (criterion 3, spec 321)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 0), 25);
     const html = await loadUntil(base, "aide", "level with origin", 2000, "deploy");
     expect(html).toContain("This checkout is level with origin.");
-    expect(html).not.toContain('class="deployform"');
+    expect(html).toContain('class="deployform"');
+    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
+    expect(form).toContain('title="This checkout is level with origin."');
+  });
+
+  // Spec 321, REQ-2/REQ-5: the control is drawn in both states, never
+  // omitted in either — only its `disabled` attribute changes.
+  test("the Deploy button is present both behind and level with origin (spec 321)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const behindHtml = await loadUntil(
+      serve(root, behindBy(root, "aide", 3), 25), "aide", "commits behind origin", 2000, "deploy",
+    );
+    expect(behindHtml).toContain('class="deployform"');
+    expect(behindHtml.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "")
+      .not.toMatch(/<button[^>]*\bdisabled\b/);
+
+    const levelHtml = await loadUntil(
+      serve(root, behindBy(root, "aide", 0), 25), "aide", "level with origin", 2000, "deploy",
+    );
+    expect(levelHtml).toContain('class="deployform"');
+    expect(levelHtml.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "")
+      .toMatch(/<button[^>]*\bdisabled\b/);
   });
 
   // The fail-open case: asked, unanswerable. Never "level" — that would

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
+import { ARCHIVED_VIEW, listUntil, rowFor } from "../archived-specs-fixtures.ts";
 import {
   TOKEN,
   specHead,
@@ -24,16 +25,33 @@ function gitFor({
   conflicting = [],
   needsRealMerge = [],
   gone = [],
+  deleteFails = [],
+  stillOpenAfterDelete = [],
 }: {
   conflicting?: string[];
   needsRealMerge?: string[];
   gone?: string[];
+  /** spec 319: roots whose `push -q origin --delete <branch>` fails —
+   *  the merge itself still succeeds, only the tidy-up does not. */
+  deleteFails?: string[];
+  /** spec 319: roots the post-loop `ls-remote --heads ... refs/heads/
+   *  aide/*` check should still report `branch` open on — the fixture
+   *  a delete-fails root needs so `rootsStillHolding` finds it again,
+   *  the way real origin would after a rejected delete. */
+  stillOpenAfterDelete?: { root: string; branch: string }[];
 } = {}) {
   const calls: { dir: string; args: string[] }[] = [];
   const run = async (dir: string, args: string[]) => {
     calls.push({ dir, args });
     const a = args.join(" ");
-    if (a.startsWith("ls-remote") && gone.includes(dir)) return { code: 2, stdout: "" };
+    if (a.startsWith("ls-remote --exit-code") && gone.includes(dir)) return { code: 2, stdout: "" };
+    if (a.startsWith("ls-remote --heads")) {
+      const open = stillOpenAfterDelete.filter((o) => o.root === dir);
+      if (open.length) {
+        return { code: 0, stdout: open.map((o) => `abc123\trefs/heads/${o.branch}\n`).join("") };
+      }
+      return { code: 0, stdout: "" };
+    }
     if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
     if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
     if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
@@ -42,6 +60,9 @@ function gitFor({
     }
     if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
     if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+    if (a.startsWith("push -q origin --delete") && deleteFails.includes(dir)) {
+      return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+    }
     return { code: 0, stdout: "" };
   };
   return { run, calls };
@@ -326,6 +347,97 @@ describe("landing an archived spec (spec 136)", () => {
     });
   });
 
+  // --- spec 319: a merge that succeeds but cannot delete its own branch ------
+  //
+  // `mergeBranchIntoDefault` already reports this as `ok: true` with a
+  // `branchDeleteError` — the merge genuinely happened, and origin can
+  // refuse a delete for reasons outside the dashboard's control. What
+  // this closes is the job-level half of the bug: the SAME fact used to
+  // risk being re-flagged, a few lines later in the same landing, by the
+  // post-loop `rootsStillHolding` check that has no idea the branch it
+  // still finds open is the one this very loop just left that way.
+  describe("a branch left behind after a successful merge (spec 319)", () => {
+    test("settles as done, with no error, and carries the reason on the job", async () => {
+      let specsRoot = "";
+      const inner = gitFor();
+      const git = {
+        calls: inner.calls,
+        run: async (dir: string, args: string[]) => {
+          if (dir === specsRoot) {
+            const a = args.join(" ");
+            if (a === `push -q origin --delete ${BRANCH}`) {
+              inner.calls.push({ dir, args });
+              return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+            }
+            if (a.startsWith("ls-remote --heads")) {
+              inner.calls.push({ dir, args });
+              return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+            }
+          }
+          return inner.run(dir, args);
+        },
+      };
+      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+      specsRoot = join(dir, "root", "aide", "specs");
+      const job = await runStep(base, "archive");
+      writeFileSync(
+        join(results, `${job.id}.json`),
+        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
+      );
+      const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
+
+      expect(landed.error).toBeFalsy();
+      expect(landed.errorReason).toBeFalsy();
+      expect(git.calls.some((c) => c.dir === specsRoot && c.args[0] === "push")).toBe(true);
+      expect(String(landed.branchDeleteError)).toContain(specsRoot);
+      expect(String(landed.branchDeleteError)).toContain(BRANCH);
+      expect(String(landed.branchDeleteError)).toContain("remote rejected: hook declined");
+    });
+
+    // Risk mitigation from the plan: the guard must skip only the root
+    // its OWN loop just recorded a delete failure for — a root the
+    // landing never touched at all, still open for a genuinely
+    // different reason, has to keep failing the job exactly as before.
+    test("does not silence a genuinely unlanded root beside it", async () => {
+      let specsRoot = "";
+      let codeRoot = "";
+      const inner = gitFor();
+      const git = {
+        calls: inner.calls,
+        run: async (dir: string, args: string[]) => {
+          if (dir === specsRoot) {
+            const a = args.join(" ");
+            if (a === `push -q origin --delete ${BRANCH}`) {
+              inner.calls.push({ dir, args });
+              return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+            }
+          }
+          if ((dir === specsRoot || dir === codeRoot) && args.join(" ").startsWith("ls-remote --heads")) {
+            inner.calls.push({ dir, args });
+            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+          }
+          return inner.run(dir, args);
+        },
+      };
+      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+      specsRoot = join(dir, "root", "aide", "specs");
+      codeRoot = join(dir, "root", "aide");
+      const job = await runStep(base, "archive");
+      // Only the specs root is in THIS landing's own branchUrls — the
+      // code root is never merged by it, exactly the shape a job the
+      // LRU cap evicted or a step run by hand would leave behind.
+      writeFileSync(
+        join(results, `${job.id}.json`),
+        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
+      );
+      const failed = await settle(base, job.id, (j) => !!j.error);
+
+      expect(String(failed.error)).toContain(codeRoot);
+      expect(String(failed.error)).not.toContain(specsRoot);
+      expect(failed.errorReason).toBe("unlanded");
+    });
+  });
+
   // Criterion 6. Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same
   // checkout — 111 and 112 were both stranded by a first-try loss.
@@ -436,4 +548,126 @@ describe("landing an archived spec (spec 136)", () => {
       );
     }
   });
+});
+
+// --- spec 319: the row-level half — "branch left behind" is not -----------
+// "not landed" -----------------------------------------------------------
+//
+// An already-archived spec whose branch is still open may have `archive`
+// enqueued again (spec 193's own way out): the runner hands that step the
+// still-open merge, and it can succeed a second time even though the
+// original delete never went through. This proves the row a reader sees
+// afterwards says which of the two happened, without opening anything.
+describe("the row for a branch left behind after a successful merge (spec 319)", () => {
+  const FOLDER = "200-left-behind";
+  const BRANCH = `aide/${FOLDER}`;
+  // A sibling whose branch is open for the ordinary reason — nobody has
+  // landed it — kept in the SAME run so the two marks are compared side
+  // by side rather than in isolation.
+  const SIBLING = "201-never-landed";
+  const SIBLING_BRANCH = `aide/${SIBLING}`;
+
+  // `resolveProject` only admits an archived spec's `specFolder` for
+  // `archive` once `state.unlanded` names it, and that field is a side
+  // effect of `archivedSpecRows` reading `ctx.peekUnlanded()` on a page
+  // render — never of the background schedule alone. So this asks for
+  // the list first, each time round, the same way the row-level
+  // assertions below already have to poll for the mark to land.
+  const enqueueArchiveWhenResolvable = async (base: string, specFolder: string): Promise<{ id: string }> => {
+    const deadline = Date.now() + 3000;
+    for (;;) {
+      await fetch(`${base}/${ARCHIVED_VIEW}`, { headers: { "x-aide-token": TOKEN } });
+      const res = await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", specFolder, steps: ["archive"] }),
+      });
+      if (res.ok) return ((await res.json()) as { job: { id: string } }).job;
+      if (Date.now() > deadline) throw new Error(`${specFolder} never became resolvable for archive`);
+      await new Promise((r) => setTimeout(r, 25));
+    }
+  };
+
+  test("carries BRANCH_LEFT_BEHIND, distinct from the NOT_LANDED its sibling keeps", async () => {
+    // Matched by PATH SHAPE, not by comparing against a `dir` read off
+    // `harness.start()`'s return value: the background schedule's very
+    // first sweep runs SYNCHRONOUSLY inside `createServer`, before
+    // `start()` returns anything to compare against, and its answer
+    // then stands for the checker's own 30 s cache — so a check keyed
+    // on a not-yet-known variable would silently poison the very cache
+    // this test depends on.
+    const isSpecsRoot = (dir: string) => dir.endsWith(join("aide", "specs"));
+    const run = async (dir: string, args: string[]) => {
+      const a = args.join(" ");
+      // Both branches are on origin at the very first ask (step 1 of
+      // `mergeBranchIntoDefault`) and stay listed by the open-branches
+      // query for the whole test — the sibling because nothing ever
+      // lands it, FOLDER because the delete below keeps failing. Only
+      // the SPECS root is asked — the same shape every other fixture in
+      // this file gives an archived spec's branch, and the one that
+      // matters here: a `dir` this loop never merged (the code root)
+      // must not ALSO claim to hold it, or the post-loop check would
+      // (rightly, per the sibling test above) call this a genuine
+      // failure instead of a left-behind delete.
+      if (a.startsWith("ls-remote --exit-code")) return { code: 0, stdout: "" };
+      if (a.startsWith("ls-remote --heads")) {
+        if (isSpecsRoot(dir)) {
+          return { code: 0, stdout: `sha1\trefs/heads/${BRANCH}\nsha2\trefs/heads/${SIBLING_BRANCH}\n` };
+        }
+        return { code: 0, stdout: "" };
+      }
+      if (isSpecsRoot(dir) && a === `push -q origin --delete ${BRANCH}`) {
+        return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+      }
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const results = mkdtempSync(join(tmpdir(), "aide-archive-results-"));
+    ownDirs.push(results);
+    const { base, dir } = harness.start({
+      archivedSpecs: { [FOLDER]: {}, [SIBLING]: {} },
+      extra: {
+        queueToken: TOKEN,
+        gitRun: run as never,
+        queueRunnerBin: "/usr/bin/true",
+        queueResultDir: results,
+      },
+    });
+    const specsRoot = join(dir, "root", "aide", "specs");
+
+    const job = await enqueueArchiveWhenResolvable(base, FOLDER);
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ok: true,
+        exitCode: 0,
+        costUsd: 0.1,
+        costMeasured: true,
+        terminalReason: "completed",
+        branch: BRANCH,
+        branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }],
+        repos: [],
+      }),
+    );
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
+    expect(landed.error).toBeFalsy();
+
+    const html = await listUntil(base, "branch left behind", ARCHIVED_VIEW);
+    const row = rowFor(html, FOLDER);
+    expect(row.toLowerCase()).toContain("branch left behind");
+    expect(row).toContain(`>${"archived"}, branch left behind<`);
+    expect(row).toContain(BRANCH);
+    expect(row).toContain("remote rejected: hook declined");
+
+    // REQ-3: a sibling whose branch never landed at all still reads
+    // exactly as it always has — no reason recorded for it, so it falls
+    // through to the plain mark rather than picking up FOLDER's.
+    const siblingRow = rowFor(html, SIBLING);
+    expect(siblingRow.toLowerCase()).toContain("not landed");
+    expect(siblingRow.toLowerCase()).not.toContain("branch left behind");
+    expect(siblingRow).toContain(">archived, not landed<");
+  }, 15000);
 });

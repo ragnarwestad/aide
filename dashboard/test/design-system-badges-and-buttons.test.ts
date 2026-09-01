@@ -53,6 +53,19 @@ describe("refused and running are told apart by more than the word", () => {
     expect(html).toMatch(/class="refused rowmsg err">\s*<svg/);
   });
 });
+
+// Spec 321: a control disabled via `aria-disabled` (an `<a href>`-shaped
+// control, like `resetControl`) must look as inert as one disabled via
+// the native `disabled` attribute — today only `.btn:disabled` is styled.
+describe("a control disabled via aria-disabled looks as inert as one disabled natively", () => {
+  test("the .btn[aria-disabled=\"true\"] rule shares .btn:disabled's declarations", async () => {
+    const { CSS } = await import("../src/render/ui/css.ts");
+    const rule = CSS.match(/\.btn:disabled[^{]*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("opacity: 0.45");
+    expect(rule).toContain("cursor: default");
+    expect(CSS).toMatch(/\.btn:disabled[^{]*\.btn\[aria-disabled="true"\][^{]*\{/);
+  });
+});
 // "Also touches" had a group of its own here: it lived in the action
 // cell beside the button, and four tests pinned it there. The control
 // is gone — 0 of 200 jobs ever named an extra repo, and it drew a tick

@@ -64,13 +64,21 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     : behind ? rowMessage("warn", driftPrefix(behind, drift.checkedAt, now))
     : behind === 0 ? rowMessage("info", "This checkout is level with origin.")
     : ""; // asked, unanswerable — no claim, never a guess
-  const button = behind
-    ? `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
-      tokenField(opts.token) +
-      btn({ label: "Deploy", variant: "primary", pending: "deploying…" }) +
-      messageSlot("refused") +
-      `</form>`
-    : "";
+  const button =
+    behind !== null
+      ? `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
+        tokenField(opts.token) +
+        btn({
+          label: "Deploy",
+          variant: "primary",
+          pending: "deploying…",
+          ...(behind === 0
+            ? { disabled: true, title: "This checkout is level with origin." }
+            : {}),
+        }) +
+        messageSlot("refused") +
+        `</form>`
+      : "";
   return (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
     message + button + servingLine;
 }
