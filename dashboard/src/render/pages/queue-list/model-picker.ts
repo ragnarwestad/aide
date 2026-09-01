@@ -261,7 +261,7 @@ export function phaseCaptionCells(opts: QueuePageOptions): string {
       : "") +
     `<span class="muted small" data-cap="model">Model</span>` +
     `<span class="muted small" data-cap="box">Select</span>` +
-    `</span></td><td></td><td data-col="started"></td>` +
+    `</span></td><td></td><td data-col="created"></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td>`
   );
 }

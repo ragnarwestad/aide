@@ -298,6 +298,10 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           `<td class="phasecell">${name}</td>` +
           pickCell +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
+          // Blank: a phase line has no creation date of its own to
+          // draw — only alignment with the head row's real cell (spec
+          // 317, LIST_COLUMNS).
+          `<td data-col="created"></td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what

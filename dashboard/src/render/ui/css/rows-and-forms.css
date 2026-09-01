@@ -208,9 +208,16 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
 /* The covering layer a click that leaves the page gets, from the click
    until the new document arrives (spec 314) — the same dialog+backdrop
    box About and the confirm box are, holding a spinner instead of
-   prose. */
+   prose.
+
+   `grid`, not the dialog's own `block`: `.spin` is a `<span>`, width and
+   height do not apply to an inline box, and the spinner drew as a thin
+   sliver here while looking right inside a `.btn` — which is
+   `inline-flex` and blockifies it. `place-items` centres it in the same
+   stroke. */
 dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surface);
-  box-shadow: var(--overlay-shadow); padding: var(--sp-5); }
+  box-shadow: var(--overlay-shadow); padding: var(--sp-5);
+  display: grid; place-items: center; }
 dialog.pageoverlay::backdrop { background: var(--backdrop); }
 
 /* How runs work: a small question mark at the right-hand end of the

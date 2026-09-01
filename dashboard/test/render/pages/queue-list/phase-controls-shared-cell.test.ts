@@ -229,16 +229,16 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   // --- criterion 9: seven columns, on every line -----------------------------
 
-  test("the merge leaves five columns, and the caption matches them", () => {
+  test("the merge leaves six columns, and the caption matches them", () => {
     const html = rows();
-    // Five since the blank trailing column went (2026-08-23); six
-    // before that, when the pips moved in beside the spec's name and
-    // the Progress column went with them. The caption line and every
-    // phase line write the same number, or the table stops lining up
-    // with its own head row.
-    expect(cells(caption(html))).toHaveLength(5);
+    // Six since Created joined (spec 317); five from when the blank
+    // trailing column went (2026-08-23); six before THAT, when the pips
+    // moved in beside the spec's name and the Progress column went with
+    // them. The caption line and every phase line write the same
+    // number, or the table stops lining up with its own head row.
+    expect(cells(caption(html))).toHaveLength(6);
     for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, cells(subRow(html, step)).length]).toEqual([step, 5]);
+      expect([step, cells(subRow(html, step)).length]).toEqual([step, 6]);
       // The third cell is the phase's own state now, not the empty one
       // the Progress column left behind.
       expect([step, cells(subRow(html, step))[2]]).toEqual([

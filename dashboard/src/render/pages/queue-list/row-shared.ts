@@ -36,7 +36,7 @@ export const BRANCH_LEFT_BEHIND = "branch left behind";
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
-export const LIST_COLUMNS = 5;
+export const LIST_COLUMNS = 6;
 
 // --- what every form on this page needs ------------------------------------
 

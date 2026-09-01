@@ -191,6 +191,18 @@ export function archiveDateCell(s: ArchivedSpecView, durationMs: number): string
   return `<span class="archive-duration">${esc(durationLabel(durationMs))}</span>`;
 }
 
+/** When the spec was MADE (spec 317, REQ-1/REQ-4) — the same
+ *  plain-date, "checking…"-or-`NO_DATE` shape `archiveDateCell` draws
+ *  for the Time column's archive date, over a different question and
+ *  never a fallback for it: this cell shows nothing once a spec's own
+ *  duration exists, unlike that one. One call for either kind of row
+ *  (REQ-6) — `SpecGroup.createdAt`/`createdAtChecking` already carry
+ *  the archived-row answer by the time this is called, copied up by
+ *  `readerGroup()`. */
+export function createdCell(createdAt: string | undefined, checking: boolean): string {
+  return esc(createdAt ? createdAt.slice(0, 10) : checking ? CHECKING : NO_DATE);
+}
+
 /** What the "not landed" mark says on hover, age included (spec 208).
  *  Spelled out here rather than at the call site so the fact and its
  *  freshness cannot drift apart — the same reason `driftNote` exists,

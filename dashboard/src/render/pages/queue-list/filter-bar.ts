@@ -237,6 +237,7 @@ export function sortableHead(f: QueueFilter): string {
     // names, which are short, floating in a cell as wide as a folder
     // name. Spanning lets the phase names size their own column.
     `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}${th("state", "State")}` +
+    `${th("created", "Created", "", undefined, ' data-col="created"')}` +
     `${th("started", "Time", "", undefined, ' data-col="started"')}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
     `</tr></thead>`

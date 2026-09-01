@@ -51,6 +51,7 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
       ctx.workflowHistory, ctx.branchFileSteps, t.dir, t.specFolder, t.reopenedAfter, t.fileSteps,
     );
     if (!resolved) return { ...t, freshnessUnknown: true };
+    const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
     const withHistory: QueueTarget = {
       ...t,
       ...resolved,
@@ -58,7 +59,12 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
       // could not answer — a shallow clone, a folder moved without
       // `git mv` — and then the cell shows a dash rather than a
       // job's own time, which is the field this replaces.
-      createdAt: ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder).createdAt ?? undefined,
+      createdAt: createdAtPeek.createdAt ?? undefined,
+      // Spec 317: "checking…" versus a real "cannot date" — the same
+      // distinction the Created cell draws for an archived row, kept
+      // for a live one too rather than losing `checkedAt` the moment
+      // it reaches `QueueTarget`.
+      createdAtChecking: createdAtPeek.checkedAt === null,
     };
     if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
     return {

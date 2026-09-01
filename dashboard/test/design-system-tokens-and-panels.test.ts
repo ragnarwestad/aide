@@ -105,12 +105,13 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target()],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(panel).toContain(`<td colspan="5">`);
+    // Six since the Created column joined the other five (spec 317).
+    expect(panel).toContain(`<td colspan="6">`);
     expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
     const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
-    expect(empty).toContain(`colspan="5"`);
+    expect(empty).toContain(`colspan="6"`);
   });
 
   test("a held-back note is amber, like the badge that announces it", async () => {

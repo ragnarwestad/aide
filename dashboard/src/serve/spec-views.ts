@@ -17,7 +17,7 @@ import {
   type QueueTarget,
 } from "../render.ts";
 import { QueueStore, currentWorkRoundJobs, type Job } from "../queue/queue.ts";
-import { SpecFileCommitChecker, lastCommitOf } from "../git/description-freshness.ts";
+import { SpecCreatedAtChecker, SpecFileCommitChecker, lastCommitOf } from "../git/description-freshness.ts";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget } from "../git/branch-file.ts";
 import { resolveStepModel, tailFile } from "./serve-helpers.ts";
@@ -55,6 +55,11 @@ export interface SpecViewsContext {
    *  rather than off whatever `main`'s copy of `4-status.md` says. */
   branchStatus: BranchStatusChecker;
   specsRoot: (dir: string) => Promise<string>;
+  /** REQ-6: the peek `archivedSpecRows` reads an archived spec's true
+   *  creation date off, warmed by `refreshSpecCaches`'s own archived-dir
+   *  sweep — the same "already exists at the top level, just not
+   *  threaded through" gap `schedules.specCreatedAt` had before this. */
+  specCreatedAt: SpecCreatedAtChecker;
 }
 
 export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {
@@ -227,6 +232,11 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // found. `undefined` here just means no job recorded one; the row
     // still falls through to the plain `NOT_LANDED` wording.
     const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
+    // REQ-6: the spec's own creation date, distinct from `when` above
+    // (which is the ARCHIVE date, from the `git mv`). A peek, never a
+    // take (spec 208's rule, held for every question on this route):
+    // `refreshSpecCaches` is what warms this, never a request.
+    const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
     rows.push({
       project,
       folder: ref.folder,
@@ -234,6 +244,8 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       description: ref.description ?? undefined,
       archivedAt: when.date,
       dateChecking: when.checking,
+      createdAt: created.createdAt ?? undefined,
+      createdAtChecking: created.checkedAt === null,
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
       branchDeleteError,

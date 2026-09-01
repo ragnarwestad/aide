@@ -52,15 +52,18 @@ export const STATE_FILTERS: { key: string; label: string; states?: string[]; exc
  *  front is the default, and nothing has to be told twice. */
 export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 
-export const SORTS = ["started", "spec", "state", "cost"];
-// The default view: newest spec at the top. Chosen 2026-08-19 over
-// "last activity", which put a spec that had just been created at the
-// bottom of the list — under everything that had ever run.
-export const DEFAULT_SORT = "spec";
+export const SORTS = ["started", "spec", "state", "cost", "created"];
+// The default view: the newest spec MADE at the top (spec 317, REQ-3).
+// Folder order was the default from 2026-08-19 (chosen over "last
+// activity", which put a spec that had just been created at the bottom
+// of the list — under everything that had ever run) until a real
+// Created column made sorting by the date itself possible, rather than
+// by the folder number that used to stand in for it.
+export const DEFAULT_SORT = "created";
 // Each column has the direction you almost always want first: newest
 // run, dearest job, but names from A.
 export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
-  started: "desc", cost: "desc", spec: "desc", state: "asc",
+  started: "desc", cost: "desc", spec: "desc", state: "asc", created: "desc",
 };
 
 export function stateFilter(
@@ -146,6 +149,10 @@ export function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
+    // REQ-5: a spec git could not date sorts as the epoch — the oldest
+    // possible date, and the least surprising place for "unknown" to
+    // land in a list that opens newest-first — never a job's own time.
+    : sort === "created" ? (Date.parse(g.createdAt ?? "") || 0)
     : (g.totalDurationMs ?? 0);
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);

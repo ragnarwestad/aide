@@ -13,11 +13,16 @@
 // (firstCommitAt, SpecCreatedAtChecker) — the staleness question itself
 // lives in description-freshness-checker.test.ts.
 
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
+import { createGitRunner } from "../../src/git/branch-status.ts";
 import {
   SpecCreatedAtChecker,
   SpecFileCommitChecker,
   firstCommitAt,
+  firstCommitAtFollowingRenames,
   lastCommitAt,
   lastCommitOf,
 } from "../../src/git/description-freshness.ts";
@@ -117,6 +122,91 @@ describe("firstCommitAt", () => {
 
   test("git failing at all is null — a spec outside git still renders", async () => {
     expect(await firstCommitAt(fakeGit({}).run, DIR, ".")).toBeNull();
+  });
+});
+
+// --- spec 317: dating an archived spec across the archive step's `git mv` --
+//
+// `firstCommitAt` runs a directory pathspec (`.`), which only sees
+// commits touching the CURRENT path — once a spec's folder has been
+// `git mv`'d into `archive/`, that query answers with the archive date,
+// not the spec's true beginning. `--follow` crosses exactly this kind
+// of rename, but git only supports it for a single file, never a
+// directory — hence a fixed, always-present file (`0-README.md`)
+// instead of `.`.
+describe("firstCommitAtFollowingRenames", () => {
+  test("returns the OLDEST commit's date, not the newest", async () => {
+    const git = fakeGit({
+      "log --follow --format=%aI": {
+        code: 0,
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-17T09:00:00+02:00\n",
+      },
+    });
+    expect(await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md")).toBe(
+      "2026-08-17T09:00:00+02:00",
+    );
+  });
+
+  test("asks with --follow, on the one named file, guarded by --", async () => {
+    const git = fakeGit({
+      "log --follow --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
+    });
+    await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md");
+    expect(git.calls[0]!.args).toEqual(["log", "--follow", "--format=%aI", "--", "0-README.md"]);
+    expect(git.calls[0]!.dir).toBe(DIR);
+  });
+
+  test("a file git has never seen is null, not an invented date", async () => {
+    const git = fakeGit({ "log --follow --format=%aI": { code: 0, stdout: "\n" } });
+    expect(await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md")).toBeNull();
+  });
+
+  test("git failing at all is null — a spec outside git still renders", async () => {
+    expect(await firstCommitAtFollowingRenames(fakeGit({}).run, DIR, "0-README.md")).toBeNull();
+  });
+
+  // What a fake runner cannot prove: that `--follow` actually survives a
+  // REAL `git mv` of the file's containing directory — the exact
+  // transformation `aide-archive-spec` performs, and the reason
+  // Approach A (a plain directory pathspec against the new path) reads
+  // as the archive date instead of the spec's true beginning.
+  test("survives a real `git mv` of the file's own directory", async () => {
+    const gitIn = (dir: string, ...args: string[]) =>
+      Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
+    const repo = mkdtempSync(join(tmpdir(), "aide-spec-dates-"));
+    gitIn(repo, "init", "-q", "-b", "main");
+    gitIn(repo, "config", "user.name", "Test");
+    gitIn(repo, "config", "user.email", "test@example.com");
+    const specDir = join(repo, "91-old-name");
+    mkdirSync(specDir);
+    writeFileSync(join(specDir, "0-README.md"), "# spec\n");
+    gitIn(repo, "add", "-A");
+    gitIn(
+      repo,
+      "commit",
+      "-q",
+      "-m",
+      "create",
+      "--date=2026-07-01T09:00:00+02:00",
+    );
+    // A later commit under the pre-move name, so the oldest is not
+    // simply the only one.
+    writeFileSync(join(specDir, "2-analysis.md"), "# analysis\n");
+    gitIn(repo, "add", "-A");
+    gitIn(repo, "commit", "-q", "-m", "analyze", "--date=2026-07-05T09:00:00+02:00");
+    mkdirSync(join(repo, "archive"));
+    gitIn(repo, "mv", "91-old-name", "archive/91-old-name");
+    gitIn(repo, "commit", "-q", "-m", "archive", "--date=2026-08-01T09:00:00+02:00");
+
+    const archivedDir = join(repo, "archive", "91-old-name");
+    // The trap Approach A falls into, proven alongside the fix: a plain
+    // directory pathspec against the NEW path sees only the move.
+    expect(await firstCommitAt(createGitRunner(), archivedDir, ".")).toBe(
+      "2026-08-01T09:00:00+02:00",
+    );
+    expect(
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
+    ).toBe("2026-07-01T09:00:00+02:00");
   });
 });
 
@@ -234,6 +324,99 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
     const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
     await checker.createdAt(DIR, FOLDER);
     expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: 5000 });
+  });
+});
+
+// --- spec 317: the archived-row counterpart, rename-aware and long-cached --
+describe("SpecCreatedAtChecker.createdAtForArchived", () => {
+  const ARCHIVE_DIR = "/specs/aide/archive/96-merge-button-says-what-it-merges";
+  const dated = () =>
+    fakeGit({
+      "log --follow --format=%aI": {
+        code: 0,
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-17T09:00:00+02:00\n",
+      },
+    });
+
+  test("answers with the rename-aware lookup's oldest date", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run });
+    expect(await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER)).toBe(
+      "2026-08-17T09:00:00+02:00",
+    );
+    expect(git.calls[0]!.args).toEqual([
+      "log", "--follow", "--format=%aI", "--", "0-README.md",
+    ]);
+  });
+
+  test("git failing leaves the answer null", async () => {
+    const checker = new SpecCreatedAtChecker({ run: fakeGit({}).run });
+    expect(await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER)).toBeNull();
+  });
+
+  // A resolved answer is cached far longer than the standard TTL — an
+  // archived spec's own history cannot change after the fact, so a
+  // second ask well past the ordinary 30s window still spawns nothing.
+  test("a resolved answer stands long past the standard TTL", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    clock += 60_000;
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    expect(git.calls).toHaveLength(1);
+  });
+
+  // A genuine "cannot date" answer keeps the ordinary, short TTL — a
+  // spec missing 0-README.md today might have it restored, and the
+  // long cache above must not lock that in as permanent.
+  test("an undatable answer is retried on the ordinary schedule, not the long one", async () => {
+    const git = fakeGit({});
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    clock += 31_000;
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    expect(git.calls).toHaveLength(2);
+  });
+});
+
+describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
+  const ARCHIVE_DIR = "/specs/aide/archive/96-merge-button-says-what-it-merges";
+  const dated = () =>
+    fakeGit({
+      "log --follow --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
+    });
+
+  test("nothing asked yet answers null, and spawns no git", () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER)).toEqual({
+      createdAt: null,
+      checkedAt: null,
+    });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, it hands back that date and when it was taken", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER)).toEqual({
+      createdAt: "2026-08-17T09:00:00+02:00",
+      checkedAt: 1000,
+    });
+  });
+
+  // The live spec's own peek must never answer for the archived
+  // question or the reverse — a spec that is both dated live (before
+  // archiving) and re-asked afterwards must not have one overwrite the
+  // other's cache entry.
+  test("is a different cache entry from the live peekCreatedAt", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    expect(checker.peekCreatedAt(ARCHIVE_DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: null });
   });
 });
 
