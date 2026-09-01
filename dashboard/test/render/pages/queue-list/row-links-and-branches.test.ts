@@ -18,7 +18,10 @@ describe("the queue row links to the spec (criterion 12)", () => {
   const SPEC_HREF = "/specs/aide/81-queue-and-runner";
 
   test("the spec cell links to the spec page", () => {
-    const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
+    const html = renderQueueRows([row()], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+    });
     // The project leads the name since 2026-08-21: a folder number is
     // only unique within its project, and the line under the name — where
     // the project used to sit — now carries what nothing else says.
@@ -73,13 +76,38 @@ describe("the queue row links to the spec (criterion 12)", () => {
   test("an existing branch link stays beside it, never replaced by it", () => {
     const html = renderQueueRows(
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare" }] })],
-      { runnerAvailable: true, targets: [] },
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      },
     );
     expect(html).toContain(
       '<a class="label" data-goto href="/specs/aide/81-queue-and-runner" title="aide:81-queue-and-runner">' +
         '<span class="muted">aide:</span>81-queue-and-runner</a>',
     );
     expect(html).toContain('href="https://example.test/compare"');
+  });
+
+  // Spec 307: a create job's spec has no folder yet, so `named` is
+  // false — the row has nothing real to link to.
+  test("an un-landed create job names its row by the form's title, drawn as text, not a link", () => {
+    const html = renderQueueRows([row({ steps: ["create"], createTitle: "My new idea" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(html).toContain('<span class="label">My new idea</span>');
+    expect(html).not.toContain("data-goto");
+  });
+
+  // REQ-4: the name carries the title now, so the line under it must
+  // not say it again.
+  test("the un-landed row's title appears once, not repeated under the name", () => {
+    const html = renderQueueRows([row({ steps: ["create"], createTitle: "My new idea" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(html.match(/My new idea/g)).toHaveLength(1);
+    expect(html).not.toContain('<div class="spec-title">My new idea</div>');
   });
 });
 // --- spec 04: a finished job does not say its work is unmerged ---------------
