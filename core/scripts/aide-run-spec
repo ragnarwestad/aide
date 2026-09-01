@@ -229,7 +229,7 @@ already_landed() {
   exit 0
 }
 
-command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"error":"jq is required"}'; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
 is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && (( $(echo "$1 > 0" | bc -l) )); }
 

@@ -30,7 +30,15 @@ COMMON_BIN_LIB_SCRIPTS="status-progress.sh"
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).
 # upgrade-ai-tools must upgrade every name listed here — a test in
 # tests/specs/unit/core/validation/test_core_scripts.py enforces it.
-MISE_DECLARED_TOOLS="npm:markdownlint-cli2"
+#
+# Every external CLI aide's own scripts shell out to, declared once so
+# every machine that runs aide's installer has it (spec 334). A tool
+# with no mise-manageable backend (mise itself: it cannot declare
+# itself) is checked instead of declared — its absence still reaches
+# the installed-files warning banner via install_mise_declared_tools's
+# own "no mise" warning. TestRequiredToolsAreDeclared fails when a
+# script or installer checks for a tool that is not in this list.
+MISE_DECLARED_TOOLS="npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_common_bin() {
@@ -59,6 +67,14 @@ install_common_bin() {
       echo "   ✅ Installed: ~/.local/bin/lib/$s"
     fi
   done
+  # Records which repo checkout and commit this ~/.local/bin copy came
+  # from, so a later aide-preflight run can tell it apart from the
+  # repo's current HEAD (REQ-7).
+  local repo_root sha
+  repo_root="$(cd "$_CORE_SCRIPTS_DIR/../.." && pwd)"
+  sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
+  printf '%s\n%s\n%s\n' "$repo_root" "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > ~/.local/bin/.aide-installed-version
 }
 
 install_mise_declared_tools() {
