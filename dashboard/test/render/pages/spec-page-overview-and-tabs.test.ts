@@ -364,6 +364,73 @@ describe("the steps panel renders through the job page's own function", () => {
 // belongs to — only when there is more than one, exactly as the picker
 // itself drew nothing for a single-attempt spec.
 
+// --- spec 311: every tab says what it is for --------------------------------
+
+describe("spec 311: every tab carries its own (?) explaining what it shows", () => {
+  test("Description's (?) names the file and what Save does while the spec is active (REQ-3)", () => {
+    const html = page(view(), "description");
+    expect(html).toContain(
+      "The problem as it was reported, kept in <code>1-description.md</code>. " +
+        "While the spec is active, Save here rewrites, commits and pushes it; an archived " +
+        "spec shows the same file read-only.",
+    );
+  });
+
+  // The claim is checked against the SAME render, not pinned as a fixed
+  // fact — "no Save" has to stay true only while the render actually
+  // shows none (REQ-6, Risk analysis: dependency spec 310 would change
+  // this the moment the Analysis tab grows a Save of its own).
+  test("Analysis' (?) names the file, /aide-analyze, and its Save claim matches the render (REQ-6)", () => {
+    const html = page(view(), "analysis");
+    expect(html).toContain(
+      "What <code>/aide-analyze</code> found when it read the code for this problem, " +
+        "kept in <code>2-analysis.md</code> and written by that step. Read-only: there is no " +
+        "Save here.",
+    );
+    expect(html).not.toContain("<textarea");
+  });
+
+  test("Solution's (?) states the recommended-approach rule (REQ-4)", () => {
+    const html = page(view(), "solution");
+    expect(html).toContain(
+      "Where it lists more than one Approach, only the one marked recommended gets built — " +
+        "the rest are the record of what was weighed, not options still open.",
+    );
+  });
+
+  test("Status' (?) names the file, /aide-implement, and points at the Checks tab (REQ-3)", () => {
+    const html = page(view(), "status");
+    expect(html).toContain(
+      "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
+        "<code>/aide-implement</code> as it runs. Read-only here; while the spec is active, " +
+        "the same file's Acceptance criteria rows are what the Checks tab lets a person tick.",
+    );
+  });
+
+  test("Checks' (?) states the Acceptance-only gate and names the Phase tables as the implement run's own record (REQ-5)", () => {
+    const html = page(view(), "checks");
+    expect(html).toContain(
+      "only the <code>## Acceptance criteria</code> rows below can be " +
+        "ticked, and only they hold the next archive run back",
+    );
+    expect(html).toContain("are <code>/aide-implement</code>'s own record of that run");
+  });
+
+  test("Logs' (?) says what the table lists and that nothing on it is editable (REQ-3)", () => {
+    const html = page(view(), "steps");
+    expect(html).toContain(
+      "Every workflow step this spec's jobs have run — create, analyze, implement, " +
+        "archive — each with its own cost and how it ended. Nothing here is editable",
+    );
+  });
+
+  test("every tab's (?) sits ahead of the panel's own content", () => {
+    for (const tab of ["description", "analysis", "solution", "status", "checks", "steps"]) {
+      expect([tab, page(view(), tab).includes('<details class="intro">')]).toEqual([tab, true]);
+    }
+  });
+});
+
 describe("spec 242: every attempt's steps in one flat list", () => {
   /** `n` dummy finished steps, each carrying `attempt` when the caller
    *  passes one — the server always tags a multi-attempt spec's rows,

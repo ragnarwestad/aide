@@ -108,7 +108,12 @@ const STRUCTURE = [
   // the state, in the page's ordinary "row" container. "tablewrap" is
   // the box a table too wide for the window scrolls inside, so the
   // PAGE never does (spec 155).
-  "row", "intro", "tabpanel", "facts", "extra",
+  "row", "tabpanel", "facts", "extra",
+  // the shared "(?)" popover (spec 261's search-field help, and since
+  // spec 311 every spec tab's own explanation of what it shows) — one
+  // `helpPopover()` component in components.ts, not scoped to any one
+  // row.
+  "intro",
   // the one back-navigation link every subpage carries (spec 252),
   // deliberately not ".btn": it goes somewhere rather than submitting
   // anything. "backhead" is the flex row `backLink()` draws around it

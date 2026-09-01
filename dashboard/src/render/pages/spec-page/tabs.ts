@@ -96,3 +96,34 @@ export const PHASE_TAB: Partial<Record<string, SpecTab>> = {
   implement: "status",
   archive: "checks",
 };
+
+/** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
+ *  prepended to its panel by `renderSpecPage()` — not a parameter on
+ *  `documentPanel()`/`descriptionPanel()`/`checklist()`, which stay
+ *  exactly as they are, and not touching `stepResults()` at all, since
+ *  that function is shared with the job page and this help is the SPEC
+ *  page's own. */
+export const TAB_HELP: Record<SpecTab, string> = {
+  description: "The problem as it was reported, kept in <code>1-description.md</code>. " +
+    "While the spec is active, Save here rewrites, commits and pushes it; an archived " +
+    "spec shows the same file read-only.",
+  analysis: "What <code>/aide-analyze</code> found when it read the code for this problem, " +
+    "kept in <code>2-analysis.md</code> and written by that step. Read-only: there is no " +
+    "Save here.",
+  solution: "The plan <code>/aide-analyze</code> wrote, kept in <code>3-solution.md</code>. " +
+    "Where it lists more than one Approach, only the one marked recommended gets built — " +
+    "the rest are the record of what was weighed, not options still open. The Acceptance " +
+    "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
+    "Read-only: there is no Save here.",
+  status: "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
+    "<code>/aide-implement</code> as it runs. Read-only here; while the spec is active, " +
+    "the same file's Acceptance criteria rows are what the Checks tab lets a person tick.",
+  checks: "The spec's own remaining work, read from <code>4-status.md</code>. While the " +
+    "spec is active, only the <code>## Acceptance criteria</code> rows below can be " +
+    "ticked, and only they hold the next archive run back; the Phase tables shown on the " +
+    "Status tab (RED/GREEN/REFACTOR, or a Checklist) are <code>/aide-implement</code>'s " +
+    "own record of that run and are not part of this gate.",
+  steps: "Every workflow step this spec's jobs have run — create, analyze, implement, " +
+    "archive — each with its own cost and how it ended. Nothing here is editable; open a " +
+    "row to see that step's own log.",
+};

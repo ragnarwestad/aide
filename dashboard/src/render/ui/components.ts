@@ -324,6 +324,25 @@ export function field(
 export const tokenField = (token?: string): string =>
   token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
 
+// --- help popover ----------------------------------------------------------------
+
+/** A "(?)" disclosure that answers one question about the control or panel
+ *  beside it — the search field's own "What the search reads" (spec 261),
+ *  and, since spec 311, each spec tab's own explanation of what it shows.
+ *  `<details>`/`<summary>`, so it opens and closes with no script and is
+ *  identical markup with JavaScript off (REQ-7); `menu-script.ts` already
+ *  queries every `details.intro` document-wide to close it like any other
+ *  disclosure, which is why this reuses that class rather than a new one.
+ *  `body` is trusted, developer-authored HTML, the same convention every
+ *  other component here follows (`rowMessage`, `field`) — never reader
+ *  input. */
+export function helpPopover(what: string, body: string): string {
+  return (
+    `<details class="intro"><summary title="${esc(what)}" aria-label="${esc(what)}">?</summary>` +
+    `<p>${body}</p></details>`
+  );
+}
+
 // --- back link -------------------------------------------------------------------
 
 /** The one back-navigation control every subpage carries, top-left,

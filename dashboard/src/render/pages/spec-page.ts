@@ -45,13 +45,13 @@
 // confirmation page). `renderSpecPage` itself — the one function that
 // assembles all of them — stays here.
 
-import { rowMessage } from "../ui/components.ts";
+import { helpPopover, rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import { archivedLine, checklist, dependsOnLine, reopenControl, resetControl } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
-import { RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES } from "./spec-page/tabs.ts";
+import { RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP } from "./spec-page/tabs.ts";
 import type { SpecPageView } from "./spec-page/types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./spec-page/types.ts";
@@ -99,7 +99,7 @@ export function renderSpecPage(
     `Update</button></form>`;
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
-  const panel =
+  const panelBody =
     tab === "steps"
       ? stepResults(view.steps ?? [], lead?.archiveHeldBack, {
           tabHref,
@@ -114,6 +114,10 @@ export function renderSpecPage(
           // (archived, depends-on) moved into the banner, visible on
           // every tab, when this tab lost its old "Overview" name.
           : checklist(view);
+  // Every tab says what it is for (spec 311): one "(?)" ahead of whatever
+  // the tab draws, using the same shared component the search field's own
+  // popover is built on.
+  const panel = helpPopover("What this tab shows", TAB_HELP[tab]) + panelBody;
 
   const body = tabbedBody(
     banner,
