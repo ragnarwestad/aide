@@ -68,8 +68,11 @@ def workspace(tmp_path):
     (project / "deps").mkdir()
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
+    # AIDE_TEST_CMD=true: the archive gate (spec 329) runs the project's
+    # test command when no passing record is on file, and a fixture with
+    # no command at all would be refused before anything under test ran.
     (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\n"
+        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\nAIDE_TEST_CMD=true\n"
     )
     # -f: the user's global gitignore covers .aide/config, and an
     # untracked file would read as a dirty tree here.
