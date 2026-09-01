@@ -328,6 +328,84 @@ describe("whether a run could start there (spec 138)", () => {
     expect(links.blocking).toBe(false);
     expect(links.detail.toLowerCase()).toContain("worktree");
   });
+
+  // --- Spec 316: the same fixture the bash side reads, read here too ---------
+  //
+  // tests/fixtures/project-readiness-prerequisites.json is the one place
+  // this list of prerequisites lives; test_aide_run_spec.py reads it for
+  // the bash half of the same pin. A fixture entry with no matching
+  // answer set below fails loudly (`toBeDefined()`), which is what makes
+  // "added to the fixture, forgotten here" a red test rather than a
+  // silent skip.
+  const READINESS_FIXTURE: {
+    prerequisites: { check: string; failsWhen: string; blocking: boolean }[];
+  } = JSON.parse(
+    readFileSync(
+      join(import.meta.dir, "..", "..", "..", "..", "tests", "fixtures", "project-readiness-prerequisites.json"),
+      "utf-8",
+    ),
+  );
+
+  const READINESS_ANSWERS: Record<string, Record<string, { code: number; stdout?: string }>> = {
+    "gitRoot: the project directory is not a git repository": {
+      "rev-parse --show-toplevel": { code: 128, stdout: "" },
+    },
+    "specsRoot: the specs root does not exist as a directory": {}, // built via checkout(name, { specs: false })
+    "defaultBranch: the default branch cannot be resolved in a root the run touches": {
+      // Every strategy defaultBranchOf() tries comes back empty, so base
+      // itself is "" — the one scenario the bash side cannot reach.
+      "symbolic-ref --short refs/remotes/origin/HEAD": { code: 1, stdout: "" },
+      "show-ref --verify --quiet refs/heads/main": { code: 1, stdout: "" },
+      "show-ref --verify --quiet refs/heads/master": { code: 1, stdout: "" },
+      "rev-parse --abbrev-ref HEAD": { code: 1, stdout: "" },
+    },
+    "defaultBranch: another worktree already has the default branch checked out": {
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/other\n" },
+      "worktree list --porcelain": {
+        code: 0,
+        stdout: "worktree /elsewhere\nbranch refs/heads/main\n",
+      },
+    },
+    "worktreeLinks: a configured worktree-link entry names a path that is not on disk": {}, // built via req.worktreeLinks
+  };
+
+  describe("the readiness fixture's prerequisites (spec 316)", () => {
+    for (const c of READINESS_FIXTURE.prerequisites) {
+      const id = `${c.check}: ${c.failsWhen}`;
+      test(id, async () => {
+        const answers = READINESS_ANSWERS[id];
+        expect(answers).toBeDefined(); // no scenario wired up for this fixture entry
+        const noSpecs = id.startsWith("specsRoot");
+        const { projectsRoot, dir } = checkout(id.replace(/[^a-z]/gi, ""), { specs: !noSpecs });
+        const req = id.startsWith("worktreeLinks") ? { worktreeLinks: "nowhere" } : {};
+        const result = await assess(dir, projectsRoot, answers!, req);
+        const found = check(result, c.check).find((ch) => !ch.ok);
+        expect(found?.blocking).toBe(c.blocking);
+      });
+    }
+  });
+
+  describe("readiness identifiers agree with the fixture (spec 316)", () => {
+    const KNOWN_EXCLUSIONS: Record<string, string> = {
+      specsRepo: "TypeScript treats a specs root outside git as blocking; aide-run-spec does not refuse on it today (2-analysis.md)",
+      dashboardCheckout: "has no aide-run-spec counterpart at all — mirrors the dashboard's own clone machinery, always non-blocking",
+    };
+
+    test("every ReadinessCheckName is either in the fixture or a named exclusion", () => {
+      const ts = readFileSync(
+        join(import.meta.dir, "..", "..", "..", "src", "project", "project-admin", "types.ts"),
+        "utf-8",
+      );
+      const m = ts.match(/export type ReadinessCheckName =\s*([\s\S]*?);/);
+      expect(m).toBeTruthy();
+      const declared = new Set([...m![1]!.matchAll(/"([a-zA-Z]+)"/g)].map((x) => x[1]));
+      const covered = new Set([
+        ...READINESS_FIXTURE.prerequisites.map((c) => c.check),
+        ...Object.keys(KNOWN_EXCLUSIONS),
+      ]);
+      expect([...declared].sort()).toEqual([...covered].sort());
+    });
+  });
 });
 
 // Criterion 9: both fields land in the same personal file, and neither

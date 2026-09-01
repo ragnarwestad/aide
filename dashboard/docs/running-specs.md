@@ -407,14 +407,17 @@ which checks out TRACKED files only, so a project whose test command lives behin
 for a reason that has nothing to do with its change. Nothing can derive which paths those are, so the form asks; leaving
 it empty is normal and is reported as a note rather than a fault.
 
-The checks are `aide-run-spec`'s own prerequisites, read-only, taken after the Add has written its files — the `.aide`
-written a second earlier is part of what the runner will see:
+Most of these checks are `aide-run-spec`'s own prerequisites, read-only, taken after the Add has written its files —
+the `.aide` written a second earlier is part of what the runner will see. Two rows are not: `gitRoot`'s
+"inside a bigger repository" case and `specsRepo` are this dashboard's own, stricter reading — `aide-run-spec` does
+not refuse on either today, a known asymmetry recorded in
+`tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
-| Check           | Blocks a run when                                                                                        |
-|-----------------|----------------------------------------------------------------------------------------------------------|
-| `gitRoot`       | the project directory is no repository, or is inside a bigger one — a run would branch and push that one |
+| Check           | Blocks a run when                                                                                                        |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------|
+| `gitRoot`       | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case) |
 | `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory           |
-| `specsRepo`     | that specs root is in no git repository, so nothing would commit the spec a run writes                   |
+| `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing |
 | `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out         |
 | `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                              |
 
@@ -423,6 +426,10 @@ first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same 
 `aide-run-spec` itself reads them in.
 `tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
 written independently and nothing else would stop them drifting.
+
+`tests/fixtures/project-readiness-prerequisites.json` is the equivalent table for `gitRoot`, `specsRoot`,
+`defaultBranch` and `worktreeLinks` themselves: a test on each side reads it and asserts `aide-run-spec` really
+refuses what this page says it does, for the same identifier and the same blocking answer.
 
 `defaultBranch` is asked of **every** repository a run touches — the project's, and the specs repo when the specs live
 elsewhere — because the runner refuses on it in any of them. A checkout on a feature branch is reported and does not

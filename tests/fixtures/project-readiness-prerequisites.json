@@ -1,0 +1,50 @@
+{
+  "_comment": [
+    "Spec 316: the prerequisites `aide-run-spec` (bash) refuses to start",
+    "without, mirrored by `assessProjectReadiness()` (TypeScript) on the",
+    "Health tab. One table, read by a test on each side, the same shape",
+    "`worktree-links-precedence.json` already uses for the worktreeLinks",
+    "sub-check alone.",
+    "",
+    "Two members of `ReadinessCheckName` are deliberately NOT here —",
+    "see dashboard/src/project/project-admin/types.ts and 2-analysis.md,",
+    "spec 316: `specsRepo` is a check TypeScript makes blocking that",
+    "aide-run-spec today does not refuse on at all, and `dashboardCheckout`",
+    "has no aide-run-spec counterpart at all (it mirrors the dashboard's",
+    "own clone-provisioning code, always non-blocking). Both are named in",
+    "the exclusion list the identifier-parity test reads, with the reason",
+    "recorded there rather than a third time here.",
+    "",
+    "One entry here (`defaultBranch`: \"cannot be resolved\") is tested on",
+    "the TypeScript side but SKIPPED, by name, on the bash side: it cannot",
+    "be triggered by git-state manipulation without also tripping the",
+    "gitRoot refusal first (2-analysis.md, Findings item 4)."
+  ],
+  "prerequisites": [
+    {
+      "check": "gitRoot",
+      "failsWhen": "the project directory is not a git repository",
+      "blocking": true
+    },
+    {
+      "check": "specsRoot",
+      "failsWhen": "the specs root does not exist as a directory",
+      "blocking": true
+    },
+    {
+      "check": "defaultBranch",
+      "failsWhen": "the default branch cannot be resolved in a root the run touches",
+      "blocking": true
+    },
+    {
+      "check": "defaultBranch",
+      "failsWhen": "another worktree already has the default branch checked out",
+      "blocking": true
+    },
+    {
+      "check": "worktreeLinks",
+      "failsWhen": "a configured worktree-link entry names a path that is not on disk",
+      "blocking": true
+    }
+  ]
+}

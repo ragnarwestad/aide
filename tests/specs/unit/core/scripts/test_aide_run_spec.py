@@ -2737,6 +2737,102 @@ def test_a_config_link_is_still_refused_in_the_configs_own_words(runner, workspa
     assert "AIDE_WORKTREE_LINKS" in out["error"], out
 
 
+# --- Spec 316: the readiness fixture's blocking prerequisites really refuse --
+#
+# Five hand-paired bash/TypeScript lists already exist in this repo, and
+# four of them are pinned by a test that reads both sides and asserts they
+# agree. Project readiness — the prerequisites below, mirrored in
+# TypeScript by assessProjectReadiness() — was the fifth, and had nothing.
+# This is that pin's bash half: for each BLOCKING entry the shared fixture
+# names, a workspace built to match its failsWhen condition really makes
+# aide-run-spec refuse.
+
+READINESS_FIXTURE = json.loads(
+    (pathlib.Path(__file__).resolve().parents[4] / "fixtures" / "project-readiness-prerequisites.json")
+    .read_text()
+)["prerequisites"]
+
+# 2-analysis.md, Findings item 4: default_branch()'s own fallback chain
+# ends in `git rev-parse --abbrev-ref HEAD`, which prints the literal
+# string "HEAD" — never empty — in every git state tried that still
+# passes the gitRoot check (an unborn/orphan branch, a rewritten
+# .git/HEAD with an empty branch name). A .git/HEAD corrupted enough to
+# make that command produce true empty output also fails
+# `rev-parse --show-toplevel`, tripping gitRoot's refusal instead. There
+# is no known way to trigger this ONE refusal in isolation through
+# on-disk git state, so it is named in the fixture (for REQ-1, and
+# because readiness.ts:76-85 genuinely mirrors it) and its bash-side
+# scenario is skipped, by identity, rather than faked.
+BASH_UNTESTABLE = {
+    ("defaultBranch", "the default branch cannot be resolved in a root the run touches"),
+}
+
+
+def _break_git_root(workspace):
+    # Not in any git repository at all.
+    shutil.rmtree(workspace["project"] / ".git")
+
+
+def _break_specs_root(workspace):
+    shutil.rmtree(workspace["specs"])
+
+
+def _break_default_branch_held_elsewhere(workspace):
+    # A second worktree already holds `main`.
+    git(workspace["project"], "checkout", "-q", "-b", "aide/other")
+    subprocess.run(
+        ["git", "worktree", "add", "-q", str(workspace["project"].parent / "elsewhere"), "main"],
+        cwd=workspace["project"], check=True,
+    )
+
+
+def _break_worktree_links(workspace):
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=nowhere\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "a link with no source")
+
+
+# Each scenario is paired with a substring of the refusal it is meant to
+# trigger — not just any `rc == 2`. Without this, breaking the project's
+# .git (the gitRoot scenario) still refuses when the gitRoot check itself
+# is disabled: `default_branch()` fails too, on an empty root, with a
+# DIFFERENT message ("cannot work out the default branch in "). A bare
+# `rc == 2` assertion would pass for that wrong reason — caught by doing
+# the disable-and-confirm proof this comment describes, below.
+READINESS_SCENARIOS = {
+    ("gitRoot", "the project directory is not a git repository"): (_break_git_root, "not a git repository"),
+    ("specsRoot", "the specs root does not exist as a directory"): (_break_specs_root, "no specs root at"),
+    ("defaultBranch", "another worktree already has the default branch checked out"): (_break_default_branch_held_elsewhere, "cannot switch to"),
+    ("worktreeLinks", "a configured worktree-link entry names a path that is not on disk"): (_break_worktree_links, "nowhere"),
+}
+
+
+@pytest.mark.parametrize(
+    "case", READINESS_FIXTURE, ids=[f"{c['check']}: {c['failsWhen']}" for c in READINESS_FIXTURE]
+)
+def test_a_blocking_readiness_prerequisite_is_refused_by_the_runner(runner, workspace, fake_claude, case):
+    key = (case["check"], case["failsWhen"])
+    if key in BASH_UNTESTABLE:
+        pytest.skip("not reliably triggerable via git-state manipulation — see 2-analysis.md, Findings item 4")
+    assert key in READINESS_SCENARIOS, f"no scenario wired up for fixture entry {key!r}"
+    assert case["blocking"] is True, "every entry in this fixture is blocking today; a non-blocking one needs its own test shape"
+    setup, expect_in_error = READINESS_SCENARIOS[key]
+    setup(workspace)
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert expect_in_error in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_the_runner_starts_when_none_of_the_fixtures_prerequisites_fail(runner, workspace, fake_claude):
+    claude, _ = probing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+
+
 # --- Criterion 15: a main checkout on the spec branch is healed --------------
 
 def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, workspace, fake_claude):
