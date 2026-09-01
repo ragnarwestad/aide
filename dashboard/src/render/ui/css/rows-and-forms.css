@@ -213,11 +213,11 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
-/* The state trigger carries the auto margin now, not New spec (spec
-   305 moved the trigger itself next to New spec at the right end of
-   the row, so the row's one gap now falls before the pair of them
-   rather than before New spec alone). */
-.specsearch > .menu.state { margin-left: auto; }
+/* New spec carries the auto margin, not the state trigger (spec 306):
+   State sits right after the "(?)" popover, `gap` apart like every
+   other pair of controls on this row, and New spec alone is pushed to
+   the row's right-hand end. */
+.specsearch > .btn.primary { margin-left: auto; }
 .specsearch > details.intro { position: relative; }
 .specsearch > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;

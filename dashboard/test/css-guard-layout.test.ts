@@ -120,9 +120,9 @@ describe("the state trigger reads as a control, not plain text", () => {
     expect(hover).toMatch(/border-color:\s*var\(--muted\)/);
   });
 
-  test(".specsearch > .menu.state carries the auto margin, .btn.primary no longer does", () => {
-    expect(CSS).toMatch(/\.specsearch > \.menu\.state \{[^}]*margin-left:\s*auto[^}]*\}/);
-    expect(CSS).not.toMatch(/\.specsearch > \.btn\.primary \{[^}]*margin-left:\s*auto[^}]*\}/);
+  test(".specsearch > .btn.primary carries the auto margin, .menu.state no longer does", () => {
+    expect(CSS).toMatch(/\.specsearch > \.btn\.primary \{[^}]*margin-left:\s*auto[^}]*\}/);
+    expect(CSS).not.toMatch(/\.specsearch > \.menu\.state \{[^}]*margin-left:\s*auto[^}]*\}/);
   });
 
   test("the panel carries no left-anchoring override, so it falls back to the base right anchor", () => {
