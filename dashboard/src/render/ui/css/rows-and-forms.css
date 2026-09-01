@@ -205,6 +205,14 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
 .confirmpanel [data-confirm] .field { width: 100%; }
 .confirmpanel [data-confirm] input { width: 100%; }
 
+/* The covering layer a click that leaves the page gets, from the click
+   until the new document arrives (spec 314) — the same dialog+backdrop
+   box About and the confirm box are, holding a spinner instead of
+   prose. */
+dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surface);
+  box-shadow: var(--overlay-shadow); padding: var(--sp-5); }
+dialog.pageoverlay::backdrop { background: var(--backdrop); }
+
 /* How runs work: a small question mark at the right-hand end of the
    search field's own row (spec 261 moved it there from the filter
    chips' row), not a block between the page's title and the list the

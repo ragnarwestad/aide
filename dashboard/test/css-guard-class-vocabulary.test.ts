@@ -81,6 +81,10 @@ const STRUCTURE = [
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.
   "confirmdialog", "confirmpanel",
+  // the covering layer a click that leaves the page gets, from the
+  // click until the new document arrives (spec 314): the same
+  // `<dialog>` shape About and the confirm box are.
+  "pageoverlay",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

@@ -50,6 +50,10 @@ const FORM_BUSY_SCRIPT = transpile("form-busy.ts");
 // clicked, on every page (spec 312) — `queue-client.ts` used to own
 // this for the one page it loads on.
 const NAV_BUSY_SCRIPT = transpile("nav-busy.ts");
+// The seventh: the same click nav-busy.ts marks also gets a covering
+// layer, for the whole wait rather than only while the pointer sits
+// still over the link (spec 314).
+const NAV_OVERLAY_SCRIPT = transpile("nav-overlay.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -270,7 +274,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}
