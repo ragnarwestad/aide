@@ -2,9 +2,9 @@
 // mouse went down on that SAME button — the library gives a toolbar button
 // a "click" with no "mousedown" of its own in front of it whenever the
 // toolbar redraws and steals focus mid-interaction (1-description.md,
-// 2-analysis.md). REQ-5 (the read-only path mounts no toolbar, so the
-// guard's own `if (editable)` block is never entered) is already covered
-// by spec-editor-viewer-and-theme.test.ts and is not re-asserted here.
+// 2-analysis.md). REQ-5 (the read-only path mounts no toolbar at all,
+// since spec 333 it never reaches this script) is already covered by
+// spec-editor-viewer-and-theme.test.ts and is not re-asserted here.
 //
 // Exercised against the REAL, MINIFIED bundle, same pattern as
 // spec-editor-viewer-and-theme.test.ts — see that file's own header

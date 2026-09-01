@@ -154,44 +154,101 @@ describe("GET the edit page", () => {
 
     // REQ-4: before /aide-analyze has ever run, Analysis and Solution's
     // panels have no mount point at all — so they carry no reference to
-    // the editor either. (4-status.md is always written by the harness
+    // either bundle. (4-status.md is always written by the harness
     // fixture, so the Status tab has no "unwritten" state to test here.)
     for (const [tab, path] of [
       ["analysis", ANALYSIS_TAB],
       ["solution", SOLUTION_TAB],
     ] as const) {
-      test(`an unwritten ${tab} tab carries no editor script`, async () => {
+      test(`an unwritten ${tab} tab carries no editor script and no viewer script`, async () => {
         const { base } = start(savable("/host"));
         const html = await (await fetch(`${base}${path}`, auth)).text();
         expect(html).not.toContain('<script src="/spec-editor.js">');
+        expect(html).not.toContain('<script src="/spec-viewer.js">');
       });
     }
   });
 
-  // Criterion 11 (spec 163) / REQ-4: an archived spec is a record.
-  // Hiding the control is not the guard — the save endpoint is — but
-  // the tab must not offer a box that only gets refused, or load the
-  // editor bundle for a page that cannot be edited.
-  test("an archived spec's Description tab is read-only and carries no editor script", async () => {
+  // Criterion 11 (spec 163) / REQ-1/REQ-4: an archived spec is a record.
+  // Hiding the control is not the guard — the save endpoint is — but the
+  // tab must not offer a box that only gets refused, or load the full
+  // editor bundle for a page that cannot be edited. It still has to
+  // render the document, not its markdown — the viewer script is what
+  // does that (REQ-1).
+  test("an archived spec's Description tab is read-only, renders the document and carries no editor script", async () => {
     const { base } = startArchived(savable("/host"));
     const res = await fetch(`${base}/specs/aide/${ARCHIVED}?tab=description`, auth);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain('<script src="/spec-editor.js">');
+    expect(html).toContain('<script src="/spec-viewer.js">');
   });
 
   // REQ-4: a job queued or running makes every document tab read-only
   // on the render side already (panels.ts); the script-loading side
   // must agree, or a read-only page would load an editor it never
-  // mounts.
-  test("a document tab carries no editor script while a job is queued or running", async () => {
+  // mounts. REQ-1: it must still render the document via the viewer.
+  test("a document tab carries no editor script but the viewer script while a job is queued or running", async () => {
     const { base, dir } = start(savable("/host"));
     const id = await enqueueJob(base);
     const mirror = seedJobState(dir, id, "running");
     const { base: base2 } = start(savable("/host"), { queueMirrorPath: mirror });
     const html = await (await fetch(`${base2}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).not.toContain('<script src="/spec-editor.js">');
+    expect(html).toContain('<script src="/spec-viewer.js">');
+  });
+
+  // REQ-7: this applies to all four document tabs, not just Description
+  // — an archived spec with every file written.
+  describe("REQ-7: every document tab of an archived spec carries the viewer script", () => {
+    for (const [tab, needle] of [
+      ["description", "Archived"],
+      ["analysis", "Seven files."],
+      ["solution", "One must-fix."],
+      ["status", "Workflow steps completed"],
+    ] as const) {
+      test(`the ${tab} tab`, async () => {
+        const { base } = harness.start({
+          description: "# Archived - Description\n",
+          archivedSpecs: {
+            [ARCHIVED]: {
+              description: "# Archived - Description\n",
+              analysis: "# Q - Analysis\n\nSeven files.\n",
+              solution: "# Q - Solution\n\nOne must-fix.\n",
+            },
+          },
+          extra: { queueToken: TOKEN, gitRun: savable("/host") },
+        });
+        const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=${tab}`, auth)).text();
+        expect(html).toContain('<script src="/spec-viewer.js">');
+        expect(html).not.toContain('<script src="/spec-editor.js">');
+        expect(html).toContain(needle);
+      });
+    }
+  });
+
+  // REQ-7: and both locked states, not just archived — a job in flight
+  // for the active spec, all four tabs.
+  describe("REQ-7: every document tab carries the viewer script while a job is queued or running", () => {
+    for (const [tab, needle] of [
+      ["description", "As it was."],
+      ["analysis", "Seven files."],
+      ["solution", "One must-fix."],
+      ["status", "Workflow steps completed"],
+    ] as const) {
+      test(`the ${tab} tab`, async () => {
+        const { base, dir } = start(savable("/host"));
+        const id = await enqueueJob(base);
+        const mirror = seedJobState(dir, id, "running");
+        const { base: base2, dir: dir2 } = start(savable("/host"), { queueMirrorPath: mirror });
+        fillAnalysisAndSolution(dir2);
+        const html = await (await fetch(`${base2}/specs/aide/${SPEC}?tab=${tab}`, auth)).text();
+        expect(html).toContain('<script src="/spec-viewer.js">');
+        expect(html).not.toContain('<script src="/spec-editor.js">');
+        expect(html).toContain(needle);
+      });
+    }
   });
 });
 

@@ -7,6 +7,7 @@ import { parseAideRun } from "../queue/aide-run-store.ts";
 import type { LiveEnricher } from "../integrations/live.ts";
 import {
   json, readBounded, serveStatic, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
+  serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers.ts";
 
 export interface CoreRoutesContext {
@@ -69,6 +70,7 @@ export async function handleCore(
   }
 
   if (path === SPEC_EDITOR_ASSET_PATH) return serveSpecEditorAsset(req);
+  if (path === SPEC_VIEWER_ASSET_PATH) return serveSpecViewerAsset(req);
 
   const pwaAsset = servePwaAsset(path);
   if (pwaAsset) return pwaAsset;

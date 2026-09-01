@@ -1,5 +1,9 @@
-// REQ-2/REQ-4/REQ-5: the client script's two construction paths
-// (editable vs read-only) and its dark-mode/mode-switch wiring.
+// REQ-4/REQ-5: the client script's editable construction path and its
+// dark-mode/mode-switch wiring. Since spec 333 this bundle only ever
+// mounts over an editable `<textarea>` sibling — the read-only branch
+// that used to live here (`Editor.factory({ viewer: true })`) moved to
+// spec-viewer-client.ts/spec-viewer-client.test.ts, built on the
+// vendor's own dedicated Viewer entry point instead.
 //
 // Exercised against the REAL, MINIFIED bundle `static.ts` builds for
 // the browser — not the source file directly, which cannot resolve
@@ -10,11 +14,7 @@
 // runtime `Bun.plugin({ onResolve })` does not intercept it either —
 // verified empirically before writing this file). `new Function(scriptText)()`
 // runs the built IIFE exactly as a browser's inlined `<script>` would,
-// against a `happy-dom` document set up before each call — this is
-// also why `Editor.factory({ viewer: true })` vs `new Editor({ viewer:
-// true })` (2-analysis.md's own trap) is only checkable here: the
-// difference is in DOM the browser builds at mount time, never in the
-// server-rendered HTML.
+// against a `happy-dom` document set up before each call.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { specEditorClientScript } from "../src/serve/serve-helpers/static.ts";
@@ -81,16 +81,6 @@ function injectedCss(): string {
   return [...document.head.querySelectorAll("style")].map((s) => s.textContent).join("\n");
 }
 
-describe("REQ-2: the read-only path uses Editor.factory({ viewer: true }), not new Editor", () => {
-  test("a <pre> sibling mounts with no toolbar and no mode switch", () => {
-    const host = setHost('<pre class="spec-editor-raw"># hi\n</pre>');
-    mount();
-    expect(host.dataset.mounted).toBe("true");
-    expect(host.querySelector(".toastui-editor-toolbar")).toBeNull();
-    expect(host.querySelector(".toastui-editor-mode-switch")).toBeNull();
-  });
-});
-
 describe("REQ-3: the editable path is unchanged — new Editor(...) on a <textarea> sibling", () => {
   test("still mounts the full toolbar", () => {
     const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
@@ -130,24 +120,10 @@ describe("REQ-5: dark mode", () => {
     expect(host.querySelector(".toastui-editor-defaultUI")?.classList.contains("toastui-editor-dark")).toBe(true);
   });
 
-  test("an explicit dark choice classes the read-only mount host itself", () => {
-    document.documentElement.dataset.theme = "dark";
-    const host = setHost('<pre class="spec-editor-raw"># hi\n</pre>');
-    mount();
-    expect(host.classList.contains("toastui-editor-dark")).toBe(true);
-  });
-
   test("light (the default, no stored choice, no system preference) carries no dark class", () => {
     const host = setHost('<textarea class="spec-editor-raw"># hi\n</textarea>');
     mount();
     expect(host.querySelector(".toastui-editor-defaultUI")?.classList.contains("toastui-editor-dark")).toBe(false);
-  });
-
-  test("'auto' (no stored choice) follows prefers-color-scheme at mount time", () => {
-    fakeMql.matches = true;
-    const host = setHost('<pre class="spec-editor-raw"># hi\n</pre>');
-    mount();
-    expect(host.classList.contains("toastui-editor-dark")).toBe(true);
   });
 
   test("a live theme change re-themes the mounted editable editor with no reload", async () => {
@@ -158,14 +134,5 @@ describe("REQ-5: dark mode", () => {
     document.documentElement.dataset.theme = "dark";
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(themedEl.classList.contains("toastui-editor-dark")).toBe(true);
-  });
-
-  test("a live 'auto' preference change re-themes the read-only mount with no reload", () => {
-    const host = setHost('<pre class="spec-editor-raw"># hi\n</pre>');
-    mount();
-    expect(host.classList.contains("toastui-editor-dark")).toBe(false);
-    fakeMql.matches = true;
-    fakeMql.dispatchEvent(new Event("change"));
-    expect(host.classList.contains("toastui-editor-dark")).toBe(true);
   });
 });

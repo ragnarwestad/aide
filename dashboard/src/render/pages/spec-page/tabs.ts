@@ -98,17 +98,22 @@ export function activeJob(view: SpecPageView): boolean {
   return view.lead?.state === "queued" || view.lead?.state === "running";
 }
 
-/** REQ-4 (spec 315): does this tab's panel actually mount the editor?
- *  The one place both `panels.ts` (what to draw) and `spec-edit.ts`
- *  (whether to fetch the bundle at all) ask the same question —
- *  mirroring `documentPanel`'s own branching exactly, so the two can
- *  never again disagree the way spec 303 had to fix once for the
- *  default tab. */
-export function documentTabNeedsEditor(view: SpecPageView, tab: SpecTab): boolean {
+export type DocumentTabScript = "editor" | "viewer";
+
+/** REQ-1/REQ-4 (spec 315, extended by spec 333): which bundle, if any,
+ *  this tab's panel needs. The one place both `panels.ts` (what to
+ *  draw) and `spec-edit.ts` (which bundle to fetch, if any) ask the
+ *  same question — mirroring `documentPanel`'s own branching exactly,
+ *  so the two can never again disagree the way spec 303 had to fix
+ *  once for the default tab: a locked tab with real text needs the
+ *  reader, never the editor, and never nothing. */
+export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTabScript | undefined {
   const file = TAB_FILES[tab];
-  if (!file || view.archived || activeJob(view)) return false;
-  if (tab === "description") return true; // always has a form, even empty
-  return (view.files.find((f) => f.label === file)?.text ?? null) !== null;
+  if (!file) return undefined;
+  const hasText = (view.files.find((f) => f.label === file)?.text ?? null) !== null;
+  if (view.archived || activeJob(view)) return hasText ? "viewer" : undefined;
+  if (tab === "description") return "editor"; // always has a form, even empty
+  return hasText ? "editor" : undefined;
 }
 
 /** Which tab a phase's own link opens (spec 237): the tab that shows

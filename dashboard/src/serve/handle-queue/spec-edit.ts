@@ -6,10 +6,10 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../project/parse-status.ts";
 import {
-  EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabNeedsEditor, renderResetSpecPage, renderSpecPage,
+  EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderResetSpecPage, renderSpecPage,
   resolveBackHref, resolveSpecTab, specPagePath, specTabPath,
 } from "../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specsRedirect, tickMessage } from "../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specsRedirect, tickMessage } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 export async function handleSpecEditRoutes(
@@ -128,12 +128,16 @@ export async function handleSpecEditRoutes(
       {
         tab,
         step: url.searchParams.get("step") ?? undefined,
-        // REQ-1/REQ-4 (spec 315): a src= reference to the bundle's own
-        // route, fetched once and reused across every tab and page —
-        // and only when this tab's panel actually mounts the editor
-        // (`documentTabNeedsEditor`, the same predicate `panels.ts`
-        // uses to decide what to draw).
-        scriptSrc: documentTabNeedsEditor(view, tab) ? SPEC_EDITOR_ASSET_PATH : undefined,
+        // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
+        // reference to whichever bundle's own route this tab's panel
+        // actually mounts (`documentTabScript`, the same predicate
+        // `panels.ts` uses to decide what to draw) — the editor for a
+        // writable tab, the lighter viewer for a locked one with real
+        // text, or no script at all.
+        scriptSrc:
+          documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
+          documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
+          undefined,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
