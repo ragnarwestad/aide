@@ -177,9 +177,14 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     await settle(base, job.id, (j) => j.state === "done");
 
     const html = await (await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })).text();
-    const banner = html.match(/<div class="pagehead">([\s\S]*?)<span class="row">/)?.[1] ?? "";
-    expect(banner).toContain('class="badge b-done">');
-    expect(banner).not.toContain('b-idle">cancelled');
+    // The lead is the analyze job that is STILL LANDING, not the newer
+    // cancelled decoy: the page says so by disabling Reset for exactly
+    // that reason, and by counting the analyze job's one step. A page
+    // that had taken the decoy as lead would offer Reset and know
+    // nothing of a landing.
+    expect(html).toContain('title="a landing is in progress">Reset</span>');
+    expect(html).toContain("Logs (1)");
+    expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 
     git.release();
     await settle(base, job.id, (j) => !j.landing);

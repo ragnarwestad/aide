@@ -284,19 +284,19 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
     expect(bar).toContain(">?</summary>");
   });
 
-  test("it sits there with several projects too, after the chips", () => {
+  test("it sits there with several projects too, before the state trigger", () => {
     const bar = beforeTable(
       renderQueueRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
         runnerAvailable: true,
         targets: [],
       }),
     );
-    // The state chips are the only chip group left: the project filter
-    // went on 2026-08-23, and the explanation still comes after what
-    // remains. The group carries no caption of its own (dropped: it
-    // read as one more, confusing chip beside the ones it was labelling).
+    // The state control is the only filter left: the project filter went
+    // on 2026-08-23. Spec 305 then moved the state trigger to sit
+    // between this explanation and New spec (its REQ-3), so the
+    // explanation now comes BEFORE it rather than after.
     expect(bar).toContain('data-filter="state"');
-    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf('data-filter="state"'));
+    expect(bar.indexOf('<details class="intro">')).toBeLessThan(bar.indexOf('data-filter="state"'));
   });
 
   // Spec 289 replaced this popover's "how runs work" copy with the

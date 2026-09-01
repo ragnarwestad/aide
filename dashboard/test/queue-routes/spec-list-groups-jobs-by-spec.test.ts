@@ -149,8 +149,10 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(form).toContain('data-filter="state"');
     expect(form).toContain('<details class="intro">');
     expect(form).toContain(">New spec</a>");
-    expect(form.indexOf('data-filter="state"')).toBeLessThan(form.indexOf('<details class="intro">'));
-    expect(form.indexOf('<details class="intro">')).toBeLessThan(form.indexOf(">New spec</a>"));
+    // Spec 305 moved the state trigger along the row to sit between the
+    // "?" and New spec (its REQ-3).
+    expect(form.indexOf('<details class="intro">')).toBeLessThan(form.indexOf('data-filter="state"'));
+    expect(form.indexOf('data-filter="state"')).toBeLessThan(form.indexOf(">New spec</a>"));
     // And the whole row is still ahead of the list it labels.
     expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
       html.indexOf('<div class="tablewrap">'),

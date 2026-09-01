@@ -264,7 +264,9 @@ describe("the front page after the panel moved", () => {
 
   // Spec 289 folded the state chips into one dropdown inside
   // `.specsearch`, so there is one filter row now, not "either" of two.
-  test("the state dropdown rides before New spec, inside the one search row", () => {
+  // Spec 305 then moved the state control along that row to sit between
+  // the "?" and New spec (its REQ-3), which is the order pinned here.
+  test("the state dropdown sits between the ? and New spec, inside the one search row", () => {
     const assertOrder = (html: string) => {
       // From the list container on, not from 0: the inlined stylesheet
       // mentions data-filter="state" too (the mobile filter-bar rules,
@@ -276,8 +278,8 @@ describe("the front page after the panel moved", () => {
       const newSpec = html.indexOf('href="/new"', jobrows);
       const table = html.indexOf("<table", jobrows);
       expect(filters).toBeGreaterThan(jobrows);
-      expect([filters, help, newSpec, table]).toEqual(
-        [...[filters, help, newSpec, table]].sort((a, b) => a - b),
+      expect([help, filters, newSpec, table]).toEqual(
+        [...[help, filters, newSpec, table]].sort((a, b) => a - b),
       );
     };
 
@@ -302,9 +304,12 @@ describe("the front page after the panel moved", () => {
   // the clear-air margin rule is scoped to `.specsearch` alone, not
   // `#jobrows`, since `/schedule` uses the same form with no `#jobrows`
   // of its own.
-  test("New spec owns the automatic margin that keeps both controls at the right", () => {
+  test("the state trigger owns the automatic margin that keeps the controls at the right", () => {
     const html = page({ createProjects: ["aide"] });
-    expect(html).toContain(".specsearch > .btn.primary { margin-left: auto; }");
+    // Spec 305 moved the trigger next to New spec, so the row's one gap
+    // falls before the PAIR of them rather than before New spec alone.
+    expect(html).toContain(".specsearch > .menu.state { margin-left: auto; }");
+    expect(html).not.toContain(".specsearch > .btn.primary { margin-left: auto; }");
     expect(html).not.toContain(
       "#jobrows > .row:first-child > .btn { margin-left: auto; }",
     );
