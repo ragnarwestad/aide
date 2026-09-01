@@ -23,9 +23,12 @@ header { display: flex; align-items: center; justify-content: space-between;
 header .brand { margin: 0; padding: 0; }
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
-   tab bar being the reference (2026-08-19). */
-body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
-  border-bottom: 1px solid var(--line); }
+   tab bar being the reference (2026-08-19). Centred deliberately (spec
+   325): once the bar is exactly as wide as header and main (above),
+   nothing else would keep the two or three tabs from sitting flush
+   against its left edge instead. */
+body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
+  padding: 0 var(--sp-6); border-bottom: 1px solid var(--line); }
 /* The SAME bar one level in: a spec's own seven tabs, and a job's
    three. They were filter pills with a caption beside them until
    2026-08-23 — chips choose among values, tabs move between views, and
@@ -53,7 +56,21 @@ nav.tabbar.subtabs .tab { min-width: 0; }
 main { padding: var(--sp-5) var(--sp-6); }
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
-header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
+/* Explicit sizing, not `width: auto` (spec 325): on the Specs page body
+   is a flex COLUMN (`body:has(#jobrows)` below), and a flex item whose
+   cross-axis margins are both auto is never stretched to the container's
+   width — it shrinks to its own content instead, which is what let the
+   Specs page's header and tab bar drift to three different widths.
+   `box-sizing: border-box` makes `width: 100%` subtract whatever padding
+   is currently active automatically — correct at every breakpoint,
+   including narrow.css's own narrower header/main padding, with no
+   token to keep in sync by hand. `max-width` adds padding's own width
+   back on top of 72rem, so the frame's actual rendered width is exactly
+   what a content-box `max-width: 72rem` with no `width` set already
+   gave every other page — this fix changes nothing about how already-
+   correct pages render. */
+header, body > nav.tabbar, main { max-width: calc(72rem + 2 * var(--sp-6));
+  width: 100%; box-sizing: border-box; margin-inline: auto; }
 /* The Specs page only (spec 320), scoped by :has(#jobrows) — the id only
    that one page ever writes. Its own box (.tablewrap, list.css) is the
    only thing meant to scroll; everywhere else keeps the ordinary
