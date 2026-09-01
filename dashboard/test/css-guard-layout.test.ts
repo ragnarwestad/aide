@@ -25,6 +25,18 @@ describe("the space between two controls comes from their container", () => {
     });
   }
 
+  // `.spin` is 12x12 with a border-radius, and it carries `flex: none` —
+  // it is written as a flex or grid ITEM. A `<span>` is inline by
+  // default, and width and height do not apply to an inline box, so a
+  // spinner dropped straight into a plain block collapses to a sliver.
+  // Inside a `.btn` the button's own `inline-flex` blockifies it; the
+  // loading overlay has to do the same for itself (reported on spec 314,
+  // 2026-09-01, where it drew as a thin bar in the middle of the page).
+  test("the loading overlay lays its spinner out, so the spinner's own size applies", () => {
+    const body = CSS.match(/dialog\.pageoverlay\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(body).toMatch(/display:\s*(flex|grid|inline-flex|inline-grid)/);
+  });
+
   test("the row's own alignment rule stays scoped, and the filter bar keeps its own", () => {
     // The controls line the flex-end rule was written for is gone
     // (spec 124), and with it the selector — a guard left pointing at
