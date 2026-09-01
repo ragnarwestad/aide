@@ -240,7 +240,7 @@ export function specHeadRow(
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.
-    `<td data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false)}</td>` +
+    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false)}</td>` +
     // How long the spec's phases have come to, summed (spec 199, spec
     // 281). The column used to hold the most recent job's own start, so
     // every run threw the row to the top of a list sorted by it — and

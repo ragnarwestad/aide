@@ -131,6 +131,13 @@ table.list thead a { color: var(--muted); }
    whose archive never recorded a figure, which is a blank and not a gap
    in the row. */
 .archive-duration { white-space: nowrap; }
+/* The Created column's date, same treatment (spec 326): a bare
+   `yyyy-mm-dd` string with no span of its own, breaking at its hyphens
+   once the column narrows past the date's own width. A sibling of
+   `.archive-date` rather than a reuse of it — that one is documented
+   above as scoped to the archive's own cells, and Created exists on
+   every row. */
+.created-date { white-space: nowrap; }
 /* The search on the Specs list (spec 221), the field the archive page
    had. A line of its own UNDER the chips: at six chips wide, a 26rem
    field on the same line wrapped the button onto a row by itself. The

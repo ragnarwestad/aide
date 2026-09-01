@@ -97,6 +97,11 @@ const STRUCTURE = [
   // what the spec cost in time (spec 207). All three are on the Specs
   // list since spec 221, which folded the archive into it.
   "archive-q", "archive-date", "archive-duration",
+  // the Created column's own date cell (spec 326) — the same
+  // "must not wrap" treatment as the two above, kept as a separate
+  // class because it protects a different column, on every row rather
+  // than only archived ones.
+  "created-date",
   // and the form that box sits in (spec 221): a line of its own under
   // the chips, because that line was already full. "searchfield" is the
   // box's own wrapper and "searchclear" the × inside it (spec 226) —

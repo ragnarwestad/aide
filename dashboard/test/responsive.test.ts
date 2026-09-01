@@ -121,6 +121,12 @@ describe("Created folds away on the spec header at phone width", () => {
     const html = rows();
     expect(html).toContain('data-col="created"');
   });
+
+  test("the Created cell never breaks its date across two lines", () => {
+    const html = rows();
+    expect(html).toContain('<td class="created-date" data-col="created">');
+    expect(CSS).toContain(".created-date { white-space: nowrap; }");
+  });
 });
 
 // --- criterion 3: the open row's phase lines stack --------------------------
