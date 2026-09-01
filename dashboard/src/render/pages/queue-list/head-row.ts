@@ -10,13 +10,11 @@ import { ARCHIVED_STATE, ARCHIVED_OPEN_STATE, groupKey, isArchivedRow, type Spec
 import {
   activeDurationCell,
   archiveDateCell,
-  branchLeftBehindMark,
   costCell,
   createdCell,
-  landingFailedMark,
-  notLandedTitle,
+  lockedStateTitle,
   phasePips,
-  prOpenMark,
+  rowActionMark,
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl, stateAction } from "./row-controls.ts";
@@ -114,48 +112,20 @@ export function specHeadRow(
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
       `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`
     : `<span class="label">${esc(g.title ?? g.specFolder)}</span>`;
-  // Spec 193's mark, on the row it belongs to (spec 224 moved it here
-  // from the flat reader row `archivedHeadRow` drew). Beside the link a
-  // reader would follow, because the mark is a reason to follow it: the
-  // spec needs its `archive` run again. It reads `g.archive`, which only
-  // a locked row has, so no other row draws one.
-  //
-  // Spec 220 first: the two marks come from ONE fact — the branch is
-  // still on origin — and a project that reviews its code means that
-  // fact to be true. Reading `notLanded` first would call every working
-  // PR-mode archive stuck.
-  const archiveMark = !g.archive
-    ? ""
-    : g.archive.prOpen
-      ? ` ${prOpenMark(g.archive)}`
-      : g.archive.branchDeleteError
-        ? ` ${branchLeftBehindMark(g.archive)}`
-        : g.archive.notLanded
-          ? ` ${badge("refused", NOT_LANDED, notLandedTitle(g.archive.notLandedCheckedAt, now))}`
-          : "";
-  // Spec 220: where the review is — the code is on the branch and stays
-  // on it until somebody merges the request. A `gh` that opened none
-  // says so instead, and says it as a refusal: an open branch with
-  // nothing describing it is the one outcome nobody is waiting for.
-  const review = g.prUrl
-    ? ` <a class="small" href="${esc(g.prUrl)}" title="the pull request this spec's code is waiting on">pull request</a>`
-    : g.prError
-      ? ` ${badge("refused", "no pull request", g.prError)}`
-      : "";
-  // Spec 327: independent of `locked`/`stateBadge` on purpose — a later
-  // step's own `state` (queued, running, even done) says nothing about
-  // whether an EARLIER step's landing ever actually finished. Not
-  // gated on `locked` either: `readerGroup()` never sets `landingError`
-  // for an archived row (only `jobGroup()` does), so this simply never
-  // fires there — no separate check is needed to keep the two apart.
-  const landingFailure = g.landingError ? ` ${landingFailedMark(g)}` : "";
-  // Spec 328: independent of every mark above — a step's own work is
-  // already committed by the time its push fails, so `aide-run-spec`
-  // reports the step `completed` regardless. Without this the row said
-  // nothing until a LATER step (reusing the same branch) refused as
-  // diverged, two steps and possibly days after the push that actually
-  // failed.
-  const pushFailure = g.pushError ? ` ${badge("refused", "not pushed", g.pushError)}` : "";
+  // The one thing this row has to say beyond its running/resting word —
+  // where a push, a landing, a pull request or an archive's own open
+  // branch needs a person — drawn in the State column below, never here
+  // beside the name (spec 335, REQ-1/REQ-2): a reader used to find this
+  // fact beside the name and the archive state in the next column at the
+  // same time, saying two different things about the same row.
+  const mark = rowActionMark(g);
+  const markBadge = mark
+    ? ` ${
+        mark.href
+          ? `<a href="${esc(mark.href)}">${badge(mark.variant, mark.label, mark.title)}</a>`
+          : badge(mark.variant, mark.label, mark.title)
+      }`
+    : "";
   // The whole workflow in six millimetres, on the line you are already
   // reading — shared with the spec page's Overview tab since spec 239.
   const progress = phasePips(g.phases, g.done);
@@ -188,6 +158,7 @@ export function specHeadRow(
         g.state === ARCHIVED_OPEN_STATE
           ? `${ARCHIVED_STATE}, ${g.archive?.branchDeleteError ? BRANCH_LEFT_BEHIND : NOT_LANDED}`
           : ARCHIVED_STATE,
+        lockedStateTitle(g.archive, now),
       )
     : g.lead
       ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
@@ -222,20 +193,16 @@ export function specHeadRow(
     // (2026-08-22). A "N runs" count under them said less than they do
     // and went in spec 165.
     `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}` +
-    archiveMark +
     `<span class="pipslot">${progress}</span></div>` +
     under +
-    review +
-    landingFailure +
-    pushFailure +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
     // under it said what to press until spec 174: the button beside it
     // names the phase it would run, so the line was telling a reader to
     // press the control they were looking at, to do what it already
-    // said. The pips, the badge and the branch marks each answer a
-    // narrower question of their own.
+    // said. The pips and the badge each answer a narrower question of
+    // their own.
     //
     // The row's one button stands beside the badge since spec 157,
     // completing the sentence it starts: "archive held back ·
@@ -247,7 +214,7 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="row"><span class="badgeslot">${stateBadge}` +
+    `<td><span class="row"><span class="badgeslot">${stateBadge}${markBadge}` +
     `</span><span class="actionslot">${stateAction(
       g,
       opts,

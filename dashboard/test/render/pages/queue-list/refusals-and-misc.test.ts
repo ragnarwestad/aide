@@ -3,6 +3,7 @@ import {
   renderJobDetailPage,
   renderQueuePage,
   renderQueueRows,
+  type ArchivedSpecView,
   type QueuePageOptions,
   type QueueRowView,
   type QueueTarget,
@@ -10,6 +11,28 @@ import {
 import { NAV, detail, row } from "../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
+
+// One row, as its head cells: the Spec `<td colspan="2">` and the State
+// `<td>` right after it. Spec 335 moved every status mark off the first
+// and onto the second, so a test asserting which one carries a mark has
+// to see the two apart rather than treating the row as one blob of text.
+const rowBlock = (html: string, folder: string): string =>
+  html.match(
+    new RegExp(
+      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+        `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+    ),
+  )?.[0] ?? "";
+
+const specCell = (html: string, folder: string): string =>
+  rowBlock(html, folder).match(/<td colspan="2">[\s\S]*?<\/td>/)?.[0] ?? "";
+
+const stateCellHtml = (html: string, folder: string): string => {
+  const block = rowBlock(html, folder);
+  const start = block.indexOf('<td colspan="2">');
+  const specEnd = start + (block.slice(start).match(/<td colspan="2">[\s\S]*?<\/td>/)?.[0].length ?? 0);
+  return block.slice(specEnd).match(/<td>[\s\S]*?<\/td>/)?.[0] ?? "";
+};
 
 // Spec 99: the view survives an action, and a refusal finds its row ------
 
@@ -287,22 +310,41 @@ describe("an unmeasured cost is marked where it is totalled", () => {
 // that could not open the request has to say so there too, or an
 // orphaned open branch looks exactly like a reviewed one.
 describe("a row shows the pull request its run opened (spec 220)", () => {
+  const FOLDER = "81-queue-and-runner";
   const open = (extra: Partial<QueueRowView>): string =>
     renderQueueRows([row({ steps: ["archive"], state: "done", ...extra })], {
       runnerAvailable: true,
       targets: [],
     });
 
-  test("the link is on the row, beside the branch it is for", () => {
+  // Spec 335, REQ-2: the link used to sit beside the name; it is read
+  // from the State column now, same as every other status the row has.
+  test("the link is in the State column, beside the running/resting word", () => {
     const html = open({ prUrl: "https://github.test/aide/pull/7" });
-    expect(html).toContain('href="https://github.test/aide/pull/7"');
-    expect(html.toLowerCase()).toContain("pull request");
+    expect(specCell(html, FOLDER)).not.toContain("pull/7");
+    const state = stateCellHtml(html, FOLDER);
+    expect(state).toContain('href="https://github.test/aide/pull/7"');
+    expect(state.toLowerCase()).toContain("pull request");
   });
 
-  test("a gh that could not open one says so instead", () => {
-    const html = open({ prError: "gh auth login required" });
-    expect(html).toContain("gh auth login required");
-    expect(html).not.toContain("pull/7");
+  test("a gh that could not open one says so instead, in a sentence for a person", () => {
+    const RAW = "gh auth login required";
+    const html = open({ prError: RAW });
+    const state = stateCellHtml(html, FOLDER);
+    expect(state).not.toContain(RAW);
+    expect(state).toContain("No pull request could be opened for this branch. Open one by hand.");
+    expect(state).not.toContain("pull/7");
+  });
+
+  // REQ-3, acceptance criterion 4: the one `prError` case that carries
+  // raw `gh pr create` stderr never reaches the row either.
+  test("gh's own stderr, on the one case that carries it, never reaches the row", () => {
+    const RAW = "error connecting to api.github.com  check your internet connection or https status.github.com";
+    const html = open({ prError: RAW });
+    expect(html).not.toContain(RAW);
+    expect(stateCellHtml(html, FOLDER)).toContain(
+      "No pull request could be opened for this branch. Open one by hand.",
+    );
   });
 
   test("a row with neither is the row it has always been", () => {
@@ -317,19 +359,24 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
 // independent of `state` — a later step's own state says nothing about
 // whether an EARLIER step's landing ever finished.
 describe("a row shows an unresolved landing failure (spec 327)", () => {
+  const FOLDER = "81-queue-and-runner";
   const MESSAGE = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
   const withFailure = (state: QueueRowView["state"]): string =>
     renderQueueRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
 
-  test("the mark shows while a later step is still running", () => {
+  // Spec 335, REQ-2: `landingError` is already human prose (nothing for
+  // REQ-3 to clean up here), so it moves columns and nothing else.
+  test("the mark is in the State column while a later step is still running", () => {
     const html = withFailure("running");
-    expect(html).toContain("landing failed");
-    expect(html).toContain(MESSAGE);
+    expect(specCell(html, FOLDER)).not.toContain("landing failed");
+    const state = stateCellHtml(html, FOLDER);
+    expect(state).toContain("landing failed");
+    expect(state).toContain(MESSAGE);
   });
 
   test("the mark still shows once the job is done", () => {
     const html = withFailure("done");
-    expect(html).toContain("landing failed");
+    expect(stateCellHtml(html, FOLDER)).toContain("landing failed");
   });
 
   test("a row with no landing failure carries no mark", () => {
@@ -346,15 +393,113 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
 // not make it, and REQ-3 is that the row shows it rather than leaving a
 // reader to find out two steps later, the way spec 327 did.
 describe("a row shows a push that never reached origin (spec 328)", () => {
+  const FOLDER = "81-queue-and-runner";
   const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
 
-  test("the failure is on the row", () => {
+  // Spec 335, REQ-2/REQ-3: the failure is in the State column now, and
+  // `pushError`'s own raw stderr no longer reaches the row at all — a
+  // fixed sentence for a person takes its place.
+  test("the failure is in the State column, as a sentence for a person", () => {
     const html = renderQueueRows([row({ pushError: MESSAGE })], { runnerAvailable: true, targets: [] });
-    expect(html).toContain(MESSAGE);
+    expect(specCell(html, FOLDER)).not.toContain(MESSAGE);
+    const state = stateCellHtml(html, FOLDER);
+    expect(state).not.toContain(MESSAGE);
+    expect(state).toContain("not pushed");
+    expect(state).toContain("A step's push did not reach origin. Pull the branch locally, then push it again.");
+  });
+
+  // REQ-3, acceptance criterion 4: the description's own headline
+  // example — git's `hint:` lines and its `'git push --help'` pointer,
+  // flattened onto one line upstream — never reaches the row.
+  test("git's own stderr, hint lines included, never reaches the row", () => {
+    const RAW =
+      "cannot push aide/333-x in /repos/aide/specs:  behind hint: its remote counterpart. " +
+      "hint: use 'git pull' before pushing again. " +
+      "hint: See the 'Note about fast-forwards' in 'git push --help' for details.";
+    const html = renderQueueRows([row({ pushError: RAW })], { runnerAvailable: true, targets: [] });
+    expect(html).not.toContain("hint:");
+    expect(html).not.toContain("git push --help");
+    expect(stateCellHtml(html, FOLDER)).toContain(
+      "A step's push did not reach origin. Pull the branch locally, then push it again.",
+    );
   });
 
   test("a row with no push failure carries no mark", () => {
     const html = renderQueueRows([row({})], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain(MESSAGE);
+    expect(html).not.toContain("not pushed");
+  });
+});
+
+// --- spec 335: more than one action mark on the same live row --------------
+//
+// `pushError`, `landingError`, `prError` and `prUrl` are independent
+// booleans and can all be true on the same row at once. The State column
+// shows only the highest-priority one's LABEL — REQ-5's "the one that
+// needs a person first" — but drops none of the rest: every applicable
+// mark's own sentence rides on the SAME badge's title, reachable by
+// hovering the one badge the row draws.
+describe("more than one action mark, and the top one carries the rest (spec 335, REQ-5)", () => {
+  const FOLDER = "81-queue-and-runner";
+
+  test("only the top label shows; every mark's sentence is in its title", () => {
+    const LANDING = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+    const html = renderQueueRows(
+      [row({ pushError: "cannot push aide/81-queue-and-runner: non-fast-forward", landingError: LANDING })],
+      { runnerAvailable: true, targets: [] },
+    );
+    const state = stateCellHtml(html, FOLDER);
+    expect(state).toContain("not pushed");
+    expect(state).not.toContain(">landing failed<");
+    const title = state.match(/class="badge b-refused" title="([^"]*)"/)?.[1] ?? "";
+    expect(title).toContain("A step's push did not reach origin. Pull the branch locally, then push it again.");
+    expect(title).toContain(LANDING);
+  });
+});
+
+// --- spec 335: no status mark ever renders beside the name ------------------
+describe("no status mark renders inside the Spec cell (REQ-1, REQ-7)", () => {
+  const live = (folder: string, extra: Partial<QueueRowView>): string =>
+    renderQueueRows([row({ specFolder: folder, ...extra })], { runnerAvailable: true, targets: [] });
+
+  const archived = (folder: string, over: Partial<ArchivedSpecView>): string =>
+    renderQueueRows([], {
+      runnerAvailable: true,
+      targets: [],
+      archived: [`aide/${folder}`],
+      archivedSpecs: [
+        {
+          project: "aide",
+          folder,
+          archivedAt: "2026-08-22",
+          done: ["create", "analyze", "implement", "archive"],
+          models: {},
+          phaseOutcomes: {},
+          ...over,
+        },
+      ],
+      filter: { state: "archived" },
+    });
+
+  const fixtures: Array<[string, string, string]> = [
+    ["pushError", "70-a", live("70-a", { pushError: "cannot push aide/70-a: non-fast-forward" })],
+    ["landingError", "70-b", live("70-b", { landingError: "analyze landing failed: cannot merge aide/70-b" })],
+    ["prError", "70-c", live("70-c", { prError: "gh auth login required" })],
+    ["prUrl", "70-d", live("70-d", { prUrl: "https://github.test/aide/pull/1" })],
+    ["archive.prOpen", "70-e", archived("70-e", { prOpen: true, prUrl: "https://github.test/aide/pull/2" })],
+    [
+      "archive.branchDeleteError",
+      "70-f",
+      archived("70-f", {
+        notLanded: true,
+        branchDeleteError: "merged, but deleting aide/70-f on origin failed: remote rejected",
+      }),
+    ],
+    ["archive.notLanded", "70-g", archived("70-g", { notLanded: true })],
+    ["plain row", "70-h", live("70-h", {})],
+  ];
+
+  test.each(fixtures)("%s: the Spec cell carries no badge", (_name, folder, html) => {
+    expect(specCell(html, folder)).not.toContain('class="badge');
   });
 });

@@ -741,7 +741,11 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     expect(row.toLowerCase()).toContain("branch left behind");
     expect(row).toContain(`>${"archived"}, branch left behind<`);
     expect(row).toContain(BRANCH);
-    expect(row).toContain("remote rejected: hook declined");
+    // REQ-3: git's own stderr — the actual `git push --delete` failure
+    // reason — never reaches the row; a fixed sentence for a person
+    // takes its place.
+    expect(row).not.toContain("remote rejected: hook declined");
+    expect(row).toContain("This spec merged, but its branch could not be deleted on origin. Delete it by hand.");
 
     // REQ-3: a sibling whose branch never landed at all still reads
     // exactly as it always has — no reason recorded for it, so it falls
