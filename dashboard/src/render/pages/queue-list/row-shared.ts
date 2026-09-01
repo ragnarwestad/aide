@@ -25,6 +25,14 @@ export const NOT_LANDED = "not landed";
  *  one is an instruction to go and review something. */
 export const PR_OPEN = "PR open";
 
+/** The mark an archived row carries instead of `NOT_LANDED`, when its
+ *  branch is open because a landing merged it and only failed to delete
+ *  it (spec 319). Same fact from origin as `NOT_LANDED` — the branch is
+ *  there — and the opposite meaning: `NOT_LANDED` reads as "run archive
+ *  again to land the work"; this one reads as "the work already landed,
+ *  delete the branch by hand". */
+export const BRANCH_LEFT_BEHIND = "branch left behind";
+
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */

@@ -219,6 +219,19 @@ export class QueueStore {
     };
   }
 
+  /** The newest reason a landing for this spec could not delete its own
+   *  branch on origin, if any job remembers one (spec 319). Same shape as
+   *  `pullRequestFor`: newest job first, across every job the queue still
+   *  holds for `project/specFolder` — a spec whose job the LRU cap has
+   *  evicted simply has none, which is a blank, not a claim. */
+  branchDeleteErrorFor(project: string, specFolder: string): string | undefined {
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
+    return [...this.jobs.values()]
+      .filter((j) => j.project === project && j.specFolder === specFolder)
+      .sort((a, b) => recency(b) - recency(a))
+      .find((j) => j.branchDeleteError)?.branchDeleteError;
+  }
+
   get(id: string): Job | undefined {
     return this.jobs.get(id);
   }

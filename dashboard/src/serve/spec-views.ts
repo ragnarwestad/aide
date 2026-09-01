@@ -226,6 +226,12 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     if (!ref) continue;
     const project = key.slice(0, key.indexOf("/"));
     const when = archivedAt(ctx, ref.dir);
+    // Spec 319: the newest landing's own reason its delete failed, when
+    // there is one — read off the job store rather than re-derived, so
+    // this can never disagree with what `mergeBranchIntoDefault` itself
+    // found. `undefined` here just means no job recorded one; the row
+    // still falls through to the plain `NOT_LANDED` wording.
+    const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
     // REQ-6: the spec's own creation date, distinct from `when` above
     // (which is the ARCHIVE date, from the `git mv`). A peek, never a
     // take (spec 208's rule, held for every question on this route):
@@ -242,6 +248,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       createdAtChecking: created.checkedAt === null,
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
+      branchDeleteError,
       prOpen: prWaiting,
       // Off the newest job that reported one. The queue keeps two
       // hundred jobs and the archive grows past that, so an old row

@@ -7,10 +7,20 @@ import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { ARCHIVED_STATE, ARCHIVED_OPEN_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
-import { activeDurationCell, archiveDateCell, costCell, createdCell, notLandedTitle, phasePips, prOpenMark, stateCell } from "./cell-helpers.ts";
+import {
+  activeDurationCell,
+  archiveDateCell,
+  branchLeftBehindMark,
+  costCell,
+  createdCell,
+  notLandedTitle,
+  phasePips,
+  prOpenMark,
+  stateCell,
+} from "./cell-helpers.ts";
 import { branchList, foldControl, stateAction } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
-import { NOT_LANDED } from "./row-shared.ts";
+import { BRANCH_LEFT_BEHIND, NOT_LANDED } from "./row-shared.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
 // to fall back to "no status recorded yet" rather than go blank, on the
@@ -117,9 +127,11 @@ export function specHeadRow(
     ? ""
     : g.archive.prOpen
       ? ` ${prOpenMark(g.archive)}`
-      : g.archive.notLanded
-        ? ` ${badge("refused", NOT_LANDED, notLandedTitle(g.archive.notLandedCheckedAt, now))}`
-        : "";
+      : g.archive.branchDeleteError
+        ? ` ${branchLeftBehindMark(g.archive)}`
+        : g.archive.notLanded
+          ? ` ${badge("refused", NOT_LANDED, notLandedTitle(g.archive.notLandedCheckedAt, now))}`
+          : "";
   // The mark beside each link is about the BRANCH alone (spec 174):
   // whether it landed, and what lands it. What the row's lead job is
   // doing is the State column's answer, said there once.
@@ -161,7 +173,12 @@ export function specHeadRow(
   // with the plain "archived" a reader saw right here. The cell now
   // echoes the mark's own fact in words, so the two never disagree.
   const stateBadge = locked
-    ? badge("done", g.state === ARCHIVED_OPEN_STATE ? `${ARCHIVED_STATE}, not landed` : ARCHIVED_STATE)
+    ? badge(
+        "done",
+        g.state === ARCHIVED_OPEN_STATE
+          ? `${ARCHIVED_STATE}, ${g.archive?.branchDeleteError ? BRANCH_LEFT_BEHIND : NOT_LANDED}`
+          : ARCHIVED_STATE,
+      )
     : g.lead
       ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
       // A spec with no job in the queue's memory reads the same way

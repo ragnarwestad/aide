@@ -136,6 +136,13 @@ export interface ArchivedSpecView {
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
+  /** A landing merged this spec's branch but left it on origin because
+   *  the delete failed (spec 319) — the reason `notLanded` is true, when
+   *  it is known. `undefined` means either the branch is not open at all,
+   *  or it is open for a reason no landing recorded (a spec whose branch
+   *  genuinely never merged). Takes precedence over the bare `NOT_LANDED`
+   *  wording for the same reason `prOpen` takes precedence over it. */
+  branchDeleteError?: string;
   /** When the spec was made, from BEFORE the archive step's own `git
    *  mv` (spec 317, REQ-6) — distinct from `archivedAt` above, which is
    *  when the folder was moved. Off `firstCommitAtFollowingRenames`,
