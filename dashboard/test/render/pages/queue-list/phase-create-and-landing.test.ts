@@ -97,7 +97,7 @@ describe("spec 116: create is the first phase line", () => {
     );
     expect(line).toContain(
       '<td><span class="badge b-done">done</span></td>' +
-        '<td data-col="started"></td><td class="num" data-col="cost"></td>',
+        '<td data-col="created"></td><td data-col="started"></td><td class="num" data-col="cost"></td>',
     );
   });
 

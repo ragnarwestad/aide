@@ -163,13 +163,22 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const archivedKeys = scan?.archived ?? [];
     const roots = new Set<string>();
     const archivedDirs: string[] = [];
+    // Spec 317, REQ-6: every archived dir, not narrowed to the unstamped
+    // ones the way `archivedDirs` above is — there is no write-time
+    // stamp for Created to short-circuit against, so this is the whole
+    // archive on the first sweep that reaches it. `createdAtForArchived`'s
+    // own long-lived cache (a day, once resolved) is what keeps that
+    // bounded on every sweep after.
+    const createdAtTargets: { dir: string; folder: string }[] = [];
     for (const key of archivedKeys) {
       const cut = key.indexOf("/");
       for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
       const dir = scan?.dirs.get(key);
+      if (!dir) continue;
       // Only the ones git would be asked about anyway: a spec whose
       // status file already stamps the date never reaches git at all.
-      if (dir && !specArchivedDate(dir)) archivedDirs.push(dir);
+      if (!specArchivedDate(dir)) archivedDirs.push(dir);
+      createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
     }
     // Before the sweep, so a change made DURING it is compared against
     // what a reader's last page load actually saw — the same reason
@@ -182,6 +191,7 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // others with it.
       ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
       ...archivedDirs.map((dir) => ctx.readSpecFileCommits().commitFor(dir, ".")),
+      ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
       ...live.map((t) => warmSpec(ctx, t)),
       // And the checkout the LIST is read from (spec 218). Every other
       // caller of `ensureCheckout` is a project that has something

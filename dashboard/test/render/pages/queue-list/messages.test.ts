@@ -94,7 +94,8 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    expect(panel(html)).toContain(`colspan="5"`);
+    // Six since the Created column joined the other five (spec 317).
+    expect(panel(html)).toContain(`colspan="6"`);
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.

@@ -246,6 +246,7 @@ export function createServer(opts: ServerOptions) {
     specFileCommits: schedules.specFileCommits,
     branchStatus,
     specsRoot: resolution.specsRoot,
+    specCreatedAt: schedules.specCreatedAt,
   };
   function archivedSpecRows(state: string | undefined) {
     return archivedSpecRowsImpl(specViewsCtx, state);

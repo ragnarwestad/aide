@@ -79,6 +79,27 @@ export async function firstCommitAt(
   return lines.length ? lines[lines.length - 1]!.trim() : null;
 }
 
+/** The same question as `firstCommitAt`, crossing a rename of `file`'s
+ *  own containing directory (spec 317) — what a plain directory
+ *  pathspec cannot see once `aide-archive-spec` has `git mv`'d a spec's
+ *  whole folder into `archive/`: `git log -- .` against the new path
+ *  only finds commits that touched THAT path, so the move commit reads
+ *  as the spec's own beginning. `--follow` is documented to cross
+ *  exactly this kind of rename, but only for a single file — never a
+ *  directory — which is why this takes `file` (an always-present,
+ *  never-independently-edited file, e.g. `0-README.md`) rather than
+ *  `.`. Same oldest-line shape as `firstCommitAt`. */
+export async function firstCommitAtFollowingRenames(
+  run: GitRunner,
+  dir: string,
+  file: string,
+): Promise<string | null> {
+  const out = await run(dir, ["log", "--follow", "--format=%aI", "--", file]);
+  if (out.code !== 0) return null;
+  const lines = out.stdout.trim().split("\n").filter(Boolean);
+  return lines.length ? lines[lines.length - 1]!.trim() : null;
+}
+
 /** When the last commit touching `pathspec` was authored. */
 export async function lastCommitAt(
   run: GitRunner,
@@ -310,6 +331,55 @@ export class SpecCreatedAtChecker {
    *  anything. */
   peekCreatedAt(dir: string, specFolder: string): { createdAt: string | null; checkedAt: number | null } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
+    return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
+  }
+
+  /** How long a RESOLVED archived answer stands (spec 317) — a day, not
+   *  the standard TTL above: an archived spec's history cannot change
+   *  after the fact, so the per-tick cost `refreshSpecCaches` pays for
+   *  it is owed once per archived spec ever, not once per sweep tick.
+   *  A genuine `null` (git could not date it, or a transient failure)
+   *  keeps the standard TTL instead, so a fixable answer is retried. */
+  private static readonly ARCHIVED_RESOLVED_TTL_MS = 24 * 60 * 60 * 1000;
+
+  // A cache of its own, never the one above: an archived `dir` already
+  // contains `archive/` and cannot collide with a live one, but the two
+  // questions keep different TTL rules and a shared map would have to
+  // carry both.
+  private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
+
+  /** The archived-row counterpart to `createdAt` (spec 317): the spec's
+   *  true beginning, from before `aide-archive-spec`'s `git mv`, off the
+   *  one file that survives that move unedited (`0-README.md`, written
+   *  once by `/aide-create`). Fails to `null` on the same terms as
+   *  `createdAt` — a missing or independently-rewritten `0-README.md`
+   *  is an honest "cannot date", not a crash. */
+  async createdAtForArchived(dir: string, specFolder: string): Promise<string | null> {
+    const key = JSON.stringify([dir, specFolder]);
+    const hit = this.archivedCache.get(key);
+    const at = this.now();
+    const ttl = hit?.createdAt ? SpecCreatedAtChecker.ARCHIVED_RESOLVED_TTL_MS : this.ttlMs;
+    if (hit && at - hit.at < ttl) return hit.createdAt;
+
+    let createdAt: string | null = null;
+    try {
+      createdAt = await firstCommitAtFollowingRenames(this.run, dir, "0-README.md");
+    } catch {
+      createdAt = null;
+    }
+
+    this.archivedCache.set(key, { at, createdAt });
+    return createdAt;
+  }
+
+  /** The LAST date this checker holds for an archived spec, without
+   *  asking git at all — `peekCreatedAt`'s own shape, over the separate
+   *  archived cache. */
+  peekCreatedAtForArchived(
+    dir: string,
+    specFolder: string,
+  ): { createdAt: string | null; checkedAt: number | null } {
+    const hit = this.archivedCache.get(JSON.stringify([dir, specFolder]));
     return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 }

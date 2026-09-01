@@ -118,17 +118,18 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const firstPhase = subRow(html, "create");
     expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Five since the blank trailing column went on 2026-08-23. It was
-    // seven under spec 165, which gave the row's AI a column of its
-    // own between the phase name and the model; six when the pips
-    // moved in beside the name and the Progress column went.
+    // Six since the Created column went in (spec 317). It was five from
+    // 2026-08-23, when the blank trailing column went; seven under spec
+    // 165, which gave the row's AI a column of its own between the
+    // phase name and the model; six-before-this when the pips moved in
+    // beside the name and the Progress column went.
     for (const tr of [thead, spechead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 5]);
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
     }
     // And the same on every phase line after the first as well, since
     // spec 179: the AI column is a cell of each line's own, so no line
     // borrows a slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(5);
+    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
     // No spare cell at either end since 2026-08-23: the one action a
     // shut row drew in the last column moved beside the state in spec
     // 157, and the column stood blank until it went. The header and
@@ -138,6 +139,66 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(spechead).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     // And the phase lines lead with their own cell, hard left.
     expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell">/);
+  });
+
+  // --- spec 317: the Created column ------------------------------------------
+
+  test("Created sits between State and Time, on the header and the spec row (REQ-1)", () => {
+    const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:00:00Z" })]);
+    const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
+    // State ends the Spec/State pair, Time is `data-col="started"` — the
+    // Created header has to fall strictly between the two.
+    const stateAt = thead.indexOf(">State<");
+    const createdAt_ = thead.indexOf('data-col="created"');
+    const startedAt = thead.indexOf('data-col="started"');
+    expect(stateAt).toBeGreaterThan(-1);
+    expect(createdAt_).toBeGreaterThan(stateAt);
+    expect(startedAt).toBeGreaterThan(createdAt_);
+
+    const spechead = head(html, "124-stack");
+    const stateCellAt = spechead.indexOf("badgeslot");
+    const createdCellAt = spechead.indexOf('data-col="created"');
+    const startedCellAt = spechead.indexOf('data-col="started"');
+    expect(createdCellAt).toBeGreaterThan(stateCellAt);
+    expect(startedCellAt).toBeGreaterThan(createdCellAt);
+  });
+
+  // REQ-4: the same plain YYYY-MM-DD format `archiveDateCell` already
+  // draws for the Time column's archive date — not a full timestamp.
+  test("a live row's Created cell shows a plain date (REQ-4)", () => {
+    const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:14:00+02:00" })]);
+    const spechead = head(html, "124-stack");
+    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("2026-08-12");
+    expect(cell.slice(0, cell.indexOf("</td>"))).not.toContain("09:14");
+  });
+
+  // REQ-5: a spec git could not date — asked, and answered with nothing
+  // — shows a dash, never a job's own time and never a crash.
+  test("a spec git could not date shows the dash convention (REQ-5)", () => {
+    const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: false })]);
+    const spechead = head(html, "124-stack");
+    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("date unknown");
+  });
+
+  // The other half of the same distinction every date cell on this page
+  // draws: nothing has ASKED git yet is "checking…", not a dash.
+  test("a spec nothing has asked git about yet shows checking…, not a dash", () => {
+    const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: true })]);
+    const spechead = head(html, "124-stack");
+    const cell = spechead.slice(spechead.indexOf('data-col="created"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("checking…");
+  });
+
+  // Every phase line and the caption row draw a blank placeholder cell
+  // in the same column, purely for alignment (LIST_COLUMNS).
+  test("phase lines and the caption row carry a blank Created cell", () => {
+    const html = rows([], undefined, { modelChoices: CHOICES });
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain('<td data-col="created"></td>');
+    const caption = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(caption).toContain('<td data-col="created"></td>');
   });
 
   // --- criteria 1, 3, 4, 5, 15: the checkbox lives on the phase line ---------
@@ -236,10 +297,11 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Four cells: name, state, started, cost. The Progress column went
-    // into the name cell with the pips (2026-08-22), and the blank
-    // spare after Cost went on 2026-08-23 — the row ends on the money.
-    expect(cells(head(html, "124-stack"))).toHaveLength(4);
+    // Five cells: name, state, created, started, cost. The Progress
+    // column went into the name cell with the pips (2026-08-22), the
+    // blank spare after Cost went on 2026-08-23 — the row ends on the
+    // money — and Created joined between state and started (spec 317).
+    expect(cells(head(html, "124-stack"))).toHaveLength(5);
     expect(head(html, "124-stack")).toMatch(
       /<td class="num" data-col="cost">[^<]*<\/td><\/tr>$/,
     );

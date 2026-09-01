@@ -192,6 +192,10 @@ describe("spec 221: archived specs on the spec list", () => {
     title: `Title of ${folder}`,
     description: `What ${folder} was about.`,
     archivedAt: "2026-08-13",
+    // Spec 317: a real default so tests that do not care about Created
+    // are not surprised by the archive-date tests' own "date unknown"/
+    // "checking" text turning up in a second, unrelated cell.
+    createdAt: "2026-08-01T09:00:00Z",
     // What the spec's own 4-status.md claims it has had (spec 224) —
     // the whole workflow, which is what an archived spec normally says.
     done: ["create", "analyze", "implement", "archive"],
@@ -249,11 +253,15 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(folders(html)).toEqual(["50-archived"]);
   });
 
+  // Pinned to the "spec" sort explicitly (spec 317 changed which sort
+  // is the default) — the property under test is that live and
+  // archived rows interleave by ONE shared key, not which key that
+  // happens to be by default.
   test("All interleaves the two kinds by one sort key", () => {
     const html = rows({
       archivedSpecs: [archivedSpec("70-archived"), archivedSpec("50-archived")],
       targets: [live("60-live")],
-      filter: { state: "all" },
+      filter: { state: "all", sort: "spec" },
     });
     expect(folders(html)).toEqual(["70-archived", "60-live", "50-archived"]);
   });
@@ -311,8 +319,11 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(seen("wolverine")).toEqual(["50-archived"]);
     expect(seen("60-live")).toEqual(["60-live"]);
     expect(seen("gone")).toEqual(["50-archived"]);
-    // Whitespace is not a term: it must not empty the list.
-    expect(seen("  ")).toEqual(["60-live", "50-archived"]);
+    // Whitespace is not a term: it must not empty the list. Order is
+    // the list's own default now (spec 317): Created, newest first —
+    // the archived fixture's own `createdAt` default is a real date,
+    // the live target's is not, so the archived row sorts first.
+    expect(seen("  ")).toEqual(["50-archived", "60-live"]);
   });
 
   test("the chips count the archived specs the page did not build", () => {

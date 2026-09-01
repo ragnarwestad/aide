@@ -105,6 +105,24 @@ describe("Started and Cost fold away at phone width", () => {
   });
 });
 
+// --- spec 317, REQ-8: the Created column at phone width ---------------------
+//
+// A deliberate choice, not an oversight: the phone's spec-header line
+// already carries fold, name, pips, badge, action, duration and cost —
+// a phone reader there is oriented to STATE and HOW LONG, not WHEN it
+// began. Created is dropped from that line rather than reflowed onto
+// it, same treatment Started/Cost already get on the subrow.
+describe("Created folds away on the spec header at phone width", () => {
+  test("the narrow-width block hides the column on the spec header line", () => {
+    expect(NARROW).toContain('table.list tr.spechead [data-col="created"] { display: none; }');
+  });
+
+  test("the head row's Created cell carries the hook", () => {
+    const html = rows();
+    expect(html).toContain('data-col="created"');
+  });
+});
+
 // --- criterion 3: the open row's phase lines stack --------------------------
 
 describe("the phase lines stop being pinned columns at phone width", () => {

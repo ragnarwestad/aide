@@ -252,10 +252,11 @@ describe("token configured", () => {
       expect(sortCookie(res)).toContain("aide_sort=state");
     });
 
+    // Spec 317 changed the default sort from Spec to Created.
     test("with nothing remembered the default stands", async () => {
       const { base } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?token=${TOKEN}`);
-      expect(sortedBy(await res.text())).toBe("Spec");
+      expect(sortedBy(await res.text())).toBe("Created");
       expect(sortCookie(res)).toBe("");
     });
   });
