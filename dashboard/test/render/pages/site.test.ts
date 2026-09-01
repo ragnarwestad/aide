@@ -304,12 +304,15 @@ describe("the front page after the panel moved", () => {
   // the clear-air margin rule is scoped to `.specsearch` alone, not
   // `#jobrows`, since `/schedule` uses the same form with no `#jobrows`
   // of its own.
-  test("the state trigger owns the automatic margin that keeps the controls at the right", () => {
+  test("New spec owns the automatic margin that keeps it at the right", () => {
     const html = page({ createProjects: ["aide"] });
-    // Spec 305 moved the trigger next to New spec, so the row's one gap
-    // falls before the PAIR of them rather than before New spec alone.
-    expect(html).toContain(".specsearch > .menu.state { margin-left: auto; }");
-    expect(html).not.toContain(".specsearch > .btn.primary { margin-left: auto; }");
+    // Spec 305 moved the trigger along the row and gave it the margin;
+    // spec 306 put the margin back on New spec, so the state trigger
+    // sits right after the "?" a plain `gap` away — inntil søkefilteret,
+    // which is what that spec is named for — and New spec alone is
+    // pushed to the row's right-hand end.
+    expect(html).toContain(".specsearch > .btn.primary { margin-left: auto; }");
+    expect(html).not.toContain(".specsearch > .menu.state { margin-left: auto; }");
     expect(html).not.toContain(
       "#jobrows > .row:first-child > .btn { margin-left: auto; }",
     );

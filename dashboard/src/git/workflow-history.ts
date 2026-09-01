@@ -319,7 +319,13 @@ export class BranchFileStepsChecker {
     let steps: string[] | null = null;
     if (target) {
       try {
-        const file = await readStatusFromBranch(this.run, target.root, target.branch, target.relPath);
+        // Wherever the folder is ON the branch: `archive` moves it to
+        // `archive/<folder>` and commits that there, so a branch whose
+        // archive has run but not landed answers nothing for the active
+        // path while the default branch still holds the folder in it.
+        const file =
+          (await readStatusFromBranch(this.run, target.root, target.branch, target.relPath)) ??
+          (await readStatusFromBranch(this.run, target.root, target.branch, target.archivedRelPath));
         steps = file ? parseStatus(file.text).workflowSteps : null;
       } catch {
         steps = null;

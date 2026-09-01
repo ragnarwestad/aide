@@ -20,6 +20,7 @@ const TARGET: OpenBranchTarget = {
   root: "/root",
   branch: `aide/${FOLDER}`,
   relPath: `aide/specs/${FOLDER}/4-status.md`,
+  archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
 };
 
 const fake = (answers: Record<string, { code: number; stdout?: string }>): { run: GitRunner; calls: string[][] } => {

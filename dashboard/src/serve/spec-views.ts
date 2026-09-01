@@ -313,7 +313,14 @@ export async function specPageView(
     // a few seconds of staleness the Checks section already has for
     // git answers generally (spec 212's own reasoning, above).
     const target = await resolveOpenBranchTarget(ctx, dir, specFolder, STATUS_SPEC_FILE, false);
-    const branchRead = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
+    // Wherever the folder is ON the branch — `archive` moves it to
+    // `archive/<folder>` there, and a branch that has not landed yet
+    // still answers for that path while the default branch holds the
+    // folder in its active one.
+    const branchRead = target
+      ? ((await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath)) ??
+        (await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.archivedRelPath)))
+      : null;
     if (branchRead) {
       checksText = branchRead.text;
       branchBaseSha = branchRead.sha;

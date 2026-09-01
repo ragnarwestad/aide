@@ -355,10 +355,16 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
    *  `relative(root, ...)` then builds a `../../..` path instead of a
    *  clean relative one. Slicing the known suffix off `d` keeps `root`
    *  in the same string family `dir` already is. */
-  const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => {
+  const branchReadingGitRun = (
+    opts: { open: boolean; branchText?: string; archivedText?: string },
+  ): GitRunner => {
     const real = createGitRunner();
     const branch = `aide/${FOLDER}`;
     const relPath = `aide/specs/${FOLDER}/4-status.md`;
+    // Where `archive` moves the folder ON THE BRANCH once it has run
+    // there — the active path above then names nothing at all, and git
+    // answers a `log` for it with no sha, exactly as modelled below.
+    const archivedRelPath = `aide/specs/archive/${FOLDER}/4-status.md`;
     const ref = `refs/remotes/origin/${branch}`;
     const specFolderSuffix = join("aide", "specs", FOLDER);
     return async (dir, args, timeoutMs, env) => {
@@ -374,9 +380,13 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
       }
       if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
       if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
-        return { code: 0, stdout: "cafebabe000000000000000000000000000000\n" };
+        return { code: 0, stdout: opts.archivedText === undefined ? "cafebabe000000000000000000000000000000\n" : "" };
       }
       if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
+      if (line === `log -1 --format=%H ${ref} -- ${archivedRelPath}`) {
+        return { code: 0, stdout: opts.archivedText === undefined ? "" : "cafebabe000000000000000000000000000000\n" };
+      }
+      if (line === `show ${ref}:${archivedRelPath}`) return { code: 0, stdout: opts.archivedText ?? "" };
       return real(dir, args, timeoutMs, env);
     };
   };
@@ -413,6 +423,34 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     ran(dir, ["create", "analyze", "implement"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(line).toContain("the files disagree with what has run");
+  });
+
+  // Reported live on spec 306 (2026-09-01): `archive` had already run ON
+  // THE BRANCH — the folder moved to `archive/<folder>` there and the
+  // status file went with it — while the branch itself had not landed,
+  // so the default branch still carried the folder in its active place
+  // with a status line stopping at `analyze`. The branch read asked for
+  // the ACTIVE path only, found nothing, fell back to that stale copy,
+  // and the row then reported implement as disagreeing with a history
+  // that had it. Reading the branch means reading wherever the folder
+  // is ON the branch — the same "active folder, then archive/" pair
+  // `aide_resolve_spec`, `resolve_dependency_folder`, `status_file_for`
+  // and `aide-run-spec` (spec 202) already resolve.
+  test("a folder archive has already moved on the branch is still read from the branch", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: branchReadingGitRun({
+        open: true,
+        archivedText: statusSaying(["create", "analyze", "implement", "archive"]),
+      }),
+    });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    // The branch read fetches the branch, so its own commits — implement's
+    // and archive's alike — are in `git log --all` by the time the history
+    // half answers.
+    ran(dir, ["create", "analyze", "implement", "archive"]);
+    const line = specControls(await listPage(base), FOLDER);
+    expect(line).not.toContain("the files disagree with what has run");
   });
 
   test("REQ-3: no open branch falls back to the disk read, exactly as before this fix", async () => {

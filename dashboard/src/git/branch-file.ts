@@ -23,7 +23,7 @@
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "./branch-status.ts";
 import { specBranch } from "./branch-status.ts";
 
@@ -153,6 +153,16 @@ export interface OpenBranchTarget {
   root: string;
   branch: string;
   relPath: string;
+  /** Where the same file sits once `archive` has run ON THE BRANCH: the
+   *  step moves the folder to `archive/<folder>` and commits that there,
+   *  so a branch whose archive has run but not landed answers nothing at
+   *  all for `relPath` above while the default branch still carries the
+   *  folder in its active place.
+   *
+   *  Offered rather than substituted, and READ paths only: a spec whose
+   *  archive has run is not one a tick may write to, so `writeStatusToBranch`
+   *  keeps asking for `relPath` and nothing else. */
+  archivedRelPath: string;
 }
 
 /** Whether `specFolder` has an open `aide/<folder>` branch in the specs
@@ -177,5 +187,10 @@ export async function resolveOpenBranchTarget(
   const branch = specBranch(specFolder);
   const open = await ctx.branchStatus.openSpecBranches(root, fresh);
   if (!open?.has(branch)) return null;
-  return { root, branch, relPath: relative(root, join(dir, file)) };
+  return {
+    root,
+    branch,
+    relPath: relative(root, join(dir, file)),
+    archivedRelPath: relative(root, join(dirname(dir), "archive", basename(dir), file)),
+  };
 }

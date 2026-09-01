@@ -309,6 +309,7 @@ describe("resolveWorkflowState", () => {
     root: "/root",
     branch: `aide/${FOLDER}`,
     relPath: `aide/specs/${FOLDER}/4-status.md`,
+    archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
   };
 
   /** What `readStatusFromBranch` needs answered, for a branch whose
