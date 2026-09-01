@@ -5,7 +5,9 @@
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
 import type { LiveEnricher } from "../integrations/live.ts";
-import { json, readBounded, serveStatic, servePwaAsset } from "./serve-helpers.ts";
+import {
+  json, readBounded, serveStatic, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
+} from "./serve-helpers.ts";
 
 export interface CoreRoutesContext {
   store: AideRunStore;
@@ -65,6 +67,8 @@ export async function handleCore(
   if (req.method !== "GET" && req.method !== "HEAD") {
     return new Response("method not allowed", { status: 405 });
   }
+
+  if (path === SPEC_EDITOR_ASSET_PATH) return serveSpecEditorAsset(req);
 
   const pwaAsset = servePwaAsset(path);
   if (pwaAsset) return pwaAsset;

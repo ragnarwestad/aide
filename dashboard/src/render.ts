@@ -105,6 +105,7 @@ export {
   FILE_TABS,
   resolveSpecTab,
   TAB_FILES,
+  documentTabNeedsEditor,
   renderSpecPage,
   renderResetSpecPage,
   specPagePath,

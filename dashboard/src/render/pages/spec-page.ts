@@ -51,12 +51,15 @@ import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import { archivedLine, checklist, dependsOnLine, reopenControl, resetControl } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
-import { RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP } from "./spec-page/tabs.ts";
+import {
+  RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
+} from "./spec-page/tabs.ts";
 import type { SpecPageView } from "./spec-page/types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./spec-page/types.ts";
 export {
-  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, PHASE_TAB, resolveSpecTab, TAB_FILES, specPagePath, specTabPath,
+  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, PHASE_TAB, resolveSpecTab, TAB_FILES,
+  documentTabNeedsEditor, specPagePath, specTabPath,
 } from "./spec-page/tabs.ts";
 export { renderResetSpecPage } from "./spec-page/reset-page.ts";
 
@@ -64,7 +67,7 @@ export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; now?: number; script?: string } = {},
+  opts: { tab?: string; step?: string; now?: number; script?: string; scriptSrc?: string } = {},
 ): string {
   const now = opts.now ?? Date.now();
   // Description, whatever is running. The JOB page opens on the
@@ -140,6 +143,6 @@ export function renderSpecPage(
     body,
     generatedAt,
     RELOADING_TABS.includes(tab) ? 10 : undefined,
-    { script: opts.script, hideHeading: true },
+    { script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true },
   );
 }

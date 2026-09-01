@@ -106,6 +106,44 @@ export function specEditorClientScript(): Promise<string | undefined> {
   return specEditorScript;
 }
 
+export const SPEC_EDITOR_ASSET_PATH = "/spec-editor.js";
+
+// A pure function on purpose (spec 315, REQ-2, second clause: "a new
+// version of the dashboard SHALL still reach a browser holding an old
+// copy"): two different texts MUST produce two different ETags, which
+// is what makes a stale If-None-Match (computed by a browser against a
+// PRIOR process's build) fall through to the 200/fresh-body path below
+// rather than a wrongly-served 304.
+export function etagFor(text: string): string {
+  return `"${Bun.hash(text).toString(16)}"`;
+}
+
+// REQ-1/REQ-2: served at a fixed path, revalidated by ETag rather than
+// re-sent whole — the same cache-control sw.js already uses below — so
+// a browser holding a copy asks "still this?" instead of downloading
+// ~770 KB again, and a new build (a fresh process, REQ-5) answers with
+// a different ETag and the full body.
+let specEditorAsset: Promise<{ text: string; etag: string } | undefined> | null = null;
+function buildSpecEditorAsset(): Promise<{ text: string; etag: string } | undefined> {
+  if (specEditorAsset !== null) return specEditorAsset;
+  specEditorAsset = specEditorClientScript().then((text) =>
+    text === undefined ? undefined : { text, etag: etagFor(text) },
+  );
+  return specEditorAsset;
+}
+
+export async function serveSpecEditorAsset(req: Request): Promise<Response> {
+  const built = await buildSpecEditorAsset();
+  if (!built) return new Response("not found", { status: 404 });
+  const headers = new Headers({
+    "content-type": "text/javascript; charset=utf-8",
+    "cache-control": "no-cache",
+    etag: built.etag,
+  });
+  if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
+  return new Response(built.text, { headers });
+}
+
 // The tail of a file, without reading the rest of it. A 25-minute
 // implement run's transcript is not something a page render should ever
 // pull into memory whole — and the tail is the part that answers "what
