@@ -1,7 +1,7 @@
 // Where a no-JS form POST goes back to, and the two commit messages a
 // Save writes.
 
-import { EDITABLE_SPEC_FILE, FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render.ts";
+import { FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render.ts";
 
 /** Why an archived spec refuses to be edited (spec 163). One sentence,
  *  in one place: the GET that would have rendered the form and the POST
@@ -10,16 +10,16 @@ import { EDITABLE_SPEC_FILE, FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE 
 export const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
 
 /** What a Save's commit RECORDS. Two routes since spec 212 — the
- *  description's own Save and the checks' — and each writes one file,
- *  so each has one sentence. There was a third, for the one commit that
- *  could carry both; two files can no longer arrive in one request, so
- *  it has nothing left to describe.
+ *  document tabs' own Save (any of the four files, spec 310) and the
+ *  checks' — and each writes one file, so each has one sentence. There
+ *  was a third, for the one commit that could carry both; two files can
+ *  no longer arrive in one request, so it has nothing left to describe.
  *
  *  Never the runner's grammar: `workflow-history.ts` counts a step by a
  *  commit subject beginning "Run /aide-", and a hand edit is not a step
  *  the spec has had. */
-export const editMessage = (specFolder: string): string =>
-  `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`;
+export const editMessage = (specFolder: string, file: string): string =>
+  `Edit ${file} for ${specFolder} from the dashboard`;
 export const tickMessage = (specFolder: string): string =>
   `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
 

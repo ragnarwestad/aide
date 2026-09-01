@@ -11,7 +11,8 @@ import {
 import { parseStatus } from "../project/parse-status.ts";
 import { specPhaseOutcome, type PhaseOutcome } from "../project/parse-phase-outcome.ts";
 import {
-  filterShowsArchived, PHASE_LINES, phasesFor, specPagePath, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE,
+  filterShowsArchived, PHASE_LINES, phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE,
+  TAB_FILES,
   type ArchivedSpecView, type JobDetailView, type SpecFileView, type SpecPageView, type QueueRowView,
   type QueueTarget,
 } from "../render.ts";
@@ -374,9 +375,32 @@ export async function specPageView(
     : branchBaseSha !== undefined
       ? { sha: branchBaseSha }
       : await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE);
-  const formDir = tab === "description" ? await ctx.machinerySpecDir(project, found) : null;
-  const descriptionCommit = formDir ? await lastCommitOf(ctx.gitRun, formDir, EDITABLE_SPEC_FILE) : null;
-  const descriptionText = formDir ? specFileText(formDir, EDITABLE_SPEC_FILE) : null;
+  // REQ-1/REQ-3: generalized from "Description awaits, every other tab
+  // peeks" (spec 205's own rule, above) to "whichever document tab is
+  // open awaits, and only for an ACTIVE spec" — an archived one has no
+  // Save to guard (REQ-5), so it stays on the peeked, cached text every
+  // tab already had. Exactly one file per request still pays this cost:
+  // the tab actually being viewed.
+  const formFile = TAB_FILES[resolveSpecTab(tab)];
+  const fetchForm = Boolean(formFile) && !ref?.archived;
+  let formBaseSha: string | undefined;
+  let formText: string | null = null;
+  if (fetchForm) {
+    const formDir = await ctx.machinerySpecDir(project, found);
+    // REQ-4: the same "ask the open branch first" question the Checks
+    // section already asks (above) — but fresh (`true`), because a Save
+    // has to compare against the version IT will write onto, never a
+    // cached answer.
+    const target = await resolveOpenBranchTarget(ctx, formDir, specFolder, formFile!, true);
+    const branchRead = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
+    if (branchRead) {
+      formBaseSha = branchRead.sha;
+      formText = branchRead.text;
+    } else {
+      formBaseSha = (await lastCommitOf(ctx.gitRun, formDir, formFile!))?.sha;
+      formText = specFileText(formDir, formFile!);
+    }
+  }
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
   const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
   // jobs is newest-first; oldest = attempt 1. Only tagged when there is
@@ -406,9 +430,11 @@ export async function specPageView(
     // which of the two the person meant. The Description tab strips
     // it; Overview shows what it resolves to, read-only.
     files: files.map((f) => {
-      if (f.label !== EDITABLE_SPEC_FILE) return f;
-      const text = formDir ? descriptionText : f.text;
-      return text === null ? { ...f, text } : { ...f, text: stripDependsOnLine(text) };
+      if (!fetchForm || f.label !== formFile) return f;
+      if (f.label === EDITABLE_SPEC_FILE) {
+        return formText === null ? { ...f, text: formText } : { ...f, text: stripDependsOnLine(formText) };
+      }
+      return { ...f, text: formText };
     }),
     checks: {
       rows,
@@ -433,7 +459,7 @@ export async function specPageView(
     // 224) — read here from the `statusText` already in hand rather than
     // through that helper, which re-reads the file from disk.
     done: ref?.archived ? parsedStatus.workflowSteps : (target?.done ?? []),
-    descriptionBaseSha: descriptionCommit?.sha,
+    formBaseSha,
     lead,
     steps,
     // Built from the page's own path, so the two cannot drift into a

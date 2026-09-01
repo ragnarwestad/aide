@@ -35,6 +35,12 @@ describe("the Description tab", () => {
     expect(html).toContain("The dashboard never shows a spec.");
   });
 
+  // REQ-2: the save route now takes the file as part of the request —
+  // Description's own form names itself, same as the other three tabs.
+  test("names which file the Save is about", () => {
+    expect(edit()).toContain('<input type="hidden" name="file" value="1-description.md">');
+  });
+
   test("wide description lines stay on one line and scroll inside the field", () => {
     const html = edit();
     expect(html).toContain('<textarea name="text" rows="30" spellcheck="false" wrap="off" class="spec-editor-raw">');
@@ -64,13 +70,13 @@ describe("the Description tab", () => {
   // The whole point of the hidden field: the page is rendered once and
   // a reader may sit on it while an analyze step lands a new version.
   test("carries the commit the text was read at, so a save can be refused", () => {
-    expect(edit(view({ descriptionBaseSha: "a3f9c21deadbeef" }))).toContain('value="a3f9c21deadbeef"');
+    expect(edit(view({ formBaseSha: "a3f9c21deadbeef" }))).toContain('value="a3f9c21deadbeef"');
   });
 
   // A spec whose description git has never seen still opens: the field
   // is empty rather than the word "undefined".
   test("a file with no commit yet opens all the same", () => {
-    const html = edit(view({ descriptionBaseSha: undefined }));
+    const html = edit(view({ formBaseSha: undefined }));
     expect(html).toContain("<textarea");
     expect(html).not.toContain("undefined");
   });

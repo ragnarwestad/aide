@@ -77,6 +77,15 @@ export const TAB_FILES: Partial<Record<SpecTab, string>> = {
   status: STATUS_SPEC_FILE,
 };
 
+/** The inverse of `TAB_FILES` (spec 310): which tab a POSTed `file` name
+ *  belongs to. Built once here rather than at each call site — the save
+ *  route's allowlist (REQ-2) and its redirect target are the same
+ *  lookup, since a file outside this map is a file with no tab to send
+ *  a refusal back to. */
+export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
+  Object.entries(TAB_FILES).map(([tab, file]) => [file, tab as SpecTab]),
+);
+
 /** Which tab a phase's own link opens (spec 237): the tab that shows
  *  what that phase MADE, or — for archive, which writes no file of its
  *  own — Checks, the spec's own remaining-work tab.

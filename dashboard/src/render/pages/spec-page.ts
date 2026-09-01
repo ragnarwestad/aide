@@ -56,7 +56,7 @@ import type { SpecPageView } from "./spec-page/types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./spec-page/types.ts";
 export {
-  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, PHASE_TAB, resolveSpecTab, TAB_FILES, specPagePath, specTabPath,
+  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, PHASE_TAB, resolveSpecTab, TAB_FILES, specPagePath, specTabPath,
 } from "./spec-page/tabs.ts";
 export { renderResetSpecPage } from "./spec-page/reset-page.ts";
 

@@ -6,7 +6,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../project/parse-status.ts";
 import {
-  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, renderResetSpecPage, renderSpecPage, resolveBackHref,
+  EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, TAB_FILES, renderResetSpecPage, renderSpecPage, resolveBackHref,
   resolveSpecTab, specPagePath, specTabPath,
 } from "../../render.ts";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specEditorClientScript, specsRedirect, tickMessage } from "../serve-helpers.ts";
@@ -181,10 +181,38 @@ export async function handleSpecEditRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    // The Description tab, which is where the textarea is (spec 212).
-    // A refusal has to land where the form was, holding what is
+    // REQ-2: the file comes in with the request now; a request that
+    // predates this field (only Description's own form ever posted
+    // here) defaults to it, so nothing already posting to `/save`
+    // breaks. Anything outside the four editable files is refused
+    // before the body is read further.
+    const file = typeof body.file === "string" ? body.file : EDITABLE_SPEC_FILE;
+    const tab = FILE_TABS[file];
+    if (!tab) {
+      return specsRedirect(
+        {},
+        { error: `unknown spec file: ${file} — nothing was saved` },
+        specPagePath(project!, specFolder!),
+      );
+    }
+    // The tab the form was on, which is where the textarea is (spec
+    // 212). A refusal has to land where the form was, holding what is
     // actually on disk.
-    const back = specTabPath(project!, specFolder!, "description");
+    const back = specTabPath(project!, specFolder!, tab);
+    // REQ-6: the same job-state gate the tick route already applies —
+    // a run works in a worktree branched when it started, so a hand
+    // edit cannot corrupt it, but REQ-4 below now writes onto that same
+    // branch, and a save racing the run's own commits to it is exactly
+    // what this gate exists to prevent.
+    const activeJob = ctx.queue.list().some(
+      (job) => job.project === project && job.specFolder === specFolder &&
+        (job.state === "queued" || job.state === "running"),
+    );
+    if (activeJob) {
+      const reason = "another job for this spec is still running — nothing was saved";
+      logRefusal("save", `${project}/${specFolder}`, reason);
+      return specsRedirect({}, { error: reason }, back);
+    }
     // An EMPTY textarea is a legitimate save — the terminal-edit path
     // this matches has never stopped anyone deleting the lot. A body
     // with no field at all is not: it is a request that never came
@@ -192,66 +220,93 @@ export async function handleSpecEditRoutes(
     if (typeof body.text !== "string") {
       return specsRedirect({}, { error: "no text was submitted — nothing was saved" }, back);
     }
-    // Spec 166: the "Depends on" field, resolved the way the runtime
-    // gate will later resolve it (`resolveDependencyFolder`, which
-    // takes a bare number or a full folder and sees archived specs
-    // too) — so a dependency the page accepts is one the gate can
-    // read. Refused entry by entry, never filtered: a typo left to
-    // drop out silently is a dead gate nobody is told about.
-    //
-    // `bodyToObject` wraps a lone `dependsOn` value in an array for
-    // the New-spec form's chip set, so this field's one comma-
-    // separated string arrives as `["164, 165"]`. Both shapes are
-    // taken apart the same way rather than un-wrapping one of them.
-    const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
-      .filter((v): v is string => typeof v === "string")
-      .flatMap((v) => v.split(","))
-      .map((id) => id.trim())
-      .filter(Boolean);
-    if (ids.length > 0) {
-      // `specDir` above already 404s a project that does not resolve,
-      // so this cannot actually be undefined — defence in depth, not
-      // a path a request can reach.
-      const discovered = ctx.opts.projectRoot
-        ? discoverProjects(ctx.opts.projectRoot).find((p) => p.name === project)
-        : undefined;
-      if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
-      for (const id of ids) {
-        const dep = resolveDependencyFolder(discovered, id);
-        if (!dep) {
-          return specsRedirect({}, { error: `no such spec in this project: ${id} — nothing was saved` }, back);
-        }
-        if (dep.folder === specFolder) {
-          return specsRedirect({}, { error: `a spec cannot depend on itself: ${id} — nothing was saved` }, back);
+    // REQ-7: dependsOn stays Description-only; the other tabs' forms
+    // never send it, and this parsing only ever touches the file the
+    // "Depends on" line actually lives in.
+    let text = body.text;
+    if (file === EDITABLE_SPEC_FILE) {
+      // Spec 166: the "Depends on" field, resolved the way the runtime
+      // gate will later resolve it (`resolveDependencyFolder`, which
+      // takes a bare number or a full folder and sees archived specs
+      // too) — so a dependency the page accepts is one the gate can
+      // read. Refused entry by entry, never filtered: a typo left to
+      // drop out silently is a dead gate nobody is told about.
+      //
+      // `bodyToObject` wraps a lone `dependsOn` value in an array for
+      // the New-spec form's chip set, so this field's one comma-
+      // separated string arrives as `["164, 165"]`. Both shapes are
+      // taken apart the same way rather than un-wrapping one of them.
+      const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
+        .filter((v): v is string => typeof v === "string")
+        .flatMap((v) => v.split(","))
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (ids.length > 0) {
+        // `specDir` above already 404s a project that does not resolve,
+        // so this cannot actually be undefined — defence in depth, not
+        // a path a request can reach.
+        const discovered = ctx.opts.projectRoot
+          ? discoverProjects(ctx.opts.projectRoot).find((p) => p.name === project)
+          : undefined;
+        if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
+        for (const id of ids) {
+          const dep = resolveDependencyFolder(discovered, id);
+          if (!dep) {
+            return specsRedirect({}, { error: `no such spec in this project: ${id} — nothing was saved` }, back);
+          }
+          if (dep.folder === specFolder) {
+            return specsRedirect({}, { error: `a spec cannot depend on itself: ${id} — nothing was saved` }, back);
+          }
         }
       }
-    }
-    const merged = withDependsOnLine(body.text, ids);
-    if (merged === null) {
-      return specsRedirect(
-        {},
-        { error: `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved` },
-        back,
-      );
+      const merged = withDependsOnLine(body.text, ids);
+      if (merged === null) {
+        return specsRedirect(
+          {},
+          { error: `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved` },
+          back,
+        );
+      }
+      text = merged;
     }
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-    const result = await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-      saveSpecFiles(
-        ctx.gitRun,
-        dir,
-        (root) => ctx.branchStatus.defaultBranch(root),
-        [{ file: EDITABLE_SPEC_FILE, text: merged, baseSha }],
-        { specLabel: specFolder!, message: editMessage(specFolder!) },
-      ),
-    );
+    // REQ-4: the same branch-aware choice the tick route already makes
+    // for `4-status.md` — an open `aide/<folder>` branch is where an
+    // active spec's real, already-committed progress lives, and a
+    // write straight to `main` would be silently lost the moment
+    // `archive` merges the branch. Read fresh (`true`), never the
+    // cached answer: a branch opened moments ago by `create` or
+    // `analyze` must be seen by the very next Save press.
+    const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, file, true);
+    const result = branchTarget
+      ? await ctx.mergeLock.run(branchTarget.root, () =>
+          writeStatusToBranch(
+            ctx.gitRun,
+            branchTarget.root,
+            branchTarget.branch,
+            branchTarget.relPath,
+            text,
+            baseSha,
+            editMessage(specFolder!, file),
+          ),
+        )
+      : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
+          saveSpecFiles(
+            ctx.gitRun,
+            dir,
+            (root) => ctx.branchStatus.defaultBranch(root),
+            [{ file, text, baseSha }],
+            { specLabel: specFolder!, message: editMessage(specFolder!, file) },
+          ),
+        );
     if (!result.ok) {
       logRefusal("save", `${project}/${specFolder}`, result.note);
       return specsRedirect({}, { error: result.note }, back);
     }
-    // Back to the tab the form is on, where the description now
-    // carries its new commit stamp. Not the Overview tab it used to
-    // land on: since spec 212 the editor IS a tab of this page, and a
-    // reader who has just saved is as likely to keep editing.
+    // Back to the tab the form is on, where the file now carries its
+    // new commit stamp. Not the Overview tab it used to land on: since
+    // spec 212 the editor IS a tab of this page, and a reader who has
+    // just saved is as likely to keep editing.
     return specsRedirect({}, undefined, back, { note: result.note, ok: true });
   }
 

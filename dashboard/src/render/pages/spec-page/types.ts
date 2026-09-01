@@ -104,11 +104,12 @@ export interface SpecPageView {
    *  own project, itself left out. Empty — a project whose only spec is
    *  this one — and the picker is not drawn (spec 174). */
   dependsOnOptions?: QueueTarget[];
-  /** The commit `1-description.md` was read at, carried through the
-   *  Description tab's form so a save whose file has moved since can be
-   *  refused. Absent for a file git has never committed, which is not a
-   *  mismatch. */
-  descriptionBaseSha?: string;
+  /** The commit whichever document tab's own file was read at, carried
+   *  through that tab's form so a save whose file has moved since can be
+   *  refused (spec 310: one field, since only one tab's form is ever
+   *  drawn per request). Absent for a file git has never committed,
+   *  which is not a mismatch. */
+  formBaseSha?: string;
   /** Why the last pull changed nothing, and what it did when it did —
    *  both off the query string, the same round-trip Approve, Cancel and
    *  Merge already use. */

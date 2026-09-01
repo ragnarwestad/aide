@@ -28,8 +28,13 @@ export const NEW_TEXT = "# Queue and runner - Description\n\n## Description\n\nA
 
 export const auth = { headers: { "x-aide-token": TOKEN } };
 
-export const descriptionPath = (dir: string, folder = SPEC) =>
-  join(dir, "root", "aide", "specs", folder, "1-description.md");
+export const descriptionPath = (dir: string, folder = SPEC) => specFilePath(dir, "1-description.md", folder);
+
+// REQ-1/REQ-2: the same path Description's own `descriptionPath` names,
+// generalized to any of the four files — the three newly-editable tabs'
+// own save tests need it too.
+export const specFilePath = (dir: string, file: string, folder = SPEC) =>
+  join(dir, "root", "aide", "specs", folder, file);
 
 // REQ-2: `project()` (queue-server.ts) writes only 1-description.md and
 // 4-status.md for the active spec — Analysis and Solution are the

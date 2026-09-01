@@ -155,13 +155,18 @@ export const messageOf = (calls: string[][]): string => {
 // --- spec 291: an open `aide/<folder>` branch, for the Checks section's -----
 // --- branch-aware read and write --------------------------------------------
 
-/** Where a spec's own `4-status.md` sits, relative to the toplevel this
+/** Where one of a spec's own files sits, relative to the toplevel this
  *  fixture's `rev-parse --show-toplevel` answers with (`dir/root`) —
  *  what `resolveOpenBranchTarget` computes in real code via
  *  `path.relative`. Kept in one place because both the fixture below
  *  and any test asserting on the exact plumbing calls need the same
  *  string. */
-export const relStatusPath = (folder = SPEC) => `aide/specs/${folder}/4-status.md`;
+export const relFilePath = (file: string, folder = SPEC) => `aide/specs/${folder}/${file}`;
+
+/** `4-status.md`'s own path — the one file this fixture wrote for
+ *  before spec 310 generalized Save to all four. Kept as its own name
+ *  since most callers here are still about the tick route's one file. */
+export const relStatusPath = (folder = SPEC) => relFilePath("4-status.md", folder);
 
 const PAD = (sha: string) => sha.padEnd(40, "0");
 export const BRANCH_TIP_SHA = PAD("branchtip");
@@ -190,7 +195,13 @@ export function branchAwareGitRunner(
   opts: {
     /** `false` models REQ-2: no open branch, the disk read/write is untouched. */
     open?: boolean;
-    /** The branch's own `4-status.md` content (REQ-1's whole point). */
+    /** Which spec file this branch-aware read/write is about. Defaults
+     *  to `4-status.md`, this fixture's original and still most common
+     *  use; spec 310 generalized the write side to any of the four
+     *  files, and a save-route test for one of the others passes its
+     *  own here. */
+    file?: string;
+    /** The branch's own file content (REQ-1's whole point). */
     branchText?: string;
     /** The last commit that touched the file ON THE BRANCH — what a
      *  branch-aware page's `baseSha` names, and what a tick's
@@ -208,7 +219,7 @@ export function branchAwareGitRunner(
 ): { run: GitRunner; calls: { args: string[]; env?: Record<string, string> }[] } {
   const folder = opts.folder ?? SPEC;
   const branch = specBranch(folder);
-  const relPath = relStatusPath(folder);
+  const relPath = relFilePath(opts.file ?? "4-status.md", folder);
   const ref = `refs/remotes/origin/${branch}`;
   const fileSha = opts.branchFileSha ?? BRANCH_FILE_SHA;
   const tipSha = opts.branchTipSha ?? opts.branchFileSha ?? BRANCH_TIP_SHA;

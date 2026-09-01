@@ -108,14 +108,33 @@ describe("spec 212: each document tab shows its own file and no other", () => {
     }
   });
 
-  // The three the analyze and implement steps write are read-only, for
-  // the reason they are read-only today: a hand edit there is
-  // overwritten the next time the step runs.
-  test("the three the steps write carry no textarea and no Edit link", () => {
-    for (const tab of ["analysis", "solution", "status"]) {
+  // REQ-1: the three the analyze and implement steps write are editable
+  // too now — the same editor, Save and hidden `file`/`baseSha` fields
+  // the Description tab already has (spec 310). They are still known,
+  // accepted overwrite targets: a hand edit stands until the step that
+  // wrote the file next runs (2-analysis.md, Codebase analysis).
+  test("the three the steps write carry a textarea, a file field, and no separate Edit link", () => {
+    for (const [tab, file] of [
+      ["analysis", "2-analysis.md"],
+      ["solution", "3-solution.md"],
+      ["status", "4-status.md"],
+    ] as const) {
       const html = page(view(), tab);
-      expect([tab, html.includes("<textarea")]).toEqual([tab, false]);
+      expect([tab, html.includes("<textarea")]).toEqual([tab, true]);
+      expect([tab, html.includes(`name="file" value="${file}"`)]).toEqual([tab, true]);
       expect([tab, html.includes("/edit")]).toEqual([tab, false]);
+    }
+  });
+
+  // REQ-6: a spec with a job queued or running draws no Save form on
+  // any of the four document tabs — the read-only shape instead,
+  // mirroring the Checks tab's own `canTick` gate.
+  test("a job in flight leaves every document tab read-only", () => {
+    const withJob = view({ lead: lead({ state: "running" }) });
+    for (const tab of ["description", "analysis", "solution", "status"]) {
+      const html = page(withJob, tab);
+      expect([tab, html.includes("<textarea")]).toEqual([tab, false]);
+      expect([tab, html.includes('name="file"')]).toEqual([tab, false]);
     }
   });
 

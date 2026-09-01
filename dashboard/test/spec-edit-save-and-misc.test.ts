@@ -98,14 +98,12 @@ describe("GET the edit page", () => {
     expect(html).toContain(".toastui-editor-defaultUI");
   });
 
-  // REQ-2/REQ-6: Analysis, Solution and Status render read-only text
-  // today, with no mount at all — the editor never appears on any of
-  // them, round trip or not. Each needs the same mount/raw pair the
-  // Description tab already carries, and the raw sibling must keep the
-  // `spec-editor-raw` class so field.css's existing fallback CSS still
-  // pairs the two (REQ-6) — proven by matching the exact markup shape
+  // REQ-1/REQ-6: Analysis, Solution and Status carry the same editable
+  // mount/textarea pair Description's own form does (spec 310) — proven
+  // by matching the exact markup shape
   // `spec-page-description-and-depends.test.ts` already pins for
-  // Description.
+  // Description, and the raw sibling keeps the `spec-editor-raw` class
+  // so field.css's existing fallback CSS still pairs the two.
   describe("the Analysis, Solution and Status tabs", () => {
     for (const [tab, path, needle] of [
       ["analysis", ANALYSIS_TAB, "Seven files."],
@@ -118,9 +116,9 @@ describe("GET the edit page", () => {
         const html = await (await fetch(`${base}${path}`, auth)).text();
         expect(html).toContain("spec-editor-host");
         expect(html).toContain(".toastui-editor-defaultUI");
-        expect(html).toContain(
-          '<div class="spec-editor-mount" id="spec-editor-host"></div><pre class="specfile spec-editor-raw">',
-        );
+        expect(html).toContain('<div class="spec-editor-mount" id="spec-editor-host"></div>');
+        expect(html).toContain('class="spec-editor-raw">');
+        expect(html.indexOf('id="spec-editor-host"')).toBeLessThan(html.indexOf('class="spec-editor-raw"'));
         expect(html).toContain(needle);
       });
     }
@@ -162,11 +160,13 @@ describe("POST the Save action", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
-  // A run works in a worktree branched when it started, so a hand edit
-  // cannot corrupt it — the run simply finishes against an older
-  // description, and the row says "description changed since", which is
-  // exactly right. Nothing gates Save on job state.
-  test("a job queued for the same spec does not gate the save", async () => {
+  // REQ-6: a Save is now gated on job state, the same way the tick
+  // route already gates ticking a check — REQ-4 makes Save write onto
+  // an active spec's own open branch, and a save racing the run's own
+  // commits to it is exactly what this gate exists to prevent. (Until
+  // this spec, nothing gated Save on job state; that is the behavior
+  // this test used to assert and REQ-6 deliberately changes.)
+  test("a job queued for the same spec gates the save", async () => {
     const { base, dir } = start(savable("/host"));
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -176,8 +176,10 @@ describe("POST the Save action", () => {
     expect(queued.status).toBe(200);
     const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
     expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location).toContain("error=");
+    expect(location).toContain("another job for this spec is still running");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 });
 
@@ -321,9 +323,12 @@ describe("two specs sharing one checkout", () => {
       if (line === "rev-parse --show-toplevel") {
         const seen = (probes.get(dir) ?? 0) + 1;
         probes.set(dir, seen);
-        // Twice per request: once to key the lock, once inside it. The
-        // second is where that request's git sequence begins.
-        if (seen === 2) {
+        // Three times per request since spec 310: once, unlocked, for
+        // REQ-4's own "is this branch open" check (`resolveOpenBranchTarget`,
+        // which the save route now makes exactly as the tick route
+        // already did); once to key the lock; once inside it. The third
+        // is where that request's LOCKED git sequence begins.
+        if (seen === 3) {
           current = dir.endsWith(OTHER) ? OTHER : SPEC;
           order.push(`start ${current}`);
         }
