@@ -3,14 +3,14 @@
 // point `descriptionPanel()`/`documentPanel()` render, keeps the real
 // `<textarea name="text">` in sync so the Description tab's save route
 // needs no change, and gets out of the way — with JS off, or if this
-// bundle fails to build, the raw textarea/`<pre>` is what the reader
-// sees (and, for Description, saves).
+// bundle fails to build, the raw textarea is what the reader sees (and
+// saves).
 //
-// One shared script for both cases (spec 303): the raw sibling's own
-// tag name tells editable from read-only — a `<textarea>` on the
-// Description tab, a `<pre>` on the other three — so there is no second
-// bundle entry point to give this dashboard's "one script per page"
-// design (`static.ts`) a second script to route.
+// Only ever reaches an editable tab (spec 333: `documentTabScript`,
+// `tabs.ts`) — a locked tab's `<pre>` sibling is spec-viewer-client.ts's
+// own mount to make, built on the vendor's dedicated read-only Viewer
+// class instead of this file's full `Editor`, so a page that cannot be
+// edited never ships editor code at all.
 //
 // The editor's own stylesheets are pulled in as raw TEXT (`with { type:
 // "text" }`), not as a CSS import: `Bun.build({ format: "iife" })`
@@ -38,9 +38,7 @@ import type { ToMdConvertorMap } from "@toast-ui/editor";
 // CSS-only reorder possible with no JS DOM surgery: `order: -1` on a
 // flex-column parent. Undocumented library internals, not a public
 // API — the same kind of reach `customMarkdownRenderer` below already
-// relies on — verified against the installed version (3.2.2). Applies
-// only to the editable Description tab: the read-only Viewer renders no
-// toolbar or mode switch to move.
+// relies on — verified against the installed version (3.2.2).
 const MODE_SWITCH_TOP_OVERRIDE = `
 .toastui-editor-defaultUI { display: flex; flex-direction: column; }
 .toastui-editor-mode-switch {
@@ -52,14 +50,10 @@ const MODE_SWITCH_TOP_OVERRIDE = `
 `;
 
 const host = document.getElementById("spec-editor-host");
-const raw = document.querySelector<HTMLElement>(".spec-editor-raw");
+const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw");
 
 if (host && raw) {
-  // The Description tab's `<textarea>` is the one editable case; the
-  // other three document tabs pair the mount with a read-only `<pre>`
-  // (`documentPanel`, spec 303).
-  const editable = raw instanceof HTMLTextAreaElement;
-  const initialValue = editable ? raw.value : (raw.textContent ?? "");
+  const initialValue = raw.value;
 
   const style = document.createElement("style");
   style.textContent = editorCss + editorDarkCss + MODE_SWITCH_TOP_OVERRIDE;
@@ -82,56 +76,36 @@ if (host && raw) {
     },
   };
 
-  // REQ-2: `new Editor({ viewer: true })` silently ignores `viewer` —
-  // only the class's static `factory()` branches on it (verified
-  // against the compiled bundle, 2-analysis.md: the type declaration
-  // makes `viewer` look like a plain constructor option that works on
-  // either call form, but the constructor itself never reads it). The
-  // read-only path therefore has to go through `Editor.factory(...)`,
-  // not `new Editor(...)` — an implementation that got this backwards
-  // would silently render a full editable toolbar on Analysis/Solution/
-  // Status instead of a read-only view.
-  const instance = editable
-    ? new Editor({
-        el: host,
-        height: "auto",
-        initialEditType: "wysiwyg",
-        previewStyle: "tab",
-        // `usageStatistics` defaults to true and would send this
-        // dashboard's own hostname to Google Analytics on every mount
-        // (2-analysis.md, Risk analysis) — not a feature this
-        // integration wants, and not something a self-hosted tool
-        // should phone home about.
-        usageStatistics: false,
-        initialValue,
-        customMarkdownRenderer,
-      })
-    : Editor.factory({ el: host, viewer: true, initialValue, usageStatistics: false });
+  const instance = new Editor({
+    el: host,
+    height: "auto",
+    initialEditType: "wysiwyg",
+    previewStyle: "tab",
+    // `usageStatistics` defaults to true and would send this dashboard's
+    // own hostname to Google Analytics on every mount (2-analysis.md,
+    // Risk analysis) — not a feature this integration wants, and not
+    // something a self-hosted tool should phone home about.
+    usageStatistics: false,
+    initialValue,
+    customMarkdownRenderer,
+  });
 
   host.dataset.mounted = "true";
   // No preventDefault(): form-busy.ts's shared submit listener must
   // still see this submit as untouched, or the Save button loses its
   // busy state.
-  if (editable) {
-    document.addEventListener("submit", (event) => {
-      if (event.target === (raw as HTMLTextAreaElement).form) {
-        (raw as HTMLTextAreaElement).value = (instance as InstanceType<typeof Editor>).getMarkdown();
-      }
-    });
-  }
+  document.addEventListener("submit", (event) => {
+    if (event.target === raw.form) raw.value = instance.getMarkdown();
+  });
 
   // REQ-5: the library's own `theme` option is construction-time
   // only (2-analysis.md) — this dashboard's theme changes live, with no
   // reload (`theme-script.ts`), so the dark class is managed by hand
-  // from mount time instead of passed to the constructor.
-  //
-  // The class belongs on different elements for the two construction
-  // paths, because the two constructors build different DOM (verified
-  // against the compiled bundles, 2-analysis.md): the editable `Editor`
-  // wraps its UI in a `.toastui-editor-defaultUI` descendant of `host`,
-  // while the read-only `Viewer` (reached through `Editor.factory`)
-  // renders no such wrapper — the class lands on `host` itself there.
-  const themedEl = editable ? host.querySelector(".toastui-editor-defaultUI") : host;
+  // from mount time instead of passed to the constructor. The class
+  // lands on the `.toastui-editor-defaultUI` descendant of `host` this
+  // constructor builds, not on `host` itself (verified against the
+  // compiled bundle, 2-analysis.md).
+  const themedEl = host.querySelector(".toastui-editor-defaultUI");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
   // The same "auto" rule `theme-script.ts` encodes: an explicit
   // `data-theme` on `<html>` wins, and its absence means "follow the

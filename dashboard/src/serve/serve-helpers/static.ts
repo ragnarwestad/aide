@@ -144,6 +144,53 @@ export async function serveSpecEditorAsset(req: Request): Promise<Response> {
   return new Response(built.text, { headers });
 }
 
+// The read-only counterpart of `specEditorClientScript()` (spec 333,
+// finishing spec 315's split): a second, lighter bundle for the tabs
+// that cannot be edited, so REQ-4/REQ-5 hold structurally — the editor
+// bundle's own entrypoint no longer contains viewer code at all. No
+// `toastUiEditorResolveFix` plugin and no new `tsconfig.json` `paths`
+// entry: the `dist/toastui-editor-viewer` subpath this file's
+// entrypoint imports resolves cleanly for both `Bun.build` and `tsc` on
+// its own (2-analysis.md, verified directly) — the plugin and the paths
+// override both exist only for specifiers that lack that clean
+// resolution.
+let specViewerScript: Promise<string | undefined> | null = null;
+export function specViewerClientScript(): Promise<string | undefined> {
+  if (specViewerScript !== null) return specViewerScript;
+  specViewerScript = Bun.build({
+    entrypoints: [join(import.meta.dir, "../../spec-viewer-client.ts")],
+    target: "browser",
+    format: "iife",
+    minify: true,
+  })
+    .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
+    .catch(() => undefined); // the page still works: the raw <pre> fallback takes over
+  return specViewerScript;
+}
+
+export const SPEC_VIEWER_ASSET_PATH = "/spec-viewer.js";
+
+let specViewerAsset: Promise<{ text: string; etag: string } | undefined> | null = null;
+function buildSpecViewerAsset(): Promise<{ text: string; etag: string } | undefined> {
+  if (specViewerAsset !== null) return specViewerAsset;
+  specViewerAsset = specViewerClientScript().then((text) =>
+    text === undefined ? undefined : { text, etag: etagFor(text) },
+  );
+  return specViewerAsset;
+}
+
+export async function serveSpecViewerAsset(req: Request): Promise<Response> {
+  const built = await buildSpecViewerAsset();
+  if (!built) return new Response("not found", { status: 404 });
+  const headers = new Headers({
+    "content-type": "text/javascript; charset=utf-8",
+    "cache-control": "no-cache",
+    etag: built.etag,
+  });
+  if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
+  return new Response(built.text, { headers });
+}
+
 // The tail of a file, without reading the rest of it. A 25-minute
 // implement run's transcript is not something a page render should ever
 // pull into memory whole — and the tail is the part that answers "what
