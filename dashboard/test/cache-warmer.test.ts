@@ -141,12 +141,19 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     // rejected.
     const inArchive = git.calls.filter((c) => c.dir.includes("archive"));
     expect(inArchive.some((c) => c.args.join(" ").startsWith("log --all"))).toBe(false);
-    expect(inArchive.some((c) => c.args.join(" ").includes("-- 1-description.md"))).toBe(false);
+    // The LIVE staleness check's shape specifically — `lastCommitAt`'s
+    // `log -1 ...` — not the rename-aware `--follow` lookup below, which
+    // also names `1-description.md` now that the fix lands.
+    expect(
+      inArchive.some(
+        (c) => c.args.join(" ").startsWith("log -1 --format=") && c.args.join(" ").includes("-- 1-description.md"),
+      ),
+    ).toBe(false);
     // Not the LIVE creation-date lookup (a directory pathspec) — the
     // rename-aware one, which is a different call entirely.
     expect(inArchive.some((c) => c.args.join(" ") === "log --format=%aI -- .")).toBe(false);
     expect(
-      inArchive.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI -- 0-README.md")),
+      inArchive.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI -- 1-description.md")),
     ).toBe(true);
   });
 

@@ -208,6 +208,77 @@ describe("firstCommitAtFollowingRenames", () => {
       await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
     ).toBe("2026-07-01T09:00:00+02:00");
   });
+
+  // Spec 324: `0-README.md` is the same fixed template in every spec, so
+  // `--follow`'s content-similarity rename match can pair it with an
+  // UNRELATED spec's deleted `0-README.md` in the same commit, and the
+  // date returned is that stranger's, not this spec's own. This is a
+  // simplified reproduction of git's content-based rename mechanism, not
+  // a literal replay of `aide-archive-spec`'s own commit shape (which
+  // `git mv`s only one spec's own folder per commit) — it exists to
+  // prove the underlying git behavior and this fix's effect on it.
+  test("0-README.md's shared template content misattributes across specs; 1-description.md's does not", async () => {
+    const gitIn = (dir: string, ...args: string[]) =>
+      Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
+    const repo = mkdtempSync(join(tmpdir(), "aide-spec-dates-cross-"));
+    gitIn(repo, "init", "-q", "-b", "main");
+    gitIn(repo, "config", "user.name", "Test");
+    gitIn(repo, "config", "user.email", "test@example.com");
+
+    const TEMPLATE = "# spec\n\n## Table of contents\n\n- [Tracking info](#tracking-info)\n";
+
+    // Commit 1 (oldest): spec 91 is created with the shared template
+    // README and a distinctive, paragraph-length description.
+    const firstDir = join(repo, "91-first");
+    mkdirSync(firstDir);
+    writeFileSync(join(firstDir, "0-README.md"), TEMPLATE);
+    writeFileSync(
+      join(firstDir, "1-description.md"),
+      "The export button on the invoice page silently drops rows whose " +
+        "currency differs from the account default, and the CSV that comes " +
+        "out has fewer lines than the table on screen with no warning that " +
+        "anything was left out.\n",
+    );
+    gitIn(repo, "add", "-A");
+    gitIn(repo, "commit", "-q", "-m", "create 91", "--date=2026-07-01T09:00:00+02:00");
+
+    // Commit 2 (same commit): spec 91's files are removed (simulating an
+    // earlier, unrelated rename elsewhere) and spec 92 is added with the
+    // SAME template README but a different, equally distinctive
+    // description — so git's rename detection pairs the two
+    // byte-identical READMEs but not the two dissimilar descriptions.
+    const secondDir = join(repo, "92-second");
+    mkdirSync(secondDir);
+    writeFileSync(join(secondDir, "0-README.md"), TEMPLATE);
+    writeFileSync(
+      join(secondDir, "1-description.md"),
+      "The nightly backup job reports success even when the upload to " +
+        "cold storage times out partway through, because the retry wrapper " +
+        "swallows the timeout error instead of letting it fail the step, so " +
+        "a missing backup is only found when someone needs to restore.\n",
+    );
+    gitIn(repo, "rm", "-q", "-r", "91-first");
+    gitIn(repo, "add", "-A");
+    gitIn(repo, "commit", "-q", "-m", "replace 91 with 92", "--date=2026-07-15T09:00:00+02:00");
+
+    // Commit 3: the real archive step's own operation.
+    mkdirSync(join(repo, "archive"));
+    gitIn(repo, "mv", "92-second", "archive/92-second");
+    gitIn(repo, "commit", "-q", "-m", "archive 92", "--date=2026-08-01T09:00:00+02:00");
+
+    const archivedDir = join(repo, "archive", "92-second");
+    // The bug: the shared template pairs with spec 91's deleted README
+    // and the date returned is spec 91's, not spec 92's own.
+    expect(
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
+    ).toBe("2026-07-01T09:00:00+02:00");
+    // The fix: the description is unique enough that no rename is found
+    // across the unrelated deletion, and the date returned is spec 92's
+    // own true creation commit.
+    expect(
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "1-description.md"),
+    ).toBe("2026-07-15T09:00:00+02:00");
+  });
 });
 
 describe("SpecCreatedAtChecker", () => {
@@ -345,7 +416,7 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
       "2026-08-17T09:00:00+02:00",
     );
     expect(git.calls[0]!.args).toEqual([
-      "log", "--follow", "--format=%aI", "--", "0-README.md",
+      "log", "--follow", "--format=%aI", "--", "1-description.md",
     ]);
   });
 

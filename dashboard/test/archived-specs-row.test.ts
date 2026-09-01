@@ -237,8 +237,8 @@ describe("an archived spec's row", () => {
   });
 
   // A spec with nothing for the rename-aware lookup to find (no
-  // 0-README.md history) is a real, honest "cannot date" — the same
-  // dash convention every other undatable spec on this page shows.
+  // 1-description.md history) is a real, honest "cannot date" — the
+  // same dash convention every other undatable spec on this page shows.
   test("shows the dash convention when the rename-aware lookup cannot date it (REQ-5)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     const createdCell = row.slice(row.indexOf('data-col="created"'));

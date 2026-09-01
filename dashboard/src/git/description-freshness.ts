@@ -86,9 +86,14 @@ export async function firstCommitAt(
  *  only finds commits that touched THAT path, so the move commit reads
  *  as the spec's own beginning. `--follow` is documented to cross
  *  exactly this kind of rename, but only for a single file — never a
- *  directory — which is why this takes `file` (an always-present,
- *  never-independently-edited file, e.g. `0-README.md`) rather than
- *  `.`. Same oldest-line shape as `firstCommitAt`. */
+ *  directory — which is why this takes `file` rather than `.`. Pick a
+ *  file whose CONTENT is unique per spec (e.g. `1-description.md`), not
+ *  merely one that is always present and never independently edited:
+ *  `--follow`'s rename detection matches on content similarity, so a
+ *  file that is the same fixed template in every spec (e.g.
+ *  `0-README.md`) can be paired with an unrelated spec's deleted copy of
+ *  that same template and answer with a stranger's date instead of this
+ *  spec's own (spec 324). Same oldest-line shape as `firstCommitAt`. */
 export async function firstCommitAtFollowingRenames(
   run: GitRunner,
   dir: string,
@@ -349,11 +354,13 @@ export class SpecCreatedAtChecker {
   private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
 
   /** The archived-row counterpart to `createdAt` (spec 317): the spec's
-   *  true beginning, from before `aide-archive-spec`'s `git mv`, off the
-   *  one file that survives that move unedited (`0-README.md`, written
-   *  once by `/aide-create`). Fails to `null` on the same terms as
-   *  `createdAt` — a missing or independently-rewritten `0-README.md`
-   *  is an honest "cannot date", not a crash. */
+   *  true beginning, from before `aide-archive-spec`'s `git mv`, off a
+   *  file that survives that move unedited AND holds content unique to
+   *  this one spec (`1-description.md`, written once by `/aide-create`
+   *  with this spec's own problem statement — spec 324). Fails to `null`
+   *  on the same terms as `createdAt` — a missing or
+   *  independently-rewritten `1-description.md` is an honest "cannot
+   *  date", not a crash. */
   async createdAtForArchived(dir: string, specFolder: string): Promise<string | null> {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.archivedCache.get(key);
@@ -363,7 +370,7 @@ export class SpecCreatedAtChecker {
 
     let createdAt: string | null = null;
     try {
-      createdAt = await firstCommitAtFollowingRenames(this.run, dir, "0-README.md");
+      createdAt = await firstCommitAtFollowingRenames(this.run, dir, "1-description.md");
     } catch {
       createdAt = null;
     }
