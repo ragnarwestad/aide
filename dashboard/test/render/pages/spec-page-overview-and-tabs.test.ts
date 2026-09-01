@@ -392,8 +392,8 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     const html = page(view(), "description");
     expect(html).toContain(
       "The problem as it was reported, kept in <code>1-description.md</code>. " +
-        "While the spec is active, Save here rewrites, commits and pushes it; an archived " +
-        "spec shows the same file read-only.",
+        "While the spec is active and no job is running, Save here rewrites, commits and " +
+        "pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
     );
   });
 
@@ -405,10 +405,13 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     const html = page(view(), "analysis");
     expect(html).toContain(
       "What <code>/aide-analyze</code> found when it read the code for this problem, " +
-        "kept in <code>2-analysis.md</code> and written by that step. Read-only: there is no " +
-        "Save here.",
+        "kept in <code>2-analysis.md</code> and written by that step. " +
+        "While the spec is active and no job is running, Save here rewrites, commits and " +
+        "pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
     );
-    expect(html).not.toContain("<textarea");
+    // The claim and the render together, which is what REQ-6 asks: spec
+    // 310 gave this tab a Save, so the text says so and the box is there.
+    expect(html).toContain("<textarea");
   });
 
   test("Solution's (?) states the recommended-approach rule (REQ-4)", () => {
@@ -423,8 +426,10 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     const html = page(view(), "status");
     expect(html).toContain(
       "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
-        "<code>/aide-implement</code> as it runs. Read-only here; while the spec is active, " +
-        "the same file's Acceptance criteria rows are what the Checks tab lets a person tick.",
+        "<code>/aide-implement</code> as it runs. While the spec is active and no job is " +
+        "running, Save here rewrites, commits and pushes it; an archived spec, or one with a " +
+        "job in flight, shows the same file read-only. The same file's Acceptance criteria " +
+        "rows are what the Checks tab lets a person tick.",
     );
   });
 
