@@ -166,6 +166,135 @@ class TestInstallCommonBin:
             "aide-print-specs-guard is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
 
+def _fake_mise(tmp_path, body):
+    """A stand-in `mise`, in its own directory so it can be prepended
+    ahead of the ambient PATH — this machine (and likely others aide is
+    installed on) has a REAL mise on PATH, which must never be the one
+    that runs (plan review, Feasibility should-fix 3: an unprepended fake
+    would let the real `mise use -g npm:markdownlint-cli2@latest` attempt
+    a genuine network install as a side effect of running the tests)."""
+    bin_dir = tmp_path / "fake-bin"
+    bin_dir.mkdir(exist_ok=True)
+    path = bin_dir / "mise"
+    path.write_text(f"#!/usr/bin/env bash\n{body}\n")
+    path.chmod(0o755)
+    return bin_dir
+
+
+@pytest.mark.validation
+class TestInstallMiseDeclaredTools:
+    """install_mise_declared_tools must declare markdownlint-cli2 to mise
+    without ever failing the installer when mise or node is missing."""
+
+    def test_warns_and_succeeds_without_mise(self, workspace_root, tmp_path):
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
+            capture_output=True,
+            text=True,
+            env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        assert "mise" in (result.stdout + result.stderr).lower()
+
+    def test_warns_and_succeeds_without_node(self, workspace_root, tmp_path):
+        # Fails only on `mise which ...` (how a missing node is detected),
+        # succeeds on anything else.
+        fake_bin = _fake_mise(
+            tmp_path,
+            '[ "$1" = "which" ] && exit 1\nexit 0',
+        )
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
+            capture_output=True,
+            text=True,
+            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        assert "node" in (result.stdout + result.stderr).lower()
+
+    def test_declares_markdownlint_via_mise(self, workspace_root, tmp_path):
+        calls = tmp_path / "mise-calls.txt"
+        fake_bin = _fake_mise(tmp_path, f'printf "%s\\n" "$*" >> {calls}\nexit 0')
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
+            capture_output=True,
+            text=True,
+            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        logged = calls.read_text() if calls.exists() else ""
+        assert "use -g npm:markdownlint-cli2@latest" in logged, logged
+
+
+@pytest.mark.validation
+class TestInstallersDeclareMarkdownlint:
+    """Every installer must call install_mise_declared_tools, or a machine
+    that only ran one implementations/<ai>/install.sh never gets it."""
+
+    def test_every_installer_calls_install_mise_declared_tools(self, workspace_root):
+        for tool in ("claude-code", "copilot", "codex"):
+            installer = workspace_root / "implementations" / tool / "install.sh"
+            text = installer.read_text()
+            assert "install_mise_declared_tools" in text, \
+                f"implementations/{tool}/install.sh never calls install_mise_declared_tools"
+
+
+@pytest.mark.validation
+class TestUpgradeAiToolsKeepsMarkdownlintCurrent:
+    """upgrade-ai-tools must keep markdownlint-cli2 current alongside the
+    tools it already names, and report it in its own version listing."""
+
+    @staticmethod
+    def _text(workspace_root):
+        return (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()
+
+    def test_upgrade_line_includes_markdownlint(self, workspace_root):
+        text = self._text(workspace_root)
+        upgrade_line = next(
+            line for line in text.splitlines() if line.strip().startswith("mise upgrade")
+        )
+        assert "npm:markdownlint-cli2" in upgrade_line, upgrade_line
+
+    def test_installed_versions_report_includes_markdownlint(self, workspace_root):
+        text = self._text(workspace_root)
+        report_line = next(
+            line for line in text.splitlines() if "mise ls" in line
+        )
+        assert "markdownlint" in report_line, report_line
+
+
+@pytest.mark.validation
+class TestMiseDeclaredToolsStayInStepWithUpgrade:
+    """A tool declared by the installer that upgrade-ai-tools never
+    upgrades would go stale forever after its first install (REQ-5)."""
+
+    def test_every_mise_declared_tool_is_kept_current(self, workspace_root):
+        install_bin_text = (
+            workspace_root / "core" / "scripts" / "_install-bin.sh"
+        ).read_text()
+        match = re.search(r'^MISE_DECLARED_TOOLS="([^"]*)"', install_bin_text, re.MULTILINE)
+        assert match, "MISE_DECLARED_TOOLS is missing from _install-bin.sh"
+        declared_tools = match.group(1).split()
+        assert declared_tools, "MISE_DECLARED_TOOLS is empty"
+
+        upgrade_text = (
+            workspace_root / "core" / "scripts" / "upgrade-ai-tools"
+        ).read_text()
+        upgrade_line = next(
+            line for line in upgrade_text.splitlines()
+            if line.strip().startswith("mise upgrade")
+        )
+
+        missing = [tool for tool in declared_tools if tool not in upgrade_line]
+        assert not missing, (
+            f"{missing} are declared in MISE_DECLARED_TOOLS but never upgraded by "
+            f"upgrade-ai-tools: {upgrade_line}"
+        )
+
+
 # Codex reads at most project_doc_max_bytes of AGENTS.md and appends
 # nothing past it. 32768 is the documented default (see the
 # ai-tools-reference skill) and the budget core/AGENTS.md must fit inside.

@@ -25,6 +25,12 @@ COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 # every call to it a "command not found" that crashes aide-run-spec
 # under set -u before it can write a result.
 COMMON_BIN_LIB_SCRIPTS="status-progress.sh"
+# Non-AI CLI tools aide's installer keeps present via mise, using the
+# same npm:<pkg> declaration style as the AI CLIs in
+# ~/.config/mise/config.toml (npm:playwright is the existing precedent).
+# upgrade-ai-tools must upgrade every name listed here — a test in
+# tests/specs/unit/core/validation/test_core_scripts.py enforces it.
+MISE_DECLARED_TOOLS="npm:markdownlint-cli2"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_common_bin() {
@@ -51,6 +57,25 @@ install_common_bin() {
       cp "$_CORE_SCRIPTS_DIR/lib/$s" ~/.local/bin/lib/
       chmod +x ~/.local/bin/lib/"$s"
       echo "   ✅ Installed: ~/.local/bin/lib/$s"
+    fi
+  done
+}
+
+install_mise_declared_tools() {
+  if ! command -v mise &> /dev/null; then
+    echo "   ⚠️  mise is not installed — skipping $MISE_DECLARED_TOOLS (install mise: https://mise.jdx.dev)"
+    return 0
+  fi
+  if ! mise which node &> /dev/null; then
+    echo "   ⚠️  mise has no node installed — skipping $MISE_DECLARED_TOOLS (mise use -g node, then re-run this installer)"
+    return 0
+  fi
+  local tool
+  for tool in $MISE_DECLARED_TOOLS; do
+    if mise use -g "$tool@latest" &> /dev/null; then
+      echo "   ✅ Declared via mise: $tool"
+    else
+      echo "   ⚠️  mise use -g $tool@latest failed — markdown linting will be skipped until it is installed"
     fi
   done
 }

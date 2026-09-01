@@ -30,6 +30,7 @@ echo ""
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
+install_mise_declared_tools
 install_shell_path
 
 echo ""
