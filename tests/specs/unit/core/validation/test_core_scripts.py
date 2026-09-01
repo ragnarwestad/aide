@@ -115,6 +115,23 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
             "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
+    def test_aide_record_test_run_is_installed(self, workspace_root, tmp_path):
+        """The archive gate calls it by name. It shipped without being in
+        COMMON_BIN_SCRIPTS, so the serving host never had it: the gate
+        could not make the record it refuses for the lack of, and every
+        archive was refused with nothing to show for it."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
+            "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
+
     def test_aide_create_spec_is_installed(self, workspace_root, tmp_path):
         """Spec 248, AC9. aide-create-spec is /aide-create's own Step 4
         script — if it drops out of COMMON_BIN_SCRIPTS, install-all.sh
