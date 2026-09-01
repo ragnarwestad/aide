@@ -95,10 +95,13 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
 }
 
 // One dropdown, six links, the same single-value `queueHref` merge the
-// chips used before it (spec 289) — checkbox-STYLED, not
-// checkbox-TYPED: a real `<input type="checkbox">` would tell assistive
-// tech "pick any number", and picking one here still replaces the other
-// five, exactly as a chip click always has (`2-analysis.md`'s REQ-3).
+// chips used before it (spec 289) — a real `<input type="checkbox">`
+// would tell assistive tech "pick any number", which this control has
+// never allowed, so the mark is round and the panel carries
+// `role="radiogroup"`/`role="radio"` (spec 323): a radio glyph is what
+// "pick one of these" looks and announces like, matching what picking
+// one here has always done — replace the other five, exactly as a chip
+// click always has (`2-analysis.md`'s REQ-3).
 // Labelled "State", not "Phases" (the working title REQ-7 asked to be
 // reconsidered): this page already calls this exact concept "State" —
 // the table's own column heading — and "Phase" already means the
@@ -118,7 +121,7 @@ function stateDropdown(
     // position, so moving it to the front moves this with it.
     const href = queueHref(f, { state: s.key === DEFAULT_STATE_FILTER.key ? "" : s.key });
     return (
-      `<a data-nav href="${href}"${on ? ' aria-current="true"' : ""}>` +
+      `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
       `<span class="check" aria-hidden="true"></span>${esc(s.label)} (${count})</a>`
     );
   }).join("");
@@ -130,7 +133,7 @@ function stateDropdown(
   return (
     `<details class="menu state" data-filter="state">` +
     `<summary title="State" aria-label="State">State: ${esc(chosen.label)}${ICON_CHEVRON}</summary>` +
-    `<div class="menupanel">${options}</div>` +
+    `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`
   );
 }

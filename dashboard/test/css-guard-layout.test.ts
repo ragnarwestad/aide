@@ -140,6 +140,17 @@ describe("the state trigger reads as a control, not plain text", () => {
   test("the panel carries no left-anchoring override, so it falls back to the base right anchor", () => {
     expect(CSS).not.toMatch(/\.menu\.state \.menupanel \{[^}]*left:\s*0[^}]*\}/);
   });
+
+  test(".menu.state .check is round, not square", () => {
+    const rule = CSS.match(/\.menu\.state \.check \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/border-radius:\s*50%/);
+    expect(rule).not.toMatch(/border-radius:\s*3px/);
+  });
+
+  test("the filled mark is selected by aria-checked=true, not aria-current", () => {
+    expect(CSS).toContain(".menu.state a[aria-checked=\"true\"] .check");
+    expect(CSS).not.toMatch(/\.menu\.state a\[aria-current\]/);
+  });
 });
 
 describe("the unit a reader chose is a CSS switch, not a second page", () => {

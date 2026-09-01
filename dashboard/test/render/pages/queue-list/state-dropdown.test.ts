@@ -44,10 +44,10 @@ describe("the state dropdown (spec 289)", () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  test("with no state param, All carries aria-current and the trigger shows no count", () => {
+  test("with no state param, All carries aria-checked=true and the trigger shows no count", () => {
     const html = page();
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "All")).toContain('aria-current="true"');
+    expect(optionByLabel(panel, "All")).toContain('aria-checked="true"');
     const trigger = panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
     expect(trigger).toContain("State");
     expect(trigger).toContain("All");
@@ -55,11 +55,31 @@ describe("the state dropdown (spec 289)", () => {
     expect(trigger).not.toMatch(/All\s*\(/);
   });
 
-  test("with state=problem, Problems carries aria-current and Active does not", () => {
+  test("with state=problem, Problems carries aria-checked=true and Active carries aria-checked=false", () => {
     const html = page({ filter: { state: "problem" } });
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Problems")).toContain('aria-current="true"');
-    expect(optionByLabel(panel, "Active")).not.toContain("aria-current");
+    expect(optionByLabel(panel, "Problems")).toContain('aria-checked="true"');
+    expect(optionByLabel(panel, "Active")).toContain('aria-checked="false"');
+  });
+
+  test("the panel reports a single-choice list to assistive tech", () => {
+    const html = page();
+    const panel = panelOf(html);
+    expect(panel).toContain('<div class="menupanel" role="radiogroup">');
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
+    for (const label of order) {
+      expect(optionByLabel(panel, label)).toContain('role="radio"');
+    }
+  });
+
+  test("exactly one option carries aria-checked=true at a time", () => {
+    const html = page({ filter: { state: "done" } });
+    const panel = panelOf(html);
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
+    const checked = order.filter((label) => optionByLabel(panel, label).includes('aria-checked="true"'));
+    const unchecked = order.filter((label) => optionByLabel(panel, label).includes('aria-checked="false"'));
+    expect(checked).toEqual(["Done"]);
+    expect(unchecked).toEqual(order.filter((label) => label !== "Done"));
   });
 
   test("picking Done from an open=... view keeps the open key on the option's href", () => {

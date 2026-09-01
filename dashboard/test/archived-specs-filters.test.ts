@@ -14,7 +14,7 @@ describe("the default filter", () => {
   test("is All, and it is the one the bare page resolves to", async () => {
     const html = await specsList(start().base);
     expect(html).toContain(">All");
-    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>All/);
+    expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
   });
 
   // A spec that reaches the archive stays on the list the reader is
@@ -89,8 +89,8 @@ describe("the All chip", () => {
 
   test("and its own chip is not the default one", async () => {
     const html = await specsList(start().base, ALL_VIEW);
-    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>All/);
-    expect(html).not.toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>Active/);
+    expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
+    expect(html).not.toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>Active/);
   });
 
   // The three chips that were here before this spec each list the states
