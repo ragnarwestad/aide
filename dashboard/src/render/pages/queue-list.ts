@@ -119,6 +119,13 @@ export interface QueuePageOptions {
    *  pre-filled with when the phase has not run yet — the reader sees
    *  the real name, never the word "default" (asked for 2026-08-19). */
   defaultModels?: Record<string, string>;
+  /** A model picked for a phase before any job exists for it to attach
+   *  to (spec 308), keyed by `project/specFolder` and then by step —
+   *  what `resolveChosenModel()`'s new tier reads to survive a reload,
+   *  a different browser, or simply leaving the page. Absent or missing
+   *  an entry means nobody has picked one yet, which falls through to
+   *  the configured default exactly as before this existed. */
+  pendingModels?: Record<string, Record<string, string>>;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */

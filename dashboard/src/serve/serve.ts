@@ -109,6 +109,7 @@ export function createServer(opts: ServerOptions) {
   // spec 108 made the spec's own files the only answer to that.
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
+    pendingModelsPath: opts.pendingModelsPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
     allowCreateProject: (project) => allowed.has(project),

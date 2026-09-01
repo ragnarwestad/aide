@@ -263,4 +263,46 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(html).not.toContain("<select");
     expect(html).not.toContain('<tr class="subrow');
   });
+
+  // --- spec 308: a model picked for a phase survives leaving the page --------
+
+  // REQ-2: a phase nobody has run yet, but that a reader picked a model
+  // for on an earlier visit, pre-fills from that recorded pick rather
+  // than falling straight to the configured default.
+  test("REQ-2: a phase with a recorded pending choice pre-fills from it", () => {
+    const line = subRow(
+      rows([], [target("123-picks")], {
+        defaultModels: { default: "sonnet" },
+        pendingModels: { "aide/123-picks": { analyze: "fable" } },
+      }),
+      "analyze",
+    );
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
+  });
+
+  // REQ-5: a phase nobody has ever picked a model for shows the
+  // configured default exactly as before this change.
+  test("REQ-5: a phase with no recorded pick still shows the configured default", () => {
+    const line = subRow(
+      rows([], [target("123-picks")], {
+        defaultModels: { default: "sonnet" },
+        pendingModels: { "aide/123-picks": { implement: "fable" } },
+      }),
+      "analyze",
+    );
+    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+
+  // REQ-4: once a phase has actually run, what it ran on wins over any
+  // earlier pending pick — a record of what happened outranks a choice
+  // about what is to come.
+  test("REQ-4: a phase that has since run shows what it ran on, not the earlier pending pick", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" })],
+      [target("123-picks", { done: ["analyze"] })],
+      { pendingModels: { "aide/123-picks": { analyze: "fable" } } },
+    );
+    const line = subRow(html, "analyze");
+    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
 });

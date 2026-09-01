@@ -10,12 +10,23 @@ import { UNFINISHED, WORKFLOW_STEPS, tailEdits, type WorkflowStep } from "./step
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
-import { parseStoredJob } from "./persist.ts";
+import { parsePendingModels, parseStoredJob, persistPendingModels } from "./persist.ts";
+
+/** What `setPendingModel()` answers with — never a `job`, since none
+ *  may exist yet for the phase a pick was just made on. `ParseResult`
+ *  (`parse-request.ts`) always carries one, which is why this needs a
+ *  smaller type of its own. */
+export type PendingModelResult = { ok: true } | { ok: false; error: string };
 
 export interface QueueOptions {
   defaults: QueueDefaults;
   resolve: ProjectResolver;
   mirrorPath?: string;
+  /** Where a model picked for a phase before any job exists survives to
+   *  (spec 308) — the `pending-models.json` sibling of the queue mirror.
+   *  Absent means the table is in-memory only, for the tests and any
+   *  caller that has no disk to give it. */
+  pendingModelsPath?: string;
   cap?: number;
   /** Which projects may have a spec CREATED in them (spec 93). Absent
    *  means none: creating is off unless the server says otherwise, like
@@ -34,7 +45,14 @@ export class QueueStore {
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
   private readonly cap: number;
   private readonly mirrorPath?: string;
+  private readonly pendingModelsPath?: string;
   readonly defaults: QueueDefaults;
+  /** A model picked for a phase before any job exists (spec 308), keyed
+   *  by `project/specFolder` and then by step — the same shape
+   *  `defaultModels` carries one level shallower. Public and readonly
+   *  like `defaults`: the render side reads it straight off, and only
+   *  `setPendingModel()` is allowed to write it. */
+  readonly pendingModels: Record<string, Record<string, string>> = {};
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
@@ -42,6 +60,7 @@ export class QueueStore {
   constructor(opts: QueueOptions) {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
+    this.pendingModelsPath = opts.pendingModelsPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
@@ -50,6 +69,7 @@ export class QueueStore {
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
     this.load();
+    this.loadPendingModels();
   }
 
   /** An unfinished job for the same spec that already covers one of
@@ -313,6 +333,32 @@ export class QueueStore {
     return { ok: true, job: next };
   }
 
+  /** Record a model picked for a phase that has no job yet (spec 308) —
+   *  the pre-job sibling of `editTailModel()` above, and checked the
+   *  same way: the step against `WORKFLOW_STEPS`, the model against the
+   *  configured allowlist. There is no `job.state` to gate on, since
+   *  there is no job at all; the ONLY question is whether the step and
+   *  the model are real. */
+  setPendingModel(project: string, specFolder: string, step: string, model: string): PendingModelResult {
+    const wanted = WORKFLOW_STEPS.find((s) => s === step);
+    if (!wanted) return { ok: false, error: `${step || "that step"} is not a step a model can be chosen for` };
+    if (!NAME_RE.test(model)) return { ok: false, error: "invalid model" };
+    const found = this.defaults.modelChoices?.[model];
+    if (!found) {
+      return {
+        ok: false,
+        error: this.defaults.modelChoices
+          ? `unknown or not-allowed model: ${model}`
+          : "no model choice is configured on this server",
+      };
+    }
+    const key = `${project}/${specFolder}`;
+    this.pendingModels[key] = { ...this.pendingModels[key], [wanted]: model };
+    this.persistPendingModels();
+    this.changed();
+    return { ok: true };
+  }
+
   update(id: string, patch: Partial<Job>): Job | undefined {
     const job = this.jobs.get(id);
     if (!job) return undefined;
@@ -347,5 +393,21 @@ export class QueueStore {
     } catch {
       // mirroring is best effort
     }
+  }
+
+  private loadPendingModels(): void {
+    if (!this.pendingModelsPath || !existsSync(this.pendingModelsPath)) return;
+    try {
+      const raw = JSON.parse(readFileSync(this.pendingModelsPath, "utf-8")) as unknown;
+      const parsed = parsePendingModels(raw);
+      if (parsed) Object.assign(this.pendingModels, parsed);
+    } catch {
+      // a corrupt file is not worth crashing over — start empty
+    }
+  }
+
+  private persistPendingModels(): void {
+    if (!this.pendingModelsPath) return;
+    persistPendingModels(this.pendingModelsPath, this.pendingModels);
   }
 }

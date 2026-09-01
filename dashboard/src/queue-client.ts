@@ -38,6 +38,7 @@ import {
 import { formatElapsed } from "./queue-client/elapsed.ts";
 import { connect, onVisibility } from "./queue-client/live.ts";
 import { markGoing, navigate } from "./queue-client/navigation.ts";
+import { postPendingModel } from "./queue-client/pending-model.ts";
 import { postForm } from "./queue-client/press.ts";
 import { relabelRunButton } from "./queue-client/row-swap.ts";
 import {
@@ -123,7 +124,13 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
     chosen.set(selectKey(select), select.value);
     // A model moved by hand, without the picker beside it: the AI that
     // line shows has to follow it now, not at the next swap.
-    if (select.name?.startsWith("model.")) syncAiToModel(select);
+    if (select.name?.startsWith("model.")) {
+      syncAiToModel(select);
+      // Spec 308: recorded on the server the instant it is made, not
+      // only in `chosen` — which is a fresh, empty map on every page
+      // load and cannot survive leaving the page.
+      void postPendingModel(select, select.name.slice("model.".length), select.value);
+    }
   }
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is

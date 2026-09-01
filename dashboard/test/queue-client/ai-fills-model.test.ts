@@ -194,3 +194,45 @@ describe("the Create spec AI choice fills its model (spec 228)", () => {
     expect(h.modelSelects[0]!.value).toBe("codex-fast");
   });
 });
+
+// --- spec 308: a model picked for a phase survives leaving the page --------
+
+// The dashboard has to remember a pick the instant it is made, not only
+// for the rest of this tab's session (`chosen`) — so a non-live pick
+// posts itself too, the way a live one already did (spec 225's
+// `postTailModel`). `model.create` is the non-live select every other
+// test in this file leaves untouched, so it doubles as "a phase nobody
+// has picked for yet" here.
+describe("a non-live pick posts itself to the spec-scoped route (spec 308)", () => {
+  const posts = (h: ReturnType<typeof harness>) =>
+    h.requests.filter((r) => r.url.includes("/api/queue/specs/"));
+
+  test("REQ-1: a hand-made model pick posts the project, folder, step and model", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    await h.changeModel(0, "fable"); // create — not live
+    const posted = posts(h)[0]!;
+    expect(posted.url).toContain("/api/queue/specs/aide/127-one-ai/model");
+    expect(String(posted.init.body)).toContain("step=create");
+    expect(String(posted.init.body)).toContain("model=fable");
+    expect(posted.url).toContain("token=s3cret");
+  });
+
+  test("REQ-1: an AI pick that fills a non-live model posts the model it just wrote", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    await h.changeAi(1, "codex"); // analyze — not live
+    const posted = posts(h)[0]!;
+    expect(posted.url).toContain("/api/queue/specs/aide/127-one-ai/model");
+    expect(String(posted.init.body)).toContain("step=analyze");
+    expect(String(posted.init.body)).toContain("model=codex-fast");
+  });
+
+  // The live phase (`archive`, index 3) keeps posting to the running
+  // job's own route (spec 225) and never to this new one — the two
+  // routes are for two different moments and must not both fire.
+  test("a live pick still posts to the job's own route, not the spec-scoped one", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-1" } } }));
+    await h.changeModel(3, "fable"); // archive — live
+    expect(posts(h)).toHaveLength(0);
+    expect(h.requests.some((r) => r.url.includes("/api/queue/job-1/model"))).toBe(true);
+  });
+});

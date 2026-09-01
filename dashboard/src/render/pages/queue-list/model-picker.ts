@@ -1,7 +1,7 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { busyReason, runFormId } from "./cells.ts";
 
 // The picker a phase line carries, and the caption above the list that
@@ -37,14 +37,22 @@ import { busyReason, runFormId } from "./cells.ts";
  *  It is a function rather than three lines inside `modelPicker`
  *  because `aiPicker` needs the same answer: the AI a line shows is the
  *  tool of the model that line is on, and a second copy of this
- *  reasoning is a second copy that can drift from it. */
+ *  reasoning is a second copy that can drift from it.
+ *
+ *  `pending` is a fourth, trailing tier (spec 308): a model picked for
+ *  this phase before it ever ran, recorded the instant the pick was
+ *  made so it survives leaving the page. It sits BENEATH `used` — a
+ *  phase that has actually run shows what it ran on, never an earlier
+ *  choice about what was to come — and ABOVE `configured`, which is
+ *  what a phase nobody has ever picked for still falls back to. */
 export function resolveChosenModel(
   models: NonNullable<QueuePageOptions["modelChoices"]>,
   configured: string | undefined,
   used: string | undefined,
+  pending?: string,
 ): string {
   const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
-  return has(used) ? used! : has(configured) ? configured! : models[0]!.name;
+  return has(used) ? used! : has(pending) ? pending! : has(configured) ? configured! : models[0]!.name;
 }
 
 /** What an archived phase's own record wins with (spec 265). A locked
@@ -110,9 +118,12 @@ export function modelPicker(
   const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  // Spec 308: never read for an archived row, whose select is a record
+  // of what happened, not a choice about what is to come.
+  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
   const chosen = archived
     ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used);
+    : resolveChosenModel(models, configured, used, pending);
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     // Where a live pick goes: the running job's own route, the same
@@ -326,12 +337,15 @@ export function aiPicker(
   const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  // Spec 308: the same pending pick `modelPicker` reads, so the two
+  // controls cannot disagree about it either.
+  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
   // The same answer `modelPicker` pre-fills its select with, from the
   // same helper: the AI shown is the tool of the model this line is on,
   // so the two controls cannot disagree about it.
   const on = archived
     ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used);
+    : resolveChosenModel(models, configured, used, pending);
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(runFormId(g))}"` +

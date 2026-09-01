@@ -110,6 +110,45 @@ export function persistQueueProjects(file: string, projects: string[]): string |
   }
 }
 
+/** A model picked for a phase before any job exists to attach it to
+ *  (spec 308), as it is written in `pending-models.json`: `{ "<project>/
+ *  <specFolder>": { "<step>": "<model>" } }`. `null` for anything
+ *  malformed, the same fail-closed rule `parseQueueProjects` follows —
+ *  an entry that does not parse is dropped rather than trusted, and a
+ *  totally malformed file starts the table empty rather than crashing
+ *  the server. */
+export function parsePendingModels(raw: unknown): Record<string, Record<string, string>> | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: Record<string, Record<string, string>> = {};
+  for (const [key, steps] of Object.entries(raw as Record<string, unknown>)) {
+    if (steps === null || typeof steps !== "object" || Array.isArray(steps)) continue;
+    const perStep: Record<string, string> = {};
+    for (const [step, model] of Object.entries(steps as Record<string, unknown>)) {
+      if (typeof model === "string" && model && (WORKFLOW_STEPS as readonly string[]).includes(step)) {
+        perStep[step] = model;
+      }
+    }
+    if (Object.keys(perStep).length > 0) out[key] = perStep;
+  }
+  return out;
+}
+
+/** Write the whole table back, tmp-then-renamed like every other file
+ *  this store writes. No comments to preserve and nothing else in the
+ *  file — unlike `queue-config.json` nothing shares it, so there is no
+ *  "read the rest back first" step. */
+export function persistPendingModels(file: string, table: Record<string, Record<string, string>>): string | null {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.tmp`;
+    writeFileSync(tmp, JSON.stringify(table, null, 2));
+    renameSync(tmp, file);
+    return null;
+  } catch (err) {
+    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 export interface QueueSettingsUpdate {
   model: Record<string, string>;
   budgetUsd: number;

@@ -65,6 +65,12 @@ export async function handlePageRoutes(
         ...(c.tool ? { tool: c.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
+      // A model picked for a phase before any job exists (spec 308).
+      // Only this view — the `/` page and its `?rows=1` poll — draws a
+      // phase's own picker; the other four views built in this file
+      // (New spec, Settings, new-schedule, schedule-detail) render no
+      // phase picker and need nothing here.
+      pendingModels: ctx.queue.pendingModels,
       error: url.searchParams.get("error") ?? undefined,
       // Which row the refusal belongs to. It rides in the query
       // string with the reason itself, so it survives the

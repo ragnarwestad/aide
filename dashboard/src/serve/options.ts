@@ -23,6 +23,11 @@ export interface ServerOptions {
    *  open quietly. */
   queueToken?: string;
   queueMirrorPath?: string;
+  /** Where a model picked for a phase before any job exists survives to
+   *  (spec 308) — the `pending-models.json` sibling of the queue
+   *  mirror. Absent means such a pick is never durable, exactly as
+   *  before this existed. */
+  pendingModelsPath?: string;
   /** Root scanned for `.aide/project.yaml` — the queue resolves project
    *  NAMES against it, so a request never carries a path. */
   projectRoot?: string;

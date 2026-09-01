@@ -42,11 +42,13 @@ export {
 
 export {
   mergeQueueDefaults,
+  parsePendingModels,
   parseQueueProjects,
   parseStoredJob,
+  persistPendingModels,
   persistQueueProjects,
   persistQueueSettings,
   type QueueSettingsUpdate,
 } from "./persist.ts";
 
-export { QueueStore, type QueueOptions } from "./store.ts";
+export { QueueStore, type PendingModelResult, type QueueOptions } from "./store.ts";

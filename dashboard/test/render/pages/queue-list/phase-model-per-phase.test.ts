@@ -235,4 +235,28 @@ describe("spec 169: one picker per phase", () => {
     ]);
     expect(html.match(/<select[^>]*data-ai[^>]*>/)![0]).not.toContain("disabled");
   });
+
+  // --- spec 308: resolveChosenModel's new "pending" tier ---------------------
+
+  // A pending pick wins over the configured default, exactly as a phase
+  // with history wins over a pending pick (`used` > `pending` >
+  // `configured`, tested end to end in phase-model-picker.test.ts).
+  test("a recorded pending pick beats the configured default", () => {
+    const html = rows([], {
+      defaultModels: { default: "sonnet" },
+      pendingModels: { "aide/169-one-picker": { analyze: "gpt-fast" } },
+    });
+    expect(phaseSelect(html, "analyze")).toMatch(/<option value="gpt-fast"[^>]*selected/);
+  });
+
+  // An absent pending value for one step falls through to the
+  // configured default unchanged — the boundary case immediately
+  // beneath the new tier.
+  test("an absent pending pick falls through to the configured default unchanged", () => {
+    const html = rows([], {
+      defaultModels: { default: "sonnet" },
+      pendingModels: { "aide/169-one-picker": { implement: "gpt-fast" } },
+    });
+    expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
 });

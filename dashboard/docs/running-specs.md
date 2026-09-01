@@ -292,20 +292,29 @@ Which model an AI fills in is worked out by the server and carried on the option
 that default belongs to the tool, else the first entry `modelChoices` lists for it. The browser copies the value and
 never chooses between a tool's models itself.
 
-The picker POSTS NOTHING — a press still sends the same five
+The AI picker itself POSTS NOTHING — it carries no `name`, and a press still sends the same five
 `model.<step>` fields it always did. What a phase runs on stays one value on the job and the tool is derived from it, so
 the picker is read on change (to fill the model in) and written on redraw (to reflect it), never the reverse. Change a
-model select by hand and the AI select beside it follows at once. It is drawn only when two tools are configured — one
-AI is nothing to choose between — and filling a model in is a script's job, so with scripting off the pickers and their
-caption are hidden outright (`<noscript>`) and the five model selects underneath stay exactly as usable as they are with
-one.
+model select by hand and the AI select beside it follows at once. Picking it — or moving a model select by hand — does
+reach the server at once, though: the model select it fills is recorded the instant it changes, on a phase that has not
+run yet as much as on one that has (see "A model picked for a phase" below). It is drawn only when two tools are
+configured — one AI is nothing to choose between — and filling a model in is a script's job, so with scripting off the
+pickers and their caption are hidden outright (`<noscript>`) and the five model selects underneath stay exactly as
+usable as they are with one.
 
 There is no `Set all…` control: a deployment with one tool and several models of it has no
 one-action way to set every phase at once, and each phase's model select is changed on its own line.
 
-The pre-filled model for a phase with no run behind it and no `model`
-default of its own is the first entry `modelChoices` lists. A phase that HAS run shows the model it ran on, and a
-per-step `model` default still wins over both.
+The pre-filled model for a phase with no run behind it, no recorded pick and no `model`
+default of its own is the first entry `modelChoices` lists. A phase that HAS run shows the model it ran on, which wins
+over everything else; beneath that, a recorded pick (see below) wins over the per-step `model` default, which wins over
+the first-entry fallback.
+
+**A model picked for a phase survives leaving the page.** The instant a reader picks a model or an AI for a phase that
+has not run yet, the dashboard records the pick — per spec, per phase — rather than holding it only in the open tab.
+Reloading the page, opening the spec in a different browser, or coming back another day all show the recorded pick, and
+a run started afterwards uses it. A phase that has since actually run shows what it ran on instead: a record of what
+happened outranks an earlier choice about what was to come.
 
 The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools. Three things
 differ, and all three are visible on the page rather than papered over:

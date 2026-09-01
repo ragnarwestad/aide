@@ -1,6 +1,7 @@
 // Keeping a phase line's AI picker and its model select honest with
 // each other (spec 179).
 
+import { postPendingModel } from "./pending-model.ts";
 import { postTailModel } from "./tail-actions.ts";
 import { chosen, selectKey } from "./state.ts";
 
@@ -100,6 +101,13 @@ export function applyAiPick(select: HTMLSelectElement): void {
   // model the row has stopped showing. Called with the value already
   // resolved, never by dispatching a synthetic event.
   if (model.getAttribute("data-post-to")) return void postTailModel(model, want);
+  // Spec 308: the same gap on a phase that has NOT run yet. The write
+  // above fires no `change` event either way, so without this the pick
+  // would live only in `chosen` — gone the moment the tab closes — and
+  // a reader returning to the spec would find the picker back on the
+  // default with nothing said about it.
+  const step = model.name.startsWith("model.") ? model.name.slice("model.".length) : "";
+  if (step) void postPendingModel(model, step, want);
 }
 
 // The other direction, and the only one the AI select is ever written
