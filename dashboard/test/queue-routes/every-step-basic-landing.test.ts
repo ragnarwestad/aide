@@ -216,6 +216,8 @@ describe("every step lands its own work (spec 149)", () => {
     expect(String(failed.error)).toContain("conflict");
     expect(failed.errorReason).toBe("conflict");
     expect(failed.landing).toBeFalsy();
+    // REQ-2 (spec 327): the message names the failing step.
+    expect(String(failed.landingError).startsWith("archive landing failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
     expect(git.calls.some((c) => c.dir === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
@@ -223,6 +225,49 @@ describe("every step lands its own work (spec 149)", () => {
     // Still in the active list, with its branch, exactly as it was.
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(specHead(html, SPEC)).not.toBe("");
+  }, 20000);
+
+  // REQ-1, REQ-3, REQ-7 (spec 327). `analyze`'s landing fails to merge
+  // the specs repo; `reset` runs next and its OWN landing succeeds
+  // (a different repo). A later step's success must not erase the
+  // earlier failure — clearing it belongs to whatever actually
+  // resolves it, not to an unrelated step's own landing.
+  test("an earlier step's landing failure survives a later step's successful landing (spec 327)", async () => {
+    const dir = own("aide-327-survive-");
+    const paths = repos(dir);
+    const git = gitFor({ conflicting: [paths.specs] });
+    const { base } = serverWithHarness(dir, paths, git);
+
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "reset"] }),
+      })
+    ).json()) as { job: { id: string } };
+    const id = made.job.id;
+
+    writeFileSync(
+      join(resultDir(dir), `${id}.json`),
+      JSON.stringify(result({ branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] })),
+    );
+    // Wait for `reset` to actually be running — proof `analyze`'s
+    // landing has fully settled, since `Runner.tick()` refuses to
+    // start anything while any job carries `landing: true`. A larger
+    // budget than `settle`'s default: this crosses TWO poll ticks (one
+    // to notice `analyze`'s result, one to start `reset` once its
+    // landing has cleared), on top of the landing's own retries.
+    const running = await settle(base, id, (j) => j.stepIndex === 1 && j.state === "running", 300);
+    expect(String(running.landingError)).toContain("analyze landing failed");
+
+    writeFileSync(
+      join(resultDir(dir), `${id}.json`),
+      JSON.stringify(result({ branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] })),
+    );
+    const done = await settle(base, id, (j) => j.state === "done" && !j.landing);
+
+    expect(done.error).toBeFalsy();
+    expect(String(done.landingError)).toContain("analyze landing failed");
   }, 20000);
 
   // Criterion 6. A middle-of-the-workflow step lands what its OWN run

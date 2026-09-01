@@ -14,7 +14,7 @@ import {
   type RestingState,
 } from "../../ui/job-state.ts";
 import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { BRANCH_LEFT_BEHIND, NO_DATE, PR_OPEN } from "./row-shared.ts";
+import { BRANCH_LEFT_BEHIND, LANDING_FAILED, NO_DATE, PR_OPEN } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -241,4 +241,12 @@ export function prOpenMark(s: ArchivedSpecView): string {
  *  title. */
 export function branchLeftBehindMark(s: ArchivedSpecView): string {
   return badge("refused", BRANCH_LEFT_BEHIND, s.branchDeleteError ?? "");
+}
+
+/** The landing-failed mark (spec 327): the message already names the
+ *  step and, via `refuse()`'s convention, the repo and branch — so, like
+ *  `branchLeftBehindMark`, the badge's title carries it whole and the
+ *  visible label stays the short constant. */
+export function landingFailedMark(g: { landingError?: string }): string {
+  return badge("refused", LANDING_FAILED, g.landingError ?? "");
 }

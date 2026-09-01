@@ -13,6 +13,7 @@ import {
   branchLeftBehindMark,
   costCell,
   createdCell,
+  landingFailedMark,
   notLandedTitle,
   phasePips,
   prOpenMark,
@@ -141,6 +142,13 @@ export function specHeadRow(
     : g.prError
       ? ` ${badge("refused", "no pull request", g.prError)}`
       : "";
+  // Spec 327: independent of `locked`/`stateBadge` on purpose — a later
+  // step's own `state` (queued, running, even done) says nothing about
+  // whether an EARLIER step's landing ever actually finished. Not
+  // gated on `locked` either: `readerGroup()` never sets `landingError`
+  // for an archived row (only `jobGroup()` does), so this simply never
+  // fires there — no separate check is needed to keep the two apart.
+  const landingFailure = g.landingError ? ` ${landingFailedMark(g)}` : "";
   // The whole workflow in six millimetres, on the line you are already
   // reading — shared with the spec page's Overview tab since spec 239.
   const progress = phasePips(g.phases, g.done);
@@ -211,6 +219,7 @@ export function specHeadRow(
     `<span class="pipslot">${progress}</span></div>` +
     under +
     review +
+    landingFailure +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence

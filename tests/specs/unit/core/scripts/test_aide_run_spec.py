@@ -2870,6 +2870,9 @@ def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp
     assert rc == 0, out
     assert out["ok"] is True, out
     assert out["pullError"], "a pull that did not happen must not be silent"
+    # REQ-6 (spec 327): named alongside the repo, matching the
+    # dashboard's own refusals (`branch-merge.ts`'s `refuse()`).
+    assert BRANCH in out["pullError"]
     assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
 
 

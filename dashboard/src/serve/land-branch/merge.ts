@@ -54,6 +54,16 @@ export async function landBranch(
    *  landings holding `mergeLock`; this landing's next repo has not
    *  taken the lock yet and was invisible to it. */
   let restartWanted = false;
+  // Set once: the FIRST landing failure a job hits is the one worth
+  // keeping (spec 327) — a later step's own failure is a symptom as
+  // often as a second, unrelated problem (the incident this spec is
+  // named for was exactly that: an `analyze` push failure, followed
+  // minutes later by an `archive` "cannot fast-forward main" that was
+  // really the same unpushed commit, not a second bug). Shared by the
+  // failure branch and the catch block below, the two places a landing
+  // can fail.
+  const firstLandingError = (msg: string): string =>
+    ctx.queue.get(job.id)?.landingError ?? `${what.step} landing failed: ${msg}`;
   try {
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
@@ -259,6 +269,7 @@ export async function landBranch(
       ctx.queue.update(job.id, {
         error: failures.join("; "),
         errorReason: reason,
+        landingError: firstLandingError(failures.join("; ")),
         ...downgrade(ctx, job.id),
       });
       return;
@@ -323,12 +334,14 @@ export async function landBranch(
     // Never rethrown: the `landing` flag holds the WHOLE queue, and
     // the runner clears it when this promise settles — which it must
     // do, however this went.
+    const note = what.failedNote(err instanceof Error ? err.message : String(err));
     ctx.queue.update(job.id, {
-      error: what.failedNote(err instanceof Error ? err.message : String(err)),
+      error: note,
       // A thrown landing is not a conflict — the merge never got far
       // enough to be one, and offering Resolve for it would send a
       // whole run at a problem it cannot fix.
       errorReason: undefined,
+      landingError: firstLandingError(note),
       ...downgrade(ctx, job.id),
     });
   } finally {

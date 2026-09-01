@@ -382,6 +382,11 @@ export interface SpecGroup {
    *  more urgent one: this is a branch left unmerged with nothing
    *  describing it, which no amount of waiting will resolve. */
   prError?: string;
+  /** REQ-4 (spec 327): the lead job's own unresolved landing failure,
+   *  read straight off `lead` rather than scanned across every job for
+   *  this spec the way `prError` is — see Risk analysis for why a
+   *  cross-job scan would show the wrong job's failure. */
+  landingError?: string;
   phases: Phase[];
   /** Steps this spec has already had, from its matching target: what its
    *  own files show, and what the queue actually ran. Marked on the

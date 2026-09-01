@@ -161,8 +161,14 @@ export async function settle(
   base: string,
   id: string,
   done: (job: Record<string, unknown>) => boolean,
+  // Enough for one poll tick plus a landing's own retries (~4s worst
+  // case). A caller waiting for a SECOND step to start after the first
+  // one's landing settles needs a second poll tick on top of that —
+  // `Runner.tick()` only runs on the periodic timer, not the moment a
+  // landing clears — so it passes a larger budget explicitly.
+  maxIterations = 100,
 ): Promise<Record<string, unknown>> {
-  for (let n = 0; n < 100; n++) {
+  for (let n = 0; n < maxIterations; n++) {
     const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
       job: Record<string, unknown>;
     };

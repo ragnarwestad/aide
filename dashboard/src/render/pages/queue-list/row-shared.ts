@@ -33,6 +33,11 @@ export const PR_OPEN = "PR open";
  *  delete the branch by hand". */
 export const BRANCH_LEFT_BEHIND = "branch left behind";
 
+/** The mark a LIVE row carries when a landing failed and no later step
+ *  of the same job has resolved it (spec 327) — independent of
+ *  `state`, which a later step's own start already overwrites. */
+export const LANDING_FAILED = "landing failed";
+
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */

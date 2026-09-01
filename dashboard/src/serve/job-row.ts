@@ -56,6 +56,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // the row can act on. Stored on the job (spec 149), because a
     // landing has no browser to redirect the reason to.
     errorReason: job.errorReason,
+    landingError: job.landingError,
     // Which third of an implement is running (spec 210). Only for
     // `implement`, which is the one step that reports its phases, and
     // only off the job's LIVE `sessionId` — the queue clears that the

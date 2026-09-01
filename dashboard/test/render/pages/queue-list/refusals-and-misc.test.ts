@@ -310,3 +310,30 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     expect(html.toLowerCase()).not.toContain("pull request");
   });
 });
+
+// --- spec 327: a landing failure survives its job's later steps ------------
+//
+// The mark is read straight off `lead.landingError` and drawn
+// independent of `state` — a later step's own state says nothing about
+// whether an EARLIER step's landing ever finished.
+describe("a row shows an unresolved landing failure (spec 327)", () => {
+  const MESSAGE = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+  const withFailure = (state: QueueRowView["state"]): string =>
+    renderQueueRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
+
+  test("the mark shows while a later step is still running", () => {
+    const html = withFailure("running");
+    expect(html).toContain("landing failed");
+    expect(html).toContain(MESSAGE);
+  });
+
+  test("the mark still shows once the job is done", () => {
+    const html = withFailure("done");
+    expect(html).toContain("landing failed");
+  });
+
+  test("a row with no landing failure carries no mark", () => {
+    const html = renderQueueRows([row({ state: "done" })], { runnerAvailable: true, targets: [] });
+    expect(html).not.toContain("landing failed");
+  });
+});

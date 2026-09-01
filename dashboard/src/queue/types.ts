@@ -175,6 +175,13 @@ export interface Job {
    *  `render/job-state.ts`, which does not import this module; the two
    *  are read side by side by `queue.test.ts`. */
   errorReason?: "conflict" | "unlanded";
+  /** The first landing failure this job hit, named by step (spec 327).
+   *  Set once and left alone by every later step of the SAME job,
+   *  success or failure — unlike `error`, which every later step is
+   *  free to overwrite the moment it starts (`Runner.startOne()`) or
+   *  lands. `errorReason`/`error` still say what is happening RIGHT
+   *  NOW; this says what already went wrong and was never resolved. */
+  landingError?: string;
 }
 
 /** What one pickable model is granted. The budget lives HERE, not in

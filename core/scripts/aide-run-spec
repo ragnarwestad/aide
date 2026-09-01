@@ -590,9 +590,9 @@ for root in "${roots[@]}"; do
   if [ "$do_pull" = "yes" ] && git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
     if git -C "$root" fetch -q origin "$base" 2>/dev/null; then
       git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
-        || note_pull_error "cannot fast-forward $base in $root"
+        || note_pull_error "cannot fast-forward $base (aide/$spec_label in $root)"
     else
-      note_pull_error "cannot fetch $base in $root"
+      note_pull_error "cannot fetch $base (aide/$spec_label in $root)"
     fi
   fi
 done
