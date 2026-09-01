@@ -23,6 +23,7 @@ import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "../discover.ts";
+import { SETTING_LABELS } from "../setting-labels.ts";
 import { worktreeLinksError } from "./manifest-io.ts";
 import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
 
@@ -310,7 +311,7 @@ export async function assessProjectReadiness(
           ok: false,
           blocking: false,
           detail:
-            "no worktree links are configured — a run's worktree carries tracked files only, so name any gitignored path the project's own commands need (node_modules, .venv)",
+            `no ${SETTING_LABELS.AIDE_WORKTREE_LINKS.toLowerCase()} are configured — a run's worktree carries tracked files only, so name any gitignored path the project's own commands need (node_modules, .venv)`,
         }
       : linkError
         ? { check: "worktreeLinks", subject: projectDir, ok: false, blocking: true, detail: linkError }

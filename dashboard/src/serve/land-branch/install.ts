@@ -2,6 +2,7 @@
 // out of land-branch.ts by theme (split land-branch.ts by theme).
 
 import { configValue } from "../../project/discover.ts";
+import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
 import type { LandContext } from "./types.ts";
@@ -18,7 +19,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing
     // was deployed, which is the whole complaint.
-    result.installError = "merged, not installed — no AIDE_INSTALL_CMD configured; deploying is a hand step";
+    result.installError = `merged, not installed — no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured; deploying is a hand step`;
     return;
   }
   const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;

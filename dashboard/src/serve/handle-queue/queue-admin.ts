@@ -5,6 +5,7 @@
 import { join } from "node:path";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
 import { configValue } from "../../project/discover.ts";
+import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin.ts";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_STEPS } from "../../render.ts";
@@ -259,7 +260,7 @@ export async function handleQueueAdminRoutes(
     }
     const root = ctx.machineryProjectDir(name);
     if (!configValue(root, "AIDE_INSTALL_CMD")) {
-      return refuse(`${name} has no AIDE_INSTALL_CMD configured — deploying stays a hand step`);
+      return refuse(`${name} has no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured — deploying stays a hand step`);
     }
     const base = await ctx.branchStatus.defaultBranch(root);
     if (!base) return refuse(`cannot work out the default branch in ${root}`);

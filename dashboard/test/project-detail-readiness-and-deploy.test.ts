@@ -39,6 +39,21 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     expect(html).toContain("a run refuses a worktree link with nothing to link");
   });
 
+  // Spec 318 (REQ-1, REQ-3, REQ-4): the Health tab's "no worktree links
+  // configured" warning and the Config tab's row must name the setting
+  // with the SAME plain-language phrase, sourced from one registry
+  // entry — not two sentences that happen to agree today. Reverting the
+  // Health-tab wiring alone (leaving the Config tab fixed) must turn
+  // this test red; see 3-solution.md's Testing section.
+  test("the Health tab's worktree-links warning names the same setting as the Config tab (REQ-1, REQ-3, REQ-4)", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const healthHtml = await (await get(base, "aide", "health")).text();
+    const configHtml = await (await get(base, "aide")).text();
+    expect(healthHtml).toMatch(/worktree links/i);
+    expect(configHtml).toMatch(/worktree links/i);
+  });
+
   test("a specs root that is not there is on the page (criterion 5)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
@@ -252,6 +267,24 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     const html = await (await get(base, "other")).text();
     expect(html).not.toContain("Serving");
     expect(html).not.toMatch(/>Deploy</);
+  });
+
+  // Spec 318 (REQ-1): the Deploy tab's ungated note stops naming
+  // AIDE_INSTALL_CMD by its raw key. The Serving comparison, not drift,
+  // is what keeps the Deploy tab present here (spec 293's showDeploy
+  // gate), so this is the one case that exercises the "no install
+  // command configured" branch without a drift answer at all.
+  test("the Deploy tab's ungated note names the setting in plain words (REQ-1)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await loadUntil(
+      serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")),
+      "aide",
+      "Serving",
+      2000,
+      "deploy",
+    );
+    expect(html).toMatch(/install command/i);
+    expect(html).not.toContain("AIDE_INSTALL_CMD");
   });
 });
 

@@ -4,6 +4,7 @@
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { ProjectReadiness } from "../../../project/project-admin.ts";
 import type { ProjectSettingsView } from "../../../project/project-settings.ts";
+import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
@@ -54,7 +55,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   if (!drift) {
     return rowMessage(
       "info",
-      "No AIDE_INSTALL_CMD is configured for this project, so its origin drift is not tracked here.",
+      `No ${SETTING_LABELS.AIDE_INSTALL_CMD} is configured for this project, so its origin drift is not tracked here.`,
     ) + servingLine;
   }
   const behind = drift.checkedAt !== null ? drift.behind : null;
