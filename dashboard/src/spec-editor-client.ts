@@ -91,6 +91,38 @@ if (host && raw) {
   });
 
   host.dataset.mounted = "true";
+  // REQ-1/REQ-3: the library gives a toolbar button a "click" with no
+  // "mousedown" of its own in front of it whenever the toolbar redraws
+  // and steals focus mid-interaction (2-analysis.md, Codebase analysis)
+  // — a click on a toolbar button counts only when the mouse went down
+  // on that SAME button. `detail === 0` exempts a keyboard-activated
+  // click (Tab, then Enter/Space), which has no mousedown of its own
+  // either but is a real activation, not the library's phantom one
+  // (REQ-6).
+  const toolbar = host.querySelector(".toastui-editor-toolbar");
+  const toolbarButton = (target: EventTarget | null): HTMLElement | null =>
+    target instanceof HTMLElement ? target.closest("button") : null;
+  let lastMouseDownTarget: EventTarget | null = null;
+
+  document.addEventListener(
+    "mousedown",
+    (event) => {
+      lastMouseDownTarget = event.target;
+    },
+    true,
+  );
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (event.detail === 0 || !toolbar?.contains(event.target as Node)) return;
+      const clickedButton = toolbarButton(event.target);
+      if (clickedButton && toolbarButton(lastMouseDownTarget) !== clickedButton) {
+        event.stopPropagation();
+      }
+    },
+    true,
+  );
+
   // No preventDefault(): form-busy.ts's shared submit listener must
   // still see this submit as untouched, or the Save button loses its
   // busy state.
