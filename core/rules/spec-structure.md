@@ -527,18 +527,21 @@ now.
 
 #### Acceptance criteria (optional)
 
-When `1-description.md` has a `## Requirements` section and
-`3-solution.md`'s Acceptance criteria are REQ-tagged, `/aide-analyze`
+When `1-description.md` has a `## Requirements` section, `/aide-analyze`
 adds one more section to `4-status.md`, after the last implementation
-phase and before `## Notation`:
+phase and before `## Notation`, with exactly one row per `REQ-n` id
+from `1-description.md`, in ascending id order, carrying that
+requirement's own SHALL text — never a scenario from `3-solution.md`'s
+Acceptance criteria, which a person cannot judge and which can repeat
+one id across several scenarios:
 
 ```markdown
 ## Acceptance criteria
 
 | Task | Status | Notes |
 |------|--------|-------|
-| REQ-1: <criterion text, verbatim from 3-solution.md> | ⬜ | |
-| REQ-2: <criterion text, verbatim from 3-solution.md> | ⬜ | |
+| REQ-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| REQ-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
 No Requirements section: `4-status.md` looks exactly as it does today —

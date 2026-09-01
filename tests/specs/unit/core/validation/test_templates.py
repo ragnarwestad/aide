@@ -411,6 +411,45 @@ class TestRequirementsTracingIsDocumented:
         assert "must-fix" in coherence.lower(), \
             "a missing REQ-id must be named a must-fix"
 
+    # Spec 313
+    def test_acceptance_criteria_row_sources_from_description_not_solution(self, workspace_root):
+        for content, label in (
+            (self._rule(workspace_root), "spec-structure.md"),
+            (self._requirements_tracing(workspace_root), "requirements-tracing.md"),
+        ):
+            assert "verbatim from 1-description.md" in content, \
+                f"{label} must state the Acceptance criteria row text comes " \
+                "verbatim from 1-description.md"
+            assert "verbatim from 3-solution.md" not in content, \
+                f"{label} must not source the Acceptance criteria row text " \
+                "from 3-solution.md — a person cannot judge a test scenario"
+
+    # Spec 313
+    def test_acceptance_criteria_is_one_row_per_req_id_ascending(self, workspace_root):
+        rule = self._rule(workspace_root)
+        rule_section = rule[rule.index("#### Acceptance criteria (optional)"):]
+        rule_section = rule_section[:rule_section.index("\n---", rule_section.index("archive-spec"))]
+
+        tracing = self._requirements_tracing(workspace_root)
+        tracing_section = tracing[tracing.index("## Step 8"):]
+
+        for section, label in (
+            (rule_section, "spec-structure.md"),
+            (tracing_section, "requirements-tracing.md"),
+        ):
+            lowered = section.lower()
+            assert "one row per" in lowered and "req-n" in lowered, \
+                f"{label}'s Acceptance criteria section must state one row per REQ-n id"
+            assert "ascending" in lowered, \
+                f"{label}'s Acceptance criteria section must state ascending id order"
+
+        skill = self._skill(workspace_root, "aide-analyze")
+        assert "REQ-tagged criterion" not in skill, \
+            "aide-analyze/SKILL.md's Step 8 pointer must no longer say " \
+            "'REQ-tagged criterion' — it names one row per REQ-n id instead"
+        assert "REQ-n id" in skill, \
+            "aide-analyze/SKILL.md's Step 8 pointer must say 'REQ-n id'"
+
 
 @pytest.mark.validation
 class TestTaskWorkflowAssistantMatchesTheLayout:
