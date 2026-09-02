@@ -433,3 +433,20 @@ describe("the frame keeps one width, and the tabs sit in the middle of it", () =
     expect(m![1]).not.toMatch(/justify-content:\s*center/);
   });
 });
+
+// --- the States trigger's own margin from the "(?)" popover (spec 338) -----
+
+describe("the States trigger sits further from the (?) popover than the row's own gap", () => {
+  test("the desktop rule gives .menu.state its own margin (REQ-7)", () => {
+    expect(CSS).toContain(".menu.state { margin-left: var(--sp-3); }");
+    // The rest of the row's spacing is untouched: the flex gap itself
+    // still carries every other pair of controls apart.
+    expect(CSS).toContain(
+      ".specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);",
+    );
+  });
+
+  test("the narrow block undoes it, so the phone layout is unchanged (REQ-8)", () => {
+    expect(NARROW).toContain(".menu.state { margin-left: 0; }");
+  });
+});

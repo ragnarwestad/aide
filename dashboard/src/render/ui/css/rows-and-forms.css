@@ -230,10 +230,12 @@ dialog.pageoverlay::backdrop { background: var(--backdrop); }
    behaviour; only the open box is lifted out of the flow. Bare and
    unscoped since spec 311 (`helpPopover()` in components.ts) — not tied
    to any one row, the same way `.menu` above it is not. */
-/* New spec carries the auto margin, not the state trigger (spec 306):
-   State sits right after the "(?)" popover, `gap` apart like every
-   other pair of controls on this row, and New spec alone is pushed to
-   the row's right-hand end. */
+/* New spec carries the auto margin, never a fixed one: it alone is
+   pushed to the row's right-hand end. States carries its OWN margin
+   instead of the row's plain gap (REQ-7, spec 338) — more room from the
+   "(?)" popover beside it than every other pair of controls on this row
+   gets, because the two are easy to mis-click together. */
+.menu.state { margin-left: var(--sp-3); }
 .specsearch > .btn.primary { margin-left: auto; }
 details.intro { position: relative; }
 details.intro > summary { display: inline-flex; align-items: center;
