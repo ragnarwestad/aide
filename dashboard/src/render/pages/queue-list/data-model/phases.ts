@@ -95,46 +95,58 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
 }
 
 /** The spec's own total: its phases' durations added together (spec
- *  199, spec 281).
+ *  199, spec 281, spec 340).
  *
  *  A sum, never a span. A spec that sat three days between analyze and
  *  implement did not take three days — the calendar is not the work,
  *  which is the whole reason this is built out of the phase lines
  *  rather than out of the first and last timestamps.
  *
- *  Every SETTLED phase span counts, whether or not the whole workflow
- *  is behind it and whether or not something else is running right now
- *  (spec 281 dropped both guards spec 199 put here): a spec stopped by
- *  an error, or still missing a phase, has genuinely spent the time its
- *  finished phases show, and `spentUsd` already sums unconditionally
- *  for the same reason (`group-builders.ts`). A phase currently in
- *  flight is excluded by `d.live` below, not by a guard up here — its
- *  own elapsed time is still ticking and not yet a settled span to sum. */
-function totalDuration(phases: Phase[]): number | undefined {
-  let total = 0;
+ *  EVERY attempt of every phase counts, settled or live: a phase re-run
+ *  three times contributes all three (`p.attempts`, not `p.attempts[0]`
+ *  alone), and a phase currently in flight contributes its own
+ *  elapsed-so-far rather than nothing, via a synthetic `since` the
+ *  browser's existing per-second tick counts up from — the same
+ *  mechanism a phase line's own cell already uses. */
+interface SpecTotal {
+  ms: number;
+  live: boolean;
+  /** The synthetic instant to count up from: liveStart − settledMs, so
+   *  `now − since` on the browser's own tick reproduces settled-so-far
+   *  plus the live phase's own elapsed time, with the exact same
+   *  `[data-elapsed]` rewrite a phase line already carries. */
+  since?: string;
+}
+
+function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
+  let settled = 0;
   let measured = false;
+  let liveSince: string | undefined;
   for (const p of phases) {
-    // The attempt the LINE speaks for — its latest — so a phase re-run
-    // three times contributes once, and an earlier failed retry's time
-    // is not summed in beside it.
-    const latest = p.attempts[0];
-    // `now` is never read: a live attempt is skipped below whatever it
-    // is given, and a settled span is measured between two recorded
-    // instants. Zero rather than a clock, so this function gives the
-    // same answer whenever it is asked.
-    const d = latest ? phaseDuration(latest, p.step, 0) : null;
-    if (d && !d.live) {
-      total += d.ms;
-      measured = true;
-    } else if (!d && p.timeSpentMs !== undefined) {
+    let any = false;
+    for (const attempt of p.attempts) {
+      const d = phaseDuration(attempt, p.step, now);
+      if (!d) continue;
+      any = true;
+      if (d.live) liveSince = d.since;
+      else {
+        settled += d.ms;
+        measured = true;
+      }
+    }
+    if (!any && p.timeSpentMs !== undefined) {
       // No queue job measured this phase at all — its own stamped file
       // is the only other place its duration could be (spec 274/247's
       // fallback, wired in by `specPhases` below, spec 284).
-      total += p.timeSpentMs;
+      settled += p.timeSpentMs;
       measured = true;
     }
   }
-  return measured ? total : undefined;
+  if (liveSince !== undefined) {
+    const since = new Date(Date.parse(liveSince) - settled).toISOString();
+    return { ms: settled + (now - Date.parse(liveSince)), live: true, since };
+  }
+  return measured ? { ms: settled, live: false } : undefined;
 }
 
 /** The same sum, for a caller that has already built the phase lines
@@ -142,8 +154,8 @@ function totalDuration(phases: Phase[]): number | undefined {
  *  own lines anyway, and calling `computeSpecTotalDurationMs` there too
  *  would rebuild `specPhases` — and re-read every not-yet-attempted
  *  phase's file — a second time for the same answer. */
-export function totalDurationOf(phases: Phase[]): number | undefined {
-  return totalDuration(phases);
+export function totalDurationOf(phases: Phase[], now: number): SpecTotal | undefined {
+  return totalDuration(phases, now);
 }
 
 /** The spec's own total, for a caller that has the jobs but not a
@@ -160,8 +172,12 @@ export function totalDurationOf(phases: Phase[]): number | undefined {
  *  The phase lines are rebuilt here rather than passed in for the same
  *  reason: a caller that had to assemble them first would be a second
  *  place that knows which lines a spec's total is a sum over. */
-export function computeSpecTotalDurationMs(rows: QueueRowView[], dir?: string): number | undefined {
-  return totalDuration(specPhases(rows, dir));
+export function computeSpecTotalDurationMs(
+  rows: QueueRowView[],
+  now: number,
+  dir?: string,
+): SpecTotal | undefined {
+  return totalDuration(specPhases(rows, dir), now);
 }
 
 /** The phase lines a spec's row and a spec's total are both built over:

@@ -18,8 +18,9 @@ import {
 // A spec with no job is still a spec. It is the ONLY row on this page
 // where the whole workflow is still ahead of you, which is exactly the
 // row the analyze button belongs on.
-function emptyGroup(t: QueueTarget): SpecGroup {
+function emptyGroup(t: QueueTarget, now: number): SpecGroup {
   const phases = phasesFor([], t);
+  const total = totalDurationOf(phases, now);
   return {
     project: t.project,
     specFolder: t.specFolder,
@@ -29,7 +30,8 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     phases,
-    totalDurationMs: totalDurationOf(phases),
+    totalDurationMs: total?.ms,
+    totalDurationSince: total?.since,
     ...fromTarget(t),
   };
 }
@@ -77,6 +79,7 @@ export function groupBySpec(
   targets: QueueTarget[],
   archived?: string[],
   archivedSpecs?: ArchivedSpecView[],
+  now: number = Date.now(),
 ): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
@@ -125,7 +128,7 @@ export function groupBySpec(
     )
     .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)
     .filter(([, all]) => all.length > 0)
-    .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
+    .map(([key, all]) => jobGroup(all, byKeyTarget.get(key), now));
   return [
     ...fromJobs,
     // Only ever a list the server chose to build: under the default
@@ -134,7 +137,7 @@ export function groupBySpec(
     ...targets.filter((t) => {
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
-    }).map(emptyGroup),
+    }).map((t) => emptyGroup(t, now)),
   ];
 }
 
@@ -213,7 +216,7 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
   };
 }
 
-function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGroup {
+function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: number): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const spec = fromTarget(target);
   const lead = recent.find(inFlight) ?? recent[0]!;
@@ -229,6 +232,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   // the file-side answers this page shows on a line are added on top of
   // it, and the total reads neither.
   const phases = phasesFor(all, target);
+  const total = totalDurationOf(phases, now);
   return {
     project: lead.project,
     specFolder: lead.specFolder,
@@ -249,15 +253,16 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     landingError: lead.landingError,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
-    // money — and one figure per phase LINE, not per attempt: a phase
-    // re-run three times contributes the attempt its line speaks for,
-    // the way the line's own cell does. Every SETTLED phase counts,
-    // whether or not the whole workflow is done (spec 281) — a phase
-    // still in flight contributes nothing of its own, live elapsed time
-    // excluded by `totalDurationOf` itself. Read off `phases` above
-    // (spec 284), not recomputed from `all` — the latter would re-read
-    // every not-yet-attempted phase's stamped file a second time.
-    totalDurationMs: totalDurationOf(phases),
+    // money — and EVERY attempt of every phase counts now (spec 340), a
+    // phase re-run three times contributing all three, whether or not
+    // the whole workflow is done (spec 281). A phase still in flight
+    // contributes its own elapsed-so-far via `totalDurationSince`,
+    // rather than being excluded until it settles. Read off `phases`
+    // above (spec 284), not recomputed from `all` — the latter would
+    // re-read every not-yet-attempted phase's stamped file a second
+    // time.
+    totalDurationMs: total?.ms,
+    totalDurationSince: total?.since,
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.

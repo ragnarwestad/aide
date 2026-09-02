@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   renderQueuePage,
+  renderQueueRows,
   type ArchivedSpecView,
   type QueuePageOptions,
   type QueueRowView,
@@ -205,27 +206,36 @@ describe("the job list sorts and filters", () => {
     expect(specOrder(html)).toEqual(["big-spec", "small-spec"]);
   });
 
-  // The literal requirement: a phase being started, finished or run
-  // again must not move a row whose OWN settled total has not changed.
-  // The older spec (by creation) has the newer run and the smaller
-  // total; it must still sort behind the spec with the larger total.
-  test("a run in flight on the smaller-total spec does not move it up the started sort (criterion 1)", () => {
+  // Spec 281's own criterion 1 read "a phase being started, finished or
+  // run again must not move a row whose OWN settled total has not
+  // changed" — because a live phase contributed nothing to the total
+  // back then. Spec 340's REQ-2 reverses exactly that: a live phase now
+  // contributes its own elapsed-so-far, and the sort reads the same
+  // `totalDurationMs` the column draws (`filter-sort.ts`), so a spec
+  // with a phase that has been running long enough legitimately outranks
+  // one with a smaller SETTLED total — this is the sort staying correct
+  // under the new rule, not a regression of criterion 1.
+  test("a phase's own live elapsed time counts toward the started sort, same as the column it sorts by (REQ-2)", () => {
     const settled = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
       row(id, {
         startedAt: "2026-08-16T09:00:00Z",
         results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" }],
         ...extra,
       });
-    const before = page([row("small"), settled("big")], { sort: "started" });
-    const after = page(
-      [
-        row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
-        settled("big"),
-      ],
-      { sort: "started" },
+    const opts = { runnerAvailable: true, targets: [], filter: { sort: "started" } as const };
+    const now = Date.parse("2026-08-16T12:00:00Z");
+    // Before: "small" has nothing settled yet, so it sorts behind "big"'s
+    // 20 measured minutes.
+    const before = renderQueueRows([row("small"), settled("big")], opts, now);
+    expect(specOrder(before)).toEqual(["big-spec", "small-spec"]);
+    // After: "small" has been running for an hour (11:00 to NOW 12:00) —
+    // more than "big"'s 20 settled minutes — so it now sorts FIRST.
+    const after = renderQueueRows(
+      [row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }), settled("big")],
+      opts,
+      now,
     );
-    expect(specOrder(after)).toEqual(specOrder(before));
-    expect(specOrder(after)).toEqual(["big-spec", "small-spec"]);
+    expect(specOrder(after)).toEqual(["small-spec", "big-spec"]);
   });
 
   // A spec with no settled phase — no job at all, or nothing has

@@ -360,17 +360,25 @@ export interface SpecGroup {
    *  measured phases and never `last finished - first started`. Absent
    *  for a spec no phase of which has a measurable span yet.
    *
-   *  Drawn on EVERY row since spec 281, live or archived — a live row
-   *  no longer waits for the whole workflow to finish, nor blanks
-   *  itself while a phase is in flight (that phase's own still-ticking
-   *  elapsed time is excluded, not the row's whole total). Two
-   *  pipelines feed it: `computeSpecTotalDurationMs()` reads queue job
-   *  records for a live row, `readerGroup()` reduces each phase file's
-   *  own `Time spent:` line for an archived one (spec 273) — fed by
-   *  the same underlying runs but not structurally pinned to agree
-   *  (2-analysis.md, spec 281's "REQ-2" finding). `activeDurationCell()`
-   *  and `archiveDateCell()` are the two readers. */
+   *  Drawn on EVERY row since spec 281, live or archived. Every attempt
+   *  of every phase counts (spec 340) — a phase run three times
+   *  contributes all three — and a phase currently in flight
+   *  contributes its own elapsed-so-far, via `totalDurationSince` below,
+   *  rather than being excluded until it settles. Two pipelines feed
+   *  it: `computeSpecTotalDurationMs()` reads queue job records for a
+   *  live row, `readerGroup()` reduces each phase file's own `Time
+   *  spent:` line for an archived one (spec 273) — fed by the same
+   *  underlying runs but not structurally pinned to agree
+   *  (2-analysis.md, spec 281's "REQ-2" finding; spec 340's own
+   *  analysis names the retried-phase case where they now diverge
+   *  further). `activeDurationCell()` and `archiveDateCell()` are the
+   *  two readers. */
   totalDurationMs?: number;
+  /** The synthetic instant the row's own clock counts up from, while
+   *  one of its phases is live (spec 340) — mirrors a phase line's own
+   *  `since` (`Phase`'s per-attempt `PhaseDuration.since`). Absent
+   *  whenever nothing under this spec is running. */
+  totalDurationSince?: string;
   /** The pull request a `pr`-mode run opened for this spec's code branch
    *  (spec 220), off the most recently active job that reported one. A
    *  project whose code is reviewed archives with that branch still on

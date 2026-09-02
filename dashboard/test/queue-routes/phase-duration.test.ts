@@ -187,7 +187,11 @@ describe("a phase says how long it took", () => {
     expect(headCell(html, "aa-spec")).toContain("12m00s");
   });
 
-  test("a spec with a phase in flight sums only what has settled, excluding its own live elapsed time (spec 281)", () => {
+  // REQ-2: a running phase's own elapsed-so-far now counts toward the
+  // header total (reversing spec 281's exclusion), and the cell carries
+  // `data-elapsed` so the browser's existing per-second tick
+  // (`queue-client.ts`) keeps counting it up with no further redraw.
+  test("a spec with a phase in flight sums what has settled plus the live phase's elapsed time, and ticks (REQ-2)", () => {
     const html = page(
       [
         job("a1", "aa-spec", {
@@ -200,10 +204,12 @@ describe("a phase says how long it took", () => {
       ],
       [target("aa-spec", { createdAt: "2026-08-16T08:00:00Z", done: ["analyze"] })],
     );
-    // Analyze's 10 minutes only — implement is still running at NOW
-    // (12:00), and its own elapsed 2h50m must not be swept in.
-    expect(headCell(html, "aa-spec")).toContain("10m00s");
-    expect(headCell(html, "aa-spec")).not.toContain("2h");
+    // Analyze's 10 minutes settled, plus implement's own elapsed time
+    // from 09:10 to NOW (12:00): 2h50m. Total: 3h00m.
+    expect(headCell(html, "aa-spec")).toContain("3h00m");
+    // The synthetic since = implement's start (09:10) minus the settled
+    // 10 minutes = 09:00 — so `now - since` reproduces the same total.
+    expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
 
   test("a spec with no job ever run for it shows a dash", () => {
@@ -258,8 +264,10 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     }),
   ];
 
+  const NOW = Date.parse("2026-08-20T00:00:00Z");
+
   test("adds the phases up, and answers in milliseconds", () => {
-    expect(computeSpecTotalDurationMs(rows())).toBe(20 * 60 * 1000);
+    expect(computeSpecTotalDurationMs(rows(), NOW)?.ms).toBe(20 * 60 * 1000);
   });
 
   // The exact case 1-description.md names as the motivation: a spec
@@ -267,25 +275,52 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
   // else has run yet — and the old `done`-keyed guard blanked exactly
   // this row.
   test("a spec still missing a phase sums what it has", () => {
-    expect(computeSpecTotalDurationMs([rows()[0]!])).toBe(5 * 60 * 1000);
+    expect(computeSpecTotalDurationMs([rows()[0]!], NOW)?.ms).toBe(5 * 60 * 1000);
   });
 
-  // The other half of the old guard: a job in flight used to blank the
-  // WHOLE total, not just its own still-ticking span. `spentUsd` never
-  // waited for a job to finish before summing (`group-builders.ts`), and
-  // this now matches it — the live job here is on `create`, a phase
-  // neither of `rows()`'s jobs has touched, so it adds a live, skipped
-  // attempt rather than superseding a settled one.
-  test("a job in flight elsewhere does not blank the total for phases already settled", () => {
+  // REQ-2: a phase in flight elsewhere now CONTRIBUTES its own elapsed
+  // time to the total (reversing the old exclusion), and the result
+  // carries the synthetic `since` the header cell needs to tick from.
+  // The live job here is on `create`, a phase neither of `rows()`'s jobs
+  // has touched, so its elapsed time adds on top of both settled phases.
+  test("a job in flight elsewhere adds its own elapsed time to the settled total, and marks it live (REQ-2)", () => {
     const withRunning = [
       ...rows(),
       row("a3", { steps: ["create"], state: "running", startedAt: "2026-08-20T09:00:00Z" }),
     ];
-    expect(computeSpecTotalDurationMs(withRunning)).toBe(20 * 60 * 1000);
+    const now = Date.parse("2026-08-20T09:05:00Z");
+    const total = computeSpecTotalDurationMs(withRunning, now);
+    // 20 minutes settled (analyze + implement) + 5 minutes of create's
+    // own elapsed time so far.
+    expect(total?.ms).toBe(25 * 60 * 1000);
+    expect(total?.live).toBe(true);
+    // since = create's start (09:00) minus the settled 20 minutes = 08:40.
+    expect(total?.since).toBe("2026-08-20T08:40:00.000Z");
   });
 
   test("a spec nothing has ever run for measures nothing", () => {
-    expect(computeSpecTotalDurationMs([])).toBeUndefined();
+    expect(computeSpecTotalDurationMs([], NOW)).toBeUndefined();
+  });
+
+  // REQ-1: a phase re-run as two separate settled job attempts (an
+  // earlier failed/retried run, then a later one) contributes BOTH —
+  // the bug 1-description.md names: "a phase re-run three times
+  // contributes once" (now: contributes every time).
+  test("a phase retried as a second settled job attempt contributes both durations (REQ-1)", () => {
+    const withRetry = [
+      ...rows(),
+      // A second, later attempt at "analyze" — a re-run of the same
+      // step from a different job, three days after the first.
+      row("a4", {
+        steps: ["analyze"],
+        startedAt: "2026-08-19T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-19T09:08:00Z" }],
+      }),
+    ];
+    // 5 (first analyze) + 10 (implement) + 5 (archive) + 8 (second
+    // analyze attempt) = 28 minutes, not 23 — the second attempt is not
+    // dropped in favor of the newest-only answer.
+    expect(computeSpecTotalDurationMs(withRetry, NOW)?.ms).toBe(28 * 60 * 1000);
   });
 
   // The list draws this figure on a live row now (spec 281) — the
@@ -303,15 +338,20 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(html).toContain("5m00s");
   });
 
-  // REQ-2: the same phase timings, summed by each of the two pipelines
-  // this page has — the live one (job records, via this function) and
-  // the archived one (`readerGroup`'s reduce over each phase file's own
-  // `Time spent:` line) — must agree. This is not provably ONE shared
-  // source (2-analysis.md, "REQ-2's 'same computation source'..."), so it
-  // proves parity on equivalent inputs rather than asserting one
-  // implementation calls the other.
-  test("agrees with the archived figure for the same underlying phase timings (REQ-2)", () => {
-    const liveMs = computeSpecTotalDurationMs(rows());
+  // REQ-3/REQ-5: the same phase timings, summed by each of the two
+  // pipelines this page has — the live one (job records, via this
+  // function) and the archived one (`readerGroup`'s reduce over each
+  // phase file's own `Time spent:` line) — must agree, for the no-retry
+  // case both pipelines can represent (3-solution.md, "Behavior delta").
+  // This is not provably ONE shared source (2-analysis.md, "REQ-2's
+  // 'same computation source'..."), so it proves parity on equivalent
+  // inputs rather than asserting one implementation calls the other. It
+  // also now proves REQ-3/REQ-5's "same rule" claim under the new
+  // summing behavior (every attempt), not only the old latest-only one —
+  // `rows()` has no retried phase, so both pipelines see one attempt per
+  // step either way.
+  test("agrees with the archived figure for the same underlying phase timings (REQ-3, REQ-5)", () => {
+    const liveMs = computeSpecTotalDurationMs(rows(), NOW)?.ms;
     const archived: ArchivedSpecView = {
       project: "aide",
       folder: "aa-spec",
@@ -427,7 +467,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
 
   test("REQ-2-AC2: a spec with zero queue jobs at all still totals its stamped create duration", () => {
     stampCreate("3m00s");
-    expect(computeSpecTotalDurationMs([], dir)).toBe(3 * 60 * 1000);
+    expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(3 * 60 * 1000);
   });
 
   test("REQ-2-AC2: the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {

@@ -65,19 +65,25 @@ export const phaseWordCell = (
   (aside ? ` ${aside}` : "");
 
 /** The spec header row's own time cell: what its phases have come to so
- *  far, summed (spec 199, spec 281).
+ *  far, summed (spec 199, spec 281, spec 340).
  *
  *  Not "when the spec was made" any more — that read as a second,
  *  unrelated clock next to Cost, which already sums live — and not
  *  gated on the workflow being finished: a spec still missing a phase,
  *  or stopped by an error, has genuinely spent whatever its settled
- *  phases show, and this cell says so rather than a bare dash. */
+ *  phases show, and this cell says so rather than a bare dash. While a
+ *  phase is running, `data-elapsed` mirrors `phaseDurationCell` exactly
+ *  so the page's own per-second tick (`queue-client.ts`) counts this
+ *  cell up too, with no further server involvement. */
 export function activeDurationCell(g: SpecGroup): string {
   const ms = g.totalDurationMs ?? 0;
   // Nothing recorded across every phase draws a dash — the same
   // "nothing to show" rule `costCell()` already gives an all-zero spend.
   if (ms <= 0) return "–";
-  return `<span class="archive-duration">${esc(durationLabel(ms))}</span>`;
+  const text = esc(durationLabel(ms));
+  return g.totalDurationSince
+    ? `<span class="archive-duration" data-elapsed="${esc(g.totalDurationSince)}">${text}</span>`
+    : `<span class="archive-duration">${text}</span>`;
 }
 
 /** One phase line's time cell: how long that phase took, or how long it
