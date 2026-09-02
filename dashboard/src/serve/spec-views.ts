@@ -60,6 +60,11 @@ export interface SpecViewsContext {
    *  sweep — the same "already exists at the top level, just not
    *  threaded through" gap `schedules.specCreatedAt` had before this. */
   specCreatedAt: SpecCreatedAtChecker;
+  /** Whether `md-to-pdf` is resolvable on this host (spec 358, REQ-7) —
+   *  the only new field `specPageView` itself reads; `pdfCacheDir`/
+   *  `pdfGeneratorBin` live only on `HandleQueueContext`, where the
+   *  route that actually spawns the script runs. */
+  pdfToolAvailable: boolean;
 }
 
 export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {
@@ -492,6 +497,8 @@ export async function specPageView(
     // button that posts where nothing listens.
     updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
     resetAction: `${specPagePath(project, specFolder)}/reset`,
+    pdfAction: `${specPagePath(project, specFolder)}/pdf`,
+    pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
     resetUnavailableReason: matchingJobs.some((job) => job.state === "queued" || job.state === "running")
       ? "another job for this spec is still running"
       : ctx.queue.list().some((job) => job.landing)
