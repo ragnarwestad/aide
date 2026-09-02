@@ -250,12 +250,26 @@ if [ "$record_ok" = "no" ]; then
   if [ -z "$test_cmd" ]; then
     emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record, and this project has no test command configured — set the test command in .aide/config before archiving"}'
   fi
-  "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_dir" \
-    --specs-root "$specs_root" --folder "$spec_folder" --cmd "$test_cmd" >/dev/null 2>&1 || true
+  # The run's output is KEPT, in a log a person can open, and the
+  # refusal below names it. It went to /dev/null at first, and the
+  # first real refusal (spec 337, exit 2) left nobody able to say what
+  # had failed — a gate that refuses without showing why sends the
+  # reader guessing.
+  gate_log="${AIDE_TEST_GATE_LOG:-$HOME/Library/Logs/aide-dashboard/test-gate.log}"
+  mkdir -p "$(dirname "$gate_log")" 2>/dev/null || true
+  {
+    echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) $spec_folder @ $head_commit ---"
+    "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_dir" \
+      --specs-root "$specs_root" --folder "$spec_folder" --cmd "$test_cmd"
+  } >> "$gate_log" 2>&1 || true
   if [ -f "$record_file" ]; then
     record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"
     record_exit="$(jq -r '.exitCode // empty' "$record_file" 2>/dev/null)"
     [ "$record_exit" = "0" ] && [ "$record_commit" = "$head_commit" ] && record_ok="yes"
+  fi
+  if [ "$record_ok" = "no" ]; then
+    emit_ok "$(jq -cn --arg log "$gate_log" \
+      '{terminalReason:"no-passing-test-record", note:("the project'"'"'s tests did not pass for this commit — the output is in " + $log + "; fix them before archiving")}')"
   fi
 fi
 if [ "$record_ok" = "no" ]; then

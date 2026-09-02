@@ -602,6 +602,23 @@ def test_no_record_refuses_when_the_tests_it_runs_fail(script, project, specs):
     assert (specs / "81-x").exists()
 
 
+def test_a_failing_gate_run_keeps_its_output_and_names_the_log(script, project, specs, tmp_path, monkeypatch):
+    """The first real refusal (spec 337, exit 2) had sent the test output
+    to /dev/null: nobody could say what had failed. The gate keeps the
+    run's output in a log and the refusal names it."""
+    log = tmp_path / "test-gate.log"
+    monkeypatch.setenv("AIDE_TEST_GATE_LOG", str(log))
+    configure(project, specs)
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=echo THE-FAILING-TEST; false\n")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert str(log) in out["note"], out
+    assert "THE-FAILING-TEST" in log.read_text()
+    assert "81-x @" in log.read_text()
+
+
 def test_a_passing_record_at_exact_head_archives(script, project, specs):
     configure(project, specs)
     add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
