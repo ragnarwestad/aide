@@ -5101,6 +5101,29 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     assert roots[str(workspace["specs"])]["changedFiles"] == 1
 
 
+def test_the_state_file_names_the_step_the_run_just_added(runner, workspace, fake_claude):
+    """A completed step lands in the prose line AND in 4-status.json. The
+    state file keeps its own list of completed phases rather than
+    re-deriving it from prose, so the runner has to hand it the list it
+    just wrote — otherwise a file that already existed before the run
+    (from create, from a backfill) goes on saying what it said, and the
+    next implement is held back as not analyzed (2026-09-02, spec 361)."""
+    with_status(workspace, ["create"])
+    already_ran(workspace, ["create"])
+    state = workspace["specs"] / workspace["folder"] / "4-status.json"
+    state.write_text(json.dumps({"completedPhases": ["create"], "archived": None,
+                                 "reopened": None, "acceptanceCriteria": [], "phaseCounts": {}}))
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "state file"], check=True)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    prose = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert bullet(prose, "Workflow steps completed") == "create, analyze"
+    written = json.loads(phase_file_text(workspace, f"{workspace['folder']}/4-status.json"))
+    assert written["completedPhases"] == ["create", "analyze"]
+
+
 # --- spec 217: which model ran each step (superseded by spec 245) ------------
 #
 # "Did it run" and "who ran it" are two different facts, and conflating

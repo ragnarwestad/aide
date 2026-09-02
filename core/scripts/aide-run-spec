@@ -2232,8 +2232,12 @@ fi
 # Only for a step that completed: a stopped run changes no phase, and
 # a first-ever state file on its branch would keep an otherwise empty
 # branch alive that the sweep below is meant to delete.
+# The state file keeps its own list of completed phases rather than
+# re-deriving it from prose (spec 355), so the list this run just wrote
+# to the prose line is handed over — a file that already existed before
+# the run would otherwise go on naming only the phases it had.
 if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
-  write_spec_state "$status_file" >/dev/null 2>&1 || true
+  write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
 fi
 
 # --- this phase's own outcome record (spec 245) ------------------------------
