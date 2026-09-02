@@ -2964,10 +2964,14 @@ def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, worksp
 
 # --- Criterion 16: the pull is a courtesy, and it advances the DEFAULT branch -
 
-def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp_path):
-    """The worktree is cut from origin/<base>, so a pull that loses a race
-    with a concurrent run costs a staler spec list and nothing else. It
-    used to refuse the whole run."""
+def test_a_failed_fetch_refuses_rather_than_creating_a_branch_from_a_stale_tip(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A spec branch that does not exist yet has never been fetched from
+    origin, so a fetch that fails right here is exactly the case where
+    base_ref_for would otherwise fall back to this checkout's own tip
+    (spec 347). Unlike the courtesy pull on the main checkout, this one
+    refuses rather than proceeding on local state."""
     bare = tmp_path / "gone.git"
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
     git(workspace["project"], "remote", "add", "origin", str(bare))
@@ -2977,13 +2981,12 @@ def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp
     git(workspace["project"], "remote", "set-url", "origin", str(tmp_path / "not-there.git"))
 
     rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["pullError"], "a pull that did not happen must not be silent"
-    # REQ-6 (spec 327): named alongside the repo, matching the
-    # dashboard's own refusals (`branch-merge.ts`'s `refuse()`).
-    assert BRANCH in out["pullError"]
-    assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+    assert rc == 2, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "refused"
+    assert str(workspace["project"]) in out["error"]
+    assert BRANCH not in git(workspace["project"], "branch", "--list"), \
+        "a failed fetch must not leave a branch cut from this checkout's own tip"
 
 
 def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
@@ -3015,6 +3018,40 @@ def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert (workspace["project"] / "from-elsewhere.txt").exists(), \
         "the DEFAULT branch is what gets fast-forwarded"
+
+
+def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_ref(
+    runner, workspace, fake_claude, tmp_path
+):
+    """REQ-5 (spec 347): a spec branch created for the first time must
+    come from origin's copy of the default branch, never from whatever
+    this checkout's own refs/remotes/origin/<base> happened to hold last.
+    Pushed here WITHOUT `-u`, so the current branch has no upstream
+    tracking configured — the exact condition that used to make the
+    courtesy pull skip its fetch silently, leaving this checkout's
+    tracking ref stale while origin moved on elsewhere."""
+    bare = tmp_path / "shared.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    # Someone else lands a commit on main, through a different clone —
+    # this checkout's own refs/remotes/origin/main never learns about it
+    # until (and unless) a fetch is actually attempted.
+    other = init_repo(tmp_path / "other-clone")
+    git(other, "remote", "add", "origin", str(bare))
+    git(other, "fetch", "-q", "origin")
+    git(other, "reset", "-q", "--hard", "origin/main")
+    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "elsewhere")
+    git(other, "push", "-q", "origin", "main")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
+    assert rc == 0, out
+    assert subprocess.run(
+        ["git", "-C", str(workspace["project"]), "cat-file", "-e", f"{BRANCH}:from-elsewhere.txt"]
+    ).returncode == 0, \
+        "a brand-new spec branch must be cut from origin's tip, not this checkout's stale tracking ref"
 
 
 # --- Criterion 18: the re-point happens AFTER the branch is brought up to date
