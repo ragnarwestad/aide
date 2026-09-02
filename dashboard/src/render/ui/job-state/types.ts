@@ -23,6 +23,12 @@ export interface QueueRowView {
    *  every job that is not running: then the row locks as it always
    *  did. */
   editableSteps?: string[];
+  /** Where a queued job stands among every job waiting its turn (REQ-4):
+   *  `n` is its 1-indexed place in `queuePriorityOrder()`'s order
+   *  (REQ-1), `total` the number of jobs `queued` right now. Computed by
+   *  `jobRow()` off the SAME function `Runner.tick()` calls (REQ-6), so
+   *  the two cannot disagree. Absent for every state but `queued`. */
+  queuePosition?: { n: number; total: number };
   state:
     | "queued" | "running" | "done"
     | "stopped" | "failed" | "cancelled" | "interrupted";

@@ -13,6 +13,7 @@ export {
   UNFINISHED,
   WORKFLOW_STEPS,
   currentWorkRoundJobs,
+  queuePriorityOrder,
   tailEdits,
   type JobState,
   type StopReason,

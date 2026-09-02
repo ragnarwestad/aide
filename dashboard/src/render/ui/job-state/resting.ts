@@ -72,7 +72,15 @@ export function restingChip(resting: RestingState = {}): string {
 
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
-  if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
+  if (r.state === "queued") {
+    const step = currentStep(r);
+    const pos = r.queuePosition;
+    return badge(
+      "idle",
+      pos ? `${gerund(step)} ${pos.n}/${pos.total}` : `${gerund(step)} queued`,
+      pos ? `${pos.n} of ${pos.total} queued — waiting for a free slot to run ${stepLabel(step)}` : undefined,
+    );
+  }
   // The step finished and `state` already reads "done", but its branch
   // has not landed yet (`Runner.complete()` writes both in the same
   // update — `runner.ts`). A row that fell through to `restingChip`

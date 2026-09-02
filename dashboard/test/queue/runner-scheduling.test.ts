@@ -120,6 +120,44 @@ describe("several jobs at once", () => {
   });
 });
 
+// Spec 353: a quick step (create/archive) jumps a queued slow step
+// (analyze/implement), whatever the age of either.
+describe("quick steps before slow ones", () => {
+  test("a younger queued archive starts before an older queued analyze", () => {
+    const analyze = enqueue({ steps: ["analyze"] });
+    const archive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(spawns[0]?.step).toBe("archive");
+    expect(store.get(archive.id)?.state).toBe("running");
+    expect(store.get(analyze.id)?.state).toBe("queued");
+  });
+
+  test("oldest first within the same group", () => {
+    const first = enqueue({ steps: ["archive"] });
+    enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(first.id)?.state).toBe("running");
+  });
+
+  test("a held-back quick job does not block an older unblocked slow job behind it", () => {
+    const archive = enqueue({ steps: ["archive"] });
+    const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    const blocked = new Map([[archive.id, "80-some-dependency"]]);
+    runner.tick(blocked);
+    expect(spawns.length).toBe(1);
+    expect(spawns[0]?.step).toBe("analyze");
+    expect(store.get(analyze.id)?.state).toBe("running");
+    const held = store.get(archive.id)!;
+    expect(held.state).toBe("queued");
+    expect(held.error).toContain("held back");
+  });
+});
+
 describe("steps and cost", () => {
   test("a successful step advances the job and adds its cost", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
