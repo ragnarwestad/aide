@@ -250,7 +250,9 @@ export function branchAwareGitRunner(
     if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
     if (line.startsWith("hash-object -w")) return { code: 0, stdout: `${PAD("newblob")}\n` };
     if (line === `read-tree ${PAD("tiptree")}`) return { code: 0, stdout: "" };
-    if (line.startsWith("update-index --cacheinfo")) return { code: 0, stdout: "" };
+    // `--add` since spec 355: the state file is a NEW path on the branch
+    // the first time, and git refuses --cacheinfo for a new path without it.
+    if (line.startsWith("update-index")) return { code: 0, stdout: "" };
     if (line === "write-tree") return { code: 0, stdout: `${PAD("newtree")}\n` };
     if (line.startsWith("commit-tree")) return { code: 0, stdout: `${PAD("newcommit")}\n` };
     if (line.startsWith("push")) {
