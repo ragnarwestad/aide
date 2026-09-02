@@ -2346,8 +2346,12 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
         # short grace window tells the two apart without hardcoding which
         # is true — Step 3 of the implementation plan runs this same test
         # against both states of the script.
+        # 120 s, not 30: on the serving host the archive gate runs this
+        # suite beside a full bun suite, and a runner took over 30 s to
+        # reach its worktree add there (2026-09-02). The bound only has
+        # to be finite; it is not part of what the test measures.
         wait_until(
-            lambda: len(ready_names()) >= 1, 30,
+            lambda: len(ready_names()) >= 1, 120,
             "neither run ever reached its own git worktree add call",
         )
         time.sleep(0.3)
