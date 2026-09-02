@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { btn, tokenField } from "../../ui/components.ts";
+import { btn, ICON_PDF, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
@@ -181,6 +181,22 @@ export function reopenControl(view: SpecPageView): string {
     `title="take this spec back into the active list for another round: ` +
     `reset the analysis, the plan and the status, keep the description, and remove its branch">` +
     `Reopen</button></form>`
+  );
+}
+
+/** The PDF button (spec 358): opens `GET .../pdf` in a new tab, where
+ *  the browser's own viewer shows it — a plain link, never a form, so it
+ *  works with JavaScript switched off (REQ-2). Disabled with its reason
+ *  rather than hidden when the tool is missing (REQ-7), the exact shape
+ *  `resetControl` below already uses. */
+export function pdfControl(view: SpecPageView): string {
+  if (!view.pdfAction) return "";
+  if (view.pdfUnavailableReason) {
+    return `<span class="btn" aria-disabled="true" title="${esc(view.pdfUnavailableReason)}">${ICON_PDF} PDF</span>`;
+  }
+  return (
+    `<a class="btn" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
+    `title="open this spec as a PDF in a new tab">${ICON_PDF} PDF</a>`
   );
 }
 

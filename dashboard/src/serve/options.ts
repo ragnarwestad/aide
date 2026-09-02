@@ -121,4 +121,21 @@ export interface ServerOptions {
    *  two schedules share. */
   scheduleCheckMs?: number;
   runnerAvailable?: boolean;
+  /** Where `aide-generate-pdf` writes the PDF it makes (spec 358), keyed
+   *  by project/specFolder/commit — outside every checkout, so a press
+   *  never leaves an untracked file behind (REQ-4). Defaults to
+   *  `DEFAULT_PDF_CACHE_DIR`; named here so a test can put it somewhere
+   *  it owns, the same reason `dashboardCheckoutRoot` is. */
+  pdfCacheDir?: string;
+  /** Path to `aide-generate-pdf` — the same script `/aide-to-pdf` runs
+   *  (REQ-3). A test seam: the test harness spawns a real filesystem and
+   *  real git with no subprocess-mocking layer, and no test should
+   *  depend on the real script actually running `md-to-pdf`. */
+  pdfGeneratorBin?: string;
+  /** Whether `md-to-pdf` is resolvable on this host, overriding the
+   *  boot-time `Bun.which` check the same way `runnerAvailable` overrides
+   *  its own live check (REQ-7) — a test seam, for the same reason
+   *  `pdfGeneratorBin` is one: no test should depend on `md-to-pdf`
+   *  actually being installed on the machine running `bun test`. */
+  pdfToolAvailable?: boolean;
 }

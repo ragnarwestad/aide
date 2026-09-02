@@ -13,19 +13,20 @@ NC='\033[0m' # No Color
 
 # Help text
 if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-  echo "📄 Usage: aide-generate-pdf <ISSUE_ID>"
+  echo "📄 Usage: aide-generate-pdf <ISSUE_ID> [OUTPUT_PATH]"
   echo ""
   echo "Examples (flat structure):"
   echo "  aide-generate-pdf 35                    # Shorthand: finds 35-todo-ai-nyheter"
   echo "  aide-generate-pdf todo-35               # Alternative shorthand"
   echo "  aide-generate-pdf 35-todo-ai-nyheter    # Full ID"
   echo "  aide-generate-pdf 45-proj-7637          # JIRA-based task"
+  echo "  aide-generate-pdf 35 /tmp/out.pdf       # Explicit output path"
   echo ""
   echo "Configuration:"
   echo "  AIDE_SPECS_PATH in <project>/.aide/config - external specs root (optional)"
   echo "  (Default: specs/ in the project root)"
   echo ""
-  echo "Output: <docs-folder>/<ISSUE_ID>.pdf"
+  echo "Output: <docs-folder>/<ISSUE_ID>.pdf, or OUTPUT_PATH when given"
   exit 0
 fi
 
@@ -76,7 +77,12 @@ echo ""
 
 # Create temporary combined markdown file in the system TMP area
 TEMP_MD="$(mktemp /tmp/combined-${ISSUE_ID}-XXXXXX.md)"
-OUTPUT_PDF="$DOCS_DIR/$ISSUE_ID.pdf"
+# $2 is an optional explicit output path (the dashboard's own server
+# route uses it to write outside any checkout); the terminal skill's
+# one-argument call is unaffected and keeps writing beside the four
+# files, exactly as it does today.
+OUTPUT_PDF="${2:-$DOCS_DIR/$ISSUE_ID.pdf}"
+mkdir -p "$(dirname "$OUTPUT_PDF")"
 
 cleanup() {
   rm -f "$TEMP_MD"

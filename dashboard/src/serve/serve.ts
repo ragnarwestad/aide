@@ -31,6 +31,7 @@ export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
 import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
+import { DEFAULT_PDF_CACHE_DIR } from "./handle-queue/spec-pdf.ts";
 import {
   archivedSpecRows as archivedSpecRowsImpl,
   specPageView as specPageViewImpl,
@@ -56,6 +57,16 @@ export function createServer(opts: ServerOptions) {
   const nav = () => opts.navEntries ?? navFromSite(opts.siteDir);
   const state = createServerState();
   const allowed = new Set(opts.queueProjects ?? []);
+
+  // Spec 358: `Bun.which` is synchronous, unlike `servingSha`'s check
+  // below, so this needs no `state.ts` field — a plain const, computed
+  // once and captured by value in both contexts built later in this
+  // function. `pdfToolAvailable` is overridable (the same shape
+  // `runnerAvailable` already is): no test should depend on `md-to-pdf`
+  // actually being installed on the machine running `bun test`.
+  const pdfToolAvailable = opts.pdfToolAvailable ?? !!Bun.which("md-to-pdf");
+  const pdfCacheDir = opts.pdfCacheDir ?? DEFAULT_PDF_CACHE_DIR;
+  const pdfGeneratorBin = opts.pdfGeneratorBin ?? "aide-generate-pdf";
 
   const resolution = setupProjectResolution(opts, allowed, state);
   const { targets, gitRun, branchStatus, ensureCheckout } = resolution;
@@ -247,6 +258,7 @@ export function createServer(opts: ServerOptions) {
     branchStatus,
     specsRoot: resolution.specsRoot,
     specCreatedAt: schedules.specCreatedAt,
+    pdfToolAvailable,
   };
   function archivedSpecRows(state: string | undefined) {
     return archivedSpecRowsImpl(specViewsCtx, state);
@@ -296,6 +308,9 @@ export function createServer(opts: ServerOptions) {
     specPageView,
     jobDetailView,
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
+    pdfCacheDir,
+    pdfGeneratorBin,
+    pdfToolAvailable,
   };
 
   const coreCtx: CoreRoutesContext = {
