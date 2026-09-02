@@ -76,7 +76,9 @@ const STRUCTURE = [
   // class, this one names which of the two a given "details.menu" is.
   // "state" is the state-filter dropdown's own (spec 289, replacing the
   // per-state chips) — a third "details.menu", named the same way.
-  "menu", "menupanel", "theme", "state", "about", "aboutpanel", "aboutclose", "listtop",
+  // "lang" is the language choice beside Theme (spec 350) — a fourth
+  // "details.menu", named the same way.
+  "menu", "menupanel", "theme", "lang", "state", "about", "aboutpanel", "aboutclose", "listtop",
   // a confirmation asked over the page instead of on one of its own
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.
