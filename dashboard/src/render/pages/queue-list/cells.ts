@@ -12,7 +12,7 @@
 // `cells.ts` used to have with `model-picker.ts` is gone with the
 // split, not just papered over.
 
-export { NO_DATE, NOT_LANDED, LIST_COLUMNS } from "./row-shared.ts";
+export { NO_DATE, LIST_COLUMNS } from "./row-shared.ts";
 export { busyReason, refusalFor, runFormId } from "./row-state.ts";
 export { foldControl } from "./row-controls.ts";
 export { phasePips } from "./cell-helpers.ts";

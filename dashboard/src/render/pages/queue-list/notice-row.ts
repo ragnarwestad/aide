@@ -10,7 +10,8 @@
 import { rowMessage, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { specNotice, wordPhase } from "../../ui/job-state.ts";
-import type { SpecGroup } from "./data-model.ts";
+import { archivedRowNotices, errorMarkNotices } from "./cell-helpers.ts";
+import { isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 
 /** The one phase whose own record disagrees with the files, worded for
@@ -43,12 +44,13 @@ function phaseDisagreement(g: SpecGroup): string | undefined {
   return earliest && `${stepLabel(earliest.step)}: ${earliest.qualifier}`;
 }
 
-export function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {
+export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: number): string {
   const notice = specNotice(
     g.lead,
     g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
     refusal,
     phaseDisagreement(g),
+    isArchivedRow(g) ? archivedRowNotices(g.archive, now) : errorMarkNotices(g),
   );
   if (!notice) return "";
   return (

@@ -11,24 +11,11 @@ import { FILTER_FIELD_PREFIX, FILTER_KEYS, type QueueFilter } from "./data-model
  *  same absence differently. */
 export const NO_DATE = "date unknown";
 
-/** The mark an archived row carries when its branch is still open.
- *  Drawn with the same `refused` badge a failed row gets — one archive
- *  is not a different kind of problem from the other. */
-export const NOT_LANDED = "not landed";
-
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
  *  either way, since it is the same fact from a reader's chair — code is
  *  on a branch, and a request describes it. */
 export const PULL_REQUEST = "pull request";
-
-/** The mark an archived row carries instead of `NOT_LANDED`, when its
- *  branch is open because a landing merged it and only failed to delete
- *  it (spec 319). Same fact from origin as `NOT_LANDED` — the branch is
- *  there — and the opposite meaning: `NOT_LANDED` reads as "run archive
- *  again to land the work"; this one reads as "the work already landed,
- *  delete the branch by hand". */
-export const BRANCH_LEFT_BEHIND = "branch left behind";
 
 /** The mark a LIVE row carries when a landing failed and no later step
  *  of the same job has resolved it (spec 327) — independent of

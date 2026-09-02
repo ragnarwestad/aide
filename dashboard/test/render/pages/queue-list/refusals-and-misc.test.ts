@@ -34,6 +34,10 @@ const stateCellHtml = (html: string, folder: string): string => {
   return block.slice(specEnd).match(/<td>[\s\S]*?<\/td>/)?.[0] ?? "";
 };
 
+// The row's own message panel (spec 143), where REQ-2's errors move to.
+const noticeCellHtml = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
+
 // Spec 99: the view survives an action, and a refusal finds its row ------
 
 // Pressing Run, Approve, Cancel or Merge used to drop the reader back
@@ -327,13 +331,19 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     expect(state.toLowerCase()).toContain("pull request");
   });
 
+  // Spec 339, REQ-2: `prError` is one of the three real ERRORS, not the
+  // "pull request" state — it moves to the notice line, distinct from
+  // the badge test above, which stays put.
   test("a gh that could not open one says so instead, in a sentence for a person", () => {
     const RAW = "gh auth login required";
     const html = open({ prError: RAW });
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(RAW);
-    expect(state).toContain("No pull request could be opened for this branch. Open one by hand.");
+    expect(state).not.toContain("No pull request could be opened for this branch. Open one by hand.");
     expect(state).not.toContain("pull/7");
+    expect(noticeCellHtml(html, FOLDER)).toContain(
+      "No pull request could be opened for this branch. Open one by hand.",
+    );
   });
 
   // REQ-3, acceptance criterion 4: the one `prError` case that carries
@@ -342,7 +352,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     const RAW = "error connecting to api.github.com  check your internet connection or https status.github.com";
     const html = open({ prError: RAW });
     expect(html).not.toContain(RAW);
-    expect(stateCellHtml(html, FOLDER)).toContain(
+    expect(noticeCellHtml(html, FOLDER)).toContain(
       "No pull request could be opened for this branch. Open one by hand.",
     );
   });
@@ -364,19 +374,20 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
   const withFailure = (state: QueueRowView["state"]): string =>
     renderQueueRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
 
-  // Spec 335, REQ-2: `landingError` is already human prose (nothing for
-  // REQ-3 to clean up here), so it moves columns and nothing else.
-  test("the mark is in the State column while a later step is still running", () => {
+  // Spec 339, REQ-2: `landingError` is already human prose (nothing for
+  // REQ-3 to clean up here), so it moves to the notice line and nothing
+  // else — the State column keeps only the running/resting word.
+  test("the mark is in the notice line while a later step is still running", () => {
     const html = withFailure("running");
-    expect(specCell(html, FOLDER)).not.toContain("landing failed");
-    const state = stateCellHtml(html, FOLDER);
-    expect(state).toContain("landing failed");
-    expect(state).toContain(MESSAGE);
+    expect(specCell(html, FOLDER)).not.toContain(MESSAGE);
+    expect(stateCellHtml(html, FOLDER)).not.toContain(MESSAGE);
+    expect(noticeCellHtml(html, FOLDER)).toContain(MESSAGE);
   });
 
   test("the mark still shows once the job is done", () => {
     const html = withFailure("done");
-    expect(stateCellHtml(html, FOLDER)).toContain("landing failed");
+    expect(stateCellHtml(html, FOLDER)).not.toContain(MESSAGE);
+    expect(noticeCellHtml(html, FOLDER)).toContain(MESSAGE);
   });
 
   test("a row with no landing failure carries no mark", () => {
@@ -396,16 +407,19 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
   const FOLDER = "81-queue-and-runner";
   const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
 
-  // Spec 335, REQ-2/REQ-3: the failure is in the State column now, and
-  // `pushError`'s own raw stderr no longer reaches the row at all — a
-  // fixed sentence for a person takes its place.
-  test("the failure is in the State column, as a sentence for a person", () => {
+  // Spec 339, REQ-2/REQ-3: the failure is in the notice line now, and
+  // `pushError`'s own raw stderr never reaches the row at all — a fixed
+  // sentence for a person takes its place. The State column keeps only
+  // the running/resting word.
+  test("the failure is in the notice line, as a sentence for a person", () => {
     const html = renderQueueRows([row({ pushError: MESSAGE })], { runnerAvailable: true, targets: [] });
     expect(specCell(html, FOLDER)).not.toContain(MESSAGE);
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(MESSAGE);
-    expect(state).toContain("not pushed");
-    expect(state).toContain("A step's push did not reach origin. Pull the branch locally, then push it again.");
+    expect(state).not.toContain("not pushed");
+    expect(noticeCellHtml(html, FOLDER)).toContain(
+      "A step's push did not reach origin. Pull the branch locally, then push it again.",
+    );
   });
 
   // REQ-3, acceptance criterion 4: the description's own headline
@@ -419,7 +433,7 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
     const html = renderQueueRows([row({ pushError: RAW })], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain("hint:");
     expect(html).not.toContain("git push --help");
-    expect(stateCellHtml(html, FOLDER)).toContain(
+    expect(noticeCellHtml(html, FOLDER)).toContain(
       "A step's push did not reach origin. Pull the branch locally, then push it again.",
     );
   });
@@ -431,29 +445,29 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
   });
 });
 
-// --- spec 335: more than one action mark on the same live row --------------
+// --- spec 339: more than one error mark on the same live row --------------
 //
-// `pushError`, `landingError`, `prError` and `prUrl` are independent
-// booleans and can all be true on the same row at once. The State column
-// shows only the highest-priority one's LABEL — REQ-5's "the one that
-// needs a person first" — but drops none of the rest: every applicable
-// mark's own sentence rides on the SAME badge's title, reachable by
-// hovering the one badge the row draws.
-describe("more than one action mark, and the top one carries the rest (spec 335, REQ-5)", () => {
+// `pushError`, `landingError` and `prError` are independent booleans and
+// can all be true on the same row at once. REQ-4 asks for every
+// applicable sentence, ranked, visible on the notice line — no badge, no
+// hover, since the State column carries no error marks any more.
+describe("more than one error mark, ranked, both visible in the notice line (REQ-4)", () => {
   const FOLDER = "81-queue-and-runner";
 
-  test("only the top label shows; every mark's sentence is in its title", () => {
+  test("both sentences show, in the same order liveMarks ranks them", () => {
     const LANDING = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+    const PUSH_SENTENCE = "A step's push did not reach origin. Pull the branch locally, then push it again.";
     const html = renderQueueRows(
       [row({ pushError: "cannot push aide/81-queue-and-runner: non-fast-forward", landingError: LANDING })],
       { runnerAvailable: true, targets: [] },
     );
     const state = stateCellHtml(html, FOLDER);
-    expect(state).toContain("not pushed");
-    expect(state).not.toContain(">landing failed<");
-    const title = state.match(/class="badge b-refused" title="([^"]*)"/)?.[1] ?? "";
-    expect(title).toContain("A step's push did not reach origin. Pull the branch locally, then push it again.");
-    expect(title).toContain(LANDING);
+    expect(state).not.toContain("not pushed");
+    expect(state).not.toContain("landing failed");
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice).toContain(PUSH_SENTENCE);
+    expect(notice).toContain(LANDING);
+    expect(notice.indexOf(PUSH_SENTENCE)).toBeLessThan(notice.indexOf(LANDING));
   });
 });
 
