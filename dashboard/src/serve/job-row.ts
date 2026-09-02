@@ -54,6 +54,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     pushError: job.pushError,
     stopReason: job.stopReason,
     error: job.error,
+    errorDetail: job.errorDetail,
     // Why the landing was refused, when it was refused for something
     // the row can act on. Stored on the job (spec 149), because a
     // landing has no browser to redirect the reason to.

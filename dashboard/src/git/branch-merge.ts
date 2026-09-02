@@ -28,6 +28,10 @@ export interface RepoMergeResult {
   /** Why not, naming the repo — a refusal that does not say WHERE is
    *  the same failure as no refusal at all when two repos are in play. */
   error?: string;
+  /** Raw git output behind `error` (spec 352, REQ-5) — never part of
+   *  `error`'s own text, which stays a fixed, resolution-bearing
+   *  sentence naming where to act. Hover-only detail. */
+  detail?: string;
   /** What happened to the project's install after ITS code landed, when
    *  anything did: a failure, a timeout, or the fact that nothing is
    *  configured and deploying is still a hand step. Never set when the
@@ -72,10 +76,11 @@ export interface RepoMergeResult {
  *  this says where: the branch being merged, or — on the deploy path,
  *  which has no feature branch — the default branch it is bringing up
  *  to date. */
-const refuse = (root: string, ref: string, why: string): RepoMergeResult => ({
+const refuse = (root: string, ref: string, why: string, detail?: string): RepoMergeResult => ({
   root,
   ok: false,
   error: `${why} (${ref} in ${root})`,
+  ...(detail ? { detail } : {}),
 });
 
 /** git's own words when another process is holding the index. A run
@@ -202,11 +207,20 @@ export async function mergeBranchIntoDefault(
     //    a failure.
     const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
     if (deleted.code !== 0) {
-      const why = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
+      // The stderr tail (spec 352, REQ-5) is never part of the sentence
+      // — it rides in `detail` instead, for whoever needs the exact
+      // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
+      // sentence, never this text directly (`cell-helpers.ts`).
+      const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
       // Names the branch; the ROOT is added where this is composed for
       // the row (`landBranch`, spec 319), which is the one place that
       // knows whether several repos are being reported at once.
-      return { root, ok: true, branchDeleteError: `merged, but deleting ${branch} on origin failed: ${why}` };
+      return {
+        root,
+        ok: true,
+        branchDeleteError: `merged, but deleting ${branch} on origin failed — delete it by hand, in the checkout on the serving host`,
+        detail,
+      };
     }
 
     // 8. And this checkout's own copy (spec 197). The ref outlives the
@@ -225,7 +239,12 @@ export async function mergeBranchIntoDefault(
     await run(root, ["branch", "-d", branch]);
     return { root, ok: true };
   } catch (err) {
-    return refuse(root, base, `git could not be run: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(
+      root,
+      base,
+      "git could not be run — check the checkout on the serving host",
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }
 
@@ -266,6 +285,11 @@ export async function fastForwardToOrigin(
     }
     return { root, ok: true };
   } catch (err) {
-    return refuse(root, base, `git could not be run: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(
+      root,
+      base,
+      "git could not be run — check the checkout on the serving host",
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }

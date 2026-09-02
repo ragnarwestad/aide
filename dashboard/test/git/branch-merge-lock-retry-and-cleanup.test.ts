@@ -137,7 +137,10 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
     expect(result.branchDeleteError).toContain(BRANCH);
-    expect(result.branchDeleteError).toContain("refusing to delete");
+    // git's own stderr (spec 352, REQ-5) rides in `detail`, never in the
+    // sentence itself.
+    expect(result.branchDeleteError).not.toContain("refusing to delete");
+    expect(result.detail).toContain("refusing to delete");
   });
 
   test("a merge that never happened deletes nothing", async () => {

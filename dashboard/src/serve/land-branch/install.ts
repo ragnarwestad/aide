@@ -54,14 +54,28 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     }
     const code = await proc.exited;
     if (timedOut) {
-      result.installError = `merged, but the install timed out after ${timeoutMs}ms and was stopped`;
+      result.installError = errorSentence({
+        what: `merged, but the install timed out after ${timeoutMs}ms and was stopped.`,
+        resolve: "Check the install command in the checkout on the serving host.",
+      }).text;
       failed = true;
     } else if (code !== 0) {
-      result.installError = `merged, but the install failed (exit ${code}): ${tail.trim().slice(-200)}`;
+      // The stderr tail (spec 352, REQ-5) stays out of the board-facing
+      // sentence — logged here instead, so the exact words are still on
+      // the machine for whoever goes looking, just never the sentence.
+      console.error(`land-branch: install exited ${code}: ${tail.trim().slice(-200)}`);
+      result.installError = errorSentence({
+        what: `merged, but the install failed (exit ${code}).`,
+        resolve: "Check the install command in the checkout on the serving host.",
+      }).text;
       failed = true;
     }
   } catch (err) {
-    result.installError = `merged, but the install could not be run: ${err instanceof Error ? err.message : String(err)}`;
+    console.error(`land-branch: install could not be run: ${err instanceof Error ? err.message : String(err)}`);
+    result.installError = errorSentence({
+      what: "merged, but the install could not be run.",
+      resolve: "Check the install command in the checkout on the serving host.",
+    }).text;
     failed = true;
   }
   // A failed install wants no restart, exactly as `set -e` used to skip

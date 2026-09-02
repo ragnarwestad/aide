@@ -99,6 +99,10 @@ export async function landBranch(
       return;
     }
     const failures: string[] = [];
+    // Raw git output behind each failure above, if any (spec 352,
+    // REQ-5) — joined the same way, so a title carrying several repos'
+    // detail lines up with the sentence it belongs to.
+    const failureDetails: string[] = [];
     // Which refusal it was, when it is one the row can offer a way out
     // of. A conflict is the only one a `resolve` step could finish.
     let reason: Job["errorReason"];
@@ -124,7 +128,7 @@ export async function landBranch(
       if (!base) {
         // Guessing which branch to merge INTO is the one guess with no
         // safe direction.
-        failures.push(`cannot work out the default branch in ${repo.root}`);
+        failures.push(`cannot work out the default branch in ${repo.root} — check the checkout on the serving host`);
         continue;
       }
       // Up to three tries with a pause: this landing races the runs
@@ -198,7 +202,8 @@ export async function landBranch(
         // side: the branch is not on origin at all.
         ctx.branchStatus.invalidate(repo.root, branch);
       } else {
-        failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
+        failures.push(result.error ?? `cannot merge ${branch} in ${repo.root} — check the checkout on the serving host`);
+        if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
         // spec 280: a code root that fails to land during an archive
         // landing stops the loop here — the specs root's own merge,
@@ -268,6 +273,7 @@ export async function landBranch(
       // (`queue-list.ts`, `resolveForm`).
       const patch = {
         error: failures.join("; "),
+        errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
         errorReason: reason,
         landingError: firstLandingError(failures.join("; ")),
       };
@@ -335,9 +341,13 @@ export async function landBranch(
     // Never rethrown: the `landing` flag holds the WHOLE queue, and
     // the runner clears it when this promise settles — which it must
     // do, however this went.
-    const note = what.failedNote(err instanceof Error ? err.message : String(err));
+    const rawMsg = err instanceof Error ? err.message : String(err);
+    const note = what.failedNote(rawMsg);
     const patch = {
       error: note,
+      // Raw exception text (spec 352, REQ-5) — `note` itself carries
+      // none, so a reader who needs the exact words has it on hover.
+      errorDetail: rawMsg,
       // A thrown landing is not a conflict — the merge never got far
       // enough to be one, and offering Resolve for it would send a
       // whole run at a problem it cannot fix.

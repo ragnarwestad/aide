@@ -53,17 +53,17 @@ export const nb: Record<TranslationKey, string> = {
   "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
   "list.pushError":
-    "Et stegs push nådde ikke origin. Hent grenen i det lokale repoet på serveren, " +
+    "Et stegs push nådde ikke origin. — Hent grenen i det lokale repoet på serveren, " +
     "og push den på nytt fra en terminal.",
   "list.prError":
-    "Det kunne ikke opprettes en pull-forespørsel for denne grenen. Opprett en for hånd, " +
+    "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
   "list.branchLeftBehind":
-    "Denne spesifikasjonen ble slått sammen, men grenen kunne ikke slettes på origin. " +
+    "Denne spesifikasjonen ble slått sammen, men grenen kunne ikke slettes på origin. — " +
     "Slett den for hånd, i det lokale repoet på serveren.",
   "list.noPullRequestOpened":
-    "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den — " +
-    "opprett en for hånd, i det lokale repoet på serveren",
+    "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
+    "Opprett en for hånd, i det lokale repoet på serveren.",
   "list.archiveHeldBack": "arkivering holdt tilbake — {reason}",
   "list.noSpecMatchesFilter": "Ingen spesifikasjon matcher dette filteret.",
   "list.noSpecAtAll": "Ingen spesifikasjon å vise — ingen prosjekt på denne maskinen har en å kjøre.",

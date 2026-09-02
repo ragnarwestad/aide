@@ -294,6 +294,27 @@ const PHASE_3_BATCH_2: RegistryEntry[] = [
   },
 ];
 
+// Phase 4 (3-solution.md): the raw passthrough that reaches the board
+// through `landingError` once `branch-merge.ts`'s catch-alls and
+// `land-branch/steps.ts`'s `failedNote`s stop embedding it inline — the
+// "landing failed" mark (`cell-helpers.ts`, `g.landingError` verbatim)
+// was deliberately left out of Phase 1 for exactly this reason
+// (PHASE_1_PILOT's own comment, above) and is registered here now that
+// its own producers carry a resolution.
+const PHASE_4: RegistryEntry[] = [
+  {
+    name: "landing failed (cell-helpers.ts, g.landingError verbatim)",
+    text: rowBlock(
+      live("70-landing", {
+        landingError:
+          "analyze landing failed: cannot fast-forward master — merge it by hand, in the checkout on the serving host (aide/70-landing in /repos/aide)",
+      }),
+      "70-landing",
+    ),
+    resolve: "checkout on the serving host",
+  },
+];
+
 describe("every board-facing error sentence has a resolution or a named exemption (REQ-7)", () => {
   test.each(REGISTRY)("$name", ({ resolve, exempt, text }) => {
     expect(resolve || exempt).toBeTruthy();
@@ -313,5 +334,39 @@ describe("every board-facing error sentence has a resolution or a named exemptio
   test.each(PHASE_3_BATCH_2)("$name", ({ resolve, exempt, text }) => {
     expect(resolve || exempt).toBeTruthy();
     if (resolve) expect(text).toContain(resolve);
+  });
+
+  test.each(PHASE_4)("$name", ({ resolve, exempt, text }) => {
+    expect(resolve || exempt).toBeTruthy();
+    if (resolve) expect(text).toContain(resolve);
+  });
+});
+
+// Phase 4 (3-solution.md): `RowNotice` gains a `title` field carrying
+// raw detail behind a job's `error` (REQ-5) — `specNoticeRow` renders it
+// as the panel row's own `title` attribute, dropped rather than
+// misattributed once more than one part shares the notice line.
+describe("a notice's raw detail reaches the row as hover text, never the sentence (spec 352, REQ-5)", () => {
+  test("a lone lead error's detail becomes the row's own title attribute", () => {
+    const block = rowBlock(
+      live("70-detail", {
+        error: "git could not be run — check the checkout on the serving host (main in /repos/aide)",
+        errorDetail: "ENOENT: no such file or directory",
+      }),
+      "70-detail",
+    );
+    expect(block).toContain('title="ENOENT: no such file or directory"');
+  });
+
+  test("more than one part in the notice drops the detail rather than misattribute it", () => {
+    const block = rowBlock(
+      live("70-detail2", {
+        error: "git could not be run — check the checkout on the serving host (main in /repos/aide)",
+        errorDetail: "ENOENT: no such file or directory",
+        pushError: "cannot push: non-fast-forward",
+      }),
+      "70-detail2",
+    );
+    expect(block).not.toContain("ENOENT");
   });
 });

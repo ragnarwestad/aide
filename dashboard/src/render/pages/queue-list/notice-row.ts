@@ -55,8 +55,9 @@ export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: nu
     lang,
   );
   if (!notice) return "";
+  const title = notice.title ? ` title="${esc(notice.title)}"` : "";
   return (
-    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}"${title}>` +
     `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text, { hook: notice.hook })}</td></tr>`
   );
 }
