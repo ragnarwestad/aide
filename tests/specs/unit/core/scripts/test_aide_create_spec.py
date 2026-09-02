@@ -299,6 +299,7 @@ def test_stamp_outcome_writes_time_spent_only_when_no_model_given(script, specs_
     assert desc.count("- **Time spent:**") == 1
 
 
+@pytest.mark.serial
 def test_stamp_outcome_writes_model_before_time_spent(script, specs_root):
     folder = _create(script, specs_root)
     start_epoch = int(time.time()) - 125

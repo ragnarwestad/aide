@@ -107,6 +107,8 @@ with `#` comments. Recognized keys:
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `AIDE_JIRA_BASE_URL`  | JIRA root, e.g. `https://jira.mycompany.com` — issue links become `<url>/browse/<KEY>`                                        |
 | `AIDE_TEST_CMD`       | Overrides the detected test command                                                                                           |
+| `AIDE_TEST_SCOPE_PATHS_N` | Space-separated repo-relative directories of scope `N` (1-based) — the config-file form of the manifest's `testScopes:` rule, matched on directory boundaries. With scope 1 declared, `aide-resolve-test-cmd` runs the scopes a change's files fall under and only those; a change under no scope runs every scope's command |
+| `AIDE_TEST_SCOPE_CMD_N`   | The full test command for scope `N` — the pair replaces `AIDE_TEST_CMD` for the archive gate and `/aide-implement`'s own run |
 | `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                                           |
 | `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                                          |
 | `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                    |

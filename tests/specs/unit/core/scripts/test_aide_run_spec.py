@@ -1108,6 +1108,7 @@ def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
     assert git(workspace["project"], "status", "--porcelain") == ""
 
 
+@pytest.mark.serial
 def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace, fake_claude):
     """The stop reason is the whole point of the fallback commit's
     message. Folding the leftover into the step's own commit must not
@@ -1675,6 +1676,7 @@ def test_the_stream_is_kept_when_the_budget_stops_the_run(runner, workspace, fak
     assert '"error_max_budget_usd"' in stream.read_text()
 
 
+@pytest.mark.serial
 def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, fake_claude, tmp_path):
     """The longest runs are exactly the ones whose transcript is worth
     keeping, and they are the ones that get killed."""
@@ -1991,6 +1993,7 @@ def test_no_worktree_survives_a_budget_stop(runner, workspace, fake_claude):
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
 
 
+@pytest.mark.serial
 def test_no_worktree_survives_a_deadline_kill(runner, workspace, fake_claude):
     claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
     rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
@@ -4908,6 +4911,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     assert subject("implement", model="claude") in branch_log, branch_log
 
 
+@pytest.mark.serial
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
     """Spec 147, from the other side: the step ran and did not finish.
     The commit says so — the line, which is about what COMPLETED, does
@@ -5394,6 +5398,7 @@ def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_cl
     assert bullet(text, "Result") == "completed"
 
 
+@pytest.mark.serial
 def test_an_implement_run_stopped_by_timeout_records_the_stop(
     runner, workspace, fake_claude
 ):

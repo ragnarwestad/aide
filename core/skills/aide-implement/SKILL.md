@@ -85,15 +85,17 @@ resume it at the first unticked task if it found it in progress.
 ### Phase 3: REFACTOR — Quality check
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`
-2. Resolve the full-suite command(s) exactly as before (testScopes-aware,
-   joined with `&&` when more than one scope is touched by this run, or
-   the single root command when the project has none — see
-   [Quality check](#quality-check)). Hand that string to the script that
-   runs and records it — never run it directly and self-report the result:
+2. Resolve the full-suite command(s) with `aide-resolve-test-cmd
+   --project-dir .` — the same script the archive gate calls, so the
+   two agree on what "the tests" means for this commit by construction
+   (see [Quality check](#quality-check)). It prints one JSON line whose
+   `commands` array holds every command the changed files fall under.
+   Hand each of them to the script that runs and records them —
+   never run it directly and self-report the result:
 
    ```bash
    aide-record-test-run --project-dir . --specs-root <specs-root> \
-     --folder <NN-slug> --cmd "<resolved command(s)>"
+     --folder <NN-slug> --cmd "<command 1>" [--cmd "<command 2>" ...]
    ```
 
    A missing command (nothing configured, nothing detected) is passed as
@@ -215,14 +217,17 @@ Example for a Maven/Gradle backend:
 ./gradlew build       # or: mvn verify
 ```
 
-**A run tests what it changed.** If the project's manifest has a
-`testScopes:` list, sort the files this run actually changed
-(`git status`/`git diff --name-only`, not the plan's intentions) into
-their scopes by the rule the tools-and-scripts skill gives, and run every
-scope's command that has a file in it — plus the root command if any file
-matched no scope. A change reaching both halves runs both; a change
-reaching one runs one. A project with no `testScopes:` runs its one
-command, exactly as before.
+**A run tests what it changed.** `aide-resolve-test-cmd --project-dir .`
+sorts the files this run actually changed (the branch's diff against
+the default branch, not the plan's intentions) into the scopes
+`.aide/config` declares (`AIDE_TEST_SCOPE_PATHS_N` / `AIDE_TEST_SCOPE_CMD_N`,
+the config-file form of the manifest's `testScopes:` — see the
+tools-and-scripts skill) and prints every scope's command that has a
+file in it. A change reaching both halves runs both; a change reaching
+one runs one; a change under no declared scope runs every scope's
+command, never none. A project with no scopes declared gets its one
+`AIDE_TEST_CMD`, exactly as before. Use the script's answer; never
+reason the rule out again in prose.
 
 Then say so in `4-status.md`: the "Run the full test suite" row's Notes
 cell names the command(s) that ran, and — only when `testScopes` names a

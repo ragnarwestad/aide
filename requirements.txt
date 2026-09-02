@@ -4,3 +4,4 @@
 # a Python application, and the test suite imports only the standard
 # library.
 pytest==8.4.2
+pytest-xdist==3.8.0
