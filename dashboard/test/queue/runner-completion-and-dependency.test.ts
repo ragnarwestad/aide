@@ -184,6 +184,53 @@ describe("parked on a dependency (spec 122)", () => {
   });
 });
 
+// --- spec 344: implement refuses to start before analyze has run -----------
+//
+// The same shape as the dependency park above, one question earlier: a
+// job id SET rather than a Map, since the message carries no per-job
+// detail (unlike a dependency's folder name, every job it applies to
+// gets the same fixed sentence).
+
+describe("parked on its own missing analyze step (spec 344)", () => {
+  test("a job named in the notAnalyzed set is not spawned and stays queued with a reason", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick(undefined, new Set([job.id]));
+    expect(spawns.length).toBe(0);
+    const stored = store.get(job.id);
+    expect(stored?.state).toBe("queued");
+    expect(stored?.error).toBe("held back: not analyzed yet — run /aide-analyze first");
+  });
+
+  test("the same job starts once the set no longer names it", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick(undefined, new Set([job.id]));
+    expect(spawns.length).toBe(0);
+    runner.tick(undefined, new Set());
+    expect(spawns.length).toBe(1);
+    const stored = store.get(job.id);
+    expect(stored?.state).toBe("running");
+    expect(stored?.error).toBeUndefined();
+  });
+
+  test("checked before the dependency map: a job in both is held back for the analyze reason", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick(new Map([[job.id, "80-dependency"]]), new Set([job.id]));
+    expect(spawns.length).toBe(0);
+    expect(store.get(job.id)?.error).toBe("held back: not analyzed yet — run /aide-analyze first");
+  });
+
+  test("no set at all is exactly today's behaviour", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(job.id)?.state).toBe("running");
+  });
+});
+
 // --- spec 160: a step added while the job runs ---------------------------------
 
 // Nothing in the runner had to change for this: `startOne` reads

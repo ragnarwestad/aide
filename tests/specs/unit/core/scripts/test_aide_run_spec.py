@@ -62,6 +62,15 @@ def workspace(tmp_path):
     specs = init_repo(tmp_path / "specs")
     (specs / "81-queue-and-runner").mkdir()
     (specs / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
+    # `analyze` on the line: the default fixture is `implement`'s normal
+    # starting point (spec 344's own gate refuses `implement` before
+    # `analyze` has run), the same way it already was `implement`'s
+    # normal PRECONDITION before this line existed.
+    (specs / "81-queue-and-runner" / "4-status.md").write_text(
+        "# Queue - Status\n\n## Tracking info\n\n"
+        "- **Task:** `81-queue-and-runner/`\n"
+        "- **Workflow steps completed:** analyze\n"
+    )
     subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "add spec"], check=True)
     (project / ".gitignore").write_text("/deps/\n")
@@ -3383,6 +3392,58 @@ def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
     assert out["terminalReason"] == "completed"
 
 
+# --- Spec 344: implement refuses to start before analyze has run ------------
+#
+# archive's own not-implemented-yet gate (core/scripts/aide-archive-spec)
+# already refuses one workflow step early, reading the same `Workflow
+# steps completed` line. This is the same gate, one step earlier: implement
+# needs analyze the way archive needs implement.
+
+def test_refuses_implement_before_analyze_has_run(runner, workspace, fake_claude):
+    with_status(workspace, claims=["create"])
+    claude = fake_claude("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 2
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert out["errorReason"] == "not-analyzed-yet"
+    assert workspace["folder"] in out["error"]
+    assert "/aide-analyze" in out["error"]
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+    assert not workspace["wtbase"].exists(), "and leave no worktree behind"
+
+
+def test_implement_proceeds_once_analyze_is_on_the_line(runner, workspace, fake_claude):
+    """Relies on the fixture's own default: `analyze` is already on the
+    line, `implement`'s normal starting point since this spec."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_analyze_is_unaffected_by_the_new_gate(runner, workspace, fake_claude):
+    with_status(workspace, claims=[])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
+    """`analyze` on the line satisfies THIS gate, but archive's own
+    not-implemented-yet check (spec 268) still asks about `implement`,
+    which is not there — proving the new gate does not short-circuit or
+    replace it."""
+    with_status(workspace, claims=["analyze"])
+    claude = fake_claude("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "not-implemented-yet", out
+    assert not fake_claude.calls.exists()
+
+
 # --- Spec 122: the guard holds back only the steps that build on code -------
 # analyze and create write only the spec's own folder in the
 # specs repo — nothing they touch conflicts with an unmerged dependency,
@@ -4168,8 +4229,9 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
 def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
     runner, workspace, fake_claude
 ):
-    """Criterion 1. No 4-status.md at all reads as "nothing started yet"
-    — ordinary progression, never a warning — and costs nothing."""
+    """Criterion 1. The fixture's default status file names `analyze` but
+    not `implement` — "nothing started yet" from archive's own point of
+    view — ordinary progression, never a warning, and costs nothing."""
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
@@ -4251,8 +4313,13 @@ def test_other_commands_still_spawn_the_model_with_no_status_file_at_all(
 ):
     """The new fast path is gated on the literal string `archive`, like
     every other archive-only fork in this script — a spec with no
-    4-status.md is `analyze`'s and `implement`'s normal starting point,
-    not a reason to skip them."""
+    4-status.md is `analyze`'s normal starting point, not a reason to
+    skip it (spec 344 gives `implement` a status-file precondition of its
+    own; `analyze` keeps none)."""
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.unlink()
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "remove status"], check=True)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
@@ -4707,7 +4774,7 @@ def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
 
 
 def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claude):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4729,7 +4796,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     `test_a_step_that_was_stopped_is_not_written_as_completed`; this is
     the same proof for a step that COMPLETES.
     """
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     claude = project_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4745,7 +4812,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     """Spec 147, from the other side: the step ran and did not finish.
     The commit says so — the line, which is about what COMPLETED, does
     not gain it."""
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     import subprocess as sp
 
@@ -4766,7 +4833,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
 
 
 def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_claude):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     already_ran(workspace, ["implement"], stopped="timeout")
     claude = writing_claude(fake_claude, workspace)
@@ -4778,7 +4845,7 @@ def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_c
 def test_an_interactive_commit_without_the_headless_marker_counts(
     runner, workspace, fake_claude
 ):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"], headless=False)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4805,7 +4872,7 @@ def test_a_historical_review_plan_commit_still_counts_as_completed(
     with nothing else changed made this go genuinely red (confirmed
     empirically before WORKFLOW_ARC_RETIRED was added). It is a real RED
     test, not a characterization one."""
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze", "review-plan"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4864,8 +4931,14 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
 
 
 def test_a_spec_with_no_status_file_is_not_a_failure(runner, workspace, fake_claude):
-    """The fixture's spec has no 4-status.md at all — every other test
-    in this file runs that way. Nothing to write is nothing to do."""
+    """Deletes the fixture's default status file to get back to the
+    no-status-file scenario every other test in this file used to run
+    with, before spec 344 gave the fixture a default. Nothing to write
+    is nothing to do."""
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.unlink()
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "remove status"], check=True)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
@@ -5193,7 +5266,7 @@ def test_an_implement_run_stopped_by_timeout_records_the_stop(
 ):
     """AC3: a run stopped by its own time limit records that in
     `3-solution.md`'s `Result` line rather than `completed`."""
-    with_status(workspace)
+    with_status(workspace, ["analyze"])
     with_solution(workspace)
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -5215,7 +5288,7 @@ def test_a_failed_cli_run_records_a_sanitized_error_summary(
     """AC4: a CLI failure's `Result` line carries `stopped (cli-error)`
     followed by a one-line, backtick-free summary, truncated to at most
     200 characters — never the raw multi-line error verbatim."""
-    with_status(workspace)
+    with_status(workspace, ["analyze"])
     with_solution(workspace)
     long_error = ("line one with a `backtick`\n" + "x" * 300)
     result = {**RESULT_OK, "is_error": True, "errors": [long_error]}

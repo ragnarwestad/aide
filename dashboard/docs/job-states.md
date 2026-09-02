@@ -57,6 +57,8 @@ stateDiagram-v2
 
 - Starts nothing at all while any job has `landing` set — see [Beside the state](#beside-the-state).
 - Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
+- Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
+  spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
 - Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
