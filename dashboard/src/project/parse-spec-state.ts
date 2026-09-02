@@ -65,6 +65,28 @@ export function currentAcceptancePhase(state: SpecState): string | null {
   return counts.done < counts.total ? heading : null;
 }
 
+/** `4-status.json`'s own JSON-parsing core, text in — so a branch read
+ *  (`BranchFileStepsChecker`, `git show` output rather than a file path,
+ *  spec 362) shares the one parsing rule with `readSpecState` below
+ *  rather than growing a second one. `null` on invalid JSON or any shape
+ *  that is not an object, never a throw — the same "missing means null"
+ *  contract `readSpecState` gives its own callers (REQ-5, REQ-10). */
+export function parseSpecStateText(text: string): SpecState | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      completedPhases: Array.isArray(parsed.completedPhases) ? parsed.completedPhases : [],
+      archived: parsed.archived ?? null,
+      reopened: parsed.reopened ?? null,
+      acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
+      phaseCounts: parsed.phaseCounts && typeof parsed.phaseCounts === "object" ? parsed.phaseCounts : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** `dir`'s own `4-status.json`, parsed. `null` covers every way there is
  *  nothing to read — no file yet (REQ-10: a spec no writer script has
  *  touched since spec 355 shipped, or an archived spec the backfill has
@@ -75,15 +97,7 @@ export function readSpecState(dir: string): SpecState | null {
   try {
     const path = join(dir, "4-status.json");
     if (!existsSync(path)) return null;
-    const parsed = JSON.parse(readFileSync(path, "utf-8"));
-    if (!parsed || typeof parsed !== "object") return null;
-    return {
-      completedPhases: Array.isArray(parsed.completedPhases) ? parsed.completedPhases : [],
-      archived: parsed.archived ?? null,
-      reopened: parsed.reopened ?? null,
-      acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
-      phaseCounts: parsed.phaseCounts && typeof parsed.phaseCounts === "object" ? parsed.phaseCounts : {},
-    };
+    return parseSpecStateText(readFileSync(path, "utf-8"));
   } catch {
     return null;
   }
