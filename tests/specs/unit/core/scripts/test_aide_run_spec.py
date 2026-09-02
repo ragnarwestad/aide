@@ -337,14 +337,14 @@ def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude
 
 # --- Criterion 2: the refusals -----------------------------------------------
 
-def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude):
+def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude, command="implement"):
     """Spec 144. The run works in a worktree cut from origin's default
     branch, so nothing in the main checkout reaches it — dirty or not.
     A stray file used to refuse every job touching the repo, however
     unrelated it was to the spec being run."""
     (workspace["project"] / "scratch.txt").write_text("uncommitted\n")
     claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert not out.get("error"), out["error"]
     # And the stray file is left exactly as it was: never staged,
@@ -355,13 +355,13 @@ def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_clau
     assert "scratch.txt" not in git(workspace["project"], "show", "--name-only", "--pretty=", branch)
 
 
-def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude):
+def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude, command="implement"):
     """The specs repo is where /aide-analyze actually writes, so it was
     the root the old refusal guarded hardest. Its worktree is cut from
     origin's default branch too (spec 144)."""
     (workspace["specs"] / "stray.md").write_text("uncommitted\n")
     claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert not out.get("error"), out["error"]
     assert (workspace["specs"] / "stray.md").read_text() == "uncommitted\n"
@@ -517,6 +517,11 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib").mkdir(exist_ok=True)
     (tmp_path / "lib" / "workflow-steps.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
+    )
+    # status-progress.sh too: sourced by the runner whenever a
+    # 4-status.md exists — which, since spec 344's fixture, is every run.
+    (tmp_path / "lib" / "status-progress.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
     )
     return copy
 
@@ -951,13 +956,13 @@ def test_push_pr_opens_a_pull_request_and_reports_its_url(
     assert out.get("prError") is None
 
 
-def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin):
+def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin, command="implement"):
     """`gh` on the mini needs an interactive re-auth only the user can
     do. A run whose work succeeded must not be reported as failed
     because the PR could not be opened."""
     claude = writing_claude(fake_claude, workspace)
     gh = fake_gh('echo "the token in default is invalid" >&2; exit 1')
-    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr")
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr", command="implement")
     assert rc == 0
     assert out["ok"] is True, "the step did its work"
     assert out["terminalReason"] == "completed"
@@ -971,7 +976,7 @@ def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, works
     """No origin at all: the work is committed locally, and the run says
     so instead of failing."""
     claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, push="branch")
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0
     assert out["ok"] is True
     assert out["pushError"], "a push that did not happen must not be silent"
@@ -1316,7 +1321,7 @@ def test_the_leftover_after_a_self_pushed_commit_still_reaches_origin(
     the way spec 327's run was."""
     sha_marker = tmp_path / "pushed-sha.txt"
     claude = self_pushing_claude(fake_claude, workspace, sha_marker)
-    rc, out, _ = run(runner, workspace, claude, push="branch")
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0, out
     assert out["ok"] is True
     branch = "aide/81-queue-and-runner"
@@ -1996,7 +2001,7 @@ def test_a_leftover_worktree_at_another_path_is_swept_by_branch(
     git(workspace["project"], "worktree", "add", "-q", "-b", BRANCH, str(orphan))
     assert len(worktrees(workspace["project"])) == 2
 
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), command="implement")
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
@@ -2082,6 +2087,12 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, fak
     second = "82-second-spec"
     (specs / second).mkdir()
     (specs / second / "1-description.md").write_text("# Second - Description\n")
+    # Analyzed already: since spec 344 an implement is refused on a spec
+    # whose steps line lacks analyze, and both runs here are implements.
+    (specs / second / "4-status.md").write_text(
+        "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
+        "- **Workflow steps completed:** create, analyze\n"
+    )
     git(specs, "add", "-A")
     git(specs, "commit", "-q", "-m", "add second spec")
 
@@ -2106,7 +2117,7 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, fak
             [
                 str(runner),
                 "--project-dir", str(workspace["project"]),
-                "--command", "analyze",
+                "--command", "implement",
                 "--spec", folder,
                 "--budget-usd", "3",
                 "--timeout-sec", "60",
@@ -2231,6 +2242,12 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     second = "82-second-spec"
     (specs / second).mkdir()
     (specs / second / "1-description.md").write_text("# Second - Description\n")
+    # Analyzed already: since spec 344 an implement is refused on a spec
+    # whose steps line lacks analyze, and both runs here are implements.
+    (specs / second / "4-status.md").write_text(
+        "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
+        "- **Workflow steps completed:** create, analyze\n"
+    )
     git(specs, "add", "-A")
     git(specs, "commit", "-q", "-m", "add second spec")
     # The `origin` fixture pushed `main` before this commit — a stale
@@ -2245,7 +2262,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     # instead of only the fresh-branch `git worktree add -b` path.
     for folder, name in ((workspace["folder"], "first"), (second, "second")):
         claude = make_named_writing_claude(tmp_path, f"{name}-r1", folder, f"{name}-round1")
-        rc, out, _ = run(runner, workspace, claude, spec=folder)
+        rc, out, _ = run(runner, workspace, claude, spec=folder, command="implement")
         assert rc == 0, out
         branch = f"aide/{folder}"
         git(project, "push", "-q", "origin", branch)
@@ -2272,7 +2289,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
             [
                 str(runner),
                 "--project-dir", str(project),
-                "--command", "analyze",
+                "--command", "implement",
                 "--spec", folder,
                 "--budget-usd", "3",
                 "--timeout-sec", "60",
@@ -2955,7 +2972,7 @@ def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, worksp
         fake_claude, workspace,
         extra='echo "written by the step" > "$PWD/new-code.txt"\n',
     )
-    rc, out, _ = run(runner, workspace, claude)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
     assert log.read_text().split() == ["main", "main"], "healed before the worktree was made"
@@ -3073,7 +3090,7 @@ def test_a_reused_branch_whose_base_changed_the_config_does_not_false_conflict(
     git(project, "add", "-f", ".aide/config")
     git(project, "commit", "-q", "-m", "change the config on main")
 
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), command="implement")
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     assert is_ancestor(project, "main", BRANCH)
@@ -3467,7 +3484,7 @@ def test_implement_proceeds_once_analyze_is_on_the_line(runner, workspace, fake_
 
 def test_analyze_is_unaffected_by_the_new_gate(runner, workspace, fake_claude):
     with_status(workspace, claims=[])
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
@@ -3504,7 +3521,7 @@ def test_analyze_proceeds_despite_an_unmerged_dependency(
     set_depends_on(workspace, "80")
 
     rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command="analyze"
+        runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze"
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
@@ -4065,6 +4082,7 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     file — the resolution is archive's own first piece of work, and
     refusing before it starts is what every other step does instead."""
     project = workspace["project"]
+    with_status(workspace, ["create", "analyze", "implement"])
     branch = conflicting_branch(workspace, published=True)
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -4076,6 +4094,11 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
         'printf "resolved by the step\\n" > contested.txt\n'
         "git add -A\n"
         "git commit -q --no-edit\n"
+        # And archive's own work, or the no-progress check (spec 268)
+        # rightly says the folder was never moved.
+        + READ_SPECS
+        + 'mkdir -p "$specs/archive" && git -C "$specs" mv 81-queue-and-runner archive/81-queue-and-runner '
+        + '&& git -C "$specs" commit -q -m "archive"\n'
         f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
@@ -4855,7 +4878,13 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
 
     claude = fake_claude(
         "cat > /dev/null\n"
-        'echo "half-written" > "$PWD/half.txt"\n'
+        # Half-written in both roots: the specs change is what the
+        # runner commits under "(stopped: timeout)" — since spec 344's
+        # fixture already carries the steps line, nothing else in the
+        # specs repo would change on a stopped implement.
+        + READ_SPECS
+        + f'echo "half-written" > "$specs/{workspace["folder"]}/3-solution.md"\n'
+        + 'echo "half-written" > "$PWD/half.txt"\n'
         "trap '' TERM\n"
         "while true; do sleep 0.2; done"
     )
