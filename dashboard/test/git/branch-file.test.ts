@@ -89,8 +89,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
       run,
       "/root",
       BRANCH,
-      REL_PATH,
-      "new content\n",
+      [{ relPath: REL_PATH, text: "new content\n" }],
       "based0n1234",
       "tick a row",
     );
@@ -106,7 +105,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
 
   test("GIT_INDEX_FILE is scoped to the plumbing calls that need it, via the widened env parameter", async () => {
     const { run, calls } = recording(HAPPY_PATH);
-    await writeStatusToBranch(run, "/root", BRANCH, REL_PATH, "new content\n", "based0n1234", "tick a row");
+    await writeStatusToBranch(run, "/root", BRANCH, [{ relPath: REL_PATH, text: "new content\n" }], "based0n1234", "tick a row");
     const readTree = calls.find((c) => c.args[0] === "read-tree");
     const updateIndex = calls.find((c) => c.args[0] === "update-index");
     const writeTree = calls.find((c) => c.args[0] === "write-tree");
@@ -123,8 +122,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
       run,
       "/root",
       BRANCH,
-      REL_PATH,
-      "new content\n",
+      [{ relPath: REL_PATH, text: "new content\n" }],
       "some-other-sha",
       "tick a row",
     );
@@ -140,8 +138,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
       run,
       "/root",
       BRANCH,
-      REL_PATH,
-      "new content\n",
+      [{ relPath: REL_PATH, text: "new content\n" }],
       "based0n1234",
       "tick a row",
     );
@@ -155,8 +152,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
       run,
       "/root",
       BRANCH,
-      REL_PATH,
-      "new content\n",
+      [{ relPath: REL_PATH, text: "new content\n" }],
       "based0n1234",
       "tick a row",
     );
@@ -258,8 +254,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
       run,
       clone,
       branch,
-      relPath,
-      "# Status\n\nafter\n",
+      [{ relPath, text: "# Status\n\nafter\n" }],
       before!.sha,
       "tick a row",
     );
@@ -271,6 +266,43 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     const after = await readStatusFromBranch(run, clone, branch, relPath);
     expect(after?.text).toBe("# Status\n\nafter\n");
     expect(after?.sha).not.toBe(before!.sha);
+  });
+
+  test("spec 355: two edits land as ONE commit, the second with no baseSha guard", async () => {
+    const where = tmp("aide-branch-file-");
+    const { origin, clone } = makeRepo(where);
+    const branch = "aide/291-example";
+    const relPath = "aide/291-example/4-status.md";
+    const stateRelPath = "aide/291-example/4-status.json";
+    pushBranch(origin, where, branch, relPath, "# Status\n\nbefore\n");
+    const run = createGitRunner();
+
+    const before = await readStatusFromBranch(run, clone, branch, relPath);
+    const headBeforeCommitCount = git(clone, "log", "--oneline", `origin/${branch}`).trim().split("\n").length;
+
+    const result = await writeStatusToBranch(
+      run,
+      clone,
+      branch,
+      [
+        { relPath, text: "# Status\n\nafter\n" },
+        { relPath: stateRelPath, text: '{"completedPhases":["create"]}' },
+      ],
+      before!.sha,
+      "tick a row",
+    );
+
+    expect(result.ok, result.note).toBe(true);
+    const status = await readStatusFromBranch(run, clone, branch, relPath);
+    const state = await readStatusFromBranch(run, clone, branch, stateRelPath);
+    expect(status?.text).toBe("# Status\n\nafter\n");
+    expect(state?.text).toBe('{"completedPhases":["create"]}');
+    // Both files' last-touch commit is the SAME one — one commit, not two.
+    expect(status?.sha).toBe(state?.sha);
+    // Exactly one new commit landed, not two.
+    await run(clone, ["fetch", "-q", "origin", branch]);
+    const headAfterCommitCount = git(clone, "log", "--oneline", `origin/${branch}`).trim().split("\n").length;
+    expect(headAfterCommitCount).toBe(headBeforeCommitCount + 1);
   });
 
   test("refuses a write when another commit already landed on the branch (a headless run raced it)", async () => {
@@ -290,8 +322,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
       run,
       clone,
       branch,
-      relPath,
-      "# Status\n\nafter\n",
+      [{ relPath, text: "# Status\n\nafter\n" }],
       before!.sha,
       "tick a row",
     );

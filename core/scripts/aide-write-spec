@@ -20,6 +20,10 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+
 ALLOWED_FILES="0-README.md 1-description.md 2-analysis.md 3-solution.md 4-status.md"
 specs_root=""; folder=""; file=""; result_file=""
 
@@ -74,4 +78,22 @@ cat > "$content_tmp"
 [ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "no content on stdin"; }
 mv "$content_tmp" "$target"
 
-emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" '{terminalReason:"written", specFolder:$f, file:$file}')"
+# spec 355: landing 4-status.md is the moment its machine-read state is
+# derived and written alongside it — the state file has no writer of its
+# own a caller ever names directly. The derived text is handed back on
+# stdout so a caller with no filesystem access of its own (the
+# dashboard's Checks-tab tick route, landing onto an open branch rather
+# than this disk) can commit it itself.
+state_json=""
+if [ "$file" = "4-status.md" ] && declare -f write_spec_state >/dev/null 2>&1; then
+  write_spec_state "$target" >/dev/null 2>&1
+  state_file="${target%4-status.md}4-status.json"
+  [ -f "$state_file" ] && state_json="$(cat "$state_file" 2>/dev/null)"
+fi
+
+if [ -n "$state_json" ]; then
+  emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" --argjson s "$state_json" \
+    '{terminalReason:"written", specFolder:$f, file:$file, stateJson:($s | tostring)}')"
+else
+  emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" '{terminalReason:"written", specFolder:$f, file:$file}')"
+fi

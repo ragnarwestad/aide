@@ -5030,7 +5030,11 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
-    assert roots[str(workspace["specs"])]["changedFiles"] == 0
+    # spec 355: this fixture has never had a 4-status.json before, so
+    # this run's own state-file derivation writes one for the first
+    # time — the ONE genuinely new file. The prose itself carries no
+    # news, exactly as this test's own name says.
+    assert roots[str(workspace["specs"])]["changedFiles"] == 1
 
 
 # --- spec 217: which model ran each step (superseded by spec 245) ------------
@@ -5989,7 +5993,10 @@ def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
-    assert roots[str(workspace["specs"])]["changedFiles"] == 0
+    # spec 355: see the matching comment on
+    # test_a_line_that_is_already_right_is_not_rewritten above — the
+    # ONE genuinely new file is this fixture's first-ever 4-status.json.
+    assert roots[str(workspace["specs"])]["changedFiles"] == 1
 
 
 def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_claude):
