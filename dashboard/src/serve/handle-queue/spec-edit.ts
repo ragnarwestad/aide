@@ -334,7 +334,10 @@ export async function handleSpecEditRoutes(
             (root) => ctx.branchStatus.defaultBranch(root),
             [
               { file, text, baseSha },
-              ...(stateEdit ? [{ file: STATE_SPEC_FILE, text: stateEdit.text, baseSha: null }] : []),
+              // Its own current sha, read fresh above — `null` here told
+              // saveSpecFiles the file had never been committed, and every
+              // Save refused once the backfill had committed one for each spec.
+              ...(stateEdit ? [{ file: STATE_SPEC_FILE, text: stateEdit.text, baseSha: stateEdit.baseSha }] : []),
             ],
             { specLabel: specFolder!, message: editMessage(specFolder!, file) },
           ),

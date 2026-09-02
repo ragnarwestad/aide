@@ -45,7 +45,11 @@ describe("runAideWriteSpec", () => {
       `#!/usr/bin/env bash\ntouch "${marker}"\n${printLine({ ok: true })}\n`,
       { mode: 0o755 },
     );
+    // Other files set the override for their own runs and bun keeps one
+    // process across files: clear it here, or this test measures theirs.
     const oldHome = process.env.HOME;
+    const oldBin = process.env.AIDE_WRITE_SPEC_BIN;
+    delete process.env.AIDE_WRITE_SPEC_BIN;
     process.env.HOME = home;
     try {
       const res = await runAideWriteSpec("81-x", "4-status.md", "# x\n");
@@ -53,6 +57,7 @@ describe("runAideWriteSpec", () => {
       expect(existsSync(marker)).toBe(true);
     } finally {
       process.env.HOME = oldHome;
+      if (oldBin !== undefined) process.env.AIDE_WRITE_SPEC_BIN = oldBin;
     }
   });
 

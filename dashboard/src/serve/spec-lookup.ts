@@ -20,7 +20,7 @@ import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
 import {
-  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason,
+  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status.ts";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { QueueTarget } from "../render.ts";
@@ -164,7 +164,11 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
           // it and a copied folder brings a sibling's version along.
           // `withFreshness` fills `done` in from the runner's own
           // commits, and this is what it compares them against.
-          fileSteps: state?.completedPhases ?? [],
+          // The state file, or — for a spec that has none yet — the
+          // prose's own steps line: an empty list here read as a file
+          // that claims nothing, and every such row said the files
+          // disagreed with what has run (2026-09-02).
+          fileSteps: state?.completedPhases ?? parseStatus(statusText).workflowSteps,
           // Where this spec's history starts, when it has been
           // reopened (spec 198). Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.
