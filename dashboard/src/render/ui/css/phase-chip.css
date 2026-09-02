@@ -1,6 +1,16 @@
 /* --- phase chip ----------------------------------------------------- */
 
-.phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); }
+/* Capped to roughly four rows of chips (a chip is 24px min-height plus
+   its 1px border, four rows, three row-gaps at --sp-1) and scrolling
+   past that, rather than pushing the rest of the form down a growing
+   Depends-on list (spec 357). `.phases` is `phases()`'s one class, and
+   `phases()` has one caller, `dependsOnField()` — shared by the
+   New-spec page and the spec page's Description tab — so this one rule
+   reaches both. `overflow-y: auto` rather than `scroll`: the scrollbar
+   shows exactly when there is more to scroll, the same choice
+   `#jobrows .tablewrap` already makes (list.css). */
+.phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1);
+  max-height: 116px; overflow-y: auto; }
 .phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
   padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
   background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }

@@ -50,6 +50,15 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       join(specs, "81-queue-and-runner", "4-status.md"),
       "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
     );
+    // spec 355: `blockedForMissingAnalyze` now reads 4-status.json, which
+    // only a writer script derives — this fixture hand-writes 4-status.md
+    // directly (never through aide-write-spec), so it hand-writes the
+    // state file beside it too, exactly as that script would have.
+    writeFileSync(
+      join(specs, "81-queue-and-runner", "4-status.json"),
+      JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
+        acceptanceCriteria: [], phaseCounts: {} }),
+    );
     mkdirSync(join(specs, "80-dependency"), { recursive: true });
     writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
     return { root: projectsRoot, project, specs };
@@ -343,6 +352,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const paths = root(dir);
       writeFileSync(join(paths.specs, "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
       rmSync(join(paths.specs, "81-queue-and-runner", "4-status.md"));
+      rmSync(join(paths.specs, "81-queue-and-runner", "4-status.json"));
       return paths;
     }
 
@@ -392,6 +402,12 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       writeFileSync(
         join(paths.specs, "81-queue-and-runner", "4-status.md"),
         "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
+      );
+      // spec 355: see the matching comment in `root()` above.
+      writeFileSync(
+        join(paths.specs, "81-queue-and-runner", "4-status.json"),
+        JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
+          acceptanceCriteria: [], phaseCounts: {} }),
       );
       for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
       expect(existsSync(argvFile)).toBe(true);

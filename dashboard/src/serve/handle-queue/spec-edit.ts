@@ -3,8 +3,16 @@
 // from handle-queue.ts (split of split serve.ts step 2).
 import { pullFastForward, saveSpecFiles } from "../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../git/branch-file.ts";
+import { lastCommitOf } from "../../git/description-freshness.ts";
+import { runAideWriteSpec } from "../../git/run-aide-write-spec.ts";
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../project/parse-status.ts";
+
+// spec 355: 4-status.json, the sibling `aide-write-spec` derives and
+// writes beside 4-status.md every time that file lands through it —
+// never a `--file` a caller names on its own.
+const STATE_SPEC_FILE = "4-status.json";
+const stateRelPath = (statusRelPath: string): string => statusRelPath.replace(/4-status\.md$/, STATE_SPEC_FILE);
 import {
   EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderResetSpecPage, renderSpecPage,
   resolveBackHref, resolveSpecTab, specPagePath, specTabPath,
@@ -275,6 +283,28 @@ export async function handleSpecEditRoutes(
       text = merged;
     }
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+    // spec 355 (REQ-2): a document-tab Save of 4-status.md itself is as
+    // real a write to it as a skill's or the tick route's, and the
+    // state file has to stay in step with it too — landed through the
+    // same spawned aide-write-spec, in the same commit. Refuses rather
+    // than saving with a silently stale state file: the whole point of
+    // "only scripts write it" is that nothing else ever computes it.
+    let stateEdit: { relPath: string; text: string; baseSha: string | null } | null = null;
+    if (file === STATUS_SPEC_FILE) {
+      const derived = await runAideWriteSpec(specFolder!, file, text);
+      if (!derived.ok || !derived.stateJson) {
+        const reason = derived.error ?? "the state file could not be derived";
+        logRefusal("save", `${project}/${specFolder}`, reason);
+        return specsRedirect({}, { error: `${reason} — nothing was saved` }, back);
+      }
+      // Nothing edits this file directly, so there is no stale-page race
+      // to guard against — only the CURRENT sha, read fresh, so
+      // `saveSpecFiles`'s own row-level check (every edit's baseSha must
+      // match what is actually there) does not itself refuse a plain
+      // update to a file nothing on the page ever showed a baseSha for.
+      const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
+      stateEdit = { relPath: "", text: derived.stateJson, baseSha: currentState?.sha ?? null };
+    }
     // REQ-4: the same branch-aware choice the tick route already makes
     // for `4-status.md` — an open `aide/<folder>` branch is where an
     // active spec's real, already-committed progress lives, and a
@@ -289,8 +319,10 @@ export async function handleSpecEditRoutes(
             ctx.gitRun,
             branchTarget.root,
             branchTarget.branch,
-            branchTarget.relPath,
-            text,
+            [
+              { relPath: branchTarget.relPath, text },
+              ...(stateEdit ? [{ relPath: stateRelPath(branchTarget.relPath), text: stateEdit.text }] : []),
+            ],
             baseSha,
             editMessage(specFolder!, file),
           ),
@@ -300,7 +332,10 @@ export async function handleSpecEditRoutes(
             ctx.gitRun,
             dir,
             (root) => ctx.branchStatus.defaultBranch(root),
-            [{ file, text, baseSha }],
+            [
+              { file, text, baseSha },
+              ...(stateEdit ? [{ file: STATE_SPEC_FILE, text: stateEdit.text, baseSha: null }] : []),
+            ],
             { specLabel: specFolder!, message: editMessage(specFolder!, file) },
           ),
         );
@@ -422,19 +457,35 @@ export async function handleSpecEditRoutes(
       if (cleared !== null) ticked = cleared;
     }
     const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
+    // spec 355 (REQ-4): the tick lands through the same spawned
+    // aide-write-spec every skill's own write already goes through —
+    // never a second, TypeScript-side computation of the derived state.
+    // Refuses rather than ticking with a state file that would fall out
+    // of step with what was just ticked.
+    const derived = await runAideWriteSpec(specFolder!, STATUS_SPEC_FILE, ticked);
+    if (!derived.ok || !derived.stateJson) {
+      const reason = derived.error ?? "the state file could not be derived";
+      logRefusal("tick", `${project}/${specFolder}`, reason);
+      return specsRedirect({}, { error: `${reason} — nothing was saved` }, back);
+    }
+    const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
     // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
     // at origin — never through `saveSpecFiles`, which structurally
     // cannot target anything but the shared checkout's own `HEAD`
     // (see 2-analysis.md's "The write side"). No open branch keeps the
     // exact `saveSpecFiles` call this route has always made (REQ-2).
+    // Both cases now land `4-status.md` and `4-status.json` together, in
+    // the ONE commit the tick makes.
     const result = branchTarget
       ? await ctx.mergeLock.run(branchTarget.root, () =>
           writeStatusToBranch(
             ctx.gitRun,
             branchTarget.root,
             branchTarget.branch,
-            branchTarget.relPath,
-            ticked,
+            [
+              { relPath: branchTarget.relPath, text: ticked },
+              { relPath: stateRelPath(branchTarget.relPath), text: derived.stateJson! },
+            ],
             statusBaseSha,
             tickMessage(specFolder!),
           ),
@@ -444,7 +495,10 @@ export async function handleSpecEditRoutes(
             ctx.gitRun,
             dir,
             (root) => ctx.branchStatus.defaultBranch(root),
-            [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }],
+            [
+              { file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha },
+              { file: STATE_SPEC_FILE, text: derived.stateJson!, baseSha: currentState?.sha ?? null },
+            ],
             { specLabel: specFolder!, message: tickMessage(specFolder!) },
           ),
         );

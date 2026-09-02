@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# aide-backfill-spec-state — the one-time, re-runnable pass that gives
+# every spec already under archive/ its own 4-status.json (spec 355,
+# REQ-5, REQ-9). Every other writer (aide-run-spec, aide-archive-spec,
+# aide-write-spec) derives a state file the moment it next touches a
+# spec's prose; an already-finished, archived spec is never touched
+# again by any of the three, so this is the one place their shared
+# derivation (core/scripts/lib/spec-state.sh) is called against old
+# prose deliberately, rather than as a side effect of a live write.
+#
+# Re-runnable: running it again re-derives every spec (idempotent for
+# one whose prose parses the same way twice) rather than skipping
+# specs that already have a state file.
+#
+# Reports, never guesses (REQ-9): a spec whose `**Reopened:**`/
+# `**Reset:**`/`**Archived:**` stamp is PRESENT in the prose but does
+# not match the one grammar spec-state.sh parses is named in the
+# summary as could-not-read-with-certainty, rather than silently
+# written with that field left null — a null the deterministic
+# derivation would otherwise be unable to tell apart from "this spec
+# was never archived/reopened at all".
+#
+# Prints one summary line per spec to stdout:
+#   written: <folder>
+#   could-not-read-with-certainty: <folder> (<reason>)
+# and, at the end, one totals line:
+#   {"written":N,"uncertain":N}
+#
+# Usage:
+#   aide-backfill-spec-state --specs-root <path>
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+
+specs_root=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+[ -n "$specs_root" ] || { echo "missing --specs-root" >&2; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 2; }
+declare -f write_spec_state >/dev/null 2>&1 || { echo "spec-state.sh could not be loaded" >&2; exit 2; }
+
+archive_dir="$specs_root/archive"
+[ -d "$archive_dir" ] || { echo '{"written":0,"uncertain":0}'; exit 0; }
+
+# A stamp is present-but-unparseable when the prose names it by its bold
+# label but spec-state.sh's own strict grammar (a dated stamp with, for
+# Reopened/Reset, a backtick-quoted boundary sha) found nothing.
+_uncertain_reason_for() {
+  local status_file="$1" reason=""
+  if grep -qE '\*\*Archived:\*\*' "$status_file" 2>/dev/null; then
+    [ "$(_spec_state_archived_json "$status_file")" = "null" ] \
+      && reason="${reason:+$reason; }an Archived stamp is present but does not match the dated-mark grammar"
+  fi
+  if grep -qE '\*\*(Reopened|Reset):\*\*' "$status_file" 2>/dev/null; then
+    [ "$(_spec_state_reopened_json "$status_file")" = "null" ] \
+      && reason="${reason:+$reason; }a Reopened/Reset stamp is present but does not match the \"history before \`sha\`\" grammar"
+  fi
+  printf '%s' "$reason"
+}
+
+written=0
+uncertain=0
+for folder_path in "$archive_dir"/*/; do
+  [ -d "$folder_path" ] || continue
+  folder="$(basename "$folder_path")"
+  status_file="${folder_path}4-status.md"
+  if [ ! -f "$status_file" ]; then
+    printf 'could-not-read-with-certainty: %s (no 4-status.md at all)\n' "$folder"
+    uncertain=$((uncertain + 1))
+    continue
+  fi
+  reason="$(_uncertain_reason_for "$status_file")"
+  write_spec_state "$status_file" || {
+    printf 'could-not-read-with-certainty: %s (write_spec_state failed)\n' "$folder"
+    uncertain=$((uncertain + 1))
+    continue
+  }
+  if [ -n "$reason" ]; then
+    printf 'could-not-read-with-certainty: %s (%s)\n' "$folder" "$reason"
+    uncertain=$((uncertain + 1))
+  else
+    printf 'written: %s\n' "$folder"
+    written=$((written + 1))
+  fi
+done
+
+jq -cn --argjson w "$written" --argjson u "$uncertain" '{written:$w, uncertain:$u}'

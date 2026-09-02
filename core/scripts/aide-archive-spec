@@ -42,6 +42,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
 
 project_dir=""; spec_arg=""; specs_dir=""; result_file=""
 
@@ -173,14 +175,16 @@ done
 # the same `Workflow steps completed` line `aide-run-spec` writes.
 status_file="$specs_root/$spec_folder/4-status.md"
 
+# spec 355: reads the state file's own completedPhases (self-healing,
+# via read_spec_state, for a spec this feature predates) rather than
+# re-`sed`-scanning the "Workflow steps completed" prose line a second
+# time — aide-run-spec already scans it once, this used to be an
+# independent copy of that same scan.
 implement_present="no"
 
-if [ -f "$status_file" ]; then
-  workflow_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" | tail -1)"
-  for step in $(printf '%s' "$workflow_line" | tr ',' ' '); do
-    step="$(printf '%s' "$step" | tr -d '[:space:]`' | tr '[:upper:]' '[:lower:]')"
-    [ "$step" = "implement" ] && implement_present="yes"
-  done
+if [ -f "$status_file" ] && declare -f read_spec_state >/dev/null 2>&1; then
+  read_spec_state "$status_file"
+  implement_present="$(jq -r 'if (.completedPhases // []) | index("implement") then "yes" else "no" end' <<<"$state_json")"
 fi
 
 # --- removing the "## Archive held back" section ----------------------------
@@ -222,8 +226,10 @@ fi
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
 
-status_progress_for "$status_file" "Acceptance"
-if [ "$progress_total" -gt 0 ] && [ "$progress_done" -lt "$progress_total" ]; then
+read_spec_state "$status_file"
+acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json")"
+acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json")"
+if [ "$acceptance_total" -gt 0 ] && [ "$acceptance_done" -lt "$acceptance_total" ]; then
   emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Checks tab before archiving — only a person can judge these"}'
 fi
 
@@ -303,10 +309,23 @@ today="$(date -u +%Y-%m-%d)"
 printf '\n**Archived:** %s\n' "$today" >> "$status_file"
 
 mkdir -p "$specs_root/archive"
+specs_root_is_git="no"
 if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  specs_root_is_git="yes"
   git -C "$specs_root" mv "$spec_folder" "archive/$spec_folder"
 else
   mv "$specs_root/$spec_folder" "$specs_root/archive/$spec_folder"
+fi
+
+# spec 355: re-derives at the NEW (archived) location, so the state file
+# travels with the git-mv above and carries the `archived` stamp just
+# written into the prose. Staged alongside the rename (rather than left
+# untracked) so a caller that commits everything git-mv already staged
+# picks this new file up in the same commit, with nothing left behind.
+if declare -f write_spec_state >/dev/null 2>&1; then
+  write_spec_state "$specs_root/archive/$spec_folder/4-status.md"
+  [ "$specs_root_is_git" = "yes" ] \
+    && git -C "$specs_root" add -- "archive/$spec_folder/4-status.json" 2>/dev/null
 fi
 
 emit_ok "$(jq -cn --arg f "archive/$spec_folder" \

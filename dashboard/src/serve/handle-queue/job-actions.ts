@@ -1,7 +1,6 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, and the two tail-edit routes (steps, model). Extracted
 // from handle-queue.ts (split of split serve.ts step 2).
-import { UNFINISHED } from "../../queue/steps.ts";
 import { FROM_LIST_FIELD, specPagePath } from "../../render.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
@@ -91,10 +90,12 @@ export async function handleJobActionRoutes(
     // Only a job that still owns its work can be cancelled. A finished
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had
-    // already ended on its own.
-    if (!UNFINISHED.has(job.state)) {
+    // already ended on its own. The table's own `queued`/`running`
+    // entries for `cancel` are what draws that line now.
+    const result = ctx.queue.transition(id, "cancel", { finishedAt: new Date().toISOString() });
+    if (!result.ok) {
       const spec = `${job.project}/${job.specFolder}`;
-      const reason = `the job is already ${job.state}; only a queued or running job can be cancelled`;
+      const reason = `the job is already ${result.state}; only a queued or running job can be cancelled`;
       logRefusal("cancel", spec, reason);
       return wantsJson ? json({ error: reason, spec }, 409) : specsRedirect(view, { error: reason, spec });
     }
@@ -108,8 +109,7 @@ export async function handleJobActionRoutes(
         /* already gone */
       }
     }
-    ctx.queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
-    return wantsJson ? json({ ok: true, job: ctx.queue.get(id) }) : specsRedirect(view);
+    return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(view);
   }
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);
