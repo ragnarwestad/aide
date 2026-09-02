@@ -463,6 +463,27 @@ def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, s
     assert (specs / "81-x").exists()
 
 
+def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script, project, specs, tmp_path):
+    """Spec 346/REQ-1,2,5: the acceptance-criteria gate must answer before
+    the test-record gate ever gets a chance to shell out to the project's
+    test command. No test-run.json record exists here, so the pre-fix
+    order would have run AIDE_TEST_CMD (dropping the marker file) before
+    reaching the unticked row."""
+    configure(project, specs)
+    marker = tmp_path / "marker"
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=touch {marker}\n")
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert not marker.exists(), "the test command must never run before the acceptance gate answers"
+    assert (specs / "81-x").exists()
+
+
 def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, project, specs):
     """The other half of AC4: even a checklist that reads fully done
     cannot stand in for the "Workflow steps completed" line actually
