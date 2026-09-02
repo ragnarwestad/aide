@@ -30,6 +30,7 @@ export {
   DEFAULT_SORT,
   SORT_DEFAULT_DIR,
   stateFilter,
+  stateFilterLabel,
   matchesState,
   filterShowsArchived,
   isArchivedRow,

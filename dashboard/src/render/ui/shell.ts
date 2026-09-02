@@ -11,6 +11,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
+import { t, type Language, type TranslationKey } from "../../i18n/index.ts";
 
 const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
 
@@ -19,7 +20,7 @@ const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aid
 // it reaches every ordinary dashboard visit instead (REQ-5). Only the
 // LAST run's block matters: an old warning a later run already cleared
 // must not keep showing.
-function lastInstallWarning(): string | undefined {
+function lastInstallWarning(lang: Language): string | undefined {
   const path = process.env.AIDE_INSTALL_LOG ?? DEFAULT_INSTALL_LOG();
   let text: string;
   try {
@@ -34,7 +35,7 @@ function lastInstallWarning(): string | undefined {
   // a PATH line — and a banner that fired on any of those was on after
   // every merge, which is the same as no banner.
   return /⚠️\s+\[aide tools\]/.test(lastBlock)
-    ? `aide's last install found a problem — see ${path}`
+    ? t(lang, "shell.installWarning", { path })
     : undefined;
 }
 
@@ -102,7 +103,7 @@ const THEME_ICONS: Record<string, string> = {
   dark: ICON_THEME_DARK, light: ICON_THEME_LIGHT, auto: ICON_THEME_AUTO,
 };
 
-function unitControl(): string {
+function unitControl(lang: Language): string {
   const buttons = UNIT_CHOICES.map(
     ([choice, label]) =>
       `<button type="button" data-unit-choice="${choice}"` +
@@ -112,7 +113,7 @@ function unitControl(): string {
   // instead of stacking under `.menupanel > * { display: block; }` —
   // css.ts carries a matching `.menupanel > .row` rule to keep the flex
   // gap once inside that panel.
-  return `<span class="row"><span class="lbl">Units</span><span class="filters">${buttons.join("")}</span></span>`;
+  return `<span class="row"><span class="lbl">${t(lang, "shell.units")}</span><span class="filters">${buttons.join("")}</span></span>`;
 }
 
 // The header-level switch (spec 243, moved out of the "…" menu; a
@@ -122,24 +123,50 @@ function unitControl(): string {
 // "…" one, so it gets the same outside-click/Escape close for free:
 // `menu-script.ts`'s `closeAll` already targets every `details.menu`,
 // not one in particular.
-function themeControl(): string {
+function themeControl(lang: Language): string {
   // Auto is marked here, on the row AND on the trigger's icon, because
   // the server has no way to know what this reader picked —
   // `theme-script.ts` moves both once it does, the same `mark()` call
   // doing the row's `aria-current` and the trigger's icon together.
+  const THEME_LABELS: Record<string, TranslationKey> = {
+    dark: "shell.themeDark", light: "shell.themeLight", auto: "shell.themeAuto",
+  };
   const trigger = THEME_CHOICES.map(
     ([choice]) =>
       `<span data-theme-icon="${choice}"${choice === "auto" ? "" : " hidden"}>${THEME_ICONS[choice]}</span>`,
   ).join("");
   const rows = THEME_CHOICES.map(
-    ([choice, label]) =>
+    ([choice]) =>
       `<button type="button" data-theme-choice="${choice}"` +
-      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}<span>${label}</span></button>`,
+      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}<span>${t(lang, THEME_LABELS[choice]!)}</span></button>`,
   ).join("");
+  const theme = t(lang, "shell.theme");
   return (
-    `<details class="menu theme"><summary aria-label="Theme" title="Theme">${trigger}</summary>` +
+    `<details class="menu theme"><summary aria-label="${theme}" title="${theme}">${trigger}</summary>` +
     `<div class="menupanel">${rows}</div>` +
     `</details>`
+  );
+}
+
+// The header-level language switch (spec 350), beside the theme control
+// (REQ-3) and built the same way: a `<details class="menu">` trigger +
+// panel, so it gets the same outside-click/Escape close for free. It
+// deliberately ignores `currentPath` and always links to `/?lang=<code>`
+// — see `2-analysis.md`'s "Why the language link always targets `/`,
+// and not `currentPath`": that value is a hard-coded `"/"` on 4 of the 8
+// untouched pages, and even where it IS the real address, no route but
+// `/` reads `?lang=` at all, so a link built from it would silently do
+// nothing on 7 of 8 pages.
+function languageControl(lang: Language): string {
+  const other: Language = lang === "nb" ? "en" : "nb";
+  const label = (l: Language) => (l === "nb" ? "NO" : "EN");
+  const langLabel = t(lang, "shell.language");
+  return (
+    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${label(lang)}</summary>` +
+    `<div class="menupanel">` +
+    `<a href="/?lang=${lang}" aria-current="true">${label(lang)}</a>` +
+    `<a href="/?lang=${other}">${label(other)}</a>` +
+    `</div></details>`
   );
 }
 
@@ -194,27 +221,29 @@ function aboutDialog(buildStamp?: string): string {
   );
 }
 
-function pageHeader(): string {
+function pageHeader(lang: Language): string {
   return (
     `<header>${WORDMARK}` +
-    // Theme sits beside the "…" trigger, both at the header's right-hand
-    // end (spec 243) — a header-level control the reader reaches
-    // without opening the menu first, not one more item behind it.
-    `<span class="row">${themeControl()}` +
+    // Theme and language sit beside the "…" trigger, both at the
+    // header's right-hand end (spec 243, spec 350) — header-level
+    // controls the reader reaches without opening the menu first, not
+    // one more item behind it.
+    `<span class="row">${themeControl(lang)}${languageControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
-    `<details class="menu"><summary aria-label="More">` +
+    `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
     // Units, then Settings, then About: reached-for-constantly first,
     // reached-for-rarely last (spec 243).
-    `<div class="menupanel">${unitControl()}<a href="/settings">Settings</a><a href="about.html" data-about>About</a></div>` +
+    `<div class="menupanel">${unitControl(lang)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
+    `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></span></header>`
   );
 }
 
-function tabBar(entries: NavEntry[], currentPath: string): string {
+function tabBar(entries: NavEntry[], currentPath: string, lang: Language): string {
   // The first entry is the Projects page; the rest are the project
   // pages, which are NOT tabs — the Projects page lists them, and two
   // lists of the same projects were one too many. A project's own page
@@ -249,8 +278,8 @@ function tabBar(entries: NavEntry[], currentPath: string): string {
     `<a class="tab" data-nav data-goto href="${href}"${on ? ` aria-current="page"` : ""}>${label}</a>`;
   return (
     `<nav class="tabbar">` +
-    tab("Specs", "/", currentPath === "/") +
-    tab("Projects", projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
+    tab(t(lang, "shell.tabSpecs"), "/", currentPath === "/") +
+    tab(t(lang, "shell.tabProjects"), projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
     sections.map((e) => tab(e.label, e.path, e.path === currentPath)).join("") +
     `</nav>`
   );
@@ -278,8 +307,14 @@ export function pageShell(
     /** When this page is part of a static build: its generation time,
      *  shown labelled at the bottom of the About dialog. */
     buildStamp?: string;
+    /** Spec 350. Absent (never required) on every page but the Specs
+     *  list — the 8 untouched pages simply do not pass it, so `pageHeader`,
+     *  `tabBar` and `<html lang>` keep rendering exactly as they do today
+     *  (REQ-9), by construction rather than by discipline. */
+    lang?: Language;
   } = {},
 ): string {
+  const lang = opts.lang ?? "en";
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
   // filling in. The spec list therefore refreshes its table from
@@ -296,10 +331,10 @@ export function pageShell(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
-  const installWarning = lastInstallWarning();
+  const installWarning = lastInstallWarning(lang);
   const installBanner = installWarning ? rowMessage("warn", installWarning, { tag: "p" }) : "";
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
@@ -310,10 +345,10 @@ ${PWA_LINKS}
 <script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}</script>
 </head>
 <body>
-${pageHeader()}
+${pageHeader(lang)}
 ${installBanner}
 ${aboutDialog(opts.buildStamp)}
-${tabBar(entries, currentPath)}
+${tabBar(entries, currentPath, lang)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
 </main>${script}${scriptSrc}
