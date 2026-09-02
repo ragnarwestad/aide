@@ -6843,3 +6843,102 @@ def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
     assert recorded_line(workspace) == "create, analyze"
 
 
+# --- spec 352, REQ-7: the bash side of the sentence registry ---------------
+#
+# `aide-run-spec`'s own error strings reach the board unrewritten
+# (`runner.ts`'s `outcome.error ?? outcome.terminalReason` passthrough), so
+# this file's registry checks the SAME rule the TypeScript one does
+# (`dashboard/test/render/ui/error-sentence-registry.test.ts`) against the
+# script's own source text, the same "read both sides as text" pattern the
+# other hand-paired bash/TypeScript decisions already use
+# (`dashboard/CLAUDE.md`, "The hand-paired bash/TypeScript pairs").
+#
+# Grows one phase at a time, same as the TypeScript registry: empty here at
+# Step 0, since none of `aide-run-spec`'s sentences are migrated yet — Phase
+# 4 (`3-solution.md`) is what adds entries for `refuse()`'s callers, the
+# diverged/fast-forward/conflict/no-progress sentences and the
+# provider-failure strings. `refuse()` itself is not registered separately,
+# the same way the TypeScript `refuse()` in `branch-merge.ts` is not: it is
+# a generic helper that relays whatever sentence its caller composed, and
+# every caller that reaches the board is registered below instead.
+BASH_ERROR_REGISTRY: list[dict] = [
+    {
+        "name": "a local branch has diverged from origin's copy (sync_branch_with_origin)",
+        "pattern": r"\$br has diverged from origin's copy.*",
+        "resolve": "in the checkout on the serving host",
+    },
+    {
+        "name": "a local branch cannot fast-forward to origin's copy (sync_branch_with_origin)",
+        "pattern": r"cannot fast-forward \$br to origin's copy.*",
+        "resolve": "in the checkout on the serving host",
+    },
+    {
+        "name": "bringing a branch up to date conflicts (update_branch_to_base)",
+        "pattern": r"cannot bring \$branch up to date with \$ref.*",
+        "resolve": "in the checkout on the serving host",
+    },
+    {
+        "name": "a completed implement left no real progress",
+        "pattern": r"the step reported success but left no real progress — nothing changed in the project.*",
+        "resolve": "Press Run again",
+    },
+    {
+        "name": "a completed archive left no real progress",
+        "pattern": r"the step reported success but left no real progress — the spec folder was never moved to archive/.*",
+        "resolve": "Press Run again",
+    },
+    {
+        "name": "a completed analyze changed things outside its scope",
+        "pattern": r"the step reported success but changed things outside analyze's scope.*",
+        "resolve": "Press Run again",
+    },
+    {
+        "name": "a step stopped at its own time limit",
+        "pattern": r"stopped at its own \$\{timeout_sec\}s time limit for this step.*",
+        "exempt": "a time-limited step resumes on its own next run — nothing to resolve by hand",
+    },
+    {
+        "name": "a provider rate/usage limit was reached",
+        "pattern": r"\$limit_type provider limit reached.*",
+        "resolve": "press Run again",
+    },
+    {
+        "name": "the step's own budget was reached",
+        "pattern": r"the step's budget was reached.*",
+        "resolve": "press Run again",
+    },
+    {
+        "name": "the provider reported an error with no message of its own (is_error)",
+        "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press Run again"',
+        "resolve": "press Run again",
+    },
+    {
+        "name": "the tool exited non-zero with no result JSON error",
+        "pattern": r'error_msg="\$tool exit \$exit_code — press Run again"',
+        "resolve": "press Run again",
+    },
+    {
+        "name": "the tool produced no result JSON at all",
+        "pattern": r'no result JSON \(exit \$exit_code\)"\n\s*error_msg="\$error_msg — press Run again"',
+        "resolve": "press Run again",
+    },
+]
+
+
+def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner):
+    """REQ-7: "A test SHALL fail for an error sentence that carries no
+    resolution, over the set of sentences the board can show" — this is
+    that check for the bash-authored half of the set. Each registry entry
+    names a literal or regex fragment expected in the script's own source
+    and either a `resolve` substring the matched text must contain, or an
+    `exempt` reason there is genuinely nothing to resolve."""
+    source = runner.read_text()
+    for entry in BASH_ERROR_REGISTRY:
+        match = re.search(entry["pattern"], source)
+        assert match, f"{entry['name']}: pattern not found in {runner}"
+        resolve, exempt = entry.get("resolve"), entry.get("exempt")
+        assert resolve or exempt, f"{entry['name']}: has neither resolve nor exempt"
+        if resolve:
+            assert resolve in match.group(0), f"{entry['name']}: {resolve!r} not in {match.group(0)!r}"
+
+

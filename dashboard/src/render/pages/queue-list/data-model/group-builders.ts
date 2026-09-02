@@ -250,7 +250,12 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: num
     // Newest-first, so the first job that reported one wins.
     prUrl: recent.find((r) => r.prUrl)?.prUrl,
     prError: recent.find((r) => r.prError)?.prError,
-    pushError: recent.find((r) => r.pushError)?.pushError,
+    // The LEAD job's own answer (spec 341, REQ-4), not the newest job
+    // that happens to have one set: `recent.find(...)` used to scan
+    // past a lead job with no `pushError` straight to an older job that
+    // had one, so a spec whose current job pushed fine still showed a
+    // stale failure with advice that no longer applied.
+    pushError: lead.pushError,
     landingError: lead.landingError,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of

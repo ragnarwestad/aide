@@ -42,6 +42,7 @@ import { handleQueueEvents } from "./handle-queue/sse.ts";
 import { handleQueueAdminRoutes } from "./handle-queue/queue-admin.ts";
 import { handleJobActionRoutes } from "./handle-queue/job-actions.ts";
 import { handleSpecEditRoutes } from "./handle-queue/spec-edit.ts";
+import { handleSpecPdfRoute } from "./handle-queue/spec-pdf.ts";
 import { handleScheduleAdminRoutes } from "./handle-queue/schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./handle-queue/job-detail.ts";
 
@@ -98,6 +99,15 @@ export interface HandleQueueContext {
    *  stay `null` rather than "loading" until the boot-time read
    *  resolves. */
   readServing: () => { sha: string | null; repoRoot: string | null };
+  /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
+   *  outside every checkout (REQ-4). */
+  pdfCacheDir: string;
+  /** Path to `aide-generate-pdf` — the same script `/aide-to-pdf` runs
+   *  (REQ-3). */
+  pdfGeneratorBin: string;
+  /** Whether `md-to-pdf` is resolvable on this host (REQ-7), resolved
+   *  once at boot. */
+  pdfToolAvailable: boolean;
 }
 
 export async function handleQueue(ctx: HandleQueueContext, req: Request, url: URL, path: string): Promise<Response> {
@@ -109,6 +119,7 @@ export async function handleQueue(ctx: HandleQueueContext, req: Request, url: UR
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??
     (await handleSpecEditRoutes(ctx, req, url, path, wantsJson)) ??
+    (await handleSpecPdfRoute(ctx, req, path)) ??
     (await handleScheduleAdminRoutes(ctx, req, url, path, wantsJson)) ??
     (await handleJobDetailRoute(ctx, req, url, path)) ??
     new Response("not found", { status: 404 })

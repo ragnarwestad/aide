@@ -49,7 +49,7 @@ import { helpPopover, rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
-import { archivedLine, checklist, dependsOnLine, reopenControl, resetControl } from "./spec-page/overview.ts";
+import { archivedLine, checklist, dependsOnLine, pdfControl, reopenControl, resetControl } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
 import {
   RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
@@ -94,6 +94,7 @@ export function renderSpecPage(
   // button moving because something else appeared.
   const actions =
     (view.archived ? reopenControl(view) : "") +
+    pdfControl(view) +
     resetControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.

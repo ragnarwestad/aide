@@ -751,7 +751,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     // reason — never reaches the row; a fixed sentence for a person
     // takes its place.
     expect(block).not.toContain("remote rejected: hook declined");
-    expect(block).toContain("This spec merged, but its branch could not be deleted on origin. Delete it by hand.");
+    expect(block).toContain("This spec merged, but its branch could not be deleted on origin. — Delete it by hand, in the checkout on the serving host.");
 
     // REQ-3: a sibling whose branch never landed at all still reads
     // exactly as it always has — no reason recorded for it, so it falls
