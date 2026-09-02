@@ -1,9 +1,10 @@
 # A job's states
 
 The one place the queue's state machine is written down: what a job's `state` can be, which piece of code moves it
-and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` in
-`src/queue/steps.ts`, the transitions in `src/queue/runner.ts`, the cancel route in
-`src/serve/handle-queue/job-actions.ts` and the landing's downgrade in `src/serve/land-branch/types.ts`. How a
+and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` and
+`TRANSITIONS` in `src/queue/steps.ts`, consulted through the one `QueueStore.transition()` in `src/queue/store.ts`
+that every caller — `src/queue/runner.ts`, the cancel route in `src/serve/handle-queue/job-actions.ts`, and the
+landing in `src/serve/land-branch/merge.ts` — asks instead of writing `state` itself. How a
 state reads on the page is on [The specs list and the spec page](the-specs-list.md); the level above — which of the four
 phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md). What a job's own
 `error` sentence has to say is the one rule on [Error sentences](error-sentences.md).
@@ -90,9 +91,10 @@ is one and writes `cancelled`. A job that has already finished is refused with 4
 
 **Done to failed** is the one transition made after the fact. The step succeeded, so `complete()` has already written
 `done`, and the landing runs afterwards. When that landing is refused for a conflict, or `archive`'s landing finds the
-spec's branch still on origin, `downgrade()` moves the job to `failed` with `errorReason` — and only from `done`: the
-runner may have queued the job's next step in between, and a landing must not overwrite a job that has moved on. See
-[Branches and landing](landing.md).
+spec's branch still on origin, the `landing-failed` transition moves the job to `failed` with `errorReason` — and only
+from `done`: the runner may have queued the job's next step in between, and a landing must not overwrite a job that
+has moved on; the table simply has no entry for that case, so the attempt is refused and the narrative fields are
+recorded without moving the state. See [Branches and landing](landing.md).
 
 ## Beside the state
 

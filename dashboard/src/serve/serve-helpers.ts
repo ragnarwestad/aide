@@ -16,7 +16,7 @@ export {
 
 export {
   json, readBounded, tokenMatches, cookieValue, SORT_COOKIE, sortChoice,
-  STATE_COOKIE, stateChoice, bodyToObject,
+  STATE_COOKIE, stateChoice, LANG_COOKIE, languageChoice, bodyToObject,
 } from "./serve-helpers/http.ts";
 
 export {

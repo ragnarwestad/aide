@@ -1,6 +1,7 @@
 // The one long message a row has to say (spec 143).
 
 import type { MessageVariant } from "../components.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import { inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -88,6 +89,7 @@ export function specNotice(
    *  neither waits for "nothing in flight" (spec 327's own row already
    *  shows `landingError` while a later step runs). */
   marks: { variant: MessageVariant; text: string }[] = [],
+  lang: Language = "en",
 ): RowNotice | undefined {
   if (refusal) return { variant: "err", text: refusal, hook: "refused" };
   const parts: { variant: MessageVariant; text: string }[] = [];
@@ -104,9 +106,9 @@ export function specNotice(
     // archive's own by construction — so the phase name it arrived with
     // comes off rather than being written twice in one sentence.
     const detail = disagreement.replace(/^archive: /, "");
-    return { variant: "warn", text: `archive held back — ${archiveHeldBack} · ${detail}` };
+    return { variant: "warn", text: `${t(lang, "list.archiveHeldBack", { reason: archiveHeldBack })} · ${detail}` };
   }
-  if (archiveHeldBack) return { variant: "warn", text: `archive held back — ${archiveHeldBack}` };
+  if (archiveHeldBack) return { variant: "warn", text: t(lang, "list.archiveHeldBack", { reason: archiveHeldBack }) };
   if (disagreement) return { variant: "warn", text: disagreement };
   return undefined;
 }

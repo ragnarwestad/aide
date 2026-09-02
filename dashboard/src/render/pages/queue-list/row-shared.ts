@@ -3,34 +3,35 @@
 // every form on this page repeats.
 
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import { FILTER_FIELD_PREFIX, FILTER_KEYS, type QueueFilter } from "./data-model.ts";
 
 /** What the date cell says when the spec carries no stamp and git
  *  cannot date its folder either — a folder copied in rather than
  *  committed. Spelled out here so the row and its test cannot word the
  *  same absence differently. */
-export const NO_DATE = "date unknown";
+export const NO_DATE = (lang: Language): string => t(lang, "list.dateUnknown");
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request (spec 220, spec 335): the same word
  *  either way, since it is the same fact from a reader's chair — code is
  *  on a branch, and a request describes it. */
-export const PULL_REQUEST = "pull request";
+export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullRequest");
 
 /** The mark a LIVE row carries when a landing failed and no later step
  *  of the same job has resolved it (spec 327) — independent of
  *  `state`, which a later step's own start already overwrites. */
-export const LANDING_FAILED = "landing failed";
+export const LANDING_FAILED = (lang: Language): string => t(lang, "list.landingFailed");
 
 /** The mark a LIVE row carries when a step's push never reached origin
  *  (spec 328). */
-export const NOT_PUSHED = "not pushed";
+export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
 
 /** The mark a LIVE row carries when no pull request could be opened for
  *  its branch (spec 220). The more urgent half of the same answer
  *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
  *  which no amount of waiting resolves. */
-export const NO_PULL_REQUEST = "no pull request";
+export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullRequest");
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

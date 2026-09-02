@@ -450,3 +450,27 @@ describe("the States trigger sits further from the (?) popover than the row's ow
     expect(NARROW).toContain(".menu.state { margin-left: 0; }");
   });
 });
+
+// --- the Depends on field scrolls instead of pushing the form down
+// (spec 357) -----------------------------------------------------------
+//
+// `.phases` is `phases()`'s one class (components.ts), and `phases()`
+// has one caller, `dependsOnField()` — shared by the New-spec page and
+// the spec page's Description tab (spec 174). One rule on `.phases`
+// therefore reaches both without a second copy.
+
+describe("the Depends on field caps its height and scrolls its own overflow", () => {
+  test(".phases is capped to about four lines of chips and scrolls (REQ-1, REQ-2)", () => {
+    const rule = /\.phases \{([^}]*)\}/.exec(CSS)?.[1] ?? "";
+    expect(rule).toMatch(/max-height:\s*[\d.]+(px|rem)/);
+    expect(rule).toMatch(/overflow-y:\s*auto/);
+  });
+
+  test("the cap lives in one rule, not two, so both pages share it (REQ-4)", () => {
+    expect((CSS.match(/\.phases \{/g) ?? []).length).toBe(1);
+  });
+
+  test("no narrow-width override touches it, so the phone layout is unchanged (REQ-6)", () => {
+    expect(NARROW).not.toContain(".phases");
+  });
+});
