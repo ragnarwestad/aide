@@ -71,7 +71,7 @@ main { padding: var(--sp-5) var(--sp-6); }
    correct pages render. */
 /* body > p.rowmsg matches only the install banner (shell.ts,
    pageShell) — the one rowMessage() call site written directly under
-   <body> rather than inside <main>; every other .rowmsg is nested in a
+   body rather than inside <main>; every other .rowmsg is nested in a
    row or a form and stays out of this rule. */
 header, body > nav.tabbar, main, body > p.rowmsg { max-width: calc(72rem + 2 * var(--sp-6));
   width: 100%; box-sizing: border-box; margin-inline: auto; }
