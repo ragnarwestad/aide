@@ -14,13 +14,13 @@ import pytest
 SYSTEM_PATH = "/usr/bin:/bin"
 
 
-def _run(workspace_root, args, home, path=SYSTEM_PATH):
+def _run(workspace_root, args, home, path=SYSTEM_PATH, env=None):
     script = workspace_root / "core" / "scripts" / "aide-preflight"
     return subprocess.run(
         [str(script), *args],
         capture_output=True,
         text=True,
-        env={"PATH": path, "HOME": str(home)},
+        env={"PATH": path, "HOME": str(home), **(env or {})},
     )
 
 
@@ -128,6 +128,18 @@ class TestPreflightDrift:
         assert result.returncode == 0, result.stderr
         assert "behind" in result.stdout.lower(), result.stdout
         assert fake_sha in result.stdout, result.stdout
+
+    def test_an_installer_run_does_not_warn_about_the_files_it_is_updating(self, workspace_root, tmp_path):
+        """AIDE_INSTALLING=1 is what the installers set: a stale stamp
+        is then the thing this very run fixes, and a ⚠️ for it fired
+        the dashboard's install banner on every landing."""
+        fake_sha = "0000000000000000000000000000000000dead"
+        self._write_stamp(tmp_path, workspace_root, fake_sha)
+        result = _run(workspace_root, ["claude"], home=tmp_path, env={"AIDE_INSTALLING": "1"})
+        assert result.returncode == 0, result.stderr
+        drift = [l for l in result.stdout.splitlines() if "behind" in l.lower()]
+        assert drift, result.stdout
+        assert all("⚠️" not in l for l in drift), drift
 
     def test_no_stamp_is_silent(self, workspace_root, tmp_path):
         result = _run(workspace_root, ["claude"], home=tmp_path)

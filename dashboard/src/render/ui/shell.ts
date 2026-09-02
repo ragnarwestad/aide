@@ -28,7 +28,12 @@ function lastInstallWarning(): string | undefined {
     return undefined;
   }
   const lastBlock = text.split(/^--- .* ---$/m).pop() ?? "";
-  return lastBlock.includes("⚠️")
+  // Only the declared-tools step's own warnings (`[aide tools]`, written
+  // by core/scripts/_install-bin.sh). The installers also print ⚠️ for
+  // things a machine may legitimately not have — Codex, a browser MCP,
+  // a PATH line — and a banner that fired on any of those was on after
+  // every merge, which is the same as no banner.
+  return /⚠️\s+\[aide tools\]/.test(lastBlock)
     ? `aide's last install found a problem — see ${path}`
     : undefined;
 }

@@ -94,6 +94,11 @@ preflight_drift() {
   current_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
   if [ "$installed_sha" = "$current_sha" ]; then
     echo -e "${GREEN}✅ Installed files match the repo${NC} ($current_sha)"
+  elif [ -n "${AIDE_INSTALLING:-}" ]; then
+    # The installer that is running right now is what brings them up:
+    # a warning here would fire on every landing, for the one thing
+    # the run is in the middle of fixing.
+    echo "   Installed files are behind the repo (installed $installed_sha) — this run updates them to $current_sha"
   else
     echo -e "${YELLOW}⚠️  Installed files are behind the repo${NC} (installed $installed_sha, repo now at $current_sha) — re-run the installer"
   fi

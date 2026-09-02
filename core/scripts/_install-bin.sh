@@ -79,11 +79,11 @@ install_common_bin() {
 
 install_mise_declared_tools() {
   if ! command -v mise &> /dev/null; then
-    echo "   ⚠️  mise is not installed — skipping $MISE_DECLARED_TOOLS (install mise: https://mise.jdx.dev)"
+    echo "   ⚠️  [aide tools] mise is not installed — skipping $MISE_DECLARED_TOOLS (install mise: https://mise.jdx.dev)"
     return 0
   fi
   if ! mise which node &> /dev/null; then
-    echo "   ⚠️  mise has no node installed — skipping $MISE_DECLARED_TOOLS (mise use -g node, then re-run this installer)"
+    echo "   ⚠️  [aide tools] mise has no node installed — skipping $MISE_DECLARED_TOOLS (mise use -g node, then re-run this installer)"
     return 0
   fi
   local tool
@@ -91,7 +91,7 @@ install_mise_declared_tools() {
     if mise use -g "$tool@latest" &> /dev/null; then
       echo "   ✅ Declared via mise: $tool"
     else
-      echo "   ⚠️  mise use -g $tool@latest failed — markdown linting will be skipped until it is installed"
+      echo "   ⚠️  [aide tools] mise use -g $tool@latest failed — markdown linting will be skipped until it is installed"
     fi
   done
 }

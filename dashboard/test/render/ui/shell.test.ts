@@ -34,7 +34,7 @@ describe("pageShell install warning banner", () => {
   test("shows the banner when the log's last block has a warning", () => {
     writeLog(
       "--- 2026-08-31T00:00:00Z ---\nall good\n" +
-      "--- 2026-09-01T00:00:00Z ---\n⚠️  mise is not installed — skipping jq\n",
+      "--- 2026-09-01T00:00:00Z ---\n⚠️  [aide tools] mise is not installed — skipping jq\n",
     );
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     expect(html).toContain("install.log");
@@ -45,6 +45,18 @@ describe("pageShell install warning banner", () => {
     writeLog(
       "--- 2026-08-31T00:00:00Z ---\n⚠️  an old warning\n" +
       "--- 2026-09-01T00:00:00Z ---\neverything installed cleanly\n",
+    );
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    expect(html).not.toContain("install.log");
+  });
+
+  test("shows nothing for an installer warning that is not about the tool list", () => {
+    // Codex, a browser MCP, a shell PATH line: things a machine may
+    // legitimately not have. A banner firing on those was on after
+    // every merge on the serving host.
+    writeLog(
+      "--- 2026-09-01T00:00:00Z ---\n⚠️  Codex CLI is NOT installed\n" +
+      "⚠️  Browser Testing MCP is NOT configured\n⚠️  ~/.local/bin is NOT in PATH for this shell yet\n",
     );
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     expect(html).not.toContain("install.log");

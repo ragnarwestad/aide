@@ -26,7 +26,7 @@ echo ""
 IMPL_DIR="$SCRIPT_DIR"
 
 # Preflight: report what is installed and where the pieces will land
-"$WORKSPACE_ROOT/core/scripts/aide-preflight" claude
+AIDE_INSTALLING=1 "$WORKSPACE_ROOT/core/scripts/aide-preflight" claude
 
 # 1. Install scripts to ~/.local/bin/
 echo "1️⃣  Installing scripts to ~/.local/bin/..."

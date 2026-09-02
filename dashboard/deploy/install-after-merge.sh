@@ -8,6 +8,11 @@
 # just this repo — before killing the process running it.
 set -e
 cd "$(dirname "$0")/../.."
+# launchd's PATH has neither ~/.local/bin nor mise's shims. Without them
+# the installer below reports mise, claude and codex as not installed —
+# so the tools aide declares (spec 334) are skipped and the banner the
+# dashboard reads from the log warns on every single merge.
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 # A tool the installer could not declare (spec 334) used to vanish into
 # /dev/null on a headless merge nobody is watching. It now reaches a log
 # file the dashboard's own shell.ts reads a warning banner from.
