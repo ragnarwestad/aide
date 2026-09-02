@@ -24,8 +24,8 @@
 // because the REAL landing, on a branch or on `main`, is git plumbing
 // this module has nothing to do with.
 
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 export interface AideWriteSpecResult {
@@ -45,7 +45,13 @@ export interface AideWriteSpecResult {
  *  stub, the same escape hatch `queueRunnerBin` gives the long-running
  *  runner. */
 function resolveBin(): string {
-  return process.env.AIDE_WRITE_SPEC_BIN || "aide-write-spec";
+  if (process.env.AIDE_WRITE_SPEC_BIN) return process.env.AIDE_WRITE_SPEC_BIN;
+  // launchd's PATH has no ~/.local/bin, which is where the installer
+  // puts the script: a bare name found nothing on the serving host, and
+  // every tick from the Checks tab was refused (2026-09-02). The same
+  // resolution install-after-merge.sh already hardcodes for bun.
+  const installed = join(process.env.HOME || homedir(), ".local", "bin", "aide-write-spec");
+  return existsSync(installed) ? installed : "aide-write-spec";
 }
 
 /** Pipes `content` to a scratch `aide-write-spec --file <file>` run and

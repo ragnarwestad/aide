@@ -290,6 +290,37 @@ def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
     return proc.returncode, json.loads(line), proc.stdout
 
 
+# --- the claude binary can be named per project -------------------------------
+#
+# AIDE_CLAUDE_BIN in the environment points EVERY run the dashboard starts
+# at one binary. A project that wants a stand-in — aide-test's scripted
+# model — names it in its own .aide/config instead, and only that
+# project's runs follow. The environment still wins where both are set.
+
+def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")  # dry run: must not be called
+    cfg = workspace["project"] / ".aide" / "config"
+    cfg.write_text(cfg.read_text() + f"AIDE_CLAUDE_BIN={claude}\n")
+    env_before = os.environ.pop("AIDE_CLAUDE_BIN", None)
+    try:
+        rc, out, _ = run(runner, workspace, dry_run=True)
+    finally:
+        if env_before is not None:
+            os.environ["AIDE_CLAUDE_BIN"] = env_before
+    assert rc == 0, out
+    assert out["argv"][0] == str(claude)
+    assert not fake_claude.calls.exists()
+
+
+def test_the_environment_outranks_the_projects_config_for_the_claude_binary(runner, workspace, fake_claude):
+    from_env = fake_claude("exit 1")
+    cfg = workspace["project"] / ".aide" / "config"
+    cfg.write_text(cfg.read_text() + "AIDE_CLAUDE_BIN=/nowhere/from-config\n")
+    rc, out, _ = run(runner, workspace, from_env, dry_run=True)
+    assert rc == 0, out
+    assert out["argv"][0] == str(from_env)
+
+
 # --- Criterion 1: the dry run ------------------------------------------------
 
 def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspace, fake_claude):

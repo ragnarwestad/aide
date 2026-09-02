@@ -4,7 +4,7 @@
 // `branch-file.test.ts` already uses for `writeStatusToBranch`.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAideWriteSpec } from "../../src/git/run-aide-write-spec.ts";
@@ -32,6 +32,30 @@ function stubBin(dir: string, script: string): string {
 const printLine = (json: unknown): string => `cat <<'EOF'\n${JSON.stringify(json)}\nEOF`;
 
 describe("runAideWriteSpec", () => {
+  // launchd's PATH has no ~/.local/bin. With no AIDE_WRITE_SPEC_BIN set,
+  // the installed copy under $HOME is what runs — the bare name found
+  // nothing on the serving host, and every Checks-tab tick was refused.
+  test("falls back to ~/.local/bin/aide-write-spec when no override is set", async () => {
+    const home = own("aide-write-spec-home-");
+    const bin = join(home, ".local", "bin");
+    Bun.spawnSync({ cmd: ["mkdir", "-p", bin] });
+    const marker = join(home, "ran-from-home");
+    writeFileSync(
+      join(bin, "aide-write-spec"),
+      `#!/usr/bin/env bash\ntouch "${marker}"\n${printLine({ ok: true })}\n`,
+      { mode: 0o755 },
+    );
+    const oldHome = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      const res = await runAideWriteSpec("81-x", "4-status.md", "# x\n");
+      expect(res.ok).toBe(true);
+      expect(existsSync(marker)).toBe(true);
+    } finally {
+      process.env.HOME = oldHome;
+    }
+  });
+
   test("returns ok and the derived stateJson on a successful run", async () => {
     const dir = own("aide-run-write-spec-");
     const bin = stubBin(

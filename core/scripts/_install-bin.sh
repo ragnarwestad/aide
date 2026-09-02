@@ -10,7 +10,7 @@
 # AI-specific scripts are handled by the individual
 # installer, not here.
 
-COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-archive-spec aide-create-spec aide-record-test-run aide-write-spec aide-print-specs-guard aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
+COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-archive-spec aide-create-spec aide-record-test-run aide-backfill-spec-state aide-write-spec aide-print-specs-guard aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
 # The hook body aide-install-spec-hook writes into a target repo (spec
 # 219). Kept as its own file under core/scripts/hooks/, not embedded in
 # the installer, so it can be tested standalone — which means it needs
@@ -29,7 +29,7 @@ COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 # step lists, read by aide-run-spec (jq) and imported by the dashboard.
 # Unlike status-progress.sh above, a missing copy here is refused loudly
 # by aide-run-spec rather than silently no-op'd.
-COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json"
+COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json spec-state.sh"
 # Non-AI CLI tools aide's installer keeps present via mise, using the
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).

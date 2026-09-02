@@ -133,6 +133,23 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
+    def test_spec_state_lib_and_backfill_are_installed(self, workspace_root, tmp_path):
+        """Spec 355 moved the spec's state into lib/spec-state.sh, which
+        aide-archive-spec sources when present — and treats every spec as
+        not implemented when absent. It shipped without being in the
+        installer's lists, so the serving host refused every archive."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True, env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "lib" / "spec-state.sh").is_file(), \
+            "lib/spec-state.sh is not in COMMON_BIN_LIB_SCRIPTS"
+        assert (tmp_path / ".local" / "bin" / "aide-backfill-spec-state").is_file(), \
+            "aide-backfill-spec-state is not in COMMON_BIN_SCRIPTS"
+
     def test_aide_create_spec_is_installed(self, workspace_root, tmp_path):
         """Spec 248, AC9. aide-create-spec is /aide-create's own Step 4
         script — if it drops out of COMMON_BIN_SCRIPTS, install-all.sh
