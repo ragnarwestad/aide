@@ -68,4 +68,20 @@ describe("pageShell install warning banner", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     expect(html).not.toContain("install.log");
   });
+
+  test("sits between the header and the tab bar (REQ-2)", () => {
+    writeLog(
+      "--- 2026-08-31T00:00:00Z ---\nall good\n" +
+      "--- 2026-09-01T00:00:00Z ---\n⚠️  [aide tools] mise is not installed — skipping jq\n",
+    );
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const headerEnd = html.indexOf("</header>");
+    const bannerStart = html.indexOf("rowmsg warn");
+    const tabbarStart = html.indexOf('<nav class="tabbar');
+    expect(headerEnd).toBeGreaterThan(-1);
+    expect(bannerStart).toBeGreaterThan(-1);
+    expect(tabbarStart).toBeGreaterThan(-1);
+    expect(bannerStart).toBeGreaterThan(headerEnd);
+    expect(bannerStart).toBeLessThan(tabbarStart);
+  });
 });

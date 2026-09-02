@@ -403,7 +403,7 @@ describe("the search row stays on one line at phone width", () => {
 describe("the frame keeps one width, and the tabs sit in the middle of it", () => {
   /** The shared frame rule's own body. */
   const frameRule = (): string => {
-    const m = /header, body > nav\.tabbar, main \{([^}]*)\}/.exec(CSS);
+    const m = /header, body > nav\.tabbar, main, body > p\.rowmsg \{([^}]*)\}/.exec(CSS);
     expect(m).not.toBeNull();
     return m![1]!;
   };
