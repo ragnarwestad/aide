@@ -137,11 +137,12 @@ export const PHASE_TAB: Partial<Record<string, SpecTab>> = {
 };
 
 /** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
- *  prepended to its panel by `renderSpecPage()` — not a parameter on
- *  `documentPanel()`/`descriptionPanel()`/`checklist()`, which stay
- *  exactly as they are, and not touching `stepResults()` at all, since
- *  that function is shared with the job page and this help is the SPEC
- *  page's own. */
+ *  built once by `renderSpecPage()` and passed as the optional `mark`
+ *  parameter into whichever of `documentPanel()`/`descriptionPanel()`/
+ *  `checklist()`/`stepResults()` draws that tab's panel (spec 360) — each
+ *  appends it inside its own first line rather than drawing it as a
+ *  preceding sibling. `stepResults()` is shared with the job page, which
+ *  passes no mark and keeps its own output unchanged. */
 export const TAB_HELP: Record<SpecTab, string> = {
   description: "The problem as it was reported, kept in <code>1-description.md</code>. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",

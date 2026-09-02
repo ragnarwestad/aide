@@ -103,25 +103,27 @@ export function renderSpecPage(
     `Update</button></form>`;
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
-  const panelBody =
+  // Every tab says what it is for (spec 311): a "(?)" at the right end of
+  // the tab's own first line, using the same shared component the search
+  // field's own popover is built on — threaded into whichever function
+  // draws that line rather than prepended ahead of it (spec 360).
+  const mark = helpPopover("What this tab shows", TAB_HELP[tab]);
+  const panel =
     tab === "steps"
       ? stepResults(view.steps ?? [], lead?.archiveHeldBack, {
           tabHref,
           openStep: opts.step,
           runningStep: lead?.runningStep,
+          mark,
         })
       : tab === "description"
-        ? descriptionPanel(view, now)
+        ? descriptionPanel(view, now, mark)
         : TAB_FILES[tab]
-          ? documentPanel(view, TAB_FILES[tab]!, now)
+          ? documentPanel(view, TAB_FILES[tab]!, now, mark)
           // Checks: no file text at all, and no facts of its own — those
           // (archived, depends-on) moved into the banner, visible on
           // every tab, when this tab lost its old "Overview" name.
-          : checklist(view);
-  // Every tab says what it is for (spec 311): one "(?)" ahead of whatever
-  // the tab draws, using the same shared component the search field's own
-  // popover is built on.
-  const panel = helpPopover("What this tab shows", TAB_HELP[tab]) + panelBody;
+          : checklist(view, mark);
 
   const body = tabbedBody(
     banner,

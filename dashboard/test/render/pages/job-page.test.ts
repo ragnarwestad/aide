@@ -5,7 +5,7 @@ import {
   type JobDetailView,
 } from "../../../src/render.ts";
 import { stateChip, stateLabel } from "../../../src/render/ui/job-state.ts";
-import { resolveOpenStep } from "../../../src/render/pages/job-page.ts";
+import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page.ts";
 import {
   external,
   NAV,
@@ -438,6 +438,54 @@ describe("a phase's page shows that phase's own file", () => {
     expect(renderJobDetailPage(job, "2026-08-21T10:05:00Z", NAV, { tab: "steps" })).not.toContain(
       "Phase 1: RED",
     );
+  });
+});
+
+// Spec 360: `specFilePanel` and `stepResults` gained an optional `mark`
+// parameter for the SPEC page's own "(?)" help popover — this page (the
+// JOB detail page) draws no mark of its own and calls both with none, so
+// the default must be a true no-op, byte-identical to the shape either
+// function drew before the parameter existed.
+describe("spec 360: specFilePanel/stepResults' optional mark is a no-op by default", () => {
+  const FILE = { label: "2-analysis.md", text: "## Findings", sha: "a3f9c21deadbeef", at: "2026-08-21T09:14:00Z" };
+
+  test("specFilePanel with no mark draws the plain <h2>, same as the job detail page's own render", () => {
+    const html = specFilePanel(FILE, Date.parse("2026-08-21T10:05:00Z"));
+    expect(html).not.toContain('<details class="intro">');
+    expect(html.match(/<h2>[\s\S]*?<\/h2>/)![0]).toMatch(/^<h2>2-analysis\.md <span class="muted small">committed .* a3f9c21<\/span><\/h2>$/);
+  });
+
+  test("specFilePanel appends a passed mark at the end of the <h2>, before its close", () => {
+    const html = specFilePanel(FILE, Date.parse("2026-08-21T10:05:00Z"), '<details class="intro">x</details>');
+    const h2 = html.match(/<h2>[\s\S]*?<\/h2>/)![0];
+    expect(h2.endsWith('<details class="intro">x</details></h2>')).toBe(true);
+  });
+
+  test("stepResults' empty state with no mark is unchanged", () => {
+    expect(stepResults([])).toBe('<p class="muted">No step has finished yet.</p>');
+  });
+
+  test("stepResults' empty state appends a passed mark after the sentence", () => {
+    expect(stepResults([], undefined, { mark: '<details class="intro">x</details>' })).toBe(
+      '<p class="muted">No step has finished yet. <details class="intro">x</details></p>',
+    );
+  });
+
+  test("stepResults' populated header row ends in a plain <th>At</th> with no mark", () => {
+    const html = stepResults([
+      { step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", at: "2026-08-19T09:00:00Z" },
+    ]);
+    expect(html).toContain("<th>At</th></tr></thead>");
+    expect(html).not.toContain('<details class="intro">');
+  });
+
+  test("stepResults' populated header row appends a passed mark inside the last <th>", () => {
+    const html = stepResults(
+      [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", at: "2026-08-19T09:00:00Z" }],
+      undefined,
+      { mark: '<details class="intro">x</details>' },
+    );
+    expect(html).toContain('<th>At<details class="intro">x</details></th></tr></thead>');
   });
 });
 

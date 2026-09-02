@@ -178,17 +178,20 @@ function stepLogPanel(logs: string[] | undefined, terminalReason: string): strin
  *  it has no `JobStepResultView` yet. `opts.tabHref` is absent only for
  *  a caller that wants the bare table with no expand control at all
  *  (`responsive.test.ts`'s wrap check, which asserts markup nothing
- *  here changes). */
+ *  here changes). `opts.mark` (spec 360) is the spec page's own "(?)"
+ *  help popover, appended inside this table's own first line — this
+ *  page draws none of its own, so it stays absent here. */
 export function stepResults(
   results: JobStepResultView[],
   archiveHeldBack?: string,
-  opts: { tabHref?: string; openStep?: string; runningStep?: JobDetailView["runningStep"] } = {},
+  opts: { tabHref?: string; openStep?: string; runningStep?: JobDetailView["runningStep"]; mark?: string } = {},
 ): string {
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
   // session and how it ended.
-  if (results.length === 0 && !opts.runningStep) return `<p class="muted">No step has finished yet.</p>`;
+  if (results.length === 0 && !opts.runningStep)
+    return `<p class="muted">No step has finished yet.${opts.mark ? ` ${opts.mark}` : ""}</p>`;
   const open = resolveOpenStep(opts.openStep, !!opts.runningStep);
   // The chevron toggles; the name beside it is plain text — the same
   // split the specs list's own `.fold` uses, rather than making the
@@ -245,7 +248,7 @@ export function stepResults(
   return (
     `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
     `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
-    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
+    `<th>Ended as</th><th>Session</th><th>At${opts.mark ?? ""}</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
   );
 }
 
@@ -360,9 +363,9 @@ export function tabbedBody(
  *  150). Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
-export function specFilePanel(file: SpecFileView, now: number): string {
+export function specFilePanel(file: SpecFileView, now: number, mark = ""): string {
   return (
-    `<h2>${esc(file.label)}${fileStamp(file, now)}</h2>` +
+    `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
     (file.text === null
       ? `<p class="muted">${esc(file.label)} has not been written yet.</p>`
       : `<pre class="specfile">${esc(file.text)}</pre>`)

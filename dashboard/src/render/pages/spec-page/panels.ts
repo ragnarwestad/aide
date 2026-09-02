@@ -12,9 +12,9 @@ import type { SpecPageView } from "./types.ts";
  *  job in flight, or (spec 303) the same WYSIWYG mount/raw pair a
  *  writable tab carries, so the client script renders it read-only
  *  rather than raw markup. */
-function readOnlyDocument(file: SpecFileView, now: number): string {
+function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
   return (
-    `<h2>${esc(file.label)}${fileStamp(file, now)}</h2>` +
+    `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
     // Read-only counterpart of editableDocumentForm's mount/textarea
     // pair — same fallback CSS (field.css), same JS-off/build-failure
     // fallback (REQ-6), just no `<form>` around it.
@@ -73,12 +73,12 @@ function editableDocumentForm(view: SpecPageView, label: string, text: string, e
  *  the read-only shape instead — the route refuses either anyway
  *  (spec-edit.ts), but a control that only ever gets refused is not a
  *  control to draw. */
-export function documentPanel(view: SpecPageView, label: string, now: number): string {
+export function documentPanel(view: SpecPageView, label: string, now: number, mark = ""): string {
   const found = view.files.find((f) => f.label === label);
   const file = found ?? { label, text: null };
-  if (file.text === null) return specFilePanel(file, now);
-  if (view.archived || activeJob(view)) return readOnlyDocument(file, now);
-  return `<h2>${esc(file.label)}${fileStamp(file, now)}</h2>${editableDocumentForm(view, label, file.text)}`;
+  if (file.text === null) return specFilePanel(file, now, mark);
+  if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
+  return `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>${editableDocumentForm(view, label, file.text)}`;
 }
 
 /** The Description tab: the one file of the four with a depends-on
@@ -89,9 +89,9 @@ export function documentPanel(view: SpecPageView, label: string, now: number): s
  *  would have written, committed and pushed underneath a run. The
  *  refusal itself is on the route — hiding a control is never the guard
  *  — but a box that only ever gets refused is not a box to draw. */
-export function descriptionPanel(view: SpecPageView, now: number): string {
+export function descriptionPanel(view: SpecPageView, now: number, mark = ""): string {
   const file = view.files.find((f) => f.label === EDITABLE_SPEC_FILE);
-  if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now);
+  if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, mark);
   const picker = dependsOnField(view.dependsOnOptions ?? [], new Set(view.dependsOn ?? []));
   // Spec 166: above the file, because a dependency is about the spec
   // rather than about the prose — and because the line it writes is the
@@ -107,7 +107,7 @@ export function descriptionPanel(view: SpecPageView, now: number): string {
       `(implement, resolve, archive) — never to a step already running.</p>`
     : "";
   return (
-    `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}</h2>` +
+    `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>` +
     editableDocumentForm(view, EDITABLE_SPEC_FILE, file?.text ?? "", extra)
   );
 }
