@@ -614,7 +614,7 @@ for root in "${roots[@]}"; do
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
     git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
   fi
-  if [ "$do_pull" = "yes" ] && git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+  if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
     if git -C "$root" fetch -q origin "$base" 2>/dev/null; then
       git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
         || note_pull_error "cannot fast-forward $base (aide/$spec_label in $root)"
@@ -1323,6 +1323,11 @@ for root in "${roots[@]}"; do
     created_wt+=("$wt"); created_wt_root+=("$root")
     update_branch_to_base "$wt" "$base_ref" "$root"
   else
+    if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
+      git -C "$root" fetch -q origin "$base" 2>/dev/null \
+        || refuse "cannot fetch $base from origin in $root — refusing rather than cutting $branch from this checkout's own tip"
+      base_ref_for "$root" "$base"
+    fi
     git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>/dev/null \
       || refuse "cannot create $branch in a worktree of $root"
     created_wt+=("$wt"); created_wt_root+=("$root")
