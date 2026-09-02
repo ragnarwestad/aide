@@ -88,6 +88,27 @@ export function sortChoice(url: URL, req: Request): { sort?: string; dir?: strin
   return { sort: remembered || undefined, dir: dir || undefined };
 }
 
+/** Which State chip the reader has chosen, remembered the same way the
+ *  sort column is (`sortChoice` above): an explicit `?state=` always
+ *  wins and becomes the new memory; its absence falls back to the
+ *  cookie; nothing here is trusted — `stateFilter()` in
+ *  `data-model/filter-sort.ts` falls back to the default for a key it
+ *  does not know. */
+export const STATE_COOKIE = "aide_state";
+
+export function stateChoice(url: URL, req: Request): { state?: string; setCookie?: string } {
+  const state = url.searchParams.get("state");
+  if (state) {
+    return {
+      state,
+      setCookie:
+        `${STATE_COOKIE}=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+    };
+  }
+  const stored = cookieValue(req.headers.get("cookie"), STATE_COOKIE);
+  return stored ? { state: stored } : {};
+}
+
 // A body may arrive as JSON (API) or urlencoded (a no-JS form).
 export function bodyToObject(text: string, contentType: string | null): unknown {
   if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {

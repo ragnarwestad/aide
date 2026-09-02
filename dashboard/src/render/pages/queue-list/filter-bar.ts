@@ -9,7 +9,6 @@ import { esc } from "../../ui/html.ts";
 import {
   ARCHIVED_STATE,
   DEFAULT_SORT,
-  DEFAULT_STATE_FILTER,
   FILTER_KEYS,
   SORTS,
   SORT_DEFAULT_DIR,
@@ -117,9 +116,11 @@ function stateDropdown(
     const count =
       counted.filter((g) => matchesState(s, g.state)).length +
       (matchesState(s, ARCHIVED_STATE) ? uncounted : 0);
-    // The DEFAULT entry is the one that travels as no value at all — by
-    // position, so moving it to the front moves this with it.
-    const href = queueHref(f, { state: s.key === DEFAULT_STATE_FILTER.key ? "" : s.key });
+    // Always explicit (REQ-4, spec 338): picking All has to be able to
+    // override a REMEMBERED non-default filter, and a blank `state`
+    // collapses to the same bare `/` a plain navigation with no choice
+    // at all produces — the one thing that would tell the two apart.
+    const href = queueHref(f, { state: s.key });
     return (
       `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
       `<span class="check" aria-hidden="true"></span>${esc(s.label)} (${count})</a>`
@@ -132,7 +133,7 @@ function stateDropdown(
   // what the mobile row's tight nowrap budget can afford.
   return (
     `<details class="menu state" data-filter="state">` +
-    `<summary title="State" aria-label="State">State: ${esc(chosen.label)}${ICON_CHEVRON}</summary>` +
+    `<summary title="States" aria-label="States">States: ${esc(chosen.label)}${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`
   );

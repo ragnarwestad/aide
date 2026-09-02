@@ -260,4 +260,8 @@
   .searchfield { width: 7rem; flex: 0 1 7rem; }
   .searchfield:focus-within { flex: 1 1 auto; width: auto; }
   .specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }
+
+  /* REQ-8, spec 338: the desktop-only extra margin above must not reach
+     phone width — the row already runs `nowrap` on a tight budget here. */
+  .menu.state { margin-left: 0; }
 }

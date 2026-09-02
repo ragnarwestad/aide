@@ -111,6 +111,23 @@ describe("the state dropdown (spec 289)", () => {
     expect(html).toContain('<input type="hidden" name="state" value="done">');
   });
 
+  test('the "All" option carries its own explicit state=all (REQ-4, spec 338)', () => {
+    const html = page({ filter: { state: "done" } });
+    const panel = panelOf(html);
+    const allOption = optionByLabel(panel, "All");
+    const allHref = allOption.match(/href="([^"]*)"/)?.[1] ?? "";
+    expect(allHref).toContain("state=all");
+  });
+
+  test('the trigger reads "States", not "State" (REQ-6, spec 338)', () => {
+    const html = page();
+    const panel = panelOf(html);
+    const trigger = panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
+    expect(trigger).toContain('title="States"');
+    expect(trigger).toContain('aria-label="States"');
+    expect(trigger).toContain("States: All");
+  });
+
   test("sits on the controls line between the (?) popover and New spec (spec 305)", () => {
     const html = page({ createProjects: ["aide"] });
     const introIndex = html.indexOf('<details class="intro"');

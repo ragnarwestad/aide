@@ -10,7 +10,7 @@ import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderDeleteSchedulePage, renderNewSchedulePage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderScheduleDetailPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
-import { queueClientScript, sortChoice } from "../serve-helpers.ts";
+import { queueClientScript, sortChoice, stateChoice } from "../serve-helpers.ts";
 import { serveStatic } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -35,7 +35,11 @@ export async function handlePageRoutes(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const liveTargets = ctx.withFreshness(ctx.targets());
     const archivedKeys = ctx.readScan()?.archived ?? [];
-    const chosenState = url.searchParams.get("state") ?? undefined;
+    // The reader's own choice of state, from the address or from the
+    // cookie it was last written into (spec 338, mirroring the sort
+    // column's own `chosenSort` below).
+    const stateResult = stateChoice(url, req);
+    const chosenState = stateResult.state;
     // Every archived spec is a row on this list since spec 221 — but
     // only for a reader whose chip asks for one. The builder decides
     // that itself, off the same `filterShowsArchived` the chips are
@@ -128,6 +132,7 @@ export async function handlePageRoutes(
       // page would never be written by the very act of choosing.
       const rowHeaders = new Headers({ "content-type": "text/html; charset=utf-8" });
       if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
+      if (stateResult.setCookie) rowHeaders.append("set-cookie", stateResult.setCookie);
       return new Response(renderQueueRows(await Promise.all(listed.map(ctx.jobRow)), view), {
         headers: rowHeaders,
       });
@@ -162,6 +167,7 @@ export async function handlePageRoutes(
       );
     }
     if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
+    if (stateResult.setCookie) pageHeaders.append("set-cookie", stateResult.setCookie);
     return new Response(html, { headers: pageHeaders });
   }
 
