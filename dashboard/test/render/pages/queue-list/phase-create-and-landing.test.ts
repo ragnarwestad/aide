@@ -352,7 +352,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
       [target("278-repro", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "archive: archived, but landing it failed — its branch is still open",
+      "archive: archived, but landing it failed — its branch is still open. — Re-run archive.",
     );
     expect(panel(html)).not.toContain("implement: last re-run failed");
     expect(panel(html)).not.toContain('"implement: last re-run failed"');
@@ -383,7 +383,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
       [target("278-repro2", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "archive: archived, but landing it failed — its branch is still open",
+      "archive: archived, but landing it failed — its branch is still open. — Re-run archive.",
     );
     expect(panel(html)).not.toContain("implement:");
   });

@@ -17,7 +17,7 @@ import {
 } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
-import { NAME_RE, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
+import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
 import { parsePendingModels, parseStoredJob, persistPendingModels } from "./persist.ts";
 
 /** What `setPendingModel()` answers with — never a `job`, since none
@@ -155,7 +155,7 @@ export class QueueStore {
         ok: false,
         error:
           `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while its last step is still landing ` +
-          `(job ${landing.id.slice(0, 8)}) — try again in a moment`,
+          `(job ${landing.id.slice(0, 8)}) — press Run again in a moment, once the landing finishes`,
       };
     }
     this.jobs.set(parsed.job.id, parsed.job);
@@ -262,7 +262,7 @@ export class QueueStore {
    *  CALLER read a moment ago is never consulted. */
   editTailStep(id: string, step: string, add: boolean): ParseResult {
     const job = this.jobs.get(id);
-    if (!job) return { ok: false, error: "no such job" };
+    if (!job) return { ok: false, error: invalidRequest("no such job") };
     const named = step || "that step";
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
     if (!wanted || !tailEdits(job).includes(wanted)) {
@@ -270,17 +270,18 @@ export class QueueStore {
       // to say why a tick did not take.
       return {
         ok: false,
-        error:
+        error: invalidRequest(
           job.state === "running"
             ? `${named} is not a step this run can still be given`
             : `${named} cannot be changed: this job is ${job.state}, not running`,
+        ),
       };
     }
     const present = job.steps.includes(wanted);
     if (add === present) {
       return {
         ok: false,
-        error: add ? `${named} is already part of this job` : `${named} is not part of this job`,
+        error: invalidRequest(add ? `${named} is already part of this job` : `${named} is not part of this job`),
       };
     }
     const head = job.steps.slice(0, job.stepIndex + 1);
@@ -329,7 +330,7 @@ export class QueueStore {
    *  headroom by being re-pointed at it mid-run. */
   editTailModel(id: string, step: string, model: string): ParseResult {
     const job = this.jobs.get(id);
-    if (!job) return { ok: false, error: "no such job" };
+    if (!job) return { ok: false, error: invalidRequest("no such job") };
     const named = step || "that step";
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
     if (!wanted || !tailEdits(job).includes(wanted)) {
@@ -337,20 +338,23 @@ export class QueueStore {
       // to say why a pick did not take.
       return {
         ok: false,
-        error:
+        error: invalidRequest(
           job.state === "running"
             ? `${named} is not a step this run can still be given`
             : `${named} cannot be changed: this job is ${job.state}, not running`,
+        ),
       };
     }
-    if (!NAME_RE.test(model)) return { ok: false, error: "invalid model" };
+    if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = this.defaults.modelChoices?.[model];
     if (!found) {
       return {
         ok: false,
-        error: this.defaults.modelChoices
-          ? `unknown or not-allowed model: ${model}`
-          : "no model choice is configured on this server",
+        error: invalidRequest(
+          this.defaults.modelChoices
+            ? `unknown or not-allowed model: ${model}`
+            : "no model choice is configured on this server",
+        ),
       };
     }
     const next = { ...job, model: { ...job.model, [wanted]: model } };
@@ -368,15 +372,17 @@ export class QueueStore {
    *  the model are real. */
   setPendingModel(project: string, specFolder: string, step: string, model: string): PendingModelResult {
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
-    if (!wanted) return { ok: false, error: `${step || "that step"} is not a step a model can be chosen for` };
-    if (!NAME_RE.test(model)) return { ok: false, error: "invalid model" };
+    if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
+    if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = this.defaults.modelChoices?.[model];
     if (!found) {
       return {
         ok: false,
-        error: this.defaults.modelChoices
-          ? `unknown or not-allowed model: ${model}`
-          : "no model choice is configured on this server",
+        error: invalidRequest(
+          this.defaults.modelChoices
+            ? `unknown or not-allowed model: ${model}`
+            : "no model choice is configured on this server",
+        ),
       };
     }
     const key = `${project}/${specFolder}`;

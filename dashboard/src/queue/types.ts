@@ -187,6 +187,10 @@ export interface Job {
    *  lands. `errorReason`/`error` still say what is happening RIGHT
    *  NOW; this says what already went wrong and was never resolved. */
   landingError?: string;
+  /** Raw git/tool output behind `error` (spec 352, REQ-5) — never part
+   *  of `error`'s own text, which stays a fixed, resolution-bearing
+   *  sentence. Hover-only detail for whoever needs the exact words. */
+  errorDetail?: string;
 }
 
 /** What one pickable model is granted. The budget lives HERE, not in

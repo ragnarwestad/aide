@@ -29,6 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
+import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
@@ -171,7 +172,10 @@ export class Runner {
     // Both caps are checked BEFORE the step starts: a cap that only
     // stops you afterwards is a report, not a cap.
     if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
-      const reason = `the job cap ($${job.jobCapUsd}) would be exceeded by the next step`;
+      const reason = errorSentence({
+        what: `the job cap ($${job.jobCapUsd}) would be exceeded by the next step.`,
+        resolve: "Raise the job cap in the project's .aide/config, then press Run again.",
+      }).text;
       const result = this.o.store.transition(job.id, "cap-hit", {
         stopReason: "job-cap",
         finishedAt: this.o.now(),
@@ -187,7 +191,10 @@ export class Runner {
     // anything noticed.
     if (this.reservedUsd() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
       this.o.store.update(job.id, {
-        error: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded`,
+        error: errorSentence({
+          what: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded.`,
+          resolve: "Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
+        }).text,
       });
       return false;
     }
@@ -238,7 +245,10 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: "the run vanished without leaving a result",
+          error: errorSentence({
+            what: "the run vanished without leaving a result.",
+            resolve: "Press Run again.",
+          }).text,
         });
       }
     }
@@ -256,7 +266,10 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: "the server restarted while this step was running, and it left no result",
+          error: errorSentence({
+            what: "the server restarted while this step was running, and it left no result.",
+            resolve: "Press Run again.",
+          }).text,
         });
       }
     }

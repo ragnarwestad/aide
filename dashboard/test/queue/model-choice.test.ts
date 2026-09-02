@@ -437,7 +437,12 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     const job = running(["analyze", "implement"]);
     const answer = job.store.editTailModel(job.id, "implement", "haiku");
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toBe("unknown or not-allowed model: haiku");
+    if (!answer.ok) {
+      expect(answer.error).toBe(
+        "unknown or not-allowed model: haiku — Reload the page and try again — " +
+          "or, if this came from a raw request, check the field this names.",
+      );
+    }
     expect(job.model().implement).toBe("opus");
   });
 
@@ -445,14 +450,23 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     const job = running(["analyze", "implement"], 0, DEFAULTS);
     const answer = job.store.editTailModel(job.id, "implement", "fable");
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toBe("no model choice is configured on this server");
+    if (!answer.ok) {
+      expect(answer.error).toBe(
+        "no model choice is configured on this server — Reload the page and try again — " +
+          "or, if this came from a raw request, check the field this names.",
+      );
+    }
   });
 
   test("a malformed name is refused before the table is asked", () => {
     const job = running(["analyze", "implement"]);
     const answer = job.store.editTailModel(job.id, "implement", "fable/../etc");
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toBe("invalid model");
+    if (!answer.ok) {
+      expect(answer.error).toBe(
+        "invalid model — Reload the page and try again — or, if this came from a raw request, check the field this names.",
+      );
+    }
   });
 
   test("a job that is not running is closed altogether (criterion 8)", () => {

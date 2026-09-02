@@ -53,11 +53,16 @@ export const en = {
   "list.landingFailed": "landing failed",
   "list.dateUnknown": "date unknown",
   "list.waitingOnReview": "its code is waiting on a pull request — open it to review",
-  "list.pushError": "A step's push did not reach origin. Pull the branch locally, then push it again.",
-  "list.prError": "No pull request could be opened for this branch. Open one by hand.",
+  "list.pushError":
+    "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
+    "then push it again from a terminal.",
+  "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
   "list.branchLeftBehind":
-    "This spec merged, but its branch could not be deleted on origin. Delete it by hand.",
-  "list.noPullRequestOpened": "its code is on a branch and no pull request was opened for it",
+    "This spec merged, but its branch could not be deleted on origin. — " +
+    "Delete it by hand, in the checkout on the serving host.",
+  "list.noPullRequestOpened":
+    "its code is on a branch and no pull request was opened for it. — Open one by hand, " +
+    "in the checkout on the serving host.",
   "list.archiveHeldBack": "archive held back — {reason}",
   "list.noSpecMatchesFilter": "No spec matches this filter.",
   "list.noSpecAtAll": "No spec to show — no project on this machine has one to run.",

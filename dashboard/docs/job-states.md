@@ -6,7 +6,8 @@ and when, and the three fields beside it that behave like a state without being 
 that every caller — `src/queue/runner.ts`, the cancel route in `src/serve/handle-queue/job-actions.ts`, and the
 landing in `src/serve/land-branch/merge.ts` — asks instead of writing `state` itself. How a
 state reads on the page is on [The specs list and the spec page](the-specs-list.md); the level above — which of the four
-phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md).
+phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md). What a job's own
+`error` sentence has to say is the one rule on [Error sentences](error-sentences.md).
 
 ## Table of contents
 
