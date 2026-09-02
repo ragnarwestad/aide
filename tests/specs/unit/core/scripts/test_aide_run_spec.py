@@ -693,6 +693,7 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
 
 # --- Criterion 4: the graceful stop ------------------------------------------
 
+@pytest.mark.serial
 def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, workspace, fake_claude):
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -763,6 +764,7 @@ def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, w
     assert "tokens" not in out, "a stopped run's flushed usage is no more measured than its cost"
 
 
+@pytest.mark.serial
 def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fake_claude, tmp_path):
     marker = tmp_path / "term-seen"
     claude = fake_claude(
@@ -2484,6 +2486,7 @@ def test_locks_for_different_projects_do_not_block_each_other(runner, tmp_path, 
 
 # --- Criterion 4 (spec 256): a killed run's lock is reclaimed ---------------
 
+@pytest.mark.serial
 def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
     runner, workspace, fake_claude
 ):
@@ -2522,6 +2525,7 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
 
 # --- Criterion 5 (spec 256): SIGTERM releases the lock ----------------------
 
+@pytest.mark.serial
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path
 ):
@@ -4620,6 +4624,7 @@ def test_an_unknown_tool_is_refused(runner, workspace, fake_claude):
     assert "gemini" in out["error"]
 
 
+@pytest.mark.serial
 def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace, fake_codex):
     """Criterion 5. The timeout loop operates on a PID and a process
     group, never on a tool — so the only thing worth proving here is that

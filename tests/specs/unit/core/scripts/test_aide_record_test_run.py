@@ -60,6 +60,20 @@ def run(script, project, specs_root, folder, cmd, result_file=None):
     return proc.returncode, json.loads(line), proc.stdout
 
 
+def run_many(script, project, specs_root, folder, cmds, result_file=None):
+    args = [
+        str(script), "--project-dir", str(project), "--specs-root", str(specs_root),
+        "--folder", folder,
+    ]
+    for cmd in cmds:
+        args += ["--cmd", cmd]
+    if result_file:
+        args += ["--result-file", str(result_file)]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    return proc.returncode, json.loads(line), proc.stdout
+
+
 def test_passing_command_records_exit_code_zero_and_the_real_commit(script, project, specs_root):
     rc, out, _ = run(script, project, specs_root, "81-x", "true")
     assert rc == 0, out
@@ -131,3 +145,60 @@ def test_result_file_carries_the_same_json_as_stdout(script, project, specs_root
     result_file = tmp_path / "result.json"
     rc, out, _ = run(script, project, specs_root, "81-x", "true", result_file=result_file)
     assert json.loads(result_file.read_text()) == out
+
+
+# --- repeatable --cmd (spec 361, REQ-5) -------------------------------------
+#
+# A single --cmd must keep producing TODAY's exact record shape — this is
+# what makes REQ-6 a regression lock: every assertion above, unmodified,
+# is the no-scopes fallback path's own coverage.
+
+
+def test_two_commands_produce_an_aggregate_record_with_a_commands_array(script, project, specs_root):
+    rc, out, _ = run_many(script, project, specs_root, "81-x", ["true", "true"])
+    assert rc == 0, out
+    record = json.loads((specs_root / "81-x" / "test-run.json").read_text())
+    assert record["command"] is None, record
+    assert record["exitCode"] == 0, record
+    assert record["commit"] == head_commit(project)
+    assert record["commands"] == [
+        {"command": "true", "exitCode": 0},
+        {"command": "true", "exitCode": 0},
+    ], record
+
+
+def test_two_commands_where_one_fails_reports_a_nonzero_aggregate_and_names_both(
+    script, project, specs_root,
+):
+    rc, out, _ = run_many(script, project, specs_root, "81-x", ["true", "exit 3"])
+    assert rc != 0, out
+    record = json.loads((specs_root / "81-x" / "test-run.json").read_text())
+    assert record["commands"] == [
+        {"command": "true", "exitCode": 0},
+        {"command": "exit 3", "exitCode": 3},
+    ], record
+    assert record["exitCode"] != 0, record
+
+
+def test_a_failing_first_command_does_not_skip_the_second(script, project, specs_root):
+    """Every command runs regardless of an earlier failure, so a reader
+    can see the status of every one — not just the first failure."""
+    rc, out, _ = run_many(script, project, specs_root, "81-x", ["exit 1", "true"])
+    record = json.loads((specs_root / "81-x" / "test-run.json").read_text())
+    assert record["commands"] == [
+        {"command": "exit 1", "exitCode": 1},
+        {"command": "true", "exitCode": 0},
+    ], record
+
+
+def test_single_cmd_shape_is_unchanged_even_when_passed_through_the_repeatable_flag(
+    script, project, specs_root,
+):
+    """REQ-6 regression lock: exactly one --cmd, however it is passed,
+    keeps today's scalar shape — no `commands` array at all."""
+    rc, out, _ = run_many(script, project, specs_root, "81-x", ["true"])
+    assert rc == 0, out
+    record = json.loads((specs_root / "81-x" / "test-run.json").read_text())
+    assert record["command"] == "true"
+    assert record["exitCode"] == 0
+    assert "commands" not in record, record
