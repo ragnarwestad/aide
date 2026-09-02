@@ -55,21 +55,23 @@ edited by hand together.
 
 | Decision | bash | TypeScript | Pinned by |
 |---|---|---|---|
-| `WORKFLOW_STEPS` — the steps that exist | `aide-run-spec` | `dashboard/src/queue/steps.ts` | `test_aide_run_spec.py` |
-| `DEPENDENCY_GATED_STEPS` — the steps an unarchived dependency holds back | `aide-run-spec` | `dashboard/src/serve/serve-helpers/config.ts` | `test_the_two_copies_of_the_dependency_gate_agree` |
 | Project readiness — the read-only prerequisites a run needs | `aide-run-spec` | `assessProjectReadiness()` in `dashboard/src/project/project-admin/readiness.ts` | `tests/fixtures/project-readiness-prerequisites.json` |
 | `worktreeLinks` precedence — manifest over `.aide/config` | `aide_manifest_get` + `aide-run-spec` | `resolveWorktreeLinks` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/worktree-links-precedence.json` |
 | `errorReason` — `"conflict" \| "unlanded"` | — | `dashboard/src/queue/types.ts` and `dashboard/src/render/ui/job-state/types.ts`, which do not import each other | `dashboard/test/queue/parsing-schedule-and-errors.test.ts` reads both as text |
 | `codeLanding` — whether code is reviewed before it lands | one anchored `sed` in `aide-run-spec` | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/code-landing-precedence.json` |
 | The status-mark rule — which Status cells count as done | `total_progress_for` in `aide-run-spec` | `isDoneMark` in `dashboard/src/project/parse-status.ts` | `tests/fixtures/status-row-counting.json` |
 
-The workflow arc is a further copy of the step list: `WORKFLOW_ARC` in
-`aide-run-spec`, `HISTORY_STEPS` in `dashboard/src/git/workflow-history.ts`
-and `WORKFLOW_STEPS` in `dashboard/src/project/parse-status.ts` all name
-the four stages `create`, `analyze`, `implement`, `archive`. Review is
-part of `analyze`, not a stage: the three-reviewer routine runs inline in
-`core/skills/aide-analyze/SKILL.md`, as separate Agent invocations blind
-to the analyst's own reasoning.
+The workflow's own vocabulary is NOT one of these pairs (spec 349):
+`core/scripts/lib/workflow-steps.json` is the one file both sides read —
+`aide-run-spec` with jq, the dashboard by import — for the steps that
+exist, the steps an unarchived dependency holds back, and the four-stage
+workflow arc (`create`, `analyze`, `implement`, `archive`). Only
+`dashboard/src/queue/steps.ts`'s `WorkflowStep` TYPE stays hand-written,
+since a JSON import cannot give TypeScript a literal union; a runtime
+assertion in that file throws if it ever disagrees with the shared file.
+Review is part of `analyze`, not a stage: the three-reviewer routine runs
+inline in `core/skills/aide-analyze/SKILL.md`, as separate Agent
+invocations blind to the analyst's own reasoning.
 
 Two known asymmetries in the readiness pair are named in that test's own
 exclusion list rather than in the fixture: `specsRepo` is a check the

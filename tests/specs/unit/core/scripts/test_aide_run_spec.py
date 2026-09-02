@@ -503,20 +503,31 @@ def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_cla
     assert "AIDE_HEADLESS=1" in fake_claude.env_log.read_text().splitlines()
 
 
+def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
+    """A working stand-in for `aide-run-spec`, in its own directory: the
+    script itself, plus the two files it reads relative to its own
+    location (`_aide-spec-lib.sh`, and — since spec 349 —
+    `lib/workflow-steps.json`, without which every command refuses)."""
+    copy = tmp_path / name
+    copy.write_bytes(pathlib.Path(runner).read_bytes())
+    copy.chmod(0o755)
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    (tmp_path / "lib").mkdir(exist_ok=True)
+    (tmp_path / "lib" / "workflow-steps.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
+    )
+    return copy
+
+
 def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_claude, tmp_path):
     """An aide `implement` step reinstalls aide, which copies this very
     script over itself. Bash reads a script incrementally from disk, so
     without a private copy the runner dies mid-job — measured on the
     first end-to-end run, eight minutes in, after the work had already
     succeeded."""
-    copy = tmp_path / "aide-run-spec-under-test"
-    copy.write_bytes(pathlib.Path(runner).read_bytes())
-    copy.chmod(0o755)
-    # The shared library lives beside the script; the copy resolves it
-    # from the ORIGINAL directory, so give this stand-in one too.
-    (tmp_path / "_aide-spec-lib.sh").write_bytes(
-        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
-    )
+    copy = _standalone_runner_copy(runner, tmp_path)
     # The fake claude overwrites the running script, exactly as the
     # installer would.
     claude = fake_claude(
@@ -538,12 +549,7 @@ def test_a_stale_self_copy_marker_never_deletes_the_installed_script(runner, wor
     script was the throwaway copy and delete it. Measured 2026-08-16:
     one test run removed core/scripts/aide-run-spec from the worktree.
     """
-    copy = tmp_path / "aide-run-spec-under-test"
-    copy.write_bytes(pathlib.Path(runner).read_bytes())
-    copy.chmod(0o755)
-    (tmp_path / "_aide-spec-lib.sh").write_bytes(
-        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
-    )
+    copy = _standalone_runner_copy(runner, tmp_path)
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
     env_marker = str(tmp_path / "some-other-path")
     old = os.environ.get("AIDE_RUN_SPEC_SELF_COPY")
@@ -3663,31 +3669,89 @@ def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
     assert not fake_claude.calls.exists()
 
 
-# --- the gated-step list lives in two files, like the step vocabulary -------
-# Same shape of duplication as WORKFLOW_STEPS, and the same treatment: a
-# bash string here, a TypeScript array there, no shared source and no
-# compiler between them. Gating one and not the other gives a dashboard
-# that parks a job the script would have run, or starts one it refuses.
+# --- spec 349: the workflow's step lists have one source, not a hand- ------
+# paired copy on each side. `core/scripts/lib/workflow-steps.json` is now
+# the one place `workflowSteps`, `dependencyGatedSteps`, `workflowArc` and
+# `workflowArcRetired` are written; aide-run-spec reads it with jq and the
+# dashboard imports it. These tests replace the three `test_the_*_copies_
+# of_*_agree` pins that used to catch the two sides drifting apart.
 
 
-def test_the_two_copies_of_the_dependency_gate_agree(workspace_root):
-    import re
+def test_workflow_steps_json_holds_the_known_lists(workspace_root):
+    """REQ-1: one data file holds the workflow steps, the dependency-gated
+    steps and the workflow arc — each matching today's known-good
+    values."""
+    path = workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json"
+    assert path.is_file(), f"the shared workflow-step file is missing: {path}"
+    data = json.loads(path.read_text())
+    assert data["workflowSteps"] == [
+        "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule",
+    ]
+    assert data["dependencyGatedSteps"] == ["implement", "archive"]
+    assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]
+    assert data["workflowArcRetired"] == ["review-plan"]
 
+
+def test_bash_no_longer_declares_the_step_lists_as_literals(workspace_root):
+    """REQ-2: the runner reads all four lists from workflow-steps.json now.
+    WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
+    `NAME="..."` shape once computed), so this checks for the absence of
+    the OLD LITERAL VALUE rather than the variable's name."""
     bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^DEPENDENCY_GATED_STEPS="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares DEPENDENCY_GATED_STEPS as a plain string"
-    from_bash = set(m.group(1).split())
+    for literal in (
+        'WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"',
+        'DEPENDENCY_GATED_STEPS="implement archive"',
+        'WORKFLOW_ARC="create analyze implement archive"',
+        'WORKFLOW_ARC_RETIRED="review-plan"',
+    ):
+        assert literal not in bash, f"aide-run-spec still declares {literal!r} as a literal"
 
-    ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
-    m = re.search(r"export const DEPENDENCY_GATED_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "config.ts no longer declares DEPENDENCY_GATED_STEPS as a literal array"
-    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about which steps a dependency "
-        f"holds back: only in the script {sorted(from_bash - from_ts)}, "
-        f"only in the dashboard {sorted(from_ts - from_bash)}"
+def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root):
+    """REQ-2: none of the three plain-import TypeScript files may keep a
+    hand-written array literal once they import workflow-steps.json
+    instead. `dashboard/src/queue/steps.ts` is excluded here — its
+    `WorkflowStep` type is checked separately (REQ-4b), since a JSON
+    import cannot give TypeScript a literal union."""
+    config_ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
+    assert not re.search(r"export const DEPENDENCY_GATED_STEPS = \[.*?\] as const;", config_ts, re.S), (
+        "config.ts still declares DEPENDENCY_GATED_STEPS as a literal array"
     )
+
+    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
+    assert not re.search(r"export const HISTORY_STEPS = \[.*?\];", history_ts, re.S), (
+        "workflow-history.ts still declares HISTORY_STEPS as a literal array"
+    )
+    assert not re.search(r"export const HISTORY_STEPS_RETIRED = \[.*?\];", history_ts, re.S), (
+        "workflow-history.ts still declares HISTORY_STEPS_RETIRED as a literal array"
+    )
+
+    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
+    assert not re.search(r"const WORKFLOW_STEPS = \[.*?\];", parse_status_ts, re.S), (
+        "parse-status.ts still declares WORKFLOW_STEPS as a literal array"
+    )
+
+
+def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspace, fake_claude, tmp_path):
+    """REQ-3: a runner that cannot find the shared file refuses loudly,
+    naming the file, rather than running with the four lists silently
+    unset under `set -u`."""
+    lone_copy = tmp_path / "aide-run-spec-under-test"
+    lone_copy.write_bytes(pathlib.Path(runner).read_bytes())
+    lone_copy.chmod(0o755)
+    # The shared spec-resolution library lives beside the script too, and
+    # its absence would fail the run for an unrelated reason first — give
+    # the stand-in one, exactly as the self-copy tests above do, so the
+    # only thing missing beside it is `lib/workflow-steps.json`.
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "workflow-steps.json" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
 # --- Spec 93: create, for a spec that does not exist yet ---------------------
@@ -4353,70 +4417,6 @@ def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
     assert out["terminalReason"] == "refused"
     assert "invalid --command" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
-
-
-# --- the step vocabulary lives in two files (spec 91's open flaw) ------------
-# `WORKFLOW_STEPS` is a bash string here and a TypeScript array there,
-# with no shared source and no compiler between them. Adding a step to
-# one and forgetting the other gives a dashboard that offers a step the
-# script refuses. Deduplicating the two is out of scope for spec 106;
-# noticing the drift is not.
-
-def test_the_two_copies_of_the_step_vocabulary_agree(workspace_root):
-    import re
-
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^WORKFLOW_STEPS="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares WORKFLOW_STEPS as a plain string"
-    from_bash = set(m.group(1).split())
-
-    ts = (workspace_root / "dashboard" / "src" / "queue" / "steps.ts").read_text()
-    m = re.search(r"export const WORKFLOW_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "steps.ts no longer declares WORKFLOW_STEPS as a literal array"
-    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about which steps exist: "
-        f"only in the script {sorted(from_bash - from_ts)}, "
-        f"only in the dashboard {sorted(from_ts - from_bash)}"
-    )
-
-
-# --- the "workflow arc" is copied a THIRD time, with no test until now ------
-# `WORKFLOW_ARC` (bash, this script), `HISTORY_STEPS`
-# (dashboard/src/workflow-history.ts) and the plain `WORKFLOW_STEPS` array
-# in dashboard/src/parse-status.ts name the same four stages a spec passes
-# through. Unlike the seven/six-step vocabulary and the dependency-gate
-# list, nothing pinned these three together before spec 181 — three
-# hand-edits with no test net is exactly the drift risk this repo already
-# names for the other two lists. Added now, while all three are already
-# being hand-edited to drop `review-plan`, so it is cheap and it protects
-# this very change.
-
-def test_the_three_copies_of_the_workflow_arc_agree(workspace_root):
-    import re
-
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^WORKFLOW_ARC="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares WORKFLOW_ARC as a plain string"
-    from_bash = set(m.group(1).split())
-
-    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
-    m = re.search(r"export const HISTORY_STEPS = \[(.*?)\];", history_ts, re.S)
-    assert m, "workflow-history.ts no longer declares HISTORY_STEPS as a literal array"
-    from_history_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
-    m = re.search(r"const WORKFLOW_STEPS = \[(.*?)\];", parse_status_ts, re.S)
-    assert m, "parse-status.ts no longer declares WORKFLOW_STEPS as a literal array"
-    from_parse_status_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    assert from_bash == from_history_ts == from_parse_status_ts, (
-        "the three copies of the workflow arc disagree: "
-        f"aide-run-spec {sorted(from_bash)}, "
-        f"workflow-history.ts {sorted(from_history_ts)}, "
-        f"parse-status.ts {sorted(from_parse_status_ts)}"
-    )
 
 
 # --- spec 125: the second tool ----------------------------------------------

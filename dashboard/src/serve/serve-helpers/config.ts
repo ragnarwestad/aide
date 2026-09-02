@@ -1,6 +1,7 @@
 // Server-wide constants and the per-repo merge lock.
 
 import type { QueueDefaults } from "../../queue/queue.ts";
+import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export const MAX_BODY = 4096;
 
@@ -127,11 +128,9 @@ export function parseQueueConcurrency(raw: unknown): number {
  *  nothing, so a chain of dependent specs can be analysed in parallel
  *  the moment it is queued.
  *
- *  A literal array, matched by a test rather than shared: the same
- *  vocabulary is a plain string in `core/scripts/aide-run-spec`, with no
- *  shared source and no compiler between the two, and
- *  `test_the_two_copies_of_the_dependency_gate_agree` is what notices
- *  the drift — exactly as `WORKFLOW_STEPS` already does. */
-export const DEPENDENCY_GATED_STEPS = ["implement", "archive"] as const;
+ *  Read from `core/scripts/lib/workflow-steps.json` (spec 349) — the
+ *  same file `core/scripts/aide-run-spec` reads with jq, so the two
+ *  sides can no longer drift apart. */
+export const DEPENDENCY_GATED_STEPS: readonly string[] = workflowStepsData.dependencyGatedSteps;
 
 export const GATED = new Set<string>(DEPENDENCY_GATED_STEPS);

@@ -24,7 +24,12 @@ COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 # when the file is absent, leaving status_progress_for undefined and
 # every call to it a "command not found" that crashes aide-run-spec
 # under set -u before it can write a result.
-COMMON_BIN_LIB_SCRIPTS="status-progress.sh"
+#
+# workflow-steps.json (spec 349): the one file holding the workflow's
+# step lists, read by aide-run-spec (jq) and imported by the dashboard.
+# Unlike status-progress.sh above, a missing copy here is refused loudly
+# by aide-run-spec rather than silently no-op'd.
+COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json"
 # Non-AI CLI tools aide's installer keeps present via mise, using the
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).

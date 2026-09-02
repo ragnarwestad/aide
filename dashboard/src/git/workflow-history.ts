@@ -24,14 +24,17 @@
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { parseStatus } from "../project/parse-status.ts";
+import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 const DEFAULT_TTL_MS = 30_000;
 
 /** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
- *  six the runner will execute: `explore` and `manifest`
- *  are things you can queue, not places a spec gets to. */
-export const HISTORY_STEPS = ["create", "analyze", "implement", "archive"];
+ *  nine the runner will execute: `explore` and `manifest`
+ *  are things you can queue, not places a spec gets to. Read from
+ *  `core/scripts/lib/workflow-steps.json` (spec 349), the same file
+ *  `core/scripts/aide-run-spec` reads with jq. */
+export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
 
 /** A step name retired FROM the arc, kept recognized when READING old
  *  commits (spec 181, description requirement 2: "every archived spec
@@ -45,9 +48,9 @@ export const HISTORY_STEPS = ["create", "analyze", "implement", "archive"];
  *  Never grows for a step retired WITHOUT that requirement: spec 171's
  *  `resolve` was never part of this arc and needed no such entry.
  *
- *  `core/scripts/aide-run-spec` keeps the bash twin of this,
- *  `WORKFLOW_ARC_RETIRED`. */
-export const HISTORY_STEPS_RETIRED = ["review-plan"];
+ *  `core/scripts/aide-run-spec` reads the same value from
+ *  `workflow-steps.json`'s `workflowArcRetired`. */
+export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workflowArcRetired;
 
 // --- the commit-subject grammar ---------------------------------------------
 //
