@@ -133,6 +133,22 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
+    def test_aide_resolve_test_cmd_is_installed(self, workspace_root, tmp_path):
+        """Spec 361. aide-archive-spec calls it by name, next to itself
+        in the same installed directory — missing from
+        COMMON_BIN_SCRIPTS, the same way aide-record-test-run once was,
+        would leave the gate unable to resolve a command at all on a
+        freshly installed host."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True, env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "aide-resolve-test-cmd").is_file(), \
+            "aide-resolve-test-cmd is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
+
     def test_spec_state_lib_and_backfill_are_installed(self, workspace_root, tmp_path):
         """Spec 355 moved the spec's state into lib/spec-state.sh, which
         aide-archive-spec sources when present — and treats every spec as

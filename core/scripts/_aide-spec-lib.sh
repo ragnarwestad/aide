@@ -129,6 +129,119 @@ get_display_name() {
   fi
 }
 
+# Origin-preferring default-branch/base-ref lookup for
+# aide-resolve-test-cmd's own use only (spec 361). Self-contained and NOT
+# shared with aide-run-spec's own default_branch()/base_ref_for()
+# (lines ~511, ~1044 there): no requirement asks for anything in that
+# script, and it carries a 6631-line test suite a "DRY" refactor would
+# put at risk for no benefit this needs. A stale LOCAL branch must not
+# decide what changed — origin/<branch> wins when it exists, same
+# pattern aide-run-spec's own base_ref_for() already follows.
+#   aide_test_scope_base_ref <project-root>
+# Echoes the ref to diff against, or nothing if none could be resolved.
+aide_test_scope_base_ref() {
+  local root="$1" b candidate
+  b="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"
+  b="${b#origin/}"
+  if [ -z "$b" ]; then
+    for candidate in main master; do
+      git -C "$root" show-ref --verify --quiet "refs/heads/$candidate" && { b="$candidate"; break; }
+    done
+  fi
+  [ -n "$b" ] || b="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)"
+  [ -n "$b" ] || return 0
+  if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$b"; then
+    echo "origin/$b"
+  else
+    echo "$b"
+  fi
+}
+
+# Resolves the scoped `.aide/config` keys (AIDE_TEST_SCOPE_PATHS_N /
+# AIDE_TEST_SCOPE_CMD_N, spec 361) against a changed-file list, and
+# echoes the command(s) that cover the whole changeset — one per line,
+# in scope-DECLARATION order (never file-encounter order).
+#
+# The matching rule (whole-changeset, not per file in isolation):
+#   1. No AIDE_TEST_SCOPE_PATHS_1 at all: echo the single legacy
+#      AIDE_TEST_CMD (or nothing, if that is unset too) — REQ-6,
+#      unconditionally, without looking at the changed-file list.
+#   2. Otherwise, classify every changed file into the scope(s) whose
+#      declared paths it lies under (a directory-boundary match, never a
+#      bare string prefix). A file lying under more than one scope's own
+#      declared path resolves to the FIRST-declared of those scopes —
+#      this tie-break is about one file matching several scope
+#      DECLARATIONS at once, distinct from REQ-2's union below.
+#   3. If every changed file matched at least one scope: echo the UNION
+#      of every matched scope's command (REQ-2) — including when the
+#      changed-file list is empty, which is vacuously "every file
+#      matched", but is treated the same as step 4 below (doubt resolved
+#      towards running) since an empty list is itself doubt.
+#   4. If any changed file matched NO declared scope at all (or the
+#      changed-file list is empty): echo EVERY declared scope's command
+#      (REQ-3) — doubt, anywhere in the changeset, resolved towards
+#      running everything, never towards narrowing.
+#   aide_test_scope_commands <project-root> [changed-file ...]
+aide_test_scope_commands() {
+  local root="$1"; shift
+  local -a changed_files=("$@")
+  local first_paths legacy
+  first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$root")"
+  if [ -z "$first_paths" ]; then
+    legacy="$(aide_config_get AIDE_TEST_CMD "$root")"
+    [ -n "$legacy" ] && echo "$legacy"
+    return 0
+  fi
+
+  local -a scope_cmds=()
+  local -a scope_paths=()
+  local n=1 paths cmd
+  while :; do
+    paths="$(aide_config_get "AIDE_TEST_SCOPE_PATHS_$n" "$root")"
+    [ -n "$paths" ] || break
+    cmd="$(aide_config_get "AIDE_TEST_SCOPE_CMD_$n" "$root")"
+    scope_paths[$((n-1))]="$paths"
+    scope_cmds[$((n-1))]="$cmd"
+    n=$((n+1))
+  done
+
+  local any_unmatched="no"
+  [ "${#changed_files[@]}" -eq 0 ] && any_unmatched="yes"
+  local -a matched=()
+  local f p idx i matched_this
+  for f in ${changed_files[@]+"${changed_files[@]}"}; do
+    idx=-1
+    for i in "${!scope_paths[@]}"; do
+      matched_this="no"
+      for p in ${scope_paths[$i]}; do
+        if [ "$f" = "$p" ] || [ "${f#"$p"/}" != "$f" ]; then
+          matched_this="yes"
+          break
+        fi
+      done
+      if [ "$matched_this" = "yes" ]; then
+        idx="$i"
+        break
+      fi
+    done
+    if [ "$idx" = "-1" ]; then
+      any_unmatched="yes"
+    else
+      matched[$idx]="yes"
+    fi
+  done
+
+  if [ "$any_unmatched" = "yes" ]; then
+    for i in "${!scope_cmds[@]}"; do
+      echo "${scope_cmds[$i]}"
+    done
+  else
+    for i in "${!scope_cmds[@]}"; do
+      [ "${matched[$i]:-no}" = "yes" ] && echo "${scope_cmds[$i]}"
+    done
+  fi
+}
+
 # The specs a spec builds on: the optional "Depends on:" line in its OWN
 # 1-description.md (spec 92), echoed one identifier per line. Comma
 # separated, backticks and surrounding whitespace stripped.

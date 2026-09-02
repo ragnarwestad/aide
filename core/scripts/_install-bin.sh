@@ -10,7 +10,7 @@
 # AI-specific scripts are handled by the individual
 # installer, not here.
 
-COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-archive-spec aide-create-spec aide-record-test-run aide-backfill-spec-state aide-write-spec aide-print-specs-guard aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
+COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-archive-spec aide-create-spec aide-record-test-run aide-resolve-test-cmd aide-backfill-spec-state aide-write-spec aide-print-specs-guard aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
 # The hook body aide-install-spec-hook writes into a target repo (spec
 # 219). Kept as its own file under core/scripts/hooks/, not embedded in
 # the installer, so it can be tested standalone — which means it needs

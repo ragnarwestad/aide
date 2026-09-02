@@ -271,10 +271,17 @@ if [ "$record_ok" = "no" ]; then
   # the gate shipped. A gate that can demand something nobody is able to
   # produce is a trap, not a gate; this one still refuses, but only when
   # the tests actually fail.
-  test_cmd=""
-  [ -f "$project_dir/.aide/config" ] \
-    && test_cmd="$(sed -n 's/^AIDE_TEST_CMD=//p' "$project_dir/.aide/config" | tail -1)"
-  if [ -z "$test_cmd" ]; then
+  # Resolved through the single script both this gate and
+  # /aide-implement call (spec 361) — a diff/branch-resolution failure
+  # is a REFUSAL here, never a silent empty command list.
+  resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_dir" 2>&1)"
+  [ "$(jq -r '.ok // false' <<<"$resolved" 2>/dev/null)" = "true" ] \
+    || refuse "cannot resolve the test command: $(jq -r '.error // empty' <<<"$resolved" 2>/dev/null)"
+  cmd_args=()
+  while IFS= read -r c; do
+    [ -n "$c" ] && cmd_args+=(--cmd "$c")
+  done < <(jq -r '.commands[]?' <<<"$resolved")
+  if [ "${#cmd_args[@]}" -eq 0 ]; then
     emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record, and this project has no test command configured — set the test command in .aide/config before archiving"}'
   fi
   # The run's output is KEPT, in a log a person can open, and the
@@ -287,7 +294,7 @@ if [ "$record_ok" = "no" ]; then
   {
     echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) $spec_folder @ $head_commit ---"
     "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_dir" \
-      --specs-root "$specs_root" --folder "$spec_folder" --cmd "$test_cmd"
+      --specs-root "$specs_root" --folder "$spec_folder" "${cmd_args[@]}"
   } >> "$gate_log" 2>&1 || true
   if [ -f "$record_file" ]; then
     record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"

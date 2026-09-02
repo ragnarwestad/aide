@@ -777,6 +777,75 @@ def test_the_implement_present_check_reads_the_state_file_not_the_prose(script, 
     assert out["terminalReason"] != "not-implemented-yet", out
 
 
+# --- scoped test commands (spec 361, REQ-8) ---------------------------------
+#
+# The gate no longer reads a single `AIDE_TEST_CMD` string — it resolves
+# through `aide-resolve-test-cmd` and runs every command that resolves,
+# each one its own marker-file `touch`, the same style the fixtures above
+# already use for "did the gate actually run this command".
+
+
+def scoped_configure(project, specs, marker_core, marker_dash):
+    (project / ".aide").mkdir(exist_ok=True)
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\n"
+        f"AIDE_TEST_SCOPE_PATHS_1=core\n"
+        f"AIDE_TEST_SCOPE_CMD_1=touch {marker_core}\n"
+        f"AIDE_TEST_SCOPE_PATHS_2=dashboard\n"
+        f"AIDE_TEST_SCOPE_CMD_2=touch {marker_dash}\n"
+    )
+
+
+def branch_with_change(project, *rel_paths):
+    """Off `init_repo`'s own `main` — see aide_test_scope_base_ref: no
+    origin configured in these fixtures, so it falls back to the local
+    `main` branch, and a feature branch gives the resolver's own
+    `git diff` real content to read."""
+    git(project, "switch", "-q", "-c", "feature")
+    for rel in rel_paths:
+        p = project / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("change\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-qm", "touch " + " ".join(rel_paths))
+
+
+def test_a_dashboard_only_change_runs_only_the_dashboard_scope(script, project, specs, tmp_path):
+    marker_core = tmp_path / "core-marker"
+    marker_dash = tmp_path / "dash-marker"
+    scoped_configure(project, specs, marker_core, marker_dash)
+    branch_with_change(project, "dashboard/x.txt")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert marker_dash.exists()
+    assert not marker_core.exists()
+
+
+def test_a_change_reaching_both_scopes_runs_both(script, project, specs, tmp_path):
+    marker_core = tmp_path / "core-marker"
+    marker_dash = tmp_path / "dash-marker"
+    scoped_configure(project, specs, marker_core, marker_dash)
+    branch_with_change(project, "core/x.txt", "dashboard/y.txt")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert marker_core.exists()
+    assert marker_dash.exists()
+
+
+def test_a_change_reaching_neither_scope_runs_every_scope(script, project, specs, tmp_path):
+    marker_core = tmp_path / "core-marker"
+    marker_dash = tmp_path / "dash-marker"
+    scoped_configure(project, specs, marker_core, marker_dash)
+    branch_with_change(project, "notes.txt")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert marker_core.exists(), "an unmatched file must never leave a scope untested"
+    assert marker_dash.exists(), "an unmatched file must never leave a scope untested"
+
+
 def test_a_spec_with_no_state_file_yet_self_heals_from_prose(script, project, specs):
     """A spec that predates spec 355 has no 4-status.json at all — the
     gate must self-heal from the prose exactly once, not refuse or

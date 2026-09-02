@@ -111,6 +111,7 @@ def git_repo(tmp_path):
 
 
 @pytest.mark.claude_code
+@pytest.mark.serial
 class TestAideEmitRun:
     def test_leading_space_slash_command_is_emitted(self, emitter, listener, git_repo):
         result = run_emitter(emitter, " /aide-implement 80", git_repo, listener.url)
@@ -160,6 +161,7 @@ class TestAideEmitRun:
 
 
 @pytest.mark.claude_code
+@pytest.mark.serial
 class TestPhaseMode:
     """Criterion 10 (spec 81, slice 81c): reporting a TDD phase boundary
     from inside an /aide-implement run.
