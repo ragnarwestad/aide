@@ -83,6 +83,12 @@ export interface QueueTarget {
    *  whose folder moved has left the list — so "held back, and why" is
    *  the only file-side answer archive has to give. */
   archiveHeldBack?: { reason: string };
+  /** No `4-status.json` exists for this spec yet (spec 355, REQ-10) — a
+   *  spec no writer script (aide-run-spec, aide-archive-spec,
+   *  aide-write-spec) has touched since this feature shipped. The row
+   *  still shows; it is labeled as missing its state file rather than
+   *  silently falling back to a fresh parse of the prose beside it. */
+  stateMissing?: boolean;
 }
 
 /** An ARCHIVED spec, as this list draws it (spec 221).

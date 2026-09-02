@@ -3,6 +3,7 @@
 // against.
 
 import { IN_FLIGHT } from "../../../ui/job-state.ts";
+import { t, type Language, type TranslationKey } from "../../../../i18n/index.ts";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
 
 // "Problems" holds everything that did not simply finish — a cap-stop
@@ -51,6 +52,25 @@ export const STATE_FILTERS: { key: string; label: string; states?: string[]; exc
 /** The default, by position and not by name — so a chip moved to the
  *  front is the default, and nothing has to be told twice. */
 export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
+
+/** `STATE_FILTERS`' own `label` field stays English — it is a fixed key
+ *  for `stateFilter()`'s own lookup, not what the page draws (spec 350).
+ *  What the page draws is this, keyed by the chip's `key` and read
+ *  through `t()`, so a reader in `nb` mode sees "Alle"/"Aktive"/… while
+ *  the filter logic above keeps matching on the same untranslated keys
+ *  it always has. */
+const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
+  all: "list.state.all",
+  "not-archived": "list.state.active",
+  active: "list.state.running",
+  done: "list.state.done",
+  problem: "list.state.problem",
+  [ARCHIVED_STATE]: "list.state.archived",
+};
+
+export function stateFilterLabel(key: string, lang: Language): string {
+  return t(lang, STATE_FILTER_LABEL_KEYS[key] ?? "list.state.all");
+}
 
 export const SORTS = ["started", "spec", "state", "cost", "created"];
 // The default view: the newest spec MADE at the top (spec 317, REQ-3).

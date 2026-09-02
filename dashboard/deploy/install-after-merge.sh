@@ -33,6 +33,11 @@ mkdir -p "$(dirname "$LOG")"
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then
   ( cd dashboard && "$BUN" install --silent )
+  # The e2e suite's own browser (spec 348, REQ-6): a machine-level cache
+  # under $HOME, not a `dashboard/node_modules` thing `bun install`
+  # already covers — the first `make test` on a host that has never run
+  # this before finds no Chromium executable otherwise.
+  ( cd dashboard && "$(dirname "$BUN")/bunx" playwright install chromium )
   # The static pages (overview, about, one per project) share the nav
   # with the served ones and are files on disk: a merge that changes the
   # shell leaves them stale until regenerated. Same root and site dir

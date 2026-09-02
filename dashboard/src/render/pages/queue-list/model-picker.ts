@@ -92,14 +92,31 @@ export function defaultModelForTool(
   return models.find((m) => (m.tool ?? "claude") === tool)?.name;
 }
 
+/** The three fields any of `modelPicker`/`aiPicker`/`phaseCaptionCells`
+ *  actually reads out of `QueuePageOptions` (spec 342). The New spec
+ *  page's own options carry no `runnerAvailable`, no `targets` — a
+ *  spec that does not exist yet has neither — so the three functions
+ *  take this narrower shape rather than the whole options type. Every
+ *  existing caller already passes a full `QueuePageOptions`, which
+ *  satisfies this structurally, so none of them change. */
+export type PickerOptions = Pick<QueuePageOptions, "modelChoices" | "defaultModels" | "pendingModels">;
+
 export function modelPicker(
   g: SpecGroup,
-  opts: QueuePageOptions,
+  opts: PickerOptions,
   step: string,
   busy: boolean,
   live: boolean,
   used?: string,
   recordedModel?: string,
+  /** Replaces `runFormId(g)` on the `form="..."` attribute (spec 342).
+   *  The New spec page has no real `project`/`specFolder` to derive one
+   *  from — the project is a live dropdown pick and the folder does not
+   *  exist until `/aide-create` names it — so it draws one small,
+   *  clearly-synthetic `SpecGroup` and gives its own form id here
+   *  instead. Nothing else `g` feeds (`isArchivedRow`, the pending-model
+   *  lookup, a live row's `data-post-to`) is touched by this. */
+  formIdOverride?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
@@ -125,7 +142,7 @@ export function modelPicker(
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending);
   return (
-    `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
+    `<select name="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Where a live pick goes: the running job's own route, the same
     // convention the tail box's tick already uses. While a job runs the
     // run form asks for a SECOND job and the queue refuses it as a
@@ -245,7 +262,7 @@ export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"
 // would be worse than the removed AI filter's inert degradation ever
 // was — and the caption goes with it, since a column headed "AI" with
 // nothing under it reads as broken rather than as absent.
-export function phaseCaptionCells(opts: QueuePageOptions): string {
+export function phaseCaptionCells(opts: PickerOptions): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
@@ -312,12 +329,14 @@ export const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex
 // tags and tied to it by that attribute alone.
 export function aiPicker(
   g: SpecGroup,
-  opts: QueuePageOptions,
+  opts: PickerOptions,
   step: string,
   busy: boolean,
   live: boolean,
   used?: string,
   recordedModel?: string,
+  /** Same override, same reason, as `modelPicker`'s own (spec 342). */
+  formIdOverride?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   // `TOOL_NAMES`'s own key order, like the option groups in
@@ -348,7 +367,7 @@ export function aiPicker(
     : resolveChosenModel(models, configured, used, pending);
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
-    `<select data-ai="model.${esc(step)}" form="${esc(runFormId(g))}"` +
+    `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     (locked ? ` disabled title="${esc(why)}"` : "") +
     `>` +
     tools

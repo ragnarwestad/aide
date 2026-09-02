@@ -3,9 +3,12 @@ import {
   renderNewSpecPage,
   renderQueuePage,
   renderQueueRows,
+  PHASE_LINES,
   type NewSpecPageOptions,
   type QueuePageOptions,
 } from "../../../src/render.ts";
+import { aiPicker, modelPicker } from "../../../src/render/pages/queue-list/model-picker.ts";
+import { type SpecGroup } from "../../../src/render/pages/queue-list/data-model.ts";
 import {
   row,
 } from "./fixtures.ts";
@@ -75,6 +78,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     };
     const order = [
       '<select name="project">',
+      '<table class="list">',
       'name="dependsOn"',
       '<input type="text" name="title"',
       '<textarea name="description"',
@@ -86,16 +90,15 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     // them.
     expect(html).toMatch(/<span class="frow"><label class="field"><span>Project<\/span>/);
     expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
-    // Criterion 8 (spec 228): Depends on has left Project's row. It
-    // stands after that row CLOSES, in a `field wide` of its own — the
-    // same mechanism Title uses — and not inside a second `.frow`.
+    // Spec 342: the phase table has replaced Project's row's own
+    // hand-rolled AI/Model pair (criterion 8, spec 228) as what sits
+    // between Project's row and Depends on — still not inside a second
+    // `.frow`.
     const betweenProjectAndDepends = html.slice(
       html.indexOf('<select name="project">'),
       html.indexOf('name="dependsOn"'),
     );
-    expect(betweenProjectAndDepends).toContain(
-      '</span><span class="field wide"><span>Depends on</span>',
-    );
+    expect(betweenProjectAndDepends).toContain('<table class="list">');
     expect(betweenProjectAndDepends).not.toContain('<span class="frow">');
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -133,10 +136,13 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   const formAttr = (html: string, selector: string): string | undefined =>
     html.match(new RegExp(`<select ${selector}[^>]*\\bform="([^"]*)"`))?.[1];
 
-  test("the AI and Model selects are separately labelled fields in the same row", () => {
+  // Spec 342: the hand-rolled `.field`-wrapped pair became the phase
+  // table's own `create` row — the AI select still comes before the
+  // Model select, in the same `.aimodel` cell the Specs list's row uses.
+  test("the AI and Model selects sit together in the create row of the phase table", () => {
     const html = newPage({ modelChoices: TWO_TOOLS });
     expect(html).toMatch(
-      /<span class="frow">[\s\S]*?<label class="field"><span>AI<\/span>[\s\S]*?<select data-ai="model\.create"[\s\S]*?<\/label><label class="field"><span>Model<\/span>[\s\S]*?<select name="model\.create"[\s\S]*?<\/label><\/span>/,
+      /<tr class="subrow" data-step="create">[\s\S]*?<span class="aimodel"><select data-ai="model\.create"[\s\S]*?<select name="model\.create"[\s\S]*?<\/span>[\s\S]*?<\/tr>/,
     );
   });
 
@@ -211,7 +217,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain('name="model.create"');
     expect(html).not.toContain('data-ai="model.create"');
     expect(html).toMatch(
-      /<label class="field"><span>Model<\/span><select name="model\.create"[\s\S]*?<\/select><\/label>/,
+      /<span class="aimodel"><select name="model\.create"[\s\S]*?<\/select><\/span>/,
     );
     expect(html).not.toContain("<span>AI</span>");
     // Pre-filled from the table's fallback when the step names nothing.
@@ -262,6 +268,104 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html.indexOf("no such project: nope")).toBeLessThan(
       html.indexOf('action="/api/queue/create"'),
     );
+  });
+});
+
+// --- spec 342: the New spec page can run the whole workflow from the start ---
+//
+// The page used to make the spec and stop — going on to analyze,
+// implement and archive was a separate press per phase from the Specs
+// list, after the spec existed. This is the same phase table that row
+// draws, reused rather than copied, so a reader can tick the phases they
+// already know they want before the spec exists at all.
+describe("spec 342: the phase table", () => {
+  const newPage = (opts: Partial<NewSpecPageOptions> = {}) =>
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-19T00:00:00Z", {
+      createProjects: ["aide"],
+      targets: [],
+      ...opts,
+    });
+
+  const table = (html: string) =>
+    html.slice(html.indexOf('<table class="list">'), html.indexOf("</table>") + "</table>".length);
+
+  const subRow = (html: string, step: string) =>
+    table(html).match(new RegExp(`<tr class="subrow" data-step="${step}">.*?</tr>`))?.[0] ?? "";
+
+  // REQ-1.
+  test("one row per phase, in workflow order", () => {
+    const html = table(newPage());
+    expect(PHASE_LINES).toEqual(["create", "analyze", "implement", "archive"]);
+    const at = PHASE_LINES.map((step) => html.indexOf(`data-step="${step}"`));
+    expect(at.every((i) => i > -1)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+  });
+
+  // REQ-2: ticked, disabled, and carries no `name` — a disabled field is
+  // never submitted either way, but the missing name is the belt as
+  // well as the braces `phase-rows.ts`'s own `create` box relies on.
+  test("the create row's tick is checked, disabled, and posts nothing", () => {
+    const line = subRow(newPage(), "create");
+    const box = line.match(/<input type="checkbox"[^>]*value="create"[^>]*>/)?.[0] ?? "";
+    expect(box).toContain("checked");
+    expect(box).toContain("disabled");
+    expect(box).not.toContain("name=");
+  });
+
+  // REQ-3, REQ-4: every other phase's tick posts `name="steps"` and is
+  // NOT checked by default, so an untouched form ticks nothing beyond
+  // `create`.
+  test("analyze/implement/archive ticks post name=\"steps\" with their own value, unticked by default", () => {
+    const html = newPage();
+    for (const step of ["analyze", "implement", "archive"]) {
+      const line = subRow(html, step);
+      const box = line.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
+      expect(box).toContain('name="steps"');
+      expect(box).not.toContain("checked");
+    }
+  });
+
+  // REQ-1, REQ-7: every picker on the page posts to the page's own
+  // form, whichever phase it is on — the New spec page has no `g` to
+  // derive one from, so every select has to carry `formIdOverride`
+  // explicitly.
+  test("every picker's form attribute is the page's own form id", () => {
+    const html = table(newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12, tool: "codex" }] }));
+    const forms = [...html.matchAll(/<select[^>]*\bform="([^"]*)"/g)].map((m) => m[1]);
+    expect(forms.length).toBeGreaterThan(0);
+    expect(forms.every((f) => f === "new-spec-form")).toBe(true);
+  });
+
+  // REQ-6: a phase nobody has ever run or picked a model for shows the
+  // configured default — the same fallback `create`'s own picker
+  // already used, since the page passes no `pendingModels` at all.
+  test("REQ-6: analyze/implement/archive pre-fill from the configured default, same as create", () => {
+    const html = newPage({
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      defaultModels: { analyze: "fable", default: "sonnet" },
+    });
+    const line = subRow(html, "analyze");
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
+    const implementLine = subRow(html, "implement");
+    expect(implementLine).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+
+  // REQ-8: the create row's own picker markup is byte-identical to what
+  // `aiPicker`/`modelPicker` return when called directly — proof the
+  // page draws it by calling them, not by a parallel hand-rolled copy.
+  test("REQ-8: the create row's pickers are produced by aiPicker/modelPicker themselves", () => {
+    const models = [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12, tool: "codex" as const }];
+    const html = newPage({ modelChoices: models, defaultModels: { default: "sonnet" } });
+    const line = subRow(html, "create");
+    const row: SpecGroup = {
+      project: "", specFolder: "new", named: false, state: "not-started",
+      spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
+    };
+    const opts = { modelChoices: models, defaultModels: { default: "sonnet" } };
+    const expectedAi = aiPicker(row, opts, "create", false, false, undefined, undefined, "new-spec-form");
+    const expectedModel = modelPicker(row, opts, "create", false, false, undefined, undefined, "new-spec-form");
+    expect(line).toContain(expectedAi);
+    expect(line).toContain(expectedModel);
   });
 });
 

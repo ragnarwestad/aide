@@ -6,8 +6,6 @@
 // `.unref()`, clearing in `stop()`) stay in `createServer`: only the
 // work each tick does moves here.
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { BranchStatusChecker } from "../git/branch-status.ts";
 import { specBranch } from "../git/branch-status.ts";
 import type {
@@ -19,6 +17,9 @@ import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checko
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, resolveSchedule, specArchivedDate,
 } from "../project/discover.ts";
+import { readSpecState } from "../project/parse-spec-state.ts";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseStatus } from "../project/parse-status.ts";
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import { QueueStore } from "../queue/queue.ts";
@@ -354,6 +355,16 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
  *  discovered spec directory, the same field
  *  `core/scripts/aide-run-spec`'s own gate reads for the identical
  *  refusal. */
+/** The `Workflow steps completed` line, read straight from the prose —
+ *  the fallback for a spec that has no state file yet. */
+function proseSteps(dir: string): string[] {
+  try {
+    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
+  } catch {
+    return [];
+  }
+}
+
 export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
   const blocked = new Set<string>();
   if (!ctx.projectRoot) return blocked;
@@ -370,10 +381,16 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // spec), never something parking here could fix — the same rule
     // blockedDependencies already keeps for an unknown dependency id.
     if (!spec) continue;
-    const statusPath = join(spec.dir, "4-status.md");
-    const steps = existsSync(statusPath)
-      ? parseStatus(readFileSync(statusPath, "utf-8")).workflowSteps
-      : [];
+    // spec 355 (REQ-3): the state file, not a fresh parse of the prose
+    // beside it — the same gate `core/scripts/aide-run-spec`'s own
+    // may-implement-start check reads, now off the one shared source.
+    // The state file when the spec has one, its own prose when it has
+    // not: a spec analyzed before spec 355 landed carries no state
+    // file, and reading that as "nothing has run" held every
+    // such implement back as not analyzed (2026-09-02). The runner's own
+    // gate (spec 344) still refuses a spec that truly has not been
+    // analyzed, whichever source said so here.
+    const steps = readSpecState(spec.dir)?.completedPhases ?? proseSteps(spec.dir);
     if (!steps.includes("analyze")) blocked.add(job.id);
   }
   return blocked;

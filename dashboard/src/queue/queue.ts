@@ -10,12 +10,15 @@ export {
   ARCHIVE_ONLY_STEP,
   JOB_STATES,
   PHASE_STEPS,
+  TRANSITIONS,
   UNFINISHED,
   WORKFLOW_STEPS,
   currentWorkRoundJobs,
+  queuePriorityOrder,
   tailEdits,
   type JobState,
   type StopReason,
+  type TransitionEvent,
   type WorkflowStep,
 } from "./steps.ts";
 
@@ -51,4 +54,4 @@ export {
   type QueueSettingsUpdate,
 } from "./persist.ts";
 
-export { QueueStore, type PendingModelResult, type QueueOptions } from "./store.ts";
+export { QueueStore, type PendingModelResult, type QueueOptions, type TransitionResult } from "./store.ts";

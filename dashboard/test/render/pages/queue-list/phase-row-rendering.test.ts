@@ -346,6 +346,11 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     const state = (head.split("<td")[2] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
+  const chipTitle = (html: string) => {
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.split("<td")[2] ?? "";
+    return state.match(/<span class="badge b-[a-z]+" title="([^"]*)"/)?.[1] ?? "";
+  };
   const actionCell = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
@@ -361,6 +366,27 @@ describe("spec 132: the State line says what is happening, or what is next", () 
       [target("132-a")],
     );
     expect(chip(html)).toBe("implementing queued");
+  });
+
+  // Spec 353, REQ-4/REQ-5: a row that carries its place in the queue
+  // says so in the State column, and the full sentence is on hover.
+  test("a queued job with a queuePosition names its place instead of the bare word", () => {
+    const html = rows(
+      [
+        row({
+          id: "j1",
+          specFolder: "132-a",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "queued",
+          queuePosition: { n: 7, total: 11 },
+        }),
+      ],
+      [target("132-a")],
+    );
+    expect(chip(html)).toBe("implementing 7/11");
+    expect(chipTitle(html)).toContain("7 of 11 queued");
+    expect(chipTitle(html)).toContain("implement");
   });
 
   // Criterion 1: the one action that used to live outside the panel.

@@ -1,9 +1,10 @@
 # A job's states
 
 The one place the queue's state machine is written down: what a job's `state` can be, which piece of code moves it
-and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` in
-`src/queue/steps.ts`, the transitions in `src/queue/runner.ts`, the cancel route in
-`src/serve/handle-queue/job-actions.ts` and the landing's downgrade in `src/serve/land-branch/types.ts`. How a
+and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` and
+`TRANSITIONS` in `src/queue/steps.ts`, consulted through the one `QueueStore.transition()` in `src/queue/store.ts`
+that every caller — `src/queue/runner.ts`, the cancel route in `src/serve/handle-queue/job-actions.ts`, and the
+landing in `src/serve/land-branch/merge.ts` — asks instead of writing `state` itself. How a
 state reads on the page is on [The specs list and the spec page](the-specs-list.md); the level above — which of the four
 phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md).
 
@@ -53,7 +54,9 @@ stateDiagram-v2
 
 **Into the queue.** `POST /api/queue`, `POST /api/queue/create` and the schedule poll all insert a job as `queued`.
 
-**The runner's tick, every two seconds** (`Runner.tick()`), walks the queue oldest first and, for each `queued` job:
+**The runner's tick, every two seconds** (`Runner.tick()`), walks the queue in `queuePriorityOrder()`'s order — every
+queued `create` or `archive` step before any queued `analyze` or `implement`, oldest first within each group
+(`src/queue/steps.ts`) — and, for each `queued` job:
 
 - Starts nothing at all while any job has `landing` set — see [Beside the state](#beside-the-state).
 - Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
@@ -87,9 +90,10 @@ is one and writes `cancelled`. A job that has already finished is refused with 4
 
 **Done to failed** is the one transition made after the fact. The step succeeded, so `complete()` has already written
 `done`, and the landing runs afterwards. When that landing is refused for a conflict, or `archive`'s landing finds the
-spec's branch still on origin, `downgrade()` moves the job to `failed` with `errorReason` — and only from `done`: the
-runner may have queued the job's next step in between, and a landing must not overwrite a job that has moved on. See
-[Branches and landing](landing.md).
+spec's branch still on origin, the `landing-failed` transition moves the job to `failed` with `errorReason` — and only
+from `done`: the runner may have queued the job's next step in between, and a landing must not overwrite a job that
+has moved on; the table simply has no entry for that case, so the attempt is refused and the narrative fields are
+recorded without moving the state. See [Branches and landing](landing.md).
 
 ## Beside the state
 
@@ -115,7 +119,8 @@ Three fields say something the state alone does not, and each is read by the pag
 ## What the page makes of it
 
 The row's first line is the verb for what is happening or the resting state and what is next — never the bare word.
-`running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> queued" or, held back, the reason; `done`
+`running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> n/total" — its place among every job waiting
+its turn, off the same order the runner picks — or, held back, the reason; `done`
 as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — budget", "stopped — 45 min",
 "stopped — provider limit" or "stopped — job cap"; `failed` with `errorReason` as the conflict or the unlanded branch
 and the button that re-runs `archive`. `cancelled` is drawn as a deliberate ending, not a failure; `interrupted` is

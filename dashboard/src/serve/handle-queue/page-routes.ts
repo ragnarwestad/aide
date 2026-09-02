@@ -10,7 +10,7 @@ import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderDeleteSchedulePage, renderNewSchedulePage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderScheduleDetailPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
-import { queueClientScript, sortChoice, stateChoice } from "../serve-helpers.ts";
+import { languageChoice, queueClientScript, sortChoice, stateChoice } from "../serve-helpers.ts";
 import { serveStatic } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -40,6 +40,11 @@ export async function handlePageRoutes(
     // column's own `chosenSort` below).
     const stateResult = stateChoice(url, req);
     const chosenState = stateResult.state;
+    // The reader's own choice of language (spec 350), from the address
+    // or from the cookie it was last written into — the same shape as
+    // the sort/state pair above, with one difference: this always
+    // resolves to a concrete language, never `{}`.
+    const langResult = languageChoice(url, req);
     // Every archived spec is a row on this list since spec 221 — but
     // only for a reader whose chip asks for one. The builder decides
     // that itself, off the same `filterShowsArchived` the chips are
@@ -55,6 +60,7 @@ export async function handlePageRoutes(
       runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
       targets: liveTargets,
       archived: archivedKeys,
+      lang: langResult.lang,
       archivedSpecs,
       script: await queueClientScript(),
       // Only what the config granted a budget to is offerable: a
@@ -133,6 +139,7 @@ export async function handlePageRoutes(
       const rowHeaders = new Headers({ "content-type": "text/html; charset=utf-8" });
       if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
       if (stateResult.setCookie) rowHeaders.append("set-cookie", stateResult.setCookie);
+      if (langResult.setCookie) rowHeaders.append("set-cookie", langResult.setCookie);
       return new Response(renderQueueRows(await Promise.all(listed.map(ctx.jobRow)), view), {
         headers: rowHeaders,
       });
@@ -168,6 +175,7 @@ export async function handlePageRoutes(
     }
     if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
     if (stateResult.setCookie) pageHeaders.append("set-cookie", stateResult.setCookie);
+    if (langResult.setCookie) pageHeaders.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers: pageHeaders });
   }
 

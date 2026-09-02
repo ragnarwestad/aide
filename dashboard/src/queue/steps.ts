@@ -94,6 +94,28 @@ export function currentWorkRoundJobs<T extends {
  *  bash copy in `aide-run-spec`. */
 export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
 
+/** The two steps quick enough to jump a queued job ahead of a slower one
+ *  (REQ-1): `create` and `archive` take minutes, `analyze` and
+ *  `implement` a half hour or more. Every step not named here — `explore`,
+ *  `manifest`, `reopen`, `reset`, `schedule` — stays in the slow group:
+ *  none of them is characterized the way these four are, and REQ-1 names
+ *  only these four. Module-internal: nothing outside this file needs it
+ *  directly (only `queuePriorityOrder`, below, is exported for other
+ *  files to call). */
+const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive"];
+
+/** The order a free slot is filled from (REQ-1), and the same order a
+ *  queued row's position is read off (REQ-6): quick steps before slow
+ *  ones, oldest first within each group. A STABLE sort — handed an
+ *  already oldest-first list, it only ever reorders across the quick/
+ *  slow boundary, never within a group. */
+export function queuePriorityOrder<T extends { steps: readonly WorkflowStep[]; stepIndex: number }>(
+  oldestFirst: readonly T[],
+): T[] {
+  const rank = (job: T): number => (QUICK_STEPS.includes(job.steps[job.stepIndex]) ? 0 : 1);
+  return [...oldestFirst].sort((a, b) => rank(a) - rank(b));
+}
+
 /** Which steps a reader may still tick or untick on a job, in workflow
  *  order — the tail that has not started, plus every phase the job does
  *  not have that would run AFTER the one running now.
@@ -133,6 +155,54 @@ export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap";
  *  since every step lands its own work now, there is nothing left to
  *  hold a job for. */
 export const UNFINISHED = new Set<string>(["queued", "running"]);
+
+/** Every event that can move a job's state (spec 354), named for what
+ *  actually triggers it rather than for the state it produces — two of
+ *  these ("step-succeeded" and "step-succeeded-last") share a trigger
+ *  the runner already distinguishes before it writes anything, so the
+ *  table stays a pure function of (state, event). */
+export type TransitionEvent =
+  | "start" // queued -> running: tick, a slot is free
+  | "no-step-left" // queued -> done: tick, nothing left to run
+  | "cap-hit" // queued -> stopped: the next step would exceed the job cap
+  | "cancel" // queued|running -> cancelled: a person pressed Cancel
+  | "step-succeeded" // running -> queued: step ok, more steps left
+  | "step-succeeded-last" // running -> done: step ok, last step
+  | "step-failed" // running -> failed: the step reported failure
+  | "run-stopped" // running -> stopped: budget, timeout or provider limit
+  | "process-gone" // running -> interrupted: the process died with no result
+  | "landing-failed"; // done -> failed: a landing did not finish
+
+/** The one table every state change is checked against (spec 354). Each
+ *  entry is `(from, event) -> to`; anything absent is refused. This is
+ *  the machine `dashboard/docs/job-states.md`'s diagram draws by hand —
+ *  `test/queue/transitions.test.ts` fails if the two ever disagree. */
+export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<TransitionEvent, JobState>>>>> = {
+  queued: {
+    start: "running",
+    "no-step-left": "done",
+    "cap-hit": "stopped",
+    cancel: "cancelled",
+  },
+  running: {
+    "step-succeeded": "queued",
+    "step-succeeded-last": "done",
+    "step-failed": "failed",
+    "run-stopped": "stopped",
+    "process-gone": "interrupted",
+    cancel: "cancelled",
+  },
+  done: {
+    // A landing that failed is not a spec that is done (spec 193). The
+    // STEP succeeded, so `complete()` has already written `done`; only
+    // from THAT state, because `complete()` may have queued the job's
+    // next step before the landing settles, and a late landing failure
+    // must not overwrite a job that has moved on — it is refused
+    // instead, exactly as any other transition the table lacks an
+    // entry for.
+    "landing-failed": "failed",
+  },
+};
 
 /** The one step an archived spec may be asked for (spec 198). A literal
  *  step name and never a denylist of the others: a list to be kept in

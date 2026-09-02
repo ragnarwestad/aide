@@ -6,6 +6,7 @@
 import { NEW_SPEC_ROUTE } from "../site.ts";
 import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import {
   ARCHIVED_STATE,
   DEFAULT_SORT,
@@ -18,15 +19,11 @@ import {
   matchesSearch,
   matchesState,
   stateFilter,
+  stateFilterLabel,
   type QueueFilter,
   type SpecGroup,
 } from "./data-model.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-
-/** The three fields the search reads. Named in one place because the
- *  page says them out loud under the field — a filter whose reach is a
- *  guess is a filter nobody trusts. */
-const SEARCHED = ["project:folder", "title", "description"];
 
 // Links, not script: the filter lives in the URL, so it survives a
 // reload, can be shared, and works with JavaScript switched off. The
@@ -48,15 +45,12 @@ export function queueHref(f: QueueFilter, patch: QueueFilter): string {
 // what it looked in. It is inside `#jobrows`, so it shuts again on the
 // five-second refresh, and fine for that: nothing here is being typed
 // into.
-function runsHelp(): string {
-  return helpPopover(
-    "What the search reads",
-    `Searches the ${SEARCHED.join(", the ")} — the whole description, ` +
-      `including the part the row does not show.`,
-  );
+function runsHelp(lang: Language): string {
+  return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"));
 }
 
 export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions): string {
+  const lang = opts.lang ?? "en";
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
@@ -90,7 +84,7 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  return searchForm(f, opts, stateDropdown(f, current, counted, uncounted));
+  return searchForm(f, opts, stateDropdown(f, current, counted, uncounted, lang), lang);
 }
 
 // One dropdown, six links, the same single-value `queueHref` merge the
@@ -110,6 +104,7 @@ function stateDropdown(
   current: string,
   counted: SpecGroup[],
   uncounted: number,
+  lang: Language,
 ): string {
   const options = STATE_FILTERS.map((s) => {
     const on = s.key === current;
@@ -123,17 +118,18 @@ function stateDropdown(
     const href = queueHref(f, { state: s.key });
     return (
       `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
-      `<span class="check" aria-hidden="true"></span>${esc(s.label)} (${count})</a>`
+      `<span class="check" aria-hidden="true"></span>${esc(stateFilterLabel(s.key, lang))} (${count})</a>`
     );
   }).join("");
-  const chosen = STATE_FILTERS.find((s) => s.key === current)!;
+  const statesLabel = t(lang, "list.statesLabel");
+  const chosenLabel = esc(stateFilterLabel(current, lang));
   // No count on the TRIGGER — only inside the open panel, beside each
   // option, exactly like the chips did. A reader who wants the count
   // opens the panel; keeping the closed trigger to "State: <label>" is
   // what the mobile row's tight nowrap budget can afford.
   return (
     `<details class="menu state" data-filter="state">` +
-    `<summary title="States" aria-label="States">States: ${esc(chosen.label)}${ICON_CHEVRON}</summary>` +
+    `<summary title="${statesLabel}" aria-label="${statesLabel}">${statesLabel}: ${chosenLabel}${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`
   );
@@ -153,11 +149,12 @@ function stateDropdown(
  *  key, so a plain "Search" press with no JavaScript preserves whichever
  *  state filter is active instead of silently resetting to the
  *  default. */
-function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string): string {
+function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string, lang: Language): string {
   const keep = FILTER_KEYS.filter((k) => k !== "q")
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
   const q = (f.q ?? "").trim();
+  const clearLabel = t(lang, "list.searchClearTitle");
   return (
     `<form class="specsearch" method="get" action="/">` +
     // No caption over the field: the button beside it says Search, and
@@ -175,22 +172,22 @@ function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string): stri
     `<span class="searchfield">` +
     `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
-    `placeholder="a word in any of three fields" aria-label="Search the specs">` +
+    `placeholder="${t(lang, "list.searchPlaceholder")}" aria-label="${t(lang, "list.searchAriaLabel")}">` +
     (q
       ? `<a class="searchclear" data-nav href="${queueHref(f, { q: "" })}" ` +
-        `title="Clear the search" aria-label="Clear the search">&times;</a>`
+        `title="${clearLabel}" aria-label="${clearLabel}">&times;</a>`
       : "") +
     `</span>` +
     keep +
-    `<button class="btn" type="submit">Search</button>` +
-    runsHelp() +
+    `<button class="btn" type="submit">${t(lang, "list.search")}</button>` +
+    runsHelp(lang) +
     state +
-    newSpecLink(opts) +
+    newSpecLink(opts, lang) +
     `</form>\n`
   );
 }
 
-export function sortableHead(f: QueueFilter): string {
+export function sortableHead(f: QueueFilter, lang: Language = "en"): string {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   // `labelHtml` for the one column whose heading is a consumption label
@@ -240,11 +237,17 @@ export function sortableHead(f: QueueFilter): string {
     // would take its width from the spec NAME — leaving the phase
     // names, which are short, floating in a cell as wide as a folder
     // name. Spanning lets the phase names size their own column.
-    `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2" data-col="spec"')}` +
-    `${th("state", "State", "", undefined, ' data-col="state"')}` +
-    `${th("created", "Created", "", undefined, ' data-col="created"')}` +
-    `${th("started", "Time", "", undefined, ' data-col="started"')}` +
-    `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
+    `<thead><tr>${th("spec", t(lang, "list.colSpec"), "", undefined, ' colspan="2" data-col="spec"')}` +
+    `${th("state", t(lang, "list.colState"), "", undefined, ' data-col="state"')}` +
+    `${th("created", t(lang, "list.colCreated"), "", undefined, ' data-col="created"')}` +
+    `${th("started", t(lang, "list.colTime"), "", undefined, ' data-col="started"')}` +
+    `${th(
+      "cost",
+      t(lang, "list.colCost"),
+      "num",
+      `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
+      ' data-col="cost"',
+    )}` +
     `</tr></thead>`
   );
 }
@@ -262,8 +265,8 @@ export function sortableHead(f: QueueFilter): string {
 // it. It stood in a band of its own above the table before that.
 // Not offered at all when no project on this machine may have a spec
 // made in it, exactly as the panel was not.
-function newSpecLink(opts: QueuePageOptions): string {
+function newSpecLink(opts: QueuePageOptions, lang: Language): string {
   if ((opts.createProjects ?? []).length === 0) return "";
-  return `<a class="btn primary" href="${NEW_SPEC_ROUTE}">New spec</a>`;
+  return `<a class="btn primary" href="${NEW_SPEC_ROUTE}">${t(lang, "list.newSpec")}</a>`;
 }
 

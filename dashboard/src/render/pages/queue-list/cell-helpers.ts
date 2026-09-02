@@ -3,6 +3,7 @@
 
 import { CHECKING, badge, pips, stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import {
   completedThirds,
   durationLabel,
@@ -23,8 +24,8 @@ import { LANDING_FAILED, NO_DATE, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST } fr
 // sentence a runner wrote — "the specs tree is dirty: /Users/…" — and
 // this cell is sized for a badge, so it went off the right edge of the
 // table. The row's panel says it instead (`specNoticeRow`).
-export const stateCell = (r: QueueRowView, resting: RestingState = {}): string =>
-  specStateChip(r, resting);
+export const stateCell = (r: QueueRowView, lang: Language, resting: RestingState = {}): string =>
+  specStateChip(r, lang, resting);
 
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
@@ -189,8 +190,8 @@ export function phasePips(phases: Phase[], done: string[]): string {
  *  Once a duration exists, the cell shows ONLY the duration (never the
  *  date beside it) — the date was dropped after it read as noise next to
  *  the figure that actually answers "how long". */
-export function archiveDateCell(s: ArchivedSpecView, durationMs: number): string {
-  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
+export function archiveDateCell(s: ArchivedSpecView, durationMs: number, lang: Language): string {
+  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE(lang)));
   // Nothing recorded across every phase draws the date alone — the same
   // "nothing to show" rule costCell() already gives an all-zero spentUsd.
   if (durationMs <= 0) return date;
@@ -205,8 +206,8 @@ export function archiveDateCell(s: ArchivedSpecView, durationMs: number): string
  *  (REQ-6) — `SpecGroup.createdAt`/`createdAtChecking` already carry
  *  the archived-row answer by the time this is called, copied up by
  *  `readerGroup()`. */
-export function createdCell(createdAt: string | undefined, checking: boolean): string {
-  return esc(createdAt ? createdAt.slice(0, 10) : checking ? CHECKING : NO_DATE);
+export function createdCell(createdAt: string | undefined, checking: boolean, lang: Language): string {
+  return esc(createdAt ? createdAt.slice(0, 10) : checking ? CHECKING : NO_DATE(lang));
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).
@@ -228,7 +229,7 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
  *  there, and a request describes it — worded for both a live row's
  *  `prUrl` and an archived row's `archive.prOpen`, which are the same
  *  fact from a reader's chair. */
-const WAITING_ON_REVIEW_SENTENCE = "its code is waiting on a pull request — open it to review";
+const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitingOnReview");
 
 /** The sentence a LIVE row carries when a push never reached origin
  *  (spec 328, spec 335). Fixed prose, not `pushError`'s own text: that
@@ -236,21 +237,20 @@ const WAITING_ON_REVIEW_SENTENCE = "its code is waiting on a pull request — op
  *  line before it ever reaches the dashboard (`aide-run-spec`'s own `tr
  *  '\n' ' '`), which is not a string a person should be asked to read as
  *  an instruction. */
-const PUSH_ERROR_SENTENCE = "A step's push did not reach origin. Pull the branch locally, then push it again.";
+const pushErrorSentence = (lang: Language): string => t(lang, "list.pushError");
 
 /** The sentence a LIVE row carries when no pull request could be opened
  *  for its branch (spec 220, spec 335). Fixed prose for the same reason
- *  as `PUSH_ERROR_SENTENCE` — one of `prError`'s four cases is raw `gh
- *  pr create` stderr, and the other three are already custom text this
+ *  as `pushErrorSentence` — one of `prError`'s four cases is raw `gh pr
+ *  create` stderr, and the other three are already custom text this
  *  sentence now stands in for uniformly. */
-const PR_ERROR_SENTENCE = "No pull request could be opened for this branch. Open one by hand.";
+const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
 
 /** The sentence an ARCHIVED row carries when a landing merged its branch
  *  but left it on origin because the delete failed (spec 319, spec
  *  335). Fixed prose, not `branchDeleteError`'s own text: that text is
  *  raw `git push --delete` stderr, tail 200 chars. */
-const BRANCH_LEFT_BEHIND_SENTENCE =
-  "This spec merged, but its branch could not be deleted on origin. Delete it by hand.";
+const branchLeftBehindSentence = (lang: Language): string => t(lang, "list.branchLeftBehind");
 
 /** One mark this row's own live-job fields carry, before it is chosen
  *  between (`pullRequestMark`/`errorMarkNotices`, below). */
@@ -269,13 +269,13 @@ interface LiveMark {
  *  landing failure, which itself means a completed step's merge never
  *  finished and so outranks the two review-related marks, which are
  *  about process, not correctness, and least urgent of the four. */
-function liveMarks(g: SpecGroup): LiveMark[] {
+function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   const marks: LiveMark[] = [];
-  if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED, sentence: PUSH_ERROR_SENTENCE });
-  if (g.landingError) marks.push({ variant: "refused", label: LANDING_FAILED, sentence: g.landingError });
-  if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST, sentence: PR_ERROR_SENTENCE });
+  if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
+  if (g.landingError) marks.push({ variant: "refused", label: LANDING_FAILED(lang), sentence: g.landingError });
+  if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
   if (g.prUrl) {
-    marks.push({ variant: "waiting", label: PULL_REQUEST, sentence: WAITING_ON_REVIEW_SENTENCE, href: g.prUrl });
+    marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
   }
   return marks;
 }
@@ -299,20 +299,20 @@ export interface RowMark {
  *  `branchDeleteError` are mutually exclusive with `prOpen` at the
  *  SOURCE (`spec-views.ts`), so `prOpen` is the only Archive fact this
  *  function ever draws. */
-export function pullRequestMark(g: SpecGroup): RowMark | undefined {
+export function pullRequestMark(g: SpecGroup, lang: Language): RowMark | undefined {
   if (isArchivedRow(g)) {
     if (!g.archive?.prOpen) return undefined;
     return {
       variant: "waiting",
-      label: PULL_REQUEST,
+      label: PULL_REQUEST(lang),
       title: g.archive.prUrl
-        ? WAITING_ON_REVIEW_SENTENCE
-        : "its code is on a branch and no pull request was opened for it",
+        ? waitingOnReviewSentence(lang)
+        : t(lang, "list.noPullRequestOpened"),
       href: g.archive.prUrl,
     };
   }
   if (!g.prUrl) return undefined;
-  return { variant: "waiting", label: PULL_REQUEST, title: WAITING_ON_REVIEW_SENTENCE, href: g.prUrl };
+  return { variant: "waiting", label: PULL_REQUEST(lang), title: waitingOnReviewSentence(lang), href: g.prUrl };
 }
 
 /** One sentence in the row's notice line (REQ-2/REQ-3), ranked among
@@ -331,8 +331,8 @@ export interface RowMarkNotice {
  *  the badge's hover title used to carry, so a reader can still tell
  *  which mark is which without it costing every ordinary row (at most
  *  one, most of the time) an unnecessary label. */
-export function errorMarkNotices(g: SpecGroup): RowMarkNotice[] {
-  const marks = liveMarks(g).filter((m) => m.label !== PULL_REQUEST);
+export function errorMarkNotices(g: SpecGroup, lang: Language): RowMarkNotice[] {
+  const marks = liveMarks(g, lang).filter((m) => m.label !== PULL_REQUEST(lang));
   return marks.map((m) => ({ variant: "err", text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence }));
 }
 
@@ -340,9 +340,9 @@ export function errorMarkNotices(g: SpecGroup): RowMarkNotice[] {
  *  mutually exclusive with `prOpen` at the source (`spec-views.ts`), so
  *  this is ever at most one sentence — `prOpen` is `pullRequestMark`'s
  *  alone, never reaches here. */
-export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number): RowMarkNotice[] {
+export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number, lang: Language): RowMarkNotice[] {
   if (!a || a.prOpen) return [];
-  const title = lockedStateTitle(a, now);
+  const title = lockedStateTitle(a, now, lang);
   return title ? [{ variant: "warn", text: title }] : [];
 }
 
@@ -350,8 +350,10 @@ export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number)
  *  `branchDeleteError`/`notLanded` used to be folded into the removed
  *  Spec-column badge (spec 335), then into `stateBadge`'s own `title`;
  *  it is a notice-line sentence now (`archivedRowNotices`, above). */
-export function lockedStateTitle(a: ArchivedSpecView | undefined, now: number): string | undefined {
-  if (a?.branchDeleteError) return BRANCH_LEFT_BEHIND_SENTENCE;
+export function lockedStateTitle(a: ArchivedSpecView | undefined, now: number, lang: Language): string | undefined {
+  if (a?.branchDeleteError) return branchLeftBehindSentence(lang);
+  // Out of REQ-6's own enumeration (`2-analysis.md`'s Findings): stays
+  // English regardless of `lang`, same as the workflow step names.
   if (a?.notLanded) return notLandedTitle(a.notLandedCheckedAt, now);
   return undefined;
 }

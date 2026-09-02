@@ -4,6 +4,7 @@
 
 import { ICON_CHEVRON, btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import type { QueueRowView } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import {
@@ -23,16 +24,17 @@ import { actionLabel, preTicked, runFormId, specBusy } from "./row-state.ts";
 // `#jobrows` so a click neither reloads the page nor wipes a half-filled
 // form, and the choice survives the table swapping itself every five
 // seconds — the same mechanism the filter and the sort ride on.
-export function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string {
+export function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>, lang: Language): string {
   const key = groupKey(g.project, g.specFolder);
   const shut = !opened.has(key);
   const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
+  const action = t(lang, shut ? "list.foldShow" : "list.foldHide");
   return (
     `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { open: next.join(",") })}" ` +
     // The key is never the visible content — anything in `?open=` is
     // attacker-chosen text, and an icon cannot be mistaken for markup.
     `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${shut ? "show" : "hide"} the phases and controls of ${esc(g.specFolder)}">${ICON_CHEVRON}</a>`
+    `title="${esc(t(lang, "list.foldTitle", { action, folder: g.specFolder }))}">${ICON_CHEVRON}</a>`
   );
 }
 
@@ -57,7 +59,12 @@ export function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): 
 // `data-pending` is what the button says while the request is out —
 // written here, beside the label it replaces, rather than as a verb
 // table in the script.
-function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFilter | undefined): string {
+function actionForm(
+  r: QueueRowView,
+  token: string | undefined,
+  filter: QueueFilter | undefined,
+  lang: Language,
+): string {
   const hidden = tokenField(token) + filterFields(filter);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
@@ -67,7 +74,7 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
     // filled button beside it said nothing different to the eye. And a
     // cancelled run can be started again, so it was never what `danger`
     // is for.
-    btn({ label: "Cancel", pending: "cancelling…", variant: "primary" }) +
+    btn({ label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling"), variant: "primary" }) +
     `</form>`
   );
 }
@@ -90,7 +97,7 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
  *  handler the press came from a row rather than from the spec's page,
  *  and therefore which page to answer on. A no-script form POST gets one
  *  redirect and no second chance to ask. */
-function reopenForm(g: SpecGroup, opts: QueuePageOptions): string {
+function reopenForm(g: SpecGroup, opts: QueuePageOptions, lang: Language): string {
   return (
     `<form method="post" action="/api/queue" class="actionform">` +
     tokenField(opts.token) +
@@ -99,7 +106,7 @@ function reopenForm(g: SpecGroup, opts: QueuePageOptions): string {
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `<input type="hidden" name="steps" value="reopen">` +
     `<input type="hidden" name="${FROM_LIST_FIELD}" value="1">` +
-    btn({ label: "Reopen", pending: "reopening…", variant: "primary" }) +
+    btn({ label: t(lang, "list.reopen"), pending: t(lang, "list.reopening"), variant: "primary" }) +
     `</form>`
   );
 }
@@ -130,13 +137,14 @@ function reopenForm(g: SpecGroup, opts: QueuePageOptions): string {
 // written outside its tags, reaching it by `form="…"` — the trick spec
 // 123 introduced for the model select.
 export function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): string {
+  const lang = opts.lang ?? "en";
   // The third branch, and the first thing asked (spec 224). An archived
   // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
   // lets past — so there is no Run form to carry and no phase to name:
   // the branches below would name one, because `preTicked` answers
   // "what would run next" for a spec whose workflow is over by ticking
   // `archive` alone.
-  if (isArchivedRow(g)) return reopenForm(g, opts);
+  if (isArchivedRow(g)) return reopenForm(g, opts, lang);
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`
@@ -173,7 +181,7 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean)
         `</form>`
       : "";
   const primary = (() => {
-    if (busy) return actionForm(g.lead!, opts.token, opts.filter);
+    if (busy) return actionForm(g.lead!, opts.token, opts.filter, lang);
     if (!label) return "";
     // Primary, like every row's one action (spec 161). It was
     // secondary until then, on the argument that a column of primary

@@ -12,4 +12,7 @@ AIDE_INSTALL_CMD=dashboard/deploy/install-after-merge.sh
 # `make test` then fails on a missing `bun` rather than on a test, which
 # would turn the gate into a refusal of everything. Same resolution
 # dashboard/deploy/install-after-merge.sh already hardcodes for AIDE_DASH_BUN.
-AIDE_TEST_CMD=export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q && cd dashboard && make test
+AIDE_TEST_SCOPE_PATHS_1=core tests
+AIDE_TEST_SCOPE_CMD_1=export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q
+AIDE_TEST_SCOPE_PATHS_2=dashboard
+AIDE_TEST_SCOPE_CMD_2=export PATH="$HOME/.local/share/mise/shims:$PATH"; cd dashboard && make test

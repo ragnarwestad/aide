@@ -3,7 +3,7 @@
 // closure the same way `handleQueue` and the spec-view builders were
 // (spec: split serve.ts, step 4). Split by theme into land-branch/
 // (split land-branch.ts by theme): types.ts (LandContext, the Landing
-// description, downgrade), install.ts (installAfterMerge), merge.ts
+// description), install.ts (installAfterMerge), merge.ts
 // (landBranch itself), steps.ts (the four per-step Landing
 // descriptions) and freshness.ts (withFreshness, specs 97/154). Kept
 // as a barrel at this path because setup-land.ts imports from it.

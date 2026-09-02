@@ -1,4 +1,68 @@
 """Shared pytest fixtures for aide testing."""
+import os as _os
+
+# The whole suite runs under the machine's test lock (core/scripts/
+# aide-record-test-run takes it around a project's test run, and a run
+# already under it skips it). Said here so the many tests that call the
+# script never queue behind the real gate running them — the lock tests
+# themselves take this mark away again.
+_os.environ.setdefault("AIDE_TEST_LOCK_HELD", "pytest")
+
+
+def _parallel_pass(config):
+    """True in the parallel pass of a `-n auto` run — on the controller
+    and on every worker — and False in a plain `-n0` run and in the
+    serial pass this file starts itself."""
+    import os
+    if os.environ.get("AIDE_SERIAL_PASS"):
+        return False
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return True
+    return bool(config.getoption("numprocesses", default=None))
+
+
+def pytest_collection_modifyitems(config, items):
+    """The suite runs in parallel by default (pytest.ini: -n auto,
+    --dist=loadgroup). Tests marked `serial` measure wall-clock time:
+    they must never run concurrently with each other (one xdist_group),
+    and they cannot share the host with nine busy workers either — a
+    kill that must land inside a few seconds does not, under that load.
+    So the parallel pass leaves them out, and `pytest_sessionfinish`
+    below runs exactly those, alone, once every worker has drained —
+    still inside the one `pytest` invocation the person ran."""
+    import pytest as _pytest
+    kept, deferred = [], []
+    for item in items:
+        if item.get_closest_marker("serial") is not None:
+            item.add_marker(_pytest.mark.xdist_group("serial"))
+            (deferred if _parallel_pass(config) else kept).append(item)
+        else:
+            kept.append(item)
+    if deferred:
+        config.hook.pytest_deselected(items=deferred)
+        items[:] = kept
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """After the parallel pass: the serial pass, in a child pytest with
+    `-n0`, on the same paths and selection the person gave. Its result
+    joins this run's exit status, so a red serial test is a red suite —
+    never a silent skip."""
+    import os
+    import subprocess
+    import sys
+    config = session.config
+    if not _parallel_pass(config) or os.environ.get("PYTEST_XDIST_WORKER"):
+        return
+    args = [a for a in config.invocation_params.args if not a.startswith("-n")]
+    cmd = [sys.executable, "-m", "pytest", "-n0", "-p", "no:cacheprovider",
+           "-m", "serial and not e2e and not evaluation", *args]
+    print("\n--- serial pass: tests marked `serial`, alone, after the parallel pass ---", flush=True)
+    rc = subprocess.call(cmd, cwd=str(config.invocation_params.dir),
+                         env={**os.environ, "AIDE_SERIAL_PASS": "1"})
+    if rc not in (0, 5) and session.exitstatus == 0:   # 5: no serial test selected
+        session.exitstatus = rc
+
 import pytest
 import sys
 from pathlib import Path

@@ -20,8 +20,9 @@ import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
 import {
-  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceCriteriaUnticked, archiveHeldBackReason, parseStatus,
+  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status.ts";
+import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { QueueTarget } from "../render.ts";
 import { resolveDependencyFolder } from "./serve-helpers.ts";
 
@@ -96,17 +97,20 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
           continue;
         }
         // What a reader needs to CHOOSE a spec: what it is called and
-        // how far it has got. Both are already on disk.
+        // how far it has got. spec 355 (REQ-3): the state-bearing
+        // fields (phase, fileSteps, reopenedAfter, the acceptance-
+        // criteria half of heldBack) come from the state file, through
+        // the one reader — never from a fresh parse of the prose. The
+        // prose itself is still read once, for the ONE thing that
+        // stays prose-only: the `## Archive held back` section, which
+        // is display text `4-status.json`'s schema does not carry.
         let statusText = "";
         try {
           statusText = readFileSync(join(s.dir, "4-status.md"), "utf-8");
         } catch {
           statusText = "";
         }
-        const status = statusText ? parseStatus(statusText) : null;
-        // Read from the SAME content, not a second pass over the file:
-        // both answers come out of `4-status.md` and there is no
-        // reason for the page to open it twice.
+        const state = readSpecState(s.dir);
         // The dependency-gated reason first (still checked, though
         // largely retired by spec 268), then the far more common one
         // today: archive's own acceptance-criteria gate (spec 285)
@@ -118,9 +122,9 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
         // case's "waiting" — the two share this field because both are
         // archive declining to proceed, but only one of them is
         // ordinary, expected progress.
+        const acceptanceOpen = state?.acceptanceCriteria.some((row) => !row.done) ?? false;
         const heldBack = statusText
-          ? (archiveHeldBackReason(statusText) ??
-              (acceptanceCriteriaUnticked(statusText) ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
+          ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;
         found.push({
           project: p.name,
@@ -135,7 +139,7 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
           // shown on its row in the same words the run's dependency
           // refusal uses.
           dependsOn: s.dependsOn,
-          phase: status?.phase ?? undefined,
+          phase: (state ? currentPhase(state) : null) ?? undefined,
           // The FILES, and nothing else (spec 108). It used to be
           // unioned with the queue's own record of what it ran, so
           // either one being true was enough — which is how an
@@ -160,14 +164,22 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
           // it and a copied folder brings a sibling's version along.
           // `withFreshness` fills `done` in from the runner's own
           // commits, and this is what it compares them against.
-          fileSteps: status?.workflowSteps ?? [],
+          // The state file, or — for a spec that has none yet — the
+          // prose's own steps line: an empty list here read as a file
+          // that claims nothing, and every such row said the files
+          // disagreed with what has run (2026-09-02).
+          fileSteps: state?.completedPhases ?? parseStatus(statusText).workflowSteps,
           // Where this spec's history starts, when it has been
-          // reopened (spec 198). Read off the same content as
-          // `fileSteps` and `heldBack`, for the same reason: three
-          // answers out of `4-status.md` and no second pass over the
-          // file.
-          reopenedAfter: status?.reopenedAfter,
+          // reopened (spec 198). Off the same state file as `fileSteps`
+          // and `heldBack`'s acceptance half.
+          reopenedAfter: state?.reopened?.boundaryCommit,
           archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
+          // spec 355 (REQ-10): a spec whose files exist but has no
+          // state file yet — not touched by a writer script since this
+          // feature shipped, or an archived spec the backfill has not
+          // reached. Never for a brand-new spec with no 4-status.md at
+          // all, which is ordinary "not started yet", not a gap.
+          stateMissing: statusText ? state === null : undefined,
         });
       }
     }

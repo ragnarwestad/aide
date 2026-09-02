@@ -85,3 +85,29 @@ describe("pageShell install warning banner", () => {
     expect(bannerStart).toBeLessThan(tabbarStart);
   });
 });
+
+// Spec 350, REQ-3/REQ-4/REQ-5.
+describe("pageShell language (spec 350)", () => {
+  test("no lang opt renders <html lang=\"en\"> and English header text, unchanged", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain('aria-label="Theme"');
+  });
+
+  test("{ lang: \"nb\" } renders <html lang=\"nb\"> and a Norwegian header string", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    expect(html).toContain('<html lang="nb">');
+    expect(html).toContain('aria-label="Tema"');
+    expect(html).not.toContain('aria-label="Theme"');
+  });
+
+  test("the language control's own link is always /?lang=..., regardless of currentPath", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    expect(html).toContain('href="/?lang=en"');
+    expect(html).toContain('href="/?lang=nb"');
+  });
+});

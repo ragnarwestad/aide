@@ -22,7 +22,7 @@
 // the fast-forward is CHECKED, against a ref the fetch has just moved,
 // before anything is merged.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 import { lastCommitOf } from "./description-freshness.ts";
@@ -222,9 +222,21 @@ export async function saveSpecFiles(
     // Captured BEFORE the writes, so a rollback undoes exactly this
     // save's commit and nothing the pull above brought in.
     const before = await run(root, ["rev-parse", "HEAD"]);
-    const paths = edits.map((edit) => ({ edit, path: join(dir, edit.file), previous: readFileSync(join(dir, edit.file), "utf-8") }));
+    // `previous: null` (spec 355) is a file that did not exist before
+    // this save — `4-status.json`, the first time a spec's own tick or
+    // Save lands after this feature ships. Every OTHER caller's files
+    // already exist (a document tab reads them before it can be edited
+    // at all), so this is new only for the state file's own sibling
+    // entry.
+    const paths = edits.map((edit) => {
+      const path = join(dir, edit.file);
+      return { edit, path, previous: existsSync(path) ? readFileSync(path, "utf-8") : null };
+    });
     const rollback = (): void => {
-      for (const { path, previous } of paths) writeFileSync(path, previous);
+      for (const { path, previous } of paths) {
+        if (previous === null) unlinkSync(path);
+        else writeFileSync(path, previous);
+      }
     };
     for (const { edit, path } of paths) writeFileSync(path, asFileText(edit.text));
 

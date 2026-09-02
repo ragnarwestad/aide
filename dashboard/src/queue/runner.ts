@@ -29,7 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
-import { mergeBranchRefs, type Job, type WorkflowStep } from "./queue.ts";
+import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
@@ -122,8 +122,9 @@ export class Runner {
     // At one operator, over-serializing costs seconds; the race costs a
     // half-merged working tree.
     if (this.o.store.list().some((j) => j.landing)) return;
-    // FIFO: list() is newest-first.
-    for (const job of [...this.o.store.list()].reverse()) {
+    // Quick steps before slow ones, oldest first within each group
+    // (REQ-1); list() is newest-first.
+    for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (this.runningJobs().length >= this.maxConcurrent) return;
       if (job.state !== "queued") continue;
       // Two jobs for the SAME spec are never both started: analyze and
@@ -163,7 +164,7 @@ export class Runner {
   private startOne(job: Job): boolean {
     const step = job.steps[job.stepIndex];
     if (!step) {
-      this.o.store.update(job.id, { state: "done", finishedAt: this.o.now() });
+      this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now() });
       return false;
     }
 
@@ -171,13 +172,12 @@ export class Runner {
     // stops you afterwards is a report, not a cap.
     if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
       const reason = `the job cap ($${job.jobCapUsd}) would be exceeded by the next step`;
-      const stopped = this.o.store.update(job.id, {
-        state: "stopped",
+      const result = this.o.store.transition(job.id, "cap-hit", {
         stopReason: "job-cap",
         finishedAt: this.o.now(),
         error: reason,
       });
-      this.announce(stopped ?? job, "stopped", step, reason);
+      this.announce(result.ok ? result.job : job, "stopped", step, reason);
       return false;
     }
     // The budgets of jobs ALREADY IN FLIGHT count. `spentToday()` is the
@@ -200,8 +200,7 @@ export class Runner {
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
     const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
-    this.o.store.update(job.id, {
-      state: "running",
+    this.o.store.transition(job.id, "start", {
       pid,
       pgid,
       resultFile,
@@ -236,8 +235,7 @@ export class Runner {
       // No result yet. If the process is also gone, the run died without
       // leaving one — see reconcile().
       if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
-        this.o.store.update(job.id, {
-          state: "interrupted",
+        this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
           error: "the run vanished without leaving a result",
@@ -255,8 +253,7 @@ export class Runner {
       if (raw) {
         this.complete(job, raw as Partial<StepOutcome>);
       } else {
-        this.o.store.update(job.id, {
-          state: "interrupted",
+        this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
           error: "the server restarted while this step was running, and it left no result",
@@ -365,20 +362,18 @@ export class Runner {
       outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
       outcome.terminalReason === "provider-limit"
     ) {
-      const stopped = this.o.store.update(job.id, {
+      const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
-        state: "stopped",
         stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
         error: outcome.error,
       });
-      this.announce(stopped ?? job, "stopped", step, outcome.terminalReason);
+      this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;
     }
     if (!outcome.ok) {
-      const failed = this.o.store.update(job.id, {
+      const result = this.o.store.transition(job.id, "step-failed", {
         ...base,
-        state: "failed",
         finishedAt: this.o.now(),
         error: outcome.error ?? outcome.terminalReason,
         // A conflict found HERE — at step start, by the runner — has to
@@ -388,25 +383,24 @@ export class Runner {
         // reason left by an earlier attempt.
         errorReason: outcome.errorReason,
       });
-      this.announce(failed ?? job, "failed", step, outcome.error ?? outcome.terminalReason);
+      this.announce(result.ok ? result.job : job, "failed", step, outcome.error ?? outcome.terminalReason);
       return;
     }
 
     const nextIndex = job.stepIndex + 1;
     if (nextIndex >= job.steps.length) {
-      const done = this.o.store.update(job.id, {
+      const result = this.o.store.transition(job.id, "step-succeeded-last", {
         ...base,
-        state: "done",
         stepIndex: nextIndex - 1,
         finishedAt: this.o.now(),
       });
-      this.announce(done ?? job, "finished", step);
+      this.announce(result.ok ? result.job : job, "finished", step);
       return;
     }
     // A step used to be able to PARK the job here, waiting for a person
     // to press Approve. Spec 149 removed the stop: every step lands the
     // work it produced, so there is nothing between two steps for anyone
     // to weigh, and the next step is simply queued.
-    this.o.store.update(job.id, { ...base, state: "queued", stepIndex: nextIndex });
+    this.o.store.transition(job.id, "step-succeeded", { ...base, stepIndex: nextIndex });
   }
 }

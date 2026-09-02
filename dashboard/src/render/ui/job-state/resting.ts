@@ -2,6 +2,7 @@
 
 import { badge, stepLabel } from "../components.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { t, type Language } from "../../../i18n/index.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -57,28 +58,38 @@ export interface RestingState {
 // the same `readyPhase` names both, so they cannot disagree — and
 // "nothing waiting on you" said nothing "done" does not. The colour
 // still tells the two apart at a glance.
-export function restingChip(resting: RestingState = {}): string {
+export function restingChip(lang: Language, resting: RestingState = {}): string {
   // Two reasons share this one field (spec-lookup.ts): a dependency
   // still open is genuinely waiting on something outside this spec,
   // but unticked Acceptance criteria are this spec's own next step —
   // exactly what "ready" already means everywhere else on this badge,
   // so it reads that way here too. The notice panel below still says
   // which of the two it is, in full.
-  if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) return badge("ready", "ready");
-  if (resting.archiveHeldBack) return badge("waiting", "archive held back");
-  if (resting.readyPhase) return badge("ready", "ready");
-  return badge("done", "done");
+  if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) return badge("ready", t(lang, "list.ready"));
+  if (resting.archiveHeldBack) return badge("waiting", t(lang, "list.archiveHeldBackWord"));
+  if (resting.readyPhase) return badge("ready", t(lang, "list.ready"));
+  return badge("done", t(lang, "list.done"));
 }
 
-export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
-  if (r.state === "running") return badge("running", gerund(currentStep(r)));
-  if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
+export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
+  if (r.state === "running") return badge("running", gerund(lang, currentStep(r)));
+  if (r.state === "queued") {
+    const step = currentStep(r);
+    const pos = r.queuePosition;
+    return badge(
+      "idle",
+      pos
+        ? t(lang, "list.stateQueuedPosition", { step: gerund(lang, step), n: pos.n, total: pos.total })
+        : t(lang, "list.stateQueued", { step: gerund(lang, step) }),
+      pos ? t(lang, "list.stateQueuedTooltip", { n: pos.n, total: pos.total, step: stepLabel(step) }) : undefined,
+    );
+  }
   // The step finished and `state` already reads "done", but its branch
   // has not landed yet (`Runner.complete()` writes both in the same
   // update — `runner.ts`). A row that fell through to `restingChip`
   // here would offer "ready" for a spec whose files do not exist yet.
-  if (r.state === "done" && r.landing) return badge("running", gerund(currentStep(r)));
-  if (r.state === "done") return restingChip(resting);
+  if (r.state === "done" && r.landing) return badge("running", gerund(lang, currentStep(r)));
+  if (r.state === "done") return restingChip(lang, resting);
   // Bare word only (REQ-1, spec 339) — `stateLabel()`'s "stopped —
   // <reason>" suffix is the notice line's to say now (`lead.error`,
   // verified always populated for every stopReason). `stateChip` still
@@ -87,11 +98,35 @@ export function specStateChip(r: QueueRowView, resting: RestingState = {}): stri
   return badge(BADGE_VARIANT[r.state], r.state);
 }
 
-/** "analyze" → "analyzing", "implement" → "implementing" — from the
- *  reader's word (`stepLabel`), so a future entry added to
- *  `STEP_LABELS` gerunds through the same rule rather than a second
- *  one. */
-function gerund(step: string): string {
+/** "analyze" → "analyzing"/"analyserer" — a per-step, per-language
+ *  table (spec 350, REQ-6), replacing the English-only suffix rule this
+ *  used to be outright: a rule built on `stepLabel(step) + "ing"` has no
+ *  Norwegian equivalent (`2-analysis.md`'s "Why gerund() cannot simply
+ *  be handed a translated stepLabel"). Keyed by the step ID, not by
+ *  `stepLabel`'s output, and entirely decoupled from it — so it can
+ *  carry a real Norwegian verb without touching `STEP_LABELS` or any
+ *  page that reads it, `job-page.ts` included.
+ *
+ *  A step neither table names falls back to the OLD suffix rule, in
+ *  English regardless of `lang` — the same blind spot the algorithm
+ *  already had for every step before this, now narrowed to future ones
+ *  only (Risk analysis, `3-solution.md`): a test pins that every member
+ *  of `WORKFLOW_STEPS` has both a `GERUND_EN` and a `GERUND_NB` entry,
+ *  so an omission fails `make test` rather than surfacing only in
+ *  production. */
+export const GERUND_EN: Record<string, string> = {
+  create: "creating", analyze: "analyzing", implement: "implementing", archive: "archiving",
+  explore: "exploring", manifest: "updating the manifest for", reopen: "reopening", reset: "resetting",
+  schedule: "running the schedule for",
+};
+export const GERUND_NB: Record<string, string> = {
+  create: "oppretter", analyze: "analyserer", implement: "implementerer", archive: "arkiverer",
+  explore: "utforsker", manifest: "oppdaterer manifestet for", reopen: "gjenåpner", reset: "tilbakestiller",
+  schedule: "kjører planen for",
+};
+function gerund(lang: Language, step: string): string {
+  const table = lang === "nb" ? GERUND_NB : GERUND_EN;
+  if (table[step]) return table[step]!;
   const label = stepLabel(step);
   return label.endsWith("e") ? `${label.slice(0, -1)}ing` : `${label}ing`;
 }
