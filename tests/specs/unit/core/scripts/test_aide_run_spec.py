@@ -6389,6 +6389,52 @@ def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
     assert out["terminalReason"] == "scope-violation", out
 
 
+def analyze_claude_writing_the_line_from_nothing(fake_claude, workspace):
+    """A stand-in analyze step on a spec whose 4-status.md carries NO
+    steps line — which is every spec at creation — that writes the line
+    itself as `create, analyze`, and advances nothing."""
+    folder = workspace["folder"]
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** create, analyze\n"
+        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n"
+    )
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_an_analyze_that_names_create_on_a_line_that_did_not_exist_is_fine(
+    runner, workspace, fake_claude
+):
+    """Spec 348's refusal: the file had no steps line before the run, so
+    the allowed set was `analyze` alone and the model's own `create` read
+    as a step beyond scope. A spec that exists has been through create."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Last updated:** `[not started]`\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n",
+    )
+    claude = analyze_claude_writing_the_line_from_nothing(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
 def analyze_claude_renaming_the_header(fake_claude, workspace):
     """Spec 299: a stand-in analyze step that rewrites the Phase table's
     header to non-standard column names, leaving its one row exactly

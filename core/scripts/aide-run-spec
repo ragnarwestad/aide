@@ -2125,7 +2125,12 @@ if [ -n "$status_file" ]; then
     # markdown's own leading space after the bold colon, and splicing
     # that untrimmed into a `case` pattern string breaks the substring
     # match a bare `tr` does not fix.
-    allowed_steps="|analyze|"
+    # `create` is always allowed: a spec that exists has been through it,
+    # whether or not the pre-session file said so. No spec carries the
+    # line at creation, and a model that writes "create, analyze" onto a
+    # file that had no line was refused for the one step it could not
+    # have skipped (spec 348, 2026-09-02).
+    allowed_steps="|analyze|create|"
     for allowed_step in $(printf '%s' "$existing_line_before" | tr ',' ' '); do
       allowed_steps="$allowed_steps$allowed_step|"
     done
