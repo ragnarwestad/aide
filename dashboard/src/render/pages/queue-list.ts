@@ -218,7 +218,7 @@ function groupRows(
 // — never a cap again.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   const matched = sortGroups(applyFilter(groups, f), f);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
