@@ -239,3 +239,86 @@ describe("parseCreateRequest — model", () => {
     expect(r.ok && r.job.model).toEqual({ create: DEFAULTS.model.default! });
   });
 });
+// --- spec 342: running the whole workflow from the start ---------------------
+
+// The New-spec page's phase table lets a reader tick analyze, implement
+// and archive up front — the same ticks the Specs list's own row posts
+// for an existing spec, reaching this same parser. `steps` widens from
+// the hard-coded `["create"]` to `["create", ...ticked extras]`, and the
+// model lookup widens from the single `create` key to every step the
+// job actually runs.
+describe("parseCreateRequest — steps (spec 342)", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const WITH_CHOICES: QueueDefaults = {
+    ...DEFAULTS,
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  // REQ-3, REQ-8: an untouched form posts no `steps` field at all, and
+  // the job it produces is identical to today's.
+  test("no steps field at all: create alone, exactly as before this existed", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.steps).toEqual(["create"]);
+  });
+
+  // REQ-4, criterion 4.
+  test("ticked extra phases are appended after create", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, steps: ["analyze", "implement"] },
+      { allow, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.steps).toEqual(["create", "analyze", "implement"]);
+  });
+
+  // REQ-4, criterion 4: a name per ticked step, plus the config's own
+  // default for `create` when the form's own model field for it was
+  // left untouched.
+  test("a per-step model map is honoured for every ticked step", () => {
+    const r = parseCreateRequest(
+      {
+        ...CREATE,
+        steps: ["analyze", "implement"],
+        model: { create: "fable", analyze: "sonnet", implement: "fable" },
+      },
+      { allow, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.model).toEqual({ create: "fable", analyze: "sonnet", implement: "fable" });
+  });
+
+  // A name posted for a step this job does not run is skipped, not
+  // refused — `parseJobRequest`'s own rule, since a phase table always
+  // posts every select it drew, whichever boxes are ticked.
+  test("a model named for an untouched phase is ignored", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, steps: ["analyze"], model: { create: "sonnet", analyze: "fable", archive: "fable" } },
+      { allow, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.model).toEqual({ create: "sonnet", analyze: "fable" });
+  });
+
+  // Bounded to the same three phases the Specs list's own row may tick
+  // (`PHASE_STEPS`) — never `create` a second time, and never a step
+  // outside the workflow's own vocabulary.
+  test("an entry outside analyze/implement/archive is refused", () => {
+    for (const bad of [["create"], ["reset"], ["explore"], ["nope"], [7]]) {
+      expect(parseCreateRequest({ ...CREATE, steps: bad }, { allow, defaults: DEFAULTS }).ok).toBe(false);
+    }
+  });
+
+  test("steps that is not a list is refused", () => {
+    expect(parseCreateRequest({ ...CREATE, steps: "analyze" }, { allow, defaults: DEFAULTS }).ok).toBe(false);
+  });
+
+  // A repeated entry (two boxes of the same value, however that would
+  // happen) never doubles a step in the job.
+  test("a repeated entry is folded to one", () => {
+    const r = parseCreateRequest({ ...CREATE, steps: ["analyze", "analyze"] }, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.steps).toEqual(["create", "analyze"]);
+  });
+});

@@ -30,7 +30,7 @@
 
 import type { NotifyEvent } from "../integrations/notify.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
-import { mergeBranchRefs, type Job, type WorkflowStep } from "./queue.ts";
+import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
@@ -123,8 +123,9 @@ export class Runner {
     // At one operator, over-serializing costs seconds; the race costs a
     // half-merged working tree.
     if (this.o.store.list().some((j) => j.landing)) return;
-    // FIFO: list() is newest-first.
-    for (const job of [...this.o.store.list()].reverse()) {
+    // Quick steps before slow ones, oldest first within each group
+    // (REQ-1); list() is newest-first.
+    for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (this.runningJobs().length >= this.maxConcurrent) return;
       if (job.state !== "queued") continue;
       // Two jobs for the SAME spec are never both started: analyze and

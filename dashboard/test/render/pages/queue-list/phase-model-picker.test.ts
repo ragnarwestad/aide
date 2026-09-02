@@ -5,6 +5,8 @@ import {
   type QueueRowView,
   type QueueTarget,
 } from "../../../../src/render.ts";
+import { aiPicker, modelPicker, type PickerOptions } from "../../../../src/render/pages/queue-list/model-picker.ts";
+import { type SpecGroup } from "../../../../src/render/pages/queue-list/data-model.ts";
 import { row, openKeys } from "../fixtures.ts";
 
 // --- spec 123: the model is chosen on the phase line -------------------------
@@ -304,5 +306,48 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const line = subRow(html, "analyze");
     expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+});
+
+// --- spec 342: a picker drawn for a spec that does not exist yet -------------
+//
+// The New spec page has no real project/specFolder to derive a form id
+// from (`runFormId(g)` reads both off `g`), so `aiPicker`/`modelPicker`
+// take an optional override that replaces it — and nothing else the two
+// functions draw.
+describe("spec 342: formIdOverride replaces the derived form id", () => {
+  const models = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12, tool: "codex" as const },
+  ];
+  const g: SpecGroup = {
+    project: "", specFolder: "new", named: false, state: "not-started",
+    spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
+  };
+  const opts: PickerOptions = { modelChoices: models };
+
+  test("modelPicker posts to the override, not the derived id", () => {
+    const html = modelPicker(g, opts, "create", false, false, undefined, undefined, "new-spec-form");
+    expect(html).toContain('form="new-spec-form"');
+    expect(html).not.toContain("rowrun-");
+  });
+
+  test("aiPicker posts to the override too", () => {
+    const html = aiPicker(g, opts, "create", false, false, undefined, undefined, "new-spec-form");
+    expect(html).toContain('form="new-spec-form"');
+    expect(html).not.toContain("rowrun-");
+  });
+
+  // Every existing caller in `phase-rows.ts` passes no override at all,
+  // and has to keep reading exactly as it did before this parameter
+  // existed.
+  test("omitted, the two fall back to the derived id exactly as before", () => {
+    const withFolder: SpecGroup = { ...g, project: "aide", specFolder: "81-queue-and-runner" };
+    expect(modelPicker(withFolder, opts, "create", false, false)).toContain(
+      'form="rowrun-aide/81-queue-and-runner"',
+    );
+    expect(aiPicker(withFolder, opts, "create", false, false)).toContain(
+      'form="rowrun-aide/81-queue-and-runner"',
+    );
   });
 });

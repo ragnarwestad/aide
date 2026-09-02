@@ -10,7 +10,7 @@
 //     something an HTTP body gets to decide
 
 import { errorSentence } from "../render/ui/error-sentence.ts";
-import { ARCHIVE_ONLY_STEP, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { ARCHIVE_ONLY_STEP, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ModelChoice, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
@@ -331,35 +331,55 @@ export function parseCreateRequest(
     }
   }
 
-  // Which model the one step this job runs is run ON (spec 228). Every
-  // step BUT `create` could already be pointed at one from its own
-  // phase line; `create` MAKES the spec those lines belong to, so there
-  // is no row to pick it from and the New-spec form is where the choice
-  // is made instead.
+  // Which phases this job runs, beyond `create` itself (spec 342). The
+  // New spec page's own phase table posts the same repeated `steps`
+  // field the Specs list's row does, bounded to the same three phases
+  // that row may tick (`PHASE_STEPS`) — never `create` a second time,
+  // and never a step outside the workflow's own vocabulary. Omitted
+  // entirely, an untouched form's `steps` is exactly `["create"]`,
+  // identical to today's behaviour (REQ-3).
+  let extraSteps: WorkflowStep[] = [];
+  if (r.steps !== undefined && r.steps !== null) {
+    if (!Array.isArray(r.steps)) return { ok: false, error: "steps must be a list" };
+    for (const s of r.steps) {
+      if (typeof s !== "string" || !(PHASE_STEPS as readonly string[]).includes(s)) {
+        return { ok: false, error: `invalid entry in steps: ${String(s)}` };
+      }
+      if (!extraSteps.includes(s as WorkflowStep)) extraSteps.push(s as WorkflowStep);
+    }
+  }
+  const steps: WorkflowStep[] = ["create", ...extraSteps];
+
+  // Which model each of those steps is run ON (spec 228, widened by
+  // spec 342). Every step BUT `create` could already be pointed at one
+  // from its own phase line; `create` MAKES the spec those lines belong
+  // to, so there is no row to pick it from and the New-spec form is
+  // where the choice is made instead — now for every step this job may
+  // run, not `create` alone.
   //
   // The per-step shape, which is what `bodyToObject` already folds a
-  // posted `model.create=` into — the same shape, and the same table
+  // posted `model.<step>=` into — the same shape, and the same table
   // (`lookUpModel`), as every phase line's pick, so a name accepted here
   // is a name `parseJobRequest` would accept too. An empty value keeps
   // meaning "the configuration decides": that is what an untouched
   // select posts, and what a form with no Model field at all leaves out.
-  let modelChoice: string | undefined;
+  let stepModels: Record<string, string> = {};
   if (r.model !== undefined && r.model !== null && r.model !== "") {
     if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
-    // The one step this job runs, and no other. A name posted for a
-    // step a create job does not have is skipped rather than refused —
-    // the rule `parseJobRequest` already follows for the same reason: a
-    // browser posts every select it drew, whichever are ticked.
-    const name = (r.model as Record<string, unknown>).create;
-    if (name !== undefined && name !== null && name !== "") {
-      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest("invalid model for create") };
+    // Only the steps this job runs. A name posted for a step it does
+    // not have is skipped rather than refused — the rule
+    // `parseJobRequest` already follows for the same reason: a browser
+    // posts every select it drew, whichever boxes are ticked.
+    for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
+      if (name === undefined || name === null || name === "") continue;
+      if (!steps.includes(step as WorkflowStep)) continue;
+      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
-      modelChoice = name;
+      stepModels[step] = name;
     }
   }
 
-  const steps: WorkflowStep[] = ["create"];
   return {
     ok: true,
     job: {
@@ -373,10 +393,9 @@ export function parseCreateRequest(
       jobCapUsd: defaults.jobCapUsd,
       timeoutSec: defaults.timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
-      // The same shape `perStep` gives a one-step job either way — one
-      // entry, named for the one step — differing only in where the
-      // name came from.
-      model: modelChoice ? { create: modelChoice } : perStep(steps, defaults.model),
+      // The config's own default for every step this job runs,
+      // overridden per step by whatever was actually posted.
+      model: { ...perStep(steps, defaults.model), ...stepModels },
       createTitle: title,
       createDescription: description,
       // Omitted entirely when nothing was chosen: "nothing chosen means
