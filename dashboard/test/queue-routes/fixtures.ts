@@ -13,8 +13,12 @@ export const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: 
 
 export function setupQueueRoutesHarness(prefix = "aide-queue-routes-") {
   const harness = queueHarness(prefix);
-  const start = (extra: Partial<ServerOptions> = {}, alsoProjects: string[] = [], alsoSpecs: string[] = []) =>
-    harness.start({ extra, alsoProjects, alsoSpecs });
+  const start = (
+    extra: Partial<ServerOptions> = {},
+    alsoProjects: string[] = [],
+    alsoSpecs: string[] = [],
+    status?: string,
+  ) => harness.start({ extra, alsoProjects, alsoSpecs, ...(status ? { status } : {}) });
   return { harness, start };
 }
 

@@ -613,7 +613,11 @@ describe("landing an archived spec (spec 136)", () => {
     const checked = await Promise.all(
       steps.map(async (step) => {
         const git = gitFor();
-        const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
+        // An analyzed spec: since spec 344 an `implement` on a spec with
+        // no analyze is held back in the queue, and this test needs the
+        // step to run so it can watch it NOT land.
+        const analyzed = (o: Partial<ServerOptions>) => start(o, [], [], statusSaying(["create", "analyze"]));
+        const { base, results } = serverWithRunner(analyzed, "aide-archive-results-", git);
         const job = await runStep(base, step);
         writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
         const done = await settle(base, job.id, (j) => j.state === "done");
