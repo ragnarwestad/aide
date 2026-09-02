@@ -164,11 +164,14 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
           // it and a copied folder brings a sibling's version along.
           // `withFreshness` fills `done` in from the runner's own
           // commits, and this is what it compares them against.
-          // The state file, or — for a spec that has none yet — the
-          // prose's own steps line: an empty list here read as a file
-          // that claims nothing, and every such row said the files
-          // disagreed with what has run (2026-09-02).
-          fileSteps: state?.completedPhases ?? parseStatus(statusText).workflowSteps,
+          // The prose's own steps line, AND the state file's own claim
+          // when this spec has one — kept apart rather than collapsed
+          // into one array (spec 362), so `resolveWorkflowState` can
+          // stop comparing the state file against git once one exists:
+          // a git-history comparison of a state-file spec compares two
+          // records that can legitimately disagree for reasons that
+          // mean nothing (spec 349).
+          fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases },
           // Where this spec's history starts, when it has been
           // reopened (spec 198). Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.
