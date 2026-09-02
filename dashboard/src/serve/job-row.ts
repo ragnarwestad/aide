@@ -4,7 +4,7 @@
 // unlike `schedules.ts`, nothing here reads a `let` reassigned later in
 // boot, so every field is a plain value.
 
-import { tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
+import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView } from "../render.ts";
 import { resolveStepModel, resolveTimeoutSec } from "./serve-helpers.ts";
@@ -32,6 +32,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // that takes its tick cannot disagree about where the tail
     // starts.
     editableSteps: tailEdits(job),
+    queuePosition: job.state === "queued" ? queuePosition(ctx.queue, job) : undefined,
     state: job.state,
     landing: job.landing,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
@@ -79,4 +80,14 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
       costMeasured: r.costMeasured,
     })),
   };
+}
+
+/** REQ-4/REQ-6: the same `queuePriorityOrder()` `Runner.tick()` calls,
+ *  applied to every currently `queued` job, oldest-first as `list()`
+ *  gives every other reader of the store. */
+function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } {
+  const queued = queuePriorityOrder(
+    [...queue.list()].reverse().filter((j) => j.state === "queued"),
+  );
+  return { n: queued.findIndex((j) => j.id === job.id) + 1, total: queued.length };
 }

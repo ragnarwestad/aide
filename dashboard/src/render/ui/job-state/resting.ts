@@ -73,7 +73,17 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
 
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(lang, currentStep(r)));
-  if (r.state === "queued") return badge("idle", t(lang, "list.stateQueued", { step: gerund(lang, currentStep(r)) }));
+  if (r.state === "queued") {
+    const step = currentStep(r);
+    const pos = r.queuePosition;
+    return badge(
+      "idle",
+      pos
+        ? t(lang, "list.stateQueuedPosition", { step: gerund(lang, step), n: pos.n, total: pos.total })
+        : t(lang, "list.stateQueued", { step: gerund(lang, step) }),
+      pos ? t(lang, "list.stateQueuedTooltip", { n: pos.n, total: pos.total, step: stepLabel(step) }) : undefined,
+    );
+  }
   // The step finished and `state` already reads "done", but its branch
   // has not landed yet (`Runner.complete()` writes both in the same
   // update — `runner.ts`). A row that fell through to `restingChip`

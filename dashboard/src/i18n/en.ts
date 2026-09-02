@@ -68,4 +68,6 @@ export const en = {
   "list.archiveHeldBackWord": "archive held back",
   "list.done": "done",
   "list.stateQueued": "{step} queued",
+  "list.stateQueuedPosition": "{step} {n}/{total}",
+  "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",
 } as const;
