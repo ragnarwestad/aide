@@ -289,4 +289,51 @@ describe("landing a created spec (spec 93)", () => {
     // Labelled by its title: the provisional key says nothing to anyone.
     expect(html).toContain("A brand new spec");
   });
+
+  // --- spec 342, REQ-5: a job that goes create -> analyze in one run ---------
+  //
+  // No job's `steps` had ever carried a second entry after `create`
+  // before this spec — the New spec page's phase table is what first
+  // lets a reader ask for it. The runner's own mechanism (the "nothing
+  // starts while a job is landing" gate in `runner.ts`, and `startOne`
+  // re-reading `job.specFolder` fresh off the store every tick) is
+  // generic and was never written FOR this case, but had never been
+  // exercised by it either — so this proves it end to end rather than
+  // trusting the reasoning.
+  test("REQ-5: the step after create runs under the spec's real, renamed folder", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
+    const made = (await (
+      await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({
+          project: "aide",
+          title: "A new spec",
+          description: "Do the thing",
+          steps: ["analyze"],
+        }),
+      })
+    ).json()) as { job: { id: string; specFolder: string; steps: string[] } };
+    expect(made.job.steps).toEqual(["create", "analyze"]);
+    const job = made.job;
+
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+
+    // The next step starts running under the RENAMED folder — never the
+    // provisional key `create` was queued under.
+    const running = await settle(base, job.id, (j) => j.state === "running" && j.stepIndex === 1);
+    expect(running.specFolder).toBe("94-a-new-spec");
+    expect(running.steps).toEqual(["create", "analyze"]);
+
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ok: true, exitCode: 0, costUsd: 0.05, costMeasured: true, terminalReason: "completed", repos: [],
+      }),
+    );
+    const done = await settle(base, job.id, (j) => j.state === "done");
+    expect(done.specFolder).toBe("94-a-new-spec");
+  }, 20000);
 });

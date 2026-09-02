@@ -18,17 +18,11 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "../ui/components.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import {
-  defaultModelForTool,
-  modelOptions,
-  resolveChosenModel,
-  TOOL_NAMES,
-  type QueuePageOptions,
-  type QueueTarget,
-} from "./queue-list.ts";
+import { PHASE_LINES, type QueuePageOptions, type QueueTarget, type SpecGroup } from "./queue-list.ts";
+import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./queue-list/model-picker.ts";
 
 export interface NewSpecPageOptions {
   /** Carried into the form, for a browser that got here with the token
@@ -123,43 +117,75 @@ export function dependsOnField(
   );
 }
 
-// The fields needed to make the spec and choose the model for that one
-// create step. Everything for later steps belongs on the spec's row.
+// One row per phase — create, analyze, implement, archive — each with a
+// tick, an AI choice and a model choice, drawn by the same
+// `aiPicker`/`modelPicker`/`phaseCaptionCells` the Specs list's own spec
+// row uses (spec 342): the control this page needs already exists as
+// parts, and the task is reusing them, not writing a second version for
+// a spec that does not exist yet.
+//
+// `aiPicker`/`modelPicker` derive the `<select>`'s `form="..."` from a
+// `SpecGroup`'s own `project`/`specFolder` — real values a spec on this
+// page has neither of, so a small, clearly-synthetic row is built once
+// here, and `formIdOverride` (this page's own form id) is what actually
+// ties every select to it.
+function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
+  const pickerOpts: PickerOptions = {
+    modelChoices: opts.modelChoices,
+    defaultModels: opts.defaultModels,
+    // No `pendingModels`: a spec that does not exist yet has no
+    // `specFolder` to key a pending pick on (REQ-6) — the `pending`
+    // tier of `resolveChosenModel` then falls through to `configured`
+    // every time, the same answer `create`'s own picker already gave.
+  };
+  const row: SpecGroup = {
+    project: "", specFolder: "new", named: false, state: "not-started",
+    spentUsd: 0, costUnmeasured: false, phases: [], done: [],
+    dependsOn: [], analyzeStale: false,
+  };
+  const captionRow = (opts.modelChoices ?? []).length
+    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts)}</tr>`
+    : "";
+  const phaseRows = PHASE_LINES.map((step) => {
+    // `create` MADE the spec these lines belong to and cannot be
+    // created again — the same locked, nameless box `phase-rows.ts`'s
+    // own `create` line draws for an existing spec.
+    const locked = step === "create";
+    const box = phaseChip({
+      dataAttr: "data-phase",
+      value: step,
+      label: "",
+      ariaLabel: locked
+        ? "Create — always runs, and not a step you can drop"
+        : stepLabel(step),
+      name: locked ? "" : "steps",
+      form: formId,
+      checked: locked,
+      disabled: locked,
+      plain: true,
+    });
+    return (
+      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step))}</td>` +
+      `<td class="modelcell"><span class="row">` +
+      `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}` +
+      `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}</span>` +
+      `${box}</span></td></tr>`
+    );
+  }).join("");
+  return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
+}
+
+// The fields needed to make the spec: which project, its phase table,
+// what it builds on, its title and its description.
 //
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
-  const models = opts.modelChoices ?? [];
-  const configured = opts.defaultModels?.create ?? opts.defaultModels?.default;
-  const chosen = models.length ? resolveChosenModel(models, configured, undefined) : undefined;
-  const tools = Object.keys(TOOL_NAMES).filter((tool) =>
-    models.some((model) => (model.tool ?? "claude") === tool),
-  );
-  const restingTool = models.find((model) => model.name === chosen)?.tool ?? "claude";
-  const aiSelect =
-    tools.length > 1
-      ? `<noscript><style>[data-ai]{display:none}</style></noscript>` +
-        `<select data-ai="model.create" form="${formId}">` +
-        tools
-          .map(
-            (tool) =>
-              `<option value="${esc(tool)}"` +
-              ` data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
-              `${tool === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[tool]!)}</option>`,
-          )
-          .join("") +
-        `</select>`
-      : "";
-  const modelSelect = models.length
-    ? `<select name="model.create" form="${formId}">` +
-      modelOptions(models, chosen) +
-      `</select>`
-    : "";
-  // Four lines, read top to bottom: Project, AI and Model side by side,
-  // Depends on and Title on lines of their own, then Description with
-  // Create and Cancel at its right-hand side. Each
+  // Four lines, read top to bottom: Project on its own, the phase table
+  // beneath it, Depends on and Title on lines of their own, then
+  // Description with Create and Cancel at its right-hand side. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
   // form shares, so the shared `.newspecform` look is untouched.
   return (
@@ -172,9 +198,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
-    (aiSelect ? field("AI", aiSelect) : "") +
-    (modelSelect ? field("Model", modelSelect) : "") +
     `</span>` +
+    newSpecPhaseTable(opts, formId) +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
     field(
       "Title",
