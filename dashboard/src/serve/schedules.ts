@@ -356,7 +356,7 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
  *  `core/scripts/aide-run-spec`'s own gate reads for the identical
  *  refusal. */
 /** The `Workflow steps completed` line, read straight from the prose —
- *  the fallback for a spec that has no 4-status.json yet. */
+ *  the fallback for a spec that has no state file yet. */
 function proseSteps(dir: string): string[] {
   try {
     return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
@@ -385,8 +385,8 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // beside it — the same gate `core/scripts/aide-run-spec`'s own
     // may-implement-start check reads, now off the one shared source.
     // The state file when the spec has one, its own prose when it has
-    // not: a spec analyzed before spec 355 landed carries no
-    // 4-status.json, and reading that as "nothing has run" held every
+    // not: a spec analyzed before spec 355 landed carries no state
+    // file, and reading that as "nothing has run" held every
     // such implement back as not analyzed (2026-09-02). The runner's own
     // gate (spec 344) still refuses a spec that truly has not been
     // analyzed, whichever source said so here.
