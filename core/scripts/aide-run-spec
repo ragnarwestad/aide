@@ -645,7 +645,12 @@ if [ "$tool" = "codex" ]; then
   codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
   [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "cannot find the codex binary (set AIDE_CODEX_BIN)"
 else
-  claude_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
+  # The environment wins; the project's own .aide/config is the fallback.
+  # A per-machine file is where a project points its runs at a stand-in
+  # binary without the whole dashboard following it there.
+  claude_override="${AIDE_CLAUDE_BIN:-}"
+  [ -n "$claude_override" ] || claude_override="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
+  claude_bin="$(find_bin "$claude_override" claude)"
   [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 fi
 
