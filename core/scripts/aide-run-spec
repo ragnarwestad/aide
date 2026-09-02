@@ -2212,6 +2212,13 @@ if [ -n "$phase_file" ]; then
     fi
   fi
   time_spent_display="$(printf '%dm%02ds' $(( duration / 60 )) $(( duration % 60 )))"
+  # This phase's own running count (spec 341): read the stamp's CURRENT
+  # value before the block below replaces it, then add one for this run.
+  # The queue's own job memory is bounded and drops the earliest attempts
+  # first, so this file is the only place the true count survives.
+  prior_attempts="$(grep -oE '^- \*\*Attempts:\*\*[[:space:]]*[0-9]+' "$phase_file" 2>/dev/null \
+    | grep -oE '[0-9]+$')"
+  attempts_display=$(( ${prior_attempts:-0} + 1 ))
   cost_line=""
   if [ "$cost_known" = "true" ]; then
     cost_line="$(printf '$%.4f' "$cost")"
@@ -2242,6 +2249,7 @@ if [ -n "$phase_file" ]; then
   [ -n "$model_value" ] && printf -- '- **Model:** %s\n' "$model_value" >> "$work_dir/phase-outcome"
   printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
   printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
+  printf -- '- **Attempts:** %s\n' "$attempts_display" >> "$work_dir/phase-outcome"
   [ -n "$cost_line" ] && printf -- '- **Cost:** %s\n' "$cost_line" >> "$work_dir/phase-outcome"
   [ -n "$tokens_line" ] && printf -- '- **Tokens:** %s\n' "$tokens_line" >> "$work_dir/phase-outcome"
   # Scoped to INSIDE `## Tracking info` only (in_tracking), never the
@@ -2259,7 +2267,7 @@ if [ -n "$phase_file" ]; then
       next
     }
     in_tracking && /^## / { in_tracking = 0 }
-    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Cost|Tokens):\*\*/ { next }
+    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Attempts|Cost|Tokens):\*\*/ { next }
     { print }
   ' "$phase_file" > "$work_dir/phase-file-out" 2>/dev/null
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then

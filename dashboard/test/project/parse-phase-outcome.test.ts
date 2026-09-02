@@ -96,6 +96,33 @@ describe("parsePhaseOutcome", () => {
   test("no Tracking info section at all yields nothing", () => {
     expect(parsePhaseOutcome("# 247 - Analysis\n\nProse only.\n")).toEqual({});
   });
+
+  // Spec 341: a running total across every attempt there has ever been,
+  // unlike the four fields above (each speaks for the latest attempt
+  // only) — parsed the same way regardless.
+  test("a recorded Attempts line becomes a number (spec 341, REQ-1)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Attempts:** 3")).attempts).toBe(3);
+  });
+
+  test("no Attempts line at all means no figure, never 0 (spec 341, REQ-2)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).attempts).toBeUndefined();
+  });
+
+  test("a look-alike Attempts bullet outside Tracking info is ignored (spec 341)", () => {
+    const content = [
+      "# 247 - Analysis",
+      "",
+      "## Tracking info",
+      "",
+      "- **Result:** completed",
+      "",
+      "## Risk analysis",
+      "",
+      "- **Attempts:** 999999",
+      "",
+    ].join("\n");
+    expect(parsePhaseOutcome(content).attempts).toBeUndefined();
+  });
 });
 
 describe("specPhaseOutcome", () => {

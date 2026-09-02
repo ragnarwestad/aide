@@ -23,6 +23,11 @@ export interface PhaseOutcome {
    *  `cost`. Written independently of `cost`: a Codex phase carries this
    *  with no `cost` at all. */
   tokens?: number;
+  /** How many times this phase has run in total, parsed from its own
+   *  `Attempts:` bullet (spec 341) — a running count across every
+   *  attempt there has ever been, unlike every other field here, which
+   *  speaks for the latest attempt only. */
+  attempts?: number;
 }
 
 // The same four-file mapping `core/scripts/aide-run-spec`'s own
@@ -40,6 +45,7 @@ const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;
 const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
 const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
 const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
+const ATTEMPTS_RE = /^- \*\*Attempts:\*\*[ \t]*(\d+)\s*$/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -58,6 +64,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   }
   const tokens = section.match(TOKENS_RE);
   if (tokens) outcome.tokens = Number(tokens[1]);
+  const attempts = section.match(ATTEMPTS_RE);
+  if (attempts) outcome.attempts = Number(attempts[1]);
   return outcome;
 }
 

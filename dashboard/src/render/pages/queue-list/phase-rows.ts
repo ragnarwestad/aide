@@ -142,8 +142,15 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
               "1-description.md was committed after the last finished analyze",
             )
           : "";
+      // The larger of what the queue remembers and what the phase's own
+      // file has stamped (spec 341) — the queue wins while it still
+      // holds every attempt (including one still in flight, not yet
+      // stamped); the file wins once the queue has forgotten the
+      // earliest of them, or once the phase is archived and the queue
+      // has nothing left for it at all.
+      const attemptCount = Math.max(p.attempts.length, p.attemptCount ?? 0);
       const tries =
-        p.attempts.length > 1 ? `<span class="muted small">${p.attempts.length} attempts</span>` : "";
+        attemptCount > 1 ? `<span class="muted small">${attemptCount} attempts</span>` : "";
       // Live although the row is busy (spec 160): a phase this run has
       // not reached, which the reader may add to it or drop from it as
       // the run goes.

@@ -195,6 +195,7 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
         cost: outcome?.cost,
         costUnmeasured: outcome?.costUnmeasured,
         tokens: outcome?.tokens,
+        attemptCount: outcome?.attempts,
       };
     }),
     done: s.done,

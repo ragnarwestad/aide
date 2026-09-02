@@ -301,6 +301,15 @@ export interface Phase {
   cost?: number;
   costUnmeasured?: boolean;
   tokens?: number;
+  /** How many times this phase's own file says it has run (spec 341) —
+   *  read regardless of how many queue-job attempts exist, unlike
+   *  `timeSpentMs`/`cost`/`tokens` above: those speak for the LATEST
+   *  attempt only, so the file is a fallback for when the queue has
+   *  none; this is a running total, so the file has to be checked even
+   *  when the queue has some, in case it remembers fewer than really
+   *  happened. `phase-rows.ts` takes the larger of this and
+   *  `attempts.length`. */
+  attemptCount?: number;
 }
 
 export interface SpecGroup {

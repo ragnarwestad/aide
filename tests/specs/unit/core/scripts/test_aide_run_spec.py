@@ -5370,6 +5370,69 @@ def test_a_re_run_of_the_same_step_replaces_the_tokens_line_too(runner, workspac
     assert bullet(text, "Tokens") == str(total)
 
 
+# --- spec 341: a phase's own file remembers how many times it ran -----------
+#
+# The queue's own job memory is bounded and drops the earliest attempts
+# first (2-analysis.md, "Findings"); this stamp is the only place the
+# true count survives past that. Unlike every other field in this block,
+# it is not a fresh overwrite each run — it reads its own PRIOR value out
+# of the file before that value is replaced, and increments it.
+
+def with_analysis_attempts(workspace, attempts, last_analyzed="2026-08-01"):
+    """The sibling of `with_analysis` above, seeded with a pre-existing
+    `Attempts:` bullet — the REQ-1 case where the writer has to continue
+    from a value it did not itself just write."""
+    (workspace["specs"] / workspace["folder"] / "2-analysis.md").write_text(
+        "# Queue - Analysis\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        f"- **Last analyzed:** `{last_analyzed}`\n"
+        f"- **Attempts:** {attempts}\n\n---\n\n## Findings\n"
+    )
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add analysis"], check=True)
+
+
+def test_a_fresh_phase_stamps_its_first_attempt(runner, workspace, fake_claude):
+    """REQ-1: a phase with no prior `Attempts:` bullet at all gets `1` on
+    its first run."""
+    with_status(workspace)
+    claude = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Attempts") == "1"
+
+
+def test_a_re_run_increments_the_stamped_attempts_count(runner, workspace, fake_claude):
+    """REQ-1, and the same replace-not-duplicate guarantee AC6 already
+    gives Model/Result/Time spent: running the same step twice takes the
+    bullet from 1 to 2, never duplicating the line."""
+    with_status(workspace)
+    claude1 = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
+    assert rc == 0, out
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert text.count("- **Attempts:**") == 1, text
+    assert bullet(text, "Attempts") == "2"
+
+
+def test_a_run_continues_from_a_pre_existing_attempts_value(runner, workspace, fake_claude):
+    """REQ-1: the write reads the file's CURRENT value rather than
+    assuming the writer's own internal counter starts at 0 — a phase
+    file seeded with `Attempts: 5` (e.g. from before this feature
+    shipped) becomes `6` after one more run."""
+    with_status(workspace)
+    with_analysis_attempts(workspace, 5)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Attempts") == "6"
+
+
 # --- spec 198: reopening a spec is one action --------------------------------
 #
 # An archived spec whose work has to be done again was reopened by hand:

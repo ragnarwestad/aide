@@ -186,7 +186,11 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
     // reader) — the same fallback the archived path already leans on
     // (readerGroup, group-builders.ts). A phase a job DID attempt keeps
     // its job-derived answer only, never merged with the file's.
-    const outcome = attempts.length === 0 && dir ? specPhaseOutcome(dir, step) : undefined;
+    const fileOutcome = dir ? specPhaseOutcome(dir, step) : undefined;
+    // Only used for time/cost/tokens when the queue has NOTHING for this
+    // phase — those fields speak for the latest attempt only, and a
+    // queue-derived attempt always wins when one exists (unchanged rule).
+    const outcome = attempts.length === 0 ? fileOutcome : undefined;
     return {
       step,
       attempts,
@@ -195,6 +199,10 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       cost: outcome?.cost,
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
+      // Read regardless of `attempts.length` (spec 341) — the one field
+      // here that has to be merged with the queue's own count rather
+      // than only fall back to it.
+      attemptCount: fileOutcome?.attempts,
     };
   });
 }
