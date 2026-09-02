@@ -181,14 +181,24 @@ describe("parseCreateRequest — model", () => {
       { ...CREATE, model: { create: "nonexistent-model" } },
       { allow, defaults: WITH_CHOICES },
     );
-    expect(r).toEqual({ ok: false, error: "unknown or not-allowed model: nonexistent-model" });
+    expect(r).toEqual({
+      ok: false,
+      error:
+        "unknown or not-allowed model: nonexistent-model — Reload the page and try again — " +
+        "or, if this came from a raw request, check the field this names.",
+    });
   });
 
   // Criterion 7: nothing configured at all is a different sentence from
   // a name that is merely not on the list.
   test("a server offering no model at all says so, rather than naming the pick", () => {
     const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: DEFAULTS });
-    expect(r).toEqual({ ok: false, error: "no model choice is configured on this server" });
+    expect(r).toEqual({
+      ok: false,
+      error:
+        "no model choice is configured on this server — Reload the page and try again — " +
+        "or, if this came from a raw request, check the field this names.",
+    });
   });
 
   // Criterion 6: an untouched form and a form with no Model field at

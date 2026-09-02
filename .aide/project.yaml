@@ -49,6 +49,7 @@ docs:
   - dashboard/docs/landing.md
   - dashboard/docs/projects.md
   - dashboard/docs/job-states.md
+  - dashboard/docs/error-sentences.md
   - dashboard/docs/spec-lifecycle.md
   - dashboard/docs/design-system.md
   - dashboard/docs/deploying.md

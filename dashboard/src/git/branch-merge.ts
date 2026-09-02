@@ -158,7 +158,9 @@ export async function mergeBranchIntoDefault(
         await wait(LOCK_WAIT_MS);
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
-      if (pulled.code !== 0) return refuse(root, branch, `cannot fast-forward ${base} — merge it by hand`);
+      if (pulled.code !== 0) {
+        return refuse(root, branch, `cannot fast-forward ${base} — merge it by hand, in the checkout on the serving host`);
+      }
     }
 
     // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
@@ -173,7 +175,7 @@ export async function mergeBranchIntoDefault(
       if (real.code !== 0) {
         await run(root, ["merge", "--abort"]);
         return {
-          ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand`),
+          ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`),
           reason: "conflict",
         };
       }
@@ -247,7 +249,11 @@ export async function fastForwardToOrigin(
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
     const on = current.stdout.trim();
     if (current.code !== 0 || on !== base) {
-      return refuse(root, base, `the checkout is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first`);
+      return refuse(
+        root,
+        base,
+        `the checkout is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first, in the checkout on the serving host`,
+      );
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
     let pulled = await run(root, ["pull", "-q", "--ff-only"]);
@@ -256,7 +262,7 @@ export async function fastForwardToOrigin(
       pulled = await run(root, ["pull", "-q", "--ff-only"]);
     }
     if (pulled.code !== 0) {
-      return refuse(root, base, "cannot fast-forward it — bring it up to date by hand");
+      return refuse(root, base, "cannot fast-forward it — bring it up to date by hand, in the checkout on the serving host");
     }
     return { root, ok: true };
   } catch (err) {

@@ -108,7 +108,9 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toBe(`cannot fast-forward master — merge it by hand (${BRANCH} in ${ROOT})`);
+    expect(result.error).toBe(
+      `cannot fast-forward master — merge it by hand, in the checkout on the serving host (${BRANCH} in ${ROOT})`,
+    );
     expect(result.reason).toBeUndefined();
   });
 

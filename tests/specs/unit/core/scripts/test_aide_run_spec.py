@@ -6558,3 +6558,37 @@ def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
     assert recorded_line(workspace) == "create, analyze"
 
 
+# --- spec 352, REQ-7: the bash side of the sentence registry ---------------
+#
+# `aide-run-spec`'s own error strings reach the board unrewritten
+# (`runner.ts`'s `outcome.error ?? outcome.terminalReason` passthrough), so
+# this file's registry checks the SAME rule the TypeScript one does
+# (`dashboard/test/render/ui/error-sentence-registry.test.ts`) against the
+# script's own source text, the same "read both sides as text" pattern the
+# other hand-paired bash/TypeScript decisions already use
+# (`dashboard/CLAUDE.md`, "The hand-paired bash/TypeScript pairs").
+#
+# Grows one phase at a time, same as the TypeScript registry: empty here at
+# Step 0, since none of `aide-run-spec`'s sentences are migrated yet — Phase
+# 4 (`3-solution.md`) is what adds entries for `refuse()`, the diverged/
+# fast-forward/no-progress sentences and the provider-failure strings.
+BASH_ERROR_REGISTRY: list[dict] = []
+
+
+def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner):
+    """REQ-7: "A test SHALL fail for an error sentence that carries no
+    resolution, over the set of sentences the board can show" — this is
+    that check for the bash-authored half of the set. Each registry entry
+    names a literal or regex fragment expected in the script's own source
+    and either a `resolve` substring the matched text must contain, or an
+    `exempt` reason there is genuinely nothing to resolve."""
+    source = runner.read_text()
+    for entry in BASH_ERROR_REGISTRY:
+        match = re.search(entry["pattern"], source)
+        assert match, f"{entry['name']}: pattern not found in {runner}"
+        resolve, exempt = entry.get("resolve"), entry.get("exempt")
+        assert resolve or exempt, f"{entry['name']}: has neither resolve nor exempt"
+        if resolve:
+            assert resolve in match.group(0), f"{entry['name']}: {resolve!r} not in {match.group(0)!r}"
+
+

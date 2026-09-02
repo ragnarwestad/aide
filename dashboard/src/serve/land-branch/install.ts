@@ -4,6 +4,7 @@
 import { configValue } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import { errorSentence } from "../../render/ui/error-sentence.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
 import type { LandContext } from "./types.ts";
 
@@ -24,8 +25,14 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
   if (!cmd) {
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing
-    // was deployed, which is the whole complaint.
-    result.installError = `merged, not installed — no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured; deploying is a hand step`;
+    // was deployed, which is the whole complaint. Named in plain words,
+    // not the raw env-var key (spec 318, REQ-1) — REQ-3, spec 352 adds
+    // where that setting lives, in the same plain words.
+    const label = SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase();
+    result.installError = errorSentence({
+      what: `merged, not installed — no ${label} configured.`,
+      resolve: `Set the ${label} in the project's .aide/config to enable it.`,
+    }).text;
     return false;
   }
   const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;

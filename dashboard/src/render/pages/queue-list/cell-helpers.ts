@@ -2,6 +2,7 @@
 // duration, cost, and the marks an archived row's date cell carries.
 
 import { CHECKING, badge, pips, stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
+import { errorSentence } from "../../ui/error-sentence.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import {
   completedThirds,
@@ -231,26 +232,48 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
 const WAITING_ON_REVIEW_SENTENCE = "its code is waiting on a pull request — open it to review";
 
 /** The sentence a LIVE row carries when a push never reached origin
- *  (spec 328, spec 335). Fixed prose, not `pushError`'s own text: that
- *  text is git's raw stderr with its `hint:` lines flattened onto one
- *  line before it ever reaches the dashboard (`aide-run-spec`'s own `tr
- *  '\n' ' '`), which is not a string a person should be asked to read as
- *  an instruction. */
-const PUSH_ERROR_SENTENCE = "A step's push did not reach origin. Pull the branch locally, then push it again.";
+ *  (spec 328, spec 335, spec 352). Fixed prose, not `pushError`'s own
+ *  text: that text is git's raw stderr with its `hint:` lines flattened
+ *  onto one line before it ever reaches the dashboard (`aide-run-spec`'s
+ *  own `tr '\n' ' '`), which is not a string a person should be asked to
+ *  read as an instruction. Names the checkout (REQ-3, spec 352): "pull
+ *  it locally" said nothing about WHOSE checkout, and the only one a
+ *  reader can act on is the one on the serving host. */
+const PUSH_ERROR_SENTENCE = errorSentence({
+  what: "A step's push did not reach origin.",
+  resolve: "Pull the branch in the checkout on the serving host, then push it again from a terminal.",
+}).text;
 
 /** The sentence a LIVE row carries when no pull request could be opened
- *  for its branch (spec 220, spec 335). Fixed prose for the same reason
- *  as `PUSH_ERROR_SENTENCE` — one of `prError`'s four cases is raw `gh
- *  pr create` stderr, and the other three are already custom text this
- *  sentence now stands in for uniformly. */
-const PR_ERROR_SENTENCE = "No pull request could be opened for this branch. Open one by hand.";
+ *  for its branch (spec 220, spec 335, spec 352). Fixed prose for the
+ *  same reason as `PUSH_ERROR_SENTENCE` — one of `prError`'s four cases
+ *  is raw `gh pr create` stderr, and the other three are already custom
+ *  text this sentence now stands in for uniformly. Names the checkout
+ *  (REQ-3, spec 352), the same location `PUSH_ERROR_SENTENCE` names. */
+const PR_ERROR_SENTENCE = errorSentence({
+  what: "No pull request could be opened for this branch.",
+  resolve: "Open one by hand, in the checkout on the serving host.",
+}).text;
+
+/** The sentence an ARCHIVED row carries when its code landed on a
+ *  branch and no pull request was ever opened for it — the same fact
+ *  `PR_ERROR_SENTENCE` states for a live row, worded the same way
+ *  (REQ-1, spec 352): it used to state the fact alone, with nothing a
+ *  reader could do about it. */
+const ARCHIVED_NO_PR_SENTENCE = errorSentence({
+  what: "its code is on a branch and no pull request was opened for it.",
+  resolve: "Open one by hand, in the checkout on the serving host.",
+}).text;
 
 /** The sentence an ARCHIVED row carries when a landing merged its branch
  *  but left it on origin because the delete failed (spec 319, spec
- *  335). Fixed prose, not `branchDeleteError`'s own text: that text is
- *  raw `git push --delete` stderr, tail 200 chars. */
-const BRANCH_LEFT_BEHIND_SENTENCE =
-  "This spec merged, but its branch could not be deleted on origin. Delete it by hand.";
+ *  335, spec 352). Fixed prose, not `branchDeleteError`'s own text: that
+ *  text is raw `git push --delete` stderr, tail 200 chars. Names the
+ *  checkout (REQ-3, spec 352). */
+const BRANCH_LEFT_BEHIND_SENTENCE = errorSentence({
+  what: "This spec merged, but its branch could not be deleted on origin.",
+  resolve: "Delete it by hand, in the checkout on the serving host.",
+}).text;
 
 /** One mark this row's own live-job fields carry, before it is chosen
  *  between (`pullRequestMark`/`errorMarkNotices`, below). */
@@ -305,9 +328,7 @@ export function pullRequestMark(g: SpecGroup): RowMark | undefined {
     return {
       variant: "waiting",
       label: PULL_REQUEST,
-      title: g.archive.prUrl
-        ? WAITING_ON_REVIEW_SENTENCE
-        : "its code is on a branch and no pull request was opened for it",
+      title: g.archive.prUrl ? WAITING_ON_REVIEW_SENTENCE : ARCHIVED_NO_PR_SENTENCE,
       href: g.archive.prUrl,
     };
   }
