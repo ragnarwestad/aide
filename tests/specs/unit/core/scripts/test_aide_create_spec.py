@@ -284,6 +284,7 @@ def _create(script, specs_root):
     return specs_root / "42-do-a-thing"
 
 
+@pytest.mark.serial
 def test_stamp_outcome_writes_time_spent_only_when_no_model_given(script, specs_root):
     folder = _create(script, specs_root)
     start_epoch = int(time.time()) - 125
@@ -317,6 +318,7 @@ def test_stamp_outcome_writes_model_before_time_spent(script, specs_root):
     assert desc.count("- **Time spent:**") == 1
 
 
+@pytest.mark.serial
 def test_stamp_outcome_is_idempotent_on_a_second_call(script, specs_root):
     folder = _create(script, specs_root)
     rc, out, _ = run_stamp(

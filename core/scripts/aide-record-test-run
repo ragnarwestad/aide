@@ -66,6 +66,35 @@ target_dir="$specs_root/$folder"
 commit="$(git -C "$project_dir" rev-parse HEAD 2>/dev/null || echo "")"
 record_file="$target_dir/test-run.json"
 
+# One suite at a time per machine. The suite takes every core it can
+# find, and the tests that measure time run alone after it; two suites
+# on one host at once turn those tests red. So a run that will actually
+# execute something takes the machine's lock first and waits its turn,
+# saying so once on stderr (the gate log). A run already under the lock
+# — the tests a gate runs call this very script — skips it: it would
+# otherwise wait for the gate that is running it. A lock whose holder
+# is gone is taken over, never waited on.
+lock_dir="${AIDE_TEST_LOCK:-/tmp/aide-test-run.lock}"
+lock_held=""
+if [ -z "${AIDE_TEST_LOCK_HELD:-}" ] && [ "${#cmds[@]}" -gt 0 ] && [ -n "${cmds[0]}" ]; then
+  waited=0
+  while ! mkdir "$lock_dir" 2>/dev/null; do
+    holder="$(cat "$lock_dir/pid" 2>/dev/null || echo "")"
+    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+      rm -rf "$lock_dir"
+      continue
+    fi
+    [ "$waited" -eq 0 ] && echo "aide-record-test-run: waiting for the machine's test lock ($lock_dir, held by pid ${holder:-?}) — one suite runs at a time" >&2
+    sleep 5; waited=$((waited + 5))
+  done
+  echo "$$" > "$lock_dir/pid"
+  lock_held="$lock_dir"
+  [ "$waited" -gt 0 ] && echo "aide-record-test-run: got the test lock after ${waited}s" >&2
+  trap 'rm -rf "$lock_held"' EXIT
+  trap 'rm -rf "$lock_held"; exit 143' TERM INT
+  export AIDE_TEST_LOCK_HELD="$lock_dir"
+fi
+
 if [ "${#cmds[@]}" -le 1 ]; then
   # --- today's exact single-command shape (REQ-6, byte for byte) ---------
   cmd="${cmds[0]:-}"

@@ -1,4 +1,12 @@
 """Shared pytest fixtures for aide testing."""
+import os as _os
+
+# The whole suite runs under the machine's test lock (core/scripts/
+# aide-record-test-run takes it around a project's test run, and a run
+# already under it skips it). Said here so the many tests that call the
+# script never queue behind the real gate running them — the lock tests
+# themselves take this mark away again.
+_os.environ.setdefault("AIDE_TEST_LOCK_HELD", "pytest")
 
 
 def _parallel_pass(config):
