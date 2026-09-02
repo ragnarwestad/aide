@@ -450,9 +450,60 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     );
   });
 
-  test("every tab's (?) sits ahead of the panel's own content", () => {
+  // Spec 360: the mark moved from a preceding sibling to inside the
+  // panel's own first-line element — one assertion per tab shape,
+  // covering both states of Checks and Logs (REQ-1, REQ-2, REQ-3, REQ-7).
+  test("every tab's (?) sits inside its own first line, never as a preceding sibling", () => {
+    const MARK = '<details class="intro">';
+    // The page shell's own "About" panel carries an unrelated <h2>
+    // (`About</h2>`, in the nav menu markup on every page) — the tab's
+    // OWN panel is scoped to `.tabpanel`, not the whole page.
+    const tabpanel = (html: string): string => html.match(/<div class="tabpanel">[\s\S]*/)?.[0] ?? "";
+
+    // REQ-1: the document tabs' <h2>, both the writable branch (no job,
+    // not archived) and the read-only one (archived).
+    for (const tab of ["description", "analysis", "solution", "status"]) {
+      for (const v of [view(), view({ archived: true })]) {
+        const h2 = tabpanel(page(v, tab)).match(/<h2>[\s\S]*?<\/h2>/)?.[0] ?? "";
+        expect([tab, v.archived, h2.includes(MARK)]).toEqual([tab, v.archived, true]);
+      }
+    }
+
+    // REQ-2: Checks, both states.
+    const emptyChecksP =
+      tabpanel(page(view({ checks: { rows: [] } }), "checks")).match(
+        /<p class="muted">No acceptance criteria to tick\.[\s\S]*?<\/p>/,
+      )?.[0] ?? "";
+    expect(emptyChecksP).toContain(MARK);
+
+    const rows = [{ phase: "Acceptance criteria", line: "| x | ⬜ | |", task: "x", done: false }];
+    const checksHeadP =
+      tabpanel(page(view({ checks: { rows, phase: "Acceptance criteria", baseSha: "abc" } }), "checks")).match(
+        /<p class="checkshead">[\s\S]*?<\/p>/,
+      )?.[0] ?? "";
+    expect(checksHeadP).toContain(MARK);
+
+    // REQ-2: Logs, both states.
+    const emptyLogsP =
+      tabpanel(page(view(), "steps")).match(/<p class="muted">No step has finished yet\.[\s\S]*?<\/p>/)?.[0] ?? "";
+    expect(emptyLogsP).toContain(MARK);
+
+    const step = {
+      step: "analyze", ok: true, costUsd: 0, costMeasured: true,
+      terminalReason: "completed", at: "2026-08-19T09:00:00Z",
+    };
+    const logsThead =
+      tabpanel(page(view({ lead: lead(), steps: [step] }), "steps")).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
+    // The mark sits inside the header row's last <th> — right after "At"
+    // and before that cell's own closing tag, not before the row's start.
+    expect(logsThead).toContain(`<th>At${MARK}`);
+    expect(logsThead.indexOf(MARK)).toBeLessThan(logsThead.indexOf("</th></tr>"));
+
+    // REQ-3, REQ-7: never `.tabpanel`'s own leading sibling.
     for (const tab of ["description", "analysis", "solution", "status", "checks", "steps"]) {
-      expect([tab, page(view(), tab).includes('<details class="intro">')]).toEqual([tab, true]);
+      const html = page(view(), tab);
+      const panelStart = html.indexOf('<div class="tabpanel">') + '<div class="tabpanel">'.length;
+      expect([tab, html.startsWith(MARK, panelStart)]).toEqual([tab, false]);
     }
   });
 });

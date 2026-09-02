@@ -174,9 +174,11 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // rather than the small/muted caption treatment `checkshead` gives
   // every other message here. Spec 295: no `<h2>Checks</h2>` sits above
   // it — the tab bar beside the panel already names the tab.
+  // Spec 360: the sentence carries the tab's "(?)" mark at its own end,
+  // inside the same <p>, rather than the mark sitting ahead of it.
   test("a spec with no rows says 'No acceptance criteria to tick.' as its own line, with no heading above it (criterion 2)", () => {
     const html = page(view({ checks: { rows: [] } }), "checks");
-    expect(html).toContain('<p class="muted">No acceptance criteria to tick.</p>');
+    expect(html).toContain('<p class="muted">No acceptance criteria to tick. <details class="intro">');
     expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).not.toContain('class="checkshead"');
     expect(html).not.toContain("no acceptance criteria");
@@ -184,7 +186,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
 
   test("a spec whose view carries no checks says 'No acceptance criteria to tick.' the same way (criterion 2)", () => {
     const html = page(view(), "checks");
-    expect(html).toContain('<p class="muted">No acceptance criteria to tick.</p>');
+    expect(html).toContain('<p class="muted">No acceptance criteria to tick. <details class="intro">');
     expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).not.toContain('class="checkshead"');
     expect(html).not.toContain("no acceptance criteria");
