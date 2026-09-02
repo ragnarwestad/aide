@@ -175,6 +175,22 @@ describe("the Spec column alone gets the table's spare width", () => {
   });
 });
 
+// The pin above is only as wide as its content can be LAID OUT, and a
+// row that may wrap lays out two lines tall — badge over button. That is
+// what 339's own landing looked like. The State cell's row must not wrap.
+describe("the State cell's badge and button stay on one line", () => {
+  test("the spec row's .row is flex-wrap: nowrap", () => {
+    // Two rules share the selector: the desktop one, and narrow.css's
+    // phone override (justify-content: flex-start). The desktop one is
+    // the one that pairs with the width pin.
+    const rule = oneRule(
+      CSS,
+      (r) => r.selectors.includes("table.list tr.spechead > td > .row") && r.body.includes("space-between"),
+    );
+    expect(rule.body).toContain("flex-wrap: nowrap");
+  });
+});
+
 describe("the unit a reader chose is a CSS switch, not a second page", () => {
   test("choosing tokens hides the dollar figure", () => {
     expect(CSS).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
