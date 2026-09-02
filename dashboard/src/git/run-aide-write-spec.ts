@@ -50,7 +50,7 @@ function resolveBin(): string {
   // puts the script: a bare name found nothing on the serving host, and
   // every tick from the Checks tab was refused (2026-09-02). The same
   // resolution install-after-merge.sh already hardcodes for bun.
-  const installed = join(homedir(), ".local", "bin", "aide-write-spec");
+  const installed = join(process.env.HOME || homedir(), ".local", "bin", "aide-write-spec");
   return existsSync(installed) ? installed : "aide-write-spec";
 }
 
