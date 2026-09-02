@@ -563,6 +563,27 @@ case " $DEPENDENCY_GATED_STEPS " in
     ;;
 esac
 
+# --- refuse implement before analyze has run (spec 344) ---------------------
+# The same field aide-archive-spec already reads for its own
+# not-implemented-yet gate (checking for `implement` there instead of
+# `analyze` here) — one workflow step earlier. Placed beside
+# DEPENDENCY_GATED_STEPS, for the same reason: before anything touches a
+# checkout, so a refusal here leaves nothing behind. Applies to `implement`
+# alone; `analyze` and `archive` keep their own, unrelated gates.
+if [ "$command_name" = "implement" ]; then
+  analyze_present="no"
+  status_file="$specs_root/$spec_folder/4-status.md"
+  if [ -f "$status_file" ]; then
+    workflow_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" | tail -1)"
+    for step in $(printf '%s' "$workflow_line" | tr ',' ' '); do
+      step="$(printf '%s' "$step" | tr -d '[:space:]`' | tr '[:upper:]' '[:lower:]')"
+      [ "$step" = "analyze" ] && analyze_present="yes"
+    done
+  fi
+  [ "$analyze_present" = "yes" ] || \
+    refuse "spec $spec_folder has not been analyzed yet — run /aide-analyze first" "not-analyzed-yet"
+fi
+
 # The main checkout is put back ON its default branch and never taken off
 # it again. The switch is NOT a courtesy: a checkout left on `aide/<spec>`
 # by an older run — a cancel, or any refusal after the branch block —

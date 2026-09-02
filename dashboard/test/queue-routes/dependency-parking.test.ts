@@ -42,6 +42,14 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
     mkdirSync(join(specs, "81-queue-and-runner"), { recursive: true });
     writeFileSync(join(specs, "81-queue-and-runner", "1-description.md"), DEPENDENT);
+    // `analyze` already on the line: this suite is about the DEPENDENCY
+    // gate, and a job parked by spec 344's own analyze gate instead would
+    // make every assertion below about the dependency's name fail for an
+    // unrelated reason.
+    writeFileSync(
+      join(specs, "81-queue-and-runner", "4-status.md"),
+      "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
+    );
     mkdirSync(join(specs, "80-dependency"), { recursive: true });
     writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
     return { root: projectsRoot, project, specs };
@@ -321,5 +329,72 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       jobs: { id: string; state: string }[];
     };
     expect(after.jobs.find((j) => j.id === made.job.id)?.state).toBe("cancelled");
+  });
+
+  // --- spec 344: the same park, one question earlier -------------------------
+  //
+  // `blockedForMissingAnalyze()` rather than `blockedDependencies()` —
+  // asked before a job is spawned, the same shape as the dependency park
+  // above.
+  describe("a job parked on its own missing analyze step (spec 344)", () => {
+    /** `root()` minus the dependency: no "Depends on:" line and no
+     *  `4-status.md` at all, so only the analyze gate is in play. */
+    function rootWithoutAnalyze(dir: string): { root: string; project: string; specs: string } {
+      const paths = root(dir);
+      writeFileSync(join(paths.specs, "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
+      rmSync(join(paths.specs, "81-queue-and-runner", "4-status.md"));
+      return paths;
+    }
+
+    test("an implement job whose spec has not been analyzed never invokes the runner", async () => {
+      const dir = own("aide-queue-parked-analyze-");
+      const { bin, argvFile } = stub(dir);
+      const paths = rootWithoutAnalyze(dir);
+      const { base } = harness.start({
+        extra: {
+          queueToken: TOKEN,
+          projectRoot: paths.root,
+          queueProjectRoot: paths.root,
+          queueRunnerBin: bin,
+          queueResultDir: join(dir, "jobs"),
+          gitRun: gitFor(() => []).run,
+        },
+      });
+      expect((await queueImplement(base)).status).toBe(200);
+      await settle();
+      expect(existsSync(argvFile)).toBe(false);
+
+      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+        jobs: { state: string; error?: string }[];
+      };
+      expect(listed.jobs[0].state).toBe("queued");
+      expect(listed.jobs[0].error).toBe("held back: not analyzed yet — run /aide-analyze first");
+    });
+
+    test("the job proceeds once analyze is on the line", async () => {
+      const dir = own("aide-queue-released-analyze-");
+      const { bin, argvFile } = stub(dir);
+      const paths = rootWithoutAnalyze(dir);
+      const { base } = harness.start({
+        extra: {
+          queueToken: TOKEN,
+          projectRoot: paths.root,
+          queueProjectRoot: paths.root,
+          queueRunnerBin: bin,
+          queueResultDir: join(dir, "jobs"),
+          gitRun: gitFor(() => []).run,
+        },
+      });
+      expect((await queueImplement(base)).status).toBe(200);
+      await settle();
+      expect(existsSync(argvFile)).toBe(false);
+
+      writeFileSync(
+        join(paths.specs, "81-queue-and-runner", "4-status.md"),
+        "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
+      );
+      for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
+      expect(existsSync(argvFile)).toBe(true);
+    });
   });
 });

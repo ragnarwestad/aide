@@ -6,6 +6,8 @@
 // `.unref()`, clearing in `stop()`) stay in `createServer`: only the
 // work each tick does moves here.
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { BranchStatusChecker } from "../git/branch-status.ts";
 import { specBranch } from "../git/branch-status.ts";
 import type {
@@ -17,6 +19,7 @@ import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checko
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, resolveSchedule, specArchivedDate,
 } from "../project/discover.ts";
+import { parseStatus } from "../project/parse-status.ts";
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
@@ -339,6 +342,43 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
   return blocked;
 }
 
+/** Which queued `implement` jobs are waiting on their own spec's
+ *  `analyze` step (spec 344) — a job id SET, not a Map: the message is
+ *  the same fixed sentence for every job it applies to, unlike a
+ *  dependency's per-job folder name.
+ *
+ *  Same shape as `blockedDependencies`: the runner takes the answer
+ *  rather than computes it, recomputed fresh before every `tick()`.
+ *  Unlike that one, this asks no network question — the `Workflow
+ *  steps completed` line is a local file read off the already-
+ *  discovered spec directory, the same field
+ *  `core/scripts/aide-run-spec`'s own gate reads for the identical
+ *  refusal. */
+export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
+  const blocked = new Set<string>();
+  if (!ctx.projectRoot) return blocked;
+  const waiting = ctx.queue.list().filter((job) => {
+    if (job.state !== "queued") return false;
+    return job.steps[job.stepIndex] === "implement";
+  });
+  if (waiting.length === 0) return blocked;
+  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  for (const job of waiting) {
+    const project = projects.get(job.project);
+    const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    // An unresolved spec is the script's own refusal to make (unknown
+    // spec), never something parking here could fix — the same rule
+    // blockedDependencies already keeps for an unknown dependency id.
+    if (!spec) continue;
+    const statusPath = join(spec.dir, "4-status.md");
+    const steps = existsSync(statusPath)
+      ? parseStatus(readFileSync(statusPath, "utf-8")).workflowSteps
+      : [];
+    if (!steps.includes("analyze")) blocked.add(job.id);
+  }
+  return blocked;
+}
+
 /** Every `tick()` goes through here: the map has to be computed with
  *  the queue as it is at that instant, so there is no version of this
  *  that a caller may skip. */
@@ -357,5 +397,5 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // refuse as unknown. `CheckoutEnsurer` explains what that costs.
   await Promise.all([...new Set(ctx.queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
     .map((project) => ctx.checkoutEnsurer.fresh(project)));
-  runner.tick(await blockedDependencies(ctx));
+  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx));
 }
