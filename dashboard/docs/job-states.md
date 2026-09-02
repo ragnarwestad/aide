@@ -53,10 +53,14 @@ stateDiagram-v2
 
 **Into the queue.** `POST /api/queue`, `POST /api/queue/create` and the schedule poll all insert a job as `queued`.
 
-**The runner's tick, every two seconds** (`Runner.tick()`), walks the queue oldest first and, for each `queued` job:
+**The runner's tick, every two seconds** (`Runner.tick()`), walks the queue in `queuePriorityOrder()`'s order — every
+queued `create` or `archive` step before any queued `analyze` or `implement`, oldest first within each group
+(`src/queue/steps.ts`) — and, for each `queued` job:
 
 - Starts nothing at all while any job has `landing` set — see [Beside the state](#beside-the-state).
 - Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
+- Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
+  spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
 - Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
@@ -113,7 +117,8 @@ Three fields say something the state alone does not, and each is read by the pag
 ## What the page makes of it
 
 The row's first line is the verb for what is happening or the resting state and what is next — never the bare word.
-`running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> queued" or, held back, the reason; `done`
+`running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> n/total" — its place among every job waiting
+its turn, off the same order the runner picks — or, held back, the reason; `done`
 as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — budget", "stopped — 45 min",
 "stopped — provider limit" or "stopped — job cap"; `failed` with `errorReason` as the conflict or the unlanded branch
 and the button that re-runs `archive`. `cancelled` is drawn as a deliberate ending, not a failure; `interrupted` is

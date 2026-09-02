@@ -34,7 +34,12 @@
    One residue, left open: a table column is as wide as its widest cell,
    so the COLUMN still moves if the longest badge on the page changes.
    Closing that needs a declared width, which no spec owns yet. */
-table.list tr.spechead > td > .row { justify-content: space-between; }
+/* And it never wraps. `width: 1%` on the State heading (spec 339) makes
+   the column as narrow as its content CAN be laid out — and a row that
+   may wrap can be laid out two lines tall, badge over button, which is
+   exactly what happened the day 339 landed. nowrap makes the floor
+   "badge and button on one line", which is the width the spec meant. */
+table.list tr.spechead > td > .row { justify-content: space-between; flex-wrap: nowrap; }
 td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields since spec 124: the boxes it posts are on
    the phase lines and the button that submits it stands beside the

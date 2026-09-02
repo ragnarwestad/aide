@@ -7,8 +7,15 @@ import { join } from "node:path";
 import { statusSaying } from "../helpers/queue-server.ts";
 import { scheduleOutputDir } from "../../src/queue/schedule.ts";
 import { TOKEN, setupQueueRoutesHarness } from "./fixtures.ts";
+import type { ServerOptions } from "../../src/serve/serve.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness } = setupQueueRoutesHarness();
+// Every spec here has ALREADY been analyzed. These tests enqueue
+// `implement` and watch the runner get spawned; since spec 344 an
+// implement on a spec with no analyze on its steps line is held back
+// in the queue instead, and the spawn these tests wait for never comes.
+const ANALYZED = statusSaying(["create", "analyze"]);
+const start = (extra: Partial<ServerOptions> = {}) => harness.start({ extra, status: ANALYZED });
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
@@ -181,7 +188,7 @@ describe("the runner invocation", () => {
     );
     mkdirSync(join(project, "specs", "81-queue-and-runner"), { recursive: true });
     writeFileSync(join(project, "specs", "81-queue-and-runner", "1-description.md"), "# 81 - Description\n");
-    writeFileSync(join(project, "specs", "81-queue-and-runner", "4-status.md"), statusSaying(["create"]));
+    writeFileSync(join(project, "specs", "81-queue-and-runner", "4-status.md"), ANALYZED);
     return { root, dir };
   }
 

@@ -29,7 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
-import { mergeBranchRefs, type Job, type WorkflowStep } from "./queue.ts";
+import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
@@ -105,8 +105,13 @@ export class Runner {
    *  which steps a dependency holds back — computes it fresh
    *  immediately before every call. Asking here would make `tick()`
    *  async, and with it every call site and every test that has
-   *  nothing to do with dependencies. */
-  tick(blocked?: Map<string, string>): void {
+   *  nothing to do with dependencies.
+   *
+   *  `notAnalyzed` is `blocked`'s sibling (spec 344): a job id SET, not
+   *  a Map, since the reason it names carries no per-job detail — every
+   *  job in it gets the identical fixed sentence, unlike a dependency's
+   *  own folder name. */
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
     // NOTHING starts while a job is landing, whatever it is and whatever
     // repo it is for. A landing merges directly into the SHARED main
     // checkout — the one every run switches and reads at its own start —
@@ -117,8 +122,9 @@ export class Runner {
     // At one operator, over-serializing costs seconds; the race costs a
     // half-merged working tree.
     if (this.o.store.list().some((j) => j.landing)) return;
-    // FIFO: list() is newest-first.
-    for (const job of [...this.o.store.list()].reverse()) {
+    // Quick steps before slow ones, oldest first within each group
+    // (REQ-1); list() is newest-first.
+    for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (this.runningJobs().length >= this.maxConcurrent) return;
       if (job.state !== "queued") continue;
       // Two jobs for the SAME spec are never both started: analyze and
@@ -126,6 +132,13 @@ export class Runner {
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
       if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+        continue;
+      }
+      // Cheaper and more fundamental than the dependency question below —
+      // checked first, and it needs no network call (spec 344).
+      if (notAnalyzed?.has(job.id)) {
+        const reason = "held back: not analyzed yet — run /aide-analyze first";
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }
       // Held back, not failed — the same shape `startOne`'s daily-cap

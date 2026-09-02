@@ -6,20 +6,18 @@ import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { ARCHIVED_STATE, ARCHIVED_OPEN_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { ARCHIVED_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import {
   activeDurationCell,
   archiveDateCell,
   costCell,
   createdCell,
-  lockedStateTitle,
   phasePips,
-  rowActionMark,
+  pullRequestMark,
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl, stateAction } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
-import { BRANCH_LEFT_BEHIND, NOT_LANDED } from "./row-shared.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
 // to fall back to "no status recorded yet" rather than go blank, on the
@@ -61,7 +59,6 @@ function specSummary(g: SpecGroup): string {
 export function specHeadRow(
   g: SpecGroup,
   opts: QueuePageOptions,
-  now: number,
   opened: Set<string>,
 ): string {
   // Whether this row is a RECORD rather than a control (spec 224). It
@@ -112,13 +109,12 @@ export function specHeadRow(
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
       `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`
     : `<span class="label">${esc(g.title ?? g.specFolder)}</span>`;
-  // The one thing this row has to say beyond its running/resting word —
-  // where a push, a landing, a pull request or an archive's own open
-  // branch needs a person — drawn in the State column below, never here
-  // beside the name (spec 335, REQ-1/REQ-2): a reader used to find this
-  // fact beside the name and the archive state in the next column at the
-  // same time, saying two different things about the same row.
-  const mark = rowActionMark(g);
+  // The one extra STATE this row can be in beyond its running/resting
+  // word: code on a branch with a pull request describing it (REQ-1,
+  // spec 339) — drawn in the State column below, never beside the name
+  // (spec 335). Every other mark a row can carry is an ERROR, not a
+  // state, and is said on the notice line instead (`specNoticeRow`).
+  const mark = pullRequestMark(g);
   const markBadge = mark
     ? ` ${
         mark.href
@@ -147,19 +143,11 @@ export function specHeadRow(
   // What the State column says for a locked row, drawn directly rather
   // than through `stateCell`/`restingChip`: those two answer "what is
   // happening, and what can happen next", and for this row the answer to
-  // both is that it is over. Spec 275: this cell used to say the same
-  // word either way, leaving the mark beside the name as the ONLY place
-  // the "not landed" fact showed — which read as a flat contradiction
-  // with the plain "archived" a reader saw right here. The cell now
-  // echoes the mark's own fact in words, so the two never disagree.
+  // both is that it is over — the bare word, always (REQ-1, spec 339).
+  // A branch left open or not landed is an ERROR, not a second state,
+  // and is said on the notice line instead (`archivedRowNotices`).
   const stateBadge = locked
-    ? badge(
-        "done",
-        g.state === ARCHIVED_OPEN_STATE
-          ? `${ARCHIVED_STATE}, ${g.archive?.branchDeleteError ? BRANCH_LEFT_BEHIND : NOT_LANDED}`
-          : ARCHIVED_STATE,
-        lockedStateTitle(g.archive, now),
-      )
+    ? badge("done", ARCHIVED_STATE)
     : g.lead
       ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
       // A spec with no job in the queue's memory reads the same way

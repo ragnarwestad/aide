@@ -183,6 +183,24 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-print-specs-guard").is_file(), \
             "aide-print-specs-guard is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
+    def test_workflow_steps_json_is_installed(self, workspace_root, tmp_path):
+        """Spec 349, REQ-3a. workflow-steps.json is the one file both
+        aide-run-spec (jq) and the dashboard (import) read the workflow's
+        step lists from — if it drops out of COMMON_BIN_LIB_SCRIPTS, a
+        freshly installed runner has no file to read and refuses every
+        command."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "lib" / "workflow-steps.json").is_file(), \
+            "workflow-steps.json is not in COMMON_BIN_LIB_SCRIPTS, so it never reaches ~/.local/bin/lib"
+
 
 def _fake_mise(tmp_path, body):
     """A stand-in `mise`, in its own directory so it can be prepended

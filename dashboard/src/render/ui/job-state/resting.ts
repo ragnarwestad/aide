@@ -2,7 +2,7 @@
 
 import { badge, stepLabel } from "../components.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
-import { currentStep, stateChip } from "./format.ts";
+import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** What the badge says when nothing is running: the resting state and
@@ -72,14 +72,27 @@ export function restingChip(resting: RestingState = {}): string {
 
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
-  if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
+  if (r.state === "queued") {
+    const step = currentStep(r);
+    const pos = r.queuePosition;
+    return badge(
+      "idle",
+      pos ? `${gerund(step)} ${pos.n}/${pos.total}` : `${gerund(step)} queued`,
+      pos ? `${pos.n} of ${pos.total} queued — waiting for a free slot to run ${stepLabel(step)}` : undefined,
+    );
+  }
   // The step finished and `state` already reads "done", but its branch
   // has not landed yet (`Runner.complete()` writes both in the same
   // update — `runner.ts`). A row that fell through to `restingChip`
   // here would offer "ready" for a spec whose files do not exist yet.
   if (r.state === "done" && r.landing) return badge("running", gerund(currentStep(r)));
   if (r.state === "done") return restingChip(resting);
-  return stateChip(r);
+  // Bare word only (REQ-1, spec 339) — `stateLabel()`'s "stopped —
+  // <reason>" suffix is the notice line's to say now (`lead.error`,
+  // verified always populated for every stopReason). `stateChip` still
+  // carries the full text, for the job DETAIL page's own big badge
+  // (`job-page.ts`, out of REQ-7's scope).
+  return badge(BADGE_VARIANT[r.state], r.state);
 }
 
 /** "analyze" → "analyzing", "implement" → "implementing" — from the

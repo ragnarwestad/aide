@@ -153,22 +153,41 @@ describe("the state trigger reads as a control, not plain text", () => {
   });
 });
 
-// --- the State column alone gets the table's spare width (spec 336) -------
+// --- the Spec column alone gets the table's spare width (REQ-5/REQ-6,
+// spec 339) --------------------------------------------------------------
 //
 // An auto-layout table hands its leftover width to whichever columns
-// declare no preference. Spec, Created, Time and Cost each pin their
+// declare no preference. State, Created, Time and Cost each pin their
 // header to `width: 1%`, which floors them at their own content and
-// stops them sharing in the surplus; State carries no such pin, so it
-// is the one column left to receive it.
+// stops them sharing in the surplus; Spec carries no such pin, so it
+// is the one column left to receive it — the one column whose content
+// (a folder name) actually varies in length. This reverses spec 336's
+// own version of this rule, which pinned Spec and left State free.
 
-describe("the State column alone gets the table's spare width", () => {
-  test("Spec, Created, Time and Cost are pinned to their content width, State is not", () => {
-    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="spec"]'));
+describe("the Spec column alone gets the table's spare width", () => {
+  test("State, Created, Time and Cost are pinned to their content width, Spec is not", () => {
+    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="state"]'));
     expect(rule.selectors).toContain('th[data-col="created"]');
     expect(rule.selectors).toContain('th[data-col="started"]');
     expect(rule.selectors).toContain('th[data-col="cost"]');
-    expect(rule.selectors).not.toContain('data-col="state"');
+    expect(rule.selectors).not.toContain('data-col="spec"');
     expect(rule.body).toContain("width: 1%");
+  });
+});
+
+// The pin above is only as wide as its content can be LAID OUT, and a
+// row that may wrap lays out two lines tall — badge over button. That is
+// what 339's own landing looked like. The State cell's row must not wrap.
+describe("the State cell's badge and button stay on one line", () => {
+  test("the spec row's .row is flex-wrap: nowrap", () => {
+    // Two rules share the selector: the desktop one, and narrow.css's
+    // phone override (justify-content: flex-start). The desktop one is
+    // the one that pairs with the width pin.
+    const rule = oneRule(
+      CSS,
+      (r) => r.selectors.includes("table.list tr.spechead > td > .row") && r.body.includes("space-between"),
+    );
+    expect(rule.body).toContain("flex-wrap: nowrap");
   });
 });
 

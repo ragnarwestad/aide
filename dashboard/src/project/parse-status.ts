@@ -5,6 +5,8 @@
 // first phase section whose task table has unchecked rows; all
 // checked means "done".
 
+import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+
 export interface Progress {
   percent: number;
   done: number;
@@ -68,7 +70,7 @@ const PROGRESS_RE =
 // percentage on the line below it keeps its own job: it says how far
 // the TDD phases INSIDE implement have got, which is a different
 // question from whether implement ran.
-const WORKFLOW_STEPS = ["create", "analyze", "implement", "archive"];
+const WORKFLOW_STEPS: readonly string[] = workflowStepsData.workflowArc;
 
 const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 

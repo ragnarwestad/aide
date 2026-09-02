@@ -110,7 +110,9 @@ describe("the page's width comes from the frame rule alone", () => {
     // `calc(...)` as well as a bare `<n>rem`: spec 325 compensates the
     // cap for the padding `box-sizing: border-box` now subtracts, and
     // what this guards is WHERE the width is declared, not its shape.
-    expect(CSS).toMatch(/header, body > nav\.tabbar, main \{[^}]*max-width: (?:\d+rem|calc\()/);
+    // `[^{]*` after `main`: the frame rule may list more members (spec 337
+    // added the install banner) — the guard is that MAIN is one of them.
+    expect(CSS).toMatch(/header, body > nav\.tabbar, main[^{]*\{[^}]*max-width: (?:\d+rem|calc\()/);
   });
 });
 

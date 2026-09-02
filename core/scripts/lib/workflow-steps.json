@@ -1,0 +1,7 @@
+{
+  "_comment": "The workflow's own vocabulary (spec 349): one source, read by core/scripts/aide-run-spec (jq) and by the dashboard (import). Readiness rules and manifest precedence stay out of this file on purpose — only plain lists belong here. workflowSteps: the nine names --command accepts. dependencyGatedSteps: the steps an unarchived dependency holds back — the ones that BUILD on merged code; analyze and create write only the spec's own folder in the specs repo and conflict with nothing. workflowArc: the four stages a spec passes through, deliberately narrower than workflowSteps (explore and manifest are things you can queue, not places a spec gets to). workflowArcRetired: a step name retired FROM the arc, kept recognized when reading old commits (review-plan folded into analyze).",
+  "workflowSteps": ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"],
+  "dependencyGatedSteps": ["implement", "archive"],
+  "workflowArc": ["create", "analyze", "implement", "archive"],
+  "workflowArcRetired": ["review-plan"]
+}

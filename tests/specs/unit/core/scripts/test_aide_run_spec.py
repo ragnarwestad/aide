@@ -62,6 +62,15 @@ def workspace(tmp_path):
     specs = init_repo(tmp_path / "specs")
     (specs / "81-queue-and-runner").mkdir()
     (specs / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
+    # `analyze` on the line: the default fixture is `implement`'s normal
+    # starting point (spec 344's own gate refuses `implement` before
+    # `analyze` has run), the same way it already was `implement`'s
+    # normal PRECONDITION before this line existed.
+    (specs / "81-queue-and-runner" / "4-status.md").write_text(
+        "# Queue - Status\n\n## Tracking info\n\n"
+        "- **Task:** `81-queue-and-runner/`\n"
+        "- **Workflow steps completed:** analyze\n"
+    )
     subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "add spec"], check=True)
     (project / ".gitignore").write_text("/deps/\n")
@@ -494,20 +503,31 @@ def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_cla
     assert "AIDE_HEADLESS=1" in fake_claude.env_log.read_text().splitlines()
 
 
+def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
+    """A working stand-in for `aide-run-spec`, in its own directory: the
+    script itself, plus the two files it reads relative to its own
+    location (`_aide-spec-lib.sh`, and — since spec 349 —
+    `lib/workflow-steps.json`, without which every command refuses)."""
+    copy = tmp_path / name
+    copy.write_bytes(pathlib.Path(runner).read_bytes())
+    copy.chmod(0o755)
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    (tmp_path / "lib").mkdir(exist_ok=True)
+    (tmp_path / "lib" / "workflow-steps.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
+    )
+    return copy
+
+
 def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_claude, tmp_path):
     """An aide `implement` step reinstalls aide, which copies this very
     script over itself. Bash reads a script incrementally from disk, so
     without a private copy the runner dies mid-job — measured on the
     first end-to-end run, eight minutes in, after the work had already
     succeeded."""
-    copy = tmp_path / "aide-run-spec-under-test"
-    copy.write_bytes(pathlib.Path(runner).read_bytes())
-    copy.chmod(0o755)
-    # The shared library lives beside the script; the copy resolves it
-    # from the ORIGINAL directory, so give this stand-in one too.
-    (tmp_path / "_aide-spec-lib.sh").write_bytes(
-        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
-    )
+    copy = _standalone_runner_copy(runner, tmp_path)
     # The fake claude overwrites the running script, exactly as the
     # installer would.
     claude = fake_claude(
@@ -529,12 +549,7 @@ def test_a_stale_self_copy_marker_never_deletes_the_installed_script(runner, wor
     script was the throwaway copy and delete it. Measured 2026-08-16:
     one test run removed core/scripts/aide-run-spec from the worktree.
     """
-    copy = tmp_path / "aide-run-spec-under-test"
-    copy.write_bytes(pathlib.Path(runner).read_bytes())
-    copy.chmod(0o755)
-    (tmp_path / "_aide-spec-lib.sh").write_bytes(
-        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
-    )
+    copy = _standalone_runner_copy(runner, tmp_path)
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
     env_marker = str(tmp_path / "some-other-path")
     old = os.environ.get("AIDE_RUN_SPEC_SELF_COPY")
@@ -2949,10 +2964,14 @@ def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, worksp
 
 # --- Criterion 16: the pull is a courtesy, and it advances the DEFAULT branch -
 
-def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp_path):
-    """The worktree is cut from origin/<base>, so a pull that loses a race
-    with a concurrent run costs a staler spec list and nothing else. It
-    used to refuse the whole run."""
+def test_a_failed_fetch_refuses_rather_than_creating_a_branch_from_a_stale_tip(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A spec branch that does not exist yet has never been fetched from
+    origin, so a fetch that fails right here is exactly the case where
+    base_ref_for would otherwise fall back to this checkout's own tip
+    (spec 347). Unlike the courtesy pull on the main checkout, this one
+    refuses rather than proceeding on local state."""
     bare = tmp_path / "gone.git"
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
     git(workspace["project"], "remote", "add", "origin", str(bare))
@@ -2962,13 +2981,12 @@ def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp
     git(workspace["project"], "remote", "set-url", "origin", str(tmp_path / "not-there.git"))
 
     rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["pullError"], "a pull that did not happen must not be silent"
-    # REQ-6 (spec 327): named alongside the repo, matching the
-    # dashboard's own refusals (`branch-merge.ts`'s `refuse()`).
-    assert BRANCH in out["pullError"]
-    assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+    assert rc == 2, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "refused"
+    assert str(workspace["project"]) in out["error"]
+    assert BRANCH not in git(workspace["project"], "branch", "--list"), \
+        "a failed fetch must not leave a branch cut from this checkout's own tip"
 
 
 def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
@@ -3000,6 +3018,40 @@ def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert (workspace["project"] / "from-elsewhere.txt").exists(), \
         "the DEFAULT branch is what gets fast-forwarded"
+
+
+def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_ref(
+    runner, workspace, fake_claude, tmp_path
+):
+    """REQ-5 (spec 347): a spec branch created for the first time must
+    come from origin's copy of the default branch, never from whatever
+    this checkout's own refs/remotes/origin/<base> happened to hold last.
+    Pushed here WITHOUT `-u`, so the current branch has no upstream
+    tracking configured — the exact condition that used to make the
+    courtesy pull skip its fetch silently, leaving this checkout's
+    tracking ref stale while origin moved on elsewhere."""
+    bare = tmp_path / "shared.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    # Someone else lands a commit on main, through a different clone —
+    # this checkout's own refs/remotes/origin/main never learns about it
+    # until (and unless) a fetch is actually attempted.
+    other = init_repo(tmp_path / "other-clone")
+    git(other, "remote", "add", "origin", str(bare))
+    git(other, "fetch", "-q", "origin")
+    git(other, "reset", "-q", "--hard", "origin/main")
+    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "elsewhere")
+    git(other, "push", "-q", "origin", "main")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
+    assert rc == 0, out
+    assert subprocess.run(
+        ["git", "-C", str(workspace["project"]), "cat-file", "-e", f"{BRANCH}:from-elsewhere.txt"]
+    ).returncode == 0, \
+        "a brand-new spec branch must be cut from origin's tip, not this checkout's stale tracking ref"
 
 
 # --- Criterion 18: the re-point happens AFTER the branch is brought up to date
@@ -3383,6 +3435,58 @@ def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
     assert out["terminalReason"] == "completed"
 
 
+# --- Spec 344: implement refuses to start before analyze has run ------------
+#
+# archive's own not-implemented-yet gate (core/scripts/aide-archive-spec)
+# already refuses one workflow step early, reading the same `Workflow
+# steps completed` line. This is the same gate, one step earlier: implement
+# needs analyze the way archive needs implement.
+
+def test_refuses_implement_before_analyze_has_run(runner, workspace, fake_claude):
+    with_status(workspace, claims=["create"])
+    claude = fake_claude("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 2
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert out["errorReason"] == "not-analyzed-yet"
+    assert workspace["folder"] in out["error"]
+    assert "/aide-analyze" in out["error"]
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+    assert not workspace["wtbase"].exists(), "and leave no worktree behind"
+
+
+def test_implement_proceeds_once_analyze_is_on_the_line(runner, workspace, fake_claude):
+    """Relies on the fixture's own default: `analyze` is already on the
+    line, `implement`'s normal starting point since this spec."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_analyze_is_unaffected_by_the_new_gate(runner, workspace, fake_claude):
+    with_status(workspace, claims=[])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
+    """`analyze` on the line satisfies THIS gate, but archive's own
+    not-implemented-yet check (spec 268) still asks about `implement`,
+    which is not there — proving the new gate does not short-circuit or
+    replace it."""
+    with_status(workspace, claims=["analyze"])
+    claude = fake_claude("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "not-implemented-yet", out
+    assert not fake_claude.calls.exists()
+
+
 # --- Spec 122: the guard holds back only the steps that build on code -------
 # analyze and create write only the spec's own folder in the
 # specs repo — nothing they touch conflicts with an unmerged dependency,
@@ -3602,31 +3706,89 @@ def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
     assert not fake_claude.calls.exists()
 
 
-# --- the gated-step list lives in two files, like the step vocabulary -------
-# Same shape of duplication as WORKFLOW_STEPS, and the same treatment: a
-# bash string here, a TypeScript array there, no shared source and no
-# compiler between them. Gating one and not the other gives a dashboard
-# that parks a job the script would have run, or starts one it refuses.
+# --- spec 349: the workflow's step lists have one source, not a hand- ------
+# paired copy on each side. `core/scripts/lib/workflow-steps.json` is now
+# the one place `workflowSteps`, `dependencyGatedSteps`, `workflowArc` and
+# `workflowArcRetired` are written; aide-run-spec reads it with jq and the
+# dashboard imports it. These tests replace the three `test_the_*_copies_
+# of_*_agree` pins that used to catch the two sides drifting apart.
 
 
-def test_the_two_copies_of_the_dependency_gate_agree(workspace_root):
-    import re
+def test_workflow_steps_json_holds_the_known_lists(workspace_root):
+    """REQ-1: one data file holds the workflow steps, the dependency-gated
+    steps and the workflow arc — each matching today's known-good
+    values."""
+    path = workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json"
+    assert path.is_file(), f"the shared workflow-step file is missing: {path}"
+    data = json.loads(path.read_text())
+    assert data["workflowSteps"] == [
+        "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule",
+    ]
+    assert data["dependencyGatedSteps"] == ["implement", "archive"]
+    assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]
+    assert data["workflowArcRetired"] == ["review-plan"]
 
+
+def test_bash_no_longer_declares_the_step_lists_as_literals(workspace_root):
+    """REQ-2: the runner reads all four lists from workflow-steps.json now.
+    WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
+    `NAME="..."` shape once computed), so this checks for the absence of
+    the OLD LITERAL VALUE rather than the variable's name."""
     bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^DEPENDENCY_GATED_STEPS="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares DEPENDENCY_GATED_STEPS as a plain string"
-    from_bash = set(m.group(1).split())
+    for literal in (
+        'WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"',
+        'DEPENDENCY_GATED_STEPS="implement archive"',
+        'WORKFLOW_ARC="create analyze implement archive"',
+        'WORKFLOW_ARC_RETIRED="review-plan"',
+    ):
+        assert literal not in bash, f"aide-run-spec still declares {literal!r} as a literal"
 
-    ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
-    m = re.search(r"export const DEPENDENCY_GATED_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "config.ts no longer declares DEPENDENCY_GATED_STEPS as a literal array"
-    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about which steps a dependency "
-        f"holds back: only in the script {sorted(from_bash - from_ts)}, "
-        f"only in the dashboard {sorted(from_ts - from_bash)}"
+def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root):
+    """REQ-2: none of the three plain-import TypeScript files may keep a
+    hand-written array literal once they import workflow-steps.json
+    instead. `dashboard/src/queue/steps.ts` is excluded here — its
+    `WorkflowStep` type is checked separately (REQ-4b), since a JSON
+    import cannot give TypeScript a literal union."""
+    config_ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
+    assert not re.search(r"export const DEPENDENCY_GATED_STEPS = \[.*?\] as const;", config_ts, re.S), (
+        "config.ts still declares DEPENDENCY_GATED_STEPS as a literal array"
     )
+
+    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
+    assert not re.search(r"export const HISTORY_STEPS = \[.*?\];", history_ts, re.S), (
+        "workflow-history.ts still declares HISTORY_STEPS as a literal array"
+    )
+    assert not re.search(r"export const HISTORY_STEPS_RETIRED = \[.*?\];", history_ts, re.S), (
+        "workflow-history.ts still declares HISTORY_STEPS_RETIRED as a literal array"
+    )
+
+    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
+    assert not re.search(r"const WORKFLOW_STEPS = \[.*?\];", parse_status_ts, re.S), (
+        "parse-status.ts still declares WORKFLOW_STEPS as a literal array"
+    )
+
+
+def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspace, fake_claude, tmp_path):
+    """REQ-3: a runner that cannot find the shared file refuses loudly,
+    naming the file, rather than running with the four lists silently
+    unset under `set -u`."""
+    lone_copy = tmp_path / "aide-run-spec-under-test"
+    lone_copy.write_bytes(pathlib.Path(runner).read_bytes())
+    lone_copy.chmod(0o755)
+    # The shared spec-resolution library lives beside the script too, and
+    # its absence would fail the run for an unrelated reason first — give
+    # the stand-in one, exactly as the self-copy tests above do, so the
+    # only thing missing beside it is `lib/workflow-steps.json`.
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "workflow-steps.json" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
 # --- Spec 93: create, for a spec that does not exist yet ---------------------
@@ -4168,8 +4330,9 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
 def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
     runner, workspace, fake_claude
 ):
-    """Criterion 1. No 4-status.md at all reads as "nothing started yet"
-    — ordinary progression, never a warning — and costs nothing."""
+    """Criterion 1. The fixture's default status file names `analyze` but
+    not `implement` — "nothing started yet" from archive's own point of
+    view — ordinary progression, never a warning, and costs nothing."""
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
@@ -4251,8 +4414,13 @@ def test_other_commands_still_spawn_the_model_with_no_status_file_at_all(
 ):
     """The new fast path is gated on the literal string `archive`, like
     every other archive-only fork in this script — a spec with no
-    4-status.md is `analyze`'s and `implement`'s normal starting point,
-    not a reason to skip them."""
+    4-status.md is `analyze`'s normal starting point, not a reason to
+    skip it (spec 344 gives `implement` a status-file precondition of its
+    own; `analyze` keeps none)."""
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.unlink()
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "remove status"], check=True)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
@@ -4286,70 +4454,6 @@ def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
     assert out["terminalReason"] == "refused"
     assert "invalid --command" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
-
-
-# --- the step vocabulary lives in two files (spec 91's open flaw) ------------
-# `WORKFLOW_STEPS` is a bash string here and a TypeScript array there,
-# with no shared source and no compiler between them. Adding a step to
-# one and forgetting the other gives a dashboard that offers a step the
-# script refuses. Deduplicating the two is out of scope for spec 106;
-# noticing the drift is not.
-
-def test_the_two_copies_of_the_step_vocabulary_agree(workspace_root):
-    import re
-
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^WORKFLOW_STEPS="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares WORKFLOW_STEPS as a plain string"
-    from_bash = set(m.group(1).split())
-
-    ts = (workspace_root / "dashboard" / "src" / "queue" / "steps.ts").read_text()
-    m = re.search(r"export const WORKFLOW_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "steps.ts no longer declares WORKFLOW_STEPS as a literal array"
-    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about which steps exist: "
-        f"only in the script {sorted(from_bash - from_ts)}, "
-        f"only in the dashboard {sorted(from_ts - from_bash)}"
-    )
-
-
-# --- the "workflow arc" is copied a THIRD time, with no test until now ------
-# `WORKFLOW_ARC` (bash, this script), `HISTORY_STEPS`
-# (dashboard/src/workflow-history.ts) and the plain `WORKFLOW_STEPS` array
-# in dashboard/src/parse-status.ts name the same four stages a spec passes
-# through. Unlike the seven/six-step vocabulary and the dependency-gate
-# list, nothing pinned these three together before spec 181 — three
-# hand-edits with no test net is exactly the drift risk this repo already
-# names for the other two lists. Added now, while all three are already
-# being hand-edited to drop `review-plan`, so it is cheap and it protects
-# this very change.
-
-def test_the_three_copies_of_the_workflow_arc_agree(workspace_root):
-    import re
-
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
-    m = re.search(r'^WORKFLOW_ARC="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares WORKFLOW_ARC as a plain string"
-    from_bash = set(m.group(1).split())
-
-    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
-    m = re.search(r"export const HISTORY_STEPS = \[(.*?)\];", history_ts, re.S)
-    assert m, "workflow-history.ts no longer declares HISTORY_STEPS as a literal array"
-    from_history_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
-    m = re.search(r"const WORKFLOW_STEPS = \[(.*?)\];", parse_status_ts, re.S)
-    assert m, "parse-status.ts no longer declares WORKFLOW_STEPS as a literal array"
-    from_parse_status_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    assert from_bash == from_history_ts == from_parse_status_ts, (
-        "the three copies of the workflow arc disagree: "
-        f"aide-run-spec {sorted(from_bash)}, "
-        f"workflow-history.ts {sorted(from_history_ts)}, "
-        f"parse-status.ts {sorted(from_parse_status_ts)}"
-    )
 
 
 # --- spec 125: the second tool ----------------------------------------------
@@ -4707,7 +4811,7 @@ def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
 
 
 def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claude):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4729,7 +4833,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     `test_a_step_that_was_stopped_is_not_written_as_completed`; this is
     the same proof for a step that COMPLETES.
     """
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     claude = project_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4745,7 +4849,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     """Spec 147, from the other side: the step ran and did not finish.
     The commit says so — the line, which is about what COMPLETED, does
     not gain it."""
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     import subprocess as sp
 
@@ -4766,7 +4870,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
 
 
 def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_claude):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
     already_ran(workspace, ["implement"], stopped="timeout")
     claude = writing_claude(fake_claude, workspace)
@@ -4778,7 +4882,7 @@ def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_c
 def test_an_interactive_commit_without_the_headless_marker_counts(
     runner, workspace, fake_claude
 ):
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"], headless=False)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4805,7 +4909,7 @@ def test_a_historical_review_plan_commit_still_counts_as_completed(
     with nothing else changed made this go genuinely red (confirmed
     empirically before WORKFLOW_ARC_RETIRED was added). It is a real RED
     test, not a characterization one."""
-    with_status(workspace)
+    with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze", "review-plan"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -4864,8 +4968,14 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
 
 
 def test_a_spec_with_no_status_file_is_not_a_failure(runner, workspace, fake_claude):
-    """The fixture's spec has no 4-status.md at all — every other test
-    in this file runs that way. Nothing to write is nothing to do."""
+    """Deletes the fixture's default status file to get back to the
+    no-status-file scenario every other test in this file used to run
+    with, before spec 344 gave the fixture a default. Nothing to write
+    is nothing to do."""
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.unlink()
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "remove status"], check=True)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
@@ -5193,7 +5303,7 @@ def test_an_implement_run_stopped_by_timeout_records_the_stop(
 ):
     """AC3: a run stopped by its own time limit records that in
     `3-solution.md`'s `Result` line rather than `completed`."""
-    with_status(workspace)
+    with_status(workspace, ["analyze"])
     with_solution(workspace)
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -5215,7 +5325,7 @@ def test_a_failed_cli_run_records_a_sanitized_error_summary(
     """AC4: a CLI failure's `Result` line carries `stopped (cli-error)`
     followed by a one-line, backtick-free summary, truncated to at most
     200 characters — never the raw multi-line error verbatim."""
-    with_status(workspace)
+    with_status(workspace, ["analyze"])
     with_solution(workspace)
     long_error = ("line one with a `backtick`\n" + "x" * 300)
     result = {**RESULT_OK, "is_error": True, "errors": [long_error]}
@@ -6314,6 +6424,52 @@ def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
+
+
+def analyze_claude_writing_the_line_from_nothing(fake_claude, workspace):
+    """A stand-in analyze step on a spec whose 4-status.md carries NO
+    steps line — which is every spec at creation — that writes the line
+    itself as `create, analyze`, and advances nothing."""
+    folder = workspace["folder"]
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** create, analyze\n"
+        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n"
+    )
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_an_analyze_that_names_create_on_a_line_that_did_not_exist_is_fine(
+    runner, workspace, fake_claude
+):
+    """Spec 348's refusal: the file had no steps line before the run, so
+    the allowed set was `analyze` alone and the model's own `create` read
+    as a step beyond scope. A spec that exists has been through create."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Last updated:** `[not started]`\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n",
+    )
+    claude = analyze_claude_writing_the_line_from_nothing(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
 
 
 def analyze_claude_renaming_the_header(fake_claude, workspace):

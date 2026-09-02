@@ -3,10 +3,11 @@
 // other file in this split reaches for first.
 
 import type { Job } from "./types.ts";
+import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
-// `core/scripts/aide-run-spec` keeps the same list in a bash string with
-// no shared source between them; a python test (`test_aide_run_spec.py`)
-// compares the two.
+// `core/scripts/aide-run-spec` reads the same list from
+// core/scripts/lib/workflow-steps.json (spec 349) — the shared file both
+// sides import/read instead of declaring their own copy.
 //
 // `resolve` was here until spec 171 and is deliberately gone: a merge
 // that fails is the merging step's problem, so `archive` resolves the
@@ -33,11 +34,36 @@ import type { Job } from "./types.ts";
 // like `explore`/`manifest`/`reopen`/`reset`, deliberately not part of
 // the workflow arc: a schedule run is not a stage any spec passes
 // through.
-export const WORKFLOW_STEPS = [
+
+// TypeScript cannot infer a literal union from a JSON import (an array
+// of strings types as `string[]`), and `WorkflowStep` is consumed as a
+// literal union across thirteen other files — so this one type-level
+// list is hand-written, and its only job is to exist for the type
+// checker. The assertion below is what keeps it honest: importing this
+// module throws the moment its members and workflow-steps.json's
+// `workflowSteps` disagree, in every process that loads it (the
+// dashboard and every test alike).
+export type WorkflowStep =
+  | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen" | "reset"
+  | "schedule";
+
+const KNOWN_STEPS: readonly WorkflowStep[] = [
   "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset",
   "schedule",
-] as const;
-export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
+];
+
+export const WORKFLOW_STEPS = workflowStepsData.workflowSteps as readonly WorkflowStep[];
+
+if (
+  WORKFLOW_STEPS.length !== KNOWN_STEPS.length ||
+  !KNOWN_STEPS.every((s) => (WORKFLOW_STEPS as readonly string[]).includes(s))
+) {
+  throw new Error(
+    `dashboard/src/queue/steps.ts's WorkflowStep union and ` +
+      `core/scripts/lib/workflow-steps.json disagree: file has ` +
+      `${JSON.stringify(WORKFLOW_STEPS)}, union has ${JSON.stringify(KNOWN_STEPS)}`,
+  );
+}
 
 /** Keep only jobs after the newest Reset that completed and landed. */
 export function currentWorkRoundJobs<T extends {
@@ -67,6 +93,28 @@ export function currentWorkRoundJobs<T extends {
  *  `queue.test.ts`, exactly as `WORKFLOW_STEPS` is compared with the
  *  bash copy in `aide-run-spec`. */
 export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
+
+/** The two steps quick enough to jump a queued job ahead of a slower one
+ *  (REQ-1): `create` and `archive` take minutes, `analyze` and
+ *  `implement` a half hour or more. Every step not named here — `explore`,
+ *  `manifest`, `reopen`, `reset`, `schedule` — stays in the slow group:
+ *  none of them is characterized the way these four are, and REQ-1 names
+ *  only these four. Module-internal: nothing outside this file needs it
+ *  directly (only `queuePriorityOrder`, below, is exported for other
+ *  files to call). */
+const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive"];
+
+/** The order a free slot is filled from (REQ-1), and the same order a
+ *  queued row's position is read off (REQ-6): quick steps before slow
+ *  ones, oldest first within each group. A STABLE sort — handed an
+ *  already oldest-first list, it only ever reorders across the quick/
+ *  slow boundary, never within a group. */
+export function queuePriorityOrder<T extends { steps: readonly WorkflowStep[]; stepIndex: number }>(
+  oldestFirst: readonly T[],
+): T[] {
+  const rank = (job: T): number => (QUICK_STEPS.includes(job.steps[job.stepIndex]) ? 0 : 1);
+  return [...oldestFirst].sort((a, b) => rank(a) - rank(b));
+}
 
 /** Which steps a reader may still tick or untick on a job, in workflow
  *  order — the tail that has not started, plus every phase the job does

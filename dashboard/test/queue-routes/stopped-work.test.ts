@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
 import { TOKEN, setupQueueRoutesHarness } from "./fixtures.ts";
+import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -77,14 +78,22 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
   ) {
     const results = mkdtempSync(join(tmpdir(), "aide-stopped-results-"));
     ownDirs.push(results);
-    const { base, dir } = start({
-      queueToken: TOKEN,
-      gitRun: git.run as never,
-      queueRunnerBin: "/usr/bin/true",
-      queueResultDir: results,
-      queueProjectRoot: "/repos",
-      ...extra,
-    });
+    // The spec has been analyzed: since spec 344 an `implement` on a
+    // spec with no analyze is held back in the queue, and every run
+    // here has to actually start.
+    const { base, dir } = start(
+      {
+        queueToken: TOKEN,
+        gitRun: git.run as never,
+        queueRunnerBin: "/usr/bin/true",
+        queueResultDir: results,
+        queueProjectRoot: "/repos",
+        ...extra,
+      },
+      [],
+      [],
+      statusSaying(["create", "analyze"]),
+    );
     return { base, dir, results };
   }
 
