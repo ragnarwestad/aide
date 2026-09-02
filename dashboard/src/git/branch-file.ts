@@ -63,28 +63,40 @@ export interface BranchWriteResult {
 
 const refuse = (note: string): BranchWriteResult => ({ ok: false, note });
 
-/** Commit `text` at `relPath` straight onto `refs/heads/<branch>` at
- *  origin — never checking the branch out, never moving `root`'s own
- *  `HEAD` or index.
+export interface BranchFileEdit {
+  relPath: string;
+  text: string;
+}
+
+/** Commit every one of `edits` straight onto `refs/heads/<branch>` at
+ *  origin, in ONE commit — never checking the branch out, never moving
+ *  `root`'s own `HEAD` or index.
  *
- *  `expectedBaseSha` is the same row-level guard `saveSpecFiles` already
- *  makes for `main`: the FILE's last-touch commit on the branch, read
- *  fresh right here, must still be what the page was drawn from — a
- *  mismatch refuses before anything is written. A concurrent write that
- *  landed AFTER this fetch (the race REQ-4b names) is instead caught by
- *  the push itself: it is explicitly non-force, and git rejects it
- *  server-side the moment the branch has moved past the parent this
- *  commit was built on. */
+ *  `expectedBaseSha` guards only `edits[0]` — the same row-level guard
+ *  `saveSpecFiles` already makes for `main`: that FIRST file's
+ *  last-touch commit on the branch, read fresh right here, must still
+ *  be what the page was drawn from — a mismatch refuses before anything
+ *  is written. Every further entry (spec 355: `4-status.json`, landed
+ *  beside `4-status.md` in the same commit) carries no baseSha of its
+ *  own — nothing edits it directly, so there is nothing for a person's
+ *  stale page to race. A concurrent write that landed AFTER this fetch
+ *  (the race REQ-4b names) is instead caught by the push itself: it is
+ *  explicitly non-force, and git rejects it server-side the moment the
+ *  branch has moved past the parent this commit was built on.
+ *
+ *  A single-element array is exactly today's one-file call, unchanged
+ *  in behavior — every caller before spec 355 passes one. */
 export async function writeStatusToBranch(
   run: GitRunner,
   root: string,
   branch: string,
-  relPath: string,
-  text: string,
+  edits: BranchFileEdit[],
   expectedBaseSha: string | null,
   message: string,
 ): Promise<BranchWriteResult> {
-  const fileName = relPath.split("/").pop() ?? relPath;
+  const primary = edits[0];
+  if (!primary) return refuse("nothing to save");
+  const fileName = primary.relPath.split("/").pop() ?? primary.relPath;
   let scratchDir: string | null = null;
   try {
     const fetched = await run(root, ["fetch", "--quiet", "origin", branch]);
@@ -95,7 +107,7 @@ export async function writeStatusToBranch(
     const tip = tipOut.code === 0 ? tipOut.stdout.trim() : "";
     if (!tip) return refuse(`${branch} is no longer on origin — nothing was saved`);
 
-    const currentOut = await run(root, ["log", "-1", "--format=%H", ref, "--", relPath]);
+    const currentOut = await run(root, ["log", "-1", "--format=%H", ref, "--", primary.relPath]);
     const currentSha = currentOut.code === 0 ? currentOut.stdout.trim() : "";
     if ((currentSha || null) !== expectedBaseSha) {
       return refuse(`${fileName} has changed since you opened it — nothing was saved, open it again`);
@@ -106,23 +118,31 @@ export async function writeStatusToBranch(
     const tipTree = tipTreeOut.stdout.trim();
 
     scratchDir = mkdtempSync(join(tmpdir(), "aide-branch-write-"));
-    const blobPath = join(scratchDir, "content");
-    writeFileSync(blobPath, text);
-    const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
-    if (blobOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
-    const blobSha = blobOut.stdout.trim();
-
     const indexPath = join(scratchDir, "index");
     const env = { GIT_INDEX_FILE: indexPath };
     const readTree = await run(root, ["read-tree", tipTree], undefined, env);
     if (readTree.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
-    const updateIndex = await run(
-      root,
-      ["update-index", "--cacheinfo", `100644,${blobSha},${relPath}`],
-      undefined,
-      env,
-    );
-    if (updateIndex.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
+
+    for (const [i, edit] of edits.entries()) {
+      const blobPath = join(scratchDir, `content-${i}`);
+      writeFileSync(blobPath, edit.text);
+      const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
+      if (blobOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
+      const blobSha = blobOut.stdout.trim();
+      // `--add`: every existing single-file caller updated a path
+      // `read-tree` already staged, so this was never needed before —
+      // spec 355's second entry (`4-status.json`) is often a path the
+      // tip's tree has never had, and a bare `--cacheinfo` refuses to
+      // ADD a new path, only update one already in the index.
+      const updateIndex = await run(
+        root,
+        ["update-index", "--add", "--cacheinfo", `100644,${blobSha},${edit.relPath}`],
+        undefined,
+        env,
+      );
+      if (updateIndex.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
+    }
+
     const writeTreeOut = await run(root, ["write-tree"], undefined, env);
     if (writeTreeOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
     const newTree = writeTreeOut.stdout.trim();

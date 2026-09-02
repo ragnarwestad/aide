@@ -21,6 +21,7 @@ dependencies:
   - mise (keeps the Codex/Copilot CLIs updated, daily cron)
   - markdownlint-cli2 via npx (lint gate)
   - bun (dashboard/ — build, test and serve)
+  - playwright + Chromium (dashboard/ — the e2e suite; `bunx playwright install chromium` after `bun install`)
   - yaml (npm, dashboard/ — manifest parsing)
 deployment:
   host: local machines — installed globally to ~/.claude, ~/.codex, ~/.copilot, ~/.agents/skills and ~/.local/bin. The dashboard is served from a host of the operator's choice — no host is named in the repo; MINI=<host> selects one, or make serve-local runs everything on one machine

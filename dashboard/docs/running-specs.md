@@ -33,9 +33,13 @@ that ends either advances the job or ends it.
 Every spec that exists is a row, and every row runs. A spec that does not exist yet has no row — so above the table
 there is a "New spec"
 button, and it is a plain link to `/new`. That page is the form and nothing else: a project, what the spec
-builds on, a title, a description, and two actions — Create, which posts to
-`POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. Create queues an
-ordinary job whose single step is `create`, and the run is guarded, budgeted and timed exactly like any other.
+builds on, a title, a description, a phase table, and two actions — Create, which posts to
+`POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. The phase table has
+one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a model choice, drawn by
+the same pickers the spec row on the list uses. `create`'s tick is always checked and cannot be unchecked; the other
+three are unticked by default, so a form submitted without touching them queues the same single-step `create` job as
+before. Ticking further phases queues one job whose `steps` runs all of them in order, guarded, budgeted and timed
+exactly like any other.
 
 It is a page rather than a disclosure folded into `/`: a primary button that unfolds the page under it reads oddly,
 and leaves no way out but pressing the same button again. Both actions work with no script at
@@ -56,7 +60,8 @@ Two things about it are worth knowing:
 
 When the step succeeds the dashboard **lands the branch itself** and renames the job to the real folder. That is not a
 convenience: the list shows what is on disk in the main checkout, which every run
-keeps on its default branch, so a created spec that is only pushed to a branch appears nowhere at all. A landing that
+keeps on its default branch, so a created spec that is only pushed to a branch appears nowhere at all. A job that
+ticked further phases runs its next step under that real folder name, never the provisional one. A landing that
 fails leaves the provisional key in place and says which repo and why. **While any job is landing the scheduler starts
 nothing at all**, whatever the concurrency is set to: a landing merges into the shared main checkout, which worktree
 isolation does not cover.

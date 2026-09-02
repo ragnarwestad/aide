@@ -6,7 +6,15 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { UNFINISHED, WORKFLOW_STEPS, tailEdits, type WorkflowStep } from "./steps.ts";
+import {
+  TRANSITIONS,
+  UNFINISHED,
+  WORKFLOW_STEPS,
+  tailEdits,
+  type JobState,
+  type TransitionEvent,
+  type WorkflowStep,
+} from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
@@ -17,6 +25,12 @@ import { parsePendingModels, parseStoredJob, persistPendingModels } from "./pers
  *  (`parse-request.ts`) always carries one, which is why this needs a
  *  smaller type of its own. */
 export type PendingModelResult = { ok: true } | { ok: false; error: string };
+
+/** What `QueueStore.transition()` answers with (spec 354, REQ-3): the
+ *  updated job on a hit, or the state and event the table refused —
+ *  never a bare `undefined`, so a refusal cannot be mistaken for
+ *  "nothing happened" the way `update()`'s return already can be. */
+export type TransitionResult = { ok: true; job: Job } | { ok: false; state: JobState; event: TransitionEvent };
 
 export interface QueueOptions {
   defaults: QueueDefaults;
@@ -380,6 +394,24 @@ export class QueueStore {
     this.mirror();
     this.changed();
     return next;
+  }
+
+  /** The one way a job's state changes (spec 354, REQ-2). Looks up
+   *  `TRANSITIONS[current][event]`; a hit applies `patch` and the new
+   *  state in the same write `update()` already makes atomically, a
+   *  miss leaves the job untouched and reports what was refused
+   *  (REQ-3). `patch` must not itself set `state` — the event is the
+   *  only thing allowed to move it. */
+  transition(id: string, event: TransitionEvent, patch: Partial<Job> = {}): TransitionResult {
+    const job = this.jobs.get(id);
+    if (!job) return { ok: false, state: "queued", event }; // unreachable in practice: every caller already holds the job
+    const to = TRANSITIONS[job.state]?.[event];
+    if (!to) return { ok: false, state: job.state, event };
+    const next = { ...job, ...patch, state: to };
+    this.jobs.set(id, next);
+    this.mirror();
+    this.changed();
+    return { ok: true, job: next };
   }
 
   private load(): void {

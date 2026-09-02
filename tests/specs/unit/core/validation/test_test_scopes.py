@@ -73,14 +73,33 @@ def test_aide_analyze_names_the_scoped_command_in_the_plan():
     )
 
 
-def test_aide_implement_runs_only_the_matched_scopes():
-    """AC4: the run covers what it changed, and says what it did not."""
+def test_aide_implement_names_the_resolver_script():
+    """Spec 361/REQ-4: Phase 3 and the Quality check section both call
+    `aide-resolve-test-cmd` — the same script the archive gate calls —
+    rather than each independently reasoning about `testScopes` in
+    prose. A content assertion standing in for runtime equivalence,
+    since Phase 3 is AI-run prose and cannot itself be unit-tested."""
     text = AIDE_IMPLEMENT.read_text()
-    assert "testScopes" in section(text, "### Phase 3", "### Reporting the phase")
-    assert "testScopes" in section(text, "## Quality check", "## After implementation")
+    assert "aide-resolve-test-cmd" in section(text, "### Phase 3", "### Reporting the phase")
+    assert "aide-resolve-test-cmd" in section(text, "## Quality check", "## After implementation")
     # The status file records what ran and what was left alone.
     assert "left untested" in text
     assert "4-status.md" in text
+
+
+def test_tools_and_scripts_documents_the_scoped_config_keys():
+    """Spec 361/REQ-1, REQ-7: the deterministic-script side of the same
+    idea `testScopes:` describes for an AI session's prose — the two
+    key families, cross-referenced both ways."""
+    text = TOOLS_AND_SCRIPTS.read_text()
+    config_section = section(
+        text, "## Per-project configuration (.aide/config)", "## Spec storage",
+    )
+    assert "AIDE_TEST_SCOPE_PATHS_" in config_section
+    assert "AIDE_TEST_SCOPE_CMD_" in config_section
+    assert "testScopes" in config_section, (
+        "the config-key table must cross-reference the manifest's own testScopes: key"
+    )
 
 
 def test_resolve_conflict_uses_the_same_scoped_selection():
