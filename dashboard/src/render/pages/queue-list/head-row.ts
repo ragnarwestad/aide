@@ -61,6 +61,7 @@ export function specHeadRow(
   opts: QueuePageOptions,
   opened: Set<string>,
 ): string {
+  const lang = opts.lang ?? "en";
   // Whether this row is a RECORD rather than a control (spec 224). It
   // is asked once here and consulted wherever the row would otherwise
   // read live-only state, exactly as `busy` already is — the difference
@@ -114,7 +115,7 @@ export function specHeadRow(
   // spec 339) — drawn in the State column below, never beside the name
   // (spec 335). Every other mark a row can carry is an ERROR, not a
   // state, and is said on the notice line instead (`specNoticeRow`).
-  const mark = pullRequestMark(g);
+  const mark = pullRequestMark(g, lang);
   const markBadge = mark
     ? ` ${
         mark.href
@@ -149,7 +150,7 @@ export function specHeadRow(
   const stateBadge = locked
     ? badge("done", ARCHIVED_STATE)
     : g.lead
-      ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
+      ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
       // A spec with no job in the queue's memory reads the same way
       // (spec 176). It used to say "not started", which describes
       // the same kind of situation — nothing running, and here is
@@ -158,7 +159,7 @@ export function specHeadRow(
       // long enough ago that its job record has aged out still has
       // its commits, so `readyPhase` is "implement" and the badge
       // read "not started".
-      : restingChip({ archiveHeldBack: heldBack, readyPhase });
+      : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
   // What goes under the name. A locked row draws nothing here (spec
   // 257) — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -180,7 +181,7 @@ export function specHeadRow(
     // narrow enough to sit beside a name that is already clamped
     // (2026-08-22). A "N runs" count under them said less than they do
     // and went in spec 165.
-    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}` +
+    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened, lang)} ${spec}` +
     `<span class="pipslot">${progress}</span></div>` +
     under +
     `</td>` +
@@ -212,7 +213,7 @@ export function specHeadRow(
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.
-    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false)}</td>` +
+    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false, lang)}</td>` +
     // How long the spec's phases have come to, summed (spec 199, spec
     // 281). The column used to hold the most recent job's own start, so
     // every run threw the row to the top of a list sorted by it — and
@@ -221,7 +222,7 @@ export function specHeadRow(
     // where nothing has settled yet: deliberately not a creation date,
     // which is the text this change removes from this cell for good.
     (locked
-      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!, g.totalDurationMs ?? 0)}</td>`
+      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!, g.totalDurationMs ?? 0, lang)}</td>`
       : `<td data-col="started">${activeDurationCell(g)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     `</tr>`

@@ -1,0 +1,55 @@
+// Spec 350, REQ-6: the state words come from a per-language, per-step
+// table, not from stepLabel() + "ing" — and the drift guard from Risk
+// analysis: a step WORKFLOW_STEPS knows about must have both an English
+// and a Norwegian entry, so a future step added there fails this test
+// rather than silently falling back to English prose in Norwegian mode.
+import { describe, expect, test } from "bun:test";
+import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
+import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
+import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
+
+describe("GERUND_EN/GERUND_NB (spec 350)", () => {
+  test("every WORKFLOW_STEPS member has an entry in both tables", () => {
+    for (const step of WORKFLOW_STEPS) {
+      expect(GERUND_EN[step], `GERUND_EN is missing "${step}"`).toBeDefined();
+      expect(GERUND_NB[step], `GERUND_NB is missing "${step}"`).toBeDefined();
+    }
+  });
+});
+
+const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
+  id: "j1",
+  project: "aide",
+  specFolder: "1-x",
+  steps: ["analyze"],
+  stepIndex: 0,
+  state: "running",
+  spentUsd: 0,
+  timeoutSec: 600,
+  createdAt: "2026-09-01T00:00:00Z",
+  ...over,
+});
+
+describe("specStateChip/restingChip take lang (spec 350)", () => {
+  test("a running row's badge reads the Norwegian table word, not stepLabel + ing", () => {
+    const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "nb");
+    expect(html).toContain("analyserer");
+    expect(html).not.toContain("analyzing");
+  });
+
+  test("a queued row's badge reads '{Norwegian gerund} i kø'", () => {
+    const html = specStateChip(row({ state: "queued", steps: ["implement"], stepIndex: 0 }), "nb");
+    expect(html).toContain("implementerer i kø");
+  });
+
+  test("restingChip's resting-state words are Norwegian for nb", () => {
+    expect(restingChip("nb", { readyPhase: "implement" })).toContain("klar");
+    expect(restingChip("nb", {})).toContain("ferdig");
+    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("arkivering holdt tilbake");
+  });
+
+  test("English is unchanged (REQ-5)", () => {
+    const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "en");
+    expect(html).toContain("analyzing");
+  });
+});

@@ -3,6 +3,7 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { MAX_BODY } from "./config.ts";
+import type { Language } from "../../i18n/translations.ts";
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -107,6 +108,26 @@ export function stateChoice(url: URL, req: Request): { state?: string; setCookie
   }
   const stored = cookieValue(req.headers.get("cookie"), STATE_COOKIE);
   return stored ? { state: stored } : {};
+}
+
+/** Which language the reader has chosen, remembered the same way the
+ *  sort column and the state filter are (spec 350). One difference from
+ *  both: this always resolves to a concrete `Language` (REQ-5's English
+ *  default), never `{}` — every render call needs SOME language to draw
+ *  in, where the other two let their caller's own default apply. */
+export const LANG_COOKIE = "aide_lang";
+
+export function languageChoice(url: URL, req: Request): { lang: Language; setCookie?: string } {
+  const requested = url.searchParams.get("lang");
+  if (requested === "en" || requested === "nb") {
+    return {
+      lang: requested,
+      setCookie:
+        `${LANG_COOKIE}=${requested}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+    };
+  }
+  const stored = cookieValue(req.headers.get("cookie"), LANG_COOKIE);
+  return { lang: stored === "nb" ? "nb" : "en" };
 }
 
 // A body may arrive as JSON (API) or urlencoded (a no-JS form).

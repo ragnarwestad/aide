@@ -66,7 +66,7 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
 
     const ctx = { queue: store, store: runStore };
     const row = await jobRow(ctx, implement.job);
-    const html = specStateChip(row);
+    const html = specStateChip(row, "en");
 
     const n = row.queuePosition?.n;
     const total = row.queuePosition?.total;

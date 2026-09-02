@@ -32,6 +32,7 @@
 import { rowMessage } from "../ui/components.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import type { QueueRowView } from "../ui/job-state.ts";
+import { t, type Language } from "../../i18n/index.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split
 // between this file and `queue-list/model-picker.ts` is invisible to
@@ -148,6 +149,9 @@ export interface QueuePageOptions {
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
   filter?: QueueFilter;
+  /** Spec 350. Absent means English (REQ-5) — the same default
+   *  `pageShell`'s own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 
@@ -186,7 +190,7 @@ function groupRows(
       //
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head = specHeadRow(g, opts, opened) + specNoticeRow(g, refusalFor(g, opts), now);
+      const head = specHeadRow(g, opts, opened) + specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en");
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;
@@ -230,8 +234,8 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
       // all" is not, and telling that reader to pick one above is
       // pointing at an empty dropdown.
       (groups.length
-        ? "No spec matches this filter."
-        : "No spec to show — no project on this machine has one to run.") +
+        ? t(opts.lang ?? "en", "list.noSpecMatchesFilter")
+        : t(opts.lang ?? "en", "list.noSpecAtAll")) +
       `</td></tr>`;
   return (
     filterBar(groups, f, opts) +
@@ -239,7 +243,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
     // out as stacked blocks (its rows are flex lines there), and the
     // archive page and the settings table share .list without wanting
     // any of that.
-    `<div class="tablewrap"><table class="list speclist">${sortableHead(f)}<tbody>${body}</tbody></table></div>`
+    `<div class="tablewrap"><table class="list speclist">${sortableHead(f, opts.lang ?? "en")}<tbody>${body}</tbody></table></div>`
   );
 }
 
@@ -251,11 +255,9 @@ export function renderQueuePage(
 ): string {
   // One container: the script swaps its whole contents, so the controls
   // and the rows can never drift apart on a refresh.
+  const lang = opts.lang ?? "en";
   const table = `<div id="jobrows">${renderQueueRows(rows, opts)}</div>`;
-  const notice = opts.runnerAvailable
-    ? ""
-    : `<p class="muted">No runner is installed on this machine yet (slice 81b) — ` +
-      `queued jobs stay queued, and nothing here spends money.</p>\n`;
+  const notice = opts.runnerAvailable ? "" : `<p class="muted">${t(lang, "list.noRunner")}</p>\n`;
   const body =
     notice +
     // The fallback, and only that. A refusal that names its spec is
@@ -278,5 +280,6 @@ export function renderQueuePage(
     hideHeading: true,
     refreshInNoscript: !!opts.script,
     script: opts.script,
+    lang,
   });
 }
