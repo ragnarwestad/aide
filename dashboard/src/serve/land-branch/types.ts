@@ -86,18 +86,3 @@ export interface Landing {
    *  can act on. */
   onLanded?: () => Promise<void>;
 }
-
-/** A landing that failed is not a spec that is done (spec 193).
- *
- *  The STEP succeeded, so `complete()` has already written `done` and
- *  announced it; this promise settles afterwards, and until now it
- *  wrote only a sentence nothing was drawing. Every page reads the
- *  state through one path, so moving it is all "reads as unfinished
- *  wherever the job is shown" takes.
- *
- *  Only ever DOWNGRADED from `done`: `complete()` may have queued the
- *  job's next step in between (`runner.ts`), and a landing must not
- *  overwrite a job that has moved on. */
-export function downgrade(ctx: LandContext, id: string): { state?: "failed" } {
-  return ctx.queue.get(id)?.state === "done" ? { state: "failed" } : {};
-}

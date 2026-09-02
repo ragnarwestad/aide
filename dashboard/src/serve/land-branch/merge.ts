@@ -10,7 +10,7 @@ import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
 import { installAfterMerge } from "./install.ts";
 import { restartAfterLanding } from "./restart.ts";
-import { downgrade, type LandContext, type Landing } from "./types.ts";
+import type { LandContext, Landing } from "./types.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
@@ -266,12 +266,13 @@ export async function landBranch(
       // spec 149 removed: nobody's browser is attached to a landing, so
       // the row has to be able to read the reason on any later request
       // (`queue-list.ts`, `resolveForm`).
-      ctx.queue.update(job.id, {
+      const patch = {
         error: failures.join("; "),
         errorReason: reason,
         landingError: firstLandingError(failures.join("; ")),
-        ...downgrade(ctx, job.id),
-      });
+      };
+      const result = ctx.queue.transition(job.id, "landing-failed", patch);
+      if (!result.ok) ctx.queue.update(job.id, patch);
       return;
     }
     // Landed. The branch is on the default branch now, so the job stops
@@ -335,15 +336,16 @@ export async function landBranch(
     // the runner clears it when this promise settles — which it must
     // do, however this went.
     const note = what.failedNote(err instanceof Error ? err.message : String(err));
-    ctx.queue.update(job.id, {
+    const patch = {
       error: note,
       // A thrown landing is not a conflict — the merge never got far
       // enough to be one, and offering Resolve for it would send a
       // whole run at a problem it cannot fix.
       errorReason: undefined,
       landingError: firstLandingError(note),
-      ...downgrade(ctx, job.id),
-    });
+    };
+    const result = ctx.queue.transition(job.id, "landing-failed", patch);
+    if (!result.ok) ctx.queue.update(job.id, patch);
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.

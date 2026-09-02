@@ -156,6 +156,54 @@ export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap";
  *  hold a job for. */
 export const UNFINISHED = new Set<string>(["queued", "running"]);
 
+/** Every event that can move a job's state (spec 354), named for what
+ *  actually triggers it rather than for the state it produces — two of
+ *  these ("step-succeeded" and "step-succeeded-last") share a trigger
+ *  the runner already distinguishes before it writes anything, so the
+ *  table stays a pure function of (state, event). */
+export type TransitionEvent =
+  | "start" // queued -> running: tick, a slot is free
+  | "no-step-left" // queued -> done: tick, nothing left to run
+  | "cap-hit" // queued -> stopped: the next step would exceed the job cap
+  | "cancel" // queued|running -> cancelled: a person pressed Cancel
+  | "step-succeeded" // running -> queued: step ok, more steps left
+  | "step-succeeded-last" // running -> done: step ok, last step
+  | "step-failed" // running -> failed: the step reported failure
+  | "run-stopped" // running -> stopped: budget, timeout or provider limit
+  | "process-gone" // running -> interrupted: the process died with no result
+  | "landing-failed"; // done -> failed: a landing did not finish
+
+/** The one table every state change is checked against (spec 354). Each
+ *  entry is `(from, event) -> to`; anything absent is refused. This is
+ *  the machine `dashboard/docs/job-states.md`'s diagram draws by hand —
+ *  `test/queue/transitions.test.ts` fails if the two ever disagree. */
+export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<TransitionEvent, JobState>>>>> = {
+  queued: {
+    start: "running",
+    "no-step-left": "done",
+    "cap-hit": "stopped",
+    cancel: "cancelled",
+  },
+  running: {
+    "step-succeeded": "queued",
+    "step-succeeded-last": "done",
+    "step-failed": "failed",
+    "run-stopped": "stopped",
+    "process-gone": "interrupted",
+    cancel: "cancelled",
+  },
+  done: {
+    // A landing that failed is not a spec that is done (spec 193). The
+    // STEP succeeded, so `complete()` has already written `done`; only
+    // from THAT state, because `complete()` may have queued the job's
+    // next step before the landing settles, and a late landing failure
+    // must not overwrite a job that has moved on — it is refused
+    // instead, exactly as any other transition the table lacks an
+    // entry for.
+    "landing-failed": "failed",
+  },
+};
+
 /** The one step an archived spec may be asked for (spec 198). A literal
  *  step name and never a denylist of the others: a list to be kept in
  *  step with `WORKFLOW_STEPS` is the drift this repo already names
