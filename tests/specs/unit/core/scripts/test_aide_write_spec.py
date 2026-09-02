@@ -173,3 +173,48 @@ def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
     )
     assert rc == 0, out
     assert json.loads(result_file.read_text().strip()) == out
+
+
+# --- spec 355: landing 4-status.md derives 4-status.json -------------------
+
+
+def test_landing_4_status_md_writes_4_status_json_beside_it(script, specs_root):
+    make_spec(specs_root, "42-do-a-thing", files=("4-status.md",))
+    content = (
+        "# Spec - Status\n\n## Tracking info\n\n"
+        "- **Workflow steps completed:** create, analyze\n"
+    )
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "4-status.md", content)
+    assert rc == 0, out
+    state_file = specs_root / "42-do-a-thing" / "4-status.json"
+    assert state_file.exists()
+    state = json.loads(state_file.read_text())
+    assert state["completedPhases"] == ["create", "analyze"]
+
+
+def test_landing_4_status_md_hands_back_the_derived_state_on_stdout(script, specs_root):
+    make_spec(specs_root, "42-do-a-thing", files=("4-status.md",))
+    content = (
+        "# Spec - Status\n\n## Tracking info\n\n"
+        "- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "4-status.md", content)
+    assert rc == 0, out
+    assert json.loads(out["stateJson"])["completedPhases"] == ["create", "analyze", "implement"]
+
+
+def test_landing_4_status_md_writes_the_state_file_at_the_archive_location(script, specs_root):
+    make_spec(specs_root / "archive", "42-do-a-thing", files=("4-status.md",))
+    content = "# Spec - Status\n\n## Tracking info\n\n**Archived:** 2026-08-20\n"
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "4-status.md", content)
+    assert rc == 0, out
+    state = json.loads((specs_root / "archive" / "42-do-a-thing" / "4-status.json").read_text())
+    assert state["archived"] == {"date": "2026-08-20"}
+
+
+def test_landing_a_different_file_never_writes_a_state_file(script, specs_root):
+    make_spec(specs_root, "42-do-a-thing", files=("2-analysis.md", "4-status.md"))
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "2-analysis.md", "content\n")
+    assert rc == 0, out
+    assert "stateJson" not in out
+    assert not (specs_root / "42-do-a-thing" / "4-status.json").exists()

@@ -6,8 +6,6 @@
 // `.unref()`, clearing in `stop()`) stay in `createServer`: only the
 // work each tick does moves here.
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { BranchStatusChecker } from "../git/branch-status.ts";
 import { specBranch } from "../git/branch-status.ts";
 import type {
@@ -19,7 +17,7 @@ import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checko
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, resolveSchedule, specArchivedDate,
 } from "../project/discover.ts";
-import { parseStatus } from "../project/parse-status.ts";
+import { readSpecState } from "../project/parse-spec-state.ts";
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
@@ -370,10 +368,10 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // spec), never something parking here could fix — the same rule
     // blockedDependencies already keeps for an unknown dependency id.
     if (!spec) continue;
-    const statusPath = join(spec.dir, "4-status.md");
-    const steps = existsSync(statusPath)
-      ? parseStatus(readFileSync(statusPath, "utf-8")).workflowSteps
-      : [];
+    // spec 355 (REQ-3): the state file, not a fresh parse of the prose
+    // beside it — the same gate `core/scripts/aide-run-spec`'s own
+    // may-implement-start check reads, now off the one shared source.
+    const steps = readSpecState(spec.dir)?.completedPhases ?? [];
     if (!steps.includes("analyze")) blocked.add(job.id);
   }
   return blocked;

@@ -7,6 +7,15 @@ import { specBranch, type GitRunner } from "../src/git/branch-status.ts";
 import { SPEC, TOKEN, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "./helpers/queue-server.ts";
 
+// spec 355 (REQ-4): the tick route now spawns a real `aide-write-spec`
+// to derive 4-status.json — pointed at this repo's own copy rather than
+// PATH, since a test environment has no reason to have the global
+// install on it. Real, not a stub: the point of routing the tick
+// through the script at all is that its derivation is exercised for
+// real, the same posture `branch-file.test.ts`'s "real git, no fakes"
+// suite already takes.
+process.env.AIDE_WRITE_SPEC_BIN = join(import.meta.dir, "..", "..", "core", "scripts", "aide-write-spec");
+
 /** The one section a person ticks, and so the only one the Checks tab
  *  draws as boxes: the Phase tables below are the implement RUN's own
  *  record and gate nothing (archive's only gate has been the Acceptance
