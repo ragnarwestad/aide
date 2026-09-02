@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
-import { ARCHIVED_VIEW, listUntil, rowFor } from "../archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../archived-specs-fixtures.ts";
 import {
   TOKEN,
   specHead,
@@ -669,7 +669,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     }
   };
 
-  test("carries BRANCH_LEFT_BEHIND, distinct from the NOT_LANDED its sibling keeps", async () => {
+  test("carries BRANCH_LEFT_BEHIND's sentence in the notice line, distinct from NOT_LANDED's", async () => {
     // Matched by PATH SHAPE, not by comparing against a `dir` read off
     // `harness.start()`'s return value: the background schedule's very
     // first sweep runs SYNCHRONOUSLY inside `createServer`, before
@@ -736,23 +736,26 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
-    const html = await listUntil(base, "branch left behind", ARCHIVED_VIEW);
+    const html = await listUntil(base, "could not be deleted on origin", ARCHIVED_VIEW);
     const row = rowFor(html, FOLDER);
-    expect(row.toLowerCase()).toContain("branch left behind");
-    expect(row).toContain(`>${"archived"}, branch left behind<`);
+    // REQ-1: the State cell says only the bare word now.
+    expect(row).toContain('<span class="badge b-done">archived</span>');
+    expect(row).not.toContain("branch left behind");
     expect(row).toContain(BRANCH);
+    const block = blockFor(html, FOLDER);
     // REQ-3: git's own stderr — the actual `git push --delete` failure
     // reason — never reaches the row; a fixed sentence for a person
     // takes its place.
-    expect(row).not.toContain("remote rejected: hook declined");
-    expect(row).toContain("This spec merged, but its branch could not be deleted on origin. Delete it by hand.");
+    expect(block).not.toContain("remote rejected: hook declined");
+    expect(block).toContain("This spec merged, but its branch could not be deleted on origin. Delete it by hand.");
 
     // REQ-3: a sibling whose branch never landed at all still reads
     // exactly as it always has — no reason recorded for it, so it falls
     // through to the plain mark rather than picking up FOLDER's.
     const siblingRow = rowFor(html, SIBLING);
-    expect(siblingRow.toLowerCase()).toContain("not landed");
-    expect(siblingRow.toLowerCase()).not.toContain("branch left behind");
-    expect(siblingRow).toContain(">archived, not landed<");
+    expect(siblingRow).toContain('<span class="badge b-done">archived</span>');
+    const siblingBlock = blockFor(html, SIBLING);
+    expect(siblingBlock).toContain("its branch is still on origin — re-run archive");
+    expect(siblingBlock).not.toContain("This spec merged, but its branch could not be deleted");
   }, 15000);
 });

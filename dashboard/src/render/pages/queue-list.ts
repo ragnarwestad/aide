@@ -186,7 +186,7 @@ function groupRows(
       //
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g, refusalFor(g, opts));
+      const head = specHeadRow(g, opts, opened) + specNoticeRow(g, refusalFor(g, opts), now);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;

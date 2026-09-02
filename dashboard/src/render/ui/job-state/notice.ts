@@ -80,9 +80,20 @@ export function specNotice(
   /** A phase's own qualifier, worded with that phase's name by the
    *  caller — this file knows nothing about a spec's phase list. */
   disagreement?: string,
+  /** The row's own error marks, ranked highest-first (REQ-2/REQ-4,
+   *  `errorMarkNotices`/`archivedRowNotices`, cell-helpers.ts) — never
+   *  "pull request", which stays a State-column badge (`pullRequestMark`,
+   *  REQ-1). Folded in at the same priority `lead.error` already holds,
+   *  and for the same reason: both say why the row is not moving, so
+   *  neither waits for "nothing in flight" (spec 327's own row already
+   *  shows `landingError` while a later step runs). */
+  marks: { variant: MessageVariant; text: string }[] = [],
 ): RowNotice | undefined {
   if (refusal) return { variant: "err", text: refusal, hook: "refused" };
-  if (lead?.error) return { variant: "err", text: lead.error };
+  const parts: { variant: MessageVariant; text: string }[] = [];
+  if (lead?.error) parts.push({ variant: "err", text: lead.error });
+  parts.push(...marks);
+  if (parts.length) return { variant: parts[0]!.variant, text: parts.map((p) => p.text).join(" · ") };
   if (lead && inFlight(lead)) return undefined;
   // The same amber the badge takes, and for the same reason: a held-back
   // archive is a common, healthy outcome — notice, not alarm. A

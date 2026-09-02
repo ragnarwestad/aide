@@ -7,6 +7,10 @@ import {
   type QueueTarget,
 } from "../../../../src/render.ts";
 
+// The row's own message panel (spec 143), where REQ-2's errors move to.
+const noticeCellHtml = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
+
 
 // The create exception ends where the archive begins: a create job keeps
 // its group on the page while its spec has not landed, but once the
@@ -139,17 +143,16 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
       Date.parse("2026-08-23T12:00:00Z"),
     );
 
-  test("keeps its row, and the row says the branch is still open", () => {
+  test("keeps its row, and the notice line says the branch is still open", () => {
     const html = listed(true);
     expect(html).toContain('data-folder="191-x"');
-    expect(html).toContain("not landed");
-    expect(html).toContain("its branch is still on origin — re-run archive");
+    expect(noticeCellHtml(html, "191-x")).toContain("its branch is still on origin — re-run archive");
   });
 
   test("and the one whose branch is gone gets the row without the mark", () => {
     const html = listed(false);
     expect(html).toContain('data-folder="191-x"');
-    expect(html).not.toContain("not landed");
+    expect(html).not.toContain("still on origin — re-run archive");
   });
 
   // The failed archive job does NOT get a row of its own beside it: one
@@ -158,20 +161,16 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
     expect(listed(true).match(/<tr class="spechead/g)).toHaveLength(1);
   });
 
-  // Spec 275, criteria 4-5: the State cell used to say the bare word
-  // "archived" for BOTH answers, so a reader saw "archived" in that
-  // column and "not landed" in the red pill beside the name — two words
-  // that read as a contradiction, on the same row, regardless of which
-  // one was actually stale. The State cell now echoes the same fact the
-  // mark carries, in words, rather than leaving the mark to stand alone
-  // against an unqualified "archived".
-  test("the State cell echoes the mark instead of contradicting it (criterion 4)", () => {
-    expect(listed(true)).toContain(
-      '<span class="badge b-done" title="its branch is still on origin — re-run archive">archived, not landed</span>',
-    );
+  // Spec 339, REQ-1/REQ-2: the State cell says only the bare word now —
+  // "archived", never "archived, not landed" — whichever way the branch
+  // mark goes. The fact that used to qualify it moved to the notice line
+  // (the test above), which is where an error belongs.
+  test("the State cell says the bare word, whichever way the branch mark goes (REQ-1)", () => {
+    expect(listed(true)).toContain('<span class="badge b-done">archived</span>');
+    expect(listed(true)).not.toContain("archived, not landed");
   });
 
-  test("and reverts to the bare word once the branch is gone (criterion 5)", () => {
+  test("and stays the bare word once the branch is gone", () => {
     const html = listed(false);
     expect(html).toContain('<span class="badge b-done">archived</span>');
     expect(html).not.toContain("archived, not landed");
@@ -292,7 +291,7 @@ describe("spec 221: archived specs on the spec list", () => {
       archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
       filter: { state: "archived" },
     });
-    expect(html).toContain("not landed");
+    expect(html).toContain("its branch is still on origin — re-run archive");
   });
 
   // Spec 335, REQ-2/REQ-4: `archive.prOpen` had no coverage anywhere —

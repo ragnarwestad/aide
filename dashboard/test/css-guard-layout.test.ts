@@ -153,21 +153,24 @@ describe("the state trigger reads as a control, not plain text", () => {
   });
 });
 
-// --- the State column alone gets the table's spare width (spec 336) -------
+// --- the Spec column alone gets the table's spare width (REQ-5/REQ-6,
+// spec 339) --------------------------------------------------------------
 //
 // An auto-layout table hands its leftover width to whichever columns
-// declare no preference. Spec, Created, Time and Cost each pin their
+// declare no preference. State, Created, Time and Cost each pin their
 // header to `width: 1%`, which floors them at their own content and
-// stops them sharing in the surplus; State carries no such pin, so it
-// is the one column left to receive it.
+// stops them sharing in the surplus; Spec carries no such pin, so it
+// is the one column left to receive it — the one column whose content
+// (a folder name) actually varies in length. This reverses spec 336's
+// own version of this rule, which pinned Spec and left State free.
 
-describe("the State column alone gets the table's spare width", () => {
-  test("Spec, Created, Time and Cost are pinned to their content width, State is not", () => {
-    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="spec"]'));
+describe("the Spec column alone gets the table's spare width", () => {
+  test("State, Created, Time and Cost are pinned to their content width, Spec is not", () => {
+    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="state"]'));
     expect(rule.selectors).toContain('th[data-col="created"]');
     expect(rule.selectors).toContain('th[data-col="started"]');
     expect(rule.selectors).toContain('th[data-col="cost"]');
-    expect(rule.selectors).not.toContain('data-col="state"');
+    expect(rule.selectors).not.toContain('data-col="spec"');
     expect(rule.body).toContain("width: 1%");
   });
 });

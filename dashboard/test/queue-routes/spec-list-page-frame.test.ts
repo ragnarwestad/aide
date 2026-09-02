@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderQueuePage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../src/render.ts";
+import { CSS } from "../../src/render/ui/css.ts";
 import { ran, statusSaying } from "../helpers/queue-server.ts";
 import {
   TOKEN,
@@ -160,10 +161,12 @@ describe("renderQueuePage state labels", () => {
   };
 
   test("stopped is never rendered as failed", () => {
+    const budgetRow = row("stopped", { stopReason: "budget", error: "stopped — budget" });
+    const timeoutRow = row("stopped", { stopReason: "timeout", error: "stopped — 20 min" });
     const html = renderQueuePage(
       [
-        row("stopped", { stopReason: "budget" }),
-        row("stopped", { stopReason: "timeout" }),
+        budgetRow,
+        timeoutRow,
         row("failed", { error: "boom" }),
         row("queued"),
         row("running"),
@@ -175,10 +178,26 @@ describe("renderQueuePage state labels", () => {
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: false, targets: [] },
     );
-    expect(html).toContain("stopped — budget");
-    expect(html).toContain("stopped — 20 min");
+    // REQ-1: the State cell says only the bare word.
+    expect(specHead(html, budgetRow.specFolder)).not.toContain("stopped — budget");
+    expect(specHead(html, timeoutRow.specFolder)).not.toContain("stopped — 20 min");
+    // REQ-2/REQ-9: the reason moves to the notice line, in full.
+    expect(specPanel(html, budgetRow.specFolder)).toContain("stopped — budget");
+    expect(specPanel(html, timeoutRow.specFolder)).toContain("stopped — 20 min");
     expect(html).toContain("failed");
     expect(html).not.toContain("stopped — failed");
+  });
+
+  test("the State column is pinned to its own width, not the table's spare width (REQ-5/REQ-6)", () => {
+    const html = renderQueuePage(
+      [],
+      "2026-08-16T00:00:00Z",
+      [{ label: "Overview", path: "projects.html" }],
+      { runnerAvailable: false, targets: [] },
+    );
+    expect(html).toContain('data-col="state"');
+    expect(CSS).toContain('th[data-col="state"]');
+    expect(CSS).not.toContain('th[data-col="spec"]');
   });
 });
 

@@ -1,7 +1,7 @@
 // The small cells a spec's header row and phase lines share: state,
 // duration, cost, and the marks an archived row's date cell carries.
 
-import { CHECKING, badge, pips, stepLabel, type BadgeVariant } from "../../ui/components.ts";
+import { CHECKING, badge, pips, stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import {
   completedThirds,
@@ -247,7 +247,7 @@ const BRANCH_LEFT_BEHIND_SENTENCE =
   "This spec merged, but its branch could not be deleted on origin. Delete it by hand.";
 
 /** One mark this row's own live-job fields carry, before it is chosen
- *  between (`rowActionMark`, below). */
+ *  between (`pullRequestMark`/`errorMarkNotices`, below). */
 interface LiveMark {
   variant: BadgeVariant;
   label: string;
@@ -275,9 +275,9 @@ function liveMarks(g: SpecGroup): LiveMark[] {
 }
 
 /** The one small badge the State column draws beside its own running/
- *  resting word, when the row has an action of its own to report — REQ-2:
- *  every status this list reports comes from the State column now, never
- *  from beside the spec's name. `undefined` where there is nothing to
+ *  resting word, for the "pull request" state alone (REQ-1, spec 339) —
+ *  the code is on a branch and a request describes it, which is where
+ *  the spec stands, not an error. `undefined` where there is nothing to
  *  add, which is most rows. */
 export interface RowMark {
   variant: BadgeVariant;
@@ -287,22 +287,13 @@ export interface RowMark {
 }
 
 /** `isArchivedRow(g)` is enough to pick the right group: `readerGroup`
- *  never sets `pushError`/`landingError`/`prError`/`prUrl`, and
- *  `jobGroup` never sets `archive` — so the two groups never both apply
- *  to the same row and there is no ordering between them to invent.
- *
- *  An archived row's `notLanded`/`branchDeleteError` are mutually
- *  exclusive with `prOpen` at the SOURCE (`spec-views.ts`), and already
- *  folded into `stateBadge`'s own text (`lockedStateTitle`, below) —
- *  `prOpen` is the one Archive fact that text never covered, so it is
- *  the only one this function draws as a second badge.
- *
- *  A live row's four fields are NOT mutually exclusive (`liveMarks`,
- *  above): the top one is this badge's label, and the REST are not
- *  dropped — every applicable mark's own sentence is folded into this
- *  SAME badge's title, so a reader reaches all of them by hovering the
- *  one badge the row draws, with no second page to follow. */
-export function rowActionMark(g: SpecGroup): RowMark | undefined {
+ *  never sets `prUrl`, and `jobGroup` never sets `archive` — so the two
+ *  groups never both apply to the same row and there is no ordering
+ *  between them to invent. An archived row's `notLanded`/
+ *  `branchDeleteError` are mutually exclusive with `prOpen` at the
+ *  SOURCE (`spec-views.ts`), so `prOpen` is the only Archive fact this
+ *  function ever draws. */
+export function pullRequestMark(g: SpecGroup): RowMark | undefined {
   if (isArchivedRow(g)) {
     if (!g.archive?.prOpen) return undefined;
     return {
@@ -314,17 +305,45 @@ export function rowActionMark(g: SpecGroup): RowMark | undefined {
       href: g.archive.prUrl,
     };
   }
-  const [top, ...rest] = liveMarks(g);
-  if (!top) return undefined;
-  const title = rest.length ? [top, ...rest].map((m) => `${m.label}: ${m.sentence}`).join(" · ") : top.sentence;
-  return { variant: top.variant, label: top.label, title, href: top.href };
+  if (!g.prUrl) return undefined;
+  return { variant: "waiting", label: PULL_REQUEST, title: WAITING_ON_REVIEW_SENTENCE, href: g.prUrl };
 }
 
-/** The sentence a locked row's own `stateBadge` carries as its `title` —
- *  the explanation the removed Spec-column badge used to hold (spec 335),
- *  now on the one badge the State column draws instead of a second one.
- *  `branchDeleteError`/`notLanded` stay folded into `stateBadge`'s own
- *  visible text, unchanged (`head-row.ts`); this is only their title. */
+/** One sentence in the row's notice line (REQ-2/REQ-3), ranked among
+ *  whichever others apply (REQ-4) — the badge-and-title shape
+ *  `pullRequestMark` above still carries a State word never carries a
+ *  full sentence, and REQ-3 asks for one readable without hovering. */
+export interface RowMarkNotice {
+  variant: MessageVariant;
+  text: string;
+}
+
+/** The three real errors a LIVE row can carry, ranked exactly as
+ *  `liveMarks()` ranks them (REQ-4) — `prUrl`'s own mark is filtered
+ *  out here; it is `pullRequestMark`'s alone. The label prefixes a
+ *  sentence only when more than one applies at once — the same nuance
+ *  the badge's hover title used to carry, so a reader can still tell
+ *  which mark is which without it costing every ordinary row (at most
+ *  one, most of the time) an unnecessary label. */
+export function errorMarkNotices(g: SpecGroup): RowMarkNotice[] {
+  const marks = liveMarks(g).filter((m) => m.label !== PULL_REQUEST);
+  return marks.map((m) => ({ variant: "err", text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence }));
+}
+
+/** An archived row's own error: `notLanded`/`branchDeleteError` are
+ *  mutually exclusive with `prOpen` at the source (`spec-views.ts`), so
+ *  this is ever at most one sentence — `prOpen` is `pullRequestMark`'s
+ *  alone, never reaches here. */
+export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number): RowMarkNotice[] {
+  if (!a || a.prOpen) return [];
+  const title = lockedStateTitle(a, now);
+  return title ? [{ variant: "warn", text: title }] : [];
+}
+
+/** The sentence an archived row's branch mark carries (REQ-2/REQ-3) —
+ *  `branchDeleteError`/`notLanded` used to be folded into the removed
+ *  Spec-column badge (spec 335), then into `stateBadge`'s own `title`;
+ *  it is a notice-line sentence now (`archivedRowNotices`, above). */
 export function lockedStateTitle(a: ArchivedSpecView | undefined, now: number): string | undefined {
   if (a?.branchDeleteError) return BRANCH_LEFT_BEHIND_SENTENCE;
   if (a?.notLanded) return notLandedTitle(a.notLandedCheckedAt, now);

@@ -7,6 +7,12 @@ import {
   listUntil, opened, phaseLines, rowFor, specsList, start,
 } from "./archived-specs-fixtures.ts";
 
+// The reason a not-landed row carries moved from the badge itself
+// (spec 275's "archived, not landed") to the notice line beneath it
+// (spec 339) — the sentence to poll and assert on is that sentence now,
+// not the old badge word, which no row renders any more.
+const STILL_ON_ORIGIN = "its branch is still on origin — re-run archive";
+
 afterEach(() => harness.cleanup());
 
 // --- spec 224: a Reopen the server turns down --------------------------------
@@ -49,14 +55,14 @@ describe("an archived spec whose branch is still on origin", () => {
 
   test("carries the not-landed mark (criterion 4)", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed", ARCHIVED_VIEW);
-    expect(rowFor(html, STAMPED).toLowerCase()).toContain("not landed");
+    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
+    expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
   });
 
   test("and one whose branch is gone carries none", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed", ARCHIVED_VIEW);
-    expect(rowFor(html, SAME_DAY).toLowerCase()).not.toContain("not landed");
+    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
+    expect(blockFor(html, SAME_DAY).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 
   test("a repo origin cannot be asked about marks nothing", async () => {
@@ -70,15 +76,15 @@ describe("an archived spec whose branch is still on origin", () => {
     // Wait for a tick to have happened at all, then ask: a page checked
     // before the schedule ran would pass for the wrong reason.
     await listUntil(base, "never appears", ARCHIVED_VIEW, 200);
-    expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain("not landed");
+    expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 
   // Spec 208, criterion 14. The set is whatever a schedule last found,
   // so how OLD it is decides how much of it to believe.
   test("the mark says how old its answer is", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed", ARCHIVED_VIEW);
-    expect(rowFor(html, STAMPED)).toContain("checked just now");
+    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
+    expect(blockFor(html, STAMPED)).toContain("checked just now");
   });
 
   // The one row shape, not two (1-description.md). Before this spec an
@@ -87,18 +93,19 @@ describe("an archived spec whose branch is still on origin", () => {
   // have refused.
   test("is the same reader row as every other archived spec", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed", ARCHIVED_VIEW);
+    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain('class="rowrun"');
     expect(row).toContain("Reopen");
     // Spec 224: the same row means the same row OPEN too — the fold and
     // the phase lines under it, not a second shape wearing the mark.
     expect(row).toContain('class="fold');
-    // Spec 275: the State cell echoes the mark's own fact for this row
-    // (STAMPED's branch is still on origin) rather than the bare word
-    // every landed archived row shows.
-    expect(row).toContain(">archived, not landed<");
-    const open = await listUntil(base, "not landed", `${ARCHIVED_VIEW}${opened(STAMPED)}`);
+    // Spec 339: the State cell says the bare word — the fact that
+    // STAMPED's branch is still on origin is the notice line's to say.
+    expect(row).toContain('<span class="badge b-done">archived</span>');
+    expect(row).not.toContain(">archived, not landed<");
+    expect(blockFor(html, STAMPED)).toContain(STILL_ON_ORIGIN);
+    const open = await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`);
     expect(Object.keys(phaseLines(open, STAMPED))).toEqual([
       "create",
       "analyze",
@@ -119,16 +126,16 @@ describe("an archived spec whose branch is still on origin", () => {
   // wears — its own branch is still on origin, so its work never landed.
   test("wears the not-landed mark its landed siblings do not", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed");
-    expect(rowFor(html, STAMPED).toLowerCase()).toContain("not landed");
+    const html = await listUntil(base, STILL_ON_ORIGIN);
+    expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
     for (const folder of [UNSTAMPED, SAME_DAY, UNDATED, OTHER]) {
-      expect(rowFor(html, folder).toLowerCase()).not.toContain("not landed");
+      expect(blockFor(html, folder).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
     }
   });
 
   test("and the chips still count the whole archive behind it", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, "not landed");
+    const html = await listUntil(base, STILL_ON_ORIGIN);
     // One row built, four keys with no row: the count is still five.
     expect(html).toMatch(/>Archived \(5\)</);
   });
