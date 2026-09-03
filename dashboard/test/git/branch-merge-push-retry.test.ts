@@ -203,7 +203,7 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     expect(result.ok).toBe(true);
     const seq = argv(git.calls);
     const discard = seq.indexOf("checkout -q -- :(top,glob)**/test-run.json");
-    const pull = seq.indexOf("pull -q --ff-only");
+    const pull = seq.indexOf("pull -q --ff-only origin master");
     expect(discard).toBeGreaterThan(-1);
     expect(pull).toBeGreaterThan(discard);
     expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);

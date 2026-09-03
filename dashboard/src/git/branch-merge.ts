@@ -213,13 +213,19 @@ export async function mergeBranchIntoDefault(
       // fast-forward with "local changes would be overwritten". It is a
       // record, not work: discard it rather than fail the landing on it.
       await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
-      let pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      // The refspec is not decoration. A pull with none merges whatever
+      // FETCH_HEAD names, and FETCH_HEAD is one file per repository: two
+      // landings sharing a checkout leave several branches marked in it
+      // and the pull dies with "Cannot fast-forward to multiple
+      // branches", losing the landing. Naming origin and the base makes
+      // one merge candidate, whoever else is fetching alongside.
+      let pulled = await run(root, ["pull", "-q", "--ff-only", "origin", base]);
       // Only for the lock, and only a couple of times. Retrying every
       // pull failure would also delay the refusal a real divergence
       // deserves — and that refusal is the one that must stay immediate.
       for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
         await wait(LOCK_WAIT_MS);
-        pulled = await run(root, ["pull", "-q", "--ff-only"]);
+        pulled = await run(root, ["pull", "-q", "--ff-only", "origin", base]);
       }
       if (pulled.code !== 0 && (await isLeftoverMerge(run, root, base))) {
         // A landing that never finished (killed mid-gate, a push that
@@ -229,7 +235,7 @@ export async function mergeBranchIntoDefault(
         // landing in the root with the message below (366, 370 and 371
         // behind 364, 2026-09-03).
         await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
-        pulled = await run(root, ["pull", "-q", "--ff-only"]);
+        pulled = await run(root, ["pull", "-q", "--ff-only", "origin", base]);
       }
       if (pulled.code !== 0) {
         // Git's own words ride in `detail` (spec 352, REQ-5): the cause
@@ -412,10 +418,10 @@ export async function fastForwardToOrigin(
       );
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
-    let pulled = await run(root, ["pull", "-q", "--ff-only"]);
+    let pulled = await run(root, ["pull", "-q", "--ff-only", "origin", base]);
     for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
       await wait(LOCK_WAIT_MS);
-      pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      pulled = await run(root, ["pull", "-q", "--ff-only", "origin", base]);
     }
     if (pulled.code !== 0) {
       return refuse(root, base, "cannot fast-forward it — bring it up to date by hand, in the checkout on the serving host");
