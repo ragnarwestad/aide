@@ -100,6 +100,14 @@ rm -f "$0"
 # spec 355: the spec's state file, derived from the prose this script
 # rewrites below. Guarded like status-progress.sh above.
 [ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+# spec 356: the one table and function pair that decide and record a
+# spec's phase moves — pure phase order only. The dependency gate below
+# (DEPENDENCY_GATED_STEPS) stays a standalone check, same as archive's
+# acceptance-criteria/test-record gates in aide-archive-spec: it runs for
+# BOTH implement and archive before either script's own phase-order
+# check, and archive's phase-order check lives in a different process
+# (aide-archive-spec) that never shares this gate's resolver functions.
+[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
@@ -582,25 +590,27 @@ case " $DEPENDENCY_GATED_STEPS " in
     ;;
 esac
 
-# --- refuse implement before analyze has run (spec 344) ---------------------
+# --- refuse implement before analyze has run (spec 344, table spec 356) -----
 # The same field aide-archive-spec already reads for its own
 # not-implemented-yet gate (checking for `implement` there instead of
 # `analyze` here) — one workflow step earlier. Placed beside
 # DEPENDENCY_GATED_STEPS, for the same reason: before anything touches a
 # checkout, so a refusal here leaves nothing behind. Applies to `implement`
 # alone; `analyze` and `archive` keep their own, unrelated gates.
+#
+# The one table (core/scripts/lib/transitions.json) decides now, via its
+# read-only pre-check: created --implement--> refused (not-analyzed-yet),
+# analyzed/implemented --implement--> legal. Same reason, same message.
 if [ "$command_name" = "implement" ]; then
-  analyze_present="no"
   status_file="$specs_root/$spec_folder/4-status.md"
-  if [ -f "$status_file" ]; then
-    workflow_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" | tail -1)"
-    for step in $(printf '%s' "$workflow_line" | tr ',' ' '); do
-      step="$(printf '%s' "$step" | tr -d '[:space:]`' | tr '[:upper:]' '[:lower:]')"
-      [ "$step" = "analyze" ] && analyze_present="yes"
-    done
+  if declare -f may_apply_spec_transition >/dev/null 2>&1; then
+    # A status file that does not exist yet reads as phase "created"
+    # (_peek_spec_state derives an empty state), which the table refuses
+    # implement from — same as the old code's default "no" for a missing
+    # file.
+    may_apply_spec_transition "$status_file" "implement" \
+      || refuse "$transition_message" "$transition_refusal"
   fi
-  [ "$analyze_present" = "yes" ] || \
-    refuse "spec $spec_folder has not been analyzed yet — run /aide-analyze first" "not-analyzed-yet"
 fi
 
 # The main checkout is put back ON its default branch and never taken off
@@ -1362,6 +1372,7 @@ fi
 
 mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
 work_roots=()
+reopen_boundary_sha=""
 for root in "${roots[@]}"; do
   acquire_worktree_lock "$root"
   base="$(default_branch "$root")"
@@ -1369,6 +1380,15 @@ for root in "${roots[@]}"; do
   wt="$wt_dir/$wt_name"
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
+  # spec 356 (REQ-5): the specs repository's own default-branch tip, at
+  # the moment of reopening/resetting — the boundary
+  # completed_steps_for's own `--not <sha>` counts from (spec 198).
+  # Captured HERE, before this run's own commits exist on top of it,
+  # rather than re-read later when the stamp is written.
+  if [ "$root" = "$specs_repo" ] && \
+     { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; }; then
+    reopen_boundary_sha="$(git -C "$root" rev-parse --short "$base_ref" 2>/dev/null)"
+  fi
   # A leftover from a landing is not a branch to build on: throw it away
   # and let the block below make a fresh one, exactly as if this checkout
   # had never had it (spec 197). `-D`, because the ancestry check has
@@ -2229,6 +2249,25 @@ if [ -n "$status_file" ]; then
   fi
 fi
 
+# --- reopen/reset's own boundary mark (spec 356, REQ-5) ---------------------
+# Written by this script, not by the skill session: `/aide-reopen`/
+# `/aide-reset` (run as this step's own model turn, above) resolve the
+# folder and regenerate 2-analysis.md/3-solution.md/4-status.md from the
+# templates, but no longer write the `**Reopened:**`/`**Reset:**` mark
+# itself (core/skills/aide-reopen/SKILL.md, aide-reset/SKILL.md). That
+# mark is written here, once the step has moved the folder back to its
+# active path and regenerated the file, using the boundary sha captured
+# before any of this run's own commits existed (the branch-deletion loop
+# above this one).
+if { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; } && \
+   [ "$terminal_reason" = "completed" ] && [ -n "$reopen_boundary_sha" ] && \
+   declare -f apply_spec_transition >/dev/null 2>&1; then
+  reopen_status_file="$specs_root_wt/$spec_folder/4-status.md"
+  if [ -f "$reopen_status_file" ]; then
+    apply_spec_transition "$reopen_status_file" "$command_name" "$reopen_boundary_sha"
+  fi
+fi
+
 # --- this phase's own outcome record (spec 245) ------------------------------
 # `Workflow steps completed` (below) answers "did the SPEC run this step";
 # this answers "how did THIS phase go" — and is written into the phase's
@@ -2613,31 +2652,14 @@ elif [ -n "$status_file" ]; then
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.
   #
-  # A file with neither the line nor the Tracking info entry it goes
-  # under is left alone too — this writes the value, never the layout.
-  if [ -n "$completed_steps" ] && \
-     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    # Historical `- **Model (<step>):**` lines an old archive still
-    # carries (spec 217, superseded by spec 245's per-file record below)
-    # are left exactly where they sit — no migration pass rewrites old
-    # archives, so this pass touches only the line it owns.
-    awk -v line="- **Workflow steps completed:** $completed_steps" '
-      BEGIN { written = 0 }
-      /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; written = 1 }
-        next
-      }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
-      { print }
-    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
-    # Written back only when it actually differs. The commit loop below
-    # commits whatever it finds changed, and a file rewritten to exactly
-    # what it already said would put a step's name on a commit that
-    # carries nothing.
-    if [ -s "$work_dir/status-line" ] && \
-       ! cmp -s "$work_dir/status-line" "$status_file"; then
-      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
-    fi
+  # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+  # the one place this line is formatted and written — historical
+  # `- **Model (<step>):**` lines an old archive still carries (spec 217,
+  # superseded by spec 245's per-file record below) are left exactly
+  # where they sit, same as before: the function touches only the line
+  # it owns.
+  if declare -f write_phase_stamp >/dev/null 2>&1; then
+    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase

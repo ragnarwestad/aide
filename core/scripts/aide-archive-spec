@@ -44,6 +44,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
 project_dir=""; spec_arg=""; specs_dir=""; result_file=""
 
@@ -175,16 +177,15 @@ done
 # the same `Workflow steps completed` line `aide-run-spec` writes.
 status_file="$specs_root/$spec_folder/4-status.md"
 
-# spec 355: reads the state file's own completedPhases (self-healing,
-# via read_spec_state, for a spec this feature predates) rather than
-# re-`sed`-scanning the "Workflow steps completed" prose line a second
-# time — aide-run-spec already scans it once, this used to be an
-# independent copy of that same scan.
+# spec 356: the one table (core/scripts/lib/transitions.json) and its
+# read-only check decide whether `archive` is legal from this spec's
+# current phase — the same "not-implemented-yet" refusal, same words,
+# now looked up rather than re-derived here.
 implement_present="no"
-
-if [ -f "$status_file" ] && declare -f read_spec_state >/dev/null 2>&1; then
-  read_spec_state "$status_file"
-  implement_present="$(jq -r 'if (.completedPhases // []) | index("implement") then "yes" else "no" end' <<<"$state_json")"
+if [ -f "$status_file" ] && declare -f may_apply_spec_transition >/dev/null 2>&1; then
+  if may_apply_spec_transition "$status_file" "archive"; then
+    implement_present="yes"
+  fi
 fi
 
 # --- removing the "## Archive held back" section ----------------------------
@@ -311,9 +312,15 @@ if [ "$record_ok" = "no" ]; then
 fi
 
 # --- archived: stamp and move ----------------------------------------------
+# spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+# the one place the **Archived:** stamp is formatted and written — called
+# here rather than through apply_spec_transition because the stamp goes
+# onto the OLD (pre-move) path and the state-file mirror below has to
+# happen at the NEW (post-move) one; apply_spec_transition writes both
+# through a single path, which this two-path case cannot use without
+# writing the stamp twice.
 [ -f "$status_file" ] && remove_held_back_section
-today="$(date -u +%Y-%m-%d)"
-printf '\n**Archived:** %s\n' "$today" >> "$status_file"
+write_phase_stamp "$status_file" "archived"
 
 mkdir -p "$specs_root/archive"
 specs_root_is_git="no"
