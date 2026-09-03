@@ -85,7 +85,7 @@ header, body > nav.tabbar, main, body > p.rowmsg { max-width: calc(72rem + 2 * v
    says, and main staying at its default overflow: visible is what keeps
    a dropdown this page opens (the state filter, the header menus) from
    being clipped if it ever opened near an edge. */
-body:has(#jobrows) { height: 100vh; overflow: hidden;
+body:has(#jobrows) { height: 100vh; overflow: hidden; box-sizing: border-box;
   display: flex; flex-direction: column; }
 /* min-height: 0 is the flexbox rule an item needs before it will actually
    shrink to the space flex-grow hands it, rather than growing to fit its

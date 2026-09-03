@@ -191,6 +191,31 @@ describe("the State cell's badge and button stay on one line", () => {
   });
 });
 
+// --- the specs list ends at the window edge in the installed app too
+// (spec 375) -------------------------------------------------------------
+//
+// body:has(#jobrows) sets height: 100vh with the default content-box
+// sizing, so the window-controls-overlay media query's padding-top adds
+// ON TOP of that height instead of being counted inside it — the body
+// renders taller than the window by exactly the titlebar height, and the
+// scroll box inside it (list.css's #jobrows .tablewrap) ends that far
+// below the window's bottom edge. border-box makes the declared height
+// include any padding on the same rule, present or future.
+
+describe("the specs page body counts its own padding, so it never outgrows the window", () => {
+  test("body:has(#jobrows) is box-sizing: border-box", () => {
+    const rule = CSS.match(/body:has\(#jobrows\) \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/box-sizing:\s*border-box/);
+  });
+
+  // Scrolled to the end, the last row's own bottom border sat flush
+  // against the scroll box's edge with nothing to separate the two.
+  test("#jobrows .tablewrap carries a bottom margin below the last row", () => {
+    const rule = CSS.match(/#jobrows \.tablewrap \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/padding-bottom:\s*var\(--sp-3\)/);
+  });
+});
+
 describe("the unit a reader chose is a CSS switch, not a second page", () => {
   test("choosing tokens hides the dollar figure", () => {
     expect(CSS).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
