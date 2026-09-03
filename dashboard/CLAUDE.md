@@ -105,7 +105,11 @@ with the table's rows.
 ARCHIVED: a dependent spec's held-back steps are released when the
 dependency's `archive` step runs. The dashboard's copy decides whether a
 queued job is PARKED (left `queued` with the reason on its row); the
-script's copy decides whether a run started by hand is REFUSED.
+script's copy decides whether a run started by hand is REFUSED. The
+acceptance-criteria gate has the same two halves: `blockedForUntickedAcceptance`
+in `dashboard/src/serve/schedules.ts` parks a queued `archive` while the
+state file has an open row, and `aide-archive-spec` refuses a run that
+reaches it anyway.
 
 ## Landing
 
@@ -118,6 +122,17 @@ script's copy decides whether a run started by hand is REFUSED.
 - **An `onLanded` callback runs before its own job's `landing` flag is
   cleared**, so it cannot trust that one row's flag and must treat it as
   settled by hand — `docs/job-states.md`, "Beside the state".
+- **An `archive` lands on `terminalReason: "completed"` alone.** A
+  refusal from `aide-archive-spec` (`not-implemented-yet`,
+  `acceptance-criteria-unticked`) is `ok` and the job is `done` — the
+  row reads "archive held back" from `4-status.md` — but nothing was
+  archived, and `already-landed` has nothing left to land. Neither
+  reaches `landArchivedSpec`; landing a refusal merged implement's code
+  branch into main with the spec still active.
+- **Two `archive` steps never run at once in one project.** Both branch
+  from the code root's main and both land into it; the second is held
+  `queued` with the reason on its row until the first has landed — the
+  same shape as the two hold-backs beside it in `Runner.tick()`.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the

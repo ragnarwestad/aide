@@ -135,6 +135,49 @@ describe("every step lands its own work (spec 149)", () => {
     expect(existsSync(marker)).toBe(true);
   });
 
+  // `aide-archive-spec` can refuse before any model runs (the spec has
+  // not implemented, an acceptance row is unticked). That is ok and the
+  // job is done — the row reads "archive held back" from 4-status.md —
+  // but the landing used to run on `ok` and merged implement's code
+  // branch into main with the spec still active (365 and 366,
+  // 2026-09-03).
+  test("an archive the gate refused is done, and nothing is merged", async () => {
+    const dir = own("aide-archive-refused-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWithHarness(dir, paths, git);
+
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+      (j) => j.state === "done",
+    );
+    const job = await stepWithResult(base, dir, "archive", {
+      terminalReason: "acceptance-criteria-unticked",
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(job.state).toBe("done");
+    expect(job.error).toBeFalsy();
+    expect(merges(git.calls, paths.project)).toHaveLength(0);
+    expect(merges(git.calls, paths.specs)).toHaveLength(0);
+  });
+
+  test("an archive that finds its spec already landed lands nothing again", async () => {
+    const dir = own("aide-archive-already-landed-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWithHarness(dir, paths, git);
+
+    const job = await stepWithResult(base, dir, "archive", { terminalReason: "already-landed" });
+
+    expect(job.state).toBe("done");
+    expect(merges(git.calls, paths.project)).toHaveLength(0);
+    expect(merges(git.calls, paths.specs)).toHaveLength(0);
+  });
+
   // The restart is what killed this process, and it used to fire from
   // inside the per-repo loop the moment the code root's install was
   // through — with archive's specs root, which carries the folder move

@@ -1601,8 +1601,12 @@ if [ "$command_name" = "archive" ]; then
   archive_terminal_reason="$(jq -r '.terminalReason // empty' <<<"$archive_check" 2>/dev/null)"
   archive_note="$(jq -r '.note // empty' <<<"$archive_check" 2>/dev/null)"
   [ -n "$archive_note" ] && echo "aide-run-spec: $archive_note" >&2
+  # The refusals aide-archive-spec answers on its own. Each is reported
+  # ok with the refusal as the terminal reason: the dashboard reads the
+  # hold-back from 4-status.md itself, and lands an archive only on
+  # `completed`.
   case "$archive_terminal_reason" in
-    not-implemented-yet|held-back|acceptance-criteria-unticked|no-passing-test-record) skip_ai="yes" ;;
+    not-implemented-yet|acceptance-criteria-unticked) skip_ai="yes" ;;
   esac
 fi
 
@@ -1829,7 +1833,8 @@ ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"
 # A mechanical decline is success with nothing more to do, the same rule
 # already_landed() applies above: no judgment was needed, so nothing
-# failed.
+# failed. The terminal reason still names the decline, which is what
+# keeps the dashboard from landing it.
 [ -n "$skip_ai" ] && ok="true"
 
 # Exactly one new folder is an answer; zero or several is not, and is

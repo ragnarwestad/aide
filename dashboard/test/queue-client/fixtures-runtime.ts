@@ -20,9 +20,14 @@ export interface FakeEventSourceInstance {
   readonly url: string;
   readonly listeners: Record<string, ((e: unknown) => void)[]>;
   closed: boolean;
+  readyState: number;
   addEventListener(type: string, fn: (e: unknown) => void): void;
   close(): void;
   emit(type: string): void;
+  /** What the browser does on a non-200 answer (spec 368): the source is
+   *  a "fail the connection" case per the WHATWG spec, never coming back
+   *  on its own — `readyState` goes to CLOSED and `error` fires once. */
+  fail(): void;
 }
 
 /** The connection the page keeps open (spec 189), and the constructor
@@ -33,8 +38,12 @@ export interface FakeEventSourceInstance {
 export function makeFakeEventSource() {
   const made: FakeEventSourceInstance[] = [];
   class FakeEventSource implements FakeEventSourceInstance {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSED = 2;
     readonly listeners: Record<string, ((e: unknown) => void)[]> = {};
     closed = false;
+    readyState = FakeEventSource.CONNECTING;
     constructor(readonly url: string) {
       made.push(this);
     }
@@ -49,10 +58,46 @@ export function makeFakeEventSource() {
     emit(type: string): void {
       for (const fn of this.listeners[type] ?? []) fn({ type });
     }
+    fail(): void {
+      this.readyState = FakeEventSource.CLOSED;
+      this.closed = true;
+      this.emit("error");
+    }
   }
   /** The one the page is listening on right now, if any. */
   const live = () => made.filter((s) => !s.closed).at(-1) ?? null;
   return { FakeEventSource, made, live };
+}
+
+/** One timer the page scheduled, and whether it was cancelled before it
+ *  fired — the fake `clearTimeout` marks it rather than removing it, so
+ *  a test can tell "never scheduled" from "scheduled, then dropped". */
+export interface FakeTimeout {
+  readonly delayMs: number;
+  readonly fn: () => void;
+  cancelled: boolean;
+}
+
+/** `setTimeout`/`clearTimeout` for the reconnect backoff (spec 368): a
+ *  growing wait has to be advanced deterministically by a test, not
+ *  waited out for real, the same reason the harness already fakes
+ *  `setInterval` rather than using the real one. */
+export function makeFakeTimers() {
+  const timeouts: FakeTimeout[] = [];
+  let nextId = 1;
+  const ids = new Map<number, FakeTimeout>();
+  const setTimeout_ = (fn: () => void, delayMs: number): number => {
+    const timeout: FakeTimeout = { delayMs, fn, cancelled: false };
+    timeouts.push(timeout);
+    const id = nextId++;
+    ids.set(id, timeout);
+    return id;
+  };
+  const clearTimeout_ = (id: number): void => {
+    const timeout = ids.get(id);
+    if (timeout) timeout.cancelled = true;
+  };
+  return { timeouts, setTimeout: setTimeout_, clearTimeout: clearTimeout_ };
 }
 
 /** The wall clock the page reads, so a tick's answer is a stated fact

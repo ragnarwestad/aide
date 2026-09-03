@@ -397,6 +397,33 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
   return blocked;
 }
 
+/** `blockedForMissingAnalyze`'s sibling for `archive`: every queued job
+ *  whose next step is `archive` and whose spec, in the main checkout,
+ *  still has an acceptance row nobody has ticked. Read off the state
+ *  file, the same source the Checks tab's tick writes through
+ *  `aide-write-spec` — so the tick that closes the last row is what
+ *  releases the job. A spec with no state file (analyzed before spec
+ *  355) or no acceptance section is not held: `aide-archive-spec`'s own
+ *  gate is a no-op for the latter, and the former is its call to make. */
+export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> {
+  const blocked = new Set<string>();
+  if (!ctx.projectRoot) return blocked;
+  const waiting = ctx.queue.list().filter((job) => {
+    if (job.state !== "queued") return false;
+    return job.steps[job.stepIndex] === "archive";
+  });
+  if (waiting.length === 0) return blocked;
+  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  for (const job of waiting) {
+    const project = projects.get(job.project);
+    const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    if (!spec) continue;
+    const rows = readSpecState(spec.dir)?.acceptanceCriteria ?? [];
+    if (rows.some((row) => !row.done)) blocked.add(job.id);
+  }
+  return blocked;
+}
+
 /** Every `tick()` goes through here: the map has to be computed with
  *  the queue as it is at that instant, so there is no version of this
  *  that a caller may skip. */
@@ -415,5 +442,5 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // refuse as unknown. `CheckoutEnsurer` explains what that costs.
   await Promise.all([...new Set(ctx.queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
     .map((project) => ctx.checkoutEnsurer.fresh(project)));
-  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx));
+  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx), blockedForUntickedAcceptance(ctx));
 }

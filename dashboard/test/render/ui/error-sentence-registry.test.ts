@@ -43,6 +43,11 @@ const REGISTRY: RegistryEntry[] = [
     resolve: "run /aide-analyze first",
   },
   {
+    name: "held back: an acceptance row is unticked (queue/runner.ts, tick)",
+    text: "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
+    resolve: "tick them on the Checks tab",
+  },
+  {
     name: "a spec's queue is already busy (queue/store.ts:135)",
     text: "(job abcd1234) — cancel that one first if you want to start over",
     resolve: "cancel that one first if you want to start over",

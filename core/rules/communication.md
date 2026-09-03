@@ -6,6 +6,7 @@ Rules for how the AI assistant presents text in the conversation with the user.
 
 - [Plain Norwegian — no invented or stilted words](#plain-norwegian--no-invented-or-stilted-words)
 - [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
+- [Lead with the outcome](#lead-with-the-outcome)
 - [Who fixes it: the dashboard, or me](#who-fixes-it-the-dashboard-or-me)
 - [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
@@ -80,7 +81,11 @@ restarting at `a` under every point. The user's reply may then be nothing but a 
 If there is genuinely nothing outstanding, say that in one sentence — do not fill the space with a
 recap.
 
-This rule applies to ALL projects and sessions.
+---
+
+## Lead with the outcome
+
+Lead a reply with the outcome, and leave out detail that would not change what the reader does next.
 
 ---
 
@@ -140,5 +145,3 @@ We have cleaned up the code now.
 
 ---
 ```
-
-This rule applies to ALL projects and sessions.

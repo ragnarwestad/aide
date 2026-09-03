@@ -81,6 +81,30 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("queued");
   });
 
+  test("two archive steps never run at once in the same project", () => {
+    // Both branch from the code root's main and both land into it; the
+    // second landing would find a main the first moved under it.
+    const a = enqueue({ steps: ["archive"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(held.error).toContain("another archive is running in this project");
+  });
+
+  test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
   test("poll completes EVERY running job, not just the first", () => {
     const a = enqueue();
     const b = enqueue({ specFolder: "91-parallel-spec-runs" });

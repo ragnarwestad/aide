@@ -120,36 +120,30 @@ written or read by a model. `aide-archive-spec`'s move step already
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
 - The line holds back only the steps that BUILD on merged code —
-  `implement`, `archive`. `analyze` and `create` write only
-  the spec's own folder in the specs repo, so a whole chain of dependent
-  specs can be analysed in parallel the moment it is queued. The
-  trade-off is stated rather than hidden: a plan analysed before its
-  dependency merged describes the code WITHOUT it
-- Queued through the dashboard, such a step WAITS rather than fails: the
-  job stays `queued` with the reason on its row and starts by itself
-  when the dependency merges (the runner re-checks on every tick, and a
-  merge from the page triggers one). It is cancellable like anything
-  queued. A run started by hand still gets the immediate refusal —
-  there is no scheduler there to park it against
+  `implement`, `archive`. `analyze` and `create` write only the spec's
+  own folder, so a whole chain of dependent specs can be analysed in
+  parallel before it merges — the tradeoff being that the plan then
+  describes the code WITHOUT it
+- Queued through the dashboard, such a step WAITS rather than fails: it
+  stays `queued`, starts itself once the dependency merges, and is
+  cancellable. Run by hand, it still refuses immediately — there is no
+  scheduler there to park it against
 - Requirements is OPTIONAL: a flat bullet list, id in bold
   (`**REQ-n:**`), one SHALL sentence per id — no table, no nested
-  lists, so both the definition (`^- \*\*REQ-\d+:\*\*`) and any
-  reference (`REQ-\d+`) stay grep-able with a plain regex
+  lists, so both the definition and any reference stay grep-able with a
+  plain regex
 - REQ-n ids are additive only: once written, never renumbered or
   reused, even if later dropped — same philosophy as 4-status.md's
   `Workflow steps completed` line
-- JIRA mode: never add or suggest a Requirements section — the Problem
-  text is external and verbatim. TODO mode: the session already
-  authors the Problem text from scratch, so it also attempts the
-  Requirements section as part of that same authoring step — see the
-  aide-create skill
-- A description already carrying a `## Requirements` section whose
-  lines already match the definition above is passed through
-  unchanged — no rewriting, no renumbering, no second section appended.
-  Only a description with no such matching section gets one authored
+- JIRA mode never adds a Requirements section — the Problem text is
+  external and verbatim. TODO mode authors it from scratch alongside
+  the Problem text (see the aide-create skill)
+- A description already carrying a matching `## Requirements` section
+  is passed through unchanged — no rewriting, no second section
+  appended. Only a description with no such section gets one authored
   from scratch. `aide-create-spec` refuses to create a spec whose
   description contains a `REQ-n:` bullet that does not match the bold
-  format exactly, so a malformed section never reaches disk
+  format exactly
 - `/aide-analyze` never retrofits a Requirements section into an
   existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one
@@ -330,16 +324,13 @@ written or read by a model. `aide-archive-spec`'s move step already
 ````
 
 **Key points:**
-- Scope, complexity, estimate and risk analysis live here: they judge the
-  solution we intend to build, not what the investigation found
-- Approaches with pros/cons. The RECOMMENDED one is the spec: everything
-  below it — Recommended solution, Behavior delta, Acceptance criteria,
-  Risk analysis and the Implementation plan — describes that approach
-  and no other, and `/aide-implement` builds the plan it finds. The
-  alternatives are the record of what was weighed and why, not options a
-  later step chooses between. Wanting a different one means saying so in
-  `1-description.md` and analysing again (`/aide-reset`, then
-  `/aide-analyze`), because the plan for it does not exist yet
+- Scope, complexity, estimate and risk analysis live here: they judge
+  the solution, not what the investigation found
+- Approaches with pros/cons. The RECOMMENDED one IS the spec — every
+  section below it describes that approach and no other, and
+  `/aide-implement` builds the plan it finds. Wanting a different one
+  means saying so in `1-description.md` and analysing again
+  (`/aide-reset`, then `/aide-analyze`)
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
 - Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
   current behavior — not just which files change
@@ -417,40 +408,23 @@ and `archive`. A missing line means nothing is known to have completed;
 an unknown value is ignored.
 
 **Do not edit this line. It is written by `aide-run-spec`, from the
-spec's own commits.** Every step the runner finishes leaves a commit
-whose subject says which step it was and how it ended:
+spec's own commits** — every step the runner finishes leaves a commit
+whose subject names the step and how it ended, and the line is derived
+from those commits at the end of every run, so the file agrees with git
+rather than with whoever remembered to update it. A step run
+interactively counts once committed under the same subject — the four
+step skills offer exactly that commit, and ask first.
 
-```text
-Run /aide-<step> for <spec-folder>[ (headless)][ (model: <tool> [<model>])][ (stopped: <reason>)]
-```
-
-Those commits are the record. The line is derived from them at the end
-of every run, so the file agrees with git rather than with whoever
-remembered to update it. A step run interactively counts once it is
-committed with the same subject — the four step skills offer exactly
-that commit, and ask first.
-
-**The line is added to, never subtracted from.** What the
-commits prove joins what the line already names; a step the line
-already names stays there even when no commit corroborates it. The
-scan recognizes a step only by the subject above, so a step committed
-under a descriptive subject of its own is invisible to it.
-Dropping a step there erases the only record that it ran.
-`aide-reopen` and `aide-reset` are the places a step comes off the line, and they do
-that by regenerating the file without the line at all.
-
-A copied claim (a spec's four files copied from a sibling, carrying
-steps it never had) stands until the line is deleted by hand or
-`aide-reopen`/`aide-reset` regenerates the file — the scan cannot tell
-a copied claim from the last surviving record of a step that really
-ran, so it errs toward never erasing one.
+**The line is added to, never subtracted from.** A step it already
+names stays even when no commit currently corroborates it — a copied
+claim (a spec's four files copied from a sibling) stands the same way,
+since the scan cannot tell it from a real one. `aide-reopen` and
+`aide-reset` are the only places a step comes off, by regenerating the
+file without the line at all.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done — a `4-status.md` that disagrees with them is said out loud on the
-row rather than believed. The progress percentage below the line
-answers a different question — how far the file's own Phase tables
-have got — and is recomputed the same way (see #### Total progress
-below), not narrated by the model that last touched the file.
+row rather than believed.
 
 #### Total progress
 
@@ -461,22 +435,13 @@ Phase-table rows are done:
 - **Total progress:** 50% (2 of 4 completed)
 ```
 
-**Do not edit this line by hand. It is recomputed by `aide-run-spec`**,
-at the end of every step, by counting the file's own `## Phase`/`##
-Fase` section rows — the identical done/open rule the dashboard's own
-`parseStatusChecks`/`isDoneMark` use: a well-formed three-column row
-counts as one task, its Status cell is done when it reads `✅` or the
-word `Completed`, and everything else (header rows, separators, free
-commentary) is skipped. A row with no checkbox at all — a status word
-like a "Plan review" row's bare `✅` — counts exactly like any other
-row.
-
-The rewrite is format-agnostic: it only touches the digits, wherever
-the line sits and whatever else it looks like (bold and bulleted inside
-`## Tracking info`, or bare text under the title) — its own formatting
-and position always survive. A file whose Phase tables have no rows yet
-(fresh from the template) is left alone entirely: there is nothing yet
-to derive.
+**Do not edit this line by hand. `aide-run-spec` recomputes it** at the
+end of every step from the file's own `## Phase`/`## Fase` rows — a
+well-formed three-column row counts as one task, done when its Status
+cell reads `✅` or `Completed`; header rows, separators and free
+commentary are skipped. A file whose Phase tables have no rows yet
+(fresh from the template) is left alone: there is nothing yet to
+derive.
 
 #### Phase outcome record
 
@@ -503,39 +468,25 @@ one, the date already exists, only the time of day is new
 - **Cost:** $0.1234
 ```
 
-`Repo` is one line per repo root, matching that root's checkout at the
-start of the run; it is absent for `create`, since nothing has been
-analyzed against yet. `Result` is `completed`, or `stopped (<reason>)`
-with a sanitized, one-line error summary when the run did not finish.
-`Cost` is absent for a tool that reports no cost (codex) — absence
-means unknown, never zero, so a total added up by hand from these five
-figures across all four files can understate itself for a codex-run
-phase.
+`Repo` is one line per repo root; it is absent for `create`, since
+nothing has been analyzed against yet. `Result` is `completed`, or
+`stopped (<reason>)` with a one-line error summary. `Cost` is absent
+for a tool that reports no cost (codex) — absence means unknown, never
+zero.
 
-**Do not edit these lines. `aide-run-spec` writes them**, from the same
-process and commit data it already derives `Workflow steps completed`
-from — the elapsed time, the cost, the repo/branch/sha at the start of
-the run and how the run ended — never from a model's own account of
-itself. Each run OVERWRITES its phase's own block with its own outcome:
-unlike `Workflow steps completed`, nothing here is added to across
-runs, because "how did this run go" has one right answer that changes
-with each attempt, not a set that only grows.
+**Do not edit these lines. `aide-run-spec` writes them**, never from a
+model's own account of itself. Each run OVERWRITES its phase's own
+block with the newest outcome — unlike `Workflow steps completed`,
+nothing here is added to across runs.
 
 **An absent `Model` line does not prove the phase ran without a
-model, and an absent record on `1-description.md` does not prove
-`create` never ran** — only that no commit could be attributed to it.
-That is the ordinary case for a spec whose `1-description.md` a person
-wrote by hand and committed under their own message: nothing is
-recorded, rather than "human" being inferred from the silence. The same
-silence applies to any phase finished entirely without `aide-run-spec`
-ever running — no `Repo`/`Model`/`Result`/`Time spent`/`Cost` is
-written for it, ever.
+model** — only that no commit could be attributed to it, the ordinary
+case for a file a person wrote and committed by hand under their own
+message.
 
 Specs archived before this record existed may still carry the older,
 centralized `Model (create):`/`Model (analyze):`/`Model (implement):`
-lines in their `4-status.md` — those are left exactly as
-they are, not migrated; only `archive`'s own outcome uses this record
-now.
+lines in their `4-status.md` — left exactly as they are, not migrated.
 
 #### Acceptance criteria (optional)
 
@@ -559,27 +510,18 @@ one id across several scenarios:
 No Requirements section: `4-status.md` looks exactly as it does today —
 no such section, no change to archiving.
 
-**These rows start unticked, and neither `/aide-implement` nor
-`/aide-analyze` ever ticks one.** Unlike the RED/GREEN/REFACTOR rows
-above (nobody is asked to stamp work they did not do and cannot
-verify), an acceptance-criteria row names a judgment only the
-person the spec is for can make — so it has an unambiguous human owner,
-and ticking it is the same one-click Overview-tab action any other
-recognized row already offers. Placing the section after the last
-implementation phase means it only becomes tickable once every earlier
-phase's own rows are done, the same "first phase section with an open
-row is current" rule the phases above already use — no separate code
-path for tickability.
+**These rows start unticked, and no skill ever ticks one.** Unlike the
+RED/GREEN/REFACTOR rows above, an acceptance-criteria row names a
+judgment only the person the spec is for can make — ticking it is the
+same one-click Overview-tab action any other recognized row offers.
+Placing the section after the last implementation phase means it only
+becomes tickable once every earlier phase's own rows are done.
 
 **`aide-archive-spec` refuses to archive while any of these rows is
 still unticked**, with `terminalReason: "acceptance-criteria-unticked"`
-— the one place a "must be ticked" gate exists in this file, and it is
-scoped to this section alone, never to the ordinary Phase/Checklist
-rows. A spec with no such section, or with every row in it ticked,
-archives exactly as it did before this section existed. A spec whose
-acceptance-criteria row is never ticked stays blocked indefinitely —
-deliberate, since the row has a clear human owner and a one-click
-resolution.
+— the one place a "must be ticked" gate exists in this file, scoped to
+this section alone. A spec with no such section, or every row ticked,
+archives exactly as it did before this section existed.
 
 ---
 

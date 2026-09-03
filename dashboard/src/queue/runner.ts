@@ -29,6 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../project/parse-status.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
@@ -112,7 +113,7 @@ export class Runner {
    *  a Map, since the reason it names carries no per-job detail — every
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
     // NOTHING starts while a job is landing, whatever it is and whatever
     // repo it is for. A landing merges directly into the SHARED main
     // checkout — the one every run switches and reads at its own start —
@@ -135,6 +136,19 @@ export class Runner {
       if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
         continue;
       }
+      // Two `archive` steps never run at once in the SAME project: both
+      // branch from the code root's main and both land into it, and the
+      // second one's landing finds a main the first moved under it. Held
+      // back with the reason on the row, the same shape as the two
+      // hold-backs below; the next tick tries again.
+      if (
+        job.steps[job.stepIndex] === "archive" &&
+        this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
+      ) {
+        const reason = "held back: another archive is running in this project — it starts when that one has landed";
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        continue;
+      }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {
@@ -152,6 +166,16 @@ export class Runner {
         const reason = `held back: depends on ${dependency}, which is not archived yet`;
         // Only when it changed: an unconditional update would rewrite
         // the mirror every two seconds for a job that is doing nothing.
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        continue;
+      }
+      // The same shape once more, for `archive`: an acceptance row only
+      // a person can tick is still open. Run, the step would only be
+      // refused by `aide-archive-spec` and end the job with archive
+      // unarchived — so a chained analyze/implement/archive job waits
+      // here for the tick instead, and starts by itself once it lands.
+      if (acceptanceOpen?.has(job.id)) {
+        const reason = `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`;
         if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }

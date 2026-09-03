@@ -178,7 +178,15 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         if (step === "analyze" || step === "reopen" || step === "reset") {
           return ctx.landStepBranch(job, step, outcome);
         }
-        if (step === "archive") return ctx.landArchivedSpec(job, outcome);
+        // `archive` lands on `completed` alone. A refusal from
+        // `aide-archive-spec` (not implemented yet, an acceptance row
+        // unticked) is ok — the row reads the hold-back from
+        // 4-status.md — but nothing was archived, and landing it merged
+        // implement's code branch into main with the spec still active.
+        // `already-landed` has nothing left to land either.
+        if (step === "archive") {
+          return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
+        }
         // `implement`, `explore` and `manifest` fall through: the first
         // by design, the other two because neither leaves a spec branch
         // for anyone to land.
