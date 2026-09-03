@@ -2213,25 +2213,6 @@ if [ -n "$status_file" ]; then
   fi
 fi
 
-# --- the spec's state file (spec 355) ----------------------------------------
-# 4-status.md is the prose; 4-status.json is what the gates and the
-# dashboard read. Derived here from the prose just rewritten, by the same
-# library aide-write-spec and aide-archive-spec use — so a run that lands
-# `analyze` on the line also lands it in the file the implement gate
-# reads. Spec 355 changed the tests to expect this and never gave the
-# runner the code: every analyze after it left the file stale, and the
-# dashboard held the next implement back as "not analyzed yet".
-# Only for a step that completed: a stopped run changes no phase, and
-# a first-ever state file on its branch would keep an otherwise empty
-# branch alive that the sweep below is meant to delete.
-# The state file keeps its own list of completed phases rather than
-# re-deriving it from prose (spec 355), so the list this run just wrote
-# to the prose line is handed over — a file that already existed before
-# the run would otherwise go on naming only the phases it had.
-if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
-  write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
-fi
-
 # --- this phase's own outcome record (spec 245) ------------------------------
 # `Workflow steps completed` (below) answers "did the SPEC run this step";
 # this answers "how did THIS phase go" — and is written into the phase's
@@ -2603,6 +2584,30 @@ elif [ -n "$status_file" ]; then
        ! cmp -s "$work_dir/status-progress" "$status_file"; then
       cat "$work_dir/status-progress" > "$status_file" 2>/dev/null || true
     fi
+  fi
+
+  # --- the spec's state file (spec 355) --------------------------------
+  # 4-status.md is the prose; 4-status.json is what the gates and the
+  # dashboard read. Derived here from the prose just rewritten, by the
+  # same library aide-write-spec and aide-archive-spec use — so a run
+  # that lands `analyze` on the line also lands it in the file the
+  # implement gate reads. Spec 355 changed the tests to expect this and
+  # never gave the runner the code: every analyze after it left the file
+  # stale, and the dashboard held the next implement back as "not
+  # analyzed yet". Only for a step that completed: a stopped run changes
+  # no phase, and a first-ever state file on its branch would keep an
+  # otherwise empty branch alive that the sweep below is meant to
+  # delete. The state file keeps its own list of completed phases rather
+  # than re-deriving it from prose (spec 355), so the list this run just
+  # wrote to the prose line is handed over — a file that already existed
+  # before the run would otherwise go on naming only the phases it had.
+  # Placed here, after completed_steps_for has actually run (spec 343
+  # moved that call into this same branch), rather than at this block's
+  # original, earlier position — $completed_steps does not exist yet at
+  # that point any more, and this write has to ride PASS 2's commit
+  # anyway, same as the prose line it derives from.
+  if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
+    write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
   fi
 
   # --- PASS 2: the line has to clear the same bar (REQ-2) -------------

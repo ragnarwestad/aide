@@ -1043,7 +1043,9 @@ def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, works
     assert out["pushError"], "a push that did not happen must not be silent"
     branch = "aide/81-queue-and-runner"
     line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
-    assert line == "- **Workflow steps completed:** create", line
+    # Unchanged from the workspace fixture's own starting line (REQ-3) —
+    # `implement` never lands, `analyze` stays exactly as it was.
+    assert line == "- **Workflow steps completed:** analyze", line
 
 
 def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
@@ -2070,8 +2072,10 @@ def test_the_worktree_specs_path_points_at_the_specs_worktree(runner, workspace,
     assert resolved.startswith(str(workspace["wtbase"])), resolved
     assert not resolved.startswith(str(workspace["specs"]) + "/"), "not the shared specs checkout"
     # What the step wrote there is committed on the branch in the specs
-    # REPO — the worktree is a view of it, not a copy.
-    assert "2-analysis.md" in git(workspace["specs"], "show", "--name-only", "--pretty=", BRANCH)
+    # REPO — the worktree is a view of it, not a copy. Across the whole
+    # branch, not just its last commit: the step's own content and the
+    # `Workflow steps completed` line land in separate commits (spec 343).
+    assert "2-analysis.md" in git(workspace["specs"], "log", "--name-only", "--pretty=", f"main..{BRANCH}")
     assert "2-analysis.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", "main")
 
 
@@ -5203,9 +5207,9 @@ def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, f
 
 
 def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_claude):
-    """AC7. Not a second commit and not an amend: the edit goes in
-    BEFORE the commit loop, which is the only sequencing that makes
-    "in the same commit" true."""
+    """Not an amend: the line lands in a SECOND commit of its own (spec
+    343), made only once the step's own content is confirmed on origin —
+    never folded into the step's own commit, and never rewriting it."""
     with_status(workspace)
     before = git(workspace["specs"], "rev-parse", "main")
     claude = specs_only_claude(fake_claude, workspace)
@@ -5214,8 +5218,10 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     branch = "aide/81-queue-and-runner"
     commits = git(workspace["specs"], "log", "--format=%s", f"{before}..{branch}").split("\n")
     # The model suffix (spec 217) is part of the subject a headless run
-    # writes: the tool is always known, so it is always there.
-    assert commits == [subject("analyze", model="claude")], commits
+    # writes: the tool is always known, so it is always there. Two
+    # commits sharing the same subject: pass 1 (the step's own content)
+    # and pass 2 (the line, once pass 1 is confirmed on origin).
+    assert commits == [subject("analyze", model="claude")] * 2, commits
     assert recorded_line(workspace) == "analyze"
 
 
