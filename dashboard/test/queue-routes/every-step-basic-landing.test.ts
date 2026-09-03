@@ -142,17 +142,27 @@ describe("every step lands its own work (spec 149)", () => {
   // the active list with no error anywhere, because the code that would
   // have written one was killed too. So: every repo merges BEFORE the
   // restart is allowed to fire.
-  test("the restart waits until every repo in the landing has merged", async () => {
+  test("a landing into the dashboard's own checkout installs, logs, and never restarts", async () => {
+    // A restart mid-run kills every job's process (four of them,
+    // 2026-09-03 00:13), and no rule for a safe moment held up. The
+    // person restarts with Deploy when it suits; the landing only says
+    // the served page is behind.
     const dir = own("aide-restart-order-");
     const paths = repos(dir);
     const git = gitFor();
-    let specsMergesAtFire: number | null = null;
+    let fired = 0;
+    const logged: string[] = [];
+    const realError = console.error;
+    console.error = (msg: unknown) => {
+      logged.push(String(msg));
+      realError(msg);
+    };
     const { base } = serverWithHarness(dir, paths, git, {
       dashboardRoot: paths.project,
       restart: {
         registered: async () => true,
         fire: () => {
-          specsMergesAtFire = merges(git.calls, paths.specs).length;
+          fired += 1;
         },
       },
     });
@@ -175,11 +185,13 @@ describe("every step lands its own work (spec 149)", () => {
     });
 
     expect(landed.error).toBeFalsy();
-    for (let i = 0; i < 40 && specsMergesAtFire === null; i++) await Bun.sleep(25);
-    // Fired at all — otherwise this passes for the wrong reason.
-    expect(specsMergesAtFire).not.toBeNull();
-    // And the specs root was already merged when it did.
-    expect(specsMergesAtFire).toBeGreaterThan(0);
+    const marker = join(paths.project, "installed");
+    for (let i = 0; i < 80 && !existsSync(marker); i++) await Bun.sleep(25);
+    await Bun.sleep(200);
+    console.error = realError;
+    expect(existsSync(marker)).toBe(true);
+    expect(fired).toBe(0);
+    expect(logged.some((l) => l.includes("restart it with Deploy"))).toBe(true);
   });
 
   // Criterion 5. A code merge that cannot be made stops the step: nothing

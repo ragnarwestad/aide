@@ -118,8 +118,11 @@ installs deps, renders a launchd plist and starts the job. No plist is committed
 **The repo it clones there is the dashboard's OWN checkout —
 `~/aide-dashboard-checkouts/aide/code` — not a checkout a person edits.** That is the directory a code landing merges
 into and runs
-`AIDE_INSTALL_CMD` in, and the landing restarts the launchd job afterwards. Point the job anywhere else and the
-restart reloads code the landing never touched — the served page then sits on old code with every row reporting
+`AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
+no rule for a safe moment held up. It logs that the served page runs older code than main, and the person restarts
+when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts, and so does
+`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. Point the job anywhere else and a restart
+reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
 `test/git/install-serve-paths.test.ts` reads both and fails if they disagree.

@@ -19,7 +19,7 @@
 // preflight check and is said in the README rather than defended
 // against here.
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, realpathSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "../discover.ts";
@@ -215,7 +215,17 @@ export async function assessProjectReadiness(
   //    resolves to the outer root, and a run would branch, commit and
   //    push that one — which is not the project anybody added.
   const top = await gitSays(run, projectDir, ["rev-parse", "--show-toplevel"]);
-  const isRoot = top !== null && resolve(top) === resolve(projectDir);
+  // Real paths on both sides: the projects root on the serving host is a
+  // directory of symlinks to the dashboard's own checkouts, and git
+  // answers with the real path.
+  const real = (p: string): string => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return resolve(p);
+    }
+  };
+  const isRoot = top !== null && real(top) === real(projectDir);
   checks.push({
     check: "gitRoot",
     subject: projectDir,
