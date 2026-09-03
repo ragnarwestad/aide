@@ -184,7 +184,9 @@ describe("spec 108: one rule per phase", () => {
       [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
     );
     const archive = subRow(html, "archive");
-    expect(archive).toContain("stopped: acceptance-criteria-unticked");
+    expect(archive).toContain("stopped");
+    expect(archive).not.toContain("stopped: acceptance-criteria-unticked");
+    expect(panel(html)).toContain("stopped: acceptance-criteria-unticked");
     expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
   });
 

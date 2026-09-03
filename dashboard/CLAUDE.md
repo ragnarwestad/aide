@@ -87,6 +87,20 @@ exclusion list rather than in the fixture: `specsRepo` is a check the
 dashboard makes blocking that `aide-run-spec` does not refuse on, and
 `dashboardCheckout` has no `aide-run-spec` counterpart at all.
 
+**Whether a spec may move from one phase to another is also not a
+hand-paired pair (spec 356).** `core/scripts/lib/transitions.json` is the
+one table — every `(phase, event)` row, its next phase or refusal, and the
+condition it needs — read by both `core/scripts/lib/spec-transitions.sh`
+(`may_apply_spec_transition` for a read-only check, `apply_spec_transition`
+for the one write) and `dashboard/src/queue/spec-transitions.ts`
+(`isLegalMove`, read-only, used in `job-actions.ts` to refuse a backward
+move — `analyze` requested on a spec that has already implemented — before
+it reaches the queue). No other code writes a phase-changing stamp or
+`completedPhases` entry; a guard test greps for the stamp patterns
+themselves to catch a stray writer regardless of mechanism, and a second
+guard test keeps `dashboard/docs/spec-lifecycle.md`'s diagram in agreement
+with the table's rows.
+
 `DEPENDENCY_GATED_STEPS` is `implement` and `archive`, and "merged" means
 ARCHIVED: a dependent spec's held-back steps are released when the
 dependency's `archive` step runs. The dashboard's copy decides whether a

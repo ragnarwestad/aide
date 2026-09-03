@@ -149,8 +149,13 @@ is appended after them rather than dropped, so a run is never invisible.
 
 The chips are one axis, and `?state=` is where it lives: "All" (the default), "Active" (everything not archived),
 "Running", "Done", "Problems" and "Archived". The default is `STATE_FILTERS[0]` and nothing else — moving an entry to
-the front changes the default for every reader — and it travels as no `state=` value at all, so `/` stays a clean
-link.
+the front changes the default for every reader. Every chip, including "All", carries its own `state=` value
+explicitly, so choosing one always overrides whatever is remembered (see below).
+
+**The chosen chip is remembered across visits, the same way the sort column is.** Choosing a chip sets the
+`aide_state` cookie (`HttpOnly; SameSite=Lax`); a request with no `state=` in the query string — the Specs tab's own
+link, a bookmark, the back button — falls back to that cookie instead of always landing on "All". An explicit
+`?state=` always wins and becomes the new memory. The search term (`?q=`) is never remembered this way.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
 row: the link to its own `/specs/<project>/<spec>` page, its whole description behind a two-line clamp, the date it was
