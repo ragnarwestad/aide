@@ -2,7 +2,9 @@
 // picked, which column it is sorted by, and what a search term matches
 // against.
 
-import { IN_FLIGHT } from "../../../ui/job-state.ts";
+import { currentStep, IN_FLIGHT } from "../../../ui/job-state.ts";
+import { gerund } from "../../../ui/job-state/resting.ts";
+import { WORKFLOW_STEPS } from "../../../../queue/steps.ts";
 import { t, type Language, type TranslationKey } from "../../../../i18n/index.ts";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
 
@@ -25,7 +27,17 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup }
 // The three in the middle are untouched by spec 221 BY CONSTRUCTION:
 // none of them names `ARCHIVED_STATE`, so each already excludes an
 // archived row without a line of new code.
-export const STATE_FILTERS: { key: string; label: string; states?: string[]; excludeStates?: string[] }[] = [
+type StateFilterEntry = {
+  key: string;
+  label: string;
+  states?: string[];
+  excludeStates?: string[];
+  /** Set only on a Running sub-entry: the workflow step a job's own
+   *  `currentStep()` must match, beyond being queued/running at all. */
+  step?: string;
+};
+
+export const STATE_FILTERS: StateFilterEntry[] = [
   // All first, and therefore the default (see DEFAULT_STATE_FILTER): a
   // spec that reaches the archive stays on the list a reader is already
   // looking at, instead of disappearing from it. Measured before the
@@ -36,7 +48,17 @@ export const STATE_FILTERS: { key: string; label: string; states?: string[]; exc
   // Read off `IN_FLIGHT` rather than written out a second time: a state
   // added to one and forgotten in the other is exactly the drift this
   // page cannot afford, and the single-job page needs the same set.
-  { key: "active", label: "Running", states: [...IN_FLIGHT] },
+  // `active:all` plus one `active:<step>` per `WORKFLOW_STEPS` member —
+  // Running is one option for every job in flight, but a reader who
+  // wants only the specs on one step could not ask for that until now
+  // (spec 374, REQ-3).
+  { key: "active:all", label: "Running-all", states: [...IN_FLIGHT] },
+  ...WORKFLOW_STEPS.map((step) => ({
+    key: `active:${step}`,
+    label: `Running-${step}`,
+    states: [...IN_FLIGHT],
+    step,
+  })),
   { key: "done", label: "Done", states: ["done"] },
   {
     key: "problem",
@@ -62,13 +84,21 @@ export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   all: "list.state.all",
   "not-archived": "list.state.active",
-  active: "list.state.running",
   done: "list.state.done",
   problem: "list.state.problem",
   [ARCHIVED_STATE]: "list.state.archived",
 };
 
+/** A compound `active:<step>` key (or the bare `active:all`) reads as
+ *  `Running-<word>` — the same word a running row's own badge already
+ *  shows for that step (`gerund`), so the sub-menu never invents a
+ *  second vocabulary for what a step is called (spec 374, REQ-3/REQ-4). */
 export function stateFilterLabel(key: string, lang: Language): string {
+  if (key.startsWith("active:")) {
+    const step = key.slice("active:".length);
+    const word = step === "all" ? t(lang, "list.state.runningAll") : gerund(lang, step);
+    return `${t(lang, "list.state.running")}-${word}`;
+  }
   return t(lang, STATE_FILTER_LABEL_KEYS[key] ?? "list.state.all");
 }
 
@@ -86,10 +116,12 @@ export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
   started: "desc", cost: "desc", spec: "desc", state: "asc", created: "desc",
 };
 
-export function stateFilter(
-  key: string | undefined,
-): { key: string; states?: string[]; excludeStates?: string[] } {
-  return STATE_FILTERS.find((f) => f.key === key) ?? DEFAULT_STATE_FILTER;
+export function stateFilter(key: string | undefined): StateFilterEntry {
+  // A bare "active" is what every cookie and link made before this
+  // spec carries — it must keep meaning "any running job, any step"
+  // rather than silently falling through to the "All" default (REQ-5).
+  const resolved = key === "active" ? "active:all" : key;
+  return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
 }
 
 /** Whether one chip admits one state. Written once because `applyFilter`
@@ -100,6 +132,15 @@ export const matchesState = (
   f: { states?: string[]; excludeStates?: string[] },
   state: string,
 ): boolean => (!f.states || f.states.includes(state)) && !(f.excludeStates ?? []).includes(state);
+
+/** `matchesState` plus the step dimension a Running sub-entry adds — one
+ *  function so `applyFilter` (which rows render) and `stateDropdown`'s
+ *  count loop (what each chip's count says) can never disagree about a
+ *  step-scoped choice, the same reason `matchesState` itself is one
+ *  function and not two (see the comment above it). */
+export function matchesStateFilter(f: StateFilterEntry, g: SpecGroup): boolean {
+  return matchesState(f, g.state) && (!f.step || (!!g.lead && currentStep(g.lead) === f.step));
+}
 
 /** Whether this view can show an archived spec at all (spec 221).
  *
@@ -140,7 +181,7 @@ export function applyFilter(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   const chip = stateFilter(f.state);
   return groups.filter(
     (g) =>
-      matchesState(chip, g.state) &&
+      matchesStateFilter(chip, g) &&
       (!f.project || g.project === f.project) &&
       matchesSearch(g, f),
   );

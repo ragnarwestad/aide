@@ -124,7 +124,7 @@ export const GERUND_NB: Record<string, string> = {
   explore: "utforsker", manifest: "oppdaterer manifestet for", reopen: "gjenåpner", reset: "tilbakestiller",
   schedule: "kjører planen for",
 };
-function gerund(lang: Language, step: string): string {
+export function gerund(lang: Language, step: string): string {
   const table = lang === "nb" ? GERUND_NB : GERUND_EN;
   if (table[step]) return table[step]!;
   const label = stepLabel(step);

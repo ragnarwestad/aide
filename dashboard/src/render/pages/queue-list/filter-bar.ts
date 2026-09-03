@@ -18,6 +18,7 @@ import {
   isArchivedRow,
   matchesSearch,
   matchesState,
+  matchesStateFilter,
   stateFilter,
   stateFilterLabel,
   type QueueFilter,
@@ -106,30 +107,39 @@ function stateDropdown(
   uncounted: number,
   lang: Language,
 ): string {
-  const options = STATE_FILTERS.map((s) => {
+  // Computed once, so the trigger and the panel option for the SAME
+  // choice can never show two different counts (REQ-2) — the trigger
+  // below reads `chosen.count` off this same array rather than summing
+  // its own copy.
+  const rows = STATE_FILTERS.map((s) => {
     const on = s.key === current;
     const count =
-      counted.filter((g) => matchesState(s, g.state)).length +
+      counted.filter((g) => matchesStateFilter(s, g)).length +
       (matchesState(s, ARCHIVED_STATE) ? uncounted : 0);
-    // Always explicit (REQ-4, spec 338): picking All has to be able to
-    // override a REMEMBERED non-default filter, and a blank `state`
-    // collapses to the same bare `/` a plain navigation with no choice
-    // at all produces — the one thing that would tell the two apart.
-    const href = queueHref(f, { state: s.key });
-    return (
-      `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
-      `<span class="check" aria-hidden="true"></span>${esc(stateFilterLabel(s.key, lang))} (${count})</a>`
-    );
-  }).join("");
+    return { s, on, count };
+  });
+  const options = rows
+    .map(({ s, on, count }) => {
+      // Always explicit (REQ-4, spec 338): picking All has to be able to
+      // override a REMEMBERED non-default filter, and a blank `state`
+      // collapses to the same bare `/` a plain navigation with no choice
+      // at all produces — the one thing that would tell the two apart.
+      const href = queueHref(f, { state: s.key });
+      return (
+        `<a data-nav href="${href}" role="radio" aria-checked="${on}">` +
+        `<span class="check" aria-hidden="true"></span>${esc(stateFilterLabel(s.key, lang))} (${count})</a>`
+      );
+    })
+    .join("");
+  const chosen = rows.find((r) => r.on) ?? rows[0]!;
   const statesLabel = t(lang, "list.statesLabel");
-  const chosenLabel = esc(stateFilterLabel(current, lang));
-  // No count on the TRIGGER — only inside the open panel, beside each
-  // option, exactly like the chips did. A reader who wants the count
-  // opens the panel; keeping the closed trigger to "State: <label>" is
-  // what the mobile row's tight nowrap budget can afford.
+  // The trigger shows the chosen option's own label and count, and
+  // nothing else (REQ-1): the room the old "State:" prefix took is what
+  // lets a longer choice like "Running-analyzing (2)" fit.
   return (
     `<details class="menu state" data-filter="state">` +
-    `<summary title="${statesLabel}" aria-label="${statesLabel}">${statesLabel}: ${chosenLabel}${ICON_CHEVRON}</summary>` +
+    `<summary title="${statesLabel}" aria-label="${statesLabel}">` +
+    `${esc(stateFilterLabel(chosen.s.key, lang))} (${chosen.count})${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`
   );

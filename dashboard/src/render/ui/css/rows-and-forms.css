@@ -164,7 +164,7 @@ td form { margin: 0; display: inline-block; }
 .menu.state a[aria-checked="true"] .check { background: var(--text); border-color: var(--text); }
 /* The base `.menu > summary` above is a bare 32px icon circle, sized for
    the header's "…" and Theme triggers, which carry no text. This
-   trigger's own label ("State: Archived") needs room a fixed circle
+   trigger's own label ("Archived (12)") needs room a fixed circle
    cannot give it — sized to its content instead, the same pill shape
    `.filters` used before this dropdown replaced it. */
 .menu.state > summary { width: auto; height: auto; border-radius: 999px;

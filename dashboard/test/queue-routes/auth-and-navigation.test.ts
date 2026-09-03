@@ -271,9 +271,11 @@ describe("token configured", () => {
     /** The `Set-Cookie` this route writes for the state filter, if any. */
     const stateCookie = (res: Response, port: number | undefined): string =>
       res.headers.getSetCookie().find((c) => c.startsWith(`aide_state_${port}=`)) ?? "";
-    /** Which state the rendered trigger says is chosen. */
+    /** Which state the rendered trigger says is chosen — its label,
+     *  without the count beside it (spec 374 dropped the "States:"
+     *  prefix in favour of the label and count alone). */
     const triggerLabel = (html: string): string =>
-      /<summary[^>]*>States: ([^<]*)</.exec(html)?.[1] ?? "";
+      /<summary[^>]*>([^<]*) \(\d+\)/.exec(html)?.[1] ?? "";
 
     test("choosing one writes it down, and a bare / gets it back", async () => {
       const { base, server } = start({ queueToken: TOKEN });
@@ -337,7 +339,7 @@ describe("token configured", () => {
       expect(langCookie(res)).toContain("aide_lang=nb");
       const html = await res.text();
       expect(html).toContain('<html lang="nb">');
-      expect(html).toContain(">Ny spesifikasjon<");
+      expect(html).toContain(">Ny<");
     });
 
     test("a later GET / with the cookie and no ?lang= is Norwegian too", async () => {

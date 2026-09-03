@@ -40,7 +40,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // Criterion 1.
   test("the front page offers a plain link, not a toggle", () => {
     const html = page();
-    expect(html).toContain('<a class="btn primary" href="/new">New spec</a>');
+    expect(html).toContain('<a class="btn primary" href="/new">New</a>');
     expect(html).not.toContain('<details class="newspec">');
     // And the form itself is gone from this page entirely — not merely
     // shut: `/new` is the only place it is rendered now.
@@ -53,7 +53,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     const html = page({ createProjects: [] });
     // The markup, not the word: the stylesheet is inlined into every
     // page and its comments name the components they style.
-    expect(html).not.toContain(">New spec</a>");
+    expect(html).not.toContain(">New</a>");
     expect(html).not.toContain('href="/new"');
   });
 
