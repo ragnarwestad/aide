@@ -1,3 +1,4 @@
+import os
 """Tests for core/scripts/aide-create-spec — the mechanical steps of
 /aide-create's Step 4 (spec 248): creating a spec's directory and its 5
 files given specs-root/number/slug/title/description/depends-on.
@@ -265,7 +266,7 @@ def test_description_with_slashes_backticks_and_multiple_lines_is_preserved(scri
 # --- --stamp-outcome (spec 274, AC1-5) --------------------------------------
 
 
-def run_stamp(script, specs_root, folder, start_epoch=None, model=None, result_file=None):
+def run_stamp(script, specs_root, folder, start_epoch=None, model=None, result_file=None, now_epoch=None):
     args = [str(script), "--specs-root", str(specs_root), "--stamp-outcome", "--folder", folder]
     if start_epoch is not None:
         args += ["--start-epoch", str(start_epoch)]
@@ -273,7 +274,8 @@ def run_stamp(script, specs_root, folder, start_epoch=None, model=None, result_f
         args += ["--model", model]
     if result_file:
         args += ["--result-file", str(result_file)]
-    proc = subprocess.run(args, capture_output=True, text=True)
+    env = {**os.environ, **({"AIDE_NOW_EPOCH": str(now_epoch)} if now_epoch is not None else {})}
+    proc = subprocess.run(args, capture_output=True, text=True, env=env)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     return proc.returncode, json.loads(line), proc.stdout
 
@@ -284,11 +286,10 @@ def _create(script, specs_root):
     return specs_root / "42-do-a-thing"
 
 
-@pytest.mark.serial
 def test_stamp_outcome_writes_time_spent_only_when_no_model_given(script, specs_root):
     folder = _create(script, specs_root)
     start_epoch = int(time.time()) - 125
-    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=start_epoch)
+    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=start_epoch, now_epoch=start_epoch + 125)
     assert rc == 0, out
     desc = (folder / "1-description.md").read_text()
     lines = desc.splitlines()
@@ -300,13 +301,12 @@ def test_stamp_outcome_writes_time_spent_only_when_no_model_given(script, specs_
     assert desc.count("- **Time spent:**") == 1
 
 
-@pytest.mark.serial
 def test_stamp_outcome_writes_model_before_time_spent(script, specs_root):
     folder = _create(script, specs_root)
     start_epoch = int(time.time()) - 125
     rc, out, _ = run_stamp(
         script, specs_root, "42-do-a-thing",
-        start_epoch=start_epoch, model="claude claude-opus-5",
+        start_epoch=start_epoch, model="claude claude-opus-5", now_epoch=start_epoch + 125,
     )
     assert rc == 0, out
     desc = (folder / "1-description.md").read_text()
@@ -318,17 +318,17 @@ def test_stamp_outcome_writes_model_before_time_spent(script, specs_root):
     assert desc.count("- **Time spent:**") == 1
 
 
-@pytest.mark.serial
 def test_stamp_outcome_is_idempotent_on_a_second_call(script, specs_root):
     folder = _create(script, specs_root)
+    now = int(time.time())
     rc, out, _ = run_stamp(
         script, specs_root, "42-do-a-thing",
-        start_epoch=int(time.time()) - 60, model="claude claude-opus-5",
+        start_epoch=now - 60, model="claude claude-opus-5", now_epoch=now,
     )
     assert rc == 0, out
     rc, out, _ = run_stamp(
         script, specs_root, "42-do-a-thing",
-        start_epoch=int(time.time()) - 300, model="claude claude-sonnet-5",
+        start_epoch=now - 300, model="claude claude-sonnet-5", now_epoch=now,
     )
     assert rc == 0, out
     desc = (folder / "1-description.md").read_text()

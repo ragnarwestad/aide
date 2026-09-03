@@ -122,7 +122,9 @@ export const LANDING_GATE_TIMEOUT_MS = 60 * 60_000;
 export const DEFAULT_QUEUE_CONCURRENCY = 2;
 
 export function parseQueueConcurrency(raw: unknown): number {
-  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > 4) {
+  // 1..8: six is what the serving host runs now that a landing runs the
+  // suite once and the timing tests tolerate a busy host (2026-09-03).
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > 8) {
     return DEFAULT_QUEUE_CONCURRENCY;
   }
   return raw;

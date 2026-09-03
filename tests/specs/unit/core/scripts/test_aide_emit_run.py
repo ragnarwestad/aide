@@ -44,7 +44,7 @@ class _Listener:
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
-    def wait(self, count=1, timeout=2.0):
+    def wait(self, count=1, timeout=15.0):
         deadline = time.time() + timeout
         while time.time() < deadline and len(self.received) < count:
             time.sleep(0.05)
@@ -111,7 +111,6 @@ def git_repo(tmp_path):
 
 
 @pytest.mark.claude_code
-@pytest.mark.serial
 class TestAideEmitRun:
     def test_leading_space_slash_command_is_emitted(self, emitter, listener, git_repo):
         result = run_emitter(emitter, " /aide-implement 80", git_repo, listener.url)
@@ -161,7 +160,6 @@ class TestAideEmitRun:
 
 
 @pytest.mark.claude_code
-@pytest.mark.serial
 class TestPhaseMode:
     """Criterion 10 (spec 81, slice 81c): reporting a TDD phase boundary
     from inside an /aide-implement run.

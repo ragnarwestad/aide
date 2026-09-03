@@ -93,7 +93,9 @@ if [ "$stamp_outcome" = "yes" ]; then
   [ -n "$target" ] || refuse "spec file not found: $folder/1-description.md"
   grep -q '^## Tracking info' "$target" || refuse "no Tracking info heading in $target"
 
-  elapsed=$(( $(date +%s) - start_epoch ))
+  # AIDE_NOW_EPOCH: the clock a test hands in, so a span is exact rather
+  # than one second either way on a busy host.
+  elapsed=$(( ${AIDE_NOW_EPOCH:-$(date +%s)} - start_epoch ))
   [ "$elapsed" -ge 0 ] || refuse "--start-epoch is in the future"
   time_spent="$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))"
 

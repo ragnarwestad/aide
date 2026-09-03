@@ -21,12 +21,14 @@ afterEach(() => {
 // The slot count is a number, and a number that turns out wrong should
 // cost a config edit and a restart, not a release (`queue.ts:325-327`).
 describe("the queue config decides how many run at once", () => {
-  test("a number in 1-4 is taken; anything else falls back to two", () => {
+  test("a number in 1-8 is taken; anything else falls back to two", () => {
     expect(parseQueueConcurrency(3)).toBe(3);
     expect(parseQueueConcurrency(1)).toBe(1);
     expect(parseQueueConcurrency(4)).toBe(4);
+    expect(parseQueueConcurrency(6)).toBe(6);
+    expect(parseQueueConcurrency(8)).toBe(8);
     // FALLS BACK, does not clamp: `concurrency: 9` would otherwise have
-    // to be both 4 and 2 depending on which rule you read.
+    // to be both 8 and 2 depending on which rule you read.
     expect(parseQueueConcurrency(9)).toBe(2);
     expect(parseQueueConcurrency(0)).toBe(2);
     expect(parseQueueConcurrency(-1)).toBe(2);

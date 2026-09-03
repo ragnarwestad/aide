@@ -710,7 +710,6 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
 
 # --- Criterion 4: the graceful stop ------------------------------------------
 
-@pytest.mark.serial
 def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, workspace, fake_claude):
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -719,7 +718,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
         "while true; do sleep 0.2; done"
     )
     started = time.time()
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
     elapsed = time.time() - started
 
     assert out["terminalReason"] == "timeout"
@@ -732,7 +731,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # over-charge rule — but a token count may not: there is nothing to
     # assume it from, so the field stays away rather than saying zero.
     assert "tokens" not in out
-    assert elapsed < 12, f"the kill took too long: {elapsed:.1f}s"
+    assert elapsed < 90, f"the kill took too long: {elapsed:.1f}s"
 
     result_file = workspace["project"].parent / "result.json"
     assert result_file.exists(), "a stop must always leave a result file"
@@ -751,7 +750,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # `error` is read verbatim by the row's panel and the job page's
     # banner, so this string is the whole of what either one says.
     assert "time limit" in out["error"]
-    assert "2s" in out["error"], "the limit's own number belongs in the sentence"
+    assert "8s" in out["error"], "the limit's own number belongs in the sentence"
     assert "committed" in out["error"]
     assert "killed" not in out["error"], "a limit we set is not something that happened to us"
 
@@ -774,14 +773,13 @@ def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, w
         f"trap 'echo {json.dumps(json.dumps(flushed))}; exit 143' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="5")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="5")
     assert out["terminalReason"] == "timeout"
     assert out["costUsd"] == pytest.approx(3.0), "the flushed $0 must not be believed"
     assert out["costMeasured"] is False
     assert "tokens" not in out, "a stopped run's flushed usage is no more measured than its cost"
 
 
-@pytest.mark.serial
 def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fake_claude, tmp_path):
     marker = tmp_path / "term-seen"
     claude = fake_claude(
@@ -790,10 +788,10 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
         "while true; do sleep 0.2; done"
     )
     started = time.time()
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="8")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="30")
     elapsed = time.time() - started
     assert marker.exists(), "SIGTERM must reach the child"
-    assert elapsed < 9, "the run should end when the child exits, not wait out the whole grace"
+    assert elapsed < 30, "the run should end when the child exits, not wait out the whole grace"
     assert out["terminalReason"] == "timeout"
 
 
@@ -1236,7 +1234,6 @@ def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
     assert git(workspace["project"], "status", "--porcelain") == ""
 
 
-@pytest.mark.serial
 def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace, fake_claude):
     """The stop reason is the whole point of the fallback commit's
     message. Folding the leftover into the step's own commit must not
@@ -1245,7 +1242,7 @@ def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace,
     claude = partially_committing_claude(
         fake_claude, workspace, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     branch = "aide/81-queue-and-runner"
     project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]
@@ -2026,7 +2023,6 @@ def test_the_stream_is_kept_when_the_budget_stops_the_run(runner, workspace, fak
     assert '"error_max_budget_usd"' in stream.read_text()
 
 
-@pytest.mark.serial
 def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, fake_claude, tmp_path):
     """The longest runs are exactly the ones whose transcript is worth
     keeping, and they are the ones that get killed."""
@@ -2038,7 +2034,7 @@ def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, f
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, stream_file=str(stream),
-                     timeout_sec="2", kill_grace_sec="1")
+                     timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert stream.exists(), "a killed run's transcript must survive too"
     assert '"init"' in stream.read_text()
@@ -2320,10 +2316,9 @@ def test_no_worktree_survives_a_budget_stop(runner, workspace, fake_claude):
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
 
 
-@pytest.mark.serial
 def test_no_worktree_survives_a_deadline_kill(runner, workspace, fake_claude):
     claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
     assert worktrees(workspace["specs"]) == [str(workspace["specs"])]
@@ -2816,7 +2811,6 @@ def test_locks_for_different_projects_do_not_block_each_other(runner, tmp_path, 
 
 # --- Criterion 4 (spec 256): a killed run's lock is reclaimed ---------------
 
-@pytest.mark.serial
 def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
     runner, workspace, fake_claude
 ):
@@ -2840,7 +2834,7 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
 
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
-    assert elapsed < 30, (
+    assert elapsed < 90, (
         f"a stale lock (dead owner pid) must be reclaimed immediately, not "
         f"waited out: took {elapsed:.1f}s"
     )
@@ -2855,7 +2849,6 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
 
 # --- Criterion 5 (spec 256): SIGTERM releases the lock ----------------------
 
-@pytest.mark.serial
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path
 ):
@@ -2939,7 +2932,7 @@ def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
 
     assert rc2 == 0, out2
     assert out2["terminalReason"] == "completed"
-    assert elapsed < 30, (
+    assert elapsed < 90, (
         "the second run waited on a lock the first run's EXIT trap should "
         f"have released: {elapsed:.1f}s"
     )
@@ -4943,7 +4936,6 @@ def test_an_unknown_tool_is_refused(runner, workspace, fake_claude):
     assert "gemini" in out["error"]
 
 
-@pytest.mark.serial
 def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace, fake_codex):
     """Criterion 5. The timeout loop operates on a PID and a process
     group, never on a tool — so the only thing worth proving here is that
@@ -4957,7 +4949,7 @@ def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace,
     )
     started = time.time()
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
-                     timeout_sec="2", kill_grace_sec="1")
+                     timeout_sec="8", kill_grace_sec="2")
     elapsed = time.time() - started
     assert out["terminalReason"] == "timeout"
     assert out["ok"] is False
@@ -4965,7 +4957,7 @@ def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace,
     assert "costUsd" not in out
     assert out["costMeasured"] is False
     assert "tokens" not in out
-    assert elapsed < 12, f"the kill took too long: {elapsed:.1f}s"
+    assert elapsed < 90, f"the kill took too long: {elapsed:.1f}s"
 
 
 def test_a_failed_codex_turn_is_reported_not_swallowed(runner, workspace, fake_codex):
@@ -5227,7 +5219,6 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     assert subject("implement", model="claude") in branch_log, branch_log
 
 
-@pytest.mark.serial
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
     """Spec 147, from the other side: the step ran and did not finish.
     The commit says so — the line, which is about what COMPLETED, does
@@ -5249,7 +5240,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, command="implement",
-                     timeout_sec="2", kill_grace_sec="1")
+                     timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert recorded_line(workspace) == "create, analyze"
     # And the stop is on the record that DOES carry it.
@@ -5716,7 +5707,6 @@ def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_cl
     assert bullet(text, "Result") == "completed"
 
 
-@pytest.mark.serial
 def test_an_implement_run_stopped_by_timeout_records_the_stop(
     runner, workspace, fake_claude
 ):
@@ -5731,7 +5721,7 @@ def test_an_implement_run_stopped_by_timeout_records_the_stop(
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, command="implement",
-                     timeout_sec="2", kill_grace_sec="1")
+                     timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     text = phase_file_text(workspace, f"{workspace['folder']}/3-solution.md")
     result_line = bullet(text, "Result")

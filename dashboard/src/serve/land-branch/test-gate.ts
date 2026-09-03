@@ -43,8 +43,8 @@ async function runScript(
 }
 
 /** Resolve the command(s) the merged change calls for, run them through
- *  aide-record-test-run (which holds the machine's test lock and keeps
- *  the run's output), and say green or red. The record it writes goes
+ *  aide-record-test-run (which keeps the run's output), and say green
+ *  or red. The record it writes goes
  *  to a throwaway specs root: the archive no longer reads it, and a
  *  record left in the dashboard's own specs checkout blocked a landing
  *  once (2026-09-03). */

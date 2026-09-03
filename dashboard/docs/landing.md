@@ -185,7 +185,7 @@ further `archive`.
 The project's own test suite runs on the merged result, in the checkout the landing is about to push, before the
 push — `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
 `aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
-machine's test lock, the run's output in the gate log). Green pushes. Red drops the local merge with `reset --hard
+run's output goes to the gate log). Green pushes. Red drops the local merge with `reset --hard
 origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job fails with
 `errorReason: tests-red` and the sentence that says what to do. A red suite is never retried by the landing itself.
 
