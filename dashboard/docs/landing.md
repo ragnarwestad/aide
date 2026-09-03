@@ -189,8 +189,11 @@ further `archive`.
 
 ## The tests run on the landing, once
 
-The project's own test suite runs on the merged result, in the checkout the landing is about to push, before the
-push — `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
+The project's own test suite runs on the merged result before the push — in a throwaway worktree of that merge
+commit, never in the live checkout: a run's own git and a fast-forward of main moved the live checkout under a
+running suite once, so the tests on disk changed while the code they import was already loaded. The worktree
+carries the project's `worktreeLinks` and its `.aide/config`, and is removed when the gate is over.
+`mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
 `aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
 run's output goes to the gate log). Green pushes. Red drops the local merge with `reset --hard
 origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job fails with

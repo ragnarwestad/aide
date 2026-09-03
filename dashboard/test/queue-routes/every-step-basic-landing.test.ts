@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickRefusal } from "../../src/serve/land-branch/merge.ts";
 import { TOKEN, specHead, specControls, OPEN_81, mergeEventSink, setupQueueRoutesHarness } from "./fixtures.ts";
 import {
   SPEC, BRANCH, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir,
@@ -242,6 +243,20 @@ describe("every step lands its own work (spec 149)", () => {
   // the active list. `errorReason` is what makes the way out survive —
   // there is no browser attached to an automatic landing, so the one-shot
   // redirect the Merge button used cannot carry it.
+  // A retry that merely refused again used to overwrite the first
+  // refusal ("main moved on origin under this landing twice") with its
+  // own ("cannot fast-forward main") — the words that said what
+  // happened were gone (364, 2026-09-03).
+  test("pickRefusal keeps the first refusal's words unless a retry reached a verdict", () => {
+    const first = { root: "/r", ok: false, error: "main moved on origin under this landing twice", detail: "rejected" };
+    const again = { root: "/r", ok: false, error: "cannot fast-forward main" };
+    expect(pickRefusal(first, again)).toEqual({ ...again, error: first.error, detail: "rejected", reason: undefined });
+    const conflict = { root: "/r", ok: false, error: "cannot merge — conflict", reason: "conflict" as const };
+    expect(pickRefusal(first, conflict)).toBe(conflict);
+    const fine = { root: "/r", ok: true };
+    expect(pickRefusal(fine, again)).toBe(again);
+  });
+
   // The Deploy button's restart used to be awaited inside the route: the
   // kickstart landed before the answer went out, and the page read "the
   // request failed" for a deploy that had succeeded (2026-09-03).
