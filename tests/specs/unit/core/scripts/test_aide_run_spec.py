@@ -451,8 +451,8 @@ def test_refuses_a_directory_that_is_not_a_git_repo(runner, workspace, fake_clau
 
 def test_a_successful_run_carries_cost_session_and_subtype(runner, workspace, fake_claude):
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
+    rc, out, err = run(runner, workspace, claude)
+    assert rc == 0, err[-1500:]
     assert out["ok"] is True
     assert out["terminalReason"] == "completed"
     assert out["subtype"] == "success"
@@ -1020,14 +1020,125 @@ def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, 
     ), "the push still happened"
 
 
+def workflow_steps_line(repo, branch, folder, name="4-status.md"):
+    """The `Workflow steps completed:` line as a fresh read of `repo`'s
+    own copy of `branch` sees it — never the working tree, which the run's
+    own worktree removal already tore down by the time a test looks."""
+    text = git(repo, "show", f"{branch}:{folder}/{name}")
+    lines = [l for l in text.splitlines() if "Workflow steps completed" in l]
+    return lines[0] if lines else None
+
+
 def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, workspace, fake_claude):
-    """No origin at all: the work is committed locally, and the run says
-    so instead of failing."""
+    """No origin at all: spec 328's own words for this used to be "the
+    work is committed locally, and the run says so instead of failing" —
+    REQ-3 overturns exactly that for the step's own bookkeeping. The work
+    still lands in a local commit (nothing here undoes that), but the
+    step must never be counted as having reached anywhere it did not."""
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0
-    assert out["ok"] is True
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
     assert out["pushError"], "a push that did not happen must not be silent"
+    branch = "aide/81-queue-and-runner"
+    line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
+    # Unchanged from the workspace fixture's own starting line (REQ-3) —
+    # `implement` never lands, `analyze` stays exactly as it was.
+    assert line == "- **Workflow steps completed:** analyze", line
+
+
+def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
+    runner, workspace, fake_claude, rejecting_origin
+):
+    """REQ-1/REQ-3/REQ-6: origin is reachable and refuses every push —
+    the step's own tool turn reports success, but nothing it produced
+    ever reaches origin in either root, so neither root's own content is
+    confirmed and the step must never be counted as having run.
+    `command="implement"` (with `analyze` already on the line, spec 344's
+    own precondition) so a step that legitimately touches BOTH roots
+    proves REQ-1's "every repository it branched", not just one."""
+    with_status(workspace, claims=["analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
+    # REQ-3: the repository (or repositories) that did not confirm are
+    # named, not just "a push failed" generically.
+    assert str(workspace["project"]) in out["error"], out["error"]
+    assert str(workspace["specs"]) in out["error"], out["error"]
+    branch = "aide/81-queue-and-runner"
+    line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
+    assert line == "- **Workflow steps completed:** analyze", line
+
+
+def test_a_re_run_after_unpushed_reaches_origin_and_lands_on_the_line(
+    runner, workspace, fake_claude, rejecting_origin
+):
+    """REQ-4: the PROJECT root already carries real content on this
+    spec's branch before either run even starts — the shape of a root a
+    PRIOR run committed to and never managed to push, stranded there with
+    nothing for THIS run's own session to add (an `analyze` step never
+    touches the project at all, so there genuinely is none). The first
+    run ends `unpushed` for both roots; the re-run's own session changes
+    nothing either — a `fake_claude` that does nothing — so only the push
+    loop's WIDENED gate (retry on "not yet what origin has", never "moved
+    THIS run") can be what makes the stranded project commit land."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-an-earlier-run.txt").write_text("stranded, never pushed\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier run's own work")
+    stranded = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    with_status(workspace, claims=["create"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch")
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
+    assert str(project) in out["error"], out["error"]
+    assert str(workspace["specs"]) in out["error"], out["error"]
+
+    # Origin now accepts pushes — the same two bare repos, hook removed.
+    (rejecting_origin["project"] / "hooks" / "pre-receive").unlink()
+    (rejecting_origin["specs"] / "hooks" / "pre-receive").unlink()
+
+    claude2 = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc2, out2, _ = run(runner, workspace, claude2, push="branch")
+    assert rc2 == 0, out2
+    assert out2["ok"] is True, out2
+    assert out2["terminalReason"] == "completed"
+    line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
+    assert "analyze" in line, line
+    # The project root's own stranded commit — nothing the second run's
+    # own session touched — reached origin too.
+    assert is_ancestor(project, stranded, branch)
+    assert git(rejecting_origin["project"], "branch", "--list", branch) != ""
+
+
+def test_the_second_pass_alone_can_fail_unpushed(
+    runner, workspace, fake_claude, specs_origin_rejecting_the_second_push
+):
+    """REQ-2: pass 1 (the step's own analysis) reaches origin; pass 2 (the
+    line's own small commit, made only because pass 1 was confirmed)
+    does not — proving the line's own push is confirmed independently,
+    never assumed to have succeeded because the content before it did."""
+    with_status(workspace, claims=["create"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch")
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
+    assert out["pushError"]
+    branch = "aide/81-queue-and-runner"
+    # Origin's own copy is exactly pass 1's content — the line's own
+    # commit never reached it.
+    origin_line = workflow_steps_line(specs_origin_rejecting_the_second_push, branch, workspace["folder"])
+    assert origin_line == "- **Workflow steps completed:** create", origin_line
 
 
 def self_committing_claude(fake_claude, workspace):
@@ -1228,6 +1339,228 @@ def fetchable_origin(workspace, tmp_path):
     git(workspace["project"], "remote", "add", "origin", str(bare))
     git(workspace["project"], "push", "-q", "origin", "main")
     return bare
+
+
+# --- spec 343: a step's own bookkeeping only counts once origin has it -------
+# The `origin`/`fetchable_origin` fixtures above answer one of two
+# questions each: `origin` proves the compare-link derivation (a real
+# github.com fetch url) without ever letting a confirmation succeed;
+# `fetchable_origin` proves a confirmation can succeed, but only for the
+# PROJECT root. REQ-4's own success case needs both roots confirmable at
+# once, and REQ-2/REQ-3/REQ-6 need a push that reaches the network and is
+# genuinely REFUSED there, not one that never leaves the machine at all.
+
+
+@pytest.fixture
+def fetchable_origin_both_roots(workspace, tmp_path):
+    """A bare origin reachable for fetch and push, wired into BOTH the
+    project and the specs repo — `fetchable_origin` only wires up the
+    project, which is not enough for a run to end ok:true once REQ-1's
+    confirmation asks about every root the step branched."""
+    project_bare = tmp_path / "fetchable-origin-project.git"
+    specs_bare = tmp_path / "fetchable-origin-specs.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(project_bare)], check=True)
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(specs_bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(project_bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    git(workspace["specs"], "remote", "add", "origin", str(specs_bare))
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    return {"project": project_bare, "specs": specs_bare}
+
+
+def _reject_every_push(bare):
+    """A bare repo whose `pre-receive` hook refuses everything: the push
+    reaches the network and is SEEN, then refused — the shape REQ-2/
+    REQ-3/REQ-6 need, unlike an origin that is simply unreachable."""
+    hook = bare / "hooks" / "pre-receive"
+    hook.write_text("#!/usr/bin/env bash\nexit 1\n")
+    hook.chmod(0o755)
+
+
+@pytest.fixture
+def rejecting_origin(workspace, tmp_path):
+    """Both roots wired to a bare origin that is reachable but refuses
+    every push — a step's own content never reaches origin at all."""
+    project_bare = tmp_path / "rejecting-origin-project.git"
+    specs_bare = tmp_path / "rejecting-origin-specs.git"
+    for bare in (project_bare, specs_bare):
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+        _reject_every_push(bare)
+    git(workspace["project"], "remote", "add", "origin", str(project_bare))
+    git(workspace["specs"], "remote", "add", "origin", str(specs_bare))
+    return {"project": project_bare, "specs": specs_bare}
+
+
+@pytest.fixture
+def specs_origin_rejecting_the_second_push(workspace, tmp_path):
+    """REQ-2: the specs root's FIRST push (the step's own content, pass
+    1) succeeds; every push after that (the line-only commit, pass 2) is
+    refused. Proves pass 2's confirmation is checked independently of
+    pass 1's success, using a fixture nothing here already provides."""
+    bare = tmp_path / "specs-origin-reject-second-push.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    counter = tmp_path / "specs-origin-push-count"
+    hook = bare / "hooks" / "pre-receive"
+    hook.write_text(
+        "#!/usr/bin/env bash\n"
+        f'n=0; [ -f "{counter}" ] && n="$(cat "{counter}")"\n'
+        f'n=$((n + 1)); echo "$n" > "{counter}"\n'
+        '[ "$n" -ge 2 ] && exit 1\n'
+        "exit 0\n"
+    )
+    hook.chmod(0o755)
+    git(workspace["specs"], "remote", "add", "origin", str(bare))
+    return bare
+
+
+# --- spec 359: a push that only needs a pull is retried, not reported --------
+# `push_with_retry` (aide-run-spec) asks origin directly whether a failed
+# push means the branch moved (REQ-1: `pull --rebase` settles it) or
+# origin could not be reached at all (REQ-2: retry the push itself,
+# waited). Both roots need a real, reachable origin here — a WORKFLOW_ARC
+# command's PASS 2 (the workflow-steps line) always pushes the specs
+# root too, and an unrelated "no origin remote" there would contaminate
+# `pushError` — so every test below uses `fetchable_origin_both_roots`.
+
+
+def race_pushing_claude(fake_claude, workspace, origin_bare, branch, race_marker, race_dir):
+    """The step's own script plays TWO parts: itself, writing its own
+    file exactly as any real step does, and a stand-in for a second,
+    concurrent process (another run, or a landing) that reaches origin's
+    copy of the SAME branch first, via an independent clone. The race is
+    real git against a real bare repo — no mocking — the shape REQ-1's
+    `pull --rebase` retry has to recover from."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        + f'git clone -q "{origin_bare}" "{race_dir}"\n'
+        + f'git -C "{race_dir}" switch -q -c "{branch}"\n'
+        + f'echo "raced" > "{race_dir}/raced.txt"\n'
+        + f'git -C "{race_dir}" add -A\n'
+        + f'git -C "{race_dir}" commit -q -m "a concurrent push landed here first"\n'
+        + f'git -C "{race_dir}" rev-parse HEAD > {race_marker}\n'
+        + f'git -C "{race_dir}" push -q origin "{branch}"\n'
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
+    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
+):
+    """REQ-1/REQ-4/REQ-6. Another process pushes to origin's copy of this
+    exact branch while the step is still working — the run's own push is
+    rejected as non-fast-forward, and `push_with_retry` must `pull
+    --rebase` and push again before reporting anything. A retry-recovered
+    success must leave no `pushError` (REQ-4), and `repos_json`'s own
+    `headAfter` for the rebased root must be the POST-rebase tip, the one
+    origin actually holds — not the tip the commit loop left before the
+    retry ran (REQ-6, the field spec 343's own gate reads)."""
+    branch = "aide/81-queue-and-runner"
+    race_dir = tmp_path / "race-clone"
+    race_marker = tmp_path / "raced-sha.txt"
+    project_bare = fetchable_origin_both_roots["project"]
+    claude = race_pushing_claude(fake_claude, workspace, project_bare, branch, race_marker, race_dir)
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out.get("pushError") is None, "a retry-recovered push must leave no trace of failure"
+    project = workspace["project"]
+    raced_sha = race_marker.read_text().strip()
+    local_tip = git(project, "rev-parse", branch)
+    origin_tip = git(project_bare, "rev-parse", branch)
+    assert local_tip == origin_tip, "nothing may be stranded between local and origin"
+    assert is_ancestor(project, raced_sha, branch), "the concurrent commit must survive the rebase"
+    project_repo = next(r for r in out["repos"] if r["root"] == str(project))
+    assert project_repo["headAfter"] == origin_tip, "headAfter must be the POST-rebase tip"
+
+
+def test_a_push_that_cannot_reach_origin_is_retried_then_succeeds(
+    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
+):
+    """REQ-2/REQ-4. Origin is briefly unreachable — not rejected, just
+    not there — when the push loop's first attempt runs: the step's own
+    script hides the bare repo, then backgrounds its own restore (never
+    inheriting the step's stdout, or the runner would wait on that pipe
+    forever), timed to land AFTER the first two attempts (immediate,
+    then the 1s retry) and BEFORE the third (the 1s+2s retry) — so only
+    a run that actually waits and retries up to the bound can succeed;
+    one that reports on the first failure never gets the chance."""
+    project_bare = fetchable_origin_both_roots["project"]
+    hidden = tmp_path / "hidden-origin.git"
+    project_bare.rename(hidden)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + f'( sleep 2.5 && mv "{hidden}" "{project_bare}" ) >/dev/null 2>&1 & disown\n'
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out.get("pushError") is None
+
+
+def conflicting_race_claude(fake_claude, workspace, origin_bare, branch, race_marker, race_dir):
+    """Like `race_pushing_claude`, but the concurrent process edits the
+    SAME line of a tracked file this step's own worktree also edits —
+    the shape REQ-3/REQ-7 need: a `pull --rebase` retry that hits a
+    REAL, same-line conflict, which the script must abort and report,
+    never resolve by force."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        + f'git clone -q "{origin_bare}" "{race_dir}"\n'
+        + f'git -C "{race_dir}" switch -q -c "{branch}"\n'
+        + f'echo "their line" > "{race_dir}/README.md"\n'
+        + f'git -C "{race_dir}" commit -q -am "their side"\n'
+        + f'git -C "{race_dir}" rev-parse HEAD > {race_marker}\n'
+        + f'git -C "{race_dir}" push -q origin "{branch}"\n'
+        + 'echo "our line" > "$PWD/README.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_conflicting_rebase_is_reported_not_resolved(
+    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
+):
+    """REQ-3/REQ-7. The retry's `pull --rebase` hits a real conflict —
+    both sides edited the same line of the same file — so the script
+    must abort it, leave the branch exactly where its own commit left
+    it, and report which commits are on each side, with no further push
+    attempted and never a `-X`/force resolution of its own."""
+    branch = "aide/81-queue-and-runner"
+    race_dir = tmp_path / "race-clone"
+    race_marker = tmp_path / "their-sha.txt"
+    project_bare = fetchable_origin_both_roots["project"]
+    claude = conflicting_race_claude(fake_claude, workspace, project_bare, branch, race_marker, race_dir)
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
+    assert out["pushError"], "a diverged push must not be silent"
+    assert branch in out["pushError"], out["pushError"]
+    their_sha = race_marker.read_text().strip()
+    assert their_sha[:7] in out["pushError"], "names the commit on origin's side"
+    project = workspace["project"]
+    # REQ-7: never auto-resolved — their commit never entered this
+    # branch, and the file still reads exactly what the step's own
+    # commit wrote, not some -X-resolved blend of the two sides.
+    assert not is_ancestor(project, their_sha, branch)
+    assert git(project, "show", f"{branch}:README.md") == "our line"
+
+
+def test_a_push_that_cannot_reach_its_remote_at_all_still_needs_no_retry(
+    runner, workspace, fake_claude
+):
+    """Confirms the existing no-origin-remote case (spec 328/343) is
+    untouched by push_with_retry: nothing to retry against, so it is
+    still reported on the first and only attempt, exactly as before."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert rc == 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "unpushed"
+    assert out["pushError"]
+    assert "no origin remote" in out["pushError"]
 
 
 def test_a_reused_branch_is_taken_from_origin_not_from_this_checkout(
@@ -1889,8 +2222,10 @@ def test_the_worktree_specs_path_points_at_the_specs_worktree(runner, workspace,
     assert resolved.startswith(str(workspace["wtbase"])), resolved
     assert not resolved.startswith(str(workspace["specs"]) + "/"), "not the shared specs checkout"
     # What the step wrote there is committed on the branch in the specs
-    # REPO — the worktree is a view of it, not a copy.
-    assert "2-analysis.md" in git(workspace["specs"], "show", "--name-only", "--pretty=", BRANCH)
+    # REPO — the worktree is a view of it, not a copy. Across the whole
+    # branch, not just its last commit: the step's own content and the
+    # `Workflow steps completed` line land in separate commits (spec 343).
+    assert "2-analysis.md" in git(workspace["specs"], "log", "--name-only", "--pretty=", f"main..{BRANCH}")
     assert "2-analysis.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", "main")
 
 
@@ -5022,9 +5357,9 @@ def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, f
 
 
 def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_claude):
-    """AC7. Not a second commit and not an amend: the edit goes in
-    BEFORE the commit loop, which is the only sequencing that makes
-    "in the same commit" true."""
+    """Not an amend: the line lands in a SECOND commit of its own (spec
+    343), made only once the step's own content is confirmed on origin —
+    never folded into the step's own commit, and never rewriting it."""
     with_status(workspace)
     before = git(workspace["specs"], "rev-parse", "main")
     claude = specs_only_claude(fake_claude, workspace)
@@ -5033,8 +5368,10 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     branch = "aide/81-queue-and-runner"
     commits = git(workspace["specs"], "log", "--format=%s", f"{before}..{branch}").split("\n")
     # The model suffix (spec 217) is part of the subject a headless run
-    # writes: the tool is always known, so it is always there.
-    assert commits == [subject("analyze", model="claude")], commits
+    # writes: the tool is always known, so it is always there. Two
+    # commits sharing the same subject: pass 1 (the step's own content)
+    # and pass 2 (the line, once pass 1 is confirmed on origin).
+    assert commits == [subject("analyze", model="claude")] * 2, commits
     assert recorded_line(workspace) == "analyze"
 
 

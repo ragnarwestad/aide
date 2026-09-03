@@ -31,6 +31,15 @@ const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
 const ran = (calls: GitCall[], prefix: string): boolean =>
   argv(calls).some((a) => a.startsWith(prefix));
 
+// Spec 359: a failed push now retries (`pushWithRetry`) before it is
+// reported, and `fakeGit`'s own fallback answer for the un-mocked
+// `ls-remote origin` reachability check it makes is a failure — which
+// reads as "origin unreachable" and enters REQ-2's waited retry loop.
+// Every push-failure case below would otherwise gain real wall-clock
+// delay from that loop for no reason: none of them are testing the
+// retry itself, only the refusal it eventually still produces.
+const noWait = async (_ms: number): Promise<void> => {};
+
 describe("mergeBranchIntoDefault: the happy paths", () => {
   test("a fast-forward merge is pushed, and no real merge is attempted", async () => {
     const git = fakeGit({
@@ -210,7 +219,7 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
     expect(result.error).toContain("merged locally");
     expect(result.error).toContain(ROOT);
@@ -257,7 +266,7 @@ describe("every refusal names the repo AND the branch", () => {
   for (const [what, overrides] of Object.entries(paths)) {
     test(`when ${what}`, async () => {
       const git = fakeGit({ ...CLEAN_MASTER, ...overrides });
-      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
       expect(result.ok).toBe(false);
       expect(result.error).toContain(ROOT);
       expect(result.error).toContain(BRANCH);
