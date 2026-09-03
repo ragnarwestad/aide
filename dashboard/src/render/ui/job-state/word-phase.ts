@@ -160,8 +160,11 @@ export function wordPhase(
       // notice, not alarm: the work is committed and the step can be
       // run again.
       pip: running ? "now" : "todo",
-      badge: { variant: "waiting", label: `stopped: ${history.stopped}` },
-      qualifier: filesDisagree,
+      // The word alone in the badge; the reason is the row's error line
+      // (spec 339: the State column says where a spec stands, errors go
+      // in the error line).
+      badge: { variant: "waiting", label: "stopped" },
+      qualifier: `stopped: ${history.stopped}`,
     };
   }
   if (!attempt) return { pip: "todo", qualifier: filesDisagree };

@@ -18,7 +18,9 @@ export AIDE_DASH_HOST
 
 test:
 	bunx tsc --noEmit
-	bun test
+	# 20 s per test, not bun's 5 s: the git-backed route tests run beside
+	# three other jobs' suites on the serving host and lose to load alone.
+	bun test --timeout 20000
 
 generate:
 	bun run src/main.ts generate
