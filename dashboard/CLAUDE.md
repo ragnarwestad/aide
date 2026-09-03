@@ -113,6 +113,9 @@ reaches it anyway. Both that check and the row's "archive held back"
 read the BRANCH copy of the state file first (`BranchFileStepsChecker`'s
 `acceptanceOpen`): a tick on a spec whose `aide/<folder>` is open is
 written there, and the disk copy stays unticked until archive lands.
+`blockedForMissingAnalyze` reads the same branch copy first for the same
+reason: a chained job's analyze is on the branch the moment the step
+ends, whether or not its landing reached main.
 
 ## Landing
 

@@ -108,6 +108,8 @@ const PUSH_RETRY_WAITS_MS = [1000, 2000];
 interface PushRetryResult {
   ok: boolean;
   error?: string;
+  /** Origin answered and still refused: `base` moved under the landing. */
+  moved?: boolean;
 }
 
 /** One push, with its own recovery (spec 359, REQ-1/REQ-2/REQ-3) — the
@@ -122,10 +124,8 @@ interface PushRetryResult {
 async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
   let pushed = await run(root, ["push", "-q", "origin", base]);
   if (pushed.code === 0) return { ok: true };
-
   const reachable = await run(root, ["ls-remote", "origin"]);
   if (reachable.code !== 0) {
-    // REQ-2: origin itself did not answer.
     for (const ms of PUSH_RETRY_WAITS_MS) {
       await wait(ms);
       pushed = await run(root, ["push", "-q", "origin", base]);
@@ -133,41 +133,25 @@ async function pushWithRetry(run: GitRunner, root: string, base: string, wait: W
     }
     return { ok: false, error: `cannot reach origin — ${(pushed.stderr ?? "").trim().slice(-200)}` };
   }
-
-  // REQ-1: origin answered, so base moved under us — rebase this
-  // checkout's merge back on top of it.
-  const rebased = await run(root, ["pull", "-q", "--rebase", "origin", base]);
-  if (rebased.code === 0) {
-    pushed = await run(root, ["push", "-q", "origin", base]);
-    if (pushed.code === 0) return { ok: true };
-    return { ok: false, error: `push failed after a rebase — ${(pushed.stderr ?? "").trim().slice(-200)}` };
-  }
-
-  // REQ-3: the rebase conflicted — a person's call, never the script's.
-  // No `reason` is set: the existing `"conflict"` reason drives a
-  // resolve-the-spec-branch action that does not apply to a base-branch
-  // push race, so this stays an unread refusal like a plain push
-  // failure always has.
-  await run(root, ["rebase", "--abort"]);
-  const ours = (await run(root, ["log", "--oneline", `origin/${base}..${base}`])).stdout.trim();
-  const theirs = (await run(root, ["log", "--oneline", `${base}..origin/${base}`])).stdout.trim();
-  return {
-    ok: false,
-    error: `${base} has diverged from origin — this checkout has: ${ours || "(nothing)"}; origin has: ${theirs || "(nothing)"} — reconcile by hand`,
-  };
+  // Reachable, still rejected: base moved on origin under this landing.
+  // Not settled here with `pull --rebase` any more — a rebase of a
+  // landing's merge commits failed before it started once (364,
+  // 2026-09-03) and left the checkout ahead of origin, which then
+  // refused every later landing in that root. The caller drops the
+  // local merge and merges again onto the base that moved.
+  return { ok: false, moved: true, error: (pushed.stderr ?? "").trim().slice(-200) };
 }
 
-/** Merge `branch` into `base` in `root`, and push. `base` is passed in
- *  rather than re-derived: the caller already resolved it through
- *  `BranchStatusChecker.defaultBranch()`, and one resolver for "which
- *  branch is the default" is the whole reason that method is public.
- *
- *  Never throws: a git that cannot run at all is a refusal like any
- *  other, because the caller is merging several repos and one of them
- *  blowing up must not take the report for the others with it. */
-/** What a landing runs on the merged result before it pushes: the
- *  project's own test suite, once. Red means the merge is thrown away
- *  and nothing reaches origin. */
+/** Whether `base` is ahead of origin only by commits origin already
+ *  holds — the branch's own, and merges of them — which is what a
+ *  landing that never finished leaves behind. */
+async function isLeftoverMerge(run: GitRunner, root: string, base: string): Promise<boolean> {
+  const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
+  if (ahead.code !== 0 || Number(ahead.stdout.trim()) === 0) return false;
+  const own = await run(root, ["rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin"]);
+  return own.code === 0 && own.stdout.trim() === "";
+}
+
 export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: string; detail?: string }>;
 
 export async function mergeBranchIntoDefault(
@@ -211,8 +195,6 @@ export async function mergeBranchIntoDefault(
 
     // 2. Best effort, exactly as `isMerged()` does it: whatever the
     //    checkout already knows beats no answer at all.
-    await run(root, ["fetch", "--quiet", "origin", base, branch]);
-
     // 3. Stand on the default branch, and bring it up to origin's. A
     //    push from a base that is behind would be rejected anyway, and
     //    a merge onto a stale base is a merge nobody reviewed.
@@ -233,6 +215,16 @@ export async function mergeBranchIntoDefault(
         await wait(LOCK_WAIT_MS);
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
+      if (pulled.code !== 0 && (await isLeftoverMerge(run, root, base))) {
+        // A landing that never finished (killed mid-gate, a push that
+        // failed) leaves base ahead of origin by commits that are all on
+        // origin already — the branch's own, plus merges of them. Nothing
+        // is lost by dropping that, and keeping it refused every later
+        // landing in the root with the message below (366, 370 and 371
+        // behind 364, 2026-09-03).
+        await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+        pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      }
       if (pulled.code !== 0) {
         return refuse(root, branch, `cannot fast-forward ${base} — merge it by hand, in the checkout on the serving host`);
       }
@@ -244,40 +236,68 @@ export async function mergeBranchIntoDefault(
     //      older run of the same spec. The remote-tracking ref is the
     //      one `isMerged()` already trusts, and step 3 made it current.
     const ref = `refs/remotes/origin/${branch}`;
-    const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
-    if (ff.code !== 0) {
-      const real = await run(root, ["merge", "-q", "--no-edit", ref]);
-      if (real.code !== 0) {
-        await run(root, ["merge", "--abort"]);
-        return {
-          ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`),
-          reason: "conflict",
-        };
+    // 4-5, and the gate, as one attempt: merge the branch onto base, run
+    //      the tests on the result, push. Made twice at most — the second
+    //      time onto a base that moved on origin while the first attempt's
+    //      tests ran, after the first attempt's merge is dropped. The
+    //      tests run on exactly what main is about to become, so a moved
+    //      base means they run again.
+    const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
+      await run(root, ["fetch", "--quiet", "origin", base, branch]);
+      const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
+      if (ff.code !== 0) {
+        const real = await run(root, ["merge", "-q", "--no-edit", ref]);
+        if (real.code !== 0) {
+          await run(root, ["merge", "--abort"]);
+          return {
+            ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`),
+            reason: "conflict",
+          };
+        }
       }
-    }
-
+      // The tests run HERE, once per attempt, on what main is about to
+      // become — not in every step that touched the branch, and never
+      // after the push. Red: the local merge is dropped and origin never
+      // sees it; the branch is untouched, so implement can be run again
+      // on it.
+      if (gate) {
+        const verdict = await gate(root);
+        if (!verdict.ok) {
+          await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+          return {
+            ...refuse(root, branch, verdict.error ?? `the project's tests are red on the merge into ${base}`, verdict.detail),
+            reason: "tests-red",
+          };
+        }
+      }
+      return null;
+    };
     // 6. `isMerged()` only trusts what reached origin, so a merge this
     //    action does not push would show as "not merged" on the very
-    //    page that triggered it. A push that fails is REPORTED and
-    //    never rolled back — `aide-run-spec`'s own precedent is that a
-    //    push problem is not a reason to undo committed work.
-    // The tests run HERE, once, on what main is about to become — not in
-    // every step that touched the branch, and never after the push. Red:
-    // the local merge is dropped and origin never sees it; the branch is
-    // untouched, so implement can be run again on it.
-    if (gate) {
-      const verdict = await gate(root);
-      if (!verdict.ok) {
-        await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
-        return {
-          ...refuse(root, branch, verdict.error ?? `the project's tests are red on the merge into ${base}`, verdict.detail),
-          reason: "tests-red",
-        };
+    //    page that triggered it. A push origin cannot be reached for is
+    //    REPORTED and never rolled back — `aide-run-spec`'s own
+    //    precedent is that a push problem is not a reason to undo
+    //    committed work; step 3's leftover check drops it on the next
+    //    landing, once origin is back. A push origin REFUSED is base
+    //    having moved: the local merge is dropped and made again, once.
+    for (let attempt = 0; ; attempt++) {
+      const failed = await mergeAndGate();
+      if (failed) return failed;
+      const pushResult = await pushWithRetry(run, root, base, wait);
+      if (pushResult.ok) break;
+      if (!pushResult.moved) {
+        return refuse(root, branch, `merged locally, but the push of ${base} failed: ${pushResult.error ?? ""}`);
       }
-    }
-    const pushResult = await pushWithRetry(run, root, base, wait);
-    if (!pushResult.ok) {
-      return refuse(root, branch, `merged locally, but the push of ${base} failed: ${pushResult.error ?? ""}`);
+      await run(root, ["fetch", "--quiet", "origin", base]);
+      await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+      if (attempt >= 1) {
+        return refuse(
+          root,
+          branch,
+          `${base} moved on origin under this landing twice — nothing was pushed; run the step again`,
+          pushResult.error,
+        );
+      }
     }
 
     // 7. A merged branch left on origin is what made spec 92's

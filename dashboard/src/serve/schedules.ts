@@ -391,7 +391,19 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // such implement back as not analyzed (2026-09-02). The runner's own
     // gate (spec 344) still refuses a spec that truly has not been
     // analyzed, whichever source said so here.
-    const steps = readSpecState(spec.dir)?.completedPhases ?? proseSteps(spec.dir);
+    // The BRANCH copy first, as the acceptance gate below reads it: a
+    // chained job's analyze is on `aide/<folder>` the moment the step
+    // ends, and its landing can fail (main moved under it) without the
+    // analysis being any less done — implement runs from that branch.
+    // Read off disk alone, such a job sat queued behind "held back: not
+    // analyzed yet" with the real reason only in landingError
+    // (2026-09-03).
+    const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
+    const steps =
+      branchAnswer?.stateSteps ??
+      (branchAnswer && branchAnswer.proseSteps.length ? branchAnswer.proseSteps : undefined) ??
+      readSpecState(spec.dir)?.completedPhases ??
+      proseSteps(spec.dir);
     if (!steps.includes("analyze")) blocked.add(job.id);
   }
   return blocked;

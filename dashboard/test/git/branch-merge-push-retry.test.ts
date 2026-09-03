@@ -38,19 +38,66 @@ const REACHES_STEP_6 = {
 };
 
 describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () => {
-  test("is retried via pull --rebase, and the retry succeeds", async () => {
+  // Settled by dropping the local merge and making it again onto the
+  // base that moved — never by `pull --rebase`: a rebase of a landing's
+  // merge commits failed before it started once (364, 2026-09-03) and
+  // left the checkout ahead of origin, refusing every later landing.
+  test("is retried by merging again onto the moved base, and the retry succeeds", async () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 0 },
-      "pull -q --rebase": { code: 0 },
+      reset: { code: 0 },
       push: [{ code: 1, stderr: "! [rejected] master -> master (fetch first)" }, { code: 0 }],
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
-    // REQ-4: a retry-recovered success leaves no error behind.
     expect(result.error).toBeUndefined();
-    const sequence = argv(git.calls).filter((a) => a === "push -q origin master" || a.startsWith("pull -q --rebase"));
-    expect(sequence).toEqual(["push -q origin master", "pull -q --rebase origin master", "push -q origin master"]);
+    const sequence = argv(git.calls).filter(
+      (a) => a === "push -q origin master" || a.startsWith("reset") || a.startsWith("merge -q") || a.startsWith("pull -q --rebase"),
+    );
+    expect(sequence).toEqual([
+      `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
+      "push -q origin master",
+      "reset -q --hard origin/master",
+      `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
+      "push -q origin master",
+    ]);
+  });
+
+  test("the tests run again on the second merge — they run on what main is about to become", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      checkout: { code: 0 },
+      reset: { code: 0 },
+      push: [{ code: 1, stderr: "! [rejected]" }, { code: 0 }],
+    });
+    let gates = 0;
+    const gate = async () => {
+      gates += 1;
+      return { ok: true };
+    };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
+    expect(result.ok).toBe(true);
+    expect(gates).toBe(2);
+  });
+
+  test("a base that moves twice refuses, with the checkout left level with origin — never ahead", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      reset: { code: 0 },
+      push: { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("moved on origin under this landing twice");
+    expect(result.error).toContain("run the step again");
+    expect(result.reason).toBeUndefined();
+    const seq = argv(git.calls);
+    expect(seq.filter((a) => a === "push -q origin master")).toHaveLength(2);
+    expect(seq.filter((a) => a === "reset -q --hard origin/master")).toHaveLength(2);
+    expect(seq[seq.length - 1]).toBe("reset -q --hard origin/master");
   });
 });
 
@@ -88,28 +135,26 @@ describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
   });
 });
 
-describe("pushWithRetry: REQ-3/REQ-5, a rebase that hits a real conflict", () => {
+describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict", () => {
   const CONFLICTING = {
     ...REACHES_STEP_6,
     "ls-remote origin": { code: 0 },
-    "pull -q --rebase": { code: 1, stderr: "CONFLICT (content): Merge conflict" },
-    "rebase --abort": { code: 0 },
-    "log --oneline origin/master..master": { code: 0, stdout: "abc1234 our side\n" },
-    "log --oneline master..origin/master": { code: 0, stdout: "def5678 their side\n" },
+    reset: { code: 0 },
+    // The first merge fast-forwards; onto the moved base neither the
+    // fast-forward nor the real merge goes through.
+    "merge -q --ff-only": [{ code: 0 }, { code: 1 }],
+    "merge -q --no-edit": { code: 1, stderr: "CONFLICT (content): Merge conflict" },
+    "merge --abort": { code: 0 },
     push: { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
   };
 
-  test("aborts the rebase and reports the commits on each side, with no reason set", async () => {
+  test("aborts the merge and refuses as a conflict, with one push attempted", async () => {
     const git = fakeGit(CONFLICTING);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    // No `reason` — this is not the resolve-the-spec-branch conflict the
-    // page already has an action for (2-analysis.md, API dependencies).
-    expect(result.reason).toBeUndefined();
-    expect(result.error).toContain("our side");
-    expect(result.error).toContain("their side");
-    expect(ran(git.calls, "rebase --abort")).toBe(true);
-    // No push attempted after the conflict — only the ONE that triggered it.
+    expect(result.reason).toBe("conflict");
+    expect(ran(git.calls, "merge --abort")).toBe(true);
+    expect(ran(git.calls, "pull -q --rebase")).toBe(false);
     expect(argv(git.calls).filter((a) => a.startsWith("push"))).toHaveLength(1);
   });
 

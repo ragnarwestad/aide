@@ -114,6 +114,50 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     expect(result.reason).toBeUndefined();
   });
 
+  // A landing that never finished leaves base ahead of origin by commits
+  // origin already holds (the branch's own, and merges of them). That
+  // used to refuse every later landing in the root as "cannot
+  // fast-forward"; it is a leftover, and is dropped.
+  test("a base ahead of origin only by commits origin holds is reset, and the landing goes on", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
+      "ls-remote origin": { code: 0 },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "pull -q --ff-only": [{ code: 1, stderr: "fatal: Not possible to fast-forward, aborting." }, { code: 0 }],
+      "rev-list --count origin/master..master": { code: 0, stdout: "3\n" },
+      "rev-list origin/master..master --no-merges --not --remotes=origin": { code: 0, stdout: "" },
+      reset: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+      checkout: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    const seq = git.calls.map((c) => c.args.join(" "));
+    expect(seq.indexOf("reset -q --hard origin/master")).toBeGreaterThan(seq.indexOf("pull -q --ff-only"));
+  });
+
+  test("a base ahead of origin by a commit of its own is still refused — that is somebody's work", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "pull -q --ff-only": { code: 1 },
+      "rev-list --count origin/master..master": { code: 0, stdout: "1\n" },
+      "rev-list origin/master..master --no-merges --not --remotes=origin": { code: 0, stdout: "abc1234\n" },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+      checkout: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("cannot fast-forward master");
+    expect(git.calls.some((c) => c.args[0] === "reset")).toBe(false);
+  });
+
   test("a push that failed carries no reason — the merge itself went through", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
