@@ -26,31 +26,25 @@ Reset the active spec identified by `$ARGUMENTS` without deleting history.
 1. Resolve the argument with `aide_resolve_spec`. Refuse unless it resolves to
    an active folder directly under the specs root.
 2. Leave `0-README.md` and `1-description.md` byte for byte unchanged.
-3. Record the specs repository default-branch tip with
-   `git rev-parse --short HEAD`. It must contain at least seven hexadecimal
-   characters.
-4. Regenerate `2-analysis.md`, `3-solution.md` and `4-status.md` from
+3. Regenerate `2-analysis.md`, `3-solution.md` and `4-status.md` from
    `core/skills/aide-create/references/file-templates.md`, replacing the same
    TITLE, FOLDER and DATE placeholders as `/aide-create`.
-5. Add this exact Tracking info line to `4-status.md`:
-
-```markdown
-- **Reset:** YYYY-MM-DD (history before `abcdef0` does not count)
-```
-
-1. Do not carry over `Workflow steps completed`, model lines, phase progress or
+4. Do not carry over `Workflow steps completed`, model lines, phase progress or
    any earlier Reset/Reopened marks. The earlier files, commits and queue jobs
    remain in repository and queue history; the new boundary makes them belong
    to the previous round.
-2. In a headless run, branch cleanup and the commit are handled by
+5. Leave the `**Reset:**` mark out. `aide-run-spec` writes it itself once this
+   step finishes, from the specs repository's own default-branch tip at the
+   moment its branch was cut — not from anything this session computes.
+6. In a headless run, branch cleanup and the commit are handled by
    `aide-run-spec`. At a keyboard, remove `aide/<folder>` locally and on origin
    in both the project and specs repositories before editing, and ask before
    committing with `Run /aide-reset for <folder>`.
 
 ## Result
 
-Report the kept files, regenerated files and boundary SHA. The next workflow
-step is `/aide-analyze <id>`.
+Report the kept files and the regenerated files. The next workflow step is
+`/aide-analyze <id>`.
 
 ## Important
 

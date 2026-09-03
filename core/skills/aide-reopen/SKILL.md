@@ -14,8 +14,9 @@ effort: medium
 ---
 
 Reopen an archived spec: remove the branch it left behind, put the
-folder back among the active specs, reset three of its four files, and
-write the mark that makes everything counting steps start over.
+folder back among the active specs, and reset three of its four files.
+`aide-run-spec` writes the mark that makes everything counting steps
+start over, once this step finishes.
 
 **Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID)
 
@@ -57,24 +58,14 @@ and an origin that cannot be reached is not a reason to stop either.
 when there is nothing to do. This step exists for `/aide-reopen` typed
 at a keyboard, where no worktree stands in the way.
 
-### Step 3: Record where the new round starts
-
-Read the specs repository's default-branch tip and keep it — that SHA is
-the boundary. Every commit reachable from it belongs to the earlier
-round; every commit made from now on is a descendant of it and belongs
-to the new one.
-
-Short form (`git rev-parse --short HEAD` on the default branch) is what
-goes in the file. Seven hex characters or more.
-
-### Step 4: Move the folder back
+### Step 3: Move the folder back
 
 `git mv <specs-root>/archive/<NN>-slug <specs-root>/<NN>-slug` when the
 specs root is git-tracked, plain `mv` otherwise. The folder keeps its
 `NN-slug` name — numbers are never reused, and the spec is the same
 spec.
 
-### Step 5: Reset three files, keep two
+### Step 4: Reset three files, keep two
 
 **Regenerate** `2-analysis.md`, `3-solution.md` and `4-status.md`
 exactly as `/aide-create` Step 4 would for a new spec — from
@@ -86,31 +77,21 @@ here.
 The description is why the spec exists, and it is what the new round is
 for. Rewriting it would delete the one thing the reopen is keeping.
 
-### Step 6: Write the marks into `4-status.md`
+### Step 5: Carry over the `**Archived:**` line
 
-Two lines in Tracking info, both of them:
+Copy the `**Archived:**` line (with every earlier one it already had)
+verbatim from the file being replaced into the regenerated
+`4-status.md`'s Tracking info. The spec's archive trail still has to
+read.
 
-```markdown
-- **Archived:** 2026-08-22
-- **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)
-```
+Leave the `**Reopened:**` mark and the `**Workflow steps completed:**`
+line out. `aide-run-spec` writes the `**Reopened:**` mark itself, once
+this step finishes, from the specs repository's own default-branch tip
+at the moment the branch above was cut — not from anything this session
+computes — and it writes `**Workflow steps completed:**` from the
+spec's own commits, of which there are none yet after the boundary.
 
-- The `**Archived:**` line is carried over from the file being replaced,
-  verbatim, with every earlier one it already had. The spec's archive
-  trail still has to read.
-- The `**Reopened:**` line is new, in exactly that grammar — this exact
-  grammar matters to several readers, and a line that does not carry a
-  backticked SHA is not a boundary to any of them. The date is
-  today's, `YYYY-MM-DD`.
-- A spec reopened twice keeps both `**Reopened:**` lines. The last one
-  wins; the earlier one is history, the same way the `**Archived:**`
-  lines are.
-
-Leave the `**Workflow steps completed:**` line out. `aide-run-spec`
-writes it from the spec's own commits, and after the boundary there are
-none to write about.
-
-### Step 7: Commit
+### Step 6: Commit
 
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not. Working
@@ -120,7 +101,11 @@ interactively, ASK whether to commit, and suggest this message:
 Run /aide-reopen for <spec-folder>
 ```
 
-### Step 8: Confirm
+`aide-run-spec` adds the `**Reopened:**` mark, with its boundary sha, in
+a commit of its own right after this step finishes — it is not part of
+what this session commits.
+
+### Step 7: Confirm
 
 ```text
 Reopened: 17-clean-up-console-log
@@ -129,7 +114,6 @@ Reopened: 17-clean-up-console-log
 - Moved to: specs/17-clean-up-console-log/
 - Reset: 2-analysis.md, 3-solution.md, 4-status.md
 - Kept: 1-description.md, 0-README.md
-- Reopened: 2026-08-23 (history before `1d0fe79` does not count)
 
 Next: /aide-analyze 17
 ```

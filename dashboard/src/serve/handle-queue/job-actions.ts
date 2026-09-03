@@ -1,9 +1,27 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, and the two tail-edit routes (steps, model). Extracted
 // from handle-queue.ts (split of split serve.ts step 2).
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render.ts";
+import { readSpecState } from "../../project/parse-spec-state.ts";
+import { parseStatus } from "../../project/parse-status.ts";
+import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
+
+// A spec analyzed before spec 355 landed carries no 4-status.json yet —
+// the same gap schedules.ts's own `proseSteps` falls back for
+// (`blockedForMissingAnalyze`'s doc comment). Reading that absence as
+// "nothing has run" would refuse this spec's own, perfectly legal next
+// step, so the prose line is the fallback here too.
+function proseSteps(dir: string): string[] {
+  try {
+    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
+  } catch {
+    return [];
+  }
+}
 
 export async function handleJobActionRoutes(
   ctx: HandleQueueContext,
@@ -44,6 +62,68 @@ export async function handleJobActionRoutes(
       ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
         ? specPagePath(askedFor.project, askedFor.specFolder)
         : "/";
+    // REQ-9 (spec 356): a backward move — `analyze` or `create`
+    // requested on a spec that has already reached a later phase — is
+    // refused before the job ever reaches the queue, naming `reset` (or
+    // `reopen`, for an archived spec) as the way back. This is the one
+    // HTTP-reachable path both the spec-page Reopen control and the
+    // queue-list row's Run/Reopen forms post through, and `ctx.specDir`
+    // is the same resolver `backTo`, above, already uses — no new
+    // resolver plumbing. A spec with no state file yet reads as
+    // `created`, which the table refuses nothing forward-legal from.
+    if (
+      typeof askedFor?.project === "string" &&
+      typeof askedFor?.specFolder === "string" &&
+      Array.isArray(askedFor?.steps)
+    ) {
+      const dir = ctx.specDir(askedFor.project, askedFor.specFolder);
+      if (dir) {
+        const completedPhases = readSpecState(dir)?.completedPhases ?? proseSteps(dir);
+        // ctx.specRef, not a fresh **Archived:** prose scan: it is the
+        // same resolved answer `backTo`, above, already reads off this
+        // request's own project/specFolder, so an archived spec's phase
+        // here can never disagree with what `backTo` decided a request
+        // for it was answered on.
+        const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
+          ? { date: "" }
+          : null;
+        // A bundled job (e.g. analyze+implement+archive queued together
+        // for a fresh spec, spec-lifecycle.md's "Into create") asks for
+        // several steps at once, each meant to run only once the one
+        // before it has landed — so each step is checked against the
+        // phase the ones before it in THIS request would reach, not all
+        // against today's snapshot. Only a step this request itself
+        // would make illegal is refused; a spec already mid-workflow
+        // (implement queued alone while analyzed) starts from its real
+        // phase, unaffected by steps it was not asked to run.
+        let phase = phaseFromState(completedPhases, archived);
+        for (const step of askedFor.steps) {
+          if (typeof step !== "string") continue;
+          const move = isLegalMove(phase, step, askedFor.specFolder);
+          if (!move.ok) {
+            // Only analyze/create's OWN backward-move refusals are new
+            // here (REQ-9's own two named cases, "already-implemented"/
+            // "already-analyzed"/"already-archived"). implement/archive's
+            // FORWARD gates (not-analyzed-yet, not-implemented-yet) stay
+            // exactly where they already were — checked by the script at
+            // run time, or left queued by blockedDependencies/
+            // blockedForMissingAnalyze — so a job the dashboard has
+            // always accepted into the queue still is; only the
+            // previously-impossible backward request is new.
+            if (step === "analyze" || step === "create") {
+              const spec = `${askedFor.project}/${askedFor.specFolder}`;
+              logRefusal("run", spec, move.message);
+              return wantsJson
+                ? json({ error: move.message, spec }, 400)
+                : specsRedirect(raw, { error: move.message, spec }, backTo);
+            }
+            continue;
+          }
+          phase = move.next;
+        }
+      }
+    }
+
     const result = ctx.queue.enqueue(raw);
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two
