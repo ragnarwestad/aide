@@ -86,6 +86,16 @@ Review is part of `analyze`, not a stage: the three-reviewer routine runs
 inline in `core/skills/aide-analyze/SKILL.md`, as separate Agent
 invocations blind to the analyst's own reasoning.
 
+**The effort levels a step may run at are also not a hand-paired pair**
+(spec 364): `core/scripts/lib/effort-levels.json` is the one file both
+sides read — `aide-run-spec` with jq, the dashboard by import — for the
+`low`/`medium`/`high`/`xhigh`/`max` levels Claude Code's `--effort` flag
+accepts. `ultracode` is deliberately excluded from the list, since it
+turns on multi-agent workflow orchestration rather than naming a plain
+effort level. As with `workflow-steps.json`, `dashboard/src/queue/steps.ts`
+carries a runtime assertion that throws if its `EffortLevel` type ever
+disagrees with the shared file.
+
 Two known asymmetries in the readiness pair are named in that test's own
 exclusion list rather than in the fixture: `specsRepo` is a check the
 dashboard makes blocking that `aide-run-spec` does not refuse on, and
