@@ -106,7 +106,10 @@ export function checklist(view: SpecPageView, mark = ""): string {
   // Spec 163: an archived spec is a RECORD, and a tick would write,
   // commit and push into `archive/`. The rows stay — they are a fact
   // about the spec — and nothing on them presses.
-  const activeJob = view.lead?.state === "queued" || view.lead?.state === "running";
+  // Running, or landing — not queued: a queued job writes nothing yet,
+  // and an archive job parked on this very tick is queued (the same
+  // rule the tick route applies, `specWriteInFlight`).
+  const activeJob = view.lead?.state === "running" || !!view.lead?.landing;
   // Spec 163: an archived spec's rows stay, and nothing on them presses.
   // A job in flight is writing the file this form would commit onto.
   //

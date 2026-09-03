@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../src/git/branch-file.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { blockedForUntickedAcceptance, type ScheduleContext } from "../../src/serve/schedules.ts";
+import { blockedForMissingAnalyze, blockedForUntickedAcceptance, type ScheduleContext } from "../../src/serve/schedules.ts";
 import { targets, type SpecLookupContext } from "../../src/serve/spec-lookup.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../src/project/parse-status.ts";
 
@@ -130,5 +130,43 @@ describe("the row's own archive held back", () => {
     const { root } = projectsRoot();
     const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
     expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+  });
+});
+
+// The same for the analyze gate: a chained job's analyze is on the
+// branch the moment the step ends, and its landing can fail (main moved
+// under it) without the analysis being any less done — implement runs
+// from that branch. Read off disk alone, the job sat queued behind
+// "held back: not analyzed yet" with the real reason only in
+// landingError (2026-09-03).
+describe("the queue's analyze gate", () => {
+  const queuedImplement = { id: "job-2", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement"], stepIndex: 0 };
+  function ctxFor(root: string, checker: BranchFileStepsChecker): ScheduleContext {
+    return {
+      projectRoot: root,
+      queue: { list: () => [queuedImplement] },
+      readBranchFileSteps: () => checker,
+    } as unknown as ScheduleContext;
+  }
+  /** Disk says nothing has run; the branch copy names analyze. */
+  function unanalyzedOnDisk(): { root: string; specDir: string } {
+    const made = projectsRoot();
+    writeFileSync(
+      join(made.specDir, "4-status.json"),
+      JSON.stringify({ completedPhases: [], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }),
+    );
+    return made;
+  }
+
+  test("reads the branch copy first: analyze on the branch releases implement", async () => {
+    const { root, specDir } = unanalyzedOnDisk();
+    const checker = await warmedChecker(specDir, true);
+    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(false);
+  });
+
+  test("with no branch answer, disk decides", () => {
+    const { root } = unanalyzedOnDisk();
+    const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
+    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(true);
   });
 });

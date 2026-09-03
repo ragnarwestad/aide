@@ -60,6 +60,12 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   sentence. The pull is retried twice, a quarter
   of a second apart, and ONLY when git's own stderr names `index.lock`; every other failure is refused on the first
   attempt.
+- **Main moving under a landing is not a refusal.** A push origin answers and still rejects means the default branch
+  got commits while the tests ran. The local merge is dropped, the branch is merged again onto the base that moved,
+  the tests run again on that result, and the push is made once more — once. A second rejection refuses with the
+  checkout left level with origin, never ahead of it. And a base found ahead of origin only by commits origin already
+  holds (what an interrupted landing leaves) is reset before the pull, not refused: every later landing in that root
+  used to stop on "cannot fast-forward" behind one such leftover.
 - **The plan lands first, the code last.** A run records the project before its specs root, so the merge order is
   reversed deliberately: the code is the one that matters, so it is the last word.
 - **A code merge can install.** Merged is not deployed: for a project that installs itself somewhere, the default branch

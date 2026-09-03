@@ -61,9 +61,12 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(checks).toContain("Save");
   });
 
-  for (const state of ["queued", "running"] as const) {
-    test(`a ${state} job leaves every check visible but removes the controls`, () => {
-      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead({ state }) }), "checks"));
+  // Running, or a landing in flight — not queued: a queued job writes
+  // nothing yet, and an archive job parked on the acceptance hold-back
+  // is queued precisely for this tick (371, 2026-09-03).
+  for (const lead_ of [lead({ state: "running" }), lead({ state: "done", landing: true })]) {
+    test(`a ${lead_.landing ? "landing" : lead_.state} job leaves every check visible but removes the controls`, () => {
+      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead_ }), "checks"));
       expect(checks).toContain("Manual check at 375px in a real browser");
       expect(checks).toContain("Run the full test suite");
       expect(checks).not.toContain('name="tick"');
@@ -71,6 +74,12 @@ describe("the checks block (specs 182, 188, 212)", () => {
       expect(checks).not.toContain("<button");
     });
   }
+
+  test("a queued job — parked, or merely waiting for a slot — leaves the controls in place", () => {
+    expect(section(page(withChecks([check()], { lead: lead({ state: "queued" }) }), "checks"))).toContain(
+      'name="tick"',
+    );
+  });
 
   test("a completed job does not make the checks read-only", () => {
     expect(section(page(withChecks([check()], { lead: lead({ state: "done" }) }), "checks"))).toContain(

@@ -208,3 +208,46 @@ describe("the dashboard's checkout keeps up with origin", () => {
     expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
   });
 });
+
+
+// The checkout's `.aide/config` used to be the person's file copied in
+// first and its `AIDE_SPECS_PATH` rewritten after the specs repo's
+// clone/fetch. An `aide-run-spec` starting for another job in that
+// window read the person's specs path and ran archive against the
+// wrong checkout (2026-09-03). The file is now written once, finished,
+// through a rename — so a reader polling it never sees the person's path.
+describe("the checkout's config never names the person's specs path", () => {
+  test("a reader polling .aide/config throughout ensureDashboardCheckout sees only the dashboard's path", async () => {
+    const where = tmp("aide-checkout-atomic-");
+    const specsRepo = repoWithClone(where, "aide-specs", { "aide/01-first/1-description.md": "# First\n" });
+    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const personSpecs = join(specsRepo.clone, "aide");
+    mkdirSync(join(clone, ".aide"), { recursive: true });
+    writeFileSync(join(clone, ".aide", "config"), `AIDE_INSTALL_CMD=true\nAIDE_SPECS_PATH=${personSpecs}\n`);
+    const base = join(where, "owned");
+    const code = dashboardCheckoutRoot(base, "aide");
+
+    const seen = new Set<string>();
+    let stop = false;
+    const poll = (async () => {
+      while (!stop) {
+        const v = configValue(code, "AIDE_SPECS_PATH");
+        if (v) seen.add(v);
+        await Bun.sleep(1);
+      }
+    })();
+    // Twice: the first call clones, the second brings up to date — the
+    // window existed on both paths.
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    stop = true;
+    await poll;
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(seen.has(personSpecs)).toBe(false);
+    expect(configValue(code, "AIDE_SPECS_PATH")).toBe(second.checkout!.specs);
+    expect(configValue(code, "AIDE_INSTALL_CMD")).toBe("true");
+    expect(existsSync(join(code, ".aide")) && readFileSync(join(code, ".aide", "config"), "utf-8")).not.toContain(personSpecs);
+  });
+});
