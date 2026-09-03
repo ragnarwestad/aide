@@ -127,6 +127,16 @@ WORKFLOW_ARC="$(jq -r '.workflowArc | join(" ")' "$_workflow_steps_file" 2>/dev/
 WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
 [ -n "$WORKFLOW_STEPS" ] \
   || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflowSteps from $_workflow_steps_file\"}"; exit 2; }
+
+# The effort levels a step may be run at (spec 364): the same
+# shared-vocabulary pattern as workflow-steps.json above — one file, read
+# here and imported by the dashboard.
+_effort_levels_file="$SCRIPT_DIR/lib/effort-levels.json"
+[ -f "$_effort_levels_file" ] \
+  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared effort-levels file is missing: $_effort_levels_file\"}"; exit 2; }
+EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev/null)"
+[ -n "$EFFORT_LEVELS" ] \
+  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read effortLevels from $_effort_levels_file\"}"; exit 2; }
 # Directory names a build WRITES into, or that a tool locks a cache in —
 # never a dependency cache a build only reads (spec 186). A link is one
 # symlink into the main checkout that every concurrent run shares, so two
@@ -138,7 +148,7 @@ WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_step
 WORKTREE_LINK_DENYLIST="build target dist .gradle"
 
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
-permission_mode=""; result_file=""; model=""; session_id=""
+permission_mode=""; result_file=""; model=""; effort=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # Which AI actually runs the step (spec 125). Defaults to claude, so
 # every caller that predates this flag — the dashboard, a run started by
@@ -202,6 +212,7 @@ while [ $# -gt 0 ]; do
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
+    --effort) effort="${2:-}"; shift 2 ;;
     --tool) tool="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
@@ -277,6 +288,13 @@ case "$tool" in
   claude|codex) ;;
   *) refuse "invalid --tool: $tool (claude or codex)" ;;
 esac
+
+if [ -n "$effort" ]; then
+  case " $EFFORT_LEVELS " in
+    *" $effort "*) ;;
+    *) refuse "invalid --effort: $effort (one of: $EFFORT_LEVELS)" ;;
+  esac
+fi
 
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
 project_root="$(git -C "$project_dir" rev-parse --show-toplevel 2>/dev/null)" \
@@ -783,6 +801,7 @@ else
   argv=("$claude_bin" -p --output-format stream-json --verbose
         --max-budget-usd "$budget_usd" --permission-mode "$permission_mode")
   [ -n "$model" ] && argv+=(--model "$model")
+  [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
 fi
 
@@ -2353,6 +2372,7 @@ if [ -n "$phase_file" ]; then
     done
   fi
   [ -n "$model_value" ] && printf -- '- **Model:** %s\n' "$model_value" >> "$work_dir/phase-outcome"
+  [ -n "$effort" ] && printf -- '- **Effort:** %s\n' "$effort" >> "$work_dir/phase-outcome"
   printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
   printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
   printf -- '- **Attempts:** %s\n' "$attempts_display" >> "$work_dir/phase-outcome"
@@ -2373,7 +2393,7 @@ if [ -n "$phase_file" ]; then
       next
     }
     in_tracking && /^## / { in_tracking = 0 }
-    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Attempts|Cost|Tokens):\*\*/ { next }
+    in_tracking && /^- \*\*(Repo|Model|Effort|Result|Time spent|Attempts|Cost|Tokens):\*\*/ { next }
     { print }
   ' "$phase_file" > "$work_dir/phase-file-out" 2>/dev/null
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then

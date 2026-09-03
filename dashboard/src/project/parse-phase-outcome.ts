@@ -10,6 +10,10 @@ import { markdownSection, specFileText } from "./discover.ts";
 
 export interface PhaseOutcome {
   model?: string;
+  /** The effort level this step ran at, when one was chosen (spec 364).
+   *  Absent means none was — "absence over a guess", the same rule
+   *  `model` above follows. */
+  effort?: string;
   /** Milliseconds, parsed from the script's own `<N>m<NN>s` string — never
    *  the string itself, so `durationLabel` can format it like every other
    *  duration on the page (including the >1h case the raw string cannot
@@ -42,6 +46,7 @@ const PHASE_OUTCOME_FILE: Record<string, string> = {
 };
 
 const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;
+const EFFORT_RE = /^- \*\*Effort:\*\*[ \t]*(.*)$/m;
 const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
 const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
 const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
@@ -55,6 +60,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   const outcome: PhaseOutcome = {};
   const model = section.match(MODEL_RE)?.[1]?.trim();
   if (model) outcome.model = model;
+  const effort = section.match(EFFORT_RE)?.[1]?.trim();
+  if (effort) outcome.effort = effort;
   const time = section.match(TIME_SPENT_RE);
   if (time) outcome.timeSpentMs = (Number(time[1]) * 60 + Number(time[2])) * 1000;
   const cost = section.match(COST_RE);

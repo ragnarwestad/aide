@@ -70,6 +70,26 @@ describe("renderJobDetailPage", () => {
     expect(html).toContain("No step has finished yet");
   });
 
+  // Spec 364, REQ-5: an "Effort" row beside the existing "Model" row —
+  // added during plan review so this page does not show Model with no
+  // Effort beside it for a step that ran with one.
+  test("shows the effort a step ran at, beside Model", () => {
+    const html = renderJobDetailPage(
+      detail({ model: "sonnet", effort: "high" }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).toContain(">Model<");
+    expect(html).toContain(">Effort<");
+    expect(html).toContain(">high<");
+  });
+
+  test("a step with no effort chosen reads 'not set'", () => {
+    const html = renderJobDetailPage(detail({ model: "sonnet" }), "2026-08-16T10:05:00Z", NAV, { tab: "overview" });
+    expect(html).toContain(">not set<");
+  });
+
   // Criteria 4 and 5 were the "Live right now" panel, and spec 150
   // removed it outright: it existed for the one moment a step runs and
   // answered `State not-live · Subagents – · Cost so far – · Session

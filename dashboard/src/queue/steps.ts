@@ -4,6 +4,7 @@
 
 import type { Job } from "./types.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
 
 // `core/scripts/aide-run-spec` reads the same list from
 // core/scripts/lib/workflow-steps.json (spec 349) — the shared file both
@@ -62,6 +63,28 @@ if (
     `dashboard/src/queue/steps.ts's WorkflowStep union and ` +
       `core/scripts/lib/workflow-steps.json disagree: file has ` +
       `${JSON.stringify(WORKFLOW_STEPS)}, union has ${JSON.stringify(KNOWN_STEPS)}`,
+  );
+}
+
+// The effort levels a step may be run at (spec 364), read the same way
+// WORKFLOW_STEPS is above — one shared file, a hand-written literal
+// union for the type checker, and a runtime assertion that throws the
+// moment the two disagree. `ultracode` is deliberately not a member
+// (see core/scripts/lib/effort-levels.json's own comment).
+export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+
+const KNOWN_EFFORT_LEVELS: readonly EffortLevel[] = ["low", "medium", "high", "xhigh", "max"];
+
+export const EFFORT_LEVELS = effortLevelsData.effortLevels as readonly EffortLevel[];
+
+if (
+  EFFORT_LEVELS.length !== KNOWN_EFFORT_LEVELS.length ||
+  !KNOWN_EFFORT_LEVELS.every((l) => (EFFORT_LEVELS as readonly string[]).includes(l))
+) {
+  throw new Error(
+    `dashboard/src/queue/steps.ts's EffortLevel union and ` +
+      `core/scripts/lib/effort-levels.json disagree: file has ` +
+      `${JSON.stringify(EFFORT_LEVELS)}, union has ${JSON.stringify(KNOWN_EFFORT_LEVELS)}`,
   );
 }
 

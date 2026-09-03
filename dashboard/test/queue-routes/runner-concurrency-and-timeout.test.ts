@@ -144,6 +144,38 @@ describe("a model choice's tool reaches the runner", () => {
   });
 });
 
+// Spec 364: the sibling of the model/tool argv tests above, for effort.
+describe("a chosen effort reaches the runner", () => {
+  const effortJob = (effort: Record<string, string>) =>
+    ({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["implement"],
+      budgetUsd: 15,
+      timeoutSec: 2700,
+      permissionMode: { implement: "bypassPermissions" },
+      model: {},
+      effort,
+    }) as unknown as Parameters<typeof import("../../src/serve/serve.ts").runnerArgv>[0];
+
+  test("--effort lands in argv when the job named one for this step", async () => {
+    const { runnerArgv } = await import("../../src/serve/serve.ts");
+    const argv = runnerArgv(effortJob({ implement: "low" }), "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    });
+    expect(argv[argv.indexOf("--effort") + 1]).toBe("low");
+  });
+
+  test("no --effort at all when the job named none — byte-for-byte the old argv", async () => {
+    const { runnerArgv } = await import("../../src/serve/serve.ts");
+    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
+    const withNoEffort = runnerArgv(effortJob({}), "implement", "/tmp/r.json", o);
+    expect(withNoEffort).not.toContain("--effort");
+  });
+});
+
 // --- spec 152: the wall clock is per step, and a stand-in cost says so -------
 //
 // 149's implement was killed at its own 45-minute limit with its tests

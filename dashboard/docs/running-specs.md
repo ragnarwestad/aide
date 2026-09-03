@@ -257,6 +257,32 @@ non-interactive and has no
 `--ask-for-approval` flag at all — that one belongs to the interactive command — so the sandbox mode is the whole of
 what there is to say.)
 
+## Which effort level a step runs at
+
+Every phase line carries an Effort select beside its model select, offering `low`, `medium`, `high`, `xhigh` and
+`max` — the plain reasoning-effort levels Claude Code's `--effort` flag accepts — plus a leading, always-present "—"
+option for "nothing chosen". `ultracode` is deliberately not offered: it is a Claude-Code-specific setting that turns
+on multi-agent workflow orchestration on top of `xhigh` reasoning, not a plain effort level, and offering it here
+would let a routine step silently opt into a much larger, multi-agent run.
+
+Unlike the model choice, there is no admin-configured default to fall back to and no whole-job pick: a step with
+nothing chosen runs exactly as it always has, and "unset" is a real, resting value the select can show — never a
+placeholder standing in for a real name the way the old "default" model option used to. The resolution is `used`
+(what the phase actually ran at) over `pending` (an earlier pick, see below) over unset, three tiers where the model
+select's own chain has four.
+
+**An effort level picked for a phase survives leaving the page**, the same way a model pick does: the instant a
+reader picks one for a phase that has not run yet, the dashboard records it — per spec, per phase — and a run started
+later, from a reload, a different browser, or another day, uses it. A phase that has since actually run shows what it
+ran at instead. There is no live edit of a running job's not-yet-reached step's effort, unlike the model select: a
+reader who wants to change it waits for the current step to finish first.
+
+The chosen level reaches `aide-run-spec` as `--effort <level>`, appended to the `claude -p` invocation only — Codex
+has no equivalent flag, and a level chosen for a phase that ends up running on Codex is accepted and silently
+dropped, the same "ignored, not refused" treatment the script already gives Codex's other Claude-only knobs. The
+level a step actually ran at is recorded in that step's own phase file, as a `- **Effort:**` line beside
+`- **Model:**`, and shown on the job's own detail page beside its Model row.
+
 ## Global defaults for the AI and model
 
 `/settings` holds the default AI and model per step — Explore, Create, Analyze, Implement, Archive, Manifest and

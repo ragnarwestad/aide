@@ -188,9 +188,10 @@ describe("spec 179: an AI and a model on every phase line", () => {
       const tag = aiSelect(html, step).match(/<select[^>]*>/)![0];
       expect([step, tag.includes("name=")]).toEqual([step, false]);
     }
-    // The whole page offers exactly the five model fields it always
-    // did — one per phase, and nothing beside them.
-    expect([...html.matchAll(/<select name="/g)]).toHaveLength(STEPS.length);
+    // The whole page offers exactly the named fields it always did —
+    // one model select per phase — plus, since spec 364, one effort
+    // select per phase beside it. Nothing else is named.
+    expect([...html.matchAll(/<select name="/g)]).toHaveLength(STEPS.length * 2);
   });
 });
 

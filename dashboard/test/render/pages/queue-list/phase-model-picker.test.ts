@@ -101,9 +101,13 @@ describe("spec 123: each phase line picks its own model", () => {
   // step when the phase has not run yet.
   test("the options are the real names, pre-filled with the configured model", () => {
     const line = subRow(rows([], [target("123-picks")], { defaultModels: { default: "sonnet" } }), "analyze");
-    expect(line).not.toContain('<option value=""');
-    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
-    expect(line).toContain('value="fable"');
+    const modelSelect = line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    // Spec 364's own effort select DOES carry an empty "unset" option,
+    // beside this one — scoped here so that addition does not read as
+    // this select's own name-only promise breaking.
+    expect(modelSelect).not.toContain('<option value=""');
+    expect(modelSelect).toMatch(/<option value="sonnet"[^>]*selected/);
+    expect(modelSelect).toContain('value="fable"');
   });
 
   test("a per-step configured model beats the catch-all default", () => {

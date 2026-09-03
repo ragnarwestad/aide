@@ -553,9 +553,10 @@ def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_cla
 
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
-    script itself, plus the two files it reads relative to its own
-    location (`_aide-spec-lib.sh`, and — since spec 349 —
-    `lib/workflow-steps.json`, without which every command refuses)."""
+    script itself, plus the files it reads relative to its own location
+    (`_aide-spec-lib.sh`, and — since spec 349 — `lib/workflow-steps.json`,
+    and since spec 364 `lib/effort-levels.json` too, without which every
+    command refuses)."""
     copy = tmp_path / name
     copy.write_bytes(pathlib.Path(runner).read_bytes())
     copy.chmod(0o755)
@@ -565,6 +566,11 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib").mkdir(exist_ok=True)
     (tmp_path / "lib" / "workflow-steps.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
+    )
+    # effort-levels.json too (spec 364): read the same way, without which
+    # every command refuses just as it would with workflow-steps.json missing.
+    (tmp_path / "lib" / "effort-levels.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "effort-levels.json").read_bytes()
     )
     # status-progress.sh too: sourced by the runner whenever a
     # 4-status.md exists — which, since spec 344's fixture, is every run.
@@ -4936,6 +4942,46 @@ def test_an_unknown_tool_is_refused(runner, workspace, fake_claude):
     assert "gemini" in out["error"]
 
 
+# --- spec 364: a step runs at a chosen effort level -------------------------
+
+
+def test_an_unknown_effort_is_refused(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, effort="turbo")
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "turbo" in out["error"]
+    assert not fake_claude.calls.exists(), "the run must refuse before spawning anything"
+
+
+def test_effort_lands_in_the_claude_argv(runner, workspace, fake_claude):
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, effort="high")
+    assert rc == 0, out
+    argv = fake_claude.calls.read_text().split()
+    assert argv[argv.index("--effort") + 1] == "high"
+
+
+def test_no_effort_flag_at_all_when_none_is_chosen(runner, workspace, fake_claude):
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    argv = fake_claude.calls.read_text().split()
+    assert "--effort" not in argv
+
+
+def test_effort_is_dropped_silently_for_a_codex_run(runner, workspace, fake_codex):
+    """REQ-3: Codex has no `--effort` equivalent, and a chosen effort for
+    a Codex-run phase is accepted and dropped, the same "ignored, not
+    refused" treatment the script already gives Codex's other
+    Claude-only knobs."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, effort="high")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text().split()
+    assert "--effort" not in argv
+
+
 def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace, fake_codex):
     """Criterion 5. The timeout loop operates on a PID and a process
     group, never on a tool — so the only thing worth proving here is that
@@ -5684,6 +5730,57 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
     time_spent = bullet(text, "Time spent")
     assert time_spent and TIME_SPENT_RE.match(time_spent), time_spent
     assert bullet(text, "Repo") is None
+
+
+def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspace, fake_claude):
+    """REQ-5: an `--effort` a run was given lands as its own bullet in the
+    phase file's own Tracking info, beside `- **Model:**`."""
+    made = "99-a-brand-new-spec"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'printf "%s\\n" "# New - Description" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
+        + f'> "$specs/{made}/1-description.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+                     model="claude-sonnet-5", effort="high")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{made}/1-description.md")
+    assert bullet(text, "Model") == "claude claude-sonnet-5"
+    assert bullet(text, "Effort") == "high"
+
+
+def test_a_run_with_no_effort_writes_no_effort_line(runner, workspace, fake_claude):
+    """REQ-4/REQ-5's second half: "absence over a guess" — a run given no
+    `--effort` writes no `- **Effort:**` line at all, never an empty one."""
+    with_status(workspace)
+    claude = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Model") == "claude claude-sonnet-5"
+    assert bullet(text, "Effort") is None
+
+
+def test_a_re_run_replaces_a_stale_effort_line_rather_than_duplicating_it(
+    runner, workspace, fake_claude
+):
+    """Mirrors the Model line's own re-run test: a second run at a
+    different effort leaves exactly one `- **Effort:**` line, holding the
+    newest run's value."""
+    with_status(workspace)
+    claude1 = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5", effort="low")
+    assert rc == 0, out
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5", effort="max")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert text.count("- **Effort:**") == 1, text
+    assert bullet(text, "Effort") == "max"
 
 
 def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_claude):

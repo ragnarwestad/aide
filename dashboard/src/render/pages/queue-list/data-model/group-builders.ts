@@ -194,6 +194,11 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
         attempts: [],
         history: {},
         model: outcome?.model ?? s.models[step],
+        // No `s.efforts[step]`-style fallback the way `model` has one:
+        // effort is introduced fresh in spec 245's per-phase-file format
+        // (spec 364), with no earlier, `4-status.md`-only format to fall
+        // back to.
+        effort: outcome?.effort,
         timeSpentMs: outcome?.timeSpentMs,
         cost: outcome?.cost,
         costUnmeasured: outcome?.costUnmeasured,

@@ -81,6 +81,8 @@ export async function handlePageRoutes(
       // (New spec, Settings, new-schedule, schedule-detail) render no
       // phase picker and need nothing here.
       pendingModels: ctx.queue.pendingModels,
+      // The sibling of pendingModels, for an effort level (spec 364).
+      pendingEffort: ctx.queue.pendingEffort,
       error: url.searchParams.get("error") ?? undefined,
       // Which row the refusal belongs to. It rides in the query
       // string with the reason itself, so it survives the

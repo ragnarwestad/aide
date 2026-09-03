@@ -200,6 +200,62 @@ describe("parseJobRequest", () => {
     if (!looser.ok) expect(looser.error).toContain("budgetUsd");
   });
 
+  // --- spec 364: a step runs at a chosen effort level --------------------
+
+  test("REQ-3: a per-step effort choice is accepted", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], effort: { analyze: "high", implement: "low" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.effort).toEqual({ analyze: "high", implement: "low" });
+  });
+
+  test("REQ-4: an empty/untouched entry is skipped, not stored as a choice", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], effort: { analyze: "" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.effort).toEqual({});
+  });
+
+  test("no effort field at all leaves the job with no effort chosen (REQ-4)", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["analyze"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.effort).toEqual({});
+  });
+
+  test("an effort posted for a step not ticked is skipped, not refused", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], effort: { analyze: "high", implement: "low" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.effort).toEqual({ analyze: "high" });
+  });
+
+  test("an unknown effort level is refused", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], effort: { analyze: "turbo" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("turbo");
+  });
+
+  test("ultracode is refused — not a plain effort level", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], effort: { analyze: "ultracode" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+  });
+
   test.each([
     ["an unknown project", { ...REQ, project: "atlasaurus" }, "project"],
     ["a project not in the allowlist", { ...REQ, project: "claude-usage" }, "project"],

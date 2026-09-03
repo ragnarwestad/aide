@@ -78,6 +78,10 @@ export interface QueueRowView {
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
+  /** The effort level this step ran at, when one was chosen (spec 364).
+   *  Absent means none was — a real, valid resting state, unlike
+   *  `model`, which a job always carries a real value for. */
+  effort?: string;
   /** Which third of an `implement` step is running RIGHT NOW (spec
    *  210), from the report `/aide-implement` sends at each TDD
    *  boundary. Set by the server only for a running implement whose

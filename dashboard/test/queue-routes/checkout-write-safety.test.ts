@@ -59,6 +59,33 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard-checkouts/aide/code");
   });
 
+  // Spec 364, REQ-3/REQ-4: `--effort` appears only when the job actually
+  // named one for this step, and is entirely absent otherwise.
+  test("--effort reaches argv only when the job named one for this step", () => {
+    const job = {
+      id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
+      budgetUsd: 5, model: {}, effort: { analyze: "high" }, timeoutSec: {}, permissionMode: {},
+      state: "queued", createdAt: "", results: [],
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      push: "branch",
+    });
+    expect(argv[argv.indexOf("--effort") + 1]).toBe("high");
+
+    const untouched = {
+      ...job,
+      effort: {},
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const bare = runnerArgv(untouched, "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      push: "branch",
+    });
+    expect(bare).not.toContain("--effort");
+  });
+
   // Named on the command line, because the serving host is where these
   // clones actually take up disk and the default is a directory under
   // $HOME.

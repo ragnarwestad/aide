@@ -301,6 +301,12 @@ export interface Phase {
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read
    *  through the picker's pre-fill instead). */
   model?: string;
+  /** What this phase ran at, when it is a LOCKED phase's own record
+   *  (spec 364) — the sibling of `model` above, on the same terms: from
+   *  `ArchivedSpecView.phaseOutcomes`, never set for a live phase (whose
+   *  "what it ran at" is `attempts[0]?.effort`, read through the
+   *  picker's pre-fill instead). */
+  effort?: string;
   /** What this phase's own file record says it cost, in time and money
    *  (spec 247): from `ArchivedSpecView.phaseOutcomes` for a LOCKED
    *  phase, on the same terms as `model` above. For a LIVE phase (spec

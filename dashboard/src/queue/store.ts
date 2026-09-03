@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+  EFFORT_LEVELS,
   TRANSITIONS,
   UNFINISHED,
   WORKFLOW_STEPS,
@@ -18,13 +19,17 @@ import {
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
-import { parsePendingModels, parseStoredJob, persistPendingModels } from "./persist.ts";
+import { parsePendingEffort, parsePendingModels, parseStoredJob, persistPendingEffort, persistPendingModels } from "./persist.ts";
 
 /** What `setPendingModel()` answers with — never a `job`, since none
  *  may exist yet for the phase a pick was just made on. `ParseResult`
  *  (`parse-request.ts`) always carries one, which is why this needs a
  *  smaller type of its own. */
 export type PendingModelResult = { ok: true } | { ok: false; error: string };
+
+/** The sibling of `PendingModelResult`, for `setPendingEffort()` (spec
+ *  364) — same shape, same reason. */
+export type PendingEffortResult = { ok: true } | { ok: false; error: string };
 
 /** What `QueueStore.transition()` answers with (spec 354, REQ-3): the
  *  updated job on a hit, or the state and event the table refused —
@@ -41,6 +46,10 @@ export interface QueueOptions {
    *  Absent means the table is in-memory only, for the tests and any
    *  caller that has no disk to give it. */
   pendingModelsPath?: string;
+  /** The sibling of `pendingModelsPath`, for an effort level picked
+   *  before any job exists (spec 364) — the `pending-effort.json`
+   *  sibling of the queue mirror. */
+  pendingEffortPath?: string;
   cap?: number;
   /** Which projects may have a spec CREATED in them (spec 93). Absent
    *  means none: creating is off unless the server says otherwise, like
@@ -60,6 +69,7 @@ export class QueueStore {
   private readonly cap: number;
   private readonly mirrorPath?: string;
   private readonly pendingModelsPath?: string;
+  private readonly pendingEffortPath?: string;
   readonly defaults: QueueDefaults;
   /** A model picked for a phase before any job exists (spec 308), keyed
    *  by `project/specFolder` and then by step — the same shape
@@ -67,6 +77,9 @@ export class QueueStore {
    *  like `defaults`: the render side reads it straight off, and only
    *  `setPendingModel()` is allowed to write it. */
   readonly pendingModels: Record<string, Record<string, string>> = {};
+  /** The sibling of `pendingModels`, for an effort level (spec 364).
+   *  Only `setPendingEffort()` is allowed to write it. */
+  readonly pendingEffort: Record<string, Record<string, string>> = {};
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
@@ -75,6 +88,7 @@ export class QueueStore {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
+    this.pendingEffortPath = opts.pendingEffortPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
@@ -84,6 +98,7 @@ export class QueueStore {
     // store finding out what it already was.
     this.load();
     this.loadPendingModels();
+    this.loadPendingEffort();
   }
 
   /** An unfinished job for the same spec that already covers one of
@@ -392,6 +407,24 @@ export class QueueStore {
     return { ok: true };
   }
 
+  /** The sibling of `setPendingModel()`, for an effort level (spec 364).
+   *  Checked against `WORKFLOW_STEPS` and `EFFORT_LEVELS` directly —
+   *  there is no config table to look a grant up in, since effort
+   *  levels carry no budget of their own (2-analysis.md, "Config-vs-
+   *  code precedence tables are for THINGS THAT COST MONEY"). */
+  setPendingEffort(project: string, specFolder: string, step: string, effort: string): PendingEffortResult {
+    const wanted = WORKFLOW_STEPS.find((s) => s === step);
+    if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step an effort level can be chosen for`) };
+    if (!(EFFORT_LEVELS as readonly string[]).includes(effort)) {
+      return { ok: false, error: invalidRequest(`invalid effort: ${effort} (one of: ${EFFORT_LEVELS.join(", ")})`) };
+    }
+    const key = `${project}/${specFolder}`;
+    this.pendingEffort[key] = { ...this.pendingEffort[key], [wanted]: effort };
+    this.persistPendingEffortTable();
+    this.changed();
+    return { ok: true };
+  }
+
   update(id: string, patch: Partial<Job>): Job | undefined {
     const job = this.jobs.get(id);
     if (!job) return undefined;
@@ -460,5 +493,21 @@ export class QueueStore {
   private persistPendingModels(): void {
     if (!this.pendingModelsPath) return;
     persistPendingModels(this.pendingModelsPath, this.pendingModels);
+  }
+
+  private loadPendingEffort(): void {
+    if (!this.pendingEffortPath || !existsSync(this.pendingEffortPath)) return;
+    try {
+      const raw = JSON.parse(readFileSync(this.pendingEffortPath, "utf-8")) as unknown;
+      const parsed = parsePendingEffort(raw);
+      if (parsed) Object.assign(this.pendingEffort, parsed);
+    } catch {
+      // a corrupt file is not worth crashing over — start empty
+    }
+  }
+
+  private persistPendingEffortTable(): void {
+    if (!this.pendingEffortPath) return;
+    persistPendingEffort(this.pendingEffortPath, this.pendingEffort);
   }
 }

@@ -339,14 +339,15 @@ describe("the Overview's facts table (criterion 10)", () => {
       m[1]!.replace(/<[^>]*>/g, "").trim(),
     );
 
-  test("exactly three rows: Started, Cost so far, Model", () => {
+  // Spec 364 adds a fourth row, Effort, beside Model.
+  test("exactly four rows: Started, Cost so far, Model, Effort", () => {
     const html = renderJobDetailPage(
       detail({ state: "done", model: "sonnet" }),
       "2026-08-21T10:05:00Z",
       NAV,
       { tab: "overview" },
     );
-    expect(facts(html)).toEqual(["Started", "Cost so farTokens so far", "Model"]);
+    expect(facts(html)).toEqual(["Started", "Cost so farTokens so far", "Model", "Effort"]);
   });
 
   test("the four facts said elsewhere are gone, branch list included", () => {

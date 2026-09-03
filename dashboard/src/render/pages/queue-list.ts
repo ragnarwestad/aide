@@ -127,6 +127,10 @@ export interface QueuePageOptions {
    *  an entry means nobody has picked one yet, which falls through to
    *  the configured default exactly as before this existed. */
   pendingModels?: Record<string, Record<string, string>>;
+  /** The sibling of `pendingModels`, for an effort level picked before
+   *  any job exists for it to attach to (spec 364) — same shape, same
+   *  role, read by `resolveChosenEffort()`'s own pending tier. */
+  pendingEffort?: Record<string, Record<string, string>>;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */

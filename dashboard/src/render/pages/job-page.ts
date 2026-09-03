@@ -451,6 +451,10 @@ export function renderJobDetailPage(
             : ""),
       ],
       ["Model", esc(job.model ?? "as configured")],
+      // Spec 364, REQ-5: beside Model, on the same terms — added during
+      // plan review so this page does not show Model with no Effort
+      // beside it for a step that ran with one.
+      ["Effort", esc(job.effort ?? "not set")],
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same

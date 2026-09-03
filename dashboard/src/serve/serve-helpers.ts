@@ -32,7 +32,7 @@ export {
 export { compressResponse } from "./serve-helpers/compression.ts";
 
 export {
-  resolveTimeoutSec, resolveStepPermissionMode, resolveStepModel, runnerArgv,
+  resolveTimeoutSec, resolveStepPermissionMode, resolveStepModel, resolveStepEffort, runnerArgv,
 } from "./serve-helpers/runner-argv.ts";
 
 export { resolveDependencyFolder, parseArgs } from "./serve-helpers/parse-args.ts";

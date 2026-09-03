@@ -44,6 +44,28 @@ describe("a run reaches its own project and no other", () => {
     expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide");
   });
 });
+// --- spec 364: a step runs at a chosen effort level -------------------------
+
+describe("--effort reaches the runner only when a step actually named one", () => {
+  test("present when chosen, absent otherwise (REQ-3/REQ-4)", async () => {
+    const { runnerArgv } = await import("../../src/serve/serve.ts");
+    const job = {
+      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {}, effort: { implement: "xhigh" },
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+    expect(argv[argv.indexOf("--effort") + 1]).toBe("xhigh");
+
+    const bareJob = { ...job, effort: {} } as unknown as Parameters<typeof runnerArgv>[0];
+    const bare = runnerArgv(bareJob, "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+    expect(bare).not.toContain("--effort");
+  });
+});
+
 // --- spec 110: what a new spec builds on --------------------------------------
 
 describe("a chosen dependency reaches the runner and the page", () => {

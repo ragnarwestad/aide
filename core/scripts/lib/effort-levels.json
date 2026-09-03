@@ -1,0 +1,4 @@
+{
+  "_comment": "The effort levels a step may be run at (spec 364): one source, read by core/scripts/aide-run-spec (jq) and by the dashboard (import), mirroring workflow-steps.json's own role. `ultracode` is deliberately excluded — it is a Claude-Code-specific multi-agent orchestration mode layered on top of `xhigh`, not a plain reasoning-effort level, and offering it here would let a routine step silently opt into multi-agent orchestration. See 3-solution.md's 'Recommended solution' for the reversal path (add it to the array below) if that judgment call is ever overturned.",
+  "effortLevels": ["low", "medium", "high", "xhigh", "max"]
+}

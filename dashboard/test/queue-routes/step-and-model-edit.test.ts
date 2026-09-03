@@ -413,3 +413,66 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
     expect(((await res.json()) as { error: string }).error).toContain("archived");
   });
 });
+
+// --- spec 364: a step runs at a chosen effort level -------------------------
+
+// The spec-scoped sibling of the model pending-pick route above, mirrored
+// on the same terms: a pick made before any job exists, persisted the
+// same way. No tail-edit counterpart (scope decision, 3-solution.md).
+describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const DEFAULTS = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 } },
+  };
+
+  const pick = (base: string, project: string, folder: string, step: string, effort: string, body?: BodyInit) =>
+    fetch(`${base}/api/queue/specs/${project}/${folder}/effort`, {
+      method: "POST",
+      headers: body
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        : JSON_HEADERS,
+      body: body ?? JSON.stringify({ step, effort }),
+    });
+
+  test("REQ-2: records a pick for a phase that has no job yet", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "high");
+    expect(res.status).toBe(200);
+    const answer = (await res.json()) as { ok: boolean };
+    expect(answer.ok).toBe(true);
+  });
+
+  test("REQ-2: the pick is reflected back on the very next render", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    await pick(base, "aide", "81-queue-and-runner", "analyze", "high");
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    const group = specControls(html, "81-queue-and-runner");
+    const select = group.match(/<select name="effort\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    expect(select).toMatch(/<option value="high"[^>]*selected/);
+  });
+
+  test("an unknown level is refused", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "turbo");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("turbo");
+  });
+
+  test("an archived spec's phases are locked", async () => {
+    const { base } = harness.start({
+      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS },
+      archivedSpecs: { "82-archived": {} },
+    });
+    const res = await pick(base, "aide", "82-archived", "analyze", "high");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("archived");
+  });
+});

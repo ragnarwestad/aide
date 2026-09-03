@@ -53,6 +53,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--bind" && v) opts.bindHost = argv[++i];
     else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
     else if (a === "--pending-models" && v) opts.pendingModelsPath = argv[++i];
+    else if (a === "--pending-effort" && v) opts.pendingEffortPath = argv[++i];
     else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
     else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
@@ -68,6 +69,7 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");
   if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), "aide-dashboard", "aide-queue.json");
   if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), "aide-dashboard", "pending-models.json");
+  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), "aide-dashboard", "pending-effort.json");
   if (tokenFile) {
     // A missing or unreadable token file must not crash the server:
     // launchd would restart it in a loop and take the whole dashboard

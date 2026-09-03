@@ -62,9 +62,12 @@ describe("picking a model for a job", () => {
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
       defaultModels: { default: "fable" },
     });
-    expect(html).not.toContain('<option value=""');
-    expect(html).toMatch(/<option value="fable"[^>]*title="[^"]*\$12[^"]*"[^>]*>/);
-    expect(html).not.toMatch(/<option[^>]*>[^<]*\$/);
+    const modelSelect = html.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    // Scoped to the model select: spec 364's own effort select, drawn
+    // beside it, DOES carry an empty "unset" option, on its own terms.
+    expect(modelSelect).not.toContain('<option value=""');
+    expect(modelSelect).toMatch(/<option value="fable"[^>]*title="[^"]*\$12[^"]*"[^>]*>/);
+    expect(modelSelect).not.toMatch(/<option[^>]*>[^<]*\$/);
   });
 
   test("with nothing configured the page offers no model at all", () => {

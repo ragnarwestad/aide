@@ -84,6 +84,13 @@ export interface Job {
   /** The model picked for this whole job, when one was picked. Absent
    *  means the per-step configuration decided. */
   modelChoice?: string;
+  /** The effort level picked for each step, when one was picked (spec
+   *  364). Absent, like a job persisted before this existed, means
+   *  exactly what a step this table does not name means: no effort
+   *  chosen, run exactly as before (REQ-4). Unlike `model` there is no
+   *  config-default tier and no whole-job `modelChoice`-style field —
+   *  "nothing chosen" has to stay a real, reachable value. */
+  effort?: Record<string, string>;
   /** What a `create` job is FOR: the spec it is about to make. Both are
    *  handed to `aide-run-spec` as `--title`/`--description`, and only a
    *  create job has them — every other job names a spec that already

@@ -10,7 +10,7 @@
 //     something an HTTP body gets to decide
 
 import { errorSentence } from "../render/ui/error-sentence.ts";
-import { ARCHIVE_ONLY_STEP, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ModelChoice, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
@@ -205,6 +205,26 @@ export function parseJobRequest(
     }
   }
 
+  // The effort level a step runs at (spec 364), per step — the same
+  // per-step shape `stepModels` above takes, but with no whole-job
+  // pick and no config lookup: the value IS the level, checked directly
+  // against the fixed EFFORT_LEVELS list. An empty/untouched entry is
+  // skipped, not refused (REQ-4) — "the phase select posts an empty
+  // value" is a real, valid resting state for effort, unlike model's
+  // select, which is always pre-filled with a real name.
+  const stepEffort: Record<string, string> = {};
+  if (r.effort !== undefined && r.effort !== null && r.effort !== "") {
+    if (typeof r.effort !== "object" || Array.isArray(r.effort)) return { ok: false, error: invalidRequest("invalid effort") };
+    for (const [step, level] of Object.entries(r.effort as Record<string, unknown>)) {
+      if (level === undefined || level === null || level === "") continue;
+      if (!steps.includes(step as WorkflowStep)) continue;
+      if (typeof level !== "string" || !(EFFORT_LEVELS as readonly string[]).includes(level)) {
+        return { ok: false, error: invalidRequest(`invalid effort for ${step}: ${String(level)}`) };
+      }
+      stepEffort[step] = level;
+    }
+  }
+
   const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
   const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
@@ -243,6 +263,7 @@ export function parseJobRequest(
       // Left unset for a per-step map: it means "one model for the
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
+      effort: stepEffort,
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

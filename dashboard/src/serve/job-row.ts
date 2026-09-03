@@ -7,7 +7,7 @@
 import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView } from "../render.ts";
-import { resolveStepModel, resolveTimeoutSec } from "./serve-helpers.ts";
+import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers.ts";
 
 export interface JobRowContext {
   queue: QueueStore;
@@ -36,6 +36,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     state: job.state,
     landing: job.landing,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
+    effort: step ? resolveStepEffort(job, step) : undefined,
     spentUsd: job.spentUsd,
     // The stored split is five numbers; the page shows one. Flattened
     // here, at the boundary, so no render file has to know what a

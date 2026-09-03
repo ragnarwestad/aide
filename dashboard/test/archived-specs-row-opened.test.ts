@@ -104,9 +104,10 @@ describe("an archived spec's row, opened", () => {
   test("shows the bare recorded model name, not the tool-prefixed string, in a locked select (criterion 1)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     const line = lines["analyze"]!;
-    // The AI select plus the model select — the same two a live row with
-    // two configured tools draws, never a single, hand-rolled one.
-    expect([...line.matchAll(/<select\b/g)]).toHaveLength(2);
+    // The AI select, the model select, and (spec 364) the effort select
+    // — the same three a live row with two configured tools draws,
+    // never a single, hand-rolled one.
+    expect([...line.matchAll(/<select\b/g)]).toHaveLength(3);
     expect(line).toContain(" disabled");
     expect(line).toContain(
       '<option value="sonnet" data-tool="claude" title="$3 per step" selected>sonnet</option>',

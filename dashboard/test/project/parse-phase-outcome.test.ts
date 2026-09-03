@@ -22,6 +22,31 @@ describe("parsePhaseOutcome", () => {
     expect(parsePhaseOutcome(withTracking("- **Result:** completed")).model).toBeUndefined();
   });
 
+  // Spec 364: the same read as Model, on its own field.
+  test("a recorded effort comes back (spec 364, REQ-5)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Effort:** high")).effort).toBe("high");
+  });
+
+  test("no Effort line means no effort (spec 364, REQ-5)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).effort).toBeUndefined();
+  });
+
+  test("a look-alike Effort bullet outside Tracking info is ignored (spec 364)", () => {
+    const content = [
+      "# 247 - Analysis",
+      "",
+      "## Tracking info",
+      "",
+      "- **Result:** completed",
+      "",
+      "## Risk analysis",
+      "",
+      "- **Effort:** high",
+      "",
+    ].join("\n");
+    expect(parsePhaseOutcome(content).effort).toBeUndefined();
+  });
+
   test("a Time spent line becomes milliseconds (criterion 1)", () => {
     expect(parsePhaseOutcome(withTracking("- **Time spent:** 5m32s")).timeSpentMs).toBe(332_000);
   });

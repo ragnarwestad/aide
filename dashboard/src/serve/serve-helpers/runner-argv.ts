@@ -41,6 +41,15 @@ export function resolveStepModel(job: Job, step: string, live: Record<string, st
   return job.model[step] ?? job.modelChoice ?? live[step] ?? live.default;
 }
 
+/** The effort level a step runs at (spec 364) — `job.effort[step]` and
+ *  nothing else. No config-default tier, unlike `resolveStepModel`'s
+ *  four: there is nothing for a config to grant per level (2-analysis.md,
+ *  "Config-vs-code precedence tables are for THINGS THAT COST MONEY"),
+ *  and REQ-4 requires "unset" to stay a real, reachable answer. */
+export function resolveStepEffort(job: Job, step: string): string | undefined {
+  return job.effort?.[step];
+}
+
 /** The argv `aide-run-spec` is started with. Extracted so it can be read
  *  in a test: an unattended run's arguments are the whole contract, and
  *  a wrong one is a job that does the wrong thing with nobody watching. */
@@ -81,6 +90,7 @@ export function runnerArgv(
   // — which is exactly what every config written before this spec did.
   const model = choice?.model ?? choiceName;
   const tool = choice?.tool ?? "claude";
+  const effort = resolveStepEffort(job, step);
   return [
     o.runnerBin,
     "--project-dir", o.projectDir,
@@ -106,6 +116,11 @@ export function runnerArgv(
     // is the whole of what the step is for.
     ...(o.promptFile ? ["--prompt-file", o.promptFile] : []),
     ...(model ? ["--model", model] : []),
+    // Only when the job actually named one for this step (REQ-4): a job
+    // with nothing chosen produces byte-for-byte the argv it produced
+    // before this flag existed. `aide-run-spec` itself drops the flag
+    // silently for `--tool codex` (no branch needed here).
+    ...(effort ? ["--effort", effort] : []),
     // Only when it says something new. `aide-run-spec` defaults to
     // claude, so a choice that names no tool must produce byte-for-byte
     // the argv it produced before this flag existed — the same shape

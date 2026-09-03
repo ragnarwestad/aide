@@ -28,6 +28,11 @@ export interface ServerOptions {
    *  mirror. Absent means such a pick is never durable, exactly as
    *  before this existed. */
   pendingModelsPath?: string;
+  /** The sibling of `pendingModelsPath`, for an effort level picked
+   *  before any job exists (spec 364) — the `pending-effort.json`
+   *  sibling of the queue mirror. Absent means such a pick is never
+   *  durable, exactly as before this existed. */
+  pendingEffortPath?: string;
   /** Root scanned for `.aide/project.yaml` — the queue resolves project
    *  NAMES against it, so a request never carries a path. */
   projectRoot?: string;
