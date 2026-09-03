@@ -196,8 +196,10 @@ carries the project's `worktreeLinks` and its `.aide/config`, and is removed whe
 `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
 `aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
 run's output goes to the gate log). Green pushes. Red drops the local merge with `reset --hard
-origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job fails with
-`errorReason: tests-red` and the sentence that says what to do. A red suite is never retried by the landing itself.
+origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job STOPS with
+`errorReason: tests-red`, `stopReason: tests-red` and the sentence that says what to do — amber, not red: the step
+ran and the merge was built, and what is missing is a green suite. A red suite is never retried by the landing
+itself.
 
 This is the one place the suite runs for a change on its way to main. `implement`'s own run during the step is the
 model's TDD loop, not the gate; `aide-archive-spec` checks the person's boxes and moves the folder, and runs no tests.

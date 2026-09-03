@@ -111,7 +111,12 @@ export function specNotice(
   // sentence — never guessed from the text, which left every OTHER
   // waiting-shaped message still picking "waiting" or "failed" for itself.
   if (lead?.error && !said(lead.error)) {
-    const variant: MessageVariant = lead.errorReason === "held-back" ? "waiting" : "failed";
+    // `tests-red` waits for the same reason: the landing ran the
+    // project's own suite on the merged result, it went red, and nothing
+    // was pushed. The step and the merge both did what they should; the
+    // code is not green yet.
+    const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
+    const variant: MessageVariant = waiting ? "waiting" : "failed";
     parts.push({ variant, text: lead.error, title: lead.errorDetail });
   }
   parts.push(...marks);

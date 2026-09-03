@@ -49,6 +49,7 @@ stateDiagram-v2
     running --> failed: step failed
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
+    done --> stopped: the landing's suite went red
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```
@@ -99,6 +100,11 @@ spec's branch still on origin, the `landing-failed` transition moves the job to 
 from `done`: the runner may have queued the job's next step in between, and a landing must not overwrite a job that
 has moved on; the table simply has no entry for that case, so the attempt is refused and the narrative fields are
 recorded without moving the state. See [Branches and landing](landing.md).
+
+**Done to stopped** is the same transition for the one landing failure that is nobody's fault. The landing runs the
+project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`
+with `stopReason: "tests-red"`, so the State cell reads `stopped — tests red` and the row's message is amber. The
+work is not green yet — run implement again — which is a different thing from a broken agent, and the row says so.
 
 ## Beside the state
 

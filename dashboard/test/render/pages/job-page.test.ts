@@ -540,6 +540,14 @@ describe("job-cap presentation", () => {
   });
 });
 
+describe("red-suite presentation", () => {
+  test("the stopped label identifies the red suite, distinct from a budget stop", () => {
+    expect(stateLabel(row({ state: "stopped", stopReason: "tests-red" } as never))).toBe(
+      "stopped — tests red",
+    );
+  });
+});
+
 describe("the stopped badge carries its error as a tooltip", () => {
   test("a stopped row with an error gets the error as the badge's title", () => {
     const error = "the job cap ($4) would be exceeded by the next step";

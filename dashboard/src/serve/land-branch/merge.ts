@@ -290,13 +290,20 @@ export async function landBranch(
       // spec 149 removed: nobody's browser is attached to a landing, so
       // the row has to be able to read the reason on any later request
       // (`queue-list.ts`, `resolveForm`).
+      // A red suite is the one failure here that is not a fault: the
+      // step ran, the merge was built, and the project's own tests said
+      // the result is not green. That stops the job rather than failing
+      // it, the same way a cap-stop does — nothing was pushed, and the
+      // answer is to run implement again.
+      const held = reason === "tests-red";
       const patch = {
         error: failures.join("; "),
         errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
         errorReason: reason,
         landingError: firstLandingError(failures.join("; ")),
+        ...(held ? { stopReason: "tests-red" as const } : {}),
       };
-      const result = ctx.queue.transition(job.id, "landing-failed", patch);
+      const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       if (!result.ok) ctx.queue.update(job.id, patch);
       return;
     }

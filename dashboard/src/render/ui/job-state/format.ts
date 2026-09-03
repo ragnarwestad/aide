@@ -12,6 +12,7 @@ export function stateLabel(r: QueueRowView): string {
     if (r.stopReason === "timeout") return `stopped — ${Math.round(r.timeoutSec / 60)} min`;
     if (r.stopReason === "provider-limit") return "stopped — provider limit";
     if (r.stopReason === "job-cap") return "stopped — job cap";
+    if (r.stopReason === "tests-red") return "stopped — tests red";
     return "stopped — budget";
   }
   return r.state;

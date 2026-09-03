@@ -130,6 +130,35 @@ describe("errorReason", () => {
   });
 });
 
+// `stopReason` is the same shape of pair, and for the same reason: the
+// stored union lives in `queue/steps.ts` and the row's own copy in
+// `render/ui/job-state/types.ts`, which do not import each other. A
+// member added to one side alone leaves `stateLabel` falling through to
+// "stopped — budget" for a stop that was nothing of the sort.
+describe("stopReason", () => {
+  const membersOf = (file: string, pattern: RegExp): string[] => {
+    const src = readFileSync(join(import.meta.dir, "..", "..", "src", file), "utf-8");
+    const line = src.match(pattern);
+    expect(line).not.toBeNull();
+    return line![1]!
+      .split("|")
+      .map((m) => m.trim().replace(/^"|"$/g, ""))
+      .filter(Boolean)
+      .sort();
+  };
+
+  test("names the same members on the job and on the row's view", () => {
+    const stored = membersOf("queue/steps.ts", /^export type StopReason =([^;]*);/m);
+    expect(stored).toEqual(membersOf("render/ui/job-state/types.ts", /^\s*stopReason\?:([^;]*);/m));
+    // Named, so widening the union without a reader is caught here
+    // rather than at the page: `tests-red` is the landing's own suite
+    // going red on the merged result, which pushes nothing and asks for
+    // implement to run again — the only one of the five that is not the
+    // run itself being cut short.
+    expect(stored).toEqual(["budget", "job-cap", "provider-limit", "tests-red", "timeout"]);
+  });
+});
+
 // The widened validation is for ONE route. `parseJobRequest` still
 // requires a project with a discovered spec — a regression guard, green
 // today and green afterwards.

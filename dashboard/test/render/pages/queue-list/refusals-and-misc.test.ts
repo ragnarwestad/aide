@@ -424,6 +424,30 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
     expect(noticeCellHtml(html, FOLDER)).toContain(MESSAGE);
   });
 
+  // The one landing failure that is not a refusal: the merge was built,
+  // the project's own suite went red on it, and nothing was pushed. The
+  // row says "tests red" in amber — a red mark here reads as a broken
+  // machine when the answer is to run implement again.
+  test("a landing the suite refused is amber and says so", () => {
+    const RED = "archive landing failed: the project's tests are red on the merge — nothing was pushed.";
+    const html = renderQueueRows(
+      [row({ state: "stopped", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
+      { runnerAvailable: true, targets: [] },
+    );
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice).toContain(RED);
+    expect(notice).toMatch(/class="[^"]*rowmsg waiting/);
+    expect(notice).not.toMatch(/class="[^"]*rowmsg failed/);
+  });
+
+  test("any other landing failure stays red", () => {
+    const html = renderQueueRows([row({ state: "done", landingError: MESSAGE, errorReason: "conflict" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(noticeCellHtml(html, FOLDER)).toMatch(/class="[^"]*rowmsg failed/);
+  });
+
   // A failed landing writes the same sentence as the job's `error` and,
   // step-prefixed, as its `landingError`; the notice line said both,
   // 300 characters twice with " · archive landing failed:" between.

@@ -426,6 +426,11 @@ export interface SpecGroup {
    *  this spec the way `prError` is — see Risk analysis for why a
    *  cross-job scan would show the wrong job's failure. */
   landingError?: string;
+  /** Why the lead job's landing was refused, when it was — the same
+   *  field the notice line reads. `tests-red` is the one member that
+   *  makes the landing mark amber instead of red: the suite went red on
+   *  the merged result, nothing was pushed, and implement runs again. */
+  errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
   phases: Phase[];
   /** Steps this spec has already had, from its matching target: what its
    *  own files show, and what the queue actually ran. Marked on the
