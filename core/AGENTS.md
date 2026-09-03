@@ -404,9 +404,9 @@ into a quarter of an hour of the user waiting (raised hard 2026-08-24).
 ### Unit tests
 
 Use the project's own test command — take it from `AIDE_TEST_CMD` in
-`.aide/config` if set, otherwise detect it from the lockfile/build files
-(see "Project commands" in the tools-and-scripts rules). Always in
-single-run mode.
+`.aide/config` if set, otherwise `testCmd` in the committed manifest,
+otherwise detect it from the lockfile/build files (see "Project
+commands" in the tools-and-scripts rules). Always in single-run mode.
 
 Example for a pnpm/Vitest project:
 

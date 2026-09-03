@@ -86,6 +86,17 @@ export interface ManifestData {
    *  reader never has to tell "no schedule" apart from "every entry was
    *  malformed" — both render the same, absent, section. */
   schedule?: ScheduleEntry[];
+  /** What installing this project means, and its own test command —
+   *  both read the same way as `worktreeLinks` (spec 345):
+   *  `.aide/config`'s `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` override these
+   *  per machine when set, but a fresh clone that has never been
+   *  configured locally still knows both, because they are usually the
+   *  same on every machine the project runs on. Unlike `worktreeLinks`
+   *  the config file wins here, not the manifest — an install/test
+   *  command can legitimately differ on one machine (a PATH prefix a
+   *  shell needs, say) in a way a worktree link cannot. */
+  installCmd?: string;
+  testCmd?: string;
 }
 
 /** Whether `path`, read relative to the project root, could resolve
@@ -163,6 +174,8 @@ export function parseManifest(text: string): ManifestResult {
   }
   if (r.docs != null) data.docs = toList(r.docs);
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
+  if (r.installCmd != null) data.installCmd = toStr(r.installCmd);
+  if (r.testCmd != null) data.testCmd = toStr(r.testCmd);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the
   // safe default the same way an absent key does.

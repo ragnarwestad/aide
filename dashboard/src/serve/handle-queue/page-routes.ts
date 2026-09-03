@@ -4,7 +4,7 @@
 // serve.ts step 2).
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveSchedule } from "../../project/discover.ts";
+import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../project/discover.ts";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
@@ -321,7 +321,7 @@ export async function handlePageRoutes(
     // pulls, fetches or checks anything out" contract
     // (project-detail-route.test.ts) must hold here too (spec 258).
     const driftRoot = ctx.machineryProjectDir(name);
-    const drift = configValue(driftRoot, "AIDE_INSTALL_CMD")
+    const drift = resolveInstallCmd(driftRoot).value
       ? ctx.branchStatus.peekDrift(driftRoot)
       : undefined;
     // Only meaningful for the one project this very process runs from —
@@ -398,7 +398,7 @@ export async function handlePageRoutes(
     const driftByProject: Record<string, ProjectDrift> = {};
     for (const p of projects) {
       const root = ctx.machineryProjectDir(p.name);
-      if (configValue(root, "AIDE_INSTALL_CMD")) {
+      if (resolveInstallCmd(root).value) {
         driftByProject[p.name] = ctx.branchStatus.peekDrift(root);
       }
     }

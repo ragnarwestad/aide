@@ -284,6 +284,39 @@ class TestManifestGet:
 
 
 @pytest.mark.validation
+class TestResolveOverride:
+    """aide_resolve_override CONFIG_KEY MANIFEST_KEY [project-root] (spec
+    345): `.aide/config` wins when it sets the key, `.aide/project.yaml`
+    is the fallback — the reverse of `aide_manifest_get`'s own
+    manifest-wins precedence for `worktreeLinks`, because an install/test
+    command legitimately differs per machine while a worktree link does
+    not."""
+
+    def test_config_only(self, workspace_root, tmp_path):
+        (tmp_path / ".aide").mkdir()
+        (tmp_path / ".aide" / "config").write_text("AIDE_TEST_CMD=echo from-config\n")
+        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
+        assert out == "echo from-config"
+
+    def test_manifest_only(self, workspace_root, tmp_path):
+        (tmp_path / ".aide").mkdir()
+        (tmp_path / ".aide" / "project.yaml").write_text("testCmd: echo from-manifest\n")
+        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
+        assert out == "echo from-manifest"
+
+    def test_both_set_config_wins(self, workspace_root, tmp_path):
+        (tmp_path / ".aide").mkdir()
+        (tmp_path / ".aide" / "config").write_text("AIDE_TEST_CMD=echo from-config\n")
+        (tmp_path / ".aide" / "project.yaml").write_text("testCmd: echo from-manifest\n")
+        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
+        assert out == "echo from-config"
+
+    def test_neither_is_empty(self, workspace_root, tmp_path):
+        out = _call(workspace_root, f'aide_resolve_override AIDE_TEST_CMD testCmd "{tmp_path}"')
+        assert out == ""
+
+
+@pytest.mark.validation
 class TestSpecDependencies:
     """aide_spec_dependencies reads the optional `Depends on:` line from a
     spec's OWN 1-description.md and echoes one identifier per line.

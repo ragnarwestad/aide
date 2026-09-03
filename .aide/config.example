@@ -1,0 +1,38 @@
+# Copy to .aide/config (gitignored — personal, per-machine) and fill in
+# what this checkout needs. Nothing here is required: every key falls
+# back to detection or to the committed manifest, and a project with no
+# file at all works exactly as one whose file sets nothing.
+#
+# The full description of each key is core/skills/tools-and-scripts/SKILL.md,
+# "Per-project configuration (.aide/config)".
+
+# Where this project's specs are kept, if not <project>/specs.
+# AIDE_SPECS_PATH=/somewhere/central-specs
+
+# JIRA root — issue links become <url>/browse/<KEY>.
+# AIDE_JIRA_BASE_URL=https://jira.mycompany.com
+
+# Overrides the detected test/lint/build commands. AIDE_TEST_CMD and
+# AIDE_INSTALL_CMD are also readable from the committed manifest's
+# testCmd:/installCmd: — this file wins when both set the same key,
+# because a command can legitimately differ on one machine.
+# AIDE_TEST_CMD=pytest -q
+# AIDE_LINT_CMD=ruff check .
+# AIDE_BUILD_CMD=make build
+
+# A subdirectory with its own toolchain: declare its paths and command
+# per scope (N is 1-based). With scope 1 declared, a change's files are
+# sorted into whichever scope(s) they fall under, and every matched
+# scope's command runs. The manifest's testScopes: does the same, and is
+# usually the better place for it — team knowledge, not per-machine.
+# AIDE_TEST_SCOPE_PATHS_1=dashboard
+# AIDE_TEST_SCOPE_CMD_1=cd dashboard && make test
+
+# LEGACY. Read only when the committed manifest's worktreeLinks: names
+# none — see that key instead.
+# AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+
+# What installing this project means on THIS machine, run by the
+# dashboard after the project's own code is merged. Also readable from
+# the manifest's installCmd: — this file wins when both set it.
+# AIDE_INSTALL_CMD=./install.sh

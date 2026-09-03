@@ -72,8 +72,10 @@ describe("configured, worked out, or not set", () => {
     const r = row(project("AIDE_TEST_CMD=make test\n", "pnpm-lock.yaml"), "AIDE_TEST_CMD");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("make test");
-    // Nothing was worked out, so nothing names a source.
-    expect(r.source).toBeUndefined();
+    // Spec 345: AIDE_TEST_CMD is now resolved through resolveTestCmd(),
+    // which names which file answered, exactly as the Worktree links
+    // row already does.
+    expect(r.source).toBe(".aide/config");
   });
 
   test("an unconfigured command is worked out from the lockfile, and says which", () => {
@@ -211,6 +213,47 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 25
   test("neither file setting it reads unset, same as before", () => {
     const dir = project("");
     const r = row(dir, "AIDE_WORKTREE_LINKS");
+    expect(r.origin).toBe("unset");
+    expect(r.value).toBeNull();
+    expect(r.source).toBeUndefined();
+  });
+});
+
+// Spec 345: the Install command and Test command rows are sourced from
+// resolveInstallCmd()/resolveTestCmd(), config-wins — the reverse
+// precedence from the Worktree links row above, because a value here can
+// legitimately differ per machine.
+describe("the Install/Test command rows are sourced from resolveInstallCmd()/resolveTestCmd() (spec 345)", () => {
+  test("the config wins when both files set AIDE_INSTALL_CMD/installCmd, and the row names that file", () => {
+    const dir = project("AIDE_INSTALL_CMD=./from-config.sh\n");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
+    const r = row(dir, "AIDE_INSTALL_CMD");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("./from-config.sh");
+    expect(r.source).toBe(".aide/config");
+  });
+
+  test("the manifest's installCmd: is the fallback, and the row names that file", () => {
+    const dir = project("");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
+    const r = row(dir, "AIDE_INSTALL_CMD");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("./from-manifest.sh");
+    expect(r.source).toBe("project.yaml");
+  });
+
+  test("the manifest's testCmd: is the fallback, and the row names that file", () => {
+    const dir = project("");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ntestCmd: make check\n");
+    const r = row(dir, "AIDE_TEST_CMD");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("make check");
+    expect(r.source).toBe("project.yaml");
+  });
+
+  test("neither file setting AIDE_INSTALL_CMD reads unset", () => {
+    const dir = project("");
+    const r = row(dir, "AIDE_INSTALL_CMD");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
     expect(r.source).toBeUndefined();

@@ -106,7 +106,8 @@ resolution — the merge commit IS the resolution.
 Use the project's own test command, in single-run mode:
 
 1. `AIDE_TEST_CMD` from `.aide/config` in the project root if it is set
-2. otherwise detect it from what the project ships (the lockfile or
+2. otherwise `testCmd` from the committed `.aide/project.yaml` if it is set
+3. otherwise detect it from what the project ships (the lockfile or
    build file), exactly as `/aide-implement` does
 
 Run it in the worktree you are standing in. If the project has no test

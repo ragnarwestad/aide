@@ -1,7 +1,7 @@
 // Running the project's own install once its code has landed. Split
 // out of land-branch.ts by theme (split land-branch.ts by theme).
 
-import { configValue } from "../../project/discover.ts";
+import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import { errorSentence } from "../../render/ui/error-sentence.ts";
@@ -21,7 +21,7 @@ import type { LandContext } from "./types.ts";
  *  `landBranch` owns the restart now and fires it once the whole
  *  landing is reported. */
 export async function installAfterMerge(ctx: LandContext, result: RepoMergeResult): Promise<boolean> {
-  const cmd = configValue(result.root, "AIDE_INSTALL_CMD");
+  const cmd = resolveInstallCmd(result.root).value;
   if (!cmd) {
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing

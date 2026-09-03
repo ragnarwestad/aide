@@ -73,7 +73,11 @@ def workspace(tmp_path):
     )
     subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "add spec"], check=True)
-    (project / ".gitignore").write_text("/deps/\n")
+    # .aide/config is gitignored here, scoped to the FIXTURE itself
+    # (spec 345: no project's .aide/config is tracked, aide's own
+    # included) rather than relying on the machine's own global ignore,
+    # so the fixture stays hermetic.
+    (project / ".gitignore").write_text("/deps/\n.aide/config\n")
     (project / "deps").mkdir()
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
@@ -83,9 +87,7 @@ def workspace(tmp_path):
     (project / ".aide" / "config").write_text(
         f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\nAIDE_TEST_CMD=true\n"
     )
-    # -f: the user's global gitignore covers .aide/config, and an
-    # untracked file would read as a dirty tree here.
-    subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".gitignore"], check=True)
+    subprocess.run(["git", "-C", str(project), "add", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
     return {
         "project": project,
@@ -2245,31 +2247,6 @@ def test_the_specs_worktree_is_added_to_claude_as_a_directory(runner, workspace,
     assert any(a.endswith("/" + workspace["specs"].name) for a in added), added
 
 
-# --- Criterion 4: the re-pointed config is never dirty, never committed ------
-
-def test_the_repointed_config_is_never_dirty_and_never_committed(runner, workspace, fake_claude):
-    """.aide/config is TRACKED in this repo, so rewriting it in a worktree
-    would dirty the tree — and `git add -A` would commit the rewrite onto
-    the spec branch. `update-index --skip-worktree` is what stops both."""
-    status = workspace["project"].parent / "wt-status.txt"
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'git status --porcelain > {status}\n'
-        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-    assert ".aide/config" not in status.read_text(), "the rewrite must never read as a change"
-    files = git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
-    assert ".aide/config" not in files, files
-    # The main checkout's own config is untouched.
-    assert f"AIDE_SPECS_PATH={workspace['specs']}" in (
-        workspace["project"] / ".aide" / "config"
-    ).read_text()
-
-
 # --- Criteria 5 and 6: the dependencies a worktree lacks ---------------------
 
 def test_a_linked_dependency_is_available_inside_the_worktree(runner, workspace, fake_claude):
@@ -3463,43 +3440,14 @@ def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_
         "a brand-new spec branch must be cut from origin's tip, not this checkout's stale tracking ref"
 
 
-# --- Criterion 18: the re-point happens AFTER the branch is brought up to date
-
-def test_a_reused_branch_whose_base_changed_the_config_does_not_false_conflict(
-    runner, workspace, fake_claude
-):
-    """With .aide/config marked skip-worktree and rewritten, and its
-    committed content changed on the base branch, `git merge` fails with
-    "local changes would be overwritten" while `git status` calls the tree
-    clean and `merge --abort` has nothing to abort. Reachable the day
-    AIDE_WORKTREE_LINKS lands on main."""
-    project = workspace["project"]
-    git(project, "switch", "-q", "-c", BRANCH)
-    git(project, "switch", "-q", "main")
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps\n# a later comment\n"
-    )
-    git(project, "add", "-f", ".aide/config")
-    git(project, "commit", "-q", "-m", "change the config on main")
-
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), command="implement")
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed", out
-    assert is_ancestor(project, "main", BRANCH)
-
-
 # --- Criterion 19: an untracked .aide/config --------------------------------
 
 def test_an_untracked_aide_config_is_copied_into_the_worktree(runner, workspace, fake_claude):
-    """.aide/config is tracked in aide's own repo only, because its
-    .gitignore negates the global ignore for it. Everywhere else a
-    worktree has no config at all — so AIDE_SPECS_PATH and AIDE_TEST_CMD
-    would simply vanish for the step."""
+    """.aide/config is never tracked, in any project including aide's own
+    (spec 345) — so a worktree, which checks out tracked files only, has
+    no config at all unless it is copied in. Without that copy
+    AIDE_SPECS_PATH and AIDE_TEST_CMD would simply vanish for the step."""
     project = workspace["project"]
-    git(project, "rm", "-q", "--cached", ".aide/config")
-    (project / ".gitignore").write_text("/deps/\n/.aide/\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "stop tracking the config")
     assert git(project, "status", "--porcelain") == ""
 
     seen = project.parent / "specs-seen.txt"

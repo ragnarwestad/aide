@@ -4,7 +4,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest, type ScheduleEntry } from "../parse-manifest.ts";
+import { parseManifest, type ManifestData, type ScheduleEntry } from "../parse-manifest.ts";
 
 /** One key out of a project's OWN `.aide/config` — the personal,
  *  gitignored file where an operator writes what only their machine
@@ -88,6 +88,60 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
   if (!existsSync(manifestFile)) return "merge";
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
+}
+
+/** Which of the two files an install/test command came out of. Unlike
+ *  `WorktreeLinksSource`, `.aide/config` is the PRIMARY source here, not
+ *  the fallback — see `resolveInstallCmd`/`resolveTestCmd` below. */
+export type ConfigOverrideSource = ".aide/config" | "project.yaml";
+
+/** Resolve a key that may be set in either file, `.aide/config` winning
+ *  (spec 345) — the reverse of `resolveWorktreeLinks`'s manifest-wins
+ *  precedence, because an install/test command legitimately differs per
+ *  machine (a PATH prefix a shell needs, say) while a worktree link is a
+ *  fact about the project itself and cannot. `null` when neither file
+ *  sets the key. */
+function resolveOverride(
+  projectDir: string,
+  configKey: string,
+  manifestValue: (data: ManifestData) => string | undefined,
+): { value: string | null; source: ConfigOverrideSource | null } {
+  const fromConfig = configValue(projectDir, configKey);
+  if (fromConfig) return { value: fromConfig, source: ".aide/config" };
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (existsSync(manifestFile)) {
+    const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+    const fromManifest = parsed.ok ? (manifestValue(parsed.data) ?? "").trim() : "";
+    if (fromManifest) return { value: fromManifest, source: "project.yaml" };
+  }
+  return { value: null, source: null };
+}
+
+/** What installing this project means on this machine, and where that
+ *  answer came from (spec 345). `.aide/config`'s `AIDE_INSTALL_CMD`
+ *  first, the manifest's `installCmd:` as the fallback — see
+ *  `resolveOverride` above for why the precedence is reversed from
+ *  `resolveWorktreeLinks`.
+ *
+ *  One half of a hand-kept pair: `core/scripts/_aide-spec-lib.sh`'s
+ *  `aide_resolve_override` resolves the same two files in the same
+ *  order, and `tests/fixtures/config-cmd-precedence.json` is the table
+ *  both sides are checked against. */
+export function resolveInstallCmd(
+  projectDir: string,
+): { value: string | null; source: ConfigOverrideSource | null } {
+  return resolveOverride(projectDir, "AIDE_INSTALL_CMD", (d) => d.installCmd);
+}
+
+/** This project's own test command, and where it came from (spec 345) —
+ *  the same config-wins precedence as `resolveInstallCmd`. Callers that
+ *  also want a LOCKFILE-derived fallback (nothing in either file) use
+ *  `detect-commands.ts`'s `detectProjectCommands()` once this answers
+ *  `null`; this function never guesses one itself. */
+export function resolveTestCmd(
+  projectDir: string,
+): { value: string | null; source: ConfigOverrideSource | null } {
+  return resolveOverride(projectDir, "AIDE_TEST_CMD", (d) => d.testCmd);
 }
 
 /** This project's own recurring jobs (spec 259), read fresh off the

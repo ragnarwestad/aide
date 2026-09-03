@@ -12,7 +12,8 @@
 
 export {
   configValue, resolveWorktreeLinks, resolveCodeLanding, resolveSchedule,
-  type WorktreeLinksSource, type CodeLanding,
+  resolveInstallCmd, resolveTestCmd,
+  type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
 } from "./discover/config.ts";
 
 export {

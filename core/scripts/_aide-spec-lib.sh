@@ -118,6 +118,20 @@ aide_manifest_get() {
   sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//'
 }
 
+# Resolve a key that MAY be set in either file, `.aide/config` winning
+# (spec 345) — the reverse of aide_manifest_get's own manifest-wins
+# precedence for worktreeLinks. An install/test command legitimately
+# differs per machine (a PATH prefix a shell needs, say), while a
+# worktree link is a fact about the project itself and cannot. Echoes
+# nothing if neither file sets the key.
+#   aide_resolve_override CONFIG_KEY MANIFEST_KEY [project-root]
+aide_resolve_override() {
+  local config_key="$1" manifest_key="$2" root="${3:-.}" value
+  value="$(aide_config_get "$config_key" "$root")"
+  [ -n "$value" ] && { printf '%s\n' "$value"; return 0; }
+  aide_manifest_get "$manifest_key" "$root"
+}
+
 # Readable name from folder ID (NN-slug → Title Case)
 get_display_name() {
   local id="$1" slug
@@ -164,7 +178,8 @@ aide_test_scope_base_ref() {
 #
 # The matching rule (whole-changeset, not per file in isolation):
 #   1. No AIDE_TEST_SCOPE_PATHS_1 at all: echo the single legacy
-#      AIDE_TEST_CMD (or nothing, if that is unset too) — REQ-6,
+#      AIDE_TEST_CMD, or the manifest's `testCmd:` when `.aide/config`
+#      sets neither (spec 345), or nothing if both are unset — REQ-6,
 #      unconditionally, without looking at the changed-file list.
 #   2. Otherwise, classify every changed file into the scope(s) whose
 #      declared paths it lies under (a directory-boundary match, never a
@@ -188,7 +203,7 @@ aide_test_scope_commands() {
   local first_paths legacy
   first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$root")"
   if [ -z "$first_paths" ]; then
-    legacy="$(aide_config_get AIDE_TEST_CMD "$root")"
+    legacy="$(aide_resolve_override AIDE_TEST_CMD testCmd "$root")"
     [ -n "$legacy" ] && echo "$legacy"
     return 0
   fi
