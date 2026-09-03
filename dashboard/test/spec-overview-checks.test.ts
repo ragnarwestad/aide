@@ -25,6 +25,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { specWriteInFlight } from "../src/serve/handle-queue/spec-edit.ts";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import { PAGE, TICK, SAVE, TOKEN, FILE_SHA, DESCRIPTION, NEW_TEXT, auth, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
 import {
@@ -178,7 +179,11 @@ describe("the checks on the Overview tab", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toContain(TDD_OPEN_ROW);
   });
 
-  test("a queued matching job refuses a direct tick without changing 4-status.md", async () => {
+  // A queued job writes nothing yet — and an archive job parked on this
+  // very tick is queued, so refusing on `queued` made the tick and the
+  // hold-back wait for each other (371, 2026-09-03). Running, or a
+  // landing in flight, still refuses: `specWriteInFlight`.
+  test("a queued matching job does not block a direct tick", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
     const queued = await fetch(`${base}/api/queue`, {
@@ -187,12 +192,17 @@ describe("the checks on the Overview tab", () => {
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(queued.status).toBe(200);
-
     const res = await tick(base, { ticks: [OPEN_ROW] });
     expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("still running");
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
-    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("still running");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
+  });
+
+  test("specWriteInFlight: running or landing blocks a tick, queued and done do not", () => {
+    expect(specWriteInFlight({ state: "running" })).toBe(true);
+    expect(specWriteInFlight({ state: "done", landing: true })).toBe(true);
+    expect(specWriteInFlight({ state: "queued" })).toBe(false);
+    expect(specWriteInFlight({ state: "done" })).toBe(false);
   });
 
   test("a description save commits 1-description.md alone, and never the status", async () => {

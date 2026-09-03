@@ -363,6 +363,37 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   });
 });
 
+// --- a held-back job waits in amber, never in red --------------------------
+//
+// Every reason the scheduler leaves a job queued starts "held back:", and
+// each is ordinary progress (a dependency, a missing analyze, another
+// archive landing, an acceptance row for a person to tick). They take
+// the amber "archive held back" already takes, not the red of a refusal.
+describe("a job the scheduler is holding is a warning, not an error", () => {
+  const FOLDER = "81-queue-and-runner";
+  const notice = (error: string) =>
+    noticeCellHtml(renderQueueRows([row({ state: "queued", error })], { runnerAvailable: true, targets: [] }), FOLDER);
+
+  test("every held-back reason is drawn amber", () => {
+    for (const reason of [
+      "held back: another archive is running in this project — it starts when that one has landed",
+      "held back: depends on 80-dependency, which is not archived yet",
+      "held back: not analyzed yet — run /aide-analyze first",
+      "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
+    ]) {
+      const html = notice(reason);
+      expect(html).toContain(reason);
+      expect(html).toMatch(/class="[^"]*rowmsg warn/);
+      expect(html).not.toMatch(/class="[^"]*rowmsg err/);
+    }
+  });
+
+  test("a refusal stays red", () => {
+    const html = notice("cannot fast-forward main — merge it by hand, in the checkout on the serving host");
+    expect(html).toMatch(/class="[^"]*rowmsg err/);
+  });
+});
+
 // --- spec 327: a landing failure survives its job's later steps ------------
 //
 // The mark is read straight off `lead.landingError` and drawn

@@ -20,6 +20,14 @@ import {
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specsRedirect, tickMessage } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
+/** Whether `job` is writing the spec's files right now: its step is
+ *  running, or its landing is in flight. A queued job writes nothing
+ *  yet — and may be queued precisely for a tick (the acceptance
+ *  hold-back), so it must not block one. */
+export function specWriteInFlight(job: { state: string; landing?: boolean }): boolean {
+  return job.state === "running" || !!job.landing;
+}
+
 export async function handleSpecEditRoutes(
   ctx: HandleQueueContext,
   req: Request,
@@ -400,9 +408,14 @@ export async function handleSpecEditRoutes(
       logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
       return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specTabPath(project!, specFolder!, "checks"));
     }
+    // A step that is RUNNING, or a landing in flight, is writing the
+    // file this tick would commit onto. A job that is merely queued is
+    // not — and an archive job parked on this very tick ("held back:
+    // the Acceptance criteria are not all ticked yet") is queued, so
+    // refusing on `queued` made the tick and the hold-back wait for
+    // each other (371, 2026-09-03).
     const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder &&
-        (job.state === "queued" || job.state === "running"),
+      (job) => job.project === project && job.specFolder === specFolder && specWriteInFlight(job),
     );
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";

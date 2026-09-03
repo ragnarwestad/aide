@@ -111,6 +111,19 @@ class TestSpecStructureRuleScope:
 
 
 @pytest.mark.validation
+class TestTestingRuleHasNoPathsScoping:
+    """core/rules/testing.md must apply repo-wide, unlike
+    spec-structure.md — it must never gain a paths: scope."""
+
+    def test_testing_rule_carries_no_paths_frontmatter(self):
+        globs = rule_paths(RULES_DIR / "testing.md")
+        assert not globs, (
+            "core/rules/testing.md has gained a paths: frontmatter key — "
+            "this rule must apply repo-wide, not be scoped to matching files"
+        )
+
+
+@pytest.mark.validation
 class TestManifestIsWired:
     """The project manifest (spec 78) must be documented, consumed and
     not hidden by the old wide-ignore recommendation."""
