@@ -32,6 +32,7 @@ export {
   stateFilter,
   stateFilterLabel,
   matchesState,
+  matchesStateFilter,
   filterShowsArchived,
   isArchivedRow,
   matchesSearch,
