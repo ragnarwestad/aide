@@ -91,10 +91,10 @@ export function archivedLine(view: SpecPageView): string {
  *  So there is one group, one form and one Save — never one per phase. */
 const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 
-export function checklist(view: SpecPageView): string {
+export function checklist(view: SpecPageView, mark = ""): string {
   const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
   if (rows.length === 0) {
-    return `<p class="muted">No acceptance criteria to tick.</p>`;
+    return `<p class="muted">No acceptance criteria to tick.${mark ? ` ${mark}` : ""}</p>`;
   }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
@@ -133,7 +133,7 @@ export function checklist(view: SpecPageView): string {
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   const head =
     `<p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>`;
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>`;
   // The boxes sit INSIDE the one form, and the Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick

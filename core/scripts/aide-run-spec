@@ -694,7 +694,10 @@ codex_safety_flags() {
 # reported success. Put it where the model is already reading.
 headless_note="(This run is headless: no one is at a keyboard and no question can be
 answered. Never stop to ask for confirmation — decide, or write down
-what you would have asked, and finish the step.)"
+what you would have asked, and finish the step. Never run tests or any
+other work in the background and never end your turn to wait for it:
+the run ends the moment you stop, and nothing resumes you. Run every
+test suite in the foreground and finish the step in this same turn.)"
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from

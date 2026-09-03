@@ -103,3 +103,13 @@ describe(".intro popover CSS (spec 311)", () => {
     expect(CSS).toContain("details.intro { position: relative; }");
   });
 });
+
+// Spec 360, REQ-6: the spec page's tabs append the mark inside their own
+// first line rather than drawing it as a preceding sibling — floating it
+// right is what keeps it pinned to that line's end rather than wrapping
+// under it on a narrow screen.
+describe(".tabpanel details.intro CSS (spec 360)", () => {
+  test("the mark floats right within the spec page's tab panel", () => {
+    expect(CSS).toContain(".tabpanel details.intro { float: right; }");
+  });
+});
