@@ -88,12 +88,18 @@ const refuse = (root: string, ref: string, why: string, detail?: string): RepoMe
  *  and whoever gets there second sees this — not a divergence, just a
  *  lost race, and it refused three merges on 2026-08-18 as though the
  *  base had moved. */
-const INDEX_LOCK = /index\.lock/;
-/** Two retries: half a second at most, so a lock that is genuinely
- *  stuck still refuses in well under a second rather than holding the
- *  request open. */
-const LOCK_RETRIES = 2;
-const LOCK_WAIT_MS = 250;
+/** Every lock git can lose a race for, not only the index's: a run's
+ *  own `aide-run-spec` writes refs in this same checkout at its start
+ *  and its end (fetch --force, branch -f/-D, update-ref -d, worktree
+ *  prune), and a landing in the same second met `packed-refs.lock` and
+ *  `cannot lock ref` — refused as "cannot fast-forward", with git's own
+ *  words thrown away (2026-09-03, twice in a row). */
+const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
+/** Five retries, two seconds at most: a run's ref writes take well under
+ *  that, and a lock that is genuinely stuck still refuses in seconds
+ *  rather than holding the request open. */
+const LOCK_RETRIES = 5;
+const LOCK_WAIT_MS = 400;
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 type Wait = (ms: number) => Promise<void>;
@@ -211,7 +217,7 @@ export async function mergeBranchIntoDefault(
       // Only for the lock, and only a couple of times. Retrying every
       // pull failure would also delay the refusal a real divergence
       // deserves — and that refusal is the one that must stay immediate.
-      for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
+      for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
         await wait(LOCK_WAIT_MS);
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
@@ -226,7 +232,14 @@ export async function mergeBranchIntoDefault(
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
       if (pulled.code !== 0) {
-        return refuse(root, branch, `cannot fast-forward ${base} — merge it by hand, in the checkout on the serving host`);
+        // Git's own words ride in `detail` (spec 352, REQ-5): the cause
+        // had to be guessed twice without them.
+        return refuse(
+          root,
+          branch,
+          `cannot fast-forward ${base} — merge it by hand, in the checkout on the serving host`,
+          (pulled.stderr ?? "").trim().slice(-300) || undefined,
+        );
       }
     }
 
@@ -244,16 +257,36 @@ export async function mergeBranchIntoDefault(
     //      base means they run again.
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       await run(root, ["fetch", "--quiet", "origin", base, branch]);
-      const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
-      if (ff.code !== 0) {
-        const real = await run(root, ["merge", "-q", "--no-edit", ref]);
-        if (real.code !== 0) {
-          await run(root, ["merge", "--abort"]);
-          return {
-            ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`),
-            reason: "conflict",
-          };
+      // A merge that lost a lock race is retried like the pull is — it
+      // used to be reported as a conflict, which it is not.
+      let merged = false;
+      let lastStderr = "";
+      for (let n = 0; !merged && n <= LOCK_RETRIES; n++) {
+        if (n > 0) await wait(LOCK_WAIT_MS);
+        const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
+        if (ff.code === 0) {
+          merged = true;
+          break;
         }
+        const real = await run(root, ["merge", "-q", "--no-edit", ref]);
+        if (real.code === 0) {
+          merged = true;
+          break;
+        }
+        await run(root, ["merge", "--abort"]);
+        lastStderr = (real.stderr ?? "").trim();
+        if (!GIT_LOCKED.test(lastStderr)) break;
+      }
+      if (!merged) {
+        return {
+          ...refuse(
+            root,
+            branch,
+            `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`,
+            lastStderr.slice(-300) || undefined,
+          ),
+          reason: "conflict",
+        };
       }
       // The tests run HERE, once per attempt, on what main is about to
       // become — not in every step that touched the branch, and never
@@ -380,7 +413,7 @@ export async function fastForwardToOrigin(
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
     let pulled = await run(root, ["pull", "-q", "--ff-only"]);
-    for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
+    for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
       await wait(LOCK_WAIT_MS);
       pulled = await run(root, ["pull", "-q", "--ff-only"]);
     }

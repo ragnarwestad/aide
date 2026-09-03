@@ -56,10 +56,11 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   `merge` write nothing but what differs between the commits, and a file that genuinely collides raises git's own error
   instead of a guess made in advance. What the two sides can still collide over is git's `index.lock`, and there the run
   yields — its pull is a courtesy, recorded and never fatal.
-- **`index.lock` is not a conflict.** Losing that race is not a diverged base and must not be refused with the same
-  sentence. The pull is retried twice, a quarter
-  of a second apart, and ONLY when git's own stderr names `index.lock`; every other failure is refused on the first
-  attempt.
+- **A lost lock is not a conflict.** A run's own `aide-run-spec` writes refs in this same checkout at its start and
+  its end, so a landing in the same second can lose a race for `index.lock`, `packed-refs.lock` or a ref lock. That is
+  not a diverged base and must not be refused with the same sentence: the pull, and the merge itself, are retried up to
+  five times, under half a second apart, whenever git's own stderr names a lock; every other failure is refused on the
+  first attempt, with git's own words kept as the row's detail.
 - **Main moving under a landing is not a refusal.** A push origin answers and still rejects means the default branch
   got commits while the tests ran. The local merge is dropped, the branch is merged again onto the base that moved,
   the tests run again on that result, and the push is made once more — once. A second rejection refuses with the
