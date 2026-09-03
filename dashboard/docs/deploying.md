@@ -153,9 +153,17 @@ All paths are relative to the serving host's own `$HOME`.
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`        | bun on that host                                                  |
 | `LABEL`          | `com.aide-dashboard.serve`           | launchd job label                                                 |
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`                | the allowlist's first-boot seed                                   |
-| `ROOT`           | unset                                | project root there (omitted when unset)                           |
+| `ROOT`           | unset                                | projects root there (omitted when unset) — see below              |
 | `BIND`           | unset                                | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 | `CLAUDE_USAGE`   | unset                                | claude-usage URL (omitted when unset)                             |
+
+**The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
+`ROOT` and lands their work in `aide-dashboard-checkouts/<project>/code`; when those are two different copies, the list
+lags the landings until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host
+`ROOT` is `aide-dashboard-projects/`, holding one symlink per project to `aide-dashboard-checkouts/<project>/code` — the
+one copy the dashboard both reads and writes. A project with no checkout of its own (a scratch project) links to
+wherever it lives. Each linked checkout keeps its own `.aide/config`, written by the dashboard when it clones the
+project.
 
 Publishing the generated site to that host is separate:
 `AIDE_DASH_HOST=<host> make publish`. Before rsyncing (with `--delete`),
