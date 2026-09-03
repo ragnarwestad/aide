@@ -209,7 +209,38 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
   event.preventDefault();
   await postForm(
     form,
-    async () => { location.reload(); },
+    async (answer) => {
+      // The server answers before it restarts (queue-admin.ts). A reload
+      // fired straight away hit the gap and the page read "the request
+      // failed" for a deploy that had succeeded (2026-09-03): say what
+      // is happening, wait for the service, then reload.
+      if (answer?.restarting) {
+        formNote(form, "deployed — the dashboard is restarting; this page reloads when it is back");
+        await waitForServer();
+      }
+      location.reload();
+    },
     (why) => formNote(form, why),
   );
+}
+
+/** Poll the current page until the server answers it again. Exported
+ *  with its two effects as parameters so the wait itself is testable. */
+export async function waitForServer(
+  get: () => Promise<{ ok: boolean }> = () => fetch(location.pathname, { cache: "no-store" }),
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+  attempts = 120,
+): Promise<boolean> {
+  // The kickstart itself waits a second, so the first probe would only
+  // ever hit the OLD process and read as "back" — wait it out first.
+  await sleep(2000);
+  for (let n = 0; n < attempts; n++) {
+    try {
+      if ((await get()).ok) return true;
+    } catch {
+      // Refused or reset while the service is down: keep waiting.
+    }
+    await sleep(1500);
+  }
+  return false;
 }

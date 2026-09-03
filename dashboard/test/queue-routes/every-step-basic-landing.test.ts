@@ -242,6 +242,48 @@ describe("every step lands its own work (spec 149)", () => {
   // the active list. `errorReason` is what makes the way out survive —
   // there is no browser attached to an automatic landing, so the one-shot
   // redirect the Merge button used cannot carry it.
+  // The Deploy button's restart used to be awaited inside the route: the
+  // kickstart landed before the answer went out, and the page read "the
+  // request failed" for a deploy that had succeeded (2026-09-03).
+  test("Deploy answers before its restart fires, and says the service is restarting", async () => {
+    const dir = own("aide-deploy-answers-first-");
+    const paths = repos(dir);
+    // The landing fixture's git never answers which branch the checkout
+    // is on; the deploy route asks, so answer it here.
+    const inner = gitFor();
+    const git = {
+      calls: inner.calls,
+      run: async (d: string, args: string[]) =>
+        args.join(" ") === "rev-parse --abbrev-ref HEAD" ? { code: 0, stdout: "master\n" } : inner.run(d, args),
+    };
+    let fired = 0;
+    let firedAt = 0;
+    const { base } = serverWithHarness(dir, paths, git, {
+      dashboardRoot: paths.project,
+      restart: {
+        // Slow on purpose: an answer that waited for this gate would
+        // take at least this long.
+        registered: () => new Promise<boolean>((r) => setTimeout(() => r(true), 400)),
+        fire: () => {
+          fired += 1;
+          firedAt = Date.now();
+        },
+      },
+    });
+    installs(paths.project);
+    const t0 = Date.now();
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    const answeredAt = Date.now();
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; restarting?: boolean };
+    expect(body.ok).toBe(true);
+    expect(body.restarting).toBe(true);
+    expect(answeredAt - t0).toBeLessThan(400);
+    for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
+    expect(fired).toBe(1);
+    expect(firedAt).toBeGreaterThanOrEqual(answeredAt);
+  });
+
   test("a landing into a project that is not the dashboard's own never restarts it", async () => {
     // The install is that project's business — PaceUp's install restarts
     // PaceUp, if anything. Only a landing into the checkout this dashboard

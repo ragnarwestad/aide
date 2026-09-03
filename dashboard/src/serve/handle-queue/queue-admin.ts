@@ -266,28 +266,38 @@ export async function handleQueueAdminRoutes(
     if (!base) return refuse(`cannot work out the default branch in ${root}`);
     const result = await ctx.mergeLock.run(root, () => fastForwardToOrigin(ctx.gitRun, root, base));
     if (!result.ok) return refuse(result.error ?? `cannot bring ${root} up to date`);
-    await ctx.installAfterMerge(result);
+    const after = await ctx.installAfterMerge(result);
     // Fresh, not cached: the checkout just moved, and the next reader
     // of this project's page must not see the old count for up to
     // driftPollMs longer.
     await ctx.branchStatus.commitsBehindOrigin(root, true);
+    // The answer is composed first and the restart fired after it: a
+    // restart awaited in here landed before the answer went out, and
+    // the page read "the request failed" for a deploy that had
+    // succeeded (2026-09-03). `restarting` tells the page to wait for
+    // the service to come back before it reloads.
+    const restarting = !!after.restart;
+    let response: Response;
     if (result.installError) {
       console.error(`queue: deploy ${name} in ${root} — ${result.installError}`);
-      return wantsJson
-        ? json({ ok: true, installError: result.installError })
+      response = wantsJson
+        ? json({ ok: true, installError: result.installError, restarting })
         : new Response(null, {
             status: 303,
             headers: {
               location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(result.installError)}&tab=deploy`,
             },
           });
+    } else {
+      response = wantsJson
+        ? json({ ok: true, restarting })
+        : new Response(null, {
+            status: 303,
+            headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+          });
     }
-    return wantsJson
-      ? json({ ok: true })
-      : new Response(null, {
-          status: 303,
-          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
-        });
+    after.restart?.();
+    return response;
   }
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);

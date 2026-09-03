@@ -113,12 +113,19 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landArchivedSpecImpl(landCtx, job, outcome);
   }
-  /** The deploy button's install, which owns its restart the way it
-   *  always has: there is no repo loop behind it to be killed in the
-   *  middle of. `landBranch` calls the implementation directly and
-   *  fires the restart itself, once its own loop is through. */
-  async function installAfterMerge(result: RepoMergeResult) {
-    if (await installAfterMergeImpl(landCtx, result)) await restartAfterLanding(landCtx);
+  /** The deploy button's install. The restart it may call for is handed
+   *  back as a thunk rather than fired here: the route answers the
+   *  browser FIRST and fires it after — awaited here, the kickstart
+   *  landed before the answer went out, and the page read "the request
+   *  failed" for a deploy that had succeeded (2026-09-03). `landBranch`
+   *  calls the implementation directly and never restarts. */
+  async function installAfterMerge(result: RepoMergeResult): Promise<{ restart?: () => void }> {
+    if (!(await installAfterMergeImpl(landCtx, result))) return {};
+    return {
+      restart: () => {
+        void restartAfterLanding(landCtx);
+      },
+    };
   }
   function withFreshness(list: QueueTarget[]) {
     return withFreshnessImpl(landCtx, list);

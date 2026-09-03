@@ -33,6 +33,10 @@ export interface ActionResult {
    *  server writes the sentence — the same one its own redirect carries
    *  for a browser with no script — so there is one wording, not two. */
   readiness?: { canRun?: boolean; note?: string };
+  /** A Deploy that installed into the dashboard's own checkout: the
+   *  service restarts right after this answer, and the page has to wait
+   *  for it to be back before reloading. */
+  restarting?: boolean;
 }
 
 /** Why the server said no, whichever shape it said it in: the project
