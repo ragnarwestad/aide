@@ -2386,6 +2386,66 @@ record_branch_url() {
   fi
 }
 
+# REQ-2/REQ-5 (spec 359): bounded, and the same bound the TypeScript
+# side (`PUSH_RETRY_WAITS_MS` in branch-merge.ts) uses — long enough to
+# ride out a momentary GitHub blip (spec 314), short enough that a run
+# that is really offline still finishes in seconds.
+PUSH_RETRY_WAITS=(1 2)
+
+# One push, with its own recovery (spec 359). Tries the plain push (and,
+# for a root this run amended, the existing force-with-lease retry)
+# exactly as before. Only on failure does it ask WHY: origin unreachable
+# is retried blind (REQ-2); origin reachable but the push still rejected
+# means the branch moved under us, which `pull --rebase` can settle on
+# its own (REQ-1) — unless the rebase itself conflicts, which is a
+# person's call and never the script's (REQ-3). Sets $push_retry_error
+# on failure and $push_retry_new_head when a rebase moved local HEAD —
+# the caller folds that into $head_after_per_root itself, since this
+# helper has no run-wide accumulator of its own to write into.
+push_with_retry() {
+  local root="$1" wt="$2" amended_sha="$3" err=""
+  push_retry_error=""; push_retry_new_head=""
+
+  try_push() {
+    if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then return 0; fi
+    [ -n "$amended_sha" ] || return 1
+    err="$(git -C "$wt" push -q --force-with-lease="$branch:$amended_sha" origin "$branch" 2>&1)"
+  }
+
+  try_push && return 0
+
+  if ! git -C "$wt" ls-remote origin >/dev/null 2>&1; then
+    # REQ-2: origin itself did not answer — retry the push, not a rebase.
+    local wait_s
+    for wait_s in "${PUSH_RETRY_WAITS[@]}"; do
+      sleep "$wait_s"
+      try_push && return 0
+    done
+    push_retry_error="cannot reach origin for $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    return 1
+  fi
+
+  # REQ-1: origin answered, so the push was REJECTED — almost always
+  # because something else landed a commit on this branch since this
+  # worktree last looked (another run, or the landing's own cleanup).
+  if git -C "$wt" pull -q --rebase origin "$branch" >/dev/null 2>&1; then
+    push_retry_new_head="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
+    try_push && return 0
+    push_retry_error="cannot push $branch in $root after a rebase: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    return 1
+  fi
+
+  # REQ-3: the rebase itself conflicted — real, different commits on
+  # both sides. Abort back to exactly where this worktree stood, and
+  # name what a person has to reconcile rather than guessing.
+  git -C "$wt" rebase --abort >/dev/null 2>&1 || true
+  local ours theirs
+  ours="$(git -C "$wt" log --oneline "origin/$branch..$branch" 2>/dev/null | tr '\n' '; ')"
+  theirs="$(git -C "$wt" log --oneline "$branch..origin/$branch" 2>/dev/null | tr '\n' '; ')"
+  push_retry_error="$branch has diverged from origin's copy in $root — this run has: ${ours:-(nothing)}; origin has: ${theirs:-(nothing)} — reconcile by hand"
+  return 1
+}
+
 # Commits whatever is dirty in each root, then pushes every root whose
 # local tip is not yet what origin has. $amend_source is per-call
 # (local here) on purpose — a pass's own amend decision is only ever
@@ -2456,6 +2516,7 @@ commit_and_push_roots() {
       head_was="${head_before[$i]}"
       head_is="${head_after_per_root[$i]}"
       amended_sha="${amend_source[$i]:-}"
+      idx=$i
       # The main checkout never leaves its default branch for the whole
       # run (see the note above the EXIT trap at the bottom of this
       # script) — its own current HEAD is therefore a cheap, always-local
@@ -2496,18 +2557,19 @@ commit_and_push_roots() {
         note_push_error "no origin remote in $root"
         continue
       fi
-      if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then
-        record_branch_url "$root"
-      elif [ -n "$amended_sha" ] && \
-           err="$(git -C "$wt" push -q --force-with-lease="$branch:$amended_sha" origin "$branch" 2>&1)"; then
-        # REQ-2: this run amended a commit that turned out to already be
-        # public (the pre-amend check missed it, or origin moved between
-        # the check and here) — the lease only succeeds if origin still
-        # holds exactly the commit this run rewrote, so it cannot force
-        # over anyone else's work.
+      if push_with_retry "$root" "$wt" "$amended_sha"; then
         record_branch_url "$root"
       else
-        note_push_error "cannot push $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+        note_push_error "$push_retry_error"
+      fi
+      if [ -n "$push_retry_new_head" ]; then
+        # A REQ-1 rebase can move local HEAD whether or not the retried
+        # push that follows it succeeds — this array means "this call's
+        # true final local tip," not "the tip it managed to push," so it
+        # is folded in unconditionally rather than only on success.
+        # $repos_json is built once, at the very end, straight from this
+        # array (below), so nothing else needs to be told about the move.
+        head_after_per_root[$idx]="$push_retry_new_head"
       fi
     done
   fi
