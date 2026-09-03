@@ -1034,3 +1034,21 @@ class TestInstallReplacesByRename:
         assert run().returncode == 0
         assert installed.stat().st_ino != before, "the file was written into, not replaced"
         assert not list((tmp_path / ".local" / "bin").glob("*.aide-tmp"))
+
+
+class TestSpecTransitionsLibIsInstalled:
+    def test_spec_transitions_lib_and_table_are_installed(self, workspace_root, tmp_path):
+        """aide-archive-spec's implement check calls may_apply_spec_transition
+        from lib/spec-transitions.sh (spec 356). It landed without an
+        installer entry, so the serving host refused every archive as
+        not-implemented-yet (2026-09-03)."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True, env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        lib = tmp_path / ".local" / "bin" / "lib"
+        assert (lib / "spec-transitions.sh").is_file()
+        assert (lib / "transitions.json").is_file()

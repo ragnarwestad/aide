@@ -29,7 +29,7 @@ COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 # step lists, read by aide-run-spec (jq) and imported by the dashboard.
 # Unlike status-progress.sh above, a missing copy here is refused loudly
 # by aide-run-spec rather than silently no-op'd.
-COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json spec-state.sh"
+COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json spec-state.sh spec-transitions.sh transitions.json"
 # Non-AI CLI tools aide's installer keeps present via mise, using the
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).
