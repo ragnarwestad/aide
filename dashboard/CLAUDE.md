@@ -33,8 +33,14 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 `docs/running-specs.md`, "How a run touches the repositories".
 
 - `aide-run-spec` branches EVERY repo it touches, and pushes a repo only
-  when its HEAD moved — never on `changedFiles`, which a step that commits
-  its own work leaves at `0`.
+  when its branch has content beyond its own default branch AND origin
+  does not already hold that tip — never on `changedFiles`, which a step
+  that commits its own work leaves at `0`, and never on "moved during
+  THIS run" alone: a commit a prior run's failed push left stranded is
+  retried on every later run, not only the run that made it (spec 343).
+  A run's own bookkeeping (`Workflow steps completed`) is written and
+  pushed as its own confirmed step, so it never lands while that push
+  cannot be confirmed against origin (spec 343).
 - It works in `git worktree` checkouts under
   `$HOME/aide-worktrees/<project>/<spec>/`. The result's `repos[].root` is
   the MAIN checkout; `repos[].worktree` is the throwaway one.
@@ -61,6 +67,7 @@ edited by hand together.
 | `codeLanding` — whether code is reviewed before it lands | one anchored `sed` in `aide-run-spec` | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/code-landing-precedence.json` |
 | The status-mark rule — which Status cells count as done | `total_progress_for` in `aide-run-spec` | `isDoneMark` in `dashboard/src/project/parse-status.ts` | `tests/fixtures/status-row-counting.json` |
 | An error sentence says what happened AND what resolves it (spec 352) | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec` | `errorSentence()` in `dashboard/src/render/ui/error-sentence.ts`, and every producer that follows its shape by hand | `dashboard/test/render/ui/error-sentence-registry.test.ts` and `tests/specs/unit/core/scripts/test_aide_run_spec.py`'s `BASH_ERROR_REGISTRY`, each reading its own side's source text |
+| The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported (spec 359) | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec` | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts` | `dashboard/test/git/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text |
 
 The workflow's own vocabulary is NOT one of these pairs (spec 349):
 `core/scripts/lib/workflow-steps.json` is the one file both sides read —

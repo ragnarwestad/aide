@@ -98,6 +98,65 @@ const LOCK_WAIT_MS = 250;
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 type Wait = (ms: number) => Promise<void>;
 
+/** REQ-2/REQ-5 (spec 359): the same bound `aide-run-spec`'s
+ *  `push_with_retry` uses (`PUSH_RETRY_WAITS`) — two extra tries,
+ *  waiting longer between them than the lock retry above, since a
+ *  network blip (spec 314) takes longer to clear than a lock held by a
+ *  sibling git process on the same machine. */
+const PUSH_RETRY_WAITS_MS = [1000, 2000];
+
+interface PushRetryResult {
+  ok: boolean;
+  error?: string;
+}
+
+/** One push, with its own recovery (spec 359, REQ-1/REQ-2/REQ-3) — the
+ *  landing's side of the same rule `aide-run-spec`'s `push_with_retry`
+ *  follows. `root` is standing on `base` with the merge already made
+ *  locally; the push failing means base moved on origin since step 3's
+ *  pull. Unreachable origin is retried blind (REQ-2); a reachable
+ *  origin that still rejected the push means base moved under us, which
+ *  `pull --rebase` can settle on its own (REQ-1) — unless the rebase
+ *  itself conflicts, which is a person's call and never this
+ *  function's (REQ-3). */
+async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
+  let pushed = await run(root, ["push", "-q", "origin", base]);
+  if (pushed.code === 0) return { ok: true };
+
+  const reachable = await run(root, ["ls-remote", "origin"]);
+  if (reachable.code !== 0) {
+    // REQ-2: origin itself did not answer.
+    for (const ms of PUSH_RETRY_WAITS_MS) {
+      await wait(ms);
+      pushed = await run(root, ["push", "-q", "origin", base]);
+      if (pushed.code === 0) return { ok: true };
+    }
+    return { ok: false, error: `cannot reach origin — ${(pushed.stderr ?? "").trim().slice(-200)}` };
+  }
+
+  // REQ-1: origin answered, so base moved under us — rebase this
+  // checkout's merge back on top of it.
+  const rebased = await run(root, ["pull", "-q", "--rebase", "origin", base]);
+  if (rebased.code === 0) {
+    pushed = await run(root, ["push", "-q", "origin", base]);
+    if (pushed.code === 0) return { ok: true };
+    return { ok: false, error: `push failed after a rebase — ${(pushed.stderr ?? "").trim().slice(-200)}` };
+  }
+
+  // REQ-3: the rebase conflicted — a person's call, never the script's.
+  // No `reason` is set: the existing `"conflict"` reason drives a
+  // resolve-the-spec-branch action that does not apply to a base-branch
+  // push race, so this stays an unread refusal like a plain push
+  // failure always has.
+  await run(root, ["rebase", "--abort"]);
+  const ours = (await run(root, ["log", "--oneline", `origin/${base}..${base}`])).stdout.trim();
+  const theirs = (await run(root, ["log", "--oneline", `${base}..origin/${base}`])).stdout.trim();
+  return {
+    ok: false,
+    error: `${base} has diverged from origin — this checkout has: ${ours || "(nothing)"}; origin has: ${theirs || "(nothing)"} — reconcile by hand`,
+  };
+}
+
 /** Merge `branch` into `base` in `root`, and push. `base` is passed in
  *  rather than re-derived: the caller already resolved it through
  *  `BranchStatusChecker.defaultBranch()`, and one resolver for "which
@@ -191,9 +250,9 @@ export async function mergeBranchIntoDefault(
     //    page that triggered it. A push that fails is REPORTED and
     //    never rolled back — `aide-run-spec`'s own precedent is that a
     //    push problem is not a reason to undo committed work.
-    const pushed = await run(root, ["push", "-q", "origin", base]);
-    if (pushed.code !== 0) {
-      return refuse(root, branch, `merged locally, but the push of ${base} failed`);
+    const pushResult = await pushWithRetry(run, root, base, wait);
+    if (!pushResult.ok) {
+      return refuse(root, branch, `merged locally, but the push of ${base} failed: ${pushResult.error ?? ""}`);
     }
 
     // 7. A merged branch left on origin is what made spec 92's
