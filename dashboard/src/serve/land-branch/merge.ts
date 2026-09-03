@@ -62,8 +62,13 @@ export async function landBranch(
   // really the same unpushed commit, not a second bug). Shared by the
   // failure branch and the catch block below, the two places a landing
   // can fail.
-  const firstLandingError = (msg: string): string =>
-    ctx.queue.get(job.id)?.landingError ?? `${what.step} landing failed: ${msg}`;
+  //
+  // "stopped", never "failed", when the project's own suite is what
+  // refused the merge: the row says stopped and draws it amber, and a
+  // sentence that says failed beside it is the row disagreeing with
+  // itself.
+  const firstLandingError = (msg: string, held = false): string =>
+    ctx.queue.get(job.id)?.landingError ?? `${what.step} landing ${held ? "stopped" : "failed"}: ${msg}`;
   try {
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
@@ -248,7 +253,12 @@ export async function landBranch(
     // an `analyze` landing runs while implement's code branch is
     // legitimately open, and the same check there would call a
     // healthy landing failed.
-    if (what.step === "archive") {
+    // Not when the landing's own test gate stopped it: nothing was
+    // merged and nothing was pushed, so of course the branch is still on
+    // origin — saying so adds a second, contradicting instruction ("run
+    // archive again") to the one the gate already gave ("run implement
+    // again"), once per root.
+    if (what.step === "archive" && reason !== "tests-red") {
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that
         // failed to merge (spec 220). Without this, every working
@@ -300,7 +310,7 @@ export async function landBranch(
         error: failures.join("; "),
         errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
         errorReason: reason,
-        landingError: firstLandingError(failures.join("; ")),
+        landingError: firstLandingError(failures.join("; "), held),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);

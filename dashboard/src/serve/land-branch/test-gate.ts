@@ -154,8 +154,19 @@ async function runSuiteIn(
     if (gate.code !== 0) {
       return {
         ok: false,
-        error: `the project's tests are red on the merge — nothing was pushed. The output is in ${log}. Red code: run implement again. A timing test that lost to load: run the step again when the host is quieter.`,
-        detail: (gate.stderr + gate.stdout).trim().slice(-600),
+        // One sentence on the row: what happened, and the one move that
+        // resolves it. The log's path and the caveat about a timing test
+        // that lost to a busy host are for whoever goes looking, so they
+        // ride in `detail` — on hover, and on the job's own page — with
+        // the test output that actually names the failure.
+        error: "the project's tests are red on this merge, so nothing was pushed — run implement again, then archive.",
+        detail: [
+          `The test output is in ${log}.`,
+          "A timing test that lost to a busy host passes on a re-run: run the step again when the host is quieter.",
+          (gate.stderr + gate.stdout).trim().slice(-600),
+        ]
+          .filter(Boolean)
+          .join("\n"),
       };
     }
     return { ok: true };
