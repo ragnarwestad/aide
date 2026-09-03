@@ -7,7 +7,6 @@
 // work each tick does moves here.
 
 import type { BranchStatusChecker } from "../git/branch-status.ts";
-import { specBranch } from "../git/branch-status.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../git/description-freshness.ts";
@@ -272,8 +271,8 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
   }
 }
 
-/** Which queued jobs are waiting on a dependency that has not merged
- *  yet (spec 122) — job id → the folder it is waiting for.
+/** Which queued jobs are waiting on a dependency that is not archived
+ *  yet (spec 122; spec 351) — job id → the folder it is waiting for.
  *
  *  The same question `aide-run-spec`'s guard asks, asked HERE so the
  *  answer arrives before a job is spawned rather than after: a job
@@ -283,13 +282,14 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
  *
  *  Computed fresh immediately before every `tick()`, never cached
  *  across calls: a job enqueued a line of code ago must be judged
- *  against data that existed after it did. And since spec 213 the
- *  merge answer under it is asked fresh too (`isMerged(..., true)`),
- *  which is what makes that sentence true: a 30 s cached answer
- *  released two jobs against a dependency that had not landed, and
- *  the script — which asks origin every time — refused them. Only
- *  `targets()` is still cached here, for 5 s, and it decides nothing
- *  on its own: a spec that names no dependency is the cheap half. */
+ *  against data that existed after it did. `archivedOnOrigin` carries
+ *  no TTL cache at all (REQ-2), the same way the merge answer under the
+ *  old check was asked fresh (`isMerged(..., true)`, spec 213) for the
+ *  same reason: a 30 s cached answer once released two jobs against a
+ *  dependency that had not landed, and the script — which asks origin
+ *  every time — refused them. Only `targets()` is still cached here,
+ *  for 5 s, and it decides nothing on its own: a spec that names no
+ *  dependency is the cheap half. */
 export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<string, string>> {
   const blocked = new Map<string, string>();
   if (!ctx.projectRoot) return blocked;
@@ -320,21 +320,22 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
       // the script makes on its own, and neither is something waiting
       // could ever fix. Parking on one would hide a typo forever.
       if (!dep || dep.folder === spec.folder) continue;
-      // Archiving only ever happens to finished work, so an archived
-      // dependency is merged by definition — the script's own
-      // shortcut, and it costs no network.
-      if (dep.archived) continue;
-      const branch = specBranch(dep.folder);
-      // Every root a run of this spec touches, as the script asks
-      // across `roots`: a dependency merged in the code repo but not
-      // in the specs repo is not merged. Both are asked either way —
-      // `&&` short-circuiting would leave the second answer uncached
-      // and the next tick asking again.
-      let merged = true;
-      for (const root of ctx.specRoots(job.project)) {
-        merged = (await ctx.branchStatus.isMerged(root, branch, true)) && merged;
-      }
-      if (!merged) {
+      // `dep.archived` is a LOCAL filesystem scan and can be stale in
+      // either direction (spec 351, REQ-2) — origin decides, every
+      // time, even for a dependency already known archived locally, the
+      // same reason spec 343 stopped trusting a local checkout for
+      // "has this step's commit landed."
+      //
+      // Asked against the SPECS root alone, the last entry `specRoots`
+      // gives (the project root when it IS the specs root too):
+      // whether a spec is archived is a fact about one folder's
+      // location in one repository, never about the project root the
+      // way a code branch can differ per repo.
+      const roots = ctx.specRoots(job.project);
+      const specsRoot = roots[roots.length - 1];
+      if (!specsRoot) continue;
+      const archived = await ctx.branchStatus.archivedOnOrigin(specsRoot, dep.folder);
+      if (!archived) {
         blocked.set(job.id, dep.folder);
         break;
       }

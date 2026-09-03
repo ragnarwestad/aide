@@ -228,6 +228,32 @@ export class BranchStatusChecker {
     return merged;
   }
 
+  /** True unless origin can PROVE `dependencyFolder` is not (yet) under
+   *  archive/ in `specsRoot`'s current default branch — the archived
+   *  question REQ-1 (spec 351) asks, replacing the branch-merge answer
+   *  `isMerged` gave this same gate before. Fetches into the ordinary
+   *  `refs/remotes/origin/<base>`, the same idiom `isMerged` already uses
+   *  a few lines up, then reads the tree with the SPECS ROOT as `cwd` so
+   *  a leading `./` (gitrevisions(7)) resolves the path from wherever
+   *  that root actually sits inside its repository. Fail-open like
+   *  `isMerged`: an unreachable origin answers "not confirmed either
+   *  way," never "confirmed not archived." Not cached — this gate always
+   *  asks fresh, archived dependency or not (REQ-2). */
+  async archivedOnOrigin(specsRoot: string, dependencyFolder: string): Promise<boolean> {
+    try {
+      const base = await this.defaultBranch(specsRoot);
+      if (!base) return true;
+      const fetched = await this.run(specsRoot, ["fetch", "--quiet", "origin", base]);
+      if (fetched.code !== 0) return true;
+      const found = await this.run(specsRoot, [
+        "cat-file", "-e", `refs/remotes/origin/${base}:./archive/${dependencyFolder}`,
+      ]);
+      return found.code === 0;
+    } catch {
+      return true;
+    }
+  }
+
   /** How many commits `origin/<default>` has that this checkout does
    *  not. Spec 142: a merge made anywhere but the dashboard's own
    *  button runs no `AIDE_INSTALL_CMD`, so the serving host goes on

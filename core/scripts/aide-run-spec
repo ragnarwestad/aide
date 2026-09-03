@@ -361,11 +361,10 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root
     done
   fi
   if [ -n "$archived_candidate" ]; then
-    # ls-remote, not the remote-tracking refs: same reason
-    # dependency_branch_unmerged_on_origin gives below — a merged-and-
-    # deleted branch leaves a stale ref behind in every checkout that
-    # ever fetched it, and believing one here would re-open a spec that
-    # is genuinely done.
+    # ls-remote, not the remote-tracking refs: a merged-and-deleted
+    # branch leaves a stale ref behind in every checkout that ever
+    # fetched it, and believing one here would re-open a spec that is
+    # genuinely done.
     for root in "${roots[@]}"; do
       if [ -n "$(git -C "$root" ls-remote --heads origin "refs/heads/aide/$archived_candidate" 2>/dev/null)" ]; then
         spec_folder="$archived_candidate"
@@ -472,14 +471,19 @@ fi
 # behind.
 
 # Mirrors the --spec resolver above (direct match, then <id>-*), plus one
-# deliberate addition: the archive. Archiving only ever happens to
-# finished work, so an archived dependency is merged by definition and is
-# never branch-checked below. Reaching for the shared library's
+# deliberate addition: the archive, so a dependency's folder NAME resolves
+# whichever list it is currently under. Reaching for the shared library's
 # aide_resolve_spec instead would give --spec and "Depends on:" two
 # different ideas of a valid identifier inside one script.
-resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
+#
+# Resolves a folder NAME only (spec 351) — whether that folder is done is
+# no longer this function's question. A local directory listing cannot
+# answer it: this checkout may not have pulled since the dependency's
+# `archive` step landed on origin (REQ-2), so the LOCAL archive/ scan
+# below is a hint for resolving the name, never proof of being done.
+resolve_dependency_folder() {   # sets $dep_folder
   local id="$1" candidate base
-  dep_folder=""; dep_archived="no"
+  dep_folder=""
   [ -n "$id" ] || return 0
   if [ -d "$specs_root/$id" ]; then
     dep_folder="$id"; return 0
@@ -491,7 +495,7 @@ resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
   [ -d "$specs_root/archive" ] || return 0
   for candidate in "$specs_root/archive"/*/; do
     base="$(basename "$candidate")"
-    case "$base" in "$id" | "$id"-*) dep_folder="$base"; dep_archived="yes"; return 0 ;; esac
+    case "$base" in "$id" | "$id"-*) dep_folder="$base"; return 0 ;; esac
   done
 }
 
@@ -521,29 +525,37 @@ default_branch() {
   git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
-# "Unmerged" is the test, not "exists": the Merge button deletes a
-# branch after merging (spec 99), but an archive step re-creates it and
-# merges it again minutes later, and 97 and 102 were each refused
-# against a dependency that was fully on main. So the branch's tip is
-# fetched into a private ref and compared with origin's default branch;
-# a branch with no commit beyond it is merged, whatever its name says.
-dependency_branch_unmerged_on_origin() {
-  local branch="$1" root base tip
-  for root in "${roots[@]}"; do
-    tip="$(git -C "$root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null | cut -f1)"
-    [ -n "$tip" ] || continue
-    base="$(default_branch "$root")"
-    git -C "$root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
-      "refs/heads/$branch:refs/aide-dep/dep" >/dev/null 2>&1 || return 0
-    if [ "$(git -C "$root" rev-list --count refs/aide-dep/base..refs/aide-dep/dep 2>/dev/null)" != "0" ]; then
-      git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
-      git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
-      return 0
-    fi
-    git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
-    git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
-  done
-  return 1
+# True (rc 0) unless origin can PROVE $1's folder is not (yet) under
+# archive/ in the specs repo's current default branch — the question
+# REQ-1 asks (spec 351), replacing the branch-merge question this
+# function used to ask: a branch with no commits beyond origin, or no
+# branch pushed at all, both used to read as "merged," and a dependency
+# mid-workflow with nothing currently pushed is neither done nor
+# equivalent to one that is (the 340/341 incident this spec exists for).
+#
+# Asked against $specs_root alone, never the project root: whether a
+# spec is archived is a fact about one folder's location in one
+# repository, unlike a code branch which can differ per repo.
+#
+# Reuses the private-ref idiom the old function established (a stale
+# refs/remotes/origin/* survives a delete until pruned); the cwd-relative
+# `./` path (gitrevisions(7)) reads the tree at $specs_root's own
+# position inside its repository without computing that prefix by hand.
+#
+# Fail-open like every other network call in this script: an unreachable
+# origin answers "not confirmed either way," and only a REACHED origin
+# that plainly does not have the folder refuses — this now runs for
+# EVERY dependency, archived or not (REQ-2), so a locally-known-archived
+# dependency pays one more fetch than it used to.
+dependency_archived_on_origin() {
+  local dep_folder="$1" base found
+  base="$(default_branch "$specs_root")"
+  git -C "$specs_root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
+    >/dev/null 2>&1 || return 0
+  git -C "$specs_root" cat-file -e "refs/aide-dep/base:./archive/$dep_folder" 2>/dev/null
+  found=$?
+  git -C "$specs_root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
+  return $found
 }
 
 # Only the LOOP is gated on the command, never the three functions above
@@ -563,10 +575,8 @@ case " $DEPENDENCY_GATED_STEPS " in
           || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
         [ "$dep_folder" = "$spec_folder" ] \
           && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
-        [ "$dep_archived" = "yes" ] && continue
-        dep_branch="aide/$dep_folder"
-        dependency_branch_unmerged_on_origin "$dep_branch" \
-          && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch has commits not on origin's default branch (not merged yet — merge it first)"
+        dependency_archived_on_origin "$dep_folder" \
+          || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
       done
     fi
     ;;
