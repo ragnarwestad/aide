@@ -64,6 +64,11 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     : behind ? rowMessage("warn", driftPrefix(behind, drift.checkedAt, now))
     : behind === 0 ? rowMessage("info", "This checkout is level with origin.")
     : ""; // asked, unanswerable — no claim, never a guess
+  // Level with origin is not "nothing to deploy": the served process can
+  // still be older than the checkout (the Serving line above says so
+  // after a landing installed but, by design, did not restart). The
+  // button is off only when both are current.
+  const stale = !!opts.serving && !opts.serving.current;
   const button =
     behind !== null
       ? `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
@@ -72,7 +77,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
           label: "Deploy",
           variant: "primary",
           pending: "deploying…",
-          ...(behind === 0
+          ...(behind === 0 && !stale
             ? { disabled: true, title: "This checkout is level with origin." }
             : {}),
         }) +

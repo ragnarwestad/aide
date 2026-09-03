@@ -79,7 +79,7 @@ describe("BranchFileStepsChecker", () => {
     const git = fake(branchFile(["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
-    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined });
+    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false });
   });
 
   // REQ-1/REQ-4, the branch half of spec 349's own class of bug: the
@@ -93,6 +93,7 @@ describe("BranchFileStepsChecker", () => {
     expect(steps).toEqual({
       proseSteps: ["create", "analyze"],
       stateSteps: ["create", "analyze", "implement"],
+      acceptanceOpen: false,
     });
   });
 
@@ -102,7 +103,7 @@ describe("BranchFileStepsChecker", () => {
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     const { steps, checkedAt } = checker.peekFileSteps(DIR, FOLDER);
-    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined });
+    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptanceOpen: false });
     expect(checkedAt).toBe(1000);
     expect(git.calls.length).toBe(before);
   });
@@ -161,5 +162,52 @@ describe("BranchFileStepsChecker", () => {
     });
     const checker = new BranchFileStepsChecker({ run: git.run });
     expect(await checker.read(DIR, FOLDER, TARGET)).toBeNull();
+  });
+});
+
+// A tick on a spec with an open branch is written to the branch
+// (spec-edit.ts, REQ-4), and the disk copy stays unticked until archive
+// lands. The row's "archive held back" and the queue's archive hold-back
+// read this answer first, so a spec whose every row is ticked on its
+// branch is not held for the disk copy's sake (364, 2026-09-03).
+describe("the branch's own acceptance rows", () => {
+  const withRows = (rows: { task: string; done: boolean }[]) => {
+    const answers = branchFile(["create", "analyze", "implement"], ["create", "analyze", "implement"]);
+    answers[`show refs/remotes/origin/${TARGET.branch}:${JSON_PATH}`] = {
+      code: 0,
+      stdout: JSON.stringify({
+        completedPhases: ["create", "analyze", "implement"],
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: rows,
+        phaseCounts: {},
+      }),
+    };
+    return answers;
+  };
+
+  test("an open row on the branch answers acceptanceOpen", async () => {
+    const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: false }]));
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acceptanceOpen).toBe(true);
+  });
+
+  test("every row ticked on the branch answers not open, whatever disk says", async () => {
+    const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: true }]));
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acceptanceOpen).toBe(false);
+  });
+
+  test("with no state file on the branch, the prose's own acceptance rows answer", async () => {
+    const answers = branchFile(["create", "analyze", "implement"]);
+    answers[`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`] = {
+      code: 0,
+      stdout:
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n\n" +
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: it works | ⬜ | |\n",
+    };
+    const git = fake(answers);
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acceptanceOpen).toBe(true);
   });
 });

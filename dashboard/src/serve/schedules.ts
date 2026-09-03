@@ -400,9 +400,10 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
 /** `blockedForMissingAnalyze`'s sibling for `archive`: every queued job
  *  whose next step is `archive` and whose spec, in the main checkout,
  *  still has an acceptance row nobody has ticked. Read off the state
- *  file, the same source the Checks tab's tick writes through
- *  `aide-write-spec` — so the tick that closes the last row is what
- *  releases the job. A spec with no state file (analyzed before spec
+ *  file — the branch's copy when `aide/<folder>` is open, since that is
+ *  where the Checks tab's tick lands, else the disk copy — so the tick
+ *  that closes the last row is what releases the job. A spec with no
+ *  state file (analyzed before spec
  *  355) or no acceptance section is not held: `aide-archive-spec`'s own
  *  gate is a no-op for the latter, and the former is its call to make. */
 export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> {
@@ -418,8 +419,13 @@ export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> 
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;
-    const rows = readSpecState(spec.dir)?.acceptanceCriteria ?? [];
-    if (rows.some((row) => !row.done)) blocked.add(job.id);
+    // The branch copy first, as the row and the Checks tab read it —
+    // a tick on a spec with an open branch is written there, and the
+    // disk copy stays unticked until archive lands.
+    const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
+    const open =
+      branchAnswer?.acceptanceOpen ?? (readSpecState(spec.dir)?.acceptanceCriteria ?? []).some((row) => !row.done);
+    if (open) blocked.add(job.id);
   }
   return blocked;
 }

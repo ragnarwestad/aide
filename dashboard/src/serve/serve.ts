@@ -167,6 +167,7 @@ export function createServer(opts: ServerOptions) {
     notifyQueueChanged: watch.notifyQueueChanged,
     specsRoot: resolution.specsRoot,
   });
+  resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
   const land = setupLand(state, {
     machineryProjectDir: resolution.machineryProjectDir,
