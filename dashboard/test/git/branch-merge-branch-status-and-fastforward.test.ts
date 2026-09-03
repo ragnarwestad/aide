@@ -255,3 +255,43 @@ describe("fastForwardToOrigin", () => {
     expect(result.error).toContain(ROOT);
   });
 });
+
+// --- the base pull names its refspec ----------------------------------------
+//
+// `git pull --ff-only` with none merges whatever FETCH_HEAD names, and
+// FETCH_HEAD is one file per repository. Two landings sharing a checkout
+// — four analyze steps ending together, 2026-09-03 — leave several
+// branches marked in it, and the pull dies with "Cannot fast-forward to
+// multiple branches". Three analyze landings were lost to it in one
+// afternoon, each leaving its spec unanalysed on main and the implement
+// step behind it refused. Naming origin and the base leaves one merge
+// candidate whoever else is fetching alongside.
+describe("every landing pull names origin and the base", () => {
+  const pulls = (calls: GitCall[]) => argv(calls).filter((a) => a.startsWith("pull"));
+
+  test("mergeBranchIntoDefault's pull carries the refspec", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(pulls(git.calls).length).toBeGreaterThan(0);
+    for (const p of pulls(git.calls)) expect(p).toBe("pull -q --ff-only origin master");
+  });
+
+  test("fastForwardToOrigin's pull carries it too", async () => {
+    const git = fakeGit({
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+    });
+    await fastForwardToOrigin(git.run, ROOT, "master", noWait);
+    expect(pulls(git.calls)).toEqual(["pull -q --ff-only origin master"]);
+  });
+});
