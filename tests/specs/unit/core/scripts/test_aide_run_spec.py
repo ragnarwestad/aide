@@ -366,6 +366,21 @@ def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude
     assert "no one" in lowered or "nobody" in lowered
 
 
+def test_the_prompt_says_never_to_wait_on_background_work(runner, workspace, fake_claude):
+    """Four implement runs on 2026-09-02 ended their turn with "the
+    tests are running in the background, I'll pick up when they
+    finish" — and nothing ever picked up, because a headless run ends
+    the moment the model stops. The prompt has to say so, in the text
+    the model is reading, not in a rule it has to remember."""
+    claude = fake_claude("cat > /dev/null\nexit 1")
+    rc, out, _ = run(runner, workspace, claude, dry_run=True, command="implement")
+    assert rc == 0
+    lowered = out["prompt"].lower()
+    assert "background" in lowered
+    assert "foreground" in lowered
+    assert "end your turn" in lowered
+
+
 # --- Criterion 2: the refusals -----------------------------------------------
 
 def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude, command="implement"):
