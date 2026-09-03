@@ -32,6 +32,7 @@ import type { NotifyEvent } from "../integrations/notify.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
+import { isArchiveRefusal, type StopReason } from "./steps.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
 
@@ -133,6 +134,19 @@ export class Runner {
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
       if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+        continue;
+      }
+      // Two `archive` steps never run at once in the SAME project: both
+      // branch from the code root's main and both land into it, and the
+      // second one's landing finds a main the first moved under it. Held
+      // back with the reason on the row, the same shape as the two
+      // hold-backs below; the next tick tries again.
+      if (
+        job.steps[job.stepIndex] === "archive" &&
+        this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
+      ) {
+        const reason = "held back: another archive is running in this project — it starts when that one has landed";
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —
@@ -370,14 +384,17 @@ export class Runner {
 
     // A cap or the clock ending a run is `stopped` — never `failed`.
     // Under tight caps this is a common, healthy outcome, and a reader
-    // who cannot tell it from a broken agent will ignore both.
+    // who cannot tell it from a broken agent will ignore both. So is an
+    // `archive` that `aide-archive-spec` refused before any model ran:
+    // nothing broke, a person has something to tick or run first, and
+    // the refusal is the reason on the row.
     if (
       outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
-      outcome.terminalReason === "provider-limit"
+      outcome.terminalReason === "provider-limit" || isArchiveRefusal(outcome.terminalReason)
     ) {
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
-        stopReason: outcome.terminalReason,
+        stopReason: outcome.terminalReason as StopReason,
         finishedAt: this.o.now(),
         error: outcome.error,
       });

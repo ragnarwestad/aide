@@ -81,6 +81,30 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("queued");
   });
 
+  test("two archive steps never run at once in the same project", () => {
+    // Both branch from the code root's main and both land into it; the
+    // second landing would find a main the first moved under it.
+    const a = enqueue({ steps: ["archive"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(held.error).toContain("another archive is running in this project");
+  });
+
+  test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
   test("poll completes EVERY running job, not just the first", () => {
     const a = enqueue();
     const b = enqueue({ specFolder: "91-parallel-spec-runs" });
@@ -214,6 +238,22 @@ describe("steps and cost", () => {
     expect(after.error).toContain("resets 2026-08-24");
     runner.tick();
     expect(spawns).toHaveLength(1);
+  });
+
+  test("an archive the gate refused is stopped with the refusal as the reason, not failed", () => {
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(0), ok: false, terminalReason: "acceptance-criteria-unticked",
+        error: "tick every row under Acceptance criteria before archiving",
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id)!;
+    expect(after.state).toBe("stopped");
+    expect(after.stopReason as string).toBe("acceptance-criteria-unticked");
+    expect(after.error).toContain("tick every row");
   });
 
   test("a refused or broken step fails the job", () => {

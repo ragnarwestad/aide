@@ -315,7 +315,8 @@ host.
 `1` runs one job at a time, so backing out of concurrent runs is a config edit and a restart.
 
 Two jobs for the same spec are never started at the same time — analyze and implement for one spec are ordered by
-nature. Beyond that the jobs are genuinely independent: each `aide-run-spec` run works in `git
+nature. Nor are two `archive` steps in the same project: both land into the code root's main, and the second is held
+`queued` with the reason on its row until the first has landed. Beyond that the jobs are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their default branch and no run can see another's.
 
 ## The dashboard's own checkouts

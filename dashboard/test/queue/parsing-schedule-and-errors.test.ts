@@ -126,6 +126,33 @@ describe("errorReason", () => {
   });
 });
 
+// The archive refusals `aide-run-spec` answers without a model and the
+// dashboard shows as `stopped` are the same two words on both sides,
+// with no shared source: the bash `case` on `archive_terminal_reason`,
+// `ARCHIVE_REFUSALS` in steps.ts, and the row view's `stopReason` union.
+describe("the archive refusals", () => {
+  const dashboardSrc = (file: string) => readFileSync(join(import.meta.dir, "..", "..", "src", file), "utf-8");
+
+  test("are the same words in aide-run-spec, steps.ts and the row's view", () => {
+    const bash = readFileSync(join(import.meta.dir, "..", "..", "..", "core", "scripts", "aide-run-spec"), "utf-8");
+    const bashCase = bash.match(/^\s*([a-z-]+(?:\|[a-z-]+)*)\) skip_ai="yes" ;;/m);
+    expect(bashCase).not.toBeNull();
+    const inBash = bashCase![1]!.split("|").sort();
+
+    const ts = dashboardSrc("queue/steps.ts").match(/ARCHIVE_REFUSALS = \[([^\]]*)\]/);
+    expect(ts).not.toBeNull();
+    const inSteps = ts![1]!.split(",").map((m) => m.trim().replace(/^"|"$/g, "")).filter(Boolean).sort();
+
+    const view = dashboardSrc("render/ui/job-state/types.ts").match(/^\s*stopReason\?:([^;]*);/m);
+    expect(view).not.toBeNull();
+    const inView = view![1]!.split("|").map((m) => m.trim().replace(/^"|"$/g, "")).filter(Boolean);
+
+    expect(inBash).toEqual(["acceptance-criteria-unticked", "not-implemented-yet"]);
+    expect(inSteps).toEqual(inBash);
+    for (const r of inBash) expect(inView).toContain(r);
+  });
+});
+
 // The widened validation is for ONE route. `parseJobRequest` still
 // requires a project with a discovered spec — a regression guard, green
 // today and green afterwards.
