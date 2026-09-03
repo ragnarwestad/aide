@@ -35,7 +35,9 @@ Reset the active spec identified by `$ARGUMENTS` without deleting history.
    to the previous round.
 5. Leave the `**Reset:**` mark out. `aide-run-spec` writes it itself once this
    step finishes, from the specs repository's own default-branch tip at the
-   moment its branch was cut — not from anything this session computes.
+   moment its branch was cut — not from anything this session computes. The
+   mark it writes reads `- **Reset:** DATE (history before \`SHA\` does not
+   count)` — the same grammar `/aide-reopen`'s `**Reopened:**` mark uses.
 6. In a headless run, branch cleanup and the commit are handled by
    `aide-run-spec`. At a keyboard, remove `aide/<folder>` locally and on origin
    in both the project and specs repositories before editing, and ask before

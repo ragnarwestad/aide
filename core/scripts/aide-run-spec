@@ -2237,46 +2237,6 @@ if [ -n "$status_file" ]; then
       error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press Run again for this step."
     fi
   fi
-
-  completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
-  # Nothing derived leaves the file alone: an empty line says less than
-  # the one already there.
-  #
-  # A file with neither the line nor the Tracking info entry it goes
-  # under is left alone too — this writes the value, never the layout.
-  if [ -n "$completed_steps" ] && declare -f write_phase_stamp >/dev/null 2>&1; then
-    # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh)
-    # is the one place this line is formatted and written — historical
-    # `- **Model (<step>):**` lines an old archive still carries (spec
-    # 217, superseded by spec 245's per-file record below) are left
-    # exactly where they sit, same as before: the function touches only
-    # the line it owns.
-    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
-  fi
-
-  # Nothing derived leaves the file alone: a fresh spec whose Phase
-  # tables have no rows yet keeps whatever placeholder it started with.
-  status_progress_for "$status_file"
-  if [ "$progress_total" -gt 0 ]; then
-    progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
-    # Format-agnostic on purpose (real specs disagree on bold/position
-    # for this line, spec 246) — only the digits are touched, everything
-    # else on the line survives.
-    awk -v pct="$progress_pct" -v done="$progress_done" -v total="$progress_total" '
-      BEGIN { written = 0 }
-      !written && /Total progress/ {
-        line = $0
-        sub(/[0-9]+%/, pct "%", line)
-        sub(/\([0-9]+[ \t]+(of|av)[ \t]+[0-9]+/, "(" done " of " total, line)
-        print line; written = 1; next
-      }
-      { print }
-    ' "$status_file" > "$work_dir/status-progress" 2>/dev/null
-    if [ -s "$work_dir/status-progress" ] && \
-       ! cmp -s "$work_dir/status-progress" "$status_file"; then
-      cat "$work_dir/status-progress" > "$status_file" 2>/dev/null || true
-    fi
-  fi
 fi
 
 # --- reopen/reset's own boundary mark (spec 356, REQ-5) ---------------------
@@ -2296,25 +2256,6 @@ if { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; } && \
   if [ -f "$reopen_status_file" ]; then
     apply_spec_transition "$reopen_status_file" "$command_name" "$reopen_boundary_sha"
   fi
-fi
-
-# --- the spec's state file (spec 355) ----------------------------------------
-# 4-status.md is the prose; 4-status.json is what the gates and the
-# dashboard read. Derived here from the prose just rewritten, by the same
-# library aide-write-spec and aide-archive-spec use — so a run that lands
-# `analyze` on the line also lands it in the file the implement gate
-# reads. Spec 355 changed the tests to expect this and never gave the
-# runner the code: every analyze after it left the file stale, and the
-# dashboard held the next implement back as "not analyzed yet".
-# Only for a step that completed: a stopped run changes no phase, and
-# a first-ever state file on its branch would keep an otherwise empty
-# branch alive that the sweep below is meant to delete.
-# The state file keeps its own list of completed phases rather than
-# re-deriving it from prose (spec 355), so the list this run just wrote
-# to the prose line is handed over — a file that already existed before
-# the run would otherwise go on naming only the phases it had.
-if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
-  write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
 fi
 
 # --- this phase's own outcome record (spec 245) ------------------------------
@@ -2701,31 +2642,14 @@ elif [ -n "$status_file" ]; then
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.
   #
-  # A file with neither the line nor the Tracking info entry it goes
-  # under is left alone too — this writes the value, never the layout.
-  if [ -n "$completed_steps" ] && \
-     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    # Historical `- **Model (<step>):**` lines an old archive still
-    # carries (spec 217, superseded by spec 245's per-file record below)
-    # are left exactly where they sit — no migration pass rewrites old
-    # archives, so this pass touches only the line it owns.
-    awk -v line="- **Workflow steps completed:** $completed_steps" '
-      BEGIN { written = 0 }
-      /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; written = 1 }
-        next
-      }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
-      { print }
-    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
-    # Written back only when it actually differs. The commit loop below
-    # commits whatever it finds changed, and a file rewritten to exactly
-    # what it already said would put a step's name on a commit that
-    # carries nothing.
-    if [ -s "$work_dir/status-line" ] && \
-       ! cmp -s "$work_dir/status-line" "$status_file"; then
-      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
-    fi
+  # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+  # the one place this line is formatted and written — historical
+  # `- **Model (<step>):**` lines an old archive still carries (spec 217,
+  # superseded by spec 245's per-file record below) are left exactly
+  # where they sit, same as before: the function touches only the line
+  # it owns.
+  if declare -f write_phase_stamp >/dev/null 2>&1; then
+    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase

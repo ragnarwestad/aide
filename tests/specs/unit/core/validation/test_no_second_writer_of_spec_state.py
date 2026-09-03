@@ -29,6 +29,7 @@ ALLOWED_BASH_FILES = {
     "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
     "core/scripts/aide-run-spec",            # derives it after every completed step, so the gates read what the run just landed
     "core/scripts/aide-backfill-spec-state",  # doc comment only
+    "core/scripts/lib/spec-transitions.sh",  # spec 356: reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
 ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/project/parse-spec-state.ts",  # the one reader
@@ -39,6 +40,8 @@ ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/workflow-history.ts",       # spec 362: reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
     "dashboard/src/render/pages/queue-list/data-model/types.ts",  # doc comment on the stateMissing field
+    "dashboard/src/queue/spec-transitions.ts",  # spec 356: doc comment only, reads through phaseFromState's own completedPhases/archived params
+    "dashboard/src/serve/handle-queue/job-actions.ts",  # spec 356 (REQ-9): reads via readSpecState (parse-spec-state.ts), never a second derivation
 }
 
 

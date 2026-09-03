@@ -89,7 +89,11 @@ line out. `aide-run-spec` writes the `**Reopened:**` mark itself, once
 this step finishes, from the specs repository's own default-branch tip
 at the moment the branch above was cut — not from anything this session
 computes — and it writes `**Workflow steps completed:**` from the
-spec's own commits, of which there are none yet after the boundary.
+spec's own commits, of which there are none yet after the boundary. The
+mark it writes reads `- **Reopened:** DATE (history before \`SHA\` does
+not count)` — the one grammar `completed_steps_for` in
+`core/scripts/aide-run-spec`, `parse-status.ts`, `workflow-history.ts`
+and `description-freshness.ts` all parse.
 
 ### Step 6: Commit
 
