@@ -187,7 +187,9 @@ export async function landBranch(
         if (result.branchDeleteError) {
           console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.branchDeleteError}`);
           leftBehindRoots.add(repo.root);
-          deleteErrors.push(`${repo.root}: ${result.branchDeleteError}`);
+          // The sentence says what to do (spec 352); git's own reason
+          // rides along in parentheses so the job record still says why.
+          deleteErrors.push(`${repo.root}: ${result.branchDeleteError}${result.detail ? ` (${result.detail})` : ""}`);
         }
       } else if (result.reason === "gone") {
         // Nothing to land in this repo, and not a failure of this
