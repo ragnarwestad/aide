@@ -140,10 +140,14 @@ export async function landBranch(
       // The lock goes around the git-mutating call and nothing else:
       // `defaultBranch` above only asks a question, and holding the
       // root while asking it would serialize page loads too.
+      const gate = codeRoots.has(repo.root) && ctx.landingGate
+        ? (root: string) => ctx.landingGate!(root, job)
+        : undefined;
       const merge = () =>
-        ctx.mergeLock.run(repo.root, () => mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base));
+        ctx.mergeLock.run(repo.root, () => mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate));
       let result = await merge();
-      for (let retry = 0; !result.ok && retry < 2; retry++) {
+      // A red suite is an answer, not a hiccup: never re-run it here.
+      for (let retry = 0; !result.ok && result.reason !== "tests-red" && retry < 2; retry++) {
         await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
         result = await merge();
       }
@@ -210,6 +214,7 @@ export async function landBranch(
         failures.push(result.error ?? `cannot merge ${branch} in ${repo.root} — check the checkout on the serving host`);
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
+        if (result.reason === "tests-red") reason = "tests-red";
         // spec 280: a code root that fails to land during an archive
         // landing stops the loop here — the specs root's own merge,
         // which stamps 4-status.md as archived, has not run yet

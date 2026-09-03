@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout, enriched lazily from
@@ -190,6 +191,7 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
+    landingGate: opts.landingGate ?? runProjectSuiteBeforePush,
   });
 
   const runnerSetupCtx: RunnerSetupContext = {

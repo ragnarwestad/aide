@@ -122,7 +122,7 @@ describe("errorReason", () => {
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `unlanded` is spec 193's refusal — the
     // spec was archived and a branch of its own is still on origin.
-    expect(stored).toEqual(["conflict", "unlanded"]);
+    expect(stored).toEqual(["conflict", "tests-red", "unlanded"]);
   });
 });
 

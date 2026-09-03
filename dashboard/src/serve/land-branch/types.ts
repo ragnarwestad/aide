@@ -48,6 +48,9 @@ export interface LandContext {
   /** The checkout this dashboard runs from; a landing anywhere else
    *  never restarts it. */
   dashboardRoot?: string;
+  /** Runs the project's suite on the merged result before the push;
+   *  a code root's landing only. Absent means no gate (tests). */
+  landingGate?: (root: string, job: Job) => Promise<{ ok: boolean; error?: string; detail?: string }>;
 }
 
 /** What a landing does that is not the merge itself: what to write on

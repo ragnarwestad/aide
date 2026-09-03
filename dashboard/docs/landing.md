@@ -180,6 +180,19 @@ On the script's side, a re-run of `archive` has to find a folder that has alread
 origin. Not found falls through to the same "unknown spec" refusal, so a genuinely finished spec still refuses a
 further `archive`.
 
+## The tests run on the landing, once
+
+The project's own test suite runs on the merged result, in the checkout the landing is about to push, before the
+push — `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
+`aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
+machine's test lock, the run's output in the gate log). Green pushes. Red drops the local merge with `reset --hard
+origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job fails with
+`errorReason: tests-red` and the sentence that says what to do. A red suite is never retried by the landing itself.
+
+This is the one place the suite runs for a change on its way to main. `implement`'s own run during the step is the
+model's TDD loop, not the gate; `aide-archive-spec` checks the person's boxes and moves the folder, and runs no tests.
+A code root only: the specs root has nothing to run.
+
 ## A project can ask for its code branch to stay open
 
 `codeLanding: pr` in the COMMITTED `.aide/project.yaml` says this project's code is reviewed before it reaches the

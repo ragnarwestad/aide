@@ -25,7 +25,7 @@
 #
 # terminalReason, checked in this order:
 #   refused | already-archived | conflict-open | not-implemented-yet
-#   | acceptance-criteria-unticked | no-passing-test-record | archived
+#   | acceptance-criteria-unticked | archived
 #
 # Usage:
 #   aide-archive-spec --project-dir <path> --spec <arg>
@@ -234,82 +234,11 @@ if [ "$acceptance_total" -gt 0 ] && [ "$acceptance_done" -lt "$acceptance_total"
   emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Checks tab before archiving — only a person can judge these"}'
 fi
 
-# --- the test-record gate (spec 329) ----------------------------------------
-# `$project_dir` is already past update_branch_to_base by the time this
-# script runs (both call sites — aide-run-spec's pre-check and a
-# person's own /aide-archive — pass it after that step), so HEAD here IS
-# the commit about to be merged.
-#
-# The ONLY "earlier commit" this gate ever accepts is the automatic
-# base-catch-up merge `update_branch_to_base` itself produces — verified
-# by requiring HEAD to genuinely be a two-parent commit (`HEAD^2` must
-# resolve) whose FIRST parent is the recorded one. A plain, single-parent
-# commit added to the branch afterward (real, untested work) has no
-# second parent, so `HEAD^2` fails to resolve and the record is refused.
-record_file="$specs_root/$spec_folder/test-run.json"
-head_commit="$(git -C "$project_dir" rev-parse HEAD 2>/dev/null || true)"
-parent_commit="$(git -C "$project_dir" rev-parse HEAD^1 2>/dev/null || true)"
-head_is_merge="no"
-git -C "$project_dir" rev-parse --verify -q HEAD^2 >/dev/null 2>&1 && head_is_merge="yes"
-record_ok="no"
-if [ -f "$record_file" ]; then
-  record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"
-  record_exit="$(jq -r '.exitCode // empty' "$record_file" 2>/dev/null)"
-  if [ "$record_exit" = "0" ] && [ -n "$record_commit" ]; then
-    if [ "$record_commit" = "$head_commit" ]; then
-      record_ok="yes"
-    elif [ "$head_is_merge" = "yes" ] && [ "$record_commit" = "$parent_commit" ]; then
-      record_ok="yes"
-    fi
-  fi
-fi
-if [ "$record_ok" = "no" ]; then
-  # The gate MAKES the record it is missing rather than refusing for the
-  # lack of one. It demanded a file only /aide-implement writes, and an
-  # implement step locks once it is done — so a spec whose implement ran
-  # before this gate existed could never satisfy it, however many times
-  # archive was run. Three had to be merged and archived by hand the day
-  # the gate shipped. A gate that can demand something nobody is able to
-  # produce is a trap, not a gate; this one still refuses, but only when
-  # the tests actually fail.
-  # Resolved through the single script both this gate and
-  # /aide-implement call (spec 361) — a diff/branch-resolution failure
-  # is a REFUSAL here, never a silent empty command list.
-  resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_dir" 2>&1)"
-  [ "$(jq -r '.ok // false' <<<"$resolved" 2>/dev/null)" = "true" ] \
-    || refuse "cannot resolve the test command: $(jq -r '.error // empty' <<<"$resolved" 2>/dev/null)"
-  cmd_args=()
-  while IFS= read -r c; do
-    [ -n "$c" ] && cmd_args+=(--cmd "$c")
-  done < <(jq -r '.commands[]?' <<<"$resolved")
-  if [ "${#cmd_args[@]}" -eq 0 ]; then
-    emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record, and this project has no test command configured — set the test command in .aide/config before archiving"}'
-  fi
-  # The run's output is KEPT, in a log a person can open, and the
-  # refusal below names it. It went to /dev/null at first, and the
-  # first real refusal (spec 337, exit 2) left nobody able to say what
-  # had failed — a gate that refuses without showing why sends the
-  # reader guessing.
-  gate_log="${AIDE_TEST_GATE_LOG:-$HOME/Library/Logs/aide-dashboard/test-gate.log}"
-  mkdir -p "$(dirname "$gate_log")" 2>/dev/null || true
-  {
-    echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) $spec_folder @ $head_commit ---"
-    "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_dir" \
-      --specs-root "$specs_root" --folder "$spec_folder" "${cmd_args[@]}"
-  } >> "$gate_log" 2>&1 || true
-  if [ -f "$record_file" ]; then
-    record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"
-    record_exit="$(jq -r '.exitCode // empty' "$record_file" 2>/dev/null)"
-    [ "$record_exit" = "0" ] && [ "$record_commit" = "$head_commit" ] && record_ok="yes"
-  fi
-  if [ "$record_ok" = "no" ]; then
-    emit_ok "$(jq -cn --arg log "$gate_log" \
-      '{terminalReason:"no-passing-test-record", note:("the project'"'"'s tests did not pass for this commit — the output is in " + $log + ". Red code: run implement again. A timing test that lost to load: run archive again when the host is quieter.")}')"
-  fi
-fi
-if [ "$record_ok" = "no" ]; then
-  emit_ok '{"terminalReason":"no-passing-test-record","note":"the project'"'"'s tests did not pass for this commit. Red code: run implement again. A timing test that lost to load: run archive again when the host is quieter."}'
-fi
+# The tests are not this script's business any more: the landing runs
+# the project's suite once on the merged result and pushes only when it
+# is green (dashboard land-branch/test-gate.ts). A red suite there is
+# the job's error; a person's own /aide-archive gets the same gate from
+# the dashboard when the step lands.
 
 # --- archived: stamp and move ----------------------------------------------
 # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is

@@ -68,7 +68,7 @@ export interface QueueRowView {
    *  Hand-paired with the same union on `Job` in `queue.ts` — the two
    *  layers deliberately do not import each other, so `queue.test.ts`
    *  reads both declarations and asserts they name the same members. */
-  errorReason?: "conflict" | "unlanded";
+  errorReason?: "conflict" | "unlanded" | "tests-red";
   /** The job's own persisted landing failure (spec 327), independent of
    *  `state`/`error` — see `Job.landingError`. */
   landingError?: string;

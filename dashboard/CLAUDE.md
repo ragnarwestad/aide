@@ -63,7 +63,7 @@ edited by hand together.
 |---|---|---|---|
 | Project readiness — the read-only prerequisites a run needs | `aide-run-spec` | `assessProjectReadiness()` in `dashboard/src/project/project-admin/readiness.ts` | `tests/fixtures/project-readiness-prerequisites.json` |
 | `worktreeLinks` precedence — manifest over `.aide/config` | `aide_manifest_get` + `aide-run-spec` | `resolveWorktreeLinks` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/worktree-links-precedence.json` |
-| `errorReason` — `"conflict" \| "unlanded"` | — | `dashboard/src/queue/types.ts` and `dashboard/src/render/ui/job-state/types.ts`, which do not import each other | `dashboard/test/queue/parsing-schedule-and-errors.test.ts` reads both as text |
+| `errorReason` — `"conflict" \| "unlanded" \| "tests-red"` | — | `dashboard/src/queue/types.ts` and `dashboard/src/render/ui/job-state/types.ts`, which do not import each other | `dashboard/test/queue/parsing-schedule-and-errors.test.ts` reads both as text |
 | `codeLanding` — whether code is reviewed before it lands | one anchored `sed` in `aide-run-spec` | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/code-landing-precedence.json` |
 | `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` precedence — `.aide/config` over the manifest's `installCmd`/`testCmd` (spec 345, the reverse order from `worktreeLinks`) | `aide_resolve_override` in `_aide-spec-lib.sh` | `resolveInstallCmd`/`resolveTestCmd` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/config-cmd-precedence.json` |
 | The status-mark rule — which Status cells count as done | `total_progress_for` in `aide-run-spec` | `isDoneMark` in `dashboard/src/project/parse-status.ts` | `tests/fixtures/status-row-counting.json` |
@@ -139,8 +139,9 @@ script's copy decides whether a run started by hand is REFUSED.
   worktree with the merge OPEN; every other step aborts and refuses.
   `aide-run-spec` aborts an unfinished merge before its generic commit
   loop, for `archive` only, so conflict markers are never committed. The
-  project's own test command is the gate: a resolution that fails it puts
-  the branch back, and nothing lands.
+  landing's test gate (`docs/landing.md`, "The tests run on the landing,
+  once") is what stops a resolution that breaks the suite: red drops the
+  merge, and nothing lands.
 - **`core/scripts/aide-archive-spec` decides and moves; the skill keeps
   only conflict resolution and doc feedback.** It runs twice in one step
   by design, and `already-archived` is the idempotent second answer.

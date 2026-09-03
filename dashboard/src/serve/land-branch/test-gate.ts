@@ -1,0 +1,106 @@
+// The landing's test gate: the project's own suite, run once on the
+// merged result before it is pushed. Green pushes; red drops the local
+// merge, and the branch stays where implement left it.
+//
+// It was the archive step's gate before (core/scripts/aide-archive-spec,
+// spec 329/361): every archive re-ran the whole suite against a main
+// that had moved since implement's own run, and with several jobs
+// landing at once the same suite ran three and four times an hour for
+// one change. Here it runs exactly once per landing, on exactly what
+// main is about to become.
+
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
+import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers.ts";
+
+/** Where the installer puts the scripts; launchd's PATH does not reach
+ *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
+function installed(name: string, override: string | undefined): string {
+  if (override) return override;
+  const path = join(process.env.HOME || homedir(), ".local", "bin", name);
+  return existsSync(path) ? path : name;
+}
+
+async function runScript(
+  argv: string[],
+  cwd: string,
+  timeoutMs: number,
+): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
+  const proc = Bun.spawn({ cmd: argv, cwd, stdout: "pipe", stderr: "pipe" });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    proc.kill();
+  }, timeoutMs);
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  const code = await proc.exited;
+  clearTimeout(timer);
+  return { code, stdout, stderr, timedOut };
+}
+
+/** Resolve the command(s) the merged change calls for, run them through
+ *  aide-record-test-run (which holds the machine's test lock and keeps
+ *  the run's output), and say green or red. The record it writes goes
+ *  to a throwaway specs root: the archive no longer reads it, and a
+ *  record left in the dashboard's own specs checkout blocked a landing
+ *  once (2026-09-03). */
+export async function runProjectSuiteBeforePush(
+  root: string,
+  job: { project: string; specFolder: string },
+): Promise<{ ok: boolean; error?: string; detail?: string }> {
+  const resolver = installed("aide-resolve-test-cmd", process.env.AIDE_RESOLVE_TEST_CMD_BIN);
+  const recorder = installed("aide-record-test-run", process.env.AIDE_RECORD_TEST_RUN_BIN);
+  const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
+  let commands: string[] = [];
+  try {
+    const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        error: `the landing could not work out the test command in ${root} — ${parsed.error ?? "unknown"}`,
+      };
+    }
+    commands = Array.isArray(parsed.commands) ? parsed.commands : [];
+  } catch {
+    return { ok: false, error: `the landing could not read aide-resolve-test-cmd's answer in ${root}`, detail: resolved.stderr.slice(-400) };
+  }
+  if (commands.length === 0) {
+    // No test command anywhere (no .aide/config key, no manifest
+    // testCmd:, nothing detected): nothing to run is not red. The
+    // project's readiness check already says so on its page.
+    return { ok: true };
+  }
+  const scratch = mkdtempSync(join(tmpdir(), "aide-landing-gate-"));
+  try {
+    mkdirSync(join(scratch, job.specFolder), { recursive: true });
+    const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
+    for (const c of commands) argv.push("--cmd", c);
+    const gate = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
+    // The run's own output, kept where the archive gate used to keep it,
+    // under the same header a reader already knows.
+    const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
+    try {
+      mkdirSync(join(log, ".."), { recursive: true });
+      appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${root} ---\n${gate.stdout}${gate.stderr}\n`);
+    } catch {
+      // A log that cannot be written must not turn a green suite red.
+    }
+    if (gate.timedOut) {
+      return { ok: false, error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the output is in ${log}` };
+    }
+    if (gate.code !== 0) {
+      return {
+        ok: false,
+        error: `the project's tests are red on the merge — nothing was pushed. The output is in ${log}. Red code: run implement again. A timing test that lost to load: run the step again when the host is quieter.`,
+        detail: (gate.stderr + gate.stdout).trim().slice(-600),
+      };
+    }
+    return { ok: true };
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}

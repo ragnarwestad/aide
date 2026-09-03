@@ -574,155 +574,14 @@ def test_the_result_file_carries_the_same_json_as_stdout(script, project, specs,
 DONE_BODY = phase("Phase 1: RED", ["| a | ✅ | |"])
 
 
-def test_no_test_run_record_at_all_blocks_archive(script, project, specs):
-    configure(project, specs)
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert (specs / "81-x").exists(), "no record means archive must not move the folder"
 
 
-def test_no_record_and_no_test_command_says_so(script, project, specs):
-    """A project with no test command cannot have a record made for it,
-    and is told that rather than being sent to re-run implement."""
-    configure(project, specs)
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert "no test command" in out["note"], out
-    assert (specs / "81-x").exists()
 
 
-def test_no_record_runs_the_tests_and_archives_when_they_pass(script, project, specs):
-    """The gate makes the record it is missing. `implement` writes it
-    normally, but an implement step locks once it is done — so a spec
-    whose implement predates the gate could never satisfy it. Archive
-    runs the command itself rather than refusing for the lack of a file
-    nobody is able to produce any more."""
-    configure(project, specs)
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=true\n")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-    record = json.loads((specs / "archive" / "81-x" / "test-run.json").read_text())
-    assert record["exitCode"] == 0
-    assert record["commit"] == git(project, "rev-parse", "HEAD")
 
 
-def test_no_record_refuses_when_the_tests_it_runs_fail(script, project, specs):
-    """Still a gate: it refuses when the tests actually fail, which is
-    the only thing it was ever meant to stop."""
-    configure(project, specs)
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=false\n")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert (specs / "81-x").exists()
 
 
-def test_a_failing_gate_run_keeps_its_output_and_names_the_log(script, project, specs, tmp_path, monkeypatch):
-    """The first real refusal (spec 337, exit 2) had sent the test output
-    to /dev/null: nobody could say what had failed. The gate keeps the
-    run's output in a log and the refusal names it."""
-    log = tmp_path / "test-gate.log"
-    monkeypatch.setenv("AIDE_TEST_GATE_LOG", str(log))
-    configure(project, specs)
-    (project / ".aide" / "config").write_text(
-        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=echo THE-FAILING-TEST; false\n")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert str(log) in out["note"], out
-    # And what to do about it, both ways it happens (2026-09-03): red
-    # code is implement's job, a timing test under load is a re-run.
-    assert "run implement again" in out["note"], out
-    assert "run archive again" in out["note"], out
-    assert "THE-FAILING-TEST" in log.read_text()
-    assert "81-x @" in log.read_text()
-
-
-def test_a_passing_record_at_exact_head_archives(script, project, specs):
-    configure(project, specs)
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-
-
-def test_a_record_with_nonzero_exit_code_blocks_archive(script, project, specs):
-    configure(project, specs)
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 1)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert (specs / "81-x").exists()
-
-
-def test_a_passing_record_at_head_first_parent_of_a_genuine_merge_archives(script, project, specs):
-    """The ordinary case on any active project: update_branch_to_base
-    merges the base into the spec branch, so HEAD at archive time is a
-    real two-parent merge commit whose first parent is the spec branch's
-    own last (tested) commit."""
-    configure(project, specs)
-    tested = git(project, "rev-parse", "HEAD")
-    git(project, "switch", "-q", "-c", "feature")
-    (project / "feature.txt").write_text("feature work\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-qm", "feature work")
-    tested = git(project, "rev-parse", "HEAD")
-
-    git(project, "switch", "-q", "main")
-    (project / "base.txt").write_text("base moved on\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-qm", "base moved on")
-
-    git(project, "switch", "-q", "feature")
-    git(project, "merge", "-q", "--no-edit", "main")
-
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    write_test_run(specs, "81-x", tested, 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-
-
-def test_a_record_at_head_first_parent_of_an_ordinary_single_parent_commit_blocks_archive(
-    script, project, specs,
-):
-    """The must-fix regression the plan review found: an ordinary
-    single-parent commit added to the branch AFTER the recorded one —
-    real, untested work — must not slip through just because its own
-    parent happens to be the recorded commit."""
-    configure(project, specs)
-    tested = git(project, "rev-parse", "HEAD")
-    (project / "untested.txt").write_text("untested work\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-qm", "untested work")
-
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    write_test_run(specs, "81-x", tested, 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "no-passing-test-record", out
-    assert (specs / "81-x").exists()
-
-
-def test_the_gate_never_runs_the_recorded_command_itself(script, project, specs, tmp_path):
-    """REQ-5: archive only ever READS test-run.json. A fixture whose
-    'command' would drop a marker file if ever executed proves the gate
-    never shells out to it."""
-    configure(project, specs)
-    marker = tmp_path / "marker"
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    write_test_run(
-        specs, "81-x", git(project, "rev-parse", "HEAD"), 0,
-        command=f"touch {marker}",
-    )
-    run(script, project, "81-x")
-    assert not marker.exists(), "aide-archive-spec must never execute the recorded command"
 
 
 # --- spec 355: the state file --------------------------------------------
@@ -814,40 +673,7 @@ def branch_with_change(project, *rel_paths):
     git(project, "commit", "-qm", "touch " + " ".join(rel_paths))
 
 
-def test_a_dashboard_only_change_runs_only_the_dashboard_scope(script, project, specs, tmp_path):
-    marker_core = tmp_path / "core-marker"
-    marker_dash = tmp_path / "dash-marker"
-    scoped_configure(project, specs, marker_core, marker_dash)
-    branch_with_change(project, "dashboard/x.txt")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert marker_dash.exists()
-    assert not marker_core.exists()
 
-
-def test_a_change_reaching_both_scopes_runs_both(script, project, specs, tmp_path):
-    marker_core = tmp_path / "core-marker"
-    marker_dash = tmp_path / "dash-marker"
-    scoped_configure(project, specs, marker_core, marker_dash)
-    branch_with_change(project, "core/x.txt", "dashboard/y.txt")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert marker_core.exists()
-    assert marker_dash.exists()
-
-
-def test_a_change_reaching_neither_scope_runs_every_scope(script, project, specs, tmp_path):
-    marker_core = tmp_path / "core-marker"
-    marker_dash = tmp_path / "dash-marker"
-    scoped_configure(project, specs, marker_core, marker_dash)
-    branch_with_change(project, "notes.txt")
-    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert marker_core.exists(), "an unmatched file must never leave a scope untested"
-    assert marker_dash.exists(), "an unmatched file must never leave a scope untested"
 
 
 def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, project, specs):

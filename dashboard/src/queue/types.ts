@@ -179,7 +179,7 @@ export interface Job {
    *  match on it. Paired by hand with the same union in
    *  `render/job-state.ts`, which does not import this module; the two
    *  are read side by side by `queue.test.ts`. */
-  errorReason?: "conflict" | "unlanded";
+  errorReason?: "conflict" | "unlanded" | "tests-red";
   /** The first landing failure this job hit, named by step (spec 327).
    *  Set once and left alone by every later step of the SAME job,
    *  success or failure — unlike `error`, which every later step is

@@ -128,6 +128,7 @@ export function queueHarness(prefix: string): QueueHarness {
         // but a genuine hazard on one that does (the serving host itself,
         // or a developer machine running `make serve-local`).
         restart: { registered: async () => false, fire: () => {} },
+        landingGate: async () => ({ ok: true }),
         ...extra,
       });
       servers.push(server);

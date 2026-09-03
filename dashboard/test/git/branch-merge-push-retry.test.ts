@@ -164,3 +164,41 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
   });
 });
+
+
+describe("the landing's test gate: the suite runs once on the merge, before the push", () => {
+  test("red drops the local merge, pushes nothing, and says so", async () => {
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, reset: { code: 0 }, push: { code: 0 } });
+    const gate = async () => ({ ok: false, error: "the project's tests are red on the merge", detail: "FAILED test_x" });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("tests-red");
+    expect(result.error).toContain("tests are red");
+    expect(result.detail).toBe("FAILED test_x");
+    const seq = argv(git.calls);
+    expect(seq).toContain("reset -q --hard origin/master");
+    expect(ran(git.calls, "push -q origin master")).toBe(false);
+  });
+
+  test("green pushes, and the gate ran after the merge and before the push", async () => {
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
+    const order: string[] = [];
+    const gate = async () => {
+      order.push(`gate after ${argv(git.calls).filter((a) => a.startsWith("merge")).length} merges`);
+      return { ok: true };
+    };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
+    expect(result.ok).toBe(true);
+    expect(order).toEqual(["gate after 1 merges"]);
+    const seq = argv(git.calls);
+    expect(seq.indexOf("push -q origin master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only refs/remotes/origin/aide/89-merge-from-the-dashboard"));
+    expect(ran(git.calls, "reset -q --hard")).toBe(false);
+  });
+
+  test("without a gate nothing changes: merge, then push", async () => {
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(true);
+    expect(ran(git.calls, "push -q origin master")).toBe(true);
+  });
+});

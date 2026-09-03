@@ -66,7 +66,7 @@ export interface RepoMergeResult {
    *  on the strength of the reason without matching against that
    *  sentence: the text is joined with every other repo's before the
    *  page sees it, and a rewording would silently take the action away. */
-  reason?: "conflict" | "gone";
+  reason?: "conflict" | "gone" | "tests-red";
 }
 
 /** Every refusal names the repo AND the branch. A landing merges
@@ -165,12 +165,18 @@ async function pushWithRetry(run: GitRunner, root: string, base: string, wait: W
  *  Never throws: a git that cannot run at all is a refusal like any
  *  other, because the caller is merging several repos and one of them
  *  blowing up must not take the report for the others with it. */
+/** What a landing runs on the merged result before it pushes: the
+ *  project's own test suite, once. Red means the merge is thrown away
+ *  and nothing reaches origin. */
+export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: string; detail?: string }>;
+
 export async function mergeBranchIntoDefault(
   run: GitRunner,
   root: string,
   branch: string,
   base: string,
   wait: Wait = sleep,
+  gate?: LandingGate,
 ): Promise<RepoMergeResult> {
   try {
     // The state of the working tree is not asked about at all (spec
@@ -255,6 +261,20 @@ export async function mergeBranchIntoDefault(
     //    page that triggered it. A push that fails is REPORTED and
     //    never rolled back — `aide-run-spec`'s own precedent is that a
     //    push problem is not a reason to undo committed work.
+    // The tests run HERE, once, on what main is about to become — not in
+    // every step that touched the branch, and never after the push. Red:
+    // the local merge is dropped and origin never sees it; the branch is
+    // untouched, so implement can be run again on it.
+    if (gate) {
+      const verdict = await gate(root);
+      if (!verdict.ok) {
+        await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+        return {
+          ...refuse(root, branch, verdict.error ?? `the project's tests are red on the merge into ${base}`, verdict.detail),
+          reason: "tests-red",
+        };
+      }
+    }
     const pushResult = await pushWithRetry(run, root, base, wait);
     if (!pushResult.ok) {
       return refuse(root, branch, `merged locally, but the push of ${base} failed: ${pushResult.error ?? ""}`);
