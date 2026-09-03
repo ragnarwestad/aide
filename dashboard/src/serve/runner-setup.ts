@@ -178,7 +178,11 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         if (step === "analyze" || step === "reopen" || step === "reset") {
           return ctx.landStepBranch(job, step, outcome);
         }
-        if (step === "archive") return ctx.landArchivedSpec(job, outcome);
+        // `archive` lands on `completed` alone: `already-landed` has
+        // nothing left to land, and a refusal never reaches here.
+        if (step === "archive") {
+          return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
+        }
         // `implement`, `explore` and `manifest` fall through: the first
         // by design, the other two because neither leaves a spec branch
         // for anyone to land.

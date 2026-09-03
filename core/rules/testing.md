@@ -11,22 +11,22 @@
   - [Example of a correct workflow](#example-of-a-correct-workflow)
   - [When tests fail](#when-tests-fail)
 - [TDD approach](#tdd-approach-test-driven-development)
-- [Watch mode warnings](#watch-mode-warnings)
+- [Watch mode](#watch-mode)
 
 ---
 
 ## Every change ships with its test
 
-**Fix a bug or add functionality → write the test in the SAME job. Never as a suggestion afterwards,
-never as an item on a list of outstanding work.**
+**Fix a bug or add functionality → write the test in the same job. Never as a suggestion
+afterwards, never as an item on a list of outstanding work.**
 
-The user has to ask for this far too often. The pattern to stop: deliver the code, then offer tests as
-a separate follow-up, or list "this has no test coverage" as an outstanding action. Tests are part of
-the delivery, like the code compiling.
+The user has to ask for this far too often. The pattern to stop: deliver the code, then offer tests
+as a separate follow-up, or list "this has no test coverage" as an outstanding action. Tests are
+part of the delivery, like the code compiling.
 
 ### What to test
 
-- **The RULE, not the rendering.** What would break silently, in a way nobody sees for weeks. Not the
+- **The rule, not the rendering.** What would break silently, in a way nobody sees for weeks. Not the
   markup — a test that restates the HTML raises a number and catches nothing.
 - **A bug fix gets a test for the bug.** The failure that was reported is the test case.
 
@@ -37,48 +37,37 @@ with and without the fix is decoration. This takes thirty seconds and is not opt
 
 ### When a unit test genuinely cannot reach it
 
-Some things only exist in a browser: shadow-DOM internals, anything that depends on where the camera
-is pointing, real rendering. Say so plainly, put it in the Playwright suite instead, and say which
-spec — but never leave the change with nothing at all.
+Some things only exist in a browser: shadow-DOM internals, anything that depends on where the
+camera is pointing, real rendering. Say so plainly, put it in the Playwright suite instead, and say
+which spec — but never leave the change with nothing at all.
 
 ---
 
 ## Core rule
 
-**ALWAYS run tests when you create or modify them!**
+Run a test as soon as you create or modify it, and verify it passes before moving on.
 
-**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright); the AI runs them only in projects on the quick-suite list kept there, and asks elsewhere. Everything below about running tests applies to UNIT tests.
+**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright);
+run them only in projects on the quick-suite list kept there, and ask the user elsewhere. Everything
+below about running tests applies to unit tests.
 
-### ❌ NEVER
-- Create tests without running them
-- Modify tests without verifying that they still work
-- Assume that tests pass without checking
-- Commit failing tests
-
-### ✅ CORRECT approach
-1. When you create/modify tests, **run them immediately**
-2. **Verify** that all tests pass (green ✅)
-3. If tests fail (red ❌):
-   - Analyze the error message
-   - Fix the problem (either the test or the code)
-   - Re-run until everything passes
-4. **Before committing:** Run the entire test suite to check for regressions
+1. Run the new or changed test immediately.
+2. Verify that it passes (green ✅). If it fails (red ❌), analyze the error message, fix the
+   problem — either the test or the code — and re-run until it passes.
+3. Before committing, run the entire test suite to check for regressions.
 
 ### Slow tests never block the session
 
-The job itself often takes seconds; verification must not turn that
-into a quarter of an hour of the user waiting (raised hard 2026-08-24).
+The job itself often takes seconds; verification must not turn that into a long wait while the
+user does nothing else.
 
-- Run in the FOREGROUND only fast, narrow test files that cover the
-  exact change. Learn which files in a repo are slow before running
-  anything broad.
-- Anything slow runs in the BACKGROUND, announced with what it is and
-  roughly how long, while the job and the conversation continue.
-  Report the result when it lands.
-- The full suite runs exactly ONCE per job, in the background, before
-  commit — never inline, never repeated per iteration.
-- When the user is waiting to SEE something, deploy or show it first
-  and verify in the background.
+- Run in the foreground only fast, narrow test files that cover the exact change. Learn which files
+  in a repo are slow before running anything broad.
+- Run anything slow in the background, announced with what it is and roughly how long, while the
+  job and the conversation continue. Report the result when it lands.
+- Run the full suite exactly once per job, in the background, before commit — never inline, never
+  repeated per iteration.
+- When the user is waiting to see something, deploy or show it first and verify in the background.
 
 ---
 
@@ -86,15 +75,14 @@ into a quarter of an hour of the user waiting (raised hard 2026-08-24).
 
 ### Unit tests
 
-Use the project's own test command — take it from `AIDE_TEST_CMD` in
-`.aide/config` if set, otherwise `testCmd` in the committed manifest,
-otherwise detect it from the lockfile/build files (see "Project
-commands" in the tools-and-scripts rules). Always in single-run mode.
+Use the project's own test command — take it from `AIDE_TEST_CMD` in `.aide/config` if set,
+otherwise `testCmd` in the committed manifest, otherwise detect it from the lockfile/build files
+(see "Project commands" in the tools-and-scripts rules). Always run it in single-run mode.
 
 Example for a pnpm/Vitest project:
 
 ```bash
-# All tests (ALWAYS use --run to avoid watch mode!)
+# All tests (use --run to avoid watch mode)
 pnpm test -- --run
 
 # Specific test file
@@ -106,27 +94,26 @@ pnpm run test:coverage
 
 ### E2E tests (Playwright)
 
-**The AI may run the e2e suite where the project's own run is quick and reliable. Keep that list
-explicit — on this machine it is currently Atlasaurus (since 3 August 2026) and PaceUp. Elsewhere,
-ask the user to run it.**
+**Run the e2e suite where the project's own run is quick and reliable. Keep that list explicit —
+on this machine it is currently Atlasaurus (since 3 August 2026) and PaceUp. Elsewhere, ask the
+user to run it.**
 
-The ban was absolute until then, for one reason: the runs hung. A suite launched by the AI blocked the
-session for many minutes with nothing to show for it, and it happened often enough that the user said so
-several times, with emphasis. That is what changed — the runs are fast now, not the reasoning. If a
-suite in another project still crawls, the old rule stands there.
+The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
+show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the
+user to run it there instead.
 
 Where it is allowed:
 
-- ✅ Say what you are starting and roughly what it costs BEFORE launching it — the same courtesy as any
-  open-ended job
-- ✅ Run it when a change touched INTERACTION behaviour, not as routine after every edit; the
-  project's ordinary check command stays the gate
-- ✅ Report the result plainly, failures included, with the output
-- ❌ Never let it run unbounded: if a run overshoots what you told the user it would take, kill it, say
-  so, and hand the suite back rather than sitting on it
-- ❌ Never the html reporter — it spawns a server that will not exit
-- ❌ Never list an e2e run as an "outstanding action": the user runs the suite on his own initiative
-  too, and reports when it goes red
+- Say what you are starting and roughly what it costs before launching it — the same courtesy as
+  any open-ended job.
+- Run it when a change touched interaction behaviour, not as routine after every edit; the
+  project's ordinary check command stays the gate.
+- Report the result plainly, failures included, with the output.
+- Don't let it run unbounded: if a run overshoots what you told the user it would take, kill it,
+  say so, and hand the suite back rather than sitting on it.
+- Don't use the html reporter — it spawns a server that will not exit.
+- Don't list an e2e run as an "outstanding action": the user runs the suite on their own
+  initiative too, and reports when it goes red.
 
 ---
 
@@ -146,6 +133,7 @@ The steps below use a pnpm/Vitest project; swap in the project's own commands.
 ```
 
 ### When tests fail
+
 ```text
 1. Created test: src/components/UserForm.test.tsx
 2. Run: pnpm test -- --run UserForm.test.tsx
@@ -166,7 +154,9 @@ The steps below use a pnpm/Vitest project; swap in the project's own commands.
 **Red → Green → Refactor**
 
 ### 1. RED: Write a failing test
-Prove the problem by writing a test that demonstrates the desired behavior (but fails because the code is not implemented yet).
+
+Prove the problem by writing a test that demonstrates the desired behavior (but fails because the
+code is not implemented yet).
 
 ```tsx
 // Example: Test for new functionality that does not exist yet
@@ -179,6 +169,7 @@ test('getCountryName should return "Norway" for code "NO"', () => {
 ```
 
 ### 2. GREEN: Implement until the test passes
+
 Write minimal code to make the test pass.
 
 ```typescript
@@ -197,6 +188,7 @@ export function getCountryName(code: string): string {
 ```
 
 ### 3. REFACTOR: Run all tests
+
 Verify that no existing functionality was broken.
 
 ```bash
@@ -208,52 +200,36 @@ pnpm test -- --run
 
 ---
 
-## Watch mode warnings
+## Watch mode
 
-### CRITICAL: All tests MUST terminate after running
-
-**IMPORTANT:** Tests must always be run so that the process exits when the tests are done.
-The examples are Vitest; the rule applies to any runner with a watch or interactive mode
-(Jest, `gradle --continuous`, `cargo watch`, …).
+Run tests so the process exits when they're done. The examples are Vitest; the rule applies to any
+runner with a watch or interactive mode (Jest, `gradle --continuous`, `cargo watch`, …).
 
 ```bash
-# ✅ CORRECT - Tests run and the process exits
+# ✅ Runs and exits
 pnpm test -- --run                    # Vitest - exits after running
 pnpm test -- --run UserProfile.test.tsx  # Specific test
 
-# ❌ WRONG - Watch mode (the process NEVER exits)
-pnpm test                             # Starts in watch mode
-pnpm test UserProfile.test.tsx        # Watch mode
+# ❌ Watch mode - the process never exits
+pnpm test
+pnpm test UserProfile.test.tsx
 
-# ❌ WRONG for the AI regardless of mode - e2e is user-run only
+# ❌ e2e is user-run only, regardless of mode
 pnpm run test:e2e
 pnpm run test:e2e:ui
 ```
 
-### Why this is critical
+Why: an AI assistant can't interact with watch mode (it needs manual input to exit), so a process
+left in watch mode stays open in the background, has to be killed by hand, and leaves no way to
+tell when the tests actually finished. The same failure blocks a CI pipeline, which waits forever,
+and breaks the TDD cycle, which needs each run to exit before the next one starts.
 
-**In AI-assisted development:**
-- AI cannot interact with watch mode (requires manual input to exit)
-- Processes stay open in the background and must be killed manually
-- Impossible for AI to verify when tests have finished running
-- Can cause resource leaks
+### Checking whether test processes are hanging
 
-**In CI/CD pipelines:**
-- Watch mode blocks the pipeline (waits forever)
-- Consumes resources unnecessarily
-- Makes automated workflows impossible
-
-**In the TDD workflow:**
-- You must be able to run tests multiple times in the cycle
-- Each run must exit to move on to the next phase
-- Watch mode breaks the automation
-
-### How to check whether test processes are hanging
-
-**WARNING:** Only kill processes you started yourself, not all node processes!
+Kill only processes you started yourself, not every process with a matching name.
 
 ```bash
-# Check whether YOUR test processes are hanging (do not kill automatically!)
+# Check whether your test processes are hanging (do not kill automatically)
 ps aux | grep vitest
 ps aux | grep playwright
 
@@ -261,7 +237,7 @@ ps aux | grep playwright
 ps aux | grep "[v]itest"    # Shows vitest processes
 ps aux | grep "[p]laywright" # Shows playwright processes
 
-# Kill ONLY processes you started yourself (use the PID from the output above)
+# Kill only processes you started yourself (use the PID from the output above)
 kill <PID>                   # Replace <PID> with the process ID
 
 # Example:
@@ -270,21 +246,17 @@ kill <PID>                   # Replace <PID> with the process ID
 # kill 12345
 ```
 
-**IMPORTANT:**
-- ❌ **NEVER** use `pkill -f node` (kills all node processes!)
-- ❌ **NEVER** use `pkill -f vitest` without checking first
-- ✅ Use `ps aux` to identify your processes
-- ✅ Use `kill <PID>` to kill specific processes
+Don't use `pkill -f node` (kills every node process) or `pkill -f vitest` without checking first —
+use `ps aux` to identify your own processes, then `kill <PID>` for those specifically.
 
 ---
 
 ## Summary
 
-**Five golden rules:**
-1. ✅ **Every fix and every new feature ships with its test, in the same job** — and revert the fix once to prove the test catches it
-2. ✅ Run unit tests **immediately** after creating/modifying them
-3. ✅ Verify that **all tests pass** before committing
-4. ✅ Use **TDD** (Red → Green → Refactor) for new features
-5. ✅ **Run the e2e suite only where it is quick** (per the E2E section's list) and say so first; ask the user to run it where it is not
-
-**This rule ALWAYS applies - testing is not optional!**
+1. Every fix and every new feature ships with its test, in the same job — revert the fix once to
+   confirm the test catches it
+2. Run unit tests immediately after creating or modifying them
+3. Verify that all tests pass before committing
+4. Use TDD (Red → Green → Refactor) for new features
+5. Run the e2e suite only where it's quick (per the E2E section's list), say so first, and ask the
+   user to run it elsewhere
