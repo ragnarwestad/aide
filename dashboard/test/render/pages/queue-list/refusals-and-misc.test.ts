@@ -390,6 +390,20 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
     expect(noticeCellHtml(html, FOLDER)).toContain(MESSAGE);
   });
 
+  // A failed landing writes the same sentence as the job's `error` and,
+  // step-prefixed, as its `landingError`; the notice line said both,
+  // 300 characters twice with " · archive landing failed:" between.
+  test("the job's own error is not repeated when the landing mark already carries it", () => {
+    const REASON = "cannot fast-forward main — merge it by hand, in the checkout on the serving host";
+    const html = renderQueueRows(
+      [row({ state: "failed", error: REASON, landingError: `archive landing failed: ${REASON}` })],
+      { runnerAvailable: true, targets: [] },
+    );
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice.split(REASON).length - 1).toBe(1);
+    expect(notice).toContain(`archive landing failed: ${REASON}`);
+  });
+
   test("a row with no landing failure carries no mark", () => {
     const html = renderQueueRows([row({ state: "done" })], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain("landing failed");

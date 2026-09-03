@@ -98,7 +98,11 @@ export function specNotice(
 ): RowNotice | undefined {
   if (refusal) return { variant: "err", text: refusal, hook: "refused" };
   const parts: { variant: MessageVariant; text: string; title?: string }[] = [];
-  if (lead?.error) parts.push({ variant: "err", text: lead.error, title: lead.errorDetail });
+  // A failed landing writes the same sentence twice on the job: as its
+  // `error` and, prefixed with the step, as its `landingError`. Said
+  // once here — the mark carries it in full.
+  const said = (text: string) => marks.some((m) => m.text.endsWith(text));
+  if (lead?.error && !said(lead.error)) parts.push({ variant: "err", text: lead.error, title: lead.errorDetail });
   parts.push(...marks);
   if (parts.length) {
     return {

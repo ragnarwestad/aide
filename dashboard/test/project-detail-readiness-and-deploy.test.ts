@@ -187,6 +187,35 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
 
   // The fail-open case: asked, unanswerable. Never "level" — that would
   // be a guess dressed as an answer.
+  // A landing installs but never restarts (the person presses Deploy),
+  // so the common case after one is exactly this: level with origin,
+  // and a served process older than the checkout. A disabled button
+  // there left no way to deploy at all (2026-09-03).
+  test("level with origin but serving older code, the Deploy button is live", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const level = behindBy(root, "aide", 0);
+    let headCalls = 0;
+    const run: GitRunner = async (dir, args) => {
+      if (args.join(" ") === "rev-parse HEAD") {
+        headCalls += 1;
+        return { code: 0, stdout: `${headCalls === 1 ? "abc1234deadbeef" : "9999999cafefeed"}\n` };
+      }
+      return level.run(dir, args);
+    };
+    const base = serve(root, { run }, 25);
+    const deadline = Date.now() + 2000;
+    let html = await (await get(base, "aide", "deploy")).text();
+    while ((!html.includes("level with origin") || !html.includes("has not picked up")) && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 25));
+      html = await (await get(base, "aide", "deploy")).text();
+    }
+    expect(html).toContain("This checkout is level with origin.");
+    expect(html).toContain("the running service has not picked up the latest merge.");
+    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toContain("Deploy");
+    expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
+  });
+
   test("an unanswerable drift check draws no claim and no button (criterion 4)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, unanswerable(root, "aide"), 25);

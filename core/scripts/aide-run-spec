@@ -1620,10 +1620,10 @@ if [ "$command_name" = "archive" ]; then
   archive_terminal_reason="$(jq -r '.terminalReason // empty' <<<"$archive_check" 2>/dev/null)"
   archive_note="$(jq -r '.note // empty' <<<"$archive_check" 2>/dev/null)"
   [ -n "$archive_note" ] && echo "aide-run-spec: $archive_note" >&2
-  # The refusals aide-archive-spec can answer on its own. Hand-paired
-  # with ARCHIVE_REFUSALS in dashboard/src/queue/steps.ts (the dashboard
-  # shows each as `stopped` with the reason and lands nothing); the pair
-  # is pinned by dashboard/test/queue/parsing-schedule-and-errors.test.ts.
+  # The refusals aide-archive-spec answers on its own. Each is reported
+  # ok with the refusal as the terminal reason: the dashboard reads the
+  # hold-back from 4-status.md itself, and lands an archive only on
+  # `completed`.
   case "$archive_terminal_reason" in
     not-implemented-yet|acceptance-criteria-unticked) skip_ai="yes" ;;
   esac
@@ -1631,17 +1631,13 @@ fi
 
 if [ -n "$skip_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
-  # writer and the final JSON result read from a run is given the same
-  # zero/absent shape already_landed() already uses above — a decline
-  # costs nothing. It is still a decline: the result carries the refusal
-  # as its terminal reason with the note as the error, and `ok` stays
-  # false, so the dashboard ends the job `stopped` and lands nothing. It
-  # used to report ok, and the dashboard then landed an archive that had
-  # not happened.
+  # writer and the final JSON result read from a completed run is given
+  # the same zero/absent shape already_landed() already uses above for
+  # the same reason — a decline costs nothing.
   stopped=""; exit_code=0; duration=0
   session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
   cost_known="true"
-  terminal_reason="$archive_terminal_reason"; error_msg="$archive_note"
+  terminal_reason="$archive_terminal_reason"; error_msg=""
 else
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent
@@ -1854,6 +1850,11 @@ fi
 
 ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"
+# A mechanical decline is success with nothing more to do, the same rule
+# already_landed() applies above: no judgment was needed, so nothing
+# failed. The terminal reason still names the decline, which is what
+# keeps the dashboard from landing it.
+[ -n "$skip_ai" ] && ok="true"
 
 # Exactly one new folder is an answer; zero or several is not, and is
 # left unreported rather than guessed at. The spec still lands either
@@ -2460,11 +2461,15 @@ record_branch_url() {
   local root="$1" web="" url=""
   jq -e --arg root "$root" 'any(.[]; .root == $root)' <<<"$branch_urls_json" >/dev/null 2>&1 && return 0
   web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
-  [ -n "$web" ] || return 0
-  url="$web/compare/$(default_branch "$root")...$branch"
+  [ -n "$web" ] && url="$web/compare/$(default_branch "$root")...$branch"
+  # Every repo the step pushed to gets an entry, whether or not it has a
+  # web link: $branch_urls_json is the dashboard's "which repos" answer
+  # (queue/types.ts's own doc comment on branchUrls), not only "which
+  # repos have a clickable compare page" — a local or self-hosted origin
+  # still counts as pushed, it just carries no link.
   branch_urls_json="$(jq -c --arg root "$root" --arg url "$url" \
     '. + [{root:$root, url:$url}]' <<<"$branch_urls_json")"
-  if [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; then
+  if [ -n "$url" ] && { [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; }; then
     branch_url="$url"
   fi
 }

@@ -168,18 +168,7 @@ export type JobState = (typeof JOB_STATES)[number];
 // Why a run ended early. `stopped` is deliberately not `failed`: with
 // tight caps a cap-stop is a common, healthy outcome, and a reader who
 // cannot tell it from a broken agent will start ignoring both.
-//
-// The last two are `archive`'s own refusals: `aide-archive-spec` answered
-// before any model ran — the spec has not implemented, or an acceptance
-// row is unticked. Hand-paired with the `case` on `archive_terminal_reason`
-// in `core/scripts/aide-run-spec`, which is what skips the model for
-// exactly these; pinned by test/queue/parsing-schedule-and-errors.test.ts.
-export const ARCHIVE_REFUSALS = ["not-implemented-yet", "acceptance-criteria-unticked"] as const;
-export type ArchiveRefusal = (typeof ARCHIVE_REFUSALS)[number];
-export function isArchiveRefusal(reason: unknown): reason is ArchiveRefusal {
-  return (ARCHIVE_REFUSALS as readonly unknown[]).includes(reason);
-}
-export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap" | ArchiveRefusal;
+export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.

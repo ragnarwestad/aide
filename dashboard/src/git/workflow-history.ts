@@ -23,7 +23,7 @@
 
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import { parseStatus } from "../project/parse-status.ts";
+import { acceptanceCriteriaUnticked, parseStatus } from "../project/parse-status.ts";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
@@ -254,6 +254,13 @@ export interface FileStepsAnswer {
    *  copy of the spec's files has no state file yet (spec 355 REQ-10),
    *  the cue to keep comparing `proseSteps` against git (REQ-2). */
   stateSteps: string[] | undefined;
+  /** Whether the file has an acceptance row nobody has ticked — read
+   *  off the same branch copy as the steps, since a tick on a spec
+   *  with an open branch is written THERE (spec-edit.ts, REQ-4) and the
+   *  default branch's copy stays unticked until archive lands. The
+   *  row's "archive held back" and the queue's archive hold-back read
+   *  this before the disk copy; absent when the answer came off disk. */
+  acceptanceOpen?: boolean;
 }
 
 /** The steps `4-status.md`'s own line and the history do not agree
@@ -364,9 +371,13 @@ export class BranchFileStepsChecker {
           // a branch that has none yet (REQ-2).
           const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
           const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
+          const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
-            stateSteps: jsonFile ? parseSpecStateText(jsonFile.text)?.completedPhases : undefined,
+            stateSteps: state?.completedPhases,
+            acceptanceOpen: state
+              ? state.acceptanceCriteria.some((row) => !row.done)
+              : acceptanceCriteriaUnticked(file.text),
           };
           break;
         }

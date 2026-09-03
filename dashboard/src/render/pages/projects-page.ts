@@ -99,9 +99,12 @@ export interface ProjectsPageOptions {
    *  query string of the redirect it landed on, and never again — so an
    *  operator who did not act on it there had no way to rediscover what
    *  was missing except by starting a run and having it refused. A
-   *  project named by no key here gets no note, which is what the
-   *  generated page (no server, no git) shows. */
-  readinessByProject?: Record<string, { canRun: boolean; note: string }>;
+   *  project named by no key here gets no mark, which is what the
+   *  generated page (no server, no git) shows.
+   *
+   *  Spec 369: the full sentence moved to the project's own Health tab
+   *  — the list needs only whether a run can start, to gate the mark. */
+  readinessByProject?: Record<string, boolean>;
   /** What the project is configured with today — the Settings page's
    *  two fields, pre-filled. Empty means empty: this page never guesses
    *  on a configured project's behalf. */
@@ -199,7 +202,6 @@ export function renderProjectsPage(
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
       note: (name) => {
         const drift = opts.driftByProject?.[name];
-        const readiness = opts.readinessByProject?.[name];
         // Three states, not two: nothing asked yet says so, an
         // unanswerable answer says nothing (fail-open), and a real
         // count carries how old it is.
@@ -210,10 +212,13 @@ export function renderProjectsPage(
           : undefined;
         const schedule = opts.scheduleByProject?.[name];
         const scheduleNote = schedule ? nextScheduledNote(schedule, now) : undefined;
-        return [readiness && !readiness.canRun ? readiness.note : undefined, note, scheduleNote]
-          .filter(Boolean)
-          .join(" — ") || undefined;
+        return [note, scheduleNote].filter(Boolean).join(" — ") || undefined;
       },
+      // Spec 369: the sentence itself lives on the Health tab now — the
+      // list carries only a link to it, gated on the same answer the
+      // sentence used to be gated on.
+      warnHref: (name) =>
+        opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=health` : undefined,
     });
   // No meta refresh: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did

@@ -45,7 +45,7 @@ stateDiagram-v2
     queued --> done: tick — no step left
     running --> queued: step ok, more steps
     running --> done: step ok, last step
-    running --> stopped: budget, timeout, provider limit, an archive the gate refused
+    running --> stopped: budget, timeout, provider limit
     running --> failed: step failed
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
@@ -65,6 +65,10 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
+- Leaves an `archive` job `queued` the same way — "held back: the Acceptance criteria are not all ticked yet — tick
+  them on the Checks tab" — while its spec's state file has an acceptance row nobody has ticked; the tick that
+  closes the last row is what releases it. A chained analyze/implement/archive job waits here between implement
+  and archive instead of ending with archive refused.
 - Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
   in flight. A cheaper job behind it may take the slot.
 - Moves a job to `stopped` (`stopReason: "job-cap"`) when its NEXT step's budget would exceed the job cap. The cap is
@@ -75,9 +79,6 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
 **When a step ends** (`Runner.complete()`, reached from `poll()` when the result file appears):
 
 - `budget`, `timeout` or `provider-limit` as the run's terminal reason gives `stopped`, with that `stopReason`.
-- So does an `archive` that `aide-archive-spec` refused before any model ran — `not-implemented-yet` or
-  `acceptance-criteria-unticked` — with the refusal as `stopReason` and its note as `error`. Nothing is landed:
-  the landing runs on `completed` alone.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
@@ -113,8 +114,7 @@ Three fields say something the state alone does not, and each is read by the pag
   that reads `queue.list()` sees its own triggering job still marked `landing: true` even though the landing calling
   it has already succeeded, and must treat that one row as settled by hand; every other row's flag is as trustworthy
   as ever.
-- **`stopReason`** is `budget`, `timeout`, `provider-limit`, `job-cap`, `not-implemented-yet` or
-  `acceptance-criteria-unticked`, set with `stopped` and nowhere else.
+- **`stopReason`** is `budget`, `timeout`, `provider-limit` or `job-cap`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under tight caps a cap-stop is a common, healthy outcome.
 - **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running
   `archive` resolves both. It is declared in `src/queue/types.ts` and again in `src/render/ui/job-state/types.ts`,

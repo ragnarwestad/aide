@@ -10,6 +10,7 @@
 // here, rather than inventing a forward-reference box for a cycle that
 // is entirely local to this one concern.
 
+import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import {
   BranchStatusChecker, createGitRunner, type GitRunner,
 } from "../git/branch-status.ts";
@@ -135,6 +136,9 @@ export function setupProjectResolution(opts: ProjectResolutionOptions, allowed: 
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
 
+  // Attached by `createServer` once the schedules exist (they need
+  // `targets`, which needs this context — hence late-bound).
+  let branchFileSteps: BranchFileStepsChecker | undefined;
   const specLookupCtx: SpecLookupContext = {
     machineryProjectDir,
     machinerySpecsRoot,
@@ -142,6 +146,7 @@ export function setupProjectResolution(opts: ProjectResolutionOptions, allowed: 
     codeLanding,
     targets,
     readScan: () => state.scan,
+    readBranchFileSteps: () => branchFileSteps,
     writeScan: (s) => {
       state.scan = s;
     },
@@ -190,6 +195,9 @@ export function setupProjectResolution(opts: ProjectResolutionOptions, allowed: 
   }
 
   return {
+    attachBranchFileSteps: (checker: BranchFileStepsChecker) => {
+      branchFileSteps = checker;
+    },
     checkoutEnsurer, ensureCheckout, gitRun, branchStatus,
     displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, ownedSpecsRoot, machinerySpecsRoot,
     targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt,

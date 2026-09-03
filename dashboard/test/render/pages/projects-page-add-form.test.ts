@@ -88,23 +88,28 @@ describe("the Add page helps with what it cannot decide (spec 140)", () => {
 // once after Add and then lost. Without this, an operator who did not
 // act on it immediately had no way to rediscover what was missing short
 // of starting a run and having it refused.
-describe("the list says which projects cannot run yet (spec 184)", () => {
-  test("a project that cannot run carries its note without a Settings action", () => {
+describe("the list says which projects cannot run yet (spec 184, moved off the list by spec 369)", () => {
+  test("a project that cannot run carries a warning mark, its own sibling element rather than nested inside the name link", () => {
     const html = page([project("skjer")], {
       createProjects: ["skjer"],
-      readinessByProject: {
-        skjer: { canRun: false, note: "skjer cannot run yet: no specs root at /repos/specs/skjer" },
-      },
+      readinessByProject: { skjer: false },
     });
-    expect(html).toContain("no specs root at /repos/specs/skjer");
+    expect(html).toContain('class="proj-row-warn"');
+    expect(html).toContain('href="/projects/skjer?tab=health"');
     expect(html).not.toContain('href="/projects/skjer/settings"');
+    // Criterion 5/6: the mark is a sibling of .proj-row-link, not nested
+    // inside it — the name link's own markup carries none of it.
+    const nameLink = html.match(/<a class="proj-row-link"[^>]*>[^<]*<\/a>/)?.[0];
+    expect(nameLink).toBeDefined();
+    expect(nameLink).not.toContain("proj-row-warn");
   });
 
-  test("a project that can run carries neither a note nor a Settings action", () => {
+  test("a project that can run carries neither the mark nor a Settings action", () => {
     const html = page([project("skjer")], {
       createProjects: ["skjer"],
-      readinessByProject: { skjer: { canRun: true, note: "skjer is ready to run" } },
+      readinessByProject: { skjer: true },
     });
+    expect(html).not.toContain('class="proj-row-warn"');
     expect(html).not.toContain("ready to run");
     expect(html).not.toContain('href="/projects/skjer/settings"');
   });

@@ -1,0 +1,6 @@
+{
+  "name": "aide-test",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "bun test" }
+}

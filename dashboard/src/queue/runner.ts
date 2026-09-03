@@ -29,10 +29,10 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../project/parse-status.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
-import { isArchiveRefusal, type StopReason } from "./steps.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
 
@@ -113,7 +113,7 @@ export class Runner {
    *  a Map, since the reason it names carries no per-job detail — every
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
     // NOTHING starts while a job is landing, whatever it is and whatever
     // repo it is for. A landing merges directly into the SHARED main
     // checkout — the one every run switches and reads at its own start —
@@ -166,6 +166,16 @@ export class Runner {
         const reason = `held back: depends on ${dependency}, which is not archived yet`;
         // Only when it changed: an unconditional update would rewrite
         // the mirror every two seconds for a job that is doing nothing.
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        continue;
+      }
+      // The same shape once more, for `archive`: an acceptance row only
+      // a person can tick is still open. Run, the step would only be
+      // refused by `aide-archive-spec` and end the job with archive
+      // unarchived — so a chained analyze/implement/archive job waits
+      // here for the tick instead, and starts by itself once it lands.
+      if (acceptanceOpen?.has(job.id)) {
+        const reason = `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`;
         if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }
@@ -384,17 +394,14 @@ export class Runner {
 
     // A cap or the clock ending a run is `stopped` — never `failed`.
     // Under tight caps this is a common, healthy outcome, and a reader
-    // who cannot tell it from a broken agent will ignore both. So is an
-    // `archive` that `aide-archive-spec` refused before any model ran:
-    // nothing broke, a person has something to tick or run first, and
-    // the refusal is the reason on the row.
+    // who cannot tell it from a broken agent will ignore both.
     if (
       outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
-      outcome.terminalReason === "provider-limit" || isArchiveRefusal(outcome.terminalReason)
+      outcome.terminalReason === "provider-limit"
     ) {
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
-        stopReason: outcome.terminalReason as StopReason,
+        stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
         error: outcome.error,
       });

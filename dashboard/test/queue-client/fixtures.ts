@@ -10,7 +10,7 @@
 import { join } from "node:path";
 import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox } from "./fixtures-controls.ts";
 import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
-import { makeFakeDate, makeFakeEventSource, makeFakeFormData } from "./fixtures-runtime.ts";
+import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
 
@@ -362,10 +362,12 @@ export function harness(
   const ticks: (() => void)[] = [];
 
   const { clock, FakeDate } = makeFakeDate();
+  const { timeouts, setTimeout: fakeSetTimeout, clearTimeout: fakeClearTimeout } = makeFakeTimers();
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
   new Function(
     "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource", "Date",
+    "setTimeout", "clearTimeout",
     SOURCE,
   )(
     document,
@@ -380,6 +382,8 @@ export function harness(
     FakeFormData,
     FakeEventSource,
     FakeDate,
+    fakeSetTimeout,
+    fakeClearTimeout,
   );
 
   /** The visibility change the browser fires when the tab is shown or
@@ -420,7 +424,7 @@ export function harness(
     submit, submitCreate, click, clickFold,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
-    sources: sourcesMade, live, visibility, intervals, ticks, elapsed, clock,
+    sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     addButton, addSlot,

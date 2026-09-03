@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+# run — run the round through a throwaway dashboard.
+#
+# Builds, in a fresh temp directory, a local bare + working-copy pair for
+# the fixture project and one for its specs, seeded from
+# fixture-project/ and specs/, starts the dashboard FROM THE AIDE
+# CHECKOUT GIVEN with that checkout's own aide-run-spec as the runner
+# and the fixture project as its only project, sends every fixture
+# spec's description through /api/queue/create, waits for each create
+# job to land a specFolder before sending the next spec's create
+# request, queues that spec's own steps, waits for the queue to drain,
+# and reports each spec's actual end state against what was expected.
+# Nothing here touches the production dashboard, its files, or aide's
+# own origin.
+#
+#   dashboard/test/round/run <aide checkout> [--port N] [--keep] [--timeout S] [--model NAME]
+set -uo pipefail
+AIDE="${1:-}"; shift || true
+[ -n "$AIDE" ] && [ -f "$AIDE/dashboard/src/serve/serve.ts" ] \
+  || { echo "usage: run <aide checkout> [--port N] [--keep] [--timeout S] [--model NAME]" >&2; exit 2; }
+AIDE="$(cd "$AIDE" && pwd)"
+PORT=8789; KEEP=no; TIMEOUT=900; MODEL=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --port) PORT="$2"; shift 2 ;;
+    --keep) KEEP=yes; shift ;;
+    --timeout) TIMEOUT="$2"; shift 2 ;;
+    --model) MODEL="$2"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+HERE="$(cd "$(dirname "$0")" && pwd)"
+BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"
+BASE="http://127.0.0.1:$PORT"
+
+WORK="$(mktemp -d)"
+echo "== building local origins in $WORK"
+
+CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"
+git init -q --bare "$CODE_ORIGIN"
+git init -q --bare "$SPECS_ORIGIN"
+
+CODE="$WORK/code"; SPECS="$WORK/specs"
+git clone -q "$CODE_ORIGIN" "$CODE"
+cp -R "$HERE/fixture-project/." "$CODE/"
+mkdir -p "$CODE/.aide"
+# AIDE_SPECS_PATH is a fresh temp path every round, so this file is
+# templated here rather than checked in (fixture-project/.gitignore
+# keeps .aide/config out of the fixture project's own commit).
+printf 'AIDE_SPECS_PATH=%s\nAIDE_TEST_CMD=%s test\n' "$SPECS" "$BUN" > "$CODE/.aide/config"
+git -C "$CODE" -c user.name=round -c user.email=round@localhost add -A
+git -C "$CODE" -c user.name=round -c user.email=round@localhost commit -qm "baseline"
+git -C "$CODE" tag baseline
+git -C "$CODE" push -q origin main --tags
+
+git clone -q "$SPECS_ORIGIN" "$SPECS"
+mkdir -p "$SPECS/archive"; touch "$SPECS/archive/.gitkeep"
+git -C "$SPECS" -c user.name=round -c user.email=round@localhost add -A
+git -C "$SPECS" -c user.name=round -c user.email=round@localhost commit -qm "start"
+git -C "$SPECS" push -q origin main
+
+echo "== preparing the board's own files"
+mkdir -p "$WORK/site" "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
+ln -sfn "$CODE" "$WORK/root/aide-test"
+head -c 24 /dev/urandom | base64 | tr -d '/+=\n' > "$WORK/token"
+TOKEN="$(cat "$WORK/token")"
+cat > "$WORK/queue-config.json" <<CFG
+{
+  "budgetUsd": 1, "jobCapUsd": 5, "dailyCapUsd": 50,
+  "timeoutSec": { "default": 600 },
+  "permissionMode": { "default": "bypassPermissions" },
+  "model": { "default": "script" },
+  "modelChoices": { "script": { "budgetUsd": 1 } },
+  "push": "branch", "concurrency": 2,
+  "projects": ["aide-test"]
+}
+CFG
+
+# The stand-in by default, exactly as ~/develop/aide-test's own
+# .aide/config used to point AIDE_CLAUDE_BIN at fake-claude — but this
+# round's own config can no longer say so statically (the path is a
+# fresh temp directory every time), so it is set here instead, and
+# skipped only when a real model was named. AIDE_ROUND_CHECKOUT tells
+# claude-stub which checkout's own companion scripts to call — the one
+# this round is testing, which may not be the one `run` itself lives in.
+export AIDE_ROUND_CHECKOUT="$AIDE"
+if [ -n "$MODEL" ]; then
+  tmp="$(mktemp)"
+  jq --arg m "$MODEL" '.model.default = $m' "$WORK/queue-config.json" > "$tmp" && mv "$tmp" "$WORK/queue-config.json"
+else
+  export AIDE_CLAUDE_BIN="$HERE/claude-stub"
+fi
+
+echo "== starting the dashboard from $AIDE on :$PORT"
+( cd "$AIDE/dashboard" && "$BUN" run src/main.ts generate --root "$WORK/root" --out "$WORK/site" >/dev/null 2>&1 ) \
+  || echo "(generate failed; serving without a generated site)"
+( cd "$AIDE/dashboard" && exec "$BUN" run src/serve/serve.ts serve \
+    --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" --site "$WORK/site" \
+    --queue-config "$WORK/queue-config.json" --queue-mirror "$WORK/queue.json" \
+    --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" --token-file "$WORK/token" \
+    --dashboard-checkouts "$WORK/checkouts" --runner-bin "$AIDE/core/scripts/aide-run-spec" \
+    --queue-projects aide-test ) > "$WORK/serve.log" 2>&1 &
+SERVER=$!
+# Removed on exit unless told to keep the board up — same shape
+# test-instance's own stop()/trap already had.
+stop() {
+  if [ "$KEEP" = yes ]; then
+    echo "left running: pid $SERVER, $BASE/?token=$TOKEN, $WORK"
+  else
+    kill "$SERVER" 2>/dev/null; wait "$SERVER" 2>/dev/null
+    rm -rf "$WORK"
+  fi
+}
+trap stop EXIT
+
+for _ in $(seq 1 40); do curl -s -m 2 -o /dev/null "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" && break; sleep 0.5; done
+curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" | grep -q 200 \
+  || { echo "the server did not come up; see $WORK/serve.log" >&2; tail -20 "$WORK/serve.log" >&2; exit 1; }
+
+api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
+
+echo "== queue the specs, each through create"
+declare -a FOLDERS=() EXPECTS=()
+fails=0
+for spec_json in "$HERE"/specs/*.json; do
+  slug="$(basename "$spec_json" .json)"
+  title="$(jq -r .title "$spec_json")"
+  description="$(cat "$HERE/specs/$slug.md")"
+  dependsOn="$(jq -r '(.dependsOn // []) | join(",")' "$spec_json")"
+  body="$(jq -cn --arg p "aide-test" --arg t "$title" --arg d "$description" --arg dep "$dependsOn" \
+    '{project:$p, title:$t, description:$d} + (if $dep == "" then {} else {dependsOn:($dep|split(","))} end)')"
+  create_job="$(api /api/queue/create "$body" | jq -r .job.id)"
+  # A create job's OWN specFolder starts as a provisional "new-<8 hex>"
+  # placeholder (spec 93) and only becomes the real "NN-slug" once the
+  # step has run and landed — reading .specFolder the instant it exists
+  # would take that placeholder as the answer. Wait for it to stop
+  # looking provisional instead.
+  spec_folder=""
+  for _ in $(seq 1 60); do
+    spec_folder="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" \
+      | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | .specFolder // empty')"
+    case "$spec_folder" in
+      new-????????) spec_folder="" ;;
+    esac
+    [ -n "$spec_folder" ] && break
+    sleep 2
+  done
+  if [ -z "$spec_folder" ]; then
+    echo "  create never landed for $slug"
+    fails=$((fails + 1))
+    continue
+  fi
+  FOLDERS+=("$spec_folder")
+  EXPECTS+=("$(jq -r .expected "$spec_json")")
+  steps="$(jq -r '.steps | join(",")' "$spec_json")"
+  api /api/queue "$(jq -cn --arg p "aide-test" --arg f "$spec_folder" --arg s "$steps" \
+    '{project:$p, specFolder:$f, steps:($s|split(","))}')" >/dev/null
+done
+
+echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
+start=$(date +%s)
+while :; do
+  jobs="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN")"
+  live="$(printf '%s' "$jobs" | jq '[.jobs[] | select(.state=="queued" or .state=="running" or .landing==true)] | length')"
+  [ "$live" = "0" ] && break
+  # What the specs cron does on the production host every two minutes:
+  # the local working copy follows origin. Without this, the queue's
+  # own view of what is archived never catches up with what a landing
+  # just pushed.
+  git -C "$SPECS" pull -q --ff-only 2>/dev/null || true
+  [ $(( $(date +%s) - start )) -ge "$TIMEOUT" ] && { echo "  timed out with $live job(s) still live"; break; }
+  sleep 5
+done
+
+echo "== result"
+git -C "$SPECS" fetch -q origin
+archived_on_origin="$(git -C "$SPECS" ls-tree --name-only origin/main archive/ 2>/dev/null | sed 's#.*/##')"
+open_code="$(git -C "$CODE" ls-remote --heads origin 'aide/*' | sed 's#.*refs/heads/##')"
+open_specs="$(git -C "$SPECS" ls-remote --heads origin 'aide/*' | sed 's#.*refs/heads/##')"
+i=0
+while [ "$i" -lt "${#FOLDERS[@]}" ]; do
+  folder="${FOLDERS[$i]}"; expect="${EXPECTS[$i]}"
+  job="$(printf '%s' "$jobs" | jq -c --arg f "$folder" '[.jobs[] | select(.specFolder==$f)] | sort_by(.createdAt) | last')"
+  state="$(printf '%s' "$job" | jq -r '.state // "no job"')"
+  err="$(printf '%s' "$job" | jq -r '.error // empty' | cut -c1-90)"
+  if printf '%s\n' "$archived_on_origin" | grep -qx "$folder"; then got=archived; else got=not-archived; fi
+  branch=""; printf '%s\n' "$open_code $open_specs" | tr ' ' '\n' | grep -qx "aide/$folder" && branch=" (branch still on origin)"
+  mark="ok"; [ "$got" = "$expect" ] || { mark="MISMATCH"; fails=$((fails + 1)); }
+  printf '  %-8s %-42s job=%-9s %s%s%s\n' "$mark" "$folder" "$state" "$got" "$branch" "${err:+ — $err}"
+  i=$((i + 1))
+done
+
+if [ -n "$MODEL" ]; then
+  total_cost="$(printf '%s' "$jobs" | jq '[.jobs[].costUsd // 0] | add')"
+  echo "== total cost: \$$total_cost (model: $MODEL)"
+fi
+
+echo "== log: $WORK/serve.log"
+exit $(( fails > 0 ? 1 : 0 ))

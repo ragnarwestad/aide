@@ -14,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, sep, join } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
+import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
@@ -55,6 +56,10 @@ export interface SpecLookupContext {
   gitRun: GitRunner;
   resolvedCheckouts: Map<string, DashboardCheckout>;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
+  /** The branch copy of `4-status.md`/`.json`, as the schedule last read
+   *  it (spec 298's checker). Attached after the schedules exist, so
+   *  optional; absent, every read below is off disk. */
+  readBranchFileSteps?: () => BranchFileStepsChecker | undefined;
 }
 
 /** Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
@@ -122,7 +127,14 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
         // case's "waiting" — the two share this field because both are
         // archive declining to proceed, but only one of them is
         // ordinary, expected progress.
-        const acceptanceOpen = state?.acceptanceCriteria.some((row) => !row.done) ?? false;
+        // The BRANCH copy first: a tick on a spec whose `aide/<folder>`
+        // is open lands there, and the Checks tab reads it from there;
+        // the disk copy stays unticked until archive lands. Reading disk
+        // alone said "archive held back" over a spec whose every row was
+        // ticked (364, 2026-09-03).
+        const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
+        const acceptanceOpen =
+          branchAnswer?.acceptanceOpen ?? state?.acceptanceCriteria.some((row) => !row.done) ?? false;
         const heldBack = statusText
           ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;

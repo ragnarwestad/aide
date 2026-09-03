@@ -42,7 +42,7 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
-  stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap" | "not-implemented-yet" | "acceptance-criteria-unticked";
+  stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap";
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  (spec 220). Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing

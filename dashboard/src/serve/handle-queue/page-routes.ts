@@ -419,22 +419,22 @@ export async function handlePageRoutes(
     // missing except by starting a run and having it refused. Now the
     // row says it, and carries the Settings link that acts on it.
     // Concurrent, like the drift check above, and read-only.
-    const readinessByProject: Record<string, { canRun: boolean; note: string }> = {};
+    const readinessByProject: Record<string, boolean> = {};
     await Promise.all(
       projects.map(async (p) => {
         try {
-          const { canRun, note } = await assessProjectReadiness(
+          const { canRun } = await assessProjectReadiness(
             ctx.gitRun,
             ctx.displayProjectDir(p.name),
             ctx.machineryProjectDir(p.name),
           );
-          readinessByProject[p.name] = { canRun, note };
+          readinessByProject[p.name] = canRun;
         } catch {
-          // A note is advice, and the listing is what the reader came
-          // for: a host with no `git` on PATH must still get the page,
-          // and a row with nothing to say about readiness is exactly
-          // the row the generated page has always drawn.
-          readinessByProject[p.name] = { canRun: true, note: "" };
+          // The listing is what the reader came for: a host with no
+          // `git` on PATH must still get the page, and a row with
+          // nothing to say about readiness is exactly the row the
+          // generated page has always drawn.
+          readinessByProject[p.name] = true;
         }
       }),
     );
