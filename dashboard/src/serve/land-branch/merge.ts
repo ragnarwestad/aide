@@ -9,7 +9,7 @@ import { mergeBranchIntoDefault } from "../../git/branch-merge.ts";
 import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
 import { installAfterMerge } from "./install.ts";
-import { isDashboardRoot, restartAfterLanding } from "./restart.ts";
+import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
@@ -43,17 +43,6 @@ export async function landBranch(
   outcome: Partial<StepOutcome>,
   what: Landing,
 ): Promise<void> {
-  /** Set by a code root's install, fired in the `finally` below — never
-   *  inside the loop. `restart.fire()` kills THIS process, and it used
-   *  to be called from `installAfterMerge` the moment the code root was
-   *  through: the specs root that archive merges second was still ahead
-   *  in the loop, so the kill landed between the two merges. The spec
-   *  then stayed on the active list wearing no error at all, because
-   *  the code that would have written one had been killed with
-   *  everything else. `restartAfterLanding`'s own wait guards OTHER
-   *  landings holding `mergeLock`; this landing's next repo has not
-   *  taken the lock yet and was invisible to it. */
-  let restartWanted = false;
   // Set once: the FIRST landing failure a job hits is the one worth
   // keeping (spec 327) — a later step's own failure is a symptom as
   // often as a second, unrelated problem (the incident this spec is
@@ -180,10 +169,17 @@ export async function landBranch(
         // version. The install belongs to the project, so the project
         // says what it is.
         if (codeRoots.has(repo.root)) {
-          // The install is the project's own business, whatever it does;
-          // only a landing into the checkout THIS dashboard runs from
-          // restarts the dashboard.
-          if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) restartWanted = true;
+          // The install is the project's own business, whatever it does.
+          // A landing never restarts the dashboard: a restart mid-run
+          // kills every job's process, and no rule for "when it is safe"
+          // held up (2026-09-03). The person restarts it — Deploy on the
+          // board, or launchctl — when it suits; until then the served
+          // page runs the older code, and the log says so.
+          if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) {
+            console.error(
+              `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page still runs the older code; restart it with Deploy when it suits`,
+            );
+          }
           // Never fatal, and never silent either: the merge already
           // happened, so this is reported beside it rather than
           // turning a successful merge into a failure.
@@ -369,6 +365,5 @@ export async function landBranch(
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.
-    if (restartWanted) await restartAfterLanding({ ...ctx, exceptJobId: job.id });
   }
 }

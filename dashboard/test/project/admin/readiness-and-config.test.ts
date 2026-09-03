@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, test} from "bun:test";
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync, realpathSync } from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {addProject, type AddProjectRequest, type ProjectAdminResult,} from "../../../src/project/project-admin.ts";
@@ -219,6 +219,21 @@ describe("whether a run could start there (spec 138)", () => {
     });
     expect(result.readiness!.canRun).toBe(false);
     expect(blockers(result)).toContain("/repos/monorepo");
+  });
+
+  test("a project listed through a symlink to its checkout is its own git root", async () => {
+    // The serving host's projects root is a directory of links to the
+    // dashboard's own checkouts (2026-09-03); git answers with the real
+    // path, and comparing that to the link's path read every project as
+    // "inside another repository".
+    const { projectsRoot, dir } = checkout("real-aide");
+    const link = join(projectsRoot, "aide");
+    symlinkSync(dir, link);
+    const result = await assess(link, projectsRoot, {
+      "rev-parse --show-toplevel": { code: 0, stdout: `${realpathSync(dir)}\n` },
+    });
+    expect(check(result, "gitRoot")[0]!.ok).toBe(true);
+    expect(blockers(result)).not.toContain("inside the one at");
   });
 
   test("a directory that is no git repository at all blocks", async () => {
