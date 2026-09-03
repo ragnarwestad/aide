@@ -125,8 +125,10 @@ export const costCell = (
     ? usdOrTokens(spentUsd || undefined, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
     : blank;
 
-/** One pip per phase: green for a phase that has run, blue for the one
- *  running now, grey for a phase still ahead. The whole workflow in six
+/** One pip per phase: green for a phase that has run, the accent for the
+ *  one running now, grey for a phase still ahead. There is no failure
+ *  colour in the strip: a pip says how far the workflow got, and what
+ *  went wrong is the badge's and the row message's to say. The whole workflow in six
  *  millimetres, on the line you are already reading — shared by the
  *  list's own row and the spec page's Overview tab (spec 239), so the
  *  two can never show a different chain for the same spec.

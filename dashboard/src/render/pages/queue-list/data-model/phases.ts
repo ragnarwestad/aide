@@ -30,6 +30,11 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       spentUsd: res.costUsd,
       spentTokens: res.tokens,
       error: res.ok ? undefined : r.error,
+      // The job's `landing` flag belongs to the ONE step whose branch is
+      // being merged, never to the steps behind it. Spread whole, it
+      // made `inFlight` true for every finished step, and a three-step
+      // job waiting for its merge drew three running pips at once.
+      landing: currentStep(r) === step ? r.landing : undefined,
     };
   }
   if (currentStep(r) !== step) return null;

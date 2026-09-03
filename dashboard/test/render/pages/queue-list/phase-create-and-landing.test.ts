@@ -388,3 +388,55 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
     expect(panel(html)).not.toContain("implement:");
   });
 });
+
+// --- a landing lights only the step it is landing ----------------------------
+//
+// `attemptFor` builds one view of the job per step by spreading the job,
+// so `landing` used to reach every step's view — including steps that
+// already finished. `inFlight` is true for anything carrying that flag,
+// so a three-step job waiting for its merge drew all three pips as
+// running at once: the row said three phases were live when none was.
+describe("a landing marks only the step being landed, not every finished step", () => {
+  const rows = (list: QueueRowView[], done: string[] = []) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "375-landing-pips", done }],
+      },
+      Date.parse("2026-09-03T14:20:00Z"),
+    );
+  const pipKind = (html: string, label: string) =>
+    html.match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
+
+  const chained = row({
+    id: "j375",
+    specFolder: "375-landing-pips",
+    steps: ["analyze", "implement", "archive"],
+    stepIndex: 2,
+    state: "done",
+    landing: true,
+    results: [
+      { step: "analyze", ok: true, costUsd: 1 },
+      { step: "implement", ok: true, costUsd: 1 },
+      { step: "archive", ok: true, costUsd: 1 },
+    ],
+  });
+
+  test("the finished steps do not read running while the last one lands", () => {
+    const html = rows([chained]);
+    expect(pipKind(html, "analyze")).not.toBe("now");
+    expect(pipKind(html, "implement")).not.toBe("now");
+  });
+
+  test("the finished steps read past once the spec's own file names them", () => {
+    const html = rows([chained], ["create", "analyze", "implement"]);
+    expect(pipKind(html, "analyze")).toBe("past");
+    expect(pipKind(html, "implement")).toBe("past");
+  });
+
+  test("the step being landed still reads running", () => {
+    const html = rows([chained]);
+    expect(pipKind(html, "archive")).toBe("now");
+  });
+});
