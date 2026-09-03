@@ -1,0 +1,5 @@
+{
+  "title": "A test that stays red",
+  "steps": ["analyze", "implement", "archive"],
+  "expected": "not-archived"
+}

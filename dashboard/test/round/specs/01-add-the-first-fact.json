@@ -1,0 +1,5 @@
+{
+  "title": "Add the first fact",
+  "steps": ["analyze", "implement", "archive"],
+  "expected": "archived"
+}

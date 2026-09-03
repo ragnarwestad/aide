@@ -988,6 +988,44 @@ def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_
     }
 
 
+@pytest.fixture
+def local_origin(workspace, tmp_path):
+    """Bare repos with a plain LOCAL path as `origin` — no github.com in
+    sight, unlike the `origin` fixture above. The shape a throwaway,
+    fully local round (spec 367) actually has: nothing to build a
+    compare-page link from, but a push that still has to be landable."""
+    project_bare = tmp_path / "local-origin.git"
+    specs_bare = tmp_path / "local-specs-origin.git"
+    for bare in (project_bare, specs_bare):
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(project_bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    git(workspace["specs"], "remote", "add", "origin", str(specs_bare))
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    return {"project": project_bare, "specs": specs_bare}
+
+
+def test_a_repo_with_no_web_link_is_still_a_repo_the_dashboard_can_land(
+    runner, workspace, fake_claude, local_origin
+):
+    """branchUrls is the dashboard's own "which repos got pushed" answer
+    (queue/types.ts's doc comment on the field) — landNewSpec/
+    landStepBranch read it as their landing candidates whenever a step
+    does not name its own repos. A repo whose origin has no GitHub-style
+    URL still gets pushed; leaving it out of branchUrls made every
+    create/analyze/implement step against a local-only origin land
+    nothing at all, silently."""
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert branch in git(local_origin["project"], "branch", "--list", branch)
+    assert branch in git(local_origin["specs"], "branch", "--list", branch)
+    roots = {e["root"] for e in out["branchUrls"]}
+    assert roots == {str(workspace["project"]), str(workspace["specs"])}
+    assert all(e["url"] == "" for e in out["branchUrls"])
+    assert out.get("branchUrl") is None
+
+
 def test_push_pr_opens_a_pull_request_and_reports_its_url(
     runner, workspace, fake_claude, fake_gh, origin
 ):

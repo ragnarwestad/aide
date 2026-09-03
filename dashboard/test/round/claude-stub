@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# claude-stub — a stand-in for `claude -p` in the round `./run` drives.
+#
+# aide-run-spec starts it exactly as it starts the real CLI: the prompt on
+# stdin, the flags on argv, the project worktree as cwd. It does the step
+# the prompt names, deterministically and without a model, and prints one
+# `result` event in the stream-json shape the runner parses. What it
+# tests is everything AROUND the model: the queue, the worktrees, the
+# push, the landing and the archive.
+#
+# Companion scripts (_aide-spec-lib.sh, aide-write-spec, aide-create-spec,
+# aide-archive-spec, aide-record-test-run) come from the aide checkout
+# the round was pointed at — $AIDE_ROUND_CHECKOUT, set by `./run` and
+# inherited through the server's spawned child. Hand-piping a prompt
+# through this script directly (no `./run` around it, as Step 1's own
+# verification does) falls back to the checkout this script itself lives
+# in, three directories up.
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+AIDE_CHECKOUT="${AIDE_ROUND_CHECKOUT:-$(cd "$HERE/../../.." && pwd)}"
+SCRIPTS="$AIDE_CHECKOUT/core/scripts"
+
+session=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --session-id) session="${2:-}"; shift 2 ;;
+    --model|--max-budget-usd|--permission-mode|--output-format) shift 2 ;;
+    *) shift ;;
+  esac
+done
+prompt="$(cat)"
+
+emit() { printf '%s\n' "$1"; }
+ok() {
+  emit "$(jq -cn --arg s "$session" --arg r "$1" \
+    '{type:"result",subtype:"success",is_error:false,session_id:$s,total_cost_usd:0,num_turns:1,result:$r}')"
+  exit 0
+}
+fail() {
+  emit "$(jq -cn --arg s "$session" --arg e "$1" \
+    '{type:"result",subtype:"error_during_execution",is_error:true,session_id:$s,total_cost_usd:0,num_turns:1,errors:[$e],result:$e}')"
+  exit 0
+}
+say() {
+  emit "$(jq -cn --arg t "$1" '{type:"assistant",message:{role:"assistant",content:[{type:"text",text:$t}]}}')"
+}
+
+# shellcheck source=/dev/null
+. "$SCRIPTS/_aide-spec-lib.sh"
+BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"
+
+step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
+[ -n "$step" ] || fail "claude-stub: the prompt does not name a step: $prompt"
+
+if [ "$step" = "create" ]; then
+  # The prompt aide-run-spec builds for a create step
+  # (aide-run-spec:732-758) puts the description's OWN first line on the
+  # same source line as `/aide-create TODO-<slug>`. Recovering the
+  # description means stripping that prefix off line 1 as well as
+  # reading every line up to (but not including) "Use exactly this
+  # title" — not starting at line 2, which would silently drop the
+  # description's own first line. The title line is the anchor, not a
+  # blank line: a multi-paragraph description has blank lines of its
+  # own between paragraphs, which a blank-line search would stop at
+  # early and leave the rest of the description stuck in the title/
+  # depends-on lines instead.
+  title="$(printf '%s' "$prompt" | sed -n 's/^Use exactly this title for the spec: \(.*\)$/\1/p' | head -1)"
+  depends="$(printf '%s' "$prompt" | sed -n 's/^Use exactly this Depends-on value in Tracking info: \(.*\)$/\1/p' | head -1)"
+  first_line="$(printf '%s' "$prompt" | head -1 | sed -n 's#^/aide-create [^ ]* ##p')"
+  rest="$(printf '%s' "$prompt" | sed -n '2,/^Use exactly this title/p' | sed '$d')"
+  description="$(printf '%s\n%s' "$first_line" "$rest")"
+  [ -n "$title" ] || fail "claude-stub: no title line in the create prompt: $prompt"
+
+  specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
+  [ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
+  number="$(aide_next_spec_number "$specs_root")"
+  slug="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
+  say "claude-stub: create $number-$slug"
+  args=(--specs-root "$specs_root" --number "$number" --slug "$slug" --title "$title" --description "$description")
+  [ -n "$depends" ] && args+=(--depends-on "$depends")
+  result="$("$SCRIPTS/aide-create-spec" "${args[@]}")" || fail "claude-stub: aide-create-spec refused"
+  ok_flag="$(printf '%s' "$result" | jq -r .ok)"
+  [ "$ok_flag" = "true" ] || fail "claude-stub: aide-create-spec refused: $(printf '%s' "$result" | jq -r '.error // .')"
+  ok "created $(printf '%s' "$result" | jq -r .specFolder)"
+fi
+
+spec="$(printf '%s' "$prompt" | sed -n 's#^/aide-[a-z-]* \([^[:space:]]*\).*#\1#p' | head -1)"
+specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
+[ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
+folder="$(aide_resolve_spec "$spec" "$specs_root")"
+[ -n "$folder" ] && [ -d "$specs_root/$folder" ] || fail "claude-stub: unknown spec $spec under $specs_root"
+slug="${folder##*/}"; slug="${slug#*-}"
+say "claude-stub: $step on $folder"
+
+write() {  # write <file> ; content on stdin
+  "$SCRIPTS/aide-write-spec" --specs-root "$specs_root" --folder "${folder##*/}" --file "$1" >/dev/null \
+    || fail "claude-stub: aide-write-spec refused $1"
+}
+
+status_file() {  # status_file <mark for phase 1> <mark for phase 2>
+  cat <<STATUS
+# $slug - Status
+
+Total progress: 0% (0 of 2 completed)
+Estimate: minutes
+
+## Table of contents
+
+1. [Tracking info](#tracking-info)
+2. [Phase 1: RED](#phase-1-red)
+3. [Phase 2: GREEN](#phase-2-green)
+4. [Notation](#notation)
+
+## Tracking info
+
+- **Task:** \`${folder##*/}/\`
+- **Last updated:** \`$(date -u +%Y-%m-%d)\`
+
+## Phase 1: RED
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Write the failing test for the fact | $1 | |
+
+## Phase 2: GREEN
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Add the fact to src/facts.ts | $2 | |
+
+## Notation
+
+- ⬜ Not started
+- ✅ Completed
+STATUS
+}
+
+# What each spec's implement does, keyed by slug. A fact goes onto the
+# end of the array in src/facts.ts and a test looks for it. Two specs
+# that both append at the end conflict when the second lands — that is
+# the point of the second one.
+fact_for() {
+  case "$1" in
+    add-the-first-fact) echo "the queue runs one job per spec at a time" ;;
+    add-a-second-fact-to-the-same-file) echo "two branches that touch one line conflict when the second lands" ;;
+    a-fact-that-depends-on-the-first) echo "a dependent spec waits until the dependency is archived" ;;
+    a-test-that-stays-red) echo "" ;;
+    *) echo "" ;;
+  esac
+}
+
+append_fact() {  # append_fact <text>
+  # Insert before the closing bracket, so every spec appends at the same
+  # place and two of them collide.
+  awk -v f="$1" '/^\];/ { print "  \"" f "\","; } { print }' src/facts.ts > src/facts.ts.new \
+    && mv src/facts.ts.new src/facts.ts
+}
+
+write_test() {  # write_test <slug> <text expected>
+  cat > "test/$1.test.ts" <<TEST
+import { expect, test } from "bun:test";
+import { facts } from "../src/facts.ts";
+
+test("$1: the fact is on the list", () => {
+  expect(facts).toContain("$2");
+});
+TEST
+}
+
+case "$step" in
+  analyze)
+    printf '# %s - Analysis\n\n## Summary\n\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\nComplexity: LOW.\n' "$slug" | write 2-analysis.md
+    printf '# %s - Solution\n\n## Plan\n\n1. Write the failing test.\n2. Append the fact.\n' "$slug" | write 3-solution.md
+    status_file "⬜" "⬜" | write 4-status.md
+    ok "analyzed $folder"
+    ;;
+  implement)
+    case "$slug" in
+      analysis-only) fail "claude-stub: $slug has nothing to implement" ;;
+      a-test-that-stays-red)
+        write_test "$slug" "a fact nobody ever adds"
+        status_file "✅" "⬜" | write 4-status.md
+        ;;
+      *)
+        fact="$(fact_for "$slug")"
+        [ -n "$fact" ] || fail "claude-stub: no implement recipe for $slug"
+        write_test "$slug" "$fact"
+        append_fact "$fact"
+        status_file "✅" "✅" | write 4-status.md
+        ;;
+    esac
+    "$SCRIPTS/aide-record-test-run" --project-dir . --specs-root "$specs_root" --folder "${folder##*/}" \
+      --cmd "$BUN test" >/dev/null 2>&1 || true
+    ok "implemented $folder"
+    ;;
+  archive)
+    # A merge left open is archive's to finish: keep both sides of the
+    # one file the specs fight over, then commit. The tests are the
+    # landing's to run, once, on the merged result — not this step's.
+    for repo in . "$specs_root"; do
+      top="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || continue
+      if [ -f "$top/.git/MERGE_HEAD" ] || git -C "$top" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+        say "claude-stub: resolving the open merge in $top"
+        for f in $(git -C "$top" diff --name-only --diff-filter=U); do
+          sed -e '/^<<<<<<< /d' -e '/^=======$/d' -e '/^>>>>>>> /d' "$top/$f" > "$top/$f.resolved" && mv "$top/$f.resolved" "$top/$f"
+          git -C "$top" add "$f"
+        done
+        git -C "$top" -c core.editor=true commit --no-edit -q || fail "claude-stub: could not finish the merge in $top"
+      fi
+    done
+    specs_dir="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null)"
+    "$SCRIPTS/aide-archive-spec" --project-dir . --spec "$spec" --specs-dir "$specs_dir" >/dev/null 2>&1 || true
+    ok "archived $folder"
+    ;;
+  *)
+    fail "claude-stub: step $step is not scripted"
+    ;;
+esac

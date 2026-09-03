@@ -2436,11 +2436,15 @@ record_branch_url() {
   local root="$1" web="" url=""
   jq -e --arg root "$root" 'any(.[]; .root == $root)' <<<"$branch_urls_json" >/dev/null 2>&1 && return 0
   web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
-  [ -n "$web" ] || return 0
-  url="$web/compare/$(default_branch "$root")...$branch"
+  [ -n "$web" ] && url="$web/compare/$(default_branch "$root")...$branch"
+  # Every repo the step pushed to gets an entry, whether or not it has a
+  # web link: $branch_urls_json is the dashboard's "which repos" answer
+  # (queue/types.ts's own doc comment on branchUrls), not only "which
+  # repos have a clickable compare page" — a local or self-hosted origin
+  # still counts as pushed, it just carries no link.
   branch_urls_json="$(jq -c --arg root "$root" --arg url "$url" \
     '. + [{root:$root, url:$url}]' <<<"$branch_urls_json")"
-  if [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; then
+  if [ -n "$url" ] && { [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; }; then
     branch_url="$url"
   fi
 }

@@ -1,0 +1,12 @@
+# .aide/project.yaml — the project's identity card.
+name: aide-test
+description: the round's own fixture project — throwaway specs, run by a scripted stand-in for claude, that exercise the queue, the worktrees, the landing and the archive
+stack:
+  backend: Bun + TypeScript, one source file and its tests
+  database: none
+dependencies:
+  - bun (tests)
+deployment:
+  host: none — nothing is deployed
+docs:
+  - README.md
