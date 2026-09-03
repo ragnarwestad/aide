@@ -7136,3 +7136,77 @@ def test_a_local_branch_origin_no_longer_has_is_not_reused(runner, workspace, fa
     log = git(origin["project"], "log", "--pretty=%s", branch)
     assert "stale local commit" not in log, "the run was cut from the stale local branch"
 
+
+# --- a step writes only its own spec folder in the specs repo ---------------
+#
+# 366's implement created two specs beside its own and deleted them again
+# on its branch; the creations landed, other runs built on them, and the
+# deletion landed on top of that work (2026-09-03). Under the specs root,
+# nothing but the spec's own folder (and its archive/ twin) may change;
+# foreign changes are discarded before the commit and the step is a
+# scope violation naming them.
+def specs_foreign_folder_claude(fake_claude, workspace):
+    """A stand-in analyze step that also makes a spec folder of its own
+    beside the one it was given."""
+    folder = workspace["folder"]
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'mkdir -p "$specs/999-made-by-the-run" && echo "# 999" > "$specs/999-made-by-the-run/1-description.md"\n'
+        + f'echo "analysis" >> "$specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_discarded(
+    runner, workspace, fake_claude
+):
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = specs_foreign_folder_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+    assert "999-made-by-the-run" in out["error"], out
+    assert "press Run again" in out["error"], out
+    tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
+    assert "999-made-by-the-run" not in tree, tree
+    assert f"{workspace['folder']}/2-analysis.md" in tree, tree
+
+
+def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_restored(
+    runner, workspace, fake_claude
+):
+    other = workspace["specs"] / "80-neighbour"
+    other.mkdir()
+    (other / "1-description.md").write_text("# 80\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + 'rm -rf "$specs/80-neighbour"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "scope-violation", out
+    assert "80-neighbour" in out["error"], out
+    tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
+    assert "80-neighbour/1-description.md" in tree, tree
+
+
+def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, workspace, fake_claude):
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" >> "$specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
