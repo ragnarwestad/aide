@@ -206,9 +206,15 @@ describe("no render path runs git or a network command (spec 208)", () => {
       status: statusSaying(["create", "analyze", "implement", "archive"]),
     });
     ran(dir, ["create", "analyze"]);
-    await new Promise((r) => setTimeout(r, 100));
+    // The history is read in the background; wait for it rather than a
+    // fixed 100 ms, which a landing's gate lost to load (2026-09-03).
     // Same list-route note as criterion 5 above.
-    const html = await (await get(base, "/")).text();
+    let html = "";
+    for (let i = 0; i < 100; i++) {
+      html = await (await get(base, "/")).text();
+      if (pipKind(html, "analyze") === "past") break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
     expect(pipKind(html, "create")).toBe("past");
     expect(pipKind(html, "analyze")).toBe("past");
     expect(pipKind(html, "implement")).toBe("todo");

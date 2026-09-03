@@ -105,7 +105,11 @@ with the table's rows.
 ARCHIVED: a dependent spec's held-back steps are released when the
 dependency's `archive` step runs. The dashboard's copy decides whether a
 queued job is PARKED (left `queued` with the reason on its row); the
-script's copy decides whether a run started by hand is REFUSED.
+script's copy decides whether a run started by hand is REFUSED. The
+acceptance-criteria gate has the same two halves: `blockedForUntickedAcceptance`
+in `dashboard/src/serve/schedules.ts` parks a queued `archive` while the
+state file has an open row, and `aide-archive-spec` refuses a run that
+reaches it anyway.
 
 ## Landing
 

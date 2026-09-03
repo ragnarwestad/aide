@@ -29,6 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../project/parse-status.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
@@ -112,7 +113,7 @@ export class Runner {
    *  a Map, since the reason it names carries no per-job detail — every
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
     // NOTHING starts while a job is landing, whatever it is and whatever
     // repo it is for. A landing merges directly into the SHARED main
     // checkout — the one every run switches and reads at its own start —
@@ -165,6 +166,16 @@ export class Runner {
         const reason = `held back: depends on ${dependency}, which is not archived yet`;
         // Only when it changed: an unconditional update would rewrite
         // the mirror every two seconds for a job that is doing nothing.
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        continue;
+      }
+      // The same shape once more, for `archive`: an acceptance row only
+      // a person can tick is still open. Run, the step would only be
+      // refused by `aide-archive-spec` and end the job with archive
+      // unarchived — so a chained analyze/implement/archive job waits
+      // here for the tick instead, and starts by itself once it lands.
+      if (acceptanceOpen?.has(job.id)) {
+        const reason = `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`;
         if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }
