@@ -11,7 +11,17 @@
 import { swapRows } from "./row-swap.ts";
 import { press } from "./state.ts";
 
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30_000;
+
 let source: EventSource | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let backoffMs = RECONNECT_BASE_MS;
+
+function clearReconnectTimer(): void {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
 
 // Pause while a press is in flight: the server still shows the OLD
 // state until it answers, so a swap in that window would put an
@@ -32,17 +42,39 @@ export function connect(): void {
   // to hold still has to stay held.
   if (new URLSearchParams(location.search).get("live") === "0") return;
   if (source || document.visibilityState !== "visible") return;
+  clearReconnectTimer();
   source = new EventSource(`/api/queue/events${location.search}`);
   // `open` fires on the first connect AND on every reconnect the
   // browser makes on its own — after a dropped network, after the
   // server was restarted under the page. Redrawing here is what picks
   // up whatever changed while the connection was down, so nobody has
   // to reload.
-  source.addEventListener("open", () => void swapRows());
+  source.addEventListener("open", () => {
+    backoffMs = RECONNECT_BASE_MS;
+    void swapRows();
+  });
   source.addEventListener("changed", onChanged);
+  source.addEventListener("error", onError);
+}
+
+// A dropped network is the browser's own problem: `readyState` goes
+// back to CONNECTING and it retries by itself, `open` firing (and
+// resyncing) when it lands. Only a permanently failed connection — a
+// non-200 answer, e.g. a proxy's 502 while the server restarts — sets
+// `readyState` to CLOSED, and that is the one case `EventSource` will
+// not come back from on its own.
+function onError(): void {
+  if (source?.readyState !== EventSource.CLOSED) return;
+  source = null;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, backoffMs);
+  backoffMs = Math.min(backoffMs * 2, RECONNECT_MAX_MS);
 }
 
 export function disconnect(): void {
+  clearReconnectTimer();
   source?.close();
   source = null;
 }

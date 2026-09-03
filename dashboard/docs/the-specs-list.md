@@ -310,8 +310,14 @@ below — fetches nothing, swaps no rows and touches nothing that could move the
 holds: the rows redraw when the server says something moved, and at no other time. A `changed` event redraws the
 rows unless a press is in flight — the same `inFlight`
 guard a press already uses, for the same reason: the server still shows the pre-press state until the press answers. The `open`
-event redraws too, and that is what makes a dropped network or a restarted server heal itself: `EventSource` reconnects
-on its own, `open` fires again, and the resync picks up whatever was missed. A hidden tab closes its connection and
+event redraws too, and that is what makes a reconnect heal itself either way it happened. A dropped
+network is the browser's own problem: `EventSource` reconnects on its own, `open` fires again, and the
+resync picks up whatever was missed. A restarted server behind a proxy is not — the proxy answers a
+reconnect with a non-200 status while nothing is listening yet, and that closes `EventSource` for good,
+with no retry of its own. The client notices instead: on `error`, a source left `CLOSED` is dropped and
+reopened after a wait that grows on each further failure up to a ceiling and resets once a connection
+opens, and the same `open`-redraws-the-rows resync above is what a proxied restart heals through too.
+A hidden tab closes its connection and
 opens a fresh one when it comes back, which is the
 "the timer already stops for a hidden tab" behaviour applied to a socket.
 
