@@ -191,9 +191,10 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
   return found;
 }
 
-/** The two repositories a spec's work can be open in — the same pair
- *  the dependency gate asks across, and for the same reason: a spec
- *  merged in the code repo but not in the specs repo is not merged. */
+/** The two repositories a spec's work can be open in — landing checks
+ *  both; the dependency gate (spec 351) asks only the LAST one, the
+ *  specs root, since "archived" is a fact about one folder in one
+ *  repository. */
 export function specRoots(ctx: SpecLookupContext, project: string): string[] {
   const code = ctx.machineryProjectDir(project);
   const specs = ctx.machinerySpecsRoot(project);

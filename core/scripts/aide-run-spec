@@ -100,6 +100,14 @@ rm -f "$0"
 # spec 355: the spec's state file, derived from the prose this script
 # rewrites below. Guarded like status-progress.sh above.
 [ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+# spec 356: the one table and function pair that decide and record a
+# spec's phase moves — pure phase order only. The dependency gate below
+# (DEPENDENCY_GATED_STEPS) stays a standalone check, same as archive's
+# acceptance-criteria/test-record gates in aide-archive-spec: it runs for
+# BOTH implement and archive before either script's own phase-order
+# check, and archive's phase-order check lives in a different process
+# (aide-archive-spec) that never shares this gate's resolver functions.
+[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
@@ -361,11 +369,10 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root
     done
   fi
   if [ -n "$archived_candidate" ]; then
-    # ls-remote, not the remote-tracking refs: same reason
-    # dependency_branch_unmerged_on_origin gives below — a merged-and-
-    # deleted branch leaves a stale ref behind in every checkout that
-    # ever fetched it, and believing one here would re-open a spec that
-    # is genuinely done.
+    # ls-remote, not the remote-tracking refs: a merged-and-deleted
+    # branch leaves a stale ref behind in every checkout that ever
+    # fetched it, and believing one here would re-open a spec that is
+    # genuinely done.
     for root in "${roots[@]}"; do
       if [ -n "$(git -C "$root" ls-remote --heads origin "refs/heads/aide/$archived_candidate" 2>/dev/null)" ]; then
         spec_folder="$archived_candidate"
@@ -472,14 +479,19 @@ fi
 # behind.
 
 # Mirrors the --spec resolver above (direct match, then <id>-*), plus one
-# deliberate addition: the archive. Archiving only ever happens to
-# finished work, so an archived dependency is merged by definition and is
-# never branch-checked below. Reaching for the shared library's
+# deliberate addition: the archive, so a dependency's folder NAME resolves
+# whichever list it is currently under. Reaching for the shared library's
 # aide_resolve_spec instead would give --spec and "Depends on:" two
 # different ideas of a valid identifier inside one script.
-resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
+#
+# Resolves a folder NAME only (spec 351) — whether that folder is done is
+# no longer this function's question. A local directory listing cannot
+# answer it: this checkout may not have pulled since the dependency's
+# `archive` step landed on origin (REQ-2), so the LOCAL archive/ scan
+# below is a hint for resolving the name, never proof of being done.
+resolve_dependency_folder() {   # sets $dep_folder
   local id="$1" candidate base
-  dep_folder=""; dep_archived="no"
+  dep_folder=""
   [ -n "$id" ] || return 0
   if [ -d "$specs_root/$id" ]; then
     dep_folder="$id"; return 0
@@ -491,7 +503,7 @@ resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
   [ -d "$specs_root/archive" ] || return 0
   for candidate in "$specs_root/archive"/*/; do
     base="$(basename "$candidate")"
-    case "$base" in "$id" | "$id"-*) dep_folder="$base"; dep_archived="yes"; return 0 ;; esac
+    case "$base" in "$id" | "$id"-*) dep_folder="$base"; return 0 ;; esac
   done
 }
 
@@ -521,29 +533,37 @@ default_branch() {
   git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
-# "Unmerged" is the test, not "exists": the Merge button deletes a
-# branch after merging (spec 99), but an archive step re-creates it and
-# merges it again minutes later, and 97 and 102 were each refused
-# against a dependency that was fully on main. So the branch's tip is
-# fetched into a private ref and compared with origin's default branch;
-# a branch with no commit beyond it is merged, whatever its name says.
-dependency_branch_unmerged_on_origin() {
-  local branch="$1" root base tip
-  for root in "${roots[@]}"; do
-    tip="$(git -C "$root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null | cut -f1)"
-    [ -n "$tip" ] || continue
-    base="$(default_branch "$root")"
-    git -C "$root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
-      "refs/heads/$branch:refs/aide-dep/dep" >/dev/null 2>&1 || return 0
-    if [ "$(git -C "$root" rev-list --count refs/aide-dep/base..refs/aide-dep/dep 2>/dev/null)" != "0" ]; then
-      git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
-      git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
-      return 0
-    fi
-    git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
-    git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
-  done
-  return 1
+# True (rc 0) unless origin can PROVE $1's folder is not (yet) under
+# archive/ in the specs repo's current default branch — the question
+# REQ-1 asks (spec 351), replacing the branch-merge question this
+# function used to ask: a branch with no commits beyond origin, or no
+# branch pushed at all, both used to read as "merged," and a dependency
+# mid-workflow with nothing currently pushed is neither done nor
+# equivalent to one that is (the 340/341 incident this spec exists for).
+#
+# Asked against $specs_root alone, never the project root: whether a
+# spec is archived is a fact about one folder's location in one
+# repository, unlike a code branch which can differ per repo.
+#
+# Reuses the private-ref idiom the old function established (a stale
+# refs/remotes/origin/* survives a delete until pruned); the cwd-relative
+# `./` path (gitrevisions(7)) reads the tree at $specs_root's own
+# position inside its repository without computing that prefix by hand.
+#
+# Fail-open like every other network call in this script: an unreachable
+# origin answers "not confirmed either way," and only a REACHED origin
+# that plainly does not have the folder refuses — this now runs for
+# EVERY dependency, archived or not (REQ-2), so a locally-known-archived
+# dependency pays one more fetch than it used to.
+dependency_archived_on_origin() {
+  local dep_folder="$1" base found
+  base="$(default_branch "$specs_root")"
+  git -C "$specs_root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
+    >/dev/null 2>&1 || return 0
+  git -C "$specs_root" cat-file -e "refs/aide-dep/base:./archive/$dep_folder" 2>/dev/null
+  found=$?
+  git -C "$specs_root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
+  return $found
 }
 
 # Only the LOOP is gated on the command, never the three functions above
@@ -563,34 +583,34 @@ case " $DEPENDENCY_GATED_STEPS " in
           || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
         [ "$dep_folder" = "$spec_folder" ] \
           && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
-        [ "$dep_archived" = "yes" ] && continue
-        dep_branch="aide/$dep_folder"
-        dependency_branch_unmerged_on_origin "$dep_branch" \
-          && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch has commits not on origin's default branch (not merged yet — merge it first)"
+        dependency_archived_on_origin "$dep_folder" \
+          || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
       done
     fi
     ;;
 esac
 
-# --- refuse implement before analyze has run (spec 344) ---------------------
+# --- refuse implement before analyze has run (spec 344, table spec 356) -----
 # The same field aide-archive-spec already reads for its own
 # not-implemented-yet gate (checking for `implement` there instead of
 # `analyze` here) — one workflow step earlier. Placed beside
 # DEPENDENCY_GATED_STEPS, for the same reason: before anything touches a
 # checkout, so a refusal here leaves nothing behind. Applies to `implement`
 # alone; `analyze` and `archive` keep their own, unrelated gates.
+#
+# The one table (core/scripts/lib/transitions.json) decides now, via its
+# read-only pre-check: created --implement--> refused (not-analyzed-yet),
+# analyzed/implemented --implement--> legal. Same reason, same message.
 if [ "$command_name" = "implement" ]; then
-  analyze_present="no"
   status_file="$specs_root/$spec_folder/4-status.md"
-  if [ -f "$status_file" ]; then
-    workflow_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" | tail -1)"
-    for step in $(printf '%s' "$workflow_line" | tr ',' ' '); do
-      step="$(printf '%s' "$step" | tr -d '[:space:]`' | tr '[:upper:]' '[:lower:]')"
-      [ "$step" = "analyze" ] && analyze_present="yes"
-    done
+  if declare -f may_apply_spec_transition >/dev/null 2>&1; then
+    # A status file that does not exist yet reads as phase "created"
+    # (_peek_spec_state derives an empty state), which the table refuses
+    # implement from — same as the old code's default "no" for a missing
+    # file.
+    may_apply_spec_transition "$status_file" "implement" \
+      || refuse "$transition_message" "$transition_refusal"
   fi
-  [ "$analyze_present" = "yes" ] || \
-    refuse "spec $spec_folder has not been analyzed yet — run /aide-analyze first" "not-analyzed-yet"
 fi
 
 # The main checkout is put back ON its default branch and never taken off
@@ -1352,6 +1372,7 @@ fi
 
 mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
 work_roots=()
+reopen_boundary_sha=""
 for root in "${roots[@]}"; do
   acquire_worktree_lock "$root"
   base="$(default_branch "$root")"
@@ -1359,6 +1380,15 @@ for root in "${roots[@]}"; do
   wt="$wt_dir/$wt_name"
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
+  # spec 356 (REQ-5): the specs repository's own default-branch tip, at
+  # the moment of reopening/resetting — the boundary
+  # completed_steps_for's own `--not <sha>` counts from (spec 198).
+  # Captured HERE, before this run's own commits exist on top of it,
+  # rather than re-read later when the stamp is written.
+  if [ "$root" = "$specs_repo" ] && \
+     { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; }; then
+    reopen_boundary_sha="$(git -C "$root" rev-parse --short "$base_ref" 2>/dev/null)"
+  fi
   # A leftover from a landing is not a branch to build on: throw it away
   # and let the block below make a fresh one, exactly as if this checkout
   # had never had it (spec 197). `-D`, because the ancestry check has
@@ -2213,6 +2243,25 @@ if [ -n "$status_file" ]; then
   fi
 fi
 
+# --- reopen/reset's own boundary mark (spec 356, REQ-5) ---------------------
+# Written by this script, not by the skill session: `/aide-reopen`/
+# `/aide-reset` (run as this step's own model turn, above) resolve the
+# folder and regenerate 2-analysis.md/3-solution.md/4-status.md from the
+# templates, but no longer write the `**Reopened:**`/`**Reset:**` mark
+# itself (core/skills/aide-reopen/SKILL.md, aide-reset/SKILL.md). That
+# mark is written here, once the step has moved the folder back to its
+# active path and regenerated the file, using the boundary sha captured
+# before any of this run's own commits existed (the branch-deletion loop
+# above this one).
+if { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; } && \
+   [ "$terminal_reason" = "completed" ] && [ -n "$reopen_boundary_sha" ] && \
+   declare -f apply_spec_transition >/dev/null 2>&1; then
+  reopen_status_file="$specs_root_wt/$spec_folder/4-status.md"
+  if [ -f "$reopen_status_file" ]; then
+    apply_spec_transition "$reopen_status_file" "$command_name" "$reopen_boundary_sha"
+  fi
+fi
+
 # --- this phase's own outcome record (spec 245) ------------------------------
 # `Workflow steps completed` (below) answers "did the SPEC run this step";
 # this answers "how did THIS phase go" — and is written into the phase's
@@ -2597,31 +2646,14 @@ elif [ -n "$status_file" ]; then
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.
   #
-  # A file with neither the line nor the Tracking info entry it goes
-  # under is left alone too — this writes the value, never the layout.
-  if [ -n "$completed_steps" ] && \
-     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    # Historical `- **Model (<step>):**` lines an old archive still
-    # carries (spec 217, superseded by spec 245's per-file record below)
-    # are left exactly where they sit — no migration pass rewrites old
-    # archives, so this pass touches only the line it owns.
-    awk -v line="- **Workflow steps completed:** $completed_steps" '
-      BEGIN { written = 0 }
-      /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; written = 1 }
-        next
-      }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
-      { print }
-    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
-    # Written back only when it actually differs. The commit loop below
-    # commits whatever it finds changed, and a file rewritten to exactly
-    # what it already said would put a step's name on a commit that
-    # carries nothing.
-    if [ -s "$work_dir/status-line" ] && \
-       ! cmp -s "$work_dir/status-line" "$status_file"; then
-      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
-    fi
+  # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+  # the one place this line is formatted and written — historical
+  # `- **Model (<step>):**` lines an old archive still carries (spec 217,
+  # superseded by spec 245's per-file record below) are left exactly
+  # where they sit, same as before: the function touches only the line
+  # it owns.
+  if declare -f write_phase_stamp >/dev/null 2>&1; then
+    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase

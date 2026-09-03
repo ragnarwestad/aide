@@ -101,9 +101,9 @@ export class Runner {
    *
    *  `blocked` maps a job id to the folder of the dependency it is
    *  waiting for (spec 122). The Runner takes the answer rather than
-   *  working it out: whether a dependency has merged is a live git
-   *  question, and `serve.ts` — which owns the git runner and knows
-   *  which steps a dependency holds back — computes it fresh
+   *  working it out: whether a dependency is archived (spec 351) is a
+   *  live git question, and `serve.ts` — which owns the git runner and
+   *  knows which steps a dependency holds back — computes it fresh
    *  immediately before every call. Asking here would make `tick()`
    *  async, and with it every call site and every test that has
    *  nothing to do with dependencies.
@@ -149,7 +149,7 @@ export class Runner {
       // `failed`, which nothing retries.
       const dependency = blocked?.get(job.id);
       if (dependency !== undefined) {
-        const reason = `held back: depends on ${dependency}, whose branch is not merged yet`;
+        const reason = `held back: depends on ${dependency}, which is not archived yet`;
         // Only when it changed: an unconditional update would rewrite
         // the mirror every two seconds for a job that is doing nothing.
         if (job.error !== reason) this.o.store.update(job.id, { error: reason });

@@ -846,13 +846,19 @@ def test_a_change_reaching_neither_scope_runs_every_scope(script, project, specs
     assert marker_dash.exists(), "an unmatched file must never leave a scope untested"
 
 
-def test_a_spec_with_no_state_file_yet_self_heals_from_prose(script, project, specs):
+def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, project, specs):
     """A spec that predates spec 355 has no 4-status.json at all — the
-    gate must self-heal from the prose exactly once, not refuse or
-    silently pass."""
+    gate must still answer correctly, derived from the prose, not refuse
+    or silently pass.
+
+    Spec 356 (REQ-3): the gate's own pre-check (may_apply_spec_transition)
+    is read-only and must leave the spec byte-for-byte unchanged on a
+    refusal, so it no longer self-heals 4-status.json into existence the
+    way the plain state-file read it replaced used to — only a granted
+    move (through apply_spec_transition) writes the state file now."""
     configure(project, specs)
     body = status_md("create, analyze", checklist(["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "not-implemented-yet", out
-    assert (specs / "81-x" / "4-status.json").exists()
+    assert not (specs / "81-x" / "4-status.json").exists()

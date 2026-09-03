@@ -1,7 +1,7 @@
 // Split out of step-and-dependency-routes.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TOKEN, OPEN_81, setupQueueRoutesHarness } from "./fixtures.ts";
@@ -21,9 +21,9 @@ afterEach(() => {
 // Before this, a queued implement whose dependency was still unmerged
 // started, was refused by `aide-run-spec`, and landed in `failed` — a
 // state nothing retries. The queue now asks the same question the script
-// asks (is the dependency's branch merged on origin?) BEFORE spawning
-// anything, and leaves the job queued with the reason on its row until
-// the answer changes.
+// asks — is the dependency archived on origin? (spec 351) — BEFORE
+// spawning anything, and leaves the job queued with the reason on its
+// row until the answer changes.
 describe("a job parked on an unmerged dependency (spec 122)", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const DEPENDENT = "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
@@ -74,25 +74,22 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     return { bin, argvFile };
   }
 
-  /** A git that answers `isMerged` per repo root. `unmerged` names the
-   *  roots where the dependency's branch still has commits of its own;
-   *  everywhere else it is an ancestor of the default branch. Read
-   *  through a function, so one test can watch the answer change under a
-   *  live server. */
-  function gitFor(unmerged: () => string[]) {
+  /** A git that answers the archived-check for the SPECS root alone
+   *  (spec 351): `fetch` always succeeds, and
+   *  `cat-file -e ...:./archive/<folder>` reports found or not found
+   *  per `archived()`. Read through a function, so one test can watch
+   *  the answer change under a live server. Simpler than the old
+   *  per-root unmerged-array mock by construction — the fixed gate asks
+   *  one root a yes/no question, not several roots an ancestry
+   *  question. */
+  function gitFor(archived: () => boolean) {
     const calls: { dir: string; args: string[] }[] = [];
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      // The branch IS on origin — absence is the other way a dependency
-      // counts as merged, and this suite is about the ancestry answer.
-      if (a.startsWith("ls-remote")) return { code: 0, stdout: "abc123\trefs/heads/x\n" };
-      if (a.startsWith("merge-base --is-ancestor")) {
-        return { code: unmerged().includes(dir) ? 1 : 0, stdout: "" };
-      }
+      if (a.startsWith("fetch")) return { code: 0, stdout: "" };
+      if (a.startsWith("cat-file -e")) return { code: archived() ? 0 : 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
     return { run, calls };
@@ -116,11 +113,11 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     return dir;
   }
 
-  test("an implement job whose dependency is unmerged never invokes the runner", async () => {
+  test("an implement job whose dependency is not archived never invokes the runner", async () => {
     const dir = own("aide-queue-parked-");
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
-    const git = gitFor(() => [paths.project, paths.specs]);
+    const git = gitFor(() => false);
     const { base } = harness.start({
       extra: {
         queueToken: TOKEN,
@@ -142,12 +139,14 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(listed.jobs[0].error).toContain("80-dependency");
   });
 
-  test("a dependency merged in one root but not the other still parks the job", async () => {
-    const dir = own("aide-queue-parked-two-");
+  test("only the specs root is ever asked — the project root plays no part in this question", async () => {
+    // Whether a spec is archived is a fact about one folder's location
+    // in one repository (spec 351): the project root is never even
+    // asked, unlike the old branch-merge question this replaced.
+    const dir = own("aide-queue-parked-root-");
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
-    // Merged in the project checkout, still open in the specs repo.
-    const git = gitFor(() => [paths.specs]);
+    const git = gitFor(() => false);
     const { base } = harness.start({
       extra: {
         queueToken: TOKEN,
@@ -161,29 +160,31 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect((await queueImplement(base)).status).toBe(200);
     await settle();
     expect(existsSync(argvFile)).toBe(false);
-    // Both roots were actually asked — a check that stopped at the
-    // project would have started this job.
-    expect(git.calls.some((c) => c.dir === paths.project)).toBe(true);
-    expect(git.calls.some((c) => c.dir === paths.specs)).toBe(true);
+    // The archived-check itself (fetch, then cat-file -e) only ever
+    // reaches the specs root — other background scans may still touch
+    // the project root for unrelated reasons, so the assertion is on
+    // this question's own calls, not on the root being untouched at all.
+    const asksThisQuestion = (dir: string) =>
+      git.calls.some((c) => c.dir === dir && (c.args[0] === "fetch" || c.args[0] === "cat-file"));
+    expect(asksThisQuestion(paths.specs)).toBe(true);
+    expect(asksThisQuestion(paths.project)).toBe(false);
   });
 
-  // Spec 213. The two tests above and the three-server test below both
-  // read ONE answer; this one is about how old that answer may be. Two
-  // jobs were released roughly half a minute before their dependency
-  // finished archiving: the gate ran fresh every 2 s, but the merge
-  // answer under it stood for 30 s, so a "merged" taken before the
-  // dependency landed was handed out for the rest of that window.
+  // Spec 213; spec 351. This one is about how old the archived answer
+  // may be: `archivedOnOrigin` carries no TTL cache at all, unlike the
+  // old `isMerged` answer it replaced, so there is no window in which a
+  // stale "not archived" or "archived" can be handed out.
   //
   // One server across several real ticks, deliberately — the point is
-  // the same `BranchStatusChecker` instance being asked again inside
-  // its own TTL, which is exactly what the three-server test below was
-  // built to avoid needing.
+  // the same `BranchStatusChecker` instance being asked again on every
+  // tick, which is exactly what the three-server test below was built
+  // to avoid needing.
   test("the gate re-asks origin on every tick, and releases the job the tick its dependency lands", async () => {
     const dir = own("aide-queue-gate-fresh-");
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
-    let unmerged = [paths.project, paths.specs];
-    const git = gitFor(() => unmerged);
+    let archived = false;
+    const git = gitFor(() => archived);
     const { base } = harness.start({
       extra: {
         queueToken: TOKEN,
@@ -196,34 +197,28 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     });
     expect((await queueImplement(base)).status).toBe(200);
     await settle();
-    const asked = () => git.calls.filter((c) => c.args[0] === "merge-base").length;
+    const asked = () => git.calls.filter((c) => c.args[0] === "cat-file").length;
     const first = asked();
     expect(first).toBeGreaterThan(0);
 
-    // One 2 s tick interval plus margin, well inside the 30 s TTL: the
-    // question has to have been put to git again. Cached, this count
-    // would not move for another 28 seconds.
+    // One 2 s tick interval plus margin: the question has to have been
+    // put to git again, since there is no cache to expire.
     await Bun.sleep(2500);
     expect(asked()).toBeGreaterThan(first);
     expect(existsSync(argvFile)).toBe(false);
 
-    // The dependency lands. The job starts on the next tick — not when
-    // a cache happens to expire.
-    unmerged = [];
+    // The dependency lands. The job starts on the next tick.
+    archived = true;
     for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
     expect(existsSync(argvFile)).toBe(true);
   }, 20000);
-  // Criterion 10 (spec 149). The gate's code is unchanged, but what
-  // satisfies it has moved: a dependency's ANALYZE lands itself now, so
-  // its specs-repo branch merges early — and that must not read as "the
-  // dependency is done". Only the ARCHIVE that lands its code releases a
-  // dependent, because since spec 149 that is the only point a spec's
-  // code branch reaches a default branch at all.
-  //
-  // Three servers over one mirror, rather than one server watching the
-  // answer change: each merge answer is cached for 30 s, and this test
-  // is about which ANSWER releases the job, not about when a cache
-  // expires.
+  // Criterion 10 (spec 149; spec 351). A dependency's ANALYZE lands
+  // itself, so its specs-repo folder is untouched but its branch has
+  // already merged — and that must not read as "the dependency is
+  // done". Only ARCHIVE moves the folder under archive/, so only ARCHIVE
+  // releases a dependent. Direct per-server `archived()` answers now
+  // that the check is a single boolean, not a branch-merge answer to
+  // simulate across several real roots and ticks.
   test("only the dependency's archive releases the parked job — its analyze does not", async () => {
     const dir = own("aide-queue-release-");
     const paths = root(dir);
@@ -235,34 +230,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       queueMirrorPath: mirror,
     };
 
-    // The dependency's own finished job, recorded through a server with
-    // no runner: it must leave a branch behind without ever running.
-    const { base: seeder } = harness.start({
-      extra: { ...common, gitRun: gitFor(() => [paths.project, paths.specs]).run },
-    });
-    const dep = (await (
-      await fetch(`${seeder}/api/queue`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: "80-dependency", steps: ["analyze"] }),
-      })
-    ).json()) as { job: { id: string } };
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const stored = jobs.find((j) => j.id === dep.job.id)!;
-    stored.state = "done";
-    stored.branchUrls = [
-      { root: paths.project, url: "https://example.test/aide" },
-      { root: paths.specs, url: "https://example.test/aide-specs" },
-    ];
-    writeFileSync(mirror, JSON.stringify(jobs));
-
     /** One server's answer to "does this dependent start?", with the
-     *  dependency's branch merged in exactly the named roots. `waitMs`
-     *  is how long to give it: a refused enqueue does not tick the
-     *  runner, so a job already in the mirror waits for the server's own
-     *  2 s interval — worth waiting out when a start is expected, worth
-     *  not waiting out three times over when one is not. */
-    async function startsWith(unmerged: string[], prefix: string, waitMs = 800): Promise<boolean> {
+     *  dependency `archived` or not. `waitMs` is how long to give it: a
+     *  refused enqueue does not tick the runner, so a job already in the
+     *  mirror waits for the server's own 2 s interval — worth waiting
+     *  out when a start is expected, worth not waiting out three times
+     *  over when one is not. */
+    async function startsWith(archived: boolean, prefix: string, waitMs = 800): Promise<boolean> {
       const runDir = own(prefix);
       const { bin, argvFile } = stub(runDir);
       const { base } = harness.start({
@@ -270,7 +244,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
           ...common,
           queueRunnerBin: bin,
           queueResultDir: join(runDir, "jobs"),
-          gitRun: gitFor(() => unmerged).run,
+          gitRun: gitFor(() => archived).run,
         },
       });
       const posted = await queueImplement(base);
@@ -283,12 +257,9 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     }
 
     // Nothing landed: parked, as spec 122 already had it.
-    expect(await startsWith([paths.project, paths.specs], "aide-queue-release-none-")).toBe(false);
-    // The dependency's analyze self-landed — the specs repo is merged
-    // and the code is not. Still parked.
-    expect(await startsWith([paths.project], "aide-queue-release-analyzed-")).toBe(false);
-    // Archived: the code landed too, and the dependent starts.
-    expect(await startsWith([], "aide-queue-release-archived-", 6000)).toBe(true);
+    expect(await startsWith(false, "aide-queue-release-none-")).toBe(false);
+    // Archived: the dependent starts.
+    expect(await startsWith(true, "aide-queue-release-archived-", 6000)).toBe(true);
   }, 20000);
 
   test("a parked job's row shows the queued badge and the reason it is held back", async () => {
@@ -302,7 +273,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
         queueResultDir: join(dir, "jobs"),
-        gitRun: gitFor(() => [paths.project, paths.specs]).run,
+        gitRun: gitFor(() => false).run,
       },
     });
     expect((await queueImplement(base)).status).toBe(200);
@@ -313,7 +284,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // The ordinary queued badge, with the reason underneath it — no
     // seventh badge variant and no new job state were introduced.
     expect(html).toContain('badge b-idle">queued');
-    expect(html).toContain("held back: depends on 80-dependency");
+    expect(html).toContain("held back: depends on 80-dependency, which is not archived yet");
   });
 
   test("cancelling a parked job cancels it like any other queued job", async () => {
@@ -327,7 +298,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
         queueResultDir: join(dir, "jobs"),
-        gitRun: gitFor(() => [paths.project, paths.specs]).run,
+        gitRun: gitFor(() => false).run,
       },
     });
     const made = (await (await queueImplement(base)).json()) as { job: { id: string } };
@@ -367,7 +338,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
           queueResultDir: join(dir, "jobs"),
-          gitRun: gitFor(() => []).run,
+          gitRun: gitFor(() => true).run,
         },
       });
       expect((await queueImplement(base)).status).toBe(200);
@@ -392,7 +363,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
           queueResultDir: join(dir, "jobs"),
-          gitRun: gitFor(() => []).run,
+          gitRun: gitFor(() => true).run,
         },
       });
       expect((await queueImplement(base)).status).toBe(200);
