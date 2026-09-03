@@ -33,8 +33,14 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 `docs/running-specs.md`, "How a run touches the repositories".
 
 - `aide-run-spec` branches EVERY repo it touches, and pushes a repo only
-  when its HEAD moved — never on `changedFiles`, which a step that commits
-  its own work leaves at `0`.
+  when its branch has content beyond its own default branch AND origin
+  does not already hold that tip — never on `changedFiles`, which a step
+  that commits its own work leaves at `0`, and never on "moved during
+  THIS run" alone: a commit a prior run's failed push left stranded is
+  retried on every later run, not only the run that made it (spec 343).
+  A run's own bookkeeping (`Workflow steps completed`) is written and
+  pushed as its own confirmed step, so it never lands while that push
+  cannot be confirmed against origin (spec 343).
 - It works in `git worktree` checkouts under
   `$HOME/aide-worktrees/<project>/<spec>/`. The result's `repos[].root` is
   the MAIN checkout; `repos[].worktree` is the throwaway one.

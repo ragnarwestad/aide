@@ -66,12 +66,9 @@ def test_missing_md_to_pdf_exits_nonzero_with_the_existing_message(script, tmp_p
     root = tmp_path / "project"
     specs = root / "specs"
     make_spec(specs, "42-do-a-thing")
-    found = shutil.which("md-to-pdf")
-    path_dirs = [
-        p for p in os.environ.get("PATH", "").split(os.pathsep)
-        if not (found and os.path.dirname(found) == p)
-    ]
-    env = {**os.environ, "PATH": os.pathsep.join(path_dirs)}
+    # A PATH with the system directories only: no md-to-pdf, however
+    # many places a host keeps one (a mise shim AND its install dir).
+    env = {**os.environ, "PATH": "/usr/bin:/bin"}
     proc = run(script, root, ["42-do-a-thing"], env=env)
     assert proc.returncode != 0
     assert "md-to-pdf is not installed" in proc.stdout

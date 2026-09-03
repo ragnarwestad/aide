@@ -1013,3 +1013,24 @@ class TestInstallersWireUpShellPath:
         for name in (".zshenv", ".bashrc"):
             assert PATH_BLOCK_MARKER not in (tmp_path / name).read_text(), \
                 f"uninstall-all.sh left the PATH block in ~/{name}"
+
+
+class TestInstallReplacesByRename:
+    def test_a_reinstall_never_writes_into_the_installed_file(self, workspace_root, tmp_path):
+        """Bash reads a running script by byte offset, so an installer
+        that copies over the file corrupts whatever run is executing it
+        (the 337 archive gate, 2026-09-02, lost 9 minutes of green tests
+        to a syntax error at the next line). A rename gives the running
+        process the old inode and everyone else the new file."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        run = lambda: subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True, env=env,
+        )
+        assert run().returncode == 0
+        installed = tmp_path / ".local" / "bin" / "aide-record-test-run"
+        before = installed.stat().st_ino
+        assert run().returncode == 0
+        assert installed.stat().st_ino != before, "the file was written into, not replaced"
+        assert not list((tmp_path / ".local" / "bin").glob("*.aide-tmp"))

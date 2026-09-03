@@ -105,6 +105,28 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(store.get(job.id)?.landing).toBeFalsy();
   });
 
+  // spec 343: `terminalReason:"unpushed"` (a step whose own work, or its
+  // Workflow-steps-completed bookkeeping, never reached origin) is a
+  // free-text terminalReason exactly like `cli-error` above — no dashboard
+  // source file needs to know the string "unpushed" for it to show up as
+  // a failed row with its own error sentence intact.
+  test("a step that ends unpushed reads as a failed row, the same way cli-error does", () => {
+    const job = enqueue({ steps: ["analyze"] });
+    const runner = makeRunner({
+      readResult: () =>
+        outcome({
+          ok: false,
+          terminalReason: "unpushed",
+          error: "the step's own work did not reach origin: /path/to/project",
+        }),
+    });
+    runner.tick();
+    runner.poll();
+    const row = store.get(job.id);
+    expect(row?.state).toBe("failed");
+    expect(row?.error).toBe("the step's own work did not reach origin: /path/to/project");
+  });
+
   test("a landing flag left behind by a restart never wedges the queue", () => {
     // The flag belongs to a call in flight in THIS process; a mirror read
     // back after a crash has no such call behind it, and a flag that
