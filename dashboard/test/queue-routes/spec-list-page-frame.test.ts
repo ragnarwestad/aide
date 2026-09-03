@@ -188,16 +188,16 @@ describe("renderQueuePage state labels", () => {
     expect(html).not.toContain("stopped — failed");
   });
 
-  test("the State column is pinned to its own width, not the table's spare width (REQ-5/REQ-6)", () => {
+  test("the Spec column is pinned to its own width, State takes the table's spare width (REQ-1/REQ-2)", () => {
     const html = renderQueuePage(
       [],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: false, targets: [] },
     );
-    expect(html).toContain('data-col="state"');
-    expect(CSS).toContain('th[data-col="state"]');
-    expect(CSS).not.toContain('th[data-col="spec"]');
+    expect(html).toContain('data-col="spec"');
+    expect(CSS).toContain('th[data-col="spec"]');
+    expect(CSS).toMatch(/th\[data-col="state"\]\s*\{\s*min-width:/);
   });
 });
 

@@ -47,23 +47,41 @@ table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); 
 table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
   vertical-align: middle; }
 table.list thead a { color: var(--muted); }
-/* The Spec column alone gets the table's spare width (REQ-5/REQ-6, spec
-   339): every other column is pinned to its own content by a specified
-   `width`, however small — the standard trick for an auto-layout
-   table, since a browser hands its LEFTOVER width to whichever
-   columns declare no preference, never to the ones that already did.
-   State, Created, Time and Cost each pin their own single column;
-   Spec carries no width of its own, so it is the one column left
-   standing, and gets back what the other four hand over — the one
-   column whose content (a folder name) actually varies in length.
-   `white-space: nowrap` keeps each short heading label from wrapping
-   now that its column has stopped taking more than it needs — the
-   content underneath still floors the column at whatever it actually
-   needs; this only caps the SURPLUS share. */
-table.list th[data-col="state"],
+/* The State column alone gets the table's spare width (REQ-1/REQ-2,
+   spec 376): every other column is pinned to its own content by a
+   specified `width`, however small — the standard trick for an
+   auto-layout table, since a browser hands its LEFTOVER width to
+   whichever columns declare no preference, never to the ones that
+   already did. Spec, Created, Time and Cost each pin their own single
+   column — Spec's name box is a fixed width of its own (`.spec-name`,
+   below), so pinning it stops it also collecting the surplus on top of
+   that. State carries no width of its own, so it is the one column
+   left standing, and gets back what the other four hand over — the
+   one column whose content (the badge text) actually varies in length
+   from render to render. `white-space: nowrap` keeps each short
+   heading label from wrapping now that its column has stopped taking
+   more than it needs — the content underneath still floors the column
+   at whatever it actually needs; this only caps the SURPLUS share.
+   This reverses spec 339's own version of this rule, which pinned
+   State and left Spec free. */
+table.list th[data-col="spec"],
 table.list th[data-col="created"],
 table.list th[data-col="started"],
 table.list th[data-col="cost"] { width: 1%; white-space: nowrap; }
+/* State's own floor (REQ-3/REQ-4): with no `width` of its own it
+   already floors at whatever badge is on screen right now, but that
+   floor moves as jobs start, finish and roll off the list — a `poll`
+   re-fetches this same markup with no full page reload, so the jump is
+   visible in place. `min-width` fixes the floor at the WORST text the
+   column can ever draw, independent of which rows are showing. 14rem
+   is sized for the longest of the plain state words, the
+   `stopped — …` variants, a queued position, a held-back archive and
+   the step gerunds (2-analysis.md's Findings): "stopped — provider
+   limit" (24 characters) and "updating the manifest for" (25) are the
+   longest, and both stay comfortably inside a badge this wide in a
+   headless render at both a wide and a narrow-desktop window
+   (3-solution.md, Implementation plan Step 2). */
+table.list th[data-col="state"] { min-width: 14rem; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
 .sortlink { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px;
