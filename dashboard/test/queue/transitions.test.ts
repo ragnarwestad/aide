@@ -48,6 +48,20 @@ describe("TRANSITIONS (REQ-1)", () => {
   });
 });
 
+// A landing the project's own suite refused is not a broken job: the step
+// ran, the merge was built, and the tests on the merged result went red.
+// The work waits for a green suite, so the job STOPS rather than fails —
+// the same distinction `run-stopped` already draws for a cap. Only from
+// `done`, exactly like `landing-failed` beside it.
+describe("a red suite stops the landing's job rather than failing it", () => {
+  test("done -> landing-held -> stopped, and no other state accepts the event", () => {
+    expect(TRANSITIONS.done?.["landing-held"]).toBe("stopped");
+    for (const state of JOB_STATES.filter((s) => s !== "done")) {
+      expect(TRANSITIONS[state]?.["landing-held"]).toBeUndefined();
+    }
+  });
+});
+
 function makeStore(): QueueStore {
   const dir = mkdtempSync(join(tmpdir(), "aide-transitions-"));
   return new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });

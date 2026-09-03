@@ -262,6 +262,9 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: num
     // stale failure with advice that no longer applied.
     pushError: lead.pushError,
     landingError: lead.landingError,
+    // From the same lead job, and for the landing mark beside it: a
+    // landing the project's own suite refused is waiting, not broken.
+    errorReason: lead.errorReason,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
     // money — and EVERY attempt of every phase counts now (spec 340), a

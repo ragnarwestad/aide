@@ -15,7 +15,7 @@ import {
   type RestingState,
 } from "../../ui/job-state.ts";
 import { isArchivedRow, phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { LANDING_FAILED, NO_DATE, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST } from "./row-shared.ts";
+import { LANDING_FAILED, NO_DATE, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TESTS_RED } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -279,7 +279,18 @@ interface LiveMark {
 function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
-  if (g.landingError) marks.push({ variant: "refused", label: LANDING_FAILED(lang), sentence: g.landingError });
+  // A landing the project's own suite refused is the one that is not a
+  // refusal: the merge was built, the tests on it went red, and nothing
+  // was pushed. Amber and its own word, so the row does not read as a
+  // broken machine when the answer is to run implement again.
+  if (g.landingError) {
+    const held = g.errorReason === "tests-red";
+    marks.push({
+      variant: held ? "waiting" : "refused",
+      label: held ? TESTS_RED(lang) : LANDING_FAILED(lang),
+      sentence: g.landingError,
+    });
+  }
   if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
@@ -340,7 +351,13 @@ export interface RowMarkNotice {
  *  one, most of the time) an unnecessary label. */
 export function errorMarkNotices(g: SpecGroup, lang: Language): RowMarkNotice[] {
   const marks = liveMarks(g, lang).filter((m) => m.label !== PULL_REQUEST(lang));
-  return marks.map((m) => ({ variant: "failed", text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence }));
+  // The mark's own variant decides the colour: every one of these is a
+  // refusal except a landing the project's suite went red on, which is
+  // waiting for a green run rather than broken.
+  return marks.map((m) => ({
+    variant: m.variant === "waiting" ? ("waiting" as MessageVariant) : ("failed" as MessageVariant),
+    text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence,
+  }));
 }
 
 /** An archived row's own error: `notLanded`/`branchDeleteError` are

@@ -168,7 +168,11 @@ export type JobState = (typeof JOB_STATES)[number];
 // Why a run ended early. `stopped` is deliberately not `failed`: with
 // tight caps a cap-stop is a common, healthy outcome, and a reader who
 // cannot tell it from a broken agent will start ignoring both.
-export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap";
+// `tests-red` is here for the same reason: the landing ran the project's
+// own suite on the merged result and it went red, so nothing was pushed.
+// The step did its work and the machinery did its job — the code is not
+// green yet, and the answer is to run implement again.
+export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap" | "tests-red";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.
@@ -194,7 +198,8 @@ export type TransitionEvent =
   | "step-failed" // running -> failed: the step reported failure
   | "run-stopped" // running -> stopped: budget, timeout or provider limit
   | "process-gone" // running -> interrupted: the process died with no result
-  | "landing-failed"; // done -> failed: a landing did not finish
+  | "landing-failed" // done -> failed: a landing did not finish
+  | "landing-held"; // done -> stopped: the landing's suite went red
 
 /** The one table every state change is checked against (spec 354). Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -224,6 +229,11 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     // instead, exactly as any other transition the table lacks an
     // entry for.
     "landing-failed": "failed",
+    // The one landing failure that is not a fault: the project's own
+    // suite went red on the merged result, so nothing was pushed. Same
+    // state a cap-stop takes, and for the same reason — a reader who
+    // cannot tell "not green yet" from a broken agent ignores both.
+    "landing-held": "stopped",
   },
 };
 

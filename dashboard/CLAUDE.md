@@ -159,6 +159,11 @@ ends, whether or not its landing reached main.
   literal step name; a failed landing moves the job to `failed` and ONLY
   from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
   the "not landed" row is filtered on the BRANCH, never on `errorReason`.
+- **A landing the project's suite refused STOPS the job, it does not fail
+  it.** `errorReason: tests-red` takes the `landing-held` transition to
+  `stopped` with `stopReason: tests-red`, and the row's mark is amber and
+  reads "tests red": the step ran and the merge was built, and what is
+  missing is a green suite. Every other landing failure stays red.
 - **`codeLanding: pr` keeps the CODE root's branch open** on an `archive`
   landing and runs every step with `--push pr`; the two halves are never
   separated. The manifest is a DEFAULT for `--push`, never an override;

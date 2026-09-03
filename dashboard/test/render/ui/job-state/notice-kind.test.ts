@@ -29,7 +29,17 @@ describe("specNotice's held-back branch reads errorReason, not a text prefix", (
   });
 
   test("text starting with 'held back:' but a different errorReason renders failed", () => {
-    const notice = specNotice(lead({ error: "held back: not analyzed yet — run /aide-analyze first", errorReason: "tests-red" }));
+    const notice = specNotice(lead({ error: "held back: not analyzed yet — run /aide-analyze first", errorReason: "conflict" }));
     expect(notice?.variant).toBe("failed");
+  });
+
+  // A suite that went red on the merge is the same shape as a hold-back:
+  // nothing in the machinery broke, the work is not green yet, and the
+  // answer is to run implement again. Amber, not red.
+  test("errorReason 'tests-red' renders waiting", () => {
+    const notice = specNotice(
+      lead({ error: "the project's tests are red on the merge — nothing was pushed.", errorReason: "tests-red" }),
+    );
+    expect(notice?.variant).toBe("waiting");
   });
 });

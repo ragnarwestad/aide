@@ -23,6 +23,11 @@ export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullReques
  *  `state`, which a later step's own start already overwrites. */
 export const LANDING_FAILED = (lang: Language): string => t(lang, "list.landingFailed");
 
+/** The same mark when the landing's own test run is what refused it: the
+ *  merge was built and the project's suite went red on it, so nothing
+ *  was pushed and implement runs again. Amber, not red. */
+export const TESTS_RED = (lang: Language): string => t(lang, "list.testsRed");
+
 /** The mark a LIVE row carries when a step's push never reached origin
  *  (spec 328). */
 export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
