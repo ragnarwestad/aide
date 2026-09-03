@@ -69,6 +69,7 @@ export function gitFor({
         stdout: lsRemoteCode === 0 && open.has(dir) ? `a3f9c21\trefs/heads/${BRANCH}\n` : "",
       };
     }
+    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
       if (slow) await slow();
       return merged(dir);

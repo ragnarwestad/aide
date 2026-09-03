@@ -30,6 +30,7 @@ const behind = (extra: Record<string, { code: number; stdout?: string }> = {}) =
     "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
     fetch: { code: 0 },
     "merge-base --is-ancestor": { code: 0 },
+    "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": { code: 0 },
     ...extra,
   });

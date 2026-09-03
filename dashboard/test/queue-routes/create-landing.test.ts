@@ -40,6 +40,7 @@ function gitFor({
     if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
     if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
     if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
       return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
     }

@@ -50,7 +50,7 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(ran(git.calls, "switch")).toBe(false);
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
     expect(ran(git.calls, "push")).toBe(false);
     expect(ran(git.calls, "fetch")).toBe(false);
   });
@@ -61,6 +61,7 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
       "ls-remote": { code: 128 },
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -124,10 +125,11 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
       "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
       "ls-remote origin": { code: 0 },
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      "pull -q --ff-only": [{ code: 1, stderr: "fatal: Not possible to fast-forward, aborting." }, { code: 0 }],
+      "merge -q --ff-only origin/master": [{ code: 1, stderr: "fatal: Not possible to fast-forward, aborting." }, { code: 0 }],
       "rev-list --count origin/master..master": { code: 0, stdout: "3\n" },
       "rev-list origin/master..master --no-merges --not --remotes=origin": { code: 0, stdout: "" },
       reset: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -137,7 +139,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
     const seq = git.calls.map((c) => c.args.join(" "));
-    expect(seq.indexOf("reset -q --hard origin/master")).toBeGreaterThan(seq.indexOf("pull -q --ff-only"));
+    expect(seq.indexOf("reset -q --hard origin/master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only origin/master"));
   });
 
   test("a base ahead of origin by a commit of its own is still refused — that is somebody's work", async () => {
@@ -163,6 +165,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 1 },
       switch: { code: 0 },
@@ -178,6 +181,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -198,12 +202,12 @@ describe("fastForwardToOrigin", () => {
     const git = fakeGit({
       "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
       fetch: { code: 0 },
-      pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
     });
     const result = await fastForwardToOrigin(git.run, ROOT, "master");
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(argv(git.calls)).toContain("fetch --quiet origin master");
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
     expect(ran(git.calls, "push")).toBe(false);
   });
 
@@ -233,7 +237,7 @@ describe("fastForwardToOrigin", () => {
     const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
-      if (a.startsWith("pull")) {
+      if (a.startsWith("merge -q --ff-only origin/")) {
         pulls++;
         return pulls <= 1
           ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
@@ -266,32 +270,35 @@ describe("fastForwardToOrigin", () => {
 // afternoon, each leaving its spec unanalysed on main and the implement
 // step behind it refused. Naming origin and the base leaves one merge
 // candidate whoever else is fetching alongside.
-describe("every landing pull names origin and the base", () => {
+describe("the base is brought up to date by a NAMED ref, never FETCH_HEAD", () => {
   const pulls = (calls: GitCall[]) => argv(calls).filter((a) => a.startsWith("pull"));
+  const ffs = (calls: GitCall[]) => argv(calls).filter((a) => a.startsWith("merge -q --ff-only origin/"));
 
-  test("mergeBranchIntoDefault's pull carries the refspec", async () => {
+  test("mergeBranchIntoDefault fast-forwards its base by name", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
       fetch: { code: 0 },
     });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(pulls(git.calls).length).toBeGreaterThan(0);
-    for (const p of pulls(git.calls)) expect(p).toBe("pull -q --ff-only origin master");
+    expect(pulls(git.calls)).toEqual([]);
+    expect(ffs(git.calls)).toContain("merge -q --ff-only origin/master");
   });
 
-  test("fastForwardToOrigin's pull carries it too", async () => {
+  test("fastForwardToOrigin does too", async () => {
     const git = fakeGit({
       "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
       fetch: { code: 0 },
       pull: { code: 0 },
     });
     await fastForwardToOrigin(git.run, ROOT, "master", noWait);
-    expect(pulls(git.calls)).toEqual(["pull -q --ff-only origin master"]);
+    expect(pulls(git.calls)).toEqual([]);
+    expect(ffs(git.calls)).toEqual(["merge -q --ff-only origin/master"]);
   });
 });

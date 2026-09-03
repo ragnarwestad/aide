@@ -58,6 +58,7 @@ const savable = (root: string, extra: Record<string, { code: number; stdout?: st
     "rev-parse HEAD": { code: 0, stdout: `${HEAD_SHA}\n` },
     fetch: { code: 0 },
     "merge-base --is-ancestor": { code: 0 },
+    "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": { code: 0 },
     "log -1 --format=": { code: 0, stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n` },
     add: { code: 0 },

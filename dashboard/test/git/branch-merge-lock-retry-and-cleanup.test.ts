@@ -42,7 +42,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("pull")) {
+      if (a.startsWith("merge -q --ff-only origin/")) {
         pulls++;
         return pulls <= times ? { code: 1, stdout: "", stderr } : { code: 0, stdout: "" };
       }
@@ -67,7 +67,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     // Bounded: a stuck lock costs a fraction of a second, not the
     // request. The count is the bound, stated once.
     expect(git.pulls()).toBeLessThanOrEqual(6);
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
   });
 
   // A run's own aide-run-spec writes refs in this checkout at its start
@@ -102,7 +102,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q")) {
+      if (a.startsWith("merge -q") && a.includes("refs/remotes/")) {
         merges++;
         return merges <= 2
           ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
@@ -121,7 +121,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(git.pulls()).toBe(1);
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
   });
 });
 
@@ -159,6 +159,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
   test("a real merge deletes the branch too (criterion 3)", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 0 },
       push: { code: 0 },
@@ -192,6 +193,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
   test("a merge that never happened deletes nothing", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 1 },
       "merge --abort": { code: 0 },
@@ -214,6 +216,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
   test("a fast-forward merge deletes the local branch as well as origin's (criterion 1)", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       "branch -d": { code: 0 },
@@ -232,6 +235,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
   test("a real merge deletes the local branch too (criterion 2)", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 0 },
       push: { code: 0 },
@@ -245,6 +249,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
   test("an origin delete that fails never touches the local branch (criterion 3)", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       "push -q origin --delete": { code: 1, stderr: "remote: refusing\n" },
       push: { code: 0 },
@@ -261,6 +266,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
   test("a local branch that cannot be deleted never turns a landed merge into a failure (criterion 4)", async () => {
     const git = fakeGit({
       ...OK_TABLE,
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       "branch -d": { code: 1, stderr: "error: branch not found\n" },

@@ -32,6 +32,7 @@ const REACHES_STEP_6 = {
   "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
   "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
   "pull -q --ff-only": { code: 0 },
+  "merge -q --ff-only origin/": { code: 0 },
   "merge -q --ff-only": { code: 0 },
   switch: { code: 0 },
   fetch: { code: 0 },
@@ -53,7 +54,7 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
     const sequence = argv(git.calls).filter(
-      (a) => a === "push -q origin master" || a.startsWith("reset") || a.startsWith("merge -q") || a.startsWith("pull -q --rebase"),
+      (a) => a === "push -q origin master" || a.startsWith("reset") || (a.startsWith("merge -q") && a.includes("refs/remotes/")) || a.startsWith("pull -q --rebase"),
     );
     expect(sequence).toEqual([
       `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
@@ -142,6 +143,7 @@ describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict",
     reset: { code: 0 },
     // The first merge fast-forwards; onto the moved base neither the
     // fast-forward nor the real merge goes through.
+    "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": [{ code: 0 }, { code: 1 }],
     "merge -q --no-edit": { code: 1, stderr: "CONFLICT (content): Merge conflict" },
     "merge --abort": { code: 0 },
@@ -203,7 +205,7 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     expect(result.ok).toBe(true);
     const seq = argv(git.calls);
     const discard = seq.indexOf("checkout -q -- :(top,glob)**/test-run.json");
-    const pull = seq.indexOf("pull -q --ff-only origin master");
+    const pull = seq.indexOf("merge -q --ff-only origin/master");
     expect(discard).toBeGreaterThan(-1);
     expect(pull).toBeGreaterThan(discard);
     expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
@@ -229,7 +231,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
     const order: string[] = [];
     const gate = async () => {
-      order.push(`gate after ${argv(git.calls).filter((a) => a.startsWith("merge")).length} merges`);
+      order.push(`gate after ${argv(git.calls).filter((a) => a.startsWith("merge") && a.includes("refs/remotes/")).length} merges`);
       return { ok: true };
     };
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);

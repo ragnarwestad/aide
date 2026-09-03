@@ -208,7 +208,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
       "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" },
       "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
       fetch: { code: 0 },
-      pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "rev-list --count": { code: 0, stdout: `${behindAfter}\n` },
     });
 

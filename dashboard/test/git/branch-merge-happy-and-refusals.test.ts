@@ -46,6 +46,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -65,6 +66,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 0 },
       push: { code: 0 },
@@ -86,6 +88,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -108,6 +111,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" },
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -125,6 +129,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 128 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 0 },
       switch: { code: 0 },
@@ -142,6 +147,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 1 },
       "merge --abort": { code: 0 },
@@ -174,12 +180,12 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(result.error).toContain(ROOT);
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
     // Spec 96, criterion 16: a real divergence says nothing about
     // `index.lock`, so it is refused on the FIRST attempt. The retry
     // added for the lock must not become a general "try every pull
     // twice", which would double the wait before every honest refusal.
-    expect(argv(git.calls).filter((a) => a.startsWith("pull"))).toHaveLength(1);
+    expect(argv(git.calls).filter((a) => a.startsWith("merge -q --ff-only origin/"))).toHaveLength(1);
   });
 
   test("a checkout that will not switch to the base is refused", async () => {
@@ -187,7 +193,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(result.error).toContain("master");
-    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
   });
 
   test("a git that throws is a refusal, not a crash", async () => {
@@ -214,6 +220,7 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 1 },
       switch: { code: 0 },
@@ -247,6 +254,7 @@ describe("every refusal names the repo AND the branch", () => {
     "the merge conflicts": {
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 1 },
       "merge --abort": { code: 0 },
@@ -256,6 +264,7 @@ describe("every refusal names the repo AND the branch", () => {
     "the push of the base fails": {
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
       pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
       push: { code: 1 },
       switch: { code: 0 },
