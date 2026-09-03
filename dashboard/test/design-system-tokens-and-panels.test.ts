@@ -107,7 +107,7 @@ describe("the row's message panel is the component, not new markup", () => {
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
     // Six since the Created column joined the other five (spec 317).
     expect(panel).toContain(`<td colspan="6">`);
-    expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
+    expect(panel).toMatch(/class="rowmsg failed">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
     const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
@@ -119,8 +119,8 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target({ archiveHeldBack: { reason: "the Slack webhook" } })],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(panel).toContain("rowmsg warn");
+    expect(panel).toContain("rowmsg waiting");
     const { CSS } = await import("../src/render/ui/css.ts");
-    expect(CSS.match(/\.rowmsg\.warn\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
+    expect(CSS.match(/\.rowmsg\.waiting\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
   });
 });

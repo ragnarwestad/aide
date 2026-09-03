@@ -62,7 +62,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const modelHeader = models.length ? "<th>Default AI and model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
   const body = `<main>${back}<form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
-    `<p class="refused${opts.error ? " rowmsg warn" : ""}" aria-live="polite">${esc(message)}</p>` +
+    `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<p><label>Budget per job (USD) <input type="number" min="0.01" max="100" step="0.01" ` +
     `name="budgetUsd" value="${opts.budgetUsd}"></label></p>` +
     `<p><label>Job cap (USD) <input type="number" min="0.01" max="300" step="0.01" ` +

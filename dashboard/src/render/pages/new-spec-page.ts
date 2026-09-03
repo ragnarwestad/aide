@@ -238,7 +238,7 @@ export function renderNewSpecPage(
   const body =
     backLink(opts.backHref ?? "/", "New spec") +
     // A refusal first, or it is read after the thing it refused.
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     (projects.length
       ? newSpecForm(opts, projects)
       : // The link on `/` is simply not offered when there is nothing to

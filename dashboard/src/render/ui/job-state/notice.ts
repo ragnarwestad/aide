@@ -96,7 +96,7 @@ export function specNotice(
   marks: { variant: MessageVariant; text: string }[] = [],
   lang: Language = "en",
 ): RowNotice | undefined {
-  if (refusal) return { variant: "err", text: refusal, hook: "refused" };
+  if (refusal) return { variant: "failed", text: refusal, hook: "refused" };
   const parts: { variant: MessageVariant; text: string; title?: string }[] = [];
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
@@ -106,9 +106,12 @@ export function specNotice(
   // "… not analyzed yet", "… another archive is running", "… the
   // Acceptance criteria are not all ticked yet", the daily cap) is
   // waiting, not broken — the same amber "archive held back" takes
-  // below, never the red a refusal or a failed step gets.
+  // below, never the red a refusal or a failed step gets. Read off
+  // `errorReason` (spec 372), which the scheduler sets alongside the
+  // sentence — never guessed from the text, which left every OTHER
+  // waiting-shaped message still picking "waiting" or "failed" for itself.
   if (lead?.error && !said(lead.error)) {
-    const variant: MessageVariant = lead.error.startsWith("held back:") ? "warn" : "err";
+    const variant: MessageVariant = lead.errorReason === "held-back" ? "waiting" : "failed";
     parts.push({ variant, text: lead.error, title: lead.errorDetail });
   }
   parts.push(...marks);
@@ -129,9 +132,9 @@ export function specNotice(
     // archive's own by construction — so the phase name it arrived with
     // comes off rather than being written twice in one sentence.
     const detail = disagreement.replace(/^archive: /, "");
-    return { variant: "warn", text: `${t(lang, "list.archiveHeldBack", { reason: archiveHeldBack })} · ${detail}` };
+    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { reason: archiveHeldBack })} · ${detail}` };
   }
-  if (archiveHeldBack) return { variant: "warn", text: t(lang, "list.archiveHeldBack", { reason: archiveHeldBack }) };
-  if (disagreement) return { variant: "warn", text: disagreement };
+  if (archiveHeldBack) return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { reason: archiveHeldBack }) };
+  if (disagreement) return { variant: "waiting", text: disagreement };
   return undefined;
 }

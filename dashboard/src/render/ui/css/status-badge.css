@@ -12,7 +12,7 @@
 .b-ready { background: var(--ok-soft); color: var(--ok); }
 /* The only live variant with a visible border. Refused must never be
    told from running by hue alone, and the row that carries it also
-   carries a .rowmsg.err with the warning mark. */
+   carries a .rowmsg.failed with its own mark. */
 .b-refused { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
 .b-done { background: var(--surface-2); color: var(--muted); }
 

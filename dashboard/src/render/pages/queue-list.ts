@@ -270,7 +270,7 @@ export function renderQueuePage(
     // pressed. One that names no spec has nowhere else to go, and
     // dropping it silently is worse than a banner.
     (opts.error && !opts.errorSpec
-      ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n"
+      ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n"
       : "") +
     // The New spec link rides on the filter row now (right-hand end,
     // after the (?)): it is a plain link since spec 121, so the

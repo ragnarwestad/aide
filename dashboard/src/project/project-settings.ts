@@ -54,8 +54,11 @@ export interface SettingRow {
   toolchain?: string;
   /** Set only where a CONFIGURED value does not resolve, and always
    *  the readiness check's own sentence, never a second wording of the
-   *  same fact. */
-  problem?: string;
+   *  same fact. `blocking` is the same check's own flag (spec 372): the
+   *  Health tab already reads it to choose `failed`/`waiting`, and this
+   *  row must agree — the same fact must not read red on one tab and
+   *  amber on the other. */
+  problem?: { text: string; blocking: boolean };
 }
 
 export interface ProjectSettingsView {
@@ -161,7 +164,7 @@ export function projectSettings(
         value: configured.value,
         origin: "configured",
         ...(configured.source ? { source: configured.source } : {}),
-        ...(failed ? { problem: failed.detail } : {}),
+        ...(failed ? { problem: { text: failed.detail, blocking: failed.blocking } } : {}),
       };
     }
     const kind = DERIVABLE[key];

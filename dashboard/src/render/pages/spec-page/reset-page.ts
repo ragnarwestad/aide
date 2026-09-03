@@ -15,7 +15,7 @@ export function renderResetSpecPage(
   const title = `Reset ${specFolder}`;
   const body =
     backLink(back, title) +
-    (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
+    (opts.error ? rowMessage("failed", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
       "Reset keeps 0-README.md and 1-description.md byte for byte. It regenerates the analysis, plan and status, removes old local and remote spec branches, and keeps earlier jobs and commits as history. Project code and default-branch history are unchanged.",

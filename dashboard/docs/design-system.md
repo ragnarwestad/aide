@@ -31,7 +31,12 @@ The palette is the brand's: warm neutrals (paper `--bg`, card
 `--surface`, ink `--text`), vermilion `--accent`, and `--danger` set to the darkest bar of the mark rather than to a
 shade of the accent — so
 "running" and "refused" never rest on hue alone. The refused badge is also the only live one with a visible border, and
-the row that carries it carries a `.rowmsg.err` with a warning mark beside the reason.
+the row that carries it carries a `.rowmsg.failed` with its own mark beside the reason.
+
+A row, job-page or project-page message is one of three kinds, decided by the producer and never by `rowMessage()`'s
+caller reading a colour off a hunch: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
+on a person or on time; nothing is broken), and `failed` (a step, a landing or a request failed and a person has to
+act). `rowMessage()` alone turns a kind into a colour and an icon — never at the call site.
 
 ## Components
 
@@ -42,7 +47,7 @@ the row that carries it carries a `.rowmsg.err` with a warning mark beside the r
 | `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small` |
 | `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`   |
 | `phaseChip()`   | `default`, `checked`, `done`, `off` (with the reason in `title`)       |
-| `rowMessage()`  | `err`, `warn`, `info`                                                  |
+| `rowMessage()`  | `info`, `waiting`, `failed`                                            |
 | `field()`       | label above any control, one height and one radius                     |
 | `filterPills()` | "Label · count", the chosen one marked with `aria-current`             |
 

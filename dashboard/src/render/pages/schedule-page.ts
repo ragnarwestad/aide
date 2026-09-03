@@ -98,7 +98,7 @@ export function renderDeleteSchedulePage(
   const title = `Delete ${opts.entryName}`;
   const body =
     backLink(back, title) +
-    (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
+    (opts.error ? rowMessage("failed", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
       `Deleting ${opts.entryName} removes it from ${opts.project}'s schedule for good. ` +

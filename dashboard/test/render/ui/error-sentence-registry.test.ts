@@ -3,6 +3,7 @@ import { invalidRequest } from "../../../src/queue/parse-request.ts";
 import { renderQueueRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render.ts";
 import { notLandedTitle } from "../../../src/render/pages/queue-list/cell-helpers.ts";
 import { wordPhase } from "../../../src/render/ui/job-state.ts";
+import { worktreeLinksError } from "../../../src/project/project-admin/manifest-io.ts";
 import { row } from "../../render/pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes
@@ -320,8 +321,29 @@ const PHASE_4: RegistryEntry[] = [
   },
 ];
 
+// Spec 372, REQ-4: the settings-table's blocking-check "problem" cell —
+// the one call site that spec goes on to reclassify from `warn` to
+// `failed` that spec 352's own registry above had not already covered
+// (`3-solution.md`, "REQ-4 — extending the spec-352 registry to every
+// `failed` sentence"). A configured Worktree-links value that fails
+// validation is the one blocking case reachable with no filesystem
+// setup — `worktreeLinksError()` is the pure function `assessProjectReadiness`
+// calls to build it.
+const PHASE_5_SPEC_372: RegistryEntry[] = [
+  {
+    name: "a configured worktree-links value fails validation (project-admin/manifest-io.ts, worktreeLinksError — surfaced as the settings-table's blocking problem cell)",
+    text: worktreeLinksError("/abs/node_modules", "AIDE_WORKTREE_LINKS") ?? "",
+    resolve: "must name repo-relative paths",
+  },
+];
+
 describe("every board-facing error sentence has a resolution or a named exemption (REQ-7)", () => {
   test.each(REGISTRY)("$name", ({ resolve, exempt, text }) => {
+    expect(resolve || exempt).toBeTruthy();
+    if (resolve) expect(text).toContain(resolve);
+  });
+
+  test.each(PHASE_5_SPEC_372)("$name", ({ resolve, exempt, text }) => {
     expect(resolve || exempt).toBeTruthy();
     if (resolve) expect(text).toContain(resolve);
   });

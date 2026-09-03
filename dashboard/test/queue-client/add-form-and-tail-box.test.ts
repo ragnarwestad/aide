@@ -42,7 +42,7 @@ describe("the Add form keeps the readiness answer on screen", () => {
     expect(h.addSlot.textContent).toContain("cannot run yet");
     expect(h.addSlot.textContent).toContain(".aide/");
     expect(h.addSlot.textContent).toContain("/repos/skjer/specs");
-    expect(h.addSlot.className).toBe("refused rowmsg warn");
+    expect(h.addSlot.className).toBe("refused rowmsg waiting");
     expect(h.location.href).toBe("http://dash.test/");
   });
 

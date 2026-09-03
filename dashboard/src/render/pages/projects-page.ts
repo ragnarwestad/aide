@@ -180,12 +180,12 @@ export function renderProjectsPage(
   const now = Number.isNaN(stamped) ? Date.now() : stamped;
   const body =
     // A refusal first, or it is read after the thing it refused.
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
-    // And what a successful Add had to say. Never `err`: the project IS
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    // And what a successful Add had to say. Never `failed`: the project IS
     // added either way, and the colour says only whether a run can
-    // start — `warn` where something still has to be done about it.
+    // start — `waiting` where something still has to be done about it.
     (opts.notice
-      ? rowMessage(opts.noticeOk ? "info" : "warn", opts.notice, { hook: "notice", tag: "p" }) + "\n"
+      ? rowMessage(opts.noticeOk ? "info" : "waiting", opts.notice, { hook: "notice", tag: "p" }) + "\n"
       : "") +
     // One line above the list: the counts on the left, Add on the right
     // — the same shape the spec list's filter row has, where its own
@@ -256,7 +256,7 @@ export function renderAddProjectPage(
   };
   const body =
     backLink("/projects", "Add project") +
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // The copy 1-description.md asks for, before the form rather than
     // in a doc nobody has open: what is written here is the least a
     // manifest can be, and the rest is a separate job.
@@ -372,7 +372,7 @@ export function renderRemoveProjectPage(
 ): string {
   const body =
     backLink("/projects", `Remove ${name}`) +
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     rowMessage(
       "info",
       `Removing ${name} takes it off the allowlist and off this dashboard. ` +

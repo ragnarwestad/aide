@@ -340,17 +340,21 @@ export interface RowMarkNotice {
  *  one, most of the time) an unnecessary label. */
 export function errorMarkNotices(g: SpecGroup, lang: Language): RowMarkNotice[] {
   const marks = liveMarks(g, lang).filter((m) => m.label !== PULL_REQUEST(lang));
-  return marks.map((m) => ({ variant: "err", text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence }));
+  return marks.map((m) => ({ variant: "failed", text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence }));
 }
 
 /** An archived row's own error: `notLanded`/`branchDeleteError` are
  *  mutually exclusive with `prOpen` at the source (`spec-views.ts`), so
  *  this is ever at most one sentence — `prOpen` is `pullRequestMark`'s
- *  alone, never reaches here. */
+ *  alone, never reaches here. `failed`, not `waiting` (spec 372): this
+ *  is the same "a step's push did not reach origin" story
+ *  `errorMarkNotices()` already tells in red for a live row — an
+ *  archived row telling it in amber was the description's own bug
+ *  pattern, live in the one place it had not yet been reported. */
 export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number, lang: Language): RowMarkNotice[] {
   if (!a || a.prOpen) return [];
   const title = lockedStateTitle(a, now, lang);
-  return title ? [{ variant: "warn", text: title }] : [];
+  return title ? [{ variant: "failed", text: title }] : [];
 }
 
 /** The sentence an archived row's branch mark carries (REQ-2/REQ-3) —

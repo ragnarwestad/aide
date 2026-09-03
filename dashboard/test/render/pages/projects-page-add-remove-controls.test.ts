@@ -72,7 +72,7 @@ describe("the Add page", () => {
     expect(html).toContain('name="description"');
     // The same refusal slot the New-spec form has, and for the same
     // reason: a project that was never added has no row to land on.
-    expect(html).toContain('class="refused rowmsg err"');
+    expect(html).toContain('class="refused rowmsg failed"');
   });
 
   // Spec 252: the bottom Cancel beside Save is gone — the top-left
@@ -194,10 +194,10 @@ describe("the Remove page", () => {
   test("a refusal carried back in the query string is shown", () => {
     const html = page([project("aide")], { createProjects: ["aide"], error: "the name is already taken" });
     expect(html).toContain("the name is already taken");
-    expect(html).toContain('class="refusal rowmsg err"');
+    expect(html).toContain('class="refusal rowmsg failed"');
   });
 
   test("no banner when nothing was refused", () => {
-    expect(page([project("aide")], { createProjects: ["aide"] })).not.toContain('class="refusal rowmsg err"');
+    expect(page([project("aide")], { createProjects: ["aide"] })).not.toContain('class="refusal rowmsg failed"');
   });
 });

@@ -168,7 +168,7 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       targets: [target("99-x")],
       error: "payload too large",
     });
-    expect(page).toContain('<p class="refusal rowmsg err">');
+    expect(page).toContain('<p class="refusal rowmsg failed">');
     expect(page).toContain("payload too large");
   });
 });
@@ -371,8 +371,11 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
 // the amber "archive held back" already takes, not the red of a refusal.
 describe("a job the scheduler is holding is a warning, not an error", () => {
   const FOLDER = "81-queue-and-runner";
-  const notice = (error: string) =>
-    noticeCellHtml(renderQueueRows([row({ state: "queued", error })], { runnerAvailable: true, targets: [] }), FOLDER);
+  const notice = (error: string, errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
+    noticeCellHtml(
+      renderQueueRows([row({ state: "queued", error, errorReason })], { runnerAvailable: true, targets: [] }),
+      FOLDER,
+    );
 
   test("every held-back reason is drawn amber", () => {
     for (const reason of [
@@ -381,16 +384,16 @@ describe("a job the scheduler is holding is a warning, not an error", () => {
       "held back: not analyzed yet — run /aide-analyze first",
       "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
     ]) {
-      const html = notice(reason);
+      const html = notice(reason, "held-back");
       expect(html).toContain(reason);
-      expect(html).toMatch(/class="[^"]*rowmsg warn/);
-      expect(html).not.toMatch(/class="[^"]*rowmsg err/);
+      expect(html).toMatch(/class="[^"]*rowmsg waiting/);
+      expect(html).not.toMatch(/class="[^"]*rowmsg failed/);
     }
   });
 
   test("a refusal stays red", () => {
     const html = notice("cannot fast-forward main — merge it by hand, in the checkout on the serving host");
-    expect(html).toMatch(/class="[^"]*rowmsg err/);
+    expect(html).toMatch(/class="[^"]*rowmsg failed/);
   });
 });
 

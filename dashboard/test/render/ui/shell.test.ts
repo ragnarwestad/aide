@@ -38,7 +38,7 @@ describe("pageShell install warning banner", () => {
     );
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     expect(html).toContain("install.log");
-    expect(html).toContain("rowmsg warn");
+    expect(html).toContain("rowmsg waiting");
   });
 
   test("shows nothing when the last block has no warning", () => {
@@ -76,7 +76,7 @@ describe("pageShell install warning banner", () => {
     );
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     const headerEnd = html.indexOf("</header>");
-    const bannerStart = html.indexOf("rowmsg warn");
+    const bannerStart = html.indexOf("rowmsg waiting");
     const tabbarStart = html.indexOf('<nav class="tabbar');
     expect(headerEnd).toBeGreaterThan(-1);
     expect(bannerStart).toBeGreaterThan(-1);

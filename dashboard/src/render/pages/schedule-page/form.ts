@@ -102,7 +102,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     tokenField(opts.token) +
-    `<p class="rowmsg warn scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
+    `<p class="rowmsg failed scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     `<div class="frow">` +
     (opts.projects
       ? field(

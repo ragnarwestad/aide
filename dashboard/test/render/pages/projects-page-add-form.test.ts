@@ -41,7 +41,7 @@ describe("the Add page says what a run will need (spec 138)", () => {
       createProjects: ["skjer"],
       notice: "skjer added — cannot run yet: the tree is dirty",
     });
-    expect(no).toContain('class="notice rowmsg warn"');
+    expect(no).toContain('class="notice rowmsg waiting"');
   });
 
   test("no notice, no banner", () => {

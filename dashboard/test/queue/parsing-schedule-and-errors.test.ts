@@ -122,7 +122,11 @@ describe("errorReason", () => {
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `unlanded` is spec 193's refusal — the
     // spec was archived and a branch of its own is still on origin.
-    expect(stored).toEqual(["conflict", "tests-red", "unlanded"]);
+    // `held-back` is spec 372's: a queued job the scheduler is holding
+    // back is a different lifecycle point (the job has not started;
+    // `state` stays `"queued"`) from the other three, which say why a
+    // LANDING was refused after a step ran.
+    expect(stored).toEqual(["conflict", "held-back", "tests-red", "unlanded"]);
   });
 });
 

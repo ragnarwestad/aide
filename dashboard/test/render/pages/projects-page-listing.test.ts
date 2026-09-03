@@ -76,7 +76,7 @@ describe("the drift banner on /projects", () => {
     // On aide's row, not floating above the list where a reader has to
     // work out which project it is about.
     expect(html).toMatch(/aide[\s\S]*?3 commits behind origin[\s\S]*?atlasaurus/);
-    expect(html).toContain('class="rowmsg warn"');
+    expect(html).toContain('class="rowmsg waiting"');
   });
 
   test("one commit behind is one commit, not 1 commits", () => {

@@ -336,7 +336,7 @@ export function pageShell(
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
   const installWarning = lastInstallWarning(lang);
-  const installBanner = installWarning ? rowMessage("warn", installWarning, { tag: "p" }) : "";
+  const installBanner = installWarning ? rowMessage("waiting", installWarning, { tag: "p" }) : "";
   return `<!doctype html>
 <html lang="${lang}">
 <head>

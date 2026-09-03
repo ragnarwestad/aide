@@ -97,7 +97,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
   addButton.classList = classes(addButton);
   // `className` too: the slot the server renders is the REFUSAL slot,
   // and a success written into it must not stay the colour of one.
-  const addSlot = { textContent: "", className: "refused rowmsg err" };
+  const addSlot = { textContent: "", className: "refused rowmsg failed" };
   const addForm = {
     // Every real form element has one; spec 184's proposal binding reads
     // it, and an empty one is what a page with nothing to propose sends.

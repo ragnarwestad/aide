@@ -27,7 +27,7 @@ function overviewRow(
   // not have to work out which project a warning is about. An error row
   // gets it too: a checkout whose manifest will not parse is still a
   // checkout that can fall behind, and it is the one being worked on.
-  const drift = note ? rowMessage("warn", note, { tag: "p" }) : "";
+  const drift = note ? rowMessage("waiting", note, { tag: "p" }) : "";
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div>${projectLink}` +

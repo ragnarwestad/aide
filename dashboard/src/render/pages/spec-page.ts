@@ -84,8 +84,8 @@ export function renderSpecPage(
     // missing textarea that the spec is closed.
     archivedLine(view) +
     dependsOnLine(view) +
-    (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
-    (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
+    (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
+    (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
 
   // The spec's own actions, at the end of the tab row (spec 300; sat on
   // a line of its own above the tabs until then). Reopen goes BEFORE

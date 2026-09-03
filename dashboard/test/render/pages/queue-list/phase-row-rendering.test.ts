@@ -202,7 +202,7 @@ describe("a spec's row runs its own phases", () => {
 
   test("a refusal is shown on the page, belonging to no one row (criterion 6)", () => {
     const html = page({ error: "analyze is already queued for this spec" });
-    expect(html).toContain('class="refusal rowmsg err"');
+    expect(html).toContain('class="refusal rowmsg failed"');
     expect(html).toContain("analyze is already queued for this spec");
     // Above the table, so it is read before the row that caused it.
     expect(html.indexOf("refusal")).toBeLessThan(html.indexOf('id="jobrows"'));

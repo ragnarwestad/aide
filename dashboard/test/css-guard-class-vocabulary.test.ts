@@ -16,7 +16,7 @@ const COMPONENTS = [
   "awaiting",
   "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
   "phases", "phase", "default", "checked", "done", "off", "box",
-  "rowmsg", "err", "warn", "info",
+  "rowmsg", "failed", "waiting", "info",
   // the invisible holder around the spec row's state badge (2026-08-24),
   // mirroring actionslot: it reserves the width on mobile so the pill
   // inside keeps its natural size.

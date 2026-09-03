@@ -185,8 +185,15 @@ export interface Job {
    *  is joined across repos before any page sees it, so nothing may
    *  match on it. Paired by hand with the same union in
    *  `render/job-state.ts`, which does not import this module; the two
-   *  are read side by side by `queue.test.ts`. */
-  errorReason?: "conflict" | "unlanded" | "tests-red";
+   *  are read side by side by `queue.test.ts`.
+   *
+   *  `"held-back"` (spec 372) is a different lifecycle point from the
+   *  other three: they say why a LANDING was refused, after a step ran;
+   *  this says the scheduler has not started the job at all yet —
+   *  `state` stays `"queued"`. Set at `Runner.tick()`'s five hold-back
+   *  sites, alongside the `error` sentence, so the row's panel reads the
+   *  kind off a field rather than sniffing the text for a prefix. */
+  errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
   /** The first landing failure this job hit, named by step (spec 327).
    *  Set once and left alone by every later step of the SAME job,
    *  success or failure — unlike `error`, which every later step is

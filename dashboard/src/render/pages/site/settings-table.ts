@@ -113,8 +113,11 @@ export function unifiedSettingsTable(
       .map((r) => {
         // A value that does not resolve is marked where it is shown, in
         // readiness's own sentence — never a second wording of the same
-        // fact (`project-settings.ts` reads it verbatim).
-        const problem = r.problem ? rowMessage("warn", r.problem) : "";
+        // fact (`project-settings.ts` reads it verbatim). Blocking-aware
+        // (spec 372): the same check's `blocking` flag decides the kind
+        // here exactly as it does on the Health tab, so the two tabs
+        // never disagree about the same fact's colour.
+        const problem = r.problem ? rowMessage(r.problem.blocking ? "failed" : "waiting", r.problem.text) : "";
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
           `<td>${settingValueCell(r, editing, opts)}</td>` +
@@ -139,7 +142,7 @@ export function unifiedSettingsTable(
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform">` +
     tokenField(opts.token) +
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) : "") +
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
     // `.configactions` carries its own `flex-basis: 100%`, so it stacks
     // above the table the same way `.frow` does without needing that
     // wrapper itself (spec 301).

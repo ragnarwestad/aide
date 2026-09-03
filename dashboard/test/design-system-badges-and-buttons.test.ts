@@ -3,6 +3,8 @@
 import { describe, expect, test } from "bun:test";
 import { row, rows, target } from "./design-system-fixtures.ts";
 import type { QueuePageOptions, QueueRowView } from "../src/render.ts";
+import { wordPhase } from "../src/render/ui/job-state/word-phase.ts";
+import { restingChip, specStateChip } from "../src/render/ui/job-state/resting.ts";
 
 // --- every state picks a badge -----------------------------------------------
 
@@ -49,8 +51,33 @@ describe("refused and running are told apart by more than the word", () => {
       error: "cannot merge aide/102-… into main — conflict",
       errorSpec: "aide/102-design-foundation",
     });
-    expect(html).toContain('class="refused rowmsg err"');
-    expect(html).toMatch(/class="refused rowmsg err">\s*<svg/);
+    expect(html).toContain('class="refused rowmsg failed"');
+    expect(html).toMatch(/class="refused rowmsg failed">\s*<svg/);
+  });
+});
+
+// Spec 372, REQ-5: the State column's own badges pinned by name, so a
+// future edit cannot move one of the three off its colour unnoticed —
+// `held back`/`stopped` amber, `failed` red, `done`/`queued` neutral.
+// The first four already had a badgeOf() case each, over `state`; these
+// three go straight to the functions that decide the class, since
+// `queued`/`done` also depend on resting state (what else the spec is
+// ready for) that a bare `row({ state })` does not carry, and `held
+// back` is a PHASE badge (wordPhase()'s own "waiting" variant), not a
+// job state at all.
+describe("REQ-5 — held back, queued and done pinned by name", () => {
+  test("queued is neutral (b-idle)", () => {
+    const html = specStateChip(row({ state: "queued", steps: ["analyze"], stepIndex: 0 }), "en");
+    expect(html).toContain('class="badge b-idle"');
+  });
+
+  test("done, with nothing else the spec is ready for, is neutral (b-done)", () => {
+    expect(restingChip("en", {})).toContain('class="badge b-done"');
+  });
+
+  test("held back is the same amber as stopped (b-waiting)", () => {
+    const word = wordPhase(false, { reason: "depends on 1-x, which is not archived yet" }, undefined, {});
+    expect(word.badge).toEqual({ variant: "waiting", label: "held back" });
   });
 });
 

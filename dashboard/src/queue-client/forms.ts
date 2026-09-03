@@ -126,7 +126,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
         // refusal — so the look follows the answer: a project that CAN
         // run must not be reported in the colour of one that cannot.
         const slot = form.querySelector(".refused") as HTMLElement | null;
-        if (slot) slot.className = `refused rowmsg ${body?.readiness?.canRun ? "info" : "warn"}`;
+        if (slot) slot.className = `refused rowmsg ${body?.readiness?.canRun ? "info" : "waiting"}`;
         formNote(form, note);
         return;
       }

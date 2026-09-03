@@ -44,7 +44,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // configured here — both branches below append it.
   const servingLine = opts.serving
     ? rowMessage(
-        opts.serving.current ? "info" : "warn",
+        opts.serving.current ? "info" : "waiting",
         opts.serving.current
           ? `Serving ${opts.serving.sha.slice(0, 7)} — matches this checkout.`
           : `Serving ${opts.serving.sha.slice(0, 7)}, but this checkout is now at ` +
@@ -60,8 +60,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   }
   const behind = drift.checkedAt !== null ? drift.behind : null;
   const message =
-    drift.checkedAt === null ? rowMessage("warn", UNCHECKED_NOTE)
-    : behind ? rowMessage("warn", driftPrefix(behind, drift.checkedAt, now))
+    drift.checkedAt === null ? rowMessage("waiting", UNCHECKED_NOTE)
+    : behind ? rowMessage("waiting", driftPrefix(behind, drift.checkedAt, now))
     : behind === 0 ? rowMessage("info", "This checkout is level with origin.")
     : ""; // asked, unanswerable — no claim, never a guess
   // Level with origin is not "nothing to deploy": the served process can
@@ -84,7 +84,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         messageSlot("refused") +
         `</form>`
       : "";
-  return (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
+  return (opts.deployError ? rowMessage("failed", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
     message + button + servingLine;
 }
 
@@ -142,16 +142,16 @@ function healthSection(readiness: ProjectReadiness | null): string {
   return (
     `<h3>Can a run start here?</h3>` +
     rowMessage(
-      readiness.canRun ? "info" : "err",
+      readiness.canRun ? "info" : "failed",
       readiness.canRun ? "Nothing stops a run: this checkout is ready to run." : "A run cannot run here yet.",
     ) +
     readiness.checks
       .map((c) =>
         c.blocking
-          ? rowMessage("err", c.detail)
+          ? rowMessage("failed", c.detail)
           : c.ok
             ? `<p class="muted">${esc(c.detail)}</p>`
-            : rowMessage("warn", c.detail),
+            : rowMessage("waiting", c.detail),
       )
       .join("")
   );

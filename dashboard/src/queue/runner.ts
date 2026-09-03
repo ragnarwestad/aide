@@ -146,14 +146,14 @@ export class Runner {
         this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
       ) {
         const reason = "held back: another archive is running in this project — it starts when that one has landed";
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {
         const reason = "held back: not analyzed yet — run /aide-analyze first";
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
         continue;
       }
       // Held back, not failed — the same shape `startOne`'s daily-cap
@@ -166,7 +166,7 @@ export class Runner {
         const reason = `held back: depends on ${dependency}, which is not archived yet`;
         // Only when it changed: an unconditional update would rewrite
         // the mirror every two seconds for a job that is doing nothing.
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
         continue;
       }
       // The same shape once more, for `archive`: an acceptance row only
@@ -176,7 +176,7 @@ export class Runner {
       // here for the tick instead, and starts by itself once it lands.
       if (acceptanceOpen?.has(job.id)) {
         const reason = `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`;
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
         continue;
       }
       this.startOne(job);
@@ -219,6 +219,7 @@ export class Runner {
           what: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded.`,
           resolve: "Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
         }).text,
+        errorReason: "held-back",
       });
       return false;
     }

@@ -135,12 +135,18 @@ describe("a value that does not resolve is marked, in the words readiness alread
 
   test("a worktree link with nothing to link carries readiness's own sentence (criterion 4)", () => {
     const dir = project("AIDE_WORKTREE_LINKS=node_modules\n");
-    expect(row(dir, "AIDE_WORKTREE_LINKS", readiness(missingLinks)).problem).toBe(missingLinks.detail);
+    expect(row(dir, "AIDE_WORKTREE_LINKS", readiness(missingLinks)).problem).toEqual({
+      text: missingLinks.detail,
+      blocking: true,
+    });
   });
 
   test("a specs root that is not there carries readiness's own sentence (criterion 5)", () => {
     const dir = project("AIDE_SPECS_PATH=/tmp/elsewhere\n");
-    expect(row(dir, "AIDE_SPECS_PATH", readiness(missingSpecs)).problem).toBe(missingSpecs.detail);
+    expect(row(dir, "AIDE_SPECS_PATH", readiness(missingSpecs)).problem).toEqual({
+      text: missingSpecs.detail,
+      blocking: true,
+    });
   });
 
   test("a check that passed leaves the row with no problem", () => {

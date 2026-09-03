@@ -276,7 +276,33 @@ export const phases = (chips: string): string => `<span class="phases">${chips}<
 
 // --- row-level message ----------------------------------------------------------
 
-export type MessageVariant = "err" | "warn" | "info";
+/** The three kinds a row, job-page or project-page message can be — and
+ *  the only three. A call site picks the KIND; the colour and the icon
+ *  are decided here, once, from it — never guessed from the text. */
+export type MessageVariant = "info" | "waiting" | "failed";
+
+/** The mark on an info message — a fact, nothing to do. Distinct from
+ *  the warning triangle: a reader who cannot tell red from amber must
+ *  still be able to tell "nothing to do" from "something waits". */
+export const ICON_INFO =
+  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+  `stroke-linecap="round" aria-hidden="true">` +
+  `<circle cx="8" cy="8" r="6.5"></circle><path d="M8 7v4M8 5h.01"></path></svg>`;
+
+/** The mark on a failed message — a step, a landing or a request
+ *  failed and a person has to act. Distinct from the warning triangle
+ *  `waiting` keeps: a filled cross in a circle, not a triangle, so the
+ *  two never rely on colour alone to tell apart. */
+export const ICON_FAILED =
+  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+  `stroke-linecap="round" aria-hidden="true">` +
+  `<circle cx="8" cy="8" r="6.5"></circle><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"></path></svg>`;
+
+const MESSAGE_ICON: Record<MessageVariant, string> = {
+  info: ICON_INFO,
+  waiting: ICON_WARN,
+  failed: ICON_FAILED,
+};
 
 /** Why the button you just pressed did nothing, on the row you pressed
  *  it on. `hook` is the class `queue-client.ts` selects on — it carries
@@ -289,16 +315,14 @@ export function rowMessage(
 ): string {
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  // `info` has no icon by design: it is a note, not a thing gone wrong.
-  const icon = variant === "info" ? "" : ICON_WARN;
-  return `<${tag} class="${cls}">${icon}<span>${esc(text)}</span></${tag}>`;
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(text)}</span></${tag}>`;
 }
 
 /** The slot a refusal is WRITTEN into by the browser code, as opposed
  *  to one the server rendered. It must stay empty until then —
  *  `.rowmsg:empty` draws nothing — so it gets no icon: `textContent`
  *  would wipe one anyway. */
-export const messageSlot = (hook: string, variant: MessageVariant = "err"): string =>
+export const messageSlot = (hook: string, variant: MessageVariant = "failed"): string =>
   `<p class="${hook} rowmsg ${variant}"></p>`;
 
 // --- field -----------------------------------------------------------------------
