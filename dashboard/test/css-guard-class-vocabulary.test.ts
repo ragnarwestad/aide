@@ -170,8 +170,9 @@ const STRUCTURE = [
   // the row's name is stretched across the whole row by an ::after
   // overlay (spec 233), so a press anywhere on it opens the project;
   // "proj-row-action" lifts the Remove button back above that overlay,
-  // which is the only reason either class exists.
-  "proj-row-link", "proj-row-action",
+  // which is the only reason either class exists. "proj-row-warn"
+  // (spec 369) is the same escape, for the row's link to the Health tab.
+  "proj-row-link", "proj-row-action", "proj-row-warn",
   // a spec's remaining checks, at the top of its page (spec 182): the
   // Tasks-table rows of 4-status.md, grouped by phase, each undone one
   // carrying the button that ticks it. "checkbox" is that button — and

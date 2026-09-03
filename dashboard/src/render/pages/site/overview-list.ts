@@ -1,7 +1,7 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of site.ts by theme (split site.ts by theme).
 
-import { rowMessage } from "../../ui/components.ts";
+import { ICON_WARN, rowMessage } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import type { ProjectView } from "./types.ts";
 
@@ -13,8 +13,15 @@ function overviewRow(
   path: string,
   removeHref?: string,
   note?: string,
+  warnHref?: string,
 ): string {
   const remove = removeHref ? `<a class="btn small proj-row-action" href="${esc(removeHref)}">Remove</a>` : "";
+  // Spec 369: the readiness sentence itself moved to the project's own
+  // page — this is only a pointer to it, so it needs the same escape
+  // from the row's stretched-link overlay `.proj-row-action` uses.
+  const warn = warnHref
+    ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="cannot run yet — see the project's page" aria-label="cannot run yet">${ICON_WARN}</a>`
+    : "";
   const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
   // Spec 142: on the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
@@ -24,7 +31,7 @@ function overviewRow(
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div>${projectLink}` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${remove}</div>`
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${warn}${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -37,7 +44,7 @@ function overviewRow(
     `<span class="counts">${active} active · ${archived} archived</span>` +
     desc +
     drift +
-    `</div>${remove}</div>`
+    `</div>${warn}${remove}</div>`
   );
 }
 
@@ -77,6 +84,10 @@ export function projectListBody(
      *  `ProjectView` is a pure disk scan the static generator shares,
      *  and a live git answer does not belong on it. */
     note?: (name: string) => string | undefined;
+    /** Spec 369: where the row's warning mark points, or undefined for
+     *  no mark at all — a third callback of the same shape as `note`
+     *  and `removeHref`, not a change to how the row is composed. */
+    warnHref?: (name: string) => string | undefined;
   },
 ): string {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
@@ -88,6 +99,7 @@ export function projectListBody(
           opts.pageHref(p.name),
           opts.removeHref?.(p.name),
           opts.note?.(p.name),
+          opts.warnHref?.(p.name),
         ),
       )
       .join("\n")
