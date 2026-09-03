@@ -45,6 +45,7 @@ export {
 
 export {
   mergeQueueDefaults,
+  parseHeaderAuth,
   parsePendingModels,
   parseQueueProjects,
   parseStoredJob,

@@ -38,7 +38,7 @@ export async function handlePageRoutes(
     // The reader's own choice of state, from the address or from the
     // cookie it was last written into (spec 338, mirroring the sort
     // column's own `chosenSort` below).
-    const stateResult = stateChoice(url, req);
+    const stateResult = stateChoice(url, req, ctx.serverPort());
     const chosenState = stateResult.state;
     // The reader's own choice of language (spec 350), from the address
     // or from the cookie it was last written into — the same shape as
@@ -55,7 +55,7 @@ export async function handlePageRoutes(
     const archivedSpecs = ctx.archivedSpecRows(chosenState);
     // The reader's own choice of column, from the address or from the
     // cookie it was last written into.
-    const chosenSort = sortChoice(url, req);
+    const chosenSort = sortChoice(url, req, ctx.serverPort());
     const view = {
       runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
       targets: liveTargets,
@@ -170,7 +170,7 @@ export async function handlePageRoutes(
     if (url.searchParams.get("token") && ctx.queueToken) {
       pageHeaders.append(
         "set-cookie",
-        `aide_token=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
       );
     }
     if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
@@ -202,7 +202,7 @@ export async function handlePageRoutes(
     // who arrived with the token in the address.
     if (url.searchParams.get("token") && ctx.queueToken) {
       headers["set-cookie"] =
-        `aide_token=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
+        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
     }
     return new Response(html, { headers });
   }
@@ -463,7 +463,7 @@ export async function handlePageRoutes(
     // here.
     if (url.searchParams.get("token") && ctx.queueToken) {
       headers["set-cookie"] =
-        `aide_token=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
+        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
     }
     return new Response(html, { headers });
   }

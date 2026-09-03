@@ -138,4 +138,12 @@ export interface ServerOptions {
    *  `pdfGeneratorBin` is one: no test should depend on `md-to-pdf`
    *  actually being installed on the machine running `bun test`. */
   pdfToolAvailable?: boolean;
+  /** A request header a proxy in front of this server sets to the
+   *  signed-in user's name (spec 363) — the tailnet proxy's own header
+   *  is the worked example in `deploying.md`. When a request's `header`
+   *  carries one of `users`, it is admitted with no token and no
+   *  cookie. Off unless set; refused at start-up unless `bindHost` is
+   *  loopback (`127.0.0.1` or `::1`), since a header from anywhere else
+   *  can be forged by anyone who can reach the port. */
+  headerAuth?: { header: string; users: string[] };
 }
