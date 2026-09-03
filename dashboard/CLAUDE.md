@@ -68,6 +68,7 @@ edited by hand together.
 | `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` precedence — `.aide/config` over the manifest's `installCmd`/`testCmd` (spec 345, the reverse order from `worktreeLinks`) | `aide_resolve_override` in `_aide-spec-lib.sh` | `resolveInstallCmd`/`resolveTestCmd` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/config-cmd-precedence.json` |
 | The status-mark rule — which Status cells count as done | `total_progress_for` in `aide-run-spec` | `isDoneMark` in `dashboard/src/project/parse-status.ts` | `tests/fixtures/status-row-counting.json` |
 | An error sentence says what happened AND what resolves it (spec 352) | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec` | `errorSentence()` in `dashboard/src/render/ui/error-sentence.ts`, and every producer that follows its shape by hand | `dashboard/test/render/ui/error-sentence-registry.test.ts` and `tests/specs/unit/core/scripts/test_aide_run_spec.py`'s `BASH_ERROR_REGISTRY`, each reading its own side's source text |
+| The archive refusals — the answers `aide-archive-spec` gives without a model (`not-implemented-yet`, `acceptance-criteria-unticked`), which end the job `stopped` with the refusal as the reason | the `case` on `archive_terminal_reason` in `aide-run-spec` | `ARCHIVE_REFUSALS` in `dashboard/src/queue/steps.ts`, and the `stopReason` union in `dashboard/src/render/ui/job-state/types.ts` | `dashboard/test/queue/parsing-schedule-and-errors.test.ts` reads all three as text |
 | The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported (spec 359) | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec` | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts` | `dashboard/test/git/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text |
 
 The workflow's own vocabulary is NOT one of these pairs (spec 349):
@@ -118,6 +119,13 @@ script's copy decides whether a run started by hand is REFUSED.
 - **An `onLanded` callback runs before its own job's `landing` flag is
   cleared**, so it cannot trust that one row's flag and must treat it as
   settled by hand — `docs/job-states.md`, "Beside the state".
+- **An `archive` lands on `terminalReason: "completed"` alone.** A
+  refusal is not `ok` and ends the job `stopped`; `already-landed` is
+  `ok` with nothing left to land. Neither reaches `landArchivedSpec`.
+- **Two `archive` steps never run at once in one project.** Both branch
+  from the code root's main and both land into it; the second is held
+  `queued` with the reason on its row until the first has landed — the
+  same shape as the two hold-backs beside it in `Runner.tick()`.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the
