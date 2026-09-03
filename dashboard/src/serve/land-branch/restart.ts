@@ -7,7 +7,9 @@
 // file-based channel to go stale the way the launchd plist already
 // has (2-analysis.md, REQ-4).
 
-import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers.ts";
+import { realpathSync } from "node:fs";
+import { resolve } from "node:path";
+import { RESTART_DEFER_TIMEOUT_MS, RESTART_JOBS_DEFER_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers.ts";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -49,14 +51,53 @@ export function createLaunchdRestart(): RestartHook {
  *  been interrupted first, on the one channel that already reaches a
  *  person: `console.error`, which `render-plist.ts` sends to
  *  `serve.log` alongside everything else. */
+/** Whether a landed code root is the checkout this dashboard runs from.
+ *  Compared as real paths: the serving host reaches its checkout through
+ *  a symlinked home more often than not. */
+export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): boolean {
+  if (!ctx.dashboardRoot) return false;
+  const real = (p: string): string => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return resolve(p);
+    }
+  };
+  return real(ctx.dashboardRoot) === real(root);
+}
+
+/** A running job's process is a child of this server: killing the server
+ *  kills the job, and the queue goes on saying "running" about a step
+ *  nothing is running any more (four jobs, 2026-09-03 00:13). So the
+ *  restart also waits until no job but the landing one is running —
+ *  bounded by `restartJobsDeferMs`, long enough for an implement. */
 export async function restartAfterLanding(ctx: {
   mergeLock: ReturnType<typeof createRootLock>;
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
+  restartJobsDeferMs?: number;
+  queue?: { list(): { id: string; state: string }[] };
+  exceptJobId?: string;
 }): Promise<void> {
   if (!(await ctx.restart.registered())) return;
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
+  const running = (): string[] =>
+    (ctx.queue?.list() ?? [])
+      .filter((j) => j.state === "running" && j.id !== ctx.exceptJobId)
+      .map((j) => j.id.slice(0, 8));
+  const jobsDeadline = Date.now() + (ctx.restartJobsDeferMs ?? RESTART_JOBS_DEFER_MS);
+  if (running().length > 0) {
+    console.error(`queue: a code change landed; the restart waits for running jobs: ${running().join(", ")}`);
+  }
+  while (running().length > 0 && Date.now() < jobsDeadline) {
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+  if (running().length > 0) {
+    console.error(
+      `queue: restarting the dashboard while jobs are still running: ${running().join(", ")} — they will have to be run again`,
+    );
+  }
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
   while (ctx.mergeLock.size > 0 && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, pollMs));

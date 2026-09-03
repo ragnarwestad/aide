@@ -7079,3 +7079,32 @@ def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner)
             assert resolve in match.group(0), f"{entry['name']}: {resolve!r} not in {match.group(0)!r}"
 
 
+
+
+# --- a stale local branch is never the base of a run ------------------------
+
+
+def test_a_local_branch_origin_no_longer_has_is_not_reused(runner, workspace, fake_claude, origin):
+    """A branch that landed and was deleted on origin can linger locally
+    with commits of its own (a stopped archive's note, a killed run).
+    Cutting the next run from it carried a status file that said
+    "create, analyze" about specs whose implement had long landed, and
+    every archive was refused on it (351, 356 — 2026-09-03)."""
+    branch = "aide/81-queue-and-runner"
+    project = workspace["project"]
+    subprocess.run(["git", "-C", str(project), "checkout", "-q", "-b", branch], check=True)
+    (project / "stale.txt").write_text("left behind\n")
+    subprocess.run(["git", "-C", str(project), "add", "stale.txt"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-qm", "stale local commit"], check=True)
+    # It once tracked origin — that is what tells a leftover from a
+    # branch nobody ever pushed.
+    subprocess.run(["git", "-C", str(project), "config", f"branch.{branch}.remote", "origin"], check=True)
+    subprocess.run(["git", "-C", str(project), "config", f"branch.{branch}.merge", f"refs/heads/{branch}"], check=True)
+    subprocess.run(["git", "-C", str(project), "checkout", "-q", "main"], check=True)
+    assert git(origin["project"], "branch", "--list", branch) == ""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    assert rc == 0, out
+    log = git(origin["project"], "log", "--pretty=%s", branch)
+    assert "stale local commit" not in log, "the run was cut from the stale local branch"
+

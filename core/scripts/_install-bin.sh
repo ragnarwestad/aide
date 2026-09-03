@@ -10,12 +10,25 @@
 # AI-specific scripts are handled by the individual
 # installer, not here.
 
-COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-archive-spec aide-create-spec aide-record-test-run aide-resolve-test-cmd aide-backfill-spec-state aide-write-spec aide-print-specs-guard aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
+# Every regular file in core/scripts except the installers themselves and
+# the repo-only build helper: a script that lands without an installer
+# entry never reaches the serving host (aide-record-test-run, spec-state.sh,
+# aide-resolve-test-cmd and spec-transitions.sh each cost an evening of
+# refused jobs before they were listed), so nothing is listed any more.
+_core_bin_scripts() {
+  local d="$1" f
+  for f in "$d"/*; do
+    [ -f "$f" ] || continue
+    case "$(basename "$f")" in _install-*|build-agents-md.sh) continue ;; esac
+    printf '%s ' "$(basename "$f")"
+  done
+}
+COMMON_BIN_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")"
 # The hook body aide-install-spec-hook writes into a target repo (spec
 # 219). Kept as its own file under core/scripts/hooks/, not embedded in
 # the installer, so it can be tested standalone — which means it needs
 # its own copy step, since the loop above only copies flat files.
-COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
+COMMON_BIN_HOOK_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hooks")"
 # status-progress.sh (spec 285): sourced by aide-run-spec and
 # aide-archive-spec via "$SCRIPT_DIR/lib/status-progress.sh". Missing
 # from COMMON_BIN_SCRIPTS (a flat-file copy into ~/.local/bin/ itself)
@@ -29,7 +42,7 @@ COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 # step lists, read by aide-run-spec (jq) and imported by the dashboard.
 # Unlike status-progress.sh above, a missing copy here is refused loudly
 # by aide-run-spec rather than silently no-op'd.
-COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json spec-state.sh spec-transitions.sh transitions.json"
+COMMON_BIN_LIB_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib")"
 # Non-AI CLI tools aide's installer keeps present via mise, using the
 # same npm:<pkg> declaration style as the AI CLIs in
 # ~/.config/mise/config.toml (npm:playwright is the existing precedent).

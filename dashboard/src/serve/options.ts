@@ -95,6 +95,10 @@ export interface ServerOptions {
   restart?: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
+  /** The checkout the running dashboard was started from. Only a landing
+   *  into THIS root restarts the dashboard; another project's install is
+   *  that project's own business. Defaults to the repo this file lives in. */
+  dashboardRoot?: string;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

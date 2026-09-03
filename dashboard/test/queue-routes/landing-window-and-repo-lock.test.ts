@@ -410,6 +410,66 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
+  test("waits while another job is running, then fires once it is done", async () => {
+    // A running job's process dies with the server, and the queue keeps
+    // saying "running" about it for hours (00:13, 2026-09-03). The
+    // landing job itself is exempt: it is the one asking.
+    const jobs = [
+      { id: "landing-job", state: "running" },
+      { id: "other-job", state: "running" },
+    ];
+    const { hook, count } = restartSpy();
+    const waiting = restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartJobsDeferMs: 500,
+      queue: { list: () => jobs },
+      exceptJobId: "landing-job",
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(count()).toBe(0);
+
+    jobs[1]!.state = "done";
+    await waiting;
+    expect(count()).toBe(1);
+  });
+
+  test("only the landing job running is no reason to wait", async () => {
+    const { hook, count } = restartSpy();
+    await restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartJobsDeferMs: 500,
+      queue: { list: () => [{ id: "landing-job", state: "running" }] },
+      exceptJobId: "landing-job",
+    });
+    expect(count()).toBe(1);
+  });
+
+  test("past the jobs deadline it restarts anyway, naming the job", async () => {
+    const { hook, count } = restartSpy();
+    const logged: string[] = [];
+    const realError = console.error;
+    console.error = (msg: unknown) => {
+      logged.push(String(msg));
+    };
+    try {
+      await restartAfterLanding({
+        mergeLock: createRootLock(),
+        restart: hook,
+        restartPollMs: 5,
+        restartJobsDeferMs: 30,
+        queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+      });
+    } finally {
+      console.error = realError;
+    }
+    expect(count()).toBe(1);
+    expect(logged.some((l) => l.includes("never-do"))).toBe(true);
+  });
+
   test("past the deadline it restarts anyway, logging the busy root first (criterion 5)", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/never-clears", () => new Promise(() => {}));

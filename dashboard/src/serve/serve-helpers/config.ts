@@ -106,6 +106,9 @@ export const RESTART_POLL_MS = 250;
  *  never finish would just trade one silent failure for a dashboard
  *  that never comes back. */
 export const RESTART_DEFER_TIMEOUT_MS = 90_000;
+/** How long a restart waits for RUNNING JOBS to finish first: an implement
+ *  step can take an hour and a half. */
+export const RESTART_JOBS_DEFER_MS = 2 * 60 * 60_000;
 
 /** How many steps may run at once, from the queue config's
  *  `concurrency`. FALLS BACK, it does not clamp: `mergeQueueDefaults`

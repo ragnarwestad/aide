@@ -244,8 +244,14 @@ class TestImplementSkillReportsItsPhases:
 @pytest.mark.claude_code
 class TestEmitterIsShipped:
     def test_emitter_is_in_the_shared_bin_list(self, workspace_root):
-        content = (workspace_root / "core" / "scripts" / "_install-bin.sh").read_text()
-        assert "aide-emit-run" in content, (
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        # The list is computed from core/scripts now, so ask the installer
+        # itself rather than reading its source.
+        listed = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; printf "%s" "$COMMON_BIN_SCRIPTS"'],
+            capture_output=True, text=True, check=True,
+        ).stdout.split()
+        assert "aide-emit-run" in listed, (
             "aide-emit-run must be in COMMON_BIN_SCRIPTS — that list drives both "
             "install and uninstall of the shared scripts"
         )

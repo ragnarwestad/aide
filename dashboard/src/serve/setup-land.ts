@@ -57,6 +57,7 @@ export interface LandSetupInputs {
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
+  dashboardRoot?: string;
 }
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {
@@ -96,6 +97,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     restart: inputs.restart,
     restartPollMs: inputs.restartPollMs,
     restartDeferTimeoutMs: inputs.restartDeferTimeoutMs,
+    dashboardRoot: inputs.dashboardRoot,
   };
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landNewSpecImpl(landCtx, job, outcome);

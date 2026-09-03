@@ -196,6 +196,9 @@ def test_the_script_is_installed_with_the_other_shared_scripts(workspace_root):
     """The one list of shared scripts (`_install-bin.sh`). A script that
     is not on it is never copied to ~/.local/bin, so the cron entry
     names a path that does not exist."""
-    installer = (workspace_root / "core" / "scripts" / "_install-bin.sh").read_text()
-
-    assert "aide-pull-specs" in installer
+    installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+    listed = subprocess.run(
+        ["bash", "-c", f'source "{installer}"; printf "%s" "$COMMON_BIN_SCRIPTS"'],
+        capture_output=True, text=True, check=True,
+    ).stdout.split()
+    assert "aide-pull-specs" in listed

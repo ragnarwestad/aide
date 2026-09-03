@@ -9,7 +9,7 @@ import { mergeBranchIntoDefault } from "../../git/branch-merge.ts";
 import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
 import { installAfterMerge } from "./install.ts";
-import { restartAfterLanding } from "./restart.ts";
+import { isDashboardRoot, restartAfterLanding } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
@@ -176,7 +176,10 @@ export async function landBranch(
         // version. The install belongs to the project, so the project
         // says what it is.
         if (codeRoots.has(repo.root)) {
-          if (await installAfterMerge(ctx, result)) restartWanted = true;
+          // The install is the project's own business, whatever it does;
+          // only a landing into the checkout THIS dashboard runs from
+          // restarts the dashboard.
+          if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) restartWanted = true;
           // Never fatal, and never silent either: the merge already
           // happened, so this is reported beside it rather than
           // turning a successful merge into a failure.
@@ -361,6 +364,6 @@ export async function landBranch(
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.
-    if (restartWanted) await restartAfterLanding(ctx);
+    if (restartWanted) await restartAfterLanding({ ...ctx, exceptJobId: job.id });
   }
 }

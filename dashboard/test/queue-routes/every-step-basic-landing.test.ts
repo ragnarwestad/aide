@@ -148,6 +148,7 @@ describe("every step lands its own work (spec 149)", () => {
     const git = gitFor();
     let specsMergesAtFire: number | null = null;
     const { base } = serverWithHarness(dir, paths, git, {
+      dashboardRoot: paths.project,
       restart: {
         registered: async () => true,
         fire: () => {
@@ -186,6 +187,46 @@ describe("every step lands its own work (spec 149)", () => {
   // the active list. `errorReason` is what makes the way out survive —
   // there is no browser attached to an automatic landing, so the one-shot
   // redirect the Merge button used cannot carry it.
+  test("a landing into a project that is not the dashboard's own never restarts it", async () => {
+    // The install is that project's business — PaceUp's install restarts
+    // PaceUp, if anything. Only a landing into the checkout this dashboard
+    // runs from restarts the dashboard.
+    const dir = own("aide-restart-other-project-");
+    const paths = repos(dir);
+    const git = gitFor();
+    let fired = 0;
+    const { base } = serverWithHarness(dir, paths, git, {
+      dashboardRoot: join(dir, "somewhere-else"),
+      restart: {
+        registered: async () => true,
+        fire: () => {
+          fired += 1;
+        },
+      },
+    });
+    const marker = installs(paths.project);
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      {
+        branchUrls: [
+          { root: paths.project, url: "https://example.test/aide" },
+          { root: paths.specs, url: "https://example.test/aide-specs" },
+        ],
+      },
+      (j) => j.state === "done",
+    );
+    const landed = await stepWithResult(base, dir, "archive", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+    expect(landed.error).toBeFalsy();
+    for (let i = 0; i < 80 && !existsSync(marker); i++) await Bun.sleep(25);
+    expect(existsSync(marker)).toBe(true);
+    await Bun.sleep(200);
+    expect(fired).toBe(0);
+  });
+
   test("an archive landing that conflicts records errorReason and archives nothing", async () => {
     const dir = own("aide-149-archive-conflict-");
     const paths = repos(dir);

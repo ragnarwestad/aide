@@ -13,6 +13,12 @@ stack:
 # IS the scope's path or lies under it, and everything else falls to the
 # project's own detected command. See the tools-and-scripts skill,
 # "Project commands", for the full rule.
+# The full-suite command every machine falls back to when its own
+# .aide/config sets no AIDE_TEST_CMD and no AIDE_TEST_SCOPE_* keys — both
+# toolchains, because both can reach main. A machine that wants the
+# scoped form (pytest for core/ and tests/, make test for dashboard/)
+# declares it in its own .aide/config; see .aide/config.example.
+testCmd: export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q && cd dashboard && make test
 testScopes:
   - path: dashboard
     command: cd dashboard && make test

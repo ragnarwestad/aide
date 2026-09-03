@@ -1112,6 +1112,18 @@ base_ref_for() {   # sets $base_ref
 sync_branch_with_origin() {
   local root="$1" br="$2" tip="" here=""
   git -C "$root" remote get-url origin >/dev/null 2>&1 || return 0
+  # A local branch origin no longer has is a leftover of a run whose
+  # branch landed and was deleted (or never pushed): cut this run from
+  # the base instead of from that stale copy. Its status file said
+  # "create, analyze" about specs whose implement had long landed
+  # (351, 356 on 2026-09-03), and every archive was refused on it.
+  # Only a branch that once tracked origin: a branch nobody ever pushed
+  # is simply local work, and stays.
+  if [ -n "$(git -C "$root" config --get "branch.$br.remote" 2>/dev/null)" ] \
+     && ! git -C "$root" ls-remote --exit-code --heads origin "$br" >/dev/null 2>&1; then
+    git -C "$root" branch -D "$br" >/dev/null 2>&1 || true
+    return 0
+  fi
   git -C "$root" fetch -q --force origin "refs/heads/$br:refs/aide-branch/tip" >/dev/null 2>&1 || return 0
   tip="$(git -C "$root" rev-parse --verify -q refs/aide-branch/tip 2>/dev/null || true)"
   here="$(git -C "$root" rev-parse --verify -q "refs/heads/$br" 2>/dev/null || true)"
@@ -1398,8 +1410,12 @@ for root in "${roots[@]}"; do
      && branch_already_landed "$root" "$branch" "$base"; then
     git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
   fi
+  # Sync first: a local branch origin no longer has is deleted here, and
+  # the run is then cut from the base below like any first run.
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     sync_branch_with_origin "$root" "$branch"
+  fi
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
       || refuse "cannot check out $branch in a worktree of $root"
     created_wt+=("$wt"); created_wt_root+=("$root")

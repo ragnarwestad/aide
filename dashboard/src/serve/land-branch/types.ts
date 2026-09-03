@@ -45,6 +45,9 @@ export interface LandContext {
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
+  /** The checkout this dashboard runs from; a landing anywhere else
+   *  never restarts it. */
+  dashboardRoot?: string;
 }
 
 /** What a landing does that is not the merge itself: what to write on
