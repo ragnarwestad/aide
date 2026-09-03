@@ -102,7 +102,15 @@ export function specNotice(
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.
   const said = (text: string) => marks.some((m) => m.text.endsWith(text));
-  if (lead?.error && !said(lead.error)) parts.push({ variant: "err", text: lead.error, title: lead.errorDetail });
+  // A queued job the scheduler is holding ("held back: depends on …",
+  // "… not analyzed yet", "… another archive is running", "… the
+  // Acceptance criteria are not all ticked yet", the daily cap) is
+  // waiting, not broken — the same amber "archive held back" takes
+  // below, never the red a refusal or a failed step gets.
+  if (lead?.error && !said(lead.error)) {
+    const variant: MessageVariant = lead.error.startsWith("held back:") ? "warn" : "err";
+    parts.push({ variant, text: lead.error, title: lead.errorDetail });
+  }
   parts.push(...marks);
   if (parts.length) {
     return {
