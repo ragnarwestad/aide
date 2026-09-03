@@ -193,10 +193,11 @@ describe("token configured", () => {
   });
 
   test("GET /?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base, server } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/?token=${TOKEN}`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain(`aide_token_${server.port}=`);
     expect(cookie).toContain("HttpOnly");
     // Lax, never Strict: a Strict cookie is withheld on a top-level
     // navigation that started somewhere else, and an installed app
@@ -216,21 +217,21 @@ describe("token configured", () => {
   // (asked for 2026-08-23).
   describe("the column the reader sorted by is remembered", () => {
     /** The `Set-Cookie` this route writes for the sort, if any. */
-    const sortCookie = (res: Response): string =>
-      res.headers.getSetCookie().find((c) => c.startsWith("aide_sort=")) ?? "";
+    const sortCookie = (res: Response, port: number | undefined): string =>
+      res.headers.getSetCookie().find((c) => c.startsWith(`aide_sort_${port}=`)) ?? "";
     /** Which column the rendered table says it is sorted by. */
     const sortedBy = (html: string): string =>
       /<a class="sortlink on[^"]*"[^>]*>([A-Za-z]+)</.exec(html)?.[1] ?? "";
 
     test("choosing one writes it down, and a bare / gets it back", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const chosen = await fetch(`${base}/?token=${TOKEN}&sort=started`);
-      expect(sortCookie(chosen)).toContain("aide_sort=started");
+      expect(sortCookie(chosen, server.port)).toContain(`aide_sort_${server.port}=started`);
       expect(sortedBy(await chosen.text())).toBe("Time");
-      const jar = sortCookie(chosen).split(";")[0]!;
+      const jar = sortCookie(chosen, server.port).split(";")[0]!;
       // The Specs tab: `/` with nothing on it. The token rides along
       // because every request needs it, not because the sort does.
-      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
+      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` } });
       expect(sortedBy(await plain.text())).toBe("Time");
     });
 
@@ -238,28 +239,28 @@ describe("token configured", () => {
     // the address and fetches the rows alone. A cookie written only on
     // the whole page would never be written by the act of choosing.
     test("the rows-only fetch writes it too", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?token=${TOKEN}&sort=cost&rows=1`);
-      expect(sortCookie(res)).toContain("aide_sort=cost");
+      expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=cost`);
     });
 
     test("a link that names a sort still wins over what is remembered", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?sort=state`, {
-        headers: { cookie: `aide_token=${TOKEN}; aide_sort=started|desc` },
+        headers: { cookie: `aide_token_${server.port}=${TOKEN}; aide_sort_${server.port}=started|desc` },
       });
       expect(sortedBy(await res.text())).toBe("State");
       // And it becomes the new memory, so the next bare `/` agrees with
       // what the reader is looking at.
-      expect(sortCookie(res)).toContain("aide_sort=state");
+      expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);
     });
 
     // Spec 317 changed the default sort from Spec to Created.
     test("with nothing remembered the default stands", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?token=${TOKEN}`);
       expect(sortedBy(await res.text())).toBe("Created");
-      expect(sortCookie(res)).toBe("");
+      expect(sortCookie(res, server.port)).toBe("");
     });
   });
 
@@ -268,20 +269,20 @@ describe("token configured", () => {
   // fix above — the Specs tab, a bookmark, the back button (spec 338).
   describe("the state filter the reader chose is remembered", () => {
     /** The `Set-Cookie` this route writes for the state filter, if any. */
-    const stateCookie = (res: Response): string =>
-      res.headers.getSetCookie().find((c) => c.startsWith("aide_state=")) ?? "";
+    const stateCookie = (res: Response, port: number | undefined): string =>
+      res.headers.getSetCookie().find((c) => c.startsWith(`aide_state_${port}=`)) ?? "";
     /** Which state the rendered trigger says is chosen. */
     const triggerLabel = (html: string): string =>
       /<summary[^>]*>States: ([^<]*)</.exec(html)?.[1] ?? "";
 
     test("choosing one writes it down, and a bare / gets it back", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const chosen = await fetch(`${base}/?token=${TOKEN}&state=not-archived`);
-      expect(stateCookie(chosen)).toContain("aide_state=not-archived");
+      expect(stateCookie(chosen, server.port)).toContain(`aide_state_${server.port}=not-archived`);
       expect(triggerLabel(await chosen.text())).toBe("Active");
-      const jar = stateCookie(chosen).split(";")[0]!;
+      const jar = stateCookie(chosen, server.port).split(";")[0]!;
       // The Specs tab: `/` with nothing on it.
-      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
+      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` } });
       expect(triggerLabel(await plain.text())).toBe("Active");
     });
 
@@ -289,35 +290,35 @@ describe("token configured", () => {
     // the address and fetches the rows alone. A cookie written only on
     // the whole page would never be written by the act of choosing.
     test("the rows-only fetch writes it too", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?token=${TOKEN}&state=done&rows=1`);
-      expect(stateCookie(res)).toContain("aide_state=done");
+      expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=done`);
     });
 
     test("a link that names a state still wins over what is remembered, including All", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?state=all`, {
-        headers: { cookie: `aide_token=${TOKEN}; aide_state=not-archived` },
+        headers: { cookie: `aide_token_${server.port}=${TOKEN}; aide_state_${server.port}=not-archived` },
       });
       expect(triggerLabel(await res.text())).toBe("All");
       // And it becomes the new memory, so the next bare `/` agrees with
       // what the reader is looking at.
-      expect(stateCookie(res)).toContain("aide_state=all");
+      expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=all`);
     });
 
     test("with nothing remembered the default (All) stands", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const res = await fetch(`${base}/?token=${TOKEN}`);
       expect(triggerLabel(await res.text())).toBe("All");
-      expect(stateCookie(res)).toBe("");
+      expect(stateCookie(res, server.port)).toBe("");
     });
 
     // REQ-5: the search term is not a citizen of this mechanism.
     test("a remembered search term never comes back on a bare /, even while a remembered state does", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const chosen = await fetch(`${base}/?token=${TOKEN}&state=not-archived&q=foo`);
-      const jar = stateCookie(chosen).split(";")[0]!;
-      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
+      const jar = stateCookie(chosen, server.port).split(";")[0]!;
+      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` } });
       const html = await plain.text();
       expect(triggerLabel(html)).toBe("Active");
       expect(html).not.toContain('value="foo"');
@@ -340,10 +341,10 @@ describe("token configured", () => {
     });
 
     test("a later GET / with the cookie and no ?lang= is Norwegian too", async () => {
-      const { base } = start({ queueToken: TOKEN });
+      const { base, server } = start({ queueToken: TOKEN });
       const chosen = await fetch(`${base}/?token=${TOKEN}&lang=nb`);
       const jar = langCookie(chosen).split(";")[0]!;
-      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
+      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` } });
       expect(await plain.text()).toContain('<html lang="nb">');
     });
 
@@ -452,6 +453,82 @@ describe("token configured", () => {
       expect(after.jobs.find((j) => j.id === id)?.state).toBe(state);
       harness.cleanup();
     }
+  });
+});
+
+// Spec 363: two boards on one host, and a proxy that can vouch for the
+// reader without a token or a cookie at all.
+describe("spec 363: port-scoped cookies and header-based admission", () => {
+  const HEADER_AUTH = { header: "X-Test-User", users: ["alice@example.com"] };
+
+  test("two boards on one host keep their own token, sort and state cookies (REQ-1/REQ-8)", async () => {
+    const a = start({ queueToken: TOKEN });
+    const b = start({ queueToken: TOKEN });
+    expect(a.server.port).not.toBe(b.server.port);
+
+    const resA = await fetch(`${a.base}/?token=${TOKEN}&sort=started&state=done`, { redirect: "manual" });
+    const resB = await fetch(`${b.base}/?token=${TOKEN}&sort=cost&state=active`, { redirect: "manual" });
+    const cookiesA = resA.headers.getSetCookie();
+    const cookiesB = resB.headers.getSetCookie();
+
+    expect(cookiesA.some((c) => c.startsWith(`aide_token_${a.server.port}=`))).toBe(true);
+    expect(cookiesB.some((c) => c.startsWith(`aide_token_${b.server.port}=`))).toBe(true);
+    expect(cookiesA.some((c) => c.startsWith(`aide_sort_${a.server.port}=`))).toBe(true);
+    expect(cookiesB.some((c) => c.startsWith(`aide_sort_${b.server.port}=`))).toBe(true);
+    expect(cookiesA.some((c) => c.startsWith(`aide_state_${a.server.port}=`))).toBe(true);
+    expect(cookiesB.some((c) => c.startsWith(`aide_state_${b.server.port}=`))).toBe(true);
+
+    // A real browser keeps ONE cookie jar for `127.0.0.1`, so both
+    // boards' cookies arrive on every request to either — the exact
+    // mechanism of the bug this fixes. Each board must still answer
+    // using only its OWN name.
+    const jar = [...cookiesA, ...cookiesB].map((c) => c.split(";")[0]).join("; ");
+    const checkA = await fetch(`${a.base}/`, { headers: { cookie: jar } });
+    const checkB = await fetch(`${b.base}/`, { headers: { cookie: jar } });
+    expect(checkA.status).toBe(200);
+    expect(checkB.status).toBe(200);
+  });
+
+  test("a pre-existing, unversioned aide_token cookie is ignored, not trusted (REQ-2)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}` } });
+    expect(res.status).toBe(401);
+  });
+
+  test("the token link still works and sets the new, port-scoped cookie (REQ-2)", async () => {
+    const { base, server } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/?token=${TOKEN}`, { redirect: "manual" });
+    expect(res.status).toBe(200);
+    const cookie = res.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain(`aide_token_${server.port}=`);
+  });
+
+  test("the header is inert while headerAuth is unset (REQ-5)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } });
+    expect(res.status).toBe(401);
+  });
+
+  test("headerAuth admits an allowed identity with no token, when bound to loopback (REQ-3/REQ-4)", async () => {
+    const { base } = start({ bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
+    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } });
+    expect(res.status).toBe(200);
+  });
+
+  test("an identity not on the list falls through to the ordinary token check (REQ-4)", async () => {
+    const { base } = start({ queueToken: TOKEN, bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
+    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "mallory@example.com" } });
+    expect(res.status).toBe(401);
+  });
+
+  test("the token still works when headerAuth is also configured (REQ-6)", async () => {
+    const { base } = start({ queueToken: TOKEN, bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
+    const res = await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+  });
+
+  test("headerAuth on a non-loopback bind refuses to start (REQ-5)", () => {
+    expect(() => start({ headerAuth: HEADER_AUTH })).toThrow(/loopback|127\.0\.0\.1/i);
   });
 });
 

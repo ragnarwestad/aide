@@ -76,6 +76,24 @@ export function parseQueueProjects(raw: unknown): string[] | null {
   return raw as string[];
 }
 
+/** The `headerAuth` block, as it is written in `queue-config.json`
+ *  (spec 363): a request header a proxy in front of this server sets to
+ *  the signed-in user's name, and the identifiers the server accepts in
+ *  it. `null` for anything malformed — the same fail-closed direction
+ *  `parseQueueProjects` above already follows — since trusting a header
+ *  on a guess about its shape would be the one direction none of these
+ *  parsers are allowed to fail in. Whether the BIND address makes the
+ *  header trustworthy at all is not this parser's question; that is
+ *  `createServer`'s own start-up refusal. */
+export function parseHeaderAuth(raw: unknown): { header: string; users: string[] } | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.header !== "string" || !r.header) return null;
+  if (!Array.isArray(r.users) || r.users.length === 0) return null;
+  if (!r.users.every((u) => typeof u === "string" && u)) return null;
+  return { header: r.header, users: r.users as string[] };
+}
+
 /** Write the allowlist back, keeping everything else in the file.
  *
  *  `projects` is passed in from the server's live `Set` — never read

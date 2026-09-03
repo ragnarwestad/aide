@@ -147,6 +147,57 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     expect(typeof error).toBe("string");
   });
 });
+
+// --- spec 363: a proxy that can vouch for the reader --------------------------
+//
+// `headerAuth` arrives through `queue-config.json` like every other
+// optional key here — never a dedicated CLI flag. A malformed block
+// fails toward "off", the same direction every sibling key does; a
+// well-formed one on the wrong bind is `createServer`'s refusal to
+// throw, not this parser's job.
+describe("headerAuth in queue-config.json", () => {
+  const configDirs: string[] = [];
+  const configFile = (contents?: Record<string, unknown>): string => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-header-auth-"));
+    configDirs.push(dir);
+    const file = join(dir, "queue-config.json");
+    if (contents) writeFileSync(file, JSON.stringify(contents, null, 2));
+    return file;
+  };
+
+  afterEach(() => {
+    while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+  });
+
+  test("a well-formed block is read into opts.headerAuth", () => {
+    const file = configFile({ headerAuth: { header: "Tailscale-User-Login", users: ["alice@example.com"] } });
+    const opts = parseArgs(["--queue-config", file]);
+    expect(opts.headerAuth).toEqual({ header: "Tailscale-User-Login", users: ["alice@example.com"] });
+  });
+
+  test("no headerAuth field at all leaves it unset", () => {
+    const file = configFile({ concurrency: 2 });
+    const opts = parseArgs(["--queue-config", file]);
+    expect(opts.headerAuth).toBeUndefined();
+  });
+
+  test("a malformed block is ignored, the same direction every sibling key fails in", () => {
+    for (const headerAuth of [
+      { header: "", users: ["a"] },
+      { header: "X-User", users: [] },
+      { header: "X-User", users: [1, 2] },
+      { users: ["a"] },
+      { header: "X-User" },
+      "X-User",
+      [],
+    ]) {
+      const file = configFile({ headerAuth });
+      const opts = parseArgs(["--queue-config", file]);
+      expect(opts.headerAuth).toBeUndefined();
+    }
+  });
+});
+
 // --- spec 160: a later phase can be added while the job runs ------------------
 
 // A run started with too few phases meant waiting for it to end and

@@ -80,6 +80,12 @@ export interface HandleQueueContext {
   runner: Runner | null;
   tickRunner: () => Promise<void>;
   queueToken: string | undefined;
+  /** The port this server actually listens on (spec 363), read lazily
+   *  the same way `runner-setup.ts`'s `readServerPort` is: `Bun.serve()`
+   *  has not returned yet when this context is first assembled, so a
+   *  captured value would be `undefined` for the request that fires
+   *  before it does. Names the port-scoped token/sort/state cookies. */
+  serverPort: () => number;
   jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
   installAfterMerge: (result: RepoMergeResult) => Promise<void>;
   persistAllowlist: (what: string) => ProjectStep;

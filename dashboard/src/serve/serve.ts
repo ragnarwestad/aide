@@ -38,7 +38,7 @@ import {
   jobDetailView as jobDetailViewImpl,
   type SpecViewsContext,
 } from "./spec-views.ts";
-import { isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
+import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup-watch.ts";
@@ -49,6 +49,21 @@ import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 
 export function createServer(opts: ServerOptions) {
+  // Spec 363: a header this process trusts without a token is only
+  // trustworthy because nothing OTHER than the proxy in front of it can
+  // reach the port carrying it. Checked once, here, before anything
+  // else runs and before `Bun.serve()` binds a socket — an unconditional
+  // throw, not a per-request branch that a future new route could
+  // forget to add.
+  if (opts.headerAuth && !isLoopbackBind(opts.bindHost)) {
+    throw new Error(
+      `headerAuth names "${opts.headerAuth.header}" but the server binds ` +
+        `${opts.bindHost ?? "0.0.0.0"}, not loopback — a header from anywhere ` +
+        "else can be forged by anyone who can reach this port. Bind to " +
+        "127.0.0.1 (or ::1), or remove headerAuth from the queue config.",
+    );
+  }
+
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
   const enricher = new LiveEnricher({
     baseUrl: opts.claudeUsageUrl ?? "http://localhost:8787",
@@ -224,8 +239,11 @@ export function createServer(opts: ServerOptions) {
   keepAlive.unref?.();
 
   const queueToken = opts.queueToken;
+  // `state.server` is not set yet — see state.ts's own doc comment, and
+  // `runnerSetupCtx.readServerPort` above for the identical shape.
+  const currentPort = () => state.server?.port ?? opts.port;
   function queueGuard(req: Request, url: URL): Response | null {
-    return queueGuardImpl(req, url, queueToken);
+    return queueGuardImpl(req, url, queueToken, currentPort(), opts.headerAuth);
   }
 
   const projectActionsCtx: ProjectActionsContext = { queueConfigFile: opts.queueConfigFile, allowed };
@@ -300,6 +318,7 @@ export function createServer(opts: ServerOptions) {
     runner,
     tickRunner: schedules.tickRunner,
     queueToken,
+    serverPort: currentPort,
     jobRow: land.jobRow,
     installAfterMerge: land.installAfterMerge,
     persistAllowlist,

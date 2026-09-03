@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import type { DiscoveredProject, SpecRef } from "../../project/discover.ts";
-import { mergeQueueDefaults, parseQueueProjects } from "../../queue/queue.ts";
+import { mergeQueueDefaults, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
 import { navEntries } from "../../render.ts";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
@@ -110,6 +110,15 @@ export function parseArgs(argv: string[]): ServerOptions {
       // same direction every other key here fails in.
       const projects = parseQueueProjects(raw.projects);
       if (projects) opts.queueProjects = projects;
+      // Off unless the file names one (spec 363) — a malformed block is
+      // ignored, the same direction every sibling key here fails in.
+      // Whether the bind address makes it safe to HONOR is not this
+      // parser's question; that is `createServer`'s own refusal.
+      if (typeof raw.headerAuth !== "undefined") {
+        const headerAuth = parseHeaderAuth(raw.headerAuth);
+        if (headerAuth) opts.headerAuth = headerAuth;
+        else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
+      }
     } catch {
       console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
     }

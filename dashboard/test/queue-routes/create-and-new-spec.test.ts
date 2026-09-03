@@ -409,9 +409,9 @@ describe("GET /new (spec 121)", () => {
   });
 
   test("the token handover works here too, the way it does on / and /projects", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base, server } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/new?token=${TOKEN}`, { redirect: "manual" });
     expect(res.status).toBe(200);
-    expect(res.headers.get("set-cookie")).toContain("aide_token=");
+    expect(res.headers.get("set-cookie")).toContain(`aide_token_${server.port}=`);
   });
 });

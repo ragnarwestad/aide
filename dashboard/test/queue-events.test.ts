@@ -77,8 +77,8 @@ describe("GET /api/queue/events", () => {
   });
 
   test("the cookie the page already carries is enough — EventSource cannot send a header", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/api/queue/events`, { headers: { cookie: `aide_token=${TOKEN}` } });
+    const { base, server } = harness.start({ extra: { queueToken: TOKEN } });
+    const res = await fetch(`${base}/api/queue/events`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}` } });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/event-stream");
     await res.body!.cancel();
