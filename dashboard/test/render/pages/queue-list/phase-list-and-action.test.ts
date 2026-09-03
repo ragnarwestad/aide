@@ -187,7 +187,10 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: true })]);
     const spechead = head(html, "124-stack");
     const cell = spechead.slice(spechead.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("checking…");
+    const cellBody = cell.slice(0, cell.indexOf("</td>"));
+    expect(cellBody).toContain("checking…");
+    expect(cellBody).toContain('<span class="checking" title="checking…">');
+    expect(cellBody).not.toContain("&lt;span class=&quot;checking&quot;");
   });
 
   // Every phase line and the caption row draw a blank placeholder cell

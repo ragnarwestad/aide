@@ -191,7 +191,7 @@ export function phasePips(phases: Phase[], done: string[]): string {
  *  date beside it) — the date was dropped after it read as noise next to
  *  the figure that actually answers "how long". */
 export function archiveDateCell(s: ArchivedSpecView, durationMs: number, lang: Language): string {
-  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE(lang)));
+  const date = s.archivedAt != null ? esc(s.archivedAt) : s.dateChecking ? CHECKING : esc(NO_DATE(lang));
   // Nothing recorded across every phase draws the date alone — the same
   // "nothing to show" rule costCell() already gives an all-zero spentUsd.
   if (durationMs <= 0) return date;
@@ -207,7 +207,8 @@ export function archiveDateCell(s: ArchivedSpecView, durationMs: number, lang: L
  *  the archived-row answer by the time this is called, copied up by
  *  `readerGroup()`. */
 export function createdCell(createdAt: string | undefined, checking: boolean, lang: Language): string {
-  return esc(createdAt ? createdAt.slice(0, 10) : checking ? CHECKING : NO_DATE(lang));
+  if (createdAt) return esc(createdAt.slice(0, 10));
+  return checking ? CHECKING : esc(NO_DATE(lang));
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).

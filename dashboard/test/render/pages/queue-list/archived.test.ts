@@ -326,6 +326,8 @@ describe("spec 221: archived specs on the spec list", () => {
     });
     expect(html).not.toContain("date unknown");
     expect(html.toLowerCase()).toContain("checking");
+    expect(html).toContain('<span class="checking" title="checking…">');
+    expect(html).not.toContain("&lt;span class=&quot;checking&quot;");
   });
 
   test("the search reads folder, title and description, across both kinds", () => {
