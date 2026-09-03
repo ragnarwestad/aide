@@ -304,11 +304,11 @@ if [ "$record_ok" = "no" ]; then
   fi
   if [ "$record_ok" = "no" ]; then
     emit_ok "$(jq -cn --arg log "$gate_log" \
-      '{terminalReason:"no-passing-test-record", note:("the project'"'"'s tests did not pass for this commit — the output is in " + $log + "; fix them before archiving")}')"
+      '{terminalReason:"no-passing-test-record", note:("the project'"'"'s tests did not pass for this commit — the output is in " + $log + ". Red code: run implement again. A timing test that lost to load: run archive again when the host is quieter.")}')"
   fi
 fi
 if [ "$record_ok" = "no" ]; then
-  emit_ok '{"terminalReason":"no-passing-test-record","note":"the project'"'"'s tests did not pass for this commit — fix them before archiving"}'
+  emit_ok '{"terminalReason":"no-passing-test-record","note":"the project'"'"'s tests did not pass for this commit. Red code: run implement again. A timing test that lost to load: run archive again when the host is quieter."}'
 fi
 
 # --- archived: stamp and move ----------------------------------------------

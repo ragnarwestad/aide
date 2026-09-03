@@ -141,3 +141,26 @@ describe("the bash and TypeScript retry bounds agree", () => {
     expect(tsWaitsMs).toEqual(bashWaitsMs);
   });
 });
+
+
+describe("a dirty test-run.json in the checkout never blocks the fast-forward", () => {
+  test("it is discarded before the pull, and nothing else is", async () => {
+    // A gate's record left dirty in the dashboard's own specs checkout
+    // failed 356's landing with "cannot fast-forward main" (2026-09-03);
+    // the file is a record, not work, and is thrown away first.
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      checkout: { code: 0 },
+      push: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(true);
+    const seq = argv(git.calls);
+    const discard = seq.indexOf("checkout -q -- :(top,glob)**/test-run.json");
+    const pull = seq.indexOf("pull -q --ff-only");
+    expect(discard).toBeGreaterThan(-1);
+    expect(pull).toBeGreaterThan(discard);
+    expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
+  });
+});

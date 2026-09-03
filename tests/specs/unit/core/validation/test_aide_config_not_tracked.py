@@ -134,7 +134,7 @@ class TestCutoverRecipe:
 
     def test_the_fast_forward_fails_then_the_recipe_recovers_it(self, tmp_path):
         origin = tmp_path / "origin.git"
-        subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
 
         seed = tmp_path / "seed"
         _init(seed)
@@ -165,18 +165,29 @@ class TestCutoverRecipe:
 
         # Reproduce the hazard: the host's own pull now fails, exactly as
         # 2-analysis.md's "Codebase analysis" measured.
+        # The hazard reads differently per git version: 2.47 refuses the
+        # fast-forward ("would be overwritten"), 2.54 lets it through and
+        # the machine's own file is gone. Either way the recipe below has
+        # to bring it back — so the backup is taken first, as the recipe
+        # says, and both outcomes count as the hazard reproduced.
+        backup = (host / ".aide" / "config").read_text()
         _git(host, "fetch", "-q", "origin")
-        failed = subprocess.run(
+        attempt = subprocess.run(
             ["git", "-C", str(host), "merge", "--ff-only", "origin/main"],
             capture_output=True, text=True,
         )
-        assert failed.returncode != 0
-        assert "would be overwritten" in (failed.stdout + failed.stderr)
+        refused = attempt.returncode != 0
+        assert refused or not (host / ".aide" / "config").exists(), (
+            "neither refused nor lost the file — the hazard this spec fixes is gone?"
+        )
+        if refused:
+            assert "would be overwritten" in (attempt.stdout + attempt.stderr)
 
         # The documented recipe (3-solution.md, Recommended solution §1).
-        backup = (host / ".aide" / "config").read_text()
-        _git(host, "rm", "-q", "--cached", ".aide/config")
-        (host / ".aide" / "config").unlink()
+        if _git(host, "ls-files", "--", ".aide/config"):
+            _git(host, "rm", "-q", "--cached", ".aide/config")
+        if (host / ".aide" / "config").exists():
+            (host / ".aide" / "config").unlink()
         recovered = subprocess.run(
             ["git", "-C", str(host), "merge", "--ff-only", "origin/main"],
             capture_output=True, text=True,

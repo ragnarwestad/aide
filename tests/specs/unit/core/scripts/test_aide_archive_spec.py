@@ -636,6 +636,10 @@ def test_a_failing_gate_run_keeps_its_output_and_names_the_log(script, project, 
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "no-passing-test-record", out
     assert str(log) in out["note"], out
+    # And what to do about it, both ways it happens (2026-09-03): red
+    # code is implement's job, a timing test under load is a re-run.
+    assert "run implement again" in out["note"], out
+    assert "run archive again" in out["note"], out
     assert "THE-FAILING-TEST" in log.read_text()
     assert "81-x @" in log.read_text()
 

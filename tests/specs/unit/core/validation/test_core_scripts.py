@@ -1052,3 +1052,13 @@ class TestSpecTransitionsLibIsInstalled:
         lib = tmp_path / ".local" / "bin" / "lib"
         assert (lib / "spec-transitions.sh").is_file()
         assert (lib / "transitions.json").is_file()
+
+
+class TestTheSuiteKeepsOutOfTheRealGateLog:
+    def test_the_gate_log_is_pointed_at_tmp_for_every_test(self):
+        """The archive gate's fixture runs used to land in the serving
+        host's own test-gate.log (2026-09-02/03), interleaved with real
+        gates until nobody could read either."""
+        log = os.environ.get("AIDE_TEST_GATE_LOG", "")
+        assert log, "tests/conftest.py must point AIDE_TEST_GATE_LOG at a temp file"
+        assert "Library/Logs" not in log

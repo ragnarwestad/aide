@@ -8,6 +8,15 @@ import os as _os
 # themselves take this mark away again.
 _os.environ.setdefault("AIDE_TEST_LOCK_HELD", "pytest")
 
+# The archive gate's own log (AIDE_TEST_GATE_LOG) defaults to the serving
+# host's real ~/Library/Logs file; the gate tests here were writing their
+# fixture runs ("81-x @ …") into it, which made the real log unreadable.
+# Every test process inherits this one, under the system temp dir.
+import tempfile as _tempfile
+_os.environ.setdefault(
+    "AIDE_TEST_GATE_LOG", _os.path.join(_tempfile.gettempdir(), "aide-test-gate-from-pytest.log")
+)
+
 
 def _parallel_pass(config):
     """True in the parallel pass of a `-n auto` run — on the controller

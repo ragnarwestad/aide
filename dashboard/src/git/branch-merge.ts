@@ -214,6 +214,11 @@ export async function mergeBranchIntoDefault(
     if (switched.code !== 0) return refuse(root, branch, `cannot switch to ${base}`);
     const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
     if (upstream.code === 0) {
+      // A test-run.json left dirty in this checkout (a gate's record that
+      // never got committed, seen once on 2026-09-03) blocks the
+      // fast-forward with "local changes would be overwritten". It is a
+      // record, not work: discard it rather than fail the landing on it.
+      await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
       let pulled = await run(root, ["pull", "-q", "--ff-only"]);
       // Only for the lock, and only a couple of times. Retrying every
       // pull failure would also delay the refusal a real divergence
