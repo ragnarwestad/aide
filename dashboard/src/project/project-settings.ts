@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveWorktreeLinks } from "./discover.ts";
+import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolveTestCmd } from "./discover.ts";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin.ts";
 
@@ -126,6 +126,10 @@ function configuredValue(projectDir: string, key: string): { value: string; sour
   if (key === "AIDE_WORKTREE_LINKS") {
     const { links, source } = resolveWorktreeLinks(projectDir);
     return links ? { value: links, source: source ?? undefined } : null;
+  }
+  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD") {
+    const { value, source } = (key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : resolveTestCmd)(projectDir);
+    return value ? { value, source: source ?? undefined } : null;
   }
   const value = configValue(projectDir, key);
   return value !== null ? { value } : null;

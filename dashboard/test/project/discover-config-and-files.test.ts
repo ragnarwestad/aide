@@ -1,12 +1,12 @@
 // Split out of discover.test.ts by theme.
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   SPEC_FILES, configValue, discoverUnclaimedDirectories, gitignoreCandidates, markdownSection,
-  specFileText,
+  resolveInstallCmd, resolveTestCmd, specFileText,
 } from "../../src/project/discover.ts";
 
 // Spec 96: `AIDE_SPECS_PATH` stopped being the only key this file reads
@@ -45,6 +45,39 @@ describe("one key out of a project's own .aide/config", () => {
   test("no config file at all is no answer, never a throw", () => {
     expect(configValue(mkdtempSync(join(tmpdir(), "aide-cfg-")), "AIDE_INSTALL_CMD")).toBeNull();
   });
+});
+
+// Spec 345: AIDE_INSTALL_CMD/installCmd and AIDE_TEST_CMD/testCmd are each
+// readable from EITHER file, `.aide/config` winning when both set a value
+// — the reverse of resolveWorktreeLinks' manifest-wins precedence, because
+// an install/test command can legitimately differ per machine.
+describe("resolveInstallCmd / resolveTestCmd", () => {
+  const CASES = JSON.parse(
+    readFileSync(join(import.meta.dir, "..", "..", "..", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
+  );
+
+  const project = (configLine: string | null, manifestLine: string | null, manifestKey: string, configKey: string): string => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-cmd-precedence-"));
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    if (configLine !== null) writeFileSync(join(dir, ".aide", "config"), `${configKey}=${configLine}\n`);
+    if (manifestLine !== null) writeFileSync(join(dir, ".aide", "project.yaml"), `name: x\n${manifestKey}: ${manifestLine}\n`);
+    return dir;
+  };
+
+  for (const c of CASES.cases) {
+    test(`installCmd ${c.name}`, () => {
+      const dir = project(c.config, c.manifest, "installCmd", "AIDE_INSTALL_CMD");
+      const result = resolveInstallCmd(dir);
+      expect(result.value).toBe(c.value);
+      expect(result.source).toBe(c.source);
+    });
+    test(`testCmd ${c.name}`, () => {
+      const dir = project(c.config, c.manifest, "testCmd", "AIDE_TEST_CMD");
+      const result = resolveTestCmd(dir);
+      expect(result.value).toBe(c.value);
+      expect(result.source).toBe(c.source);
+    });
+  }
 });
 
 // Spec 131: the Add-project form used to ask the reader to TYPE the path

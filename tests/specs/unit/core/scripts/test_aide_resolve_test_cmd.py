@@ -44,6 +44,11 @@ def write_config(project, text):
     (project / ".aide" / "config").write_text(text)
 
 
+def write_manifest(project, text):
+    (project / ".aide").mkdir(exist_ok=True)
+    (project / ".aide" / "project.yaml").write_text(text)
+
+
 def branch_with_changed_files(project, *rel_paths):
     """Switch to a feature branch and commit one file per given
     repo-relative path, off the `main` branch `init_repo` already
@@ -76,6 +81,25 @@ def test_no_scopes_configured_falls_back_to_the_plain_test_cmd(script, project):
     assert rc == 0, out
     assert out["ok"] is True
     assert out["commands"] == ["echo legacy"]
+
+
+def test_manifest_test_cmd_is_used_when_config_sets_none(script, project):
+    """REQ-2: no scopes, no `AIDE_TEST_CMD` in `.aide/config` — the
+    manifest's `testCmd:` is the fallback, not silence."""
+    write_manifest(project, "testCmd: echo from-manifest\n")
+    rc, out, _ = run(script, project)
+    assert rc == 0, out
+    assert out["commands"] == ["echo from-manifest"]
+
+
+def test_config_test_cmd_wins_over_manifest(script, project):
+    """REQ-2: `.aide/config` overrides the manifest when both set the
+    legacy key — a command can legitimately differ per machine."""
+    write_config(project, "AIDE_TEST_CMD=echo from-config\n")
+    write_manifest(project, "testCmd: echo from-manifest\n")
+    rc, out, _ = run(script, project)
+    assert rc == 0, out
+    assert out["commands"] == ["echo from-config"]
 
 
 def test_no_config_at_all_resolves_to_an_empty_command_list(script, project):

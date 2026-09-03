@@ -14,7 +14,7 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/work
 import { resolveOpenBranchTarget } from "../git/branch-file.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
-  SPEC_FILES, buildProjectViews, configValue, discoverProjects, resolveSchedule, specArchivedDate,
+  SPEC_FILES, buildProjectViews, discoverProjects, resolveInstallCmd, resolveSchedule, specArchivedDate,
 } from "../project/discover.ts";
 import { readSpecState } from "../project/parse-spec-state.ts";
 import { readFileSync } from "node:fs";
@@ -84,7 +84,7 @@ export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
   await Promise.all(
     buildProjectViews(ctx.projectRoot).map(async (p) => {
       const root = ctx.machineryProjectDir(p.name);
-      if (!configValue(root, "AIDE_INSTALL_CMD")) return;
+      if (!resolveInstallCmd(root).value) return;
       // Each call try/catches internally and degrades to null, so one
       // project's unreachable origin never takes the others with it.
       await ctx.branchStatus.commitsBehindOrigin(root);

@@ -147,9 +147,21 @@ project's own checkout, bounded by a timeout; a failure is reported
 beside the merge and never turns a completed merge back into a failed
 one. Without the key nothing is run, and the page says plainly that
 deploying is still a hand step. `aide`'s own value is
-`implementations/claude-code/install.sh` — any one of the three per-tool
-installers reinstalls the shared scripts, and Claude Code is this repo's
-priority-1 tool.
+`dashboard/deploy/install-after-merge.sh` — it reinstalls the shared
+scripts and refreshes/restarts the dashboard where one runs.
+
+`AIDE_INSTALL_CMD` and `AIDE_TEST_CMD` are also readable from the
+project's **manifest** (`installCmd:` / `testCmd:`), with
+`.aide/config` overriding per machine when it sets the key —
+**the reverse of `worktreeLinks`'s precedence**: an install or test
+command can legitimately differ on one machine (a `PATH` prefix a shell
+needs, say), while a worktree link cannot. A project whose value never
+changes between machines can commit it once in the manifest and skip
+configuring `.aide/config` for it on every clone. Shell scripts resolve
+this precedence with `aide_resolve_override CONFIG_KEY MANIFEST_KEY
+<project-root>` in `_aide-spec-lib.sh`; the dashboard resolves it with
+`resolveInstallCmd()`/`resolveTestCmd()` in
+`dashboard/src/project/discover/config.ts`.
 
 Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.

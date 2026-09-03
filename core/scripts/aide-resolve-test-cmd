@@ -7,9 +7,10 @@
 # independent prose descriptions of the same rule.
 #
 # No scopes declared in `.aide/config` (no AIDE_TEST_SCOPE_PATHS_1 key):
-# resolves to the single legacy AIDE_TEST_CMD, unconditionally, WITHOUT
-# ever touching git — REQ-6, byte for byte what a plain project does
-# today.
+# resolves to the single legacy AIDE_TEST_CMD — or the manifest's
+# `testCmd:` when `.aide/config` sets neither (spec 345) — unconditionally,
+# WITHOUT ever touching git — REQ-6, byte for byte what a plain project
+# does today.
 #
 # Scopes declared: diffs `git diff --name-only <base-ref>...HEAD`
 # (base-ref from aide_test_scope_base_ref, origin-preferring) and
@@ -60,7 +61,7 @@ declare -f aide_test_scope_commands >/dev/null 2>&1 \
 # --- REQ-6 fast path: no scopes declared, no git needed at all -------------
 first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$project_dir")"
 if [ -z "$first_paths" ]; then
-  legacy="$(aide_config_get AIDE_TEST_CMD "$project_dir")"
+  legacy="$(aide_resolve_override AIDE_TEST_CMD testCmd "$project_dir")"
   if [ -n "$legacy" ]; then
     jq -cn --arg c "$legacy" '{ok:true, commands:[$c]}'
   else

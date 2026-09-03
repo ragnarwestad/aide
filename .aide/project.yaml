@@ -38,6 +38,11 @@ logging:
 #
 # Written by the dashboard. /aide-manifest leaves it exactly as found.
 worktreeLinks: .venv dashboard/node_modules
+# What installing this project means, and the same on every machine it
+# runs on (spec 345) — reinstalls the shared scripts, refreshes and
+# restarts the dashboard where one runs. `.aide/config`'s own
+# AIDE_INSTALL_CMD overrides this per machine when set.
+installCmd: dashboard/deploy/install-after-merge.sh
 docs:
   - README.md
   - docs/ROADMAP.md

@@ -1449,12 +1449,13 @@ specs_root_wt="$specs_root"
 # four skills that read `.aide/config` in their working directory pick up
 # without knowing anything about worktrees.
 #
-# STRICTLY AFTER update_branch_to_base. Measured: with .aide/config marked
-# skip-worktree and rewritten, and its committed content changed on the
-# base branch, `git merge` fails with "local changes to the following
-# files would be overwritten" while `status --porcelain` is empty and
-# `merge --abort` has nothing to abort — a healthy run reported as a
-# conflict.
+# STRICTLY AFTER update_branch_to_base — a lesson from when aide's own
+# .aide/config was tracked and skip-worktree'd: rewriting it before that
+# step could make `git merge` fail with "local changes to the following
+# files would be overwritten" while `status --porcelain` read clean and
+# `merge --abort` had nothing to abort — a healthy run reported as a
+# conflict. No project's .aide/config is tracked anymore (spec 345), but
+# the ordering is still correct, so it stays.
 repoint_specs_path() {
   local rel new_specs cfg tmp_cfg
   if [ -n "$specs_wt" ]; then
@@ -1463,19 +1464,12 @@ repoint_specs_path() {
     [ -n "$rel" ] && new_specs="$specs_wt/$rel"
     specs_root_wt="$new_specs"
     cfg="$project_wt/.aide/config"
-    if git -C "$project_root" ls-files --error-unmatch .aide/config >/dev/null 2>&1; then
-      # Tracked (this repo negates the global ignore for it). The
-      # skip-worktree bit is what keeps `status --porcelain` empty and
-      # `git add -A` from staging the rewrite — both measured.
-      git -C "$project_wt" update-index --skip-worktree .aide/config >/dev/null 2>&1 || true
-    else
-      # Untracked, which is the normal case everywhere else: a worktree
-      # has no .aide/config at all, so AIDE_SPECS_PATH and AIDE_TEST_CMD
-      # would simply vanish for the step.
-      mkdir -p "$project_wt/.aide" 2>/dev/null || true
-      [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
-      git_add_excludes+=(":(exclude,top).aide/config")
-    fi
+    # A worktree checks out TRACKED files only, and .aide/config is
+    # never tracked (spec 345) — so it is copied in fresh from the main
+    # checkout and excluded from the commit, the same for every project.
+    mkdir -p "$project_wt/.aide" 2>/dev/null || true
+    [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
+    git_add_excludes+=(":(exclude,top).aide/config")
     tmp_cfg="$work_dir/aide-config"
     : > "$tmp_cfg"
     [ -f "$cfg" ] && grep -v '^AIDE_SPECS_PATH=' "$cfg" > "$tmp_cfg" 2>/dev/null

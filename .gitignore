@@ -17,10 +17,3 @@ venv/
 # Build output
 /dist/
 
-
-# Per-project aide config. Personal in general — and the global ignore
-# (~/.config/git/ignore) keeps it out of every other repo — but TRACKED here,
-# where the only value it carries is the specs path and it is the same on every
-# machine this repo is developed on. A repo .gitignore outranks
-# core.excludesFile, so this negation is what puts it back.
-!/.aide/config
