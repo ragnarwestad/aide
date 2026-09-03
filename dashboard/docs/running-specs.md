@@ -356,7 +356,8 @@ Two consequences worth knowing:
   ensure — it is the file an operator edits by hand between merges, and a copy taken once would go on answering with
   whatever was true the day the clone was made.
   `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the person's checkout, and is
-  rewritten to name the dashboard's own specs.
+  replaced with the dashboard's own specs. The file is written once, finished, through a rename — a run starting for
+  another job never reads a copy that still names the person's path.
 
 A project whose checkout has no `origin` gets no clone of its own. It runs in the person's checkout, and its readiness
 line says so, so the one project where a run and a person's editing can still

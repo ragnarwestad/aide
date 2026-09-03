@@ -28,12 +28,11 @@
 //  - Nothing here runs a git command in the person's directory except
 //    the two read-only questions above.
 
-import { copyFileSync, existsSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "../project/discover.ts";
-import { writeAideConfig } from "../project/project-admin.ts";
 
 /** Where the dashboard keeps its own clones when nothing says otherwise.
  *  Beside `aide-dashboard/`, not inside the projects root: a directory
@@ -255,13 +254,15 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   // go on answering with whatever was true the day the clone was made —
   // silently, which is the whole hazard of keeping two of one file.
   // Nobody edits the copy, so there is nothing here to lose.
-  // `AIDE_SPECS_PATH` is the one key that must NOT survive the copy, and
-  // it is rewritten below.
+  // `AIDE_SPECS_PATH` is the one key that must NOT survive the copy: it
+  // is replaced with the dashboard's own specs checkout, worked out
+  // below — and the file is written ONCE, finished, at the end
+  // (`writeCheckoutConfig`). It used to be copied here and rewritten
+  // after the specs repo's clone/fetch, and an `aide-run-spec` starting
+  // for another job in that window read the person's specs path out of
+  // it and ran archive against the wrong checkout (2026-09-03).
   const personConfig = join(req.personDir, ".aide", "config");
-  if (existsSync(personConfig)) {
-    mkdirSync(join(code, ".aide"), { recursive: true });
-    copyFileSync(personConfig, join(code, ".aide", "config"));
-  }
+  const personConfigText = existsSync(personConfig) ? readFileSync(personConfig, "utf-8") : null;
   linkWorktreePaths(req.personDir, code);
 
   const personSpecs = configValue(req.personDir, "AIDE_SPECS_PATH");
@@ -304,11 +305,26 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   // folder in git to clone. Made with its `archive/`, the same thing Add
   // does for the person's.
   mkdirSync(join(specs, "archive"), { recursive: true });
-  // Rewritten whenever the answer has moved, not only at creation: the
-  // Settings page writes `AIDE_SPECS_PATH` into the person's config, and
-  // the runner reads it out of this one.
-  if (configValue(code, "AIDE_SPECS_PATH") !== specs) writeAideConfig(code, { AIDE_SPECS_PATH: specs });
+  // Written whole on every call: the Settings page writes into the
+  // person's config, and the runner reads out of this one.
+  writeCheckoutConfig(code, personConfigText, specs);
   return { ok: true, cloned, checkout: { code, specs, specsRepo } };
+}
+
+/** The checkout's `.aide/config`: the person's file with
+ *  `AIDE_SPECS_PATH` replaced by the dashboard's own specs checkout,
+ *  built in a temporary file beside it and swapped in with one
+ *  `rename`, so no reader ever sees a copy that still names the
+ *  person's path. */
+function writeCheckoutConfig(code: string, personConfigText: string | null, specs: string): void {
+  const dir = join(code, ".aide");
+  mkdirSync(dir, { recursive: true });
+  const kept = (personConfigText ?? "").split("\n").filter((line) => line.split("=")[0] !== "AIDE_SPECS_PATH");
+  while (kept.length && kept[kept.length - 1] === "") kept.pop();
+  kept.push(`AIDE_SPECS_PATH=${specs}`);
+  const tmp = join(dir, `.config.${process.pid}.${Date.now()}.tmp`);
+  writeFileSync(tmp, `${kept.join("\n")}\n`);
+  renameSync(tmp, join(dir, "config"));
 }
 
 /** Who may be handed a bring-up-to-date that is already running, and who
