@@ -76,7 +76,11 @@ echo -e "${GREEN}📄 Generating PDF for $DOC_TYPE: $ISSUE_ID${NC}"
 echo ""
 
 # Create temporary combined markdown file in the system TMP area
-TEMP_MD="$(mktemp /tmp/combined-${ISSUE_ID}-XXXXXX.md)"
+# A directory of its own, not a fixed name under /tmp: two runs for the
+# same spec at once (the suite runs its tests in parallel) collided on
+# the same file. The .md suffix is what md-to-pdf keys its output on.
+TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/aide-pdf-XXXXXX")"
+TEMP_MD="$TEMP_DIR/combined-${ISSUE_ID}.md"
 # $2 is an optional explicit output path (the dashboard's own server
 # route uses it to write outside any checkout); the terminal skill's
 # one-argument call is unaffected and keeps writing beside the four
@@ -85,7 +89,7 @@ OUTPUT_PDF="${2:-$DOCS_DIR/$ISSUE_ID.pdf}"
 mkdir -p "$(dirname "$OUTPUT_PDF")"
 
 cleanup() {
-  rm -f "$TEMP_MD"
+  rm -rf "$TEMP_DIR"
 }
 trap cleanup EXIT
 

@@ -46,29 +46,35 @@ COMMON_BIN_LIB_SCRIPTS="status-progress.sh workflow-steps.json spec-state.sh"
 MISE_DECLARED_TOOLS="npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Replace an installed script by RENAME, never by writing into it: bash
+# reads a running script incrementally by byte offset, so `cp` over one
+# that a gate or a step is executing right now corrupts that run at its
+# next line. A new file moved into place keeps the old inode alive for
+# whoever still has it open.
+_install_file() {   # $1 = source, $2 = destination path
+  cp "$1" "$2.aide-tmp" && chmod +x "$2.aide-tmp" && mv -f "$2.aide-tmp" "$2"
+}
+
 install_common_bin() {
   mkdir -p ~/.local/bin
   local s
   for s in $COMMON_BIN_SCRIPTS; do
     if [ -f "$_CORE_SCRIPTS_DIR/$s" ]; then
-      cp "$_CORE_SCRIPTS_DIR/$s" ~/.local/bin/
-      chmod +x ~/.local/bin/"$s"
+      _install_file "$_CORE_SCRIPTS_DIR/$s" ~/.local/bin/"$s"
       echo "   ✅ Installed: ~/.local/bin/$s"
     fi
   done
   mkdir -p ~/.local/bin/hooks
   for s in $COMMON_BIN_HOOK_SCRIPTS; do
     if [ -f "$_CORE_SCRIPTS_DIR/hooks/$s" ]; then
-      cp "$_CORE_SCRIPTS_DIR/hooks/$s" ~/.local/bin/hooks/
-      chmod +x ~/.local/bin/hooks/"$s"
+      _install_file "$_CORE_SCRIPTS_DIR/hooks/$s" ~/.local/bin/hooks/"$s"
       echo "   ✅ Installed: ~/.local/bin/hooks/$s"
     fi
   done
   mkdir -p ~/.local/bin/lib
   for s in $COMMON_BIN_LIB_SCRIPTS; do
     if [ -f "$_CORE_SCRIPTS_DIR/lib/$s" ]; then
-      cp "$_CORE_SCRIPTS_DIR/lib/$s" ~/.local/bin/lib/
-      chmod +x ~/.local/bin/lib/"$s"
+      _install_file "$_CORE_SCRIPTS_DIR/lib/$s" ~/.local/bin/lib/"$s"
       echo "   ✅ Installed: ~/.local/bin/lib/$s"
     fi
   done
