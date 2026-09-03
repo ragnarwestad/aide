@@ -24,6 +24,7 @@
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { parseStatus } from "../project/parse-status.ts";
+import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 const DEFAULT_TTL_MS = 30_000;
@@ -243,6 +244,18 @@ export class WorkflowHistoryChecker {
   }
 }
 
+/** What a spec's own files claim, kept apart by source (spec 362) — the
+ *  prose's own line, and the state file's `completedPhases` when this
+ *  copy of the spec (disk or branch) has one. */
+export interface FileStepsAnswer {
+  /** What `4-status.md`'s own `Workflow steps completed` line claims. */
+  proseSteps: string[];
+  /** `4-status.json`'s own `completedPhases` — `undefined` when this
+   *  copy of the spec's files has no state file yet (spec 355 REQ-10),
+   *  the cue to keep comparing `proseSteps` against git (REQ-2). */
+  stateSteps: string[] | undefined;
+}
+
 /** The steps `4-status.md`'s own line and the history do not agree
  *  about.
  *
@@ -267,16 +280,29 @@ export class WorkflowHistoryChecker {
  *
  *  Per step rather than per spec because the row has a line per phase
  *  and one sentence repeated down all five of them is the duplication
- *  spec 143 already took off this page once. */
-export function stepsFileDisagreesOn(fileSteps: string[], history: WorkflowHistory): string[] {
-  const claimed = new Set(fileSteps);
+ *  spec 143 already took off this page once.
+ *
+ *  Spec 355 changed what the truth is: once a spec has its own
+ *  `4-status.json`, that file — not git — is what the runner's own
+ *  gates read, and a git-history comparison can disagree with it for
+ *  reasons that mean nothing (spec 349: an amended, unpushed commit
+ *  whose content landed anyway, inside a later step's commit). So git
+ *  is asked only when there is NO state file for this copy of the
+ *  spec (REQ-2, unchanged); once one exists, the one thing still worth
+ *  a qualifier is the prose claiming a phase the state file does not
+ *  have (REQ-1, REQ-3). */
+export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: WorkflowHistory): string[] {
   // `create` is left out of the comparison since spec 176: the queue
   // takes it as done for every spec whose folder exists, whatever git
   // holds, so comparing it against a status file would report a
   // disagreement about a step nothing disagrees on.
-  return HISTORY_STEPS.filter(
-    (step) => step !== "create" && claimed.has(step) !== history.done.includes(step),
-  );
+  const relevant = HISTORY_STEPS.filter((step) => step !== "create");
+  const claimed = new Set(fileSteps.proseSteps);
+  if (fileSteps.stateSteps !== undefined) {
+    const known = new Set(fileSteps.stateSteps);
+    return relevant.filter((step) => claimed.has(step) && !known.has(step));
+  }
+  return relevant.filter((step) => claimed.has(step) !== history.done.includes(step));
 }
 
 export interface BranchFileStepsOptions {
@@ -285,14 +311,17 @@ export interface BranchFileStepsOptions {
   now?: () => number;
 }
 
-/** `4-status.md`'s workflow steps as committed on a spec's own open
- *  `aide/<folder>` branch (spec 298) — the file half of
- *  `stepsFileDisagreesOn`'s comparison, read from the same point in the
- *  graph the history half (`WorkflowHistoryChecker`, `git log --all`)
- *  already answers from, rather than from the default branch's stale
- *  copy. Shaped exactly like `WorkflowHistoryChecker`: async `read`,
- *  TTL-cached, and a `peekFileSteps` a render may call without ever
- *  spawning git.
+/** A spec's own claims as committed on its own open `aide/<folder>`
+ *  branch (spec 298) — the file half of `stepsFileDisagreesOn`'s
+ *  comparison, read from the same point in the graph the history half
+ *  (`WorkflowHistoryChecker`, `git log --all`) already answers from,
+ *  rather than from the default branch's stale copy. Both
+ *  `4-status.md`'s prose and, alongside it, `4-status.json`'s own
+ *  `completedPhases` when the branch has one (spec 362) — the state
+ *  file is what a gate reads there too, and a branch mid-`implement`
+ *  must not keep comparing it against git once it exists. Shaped
+ *  exactly like `WorkflowHistoryChecker`: async `read`, TTL-cached, and
+ *  a `peekFileSteps` a render may call without ever spawning git.
  *
  *  `null` means "no open branch, or the branch's copy could not be
  *  read" — the caller's own cue to fall back to the disk read, which is
@@ -302,7 +331,7 @@ export class BranchFileStepsChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; steps: string[] | null }>();
+  private readonly cache = new Map<string, { at: number; steps: FileStepsAnswer | null }>();
 
   constructor(opts: BranchFileStepsOptions) {
     this.run = opts.run;
@@ -313,23 +342,34 @@ export class BranchFileStepsChecker {
   /** `target` is `null` for a spec with no open branch — the caller
    *  (`warmSpec`) has already asked `resolveOpenBranchTarget`, so this
    *  class never resolves a branch itself. */
-  async read(dir: string, specFolder: string, target: OpenBranchTarget | null): Promise<string[] | null> {
+  async read(dir: string, specFolder: string, target: OpenBranchTarget | null): Promise<FileStepsAnswer | null> {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     const at = this.now();
     if (hit && at - hit.at < this.ttlMs) return hit.steps;
 
-    let steps: string[] | null = null;
+    let steps: FileStepsAnswer | null = null;
     if (target) {
       try {
         // Wherever the folder is ON the branch: `archive` moves it to
         // `archive/<folder>` and commits that there, so a branch whose
         // archive has run but not landed answers nothing for the active
         // path while the default branch still holds the folder in it.
-        const file =
-          (await readStatusFromBranch(this.run, target.root, target.branch, target.relPath)) ??
-          (await readStatusFromBranch(this.run, target.root, target.branch, target.archivedRelPath));
-        steps = file ? parseStatus(file.text).workflowSteps : null;
+        for (const relPath of [target.relPath, target.archivedRelPath]) {
+          const file = await readStatusFromBranch(this.run, target.root, target.branch, relPath);
+          if (!file) continue;
+          // spec 362: the branch's own sibling `4-status.json`, at the
+          // same place `4-status.md` sits — read alongside the prose,
+          // never in its place, so `stateSteps` can stay `undefined` for
+          // a branch that has none yet (REQ-2).
+          const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
+          const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
+          steps = {
+            proseSteps: parseStatus(file.text).workflowSteps,
+            stateSteps: jsonFile ? parseSpecStateText(jsonFile.text)?.completedPhases : undefined,
+          };
+          break;
+        }
       } catch {
         steps = null;
       }
@@ -342,7 +382,7 @@ export class BranchFileStepsChecker {
    *  covers two different truths the caller does not need to tell
    *  apart: no open branch, and "not warmed yet" — both mean "fall back
    *  to the disk read" (REQ-3's own behavior, unchanged). */
-  peekFileSteps(dir: string, specFolder: string): { steps: string[] | null; checkedAt: number | null } {
+  peekFileSteps(dir: string, specFolder: string): { steps: FileStepsAnswer | null; checkedAt: number | null } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
     return hit ? { steps: hit.steps, checkedAt: hit.at } : { steps: null, checkedAt: null };
   }
@@ -366,12 +406,16 @@ export function resolveWorkflowState(
   dir: string,
   specFolder: string,
   reopenedAfter: string | undefined,
-  diskFileSteps: string[] | undefined,
+  diskFileSteps: FileStepsAnswer | undefined,
 ): ResolvedWorkflowState | null {
   const { history: h, checkedAt } = history.peekHistory(dir, specFolder, reopenedAfter);
   if (h === null || checkedAt === null) return null;
   const branchSteps = branchFileSteps.peekFileSteps(dir, specFolder).steps;
-  const fileSteps = branchSteps ?? diskFileSteps ?? [];
-  const done = h.done.includes("create") ? h.done : ["create", ...h.done];
-  return { done, stopped: h.stopped, fileDisagrees: stepsFileDisagreesOn(fileSteps, h), fileSteps };
+  const answer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
+  // REQ-4: the state file is what a gate reads, so it is what the pips
+  // and the done list read too, once one exists — git's own
+  // `history.done` only when there is no state file for this spec yet.
+  const doneSource = answer.stateSteps ?? h.done;
+  const done = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
+  return { done, stopped: h.stopped, fileDisagrees: stepsFileDisagreesOn(answer, h), fileSteps: answer.proseSteps };
 }

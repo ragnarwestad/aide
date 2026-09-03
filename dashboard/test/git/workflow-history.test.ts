@@ -174,10 +174,15 @@ describe("readWorkflowSubjects", () => {
 });
 
 describe("stepsFileDisagreesOn", () => {
+  // REQ-2: no state file for this copy of the spec — today's unchanged
+  // two-directional prose-vs-git comparison.
   test("flags a step the file claims that git has no commit for (spec 153)", () => {
-    expect(stepsFileDisagreesOn(["create", "analyze", "implement"], { done: ["create", "analyze"], stopped: {} })).toEqual([
-      "implement",
-    ]);
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: ["create", "analyze", "implement"], stateSteps: undefined },
+        { done: ["create", "analyze"], stopped: {} },
+      ),
+    ).toEqual(["implement"]);
   });
 
   // Spec 298: `fileSteps` now follows the open branch when one exists,
@@ -187,19 +192,66 @@ describe("stepsFileDisagreesOn", () => {
   // this function for before spec 298 fixed it at the read side.
   test("flags implement when git has it but the file (read fresh) still doesn't", () => {
     expect(
-      stepsFileDisagreesOn(["create", "analyze"], { done: ["create", "analyze", "implement"], stopped: {} }),
+      stepsFileDisagreesOn(
+        { proseSteps: ["create", "analyze"], stateSteps: undefined },
+        { done: ["create", "analyze", "implement"], stopped: {} },
+      ),
     ).toEqual(["implement"]);
   });
 
   test("flags analyze when git has it but the file has not caught up (spec 147)", () => {
-    expect(stepsFileDisagreesOn(["create"], { done: ["create", "analyze"], stopped: {} })).toEqual([
-      "analyze",
-    ]);
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: ["create"], stateSteps: undefined },
+        { done: ["create", "analyze"], stopped: {} },
+      ),
+    ).toEqual(["analyze"]);
   });
 
   test("still ignores create, in either direction", () => {
-    expect(stepsFileDisagreesOn(["create"], { done: [], stopped: {} })).toEqual([]);
-    expect(stepsFileDisagreesOn([], { done: ["create"], stopped: {} })).toEqual([]);
+    expect(stepsFileDisagreesOn({ proseSteps: ["create"], stateSteps: undefined }, { done: [], stopped: {} })).toEqual(
+      [],
+    );
+    expect(
+      stepsFileDisagreesOn({ proseSteps: [], stateSteps: undefined }, { done: ["create"], stopped: {} }),
+    ).toEqual([]);
+  });
+
+  // REQ-1/REQ-5: once a state file exists, it is the truth — git is
+  // never consulted again, however git's own history disagrees with it.
+  // Spec 349's own incident: an amended, unpushed `analyze` commit.
+  test("a state file's own phase is never compared against git, once one exists", () => {
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: ["create", "analyze"], stateSteps: ["create", "analyze"] },
+        { done: ["create"], stopped: {} },
+      ),
+    ).toEqual([]);
+  });
+
+  // REQ-3: the one case still caught with a state file present — the
+  // prose claims a phase the state file does not have. Git DOES have
+  // the commit here, so a prose-vs-git comparison would find no
+  // disagreement — only a prose-vs-state-file comparison catches this.
+  test("flags a phase the prose claims that the state file lacks, even though git has it", () => {
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: ["create", "analyze", "implement"], stateSteps: ["create", "analyze"] },
+        { done: ["create", "analyze", "implement"], stopped: {} },
+      ),
+    ).toEqual(["implement"]);
+  });
+
+  // The reverse direction is not reported once a state file exists
+  // (Risk analysis item 5: the writer scripts update both files
+  // together, so the state file is never ahead of its own prose).
+  test("does not flag a phase the state file has that the prose does not, once a state file exists", () => {
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: ["create"], stateSteps: ["create", "analyze"] },
+        { done: ["create"], stopped: {} },
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -313,17 +365,42 @@ describe("resolveWorkflowState", () => {
   };
 
   /** What `readStatusFromBranch` needs answered, for a branch whose
-   *  `4-status.md` names `steps` — the same shape branch-file-steps.test.ts
-   *  already uses. */
-  const branchFileFake = (steps: string[]) =>
-    fakeGit({
+   *  `4-status.md` names `proseSteps` — the same shape branch-file-steps.test.ts
+   *  already uses. When `stateSteps` is given, the branch's own sibling
+   *  `4-status.json` answers too (spec 362) — keyed on the FULL show
+   *  path, since a generic prefix cannot tell the `.md` request from the
+   *  `.json` one. */
+  const branchFileFake = (proseSteps: string[], stateSteps?: string[]) => {
+    const jsonPath = BRANCH_TARGET.relPath.replace(/4-status\.md$/, "4-status.json");
+    const answers: Record<string, { code: number; stdout?: string }> = {
       "fetch --quiet origin": { code: 0 },
-      "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "deadbeef1234\n" },
-      "show refs/remotes/origin/": {
+      [`log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${BRANCH_TARGET.relPath}`]: {
         code: 0,
-        stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n`,
+        stdout: "deadbeef1234\n",
       },
-    });
+      [`show refs/remotes/origin/${BRANCH_TARGET.branch}:${BRANCH_TARGET.relPath}`]: {
+        code: 0,
+        stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${proseSteps.join(", ")}\n`,
+      },
+    };
+    if (stateSteps) {
+      answers[`log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${jsonPath}`] = {
+        code: 0,
+        stdout: "cafef00d1234\n",
+      };
+      answers[`show refs/remotes/origin/${BRANCH_TARGET.branch}:${jsonPath}`] = {
+        code: 0,
+        stdout: JSON.stringify({
+          completedPhases: stateSteps,
+          archived: null,
+          reopened: null,
+          acceptanceCriteria: [],
+          phaseCounts: {},
+        }),
+      };
+    }
+    return fakeGit(answers);
+  };
 
   /** A `WorkflowHistoryChecker` already warmed with `history`, ready to
    *  `peekHistory` without spawning git again. */
@@ -333,9 +410,12 @@ describe("resolveWorkflowState", () => {
     return checker;
   };
 
-  /** A `BranchFileStepsChecker` already warmed against `BRANCH_TARGET`. */
-  const warmedBranchSteps = async (steps: string[]): Promise<BranchFileStepsChecker> => {
-    const checker = new BranchFileStepsChecker({ run: branchFileFake(steps).run });
+  /** A `BranchFileStepsChecker` already warmed against `BRANCH_TARGET`.
+   *  `stateSteps` is absent for a branch with no `4-status.json` yet
+   *  (REQ-2's unchanged fallback), and given for the state-file cases
+   *  (REQ-1/REQ-3/REQ-4). */
+  const warmedBranchSteps = async (proseSteps: string[], stateSteps?: string[]): Promise<BranchFileStepsChecker> => {
+    const checker = new BranchFileStepsChecker({ run: branchFileFake(proseSteps, stateSteps).run });
     await checker.read(DIR, FOLDER, BRANCH_TARGET);
     return checker;
   };
@@ -360,7 +440,10 @@ describe("resolveWorkflowState", () => {
   test("a spec with no create commit still resolves create as done", async () => {
     const history = await warmedHistory(subject("analyze"));
     const branchFileSteps = await warmedNoBranch();
-    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, ["analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: ["analyze"],
+      stateSteps: undefined,
+    });
     expect(resolved!.done).toEqual(["create", "analyze"]);
   });
 
@@ -374,7 +457,10 @@ describe("resolveWorkflowState", () => {
   test("an open branch's file steps are preferred over the disk copy", async () => {
     const history = await warmedHistory(subject("create"), subject("analyze"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
-    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, ["create"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: ["create"],
+      stateSteps: undefined,
+    });
     expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
   });
 
@@ -387,9 +473,36 @@ describe("resolveWorkflowState", () => {
   test("done and fileSteps are each traceable to their own checker, not swappable by coincidence", async () => {
     const history = await warmedHistory(subject("create"), subject("implement"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
-    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, []);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: [],
+      stateSteps: undefined,
+    });
     expect(resolved!.done).toEqual(["create", "implement"]);
     expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
+  });
+
+  // REQ-1/REQ-4/REQ-5, spec 349's own incident: git has no `analyze`
+  // commit (an amended, unpushed commit) but the branch's own
+  // `4-status.json` already has the phase. `done` and `fileDisagrees`
+  // both read from the state file, not from git.
+  test("REQ-1/REQ-4: done and fileDisagrees come from the branch's own state file, not git, once one exists", async () => {
+    const history = await warmedHistory(subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+    expect(resolved!.fileDisagrees).toEqual([]);
+  });
+
+  // REQ-3: with a state file present, the one disagreement still
+  // reported is prose claiming a phase the state file lacks — proven
+  // here by git DISAGREEING with the state file too (git has
+  // `implement`), so the assertion cannot pass by prose-vs-git
+  // coincidentally agreeing.
+  test("REQ-3: flags a phase the prose claims that the branch's own state file lacks", async () => {
+    const history = await warmedHistory(subject("create"), subject("analyze"), subject("implement"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze", "implement"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.fileDisagrees).toEqual(["implement"]);
   });
 });
 

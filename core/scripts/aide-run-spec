@@ -694,7 +694,10 @@ codex_safety_flags() {
 # reported success. Put it where the model is already reading.
 headless_note="(This run is headless: no one is at a keyboard and no question can be
 answered. Never stop to ask for confirmation — decide, or write down
-what you would have asked, and finish the step.)"
+what you would have asked, and finish the step. Never run tests or any
+other work in the background and never end your turn to wait for it:
+the run ends the moment you stop, and nothing resumes you. Run every
+test suite in the foreground and finish the step in this same turn.)"
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side (spec 259). Read from
@@ -1115,11 +1118,52 @@ sync_branch_with_origin() {
 # ancestry walk — the question here is narrower ("is this one commit
 # already public"), not "has the branch diverged", so it does not need
 # merge-base at all.
+#
+# The PUSH url, explicitly — never the bare "origin" name. `ls-remote
+# origin` always reads the FETCH url, and a repo may keep that pointed at
+# a real address (so the compare link can be derived from it, below)
+# while a separately configured push url is where a push actually lands.
+# The two coincide for every real project this script runs against — a
+# push url is only ever set apart from the fetch url in this suite's own
+# fixtures — so this is never a behavior change outside tests, only a
+# correctness fix for what "already on origin" asks.
 commit_already_on_origin() {
-  local root="$1" sha="$2" remote_sha=""
-  git -C "$root" remote get-url origin >/dev/null 2>&1 || return 1
-  remote_sha="$(git -C "$root" ls-remote --heads origin "$branch" 2>/dev/null | cut -f1)"
+  local root="$1" sha="$2" remote_sha="" push_url=""
+  push_url="$(git -C "$root" remote get-url --push origin 2>/dev/null)" || return 1
+  [ -n "$push_url" ] || return 1
+  remote_sha="$(git -C "$root" ls-remote --heads "$push_url" "$branch" 2>/dev/null | cut -f1)"
   [ -n "$remote_sha" ] && [ "$remote_sha" = "$sha" ]
+}
+
+# True when every root the step actually put content on has a LOCAL tip
+# that is exactly what origin's copy of $branch points at right now —
+# REQ-1/REQ-2 (spec 343), checked as the LAST git operation against each
+# root before the run's outcome is decided, so nothing after it can amend
+# the picture it read. Sets $unpushed_roots (comma-separated) for the
+# caller to name in the failure it reports (REQ-3). push_mode "none"
+# never intends to publish anything, so it is not asked this question at
+# all — a local/manual run is unaffected, same as every other best-effort
+# check in this script leaves an unreachable origin exactly as found.
+#
+# A root whose branch has nothing beyond its own default branch is
+# skipped, the same way commit_and_push_roots's own push loop already
+# skips pushing it: an `analyze` step never touches the project root, and
+# without this exemption THAT root would fail confirmation on every
+# single run (origin never has a ref by this spec's branch name there at
+# all) even though nothing was ever meant to reach it.
+roots_confirmed_on_origin() {
+  unpushed_roots=""
+  [ "$push_mode" = "none" ] && return 0
+  local i=0 root default_tip
+  for root in "${roots[@]}"; do
+    default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
+    if [ "${head_after_per_root[$i]}" != "$default_tip" ] \
+       && ! commit_already_on_origin "$root" "${head_after_per_root[$i]}"; then
+      unpushed_roots="$unpushed_roots${unpushed_roots:+, }$root"
+    fi
+    i=$(( i + 1 ))
+  done
+  [ -z "$unpushed_roots" ]
 }
 
 # True when $br's local tip is already contained in origin's $base — the
@@ -2112,14 +2156,14 @@ if [ -n "$status_file" ]; then
     # claim a step beyond itself on the Workflow-steps line. All three
     # are checked against what the run actually produced, the same way
     # spec 268/280 check implement/archive.
-    proj_changed="no"
+    proj_changed="no"; proj_dirty_list=""
     proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
     if [ "$proj_head_now" != "${head_before[0]}" ]; then
       proj_changed="yes"
     else
-      proj_dirty="$(git -C "$project_wt" status --porcelain -- . \
-        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
-      [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
+      proj_dirty_list="$(git -C "$project_wt" status --porcelain -- . \
+        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | head -5 | tr '\n' ' ')"
+      [ -n "$proj_dirty_list" ] && proj_changed="yes"
     fi
 
     before_advanced=0; existing_line_before=""
@@ -2164,91 +2208,35 @@ if [ -n "$status_file" ]; then
       terminal_reason="scope-violation"
       ok="false"
       suffix=" (stopped: scope-violation)"
-      error_msg="the step reported success but changed things outside analyze's scope (the project repo, a Phase-table row's status, or the Workflow-steps-completed line). Press Run again for this step."
+      # Says WHICH check tripped, and for a dirty project tree, what was
+      # dirty: a generic sentence sent a person to guess (2026-09-03).
+      scope_what=""
+      [ "$proj_changed" = "yes" ] && scope_what="the project repo changed${proj_dirty_list:+ (uncommitted: $proj_dirty_list)}"
+      [ "$rows_advanced" = "yes" ] && scope_what="${scope_what:+$scope_what; }a Phase-table row was ticked"
+      [ "$claims_extra_step" = "yes" ] && scope_what="${scope_what:+$scope_what; }the Workflow-steps-completed line claims a step that did not run"
+      error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press Run again for this step."
     fi
   fi
-
-  completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
-  # Nothing derived leaves the file alone: an empty line says less than
-  # the one already there.
-  #
-  # A file with neither the line nor the Tracking info entry it goes
-  # under is left alone too — this writes the value, never the layout.
-  if [ -n "$completed_steps" ] && \
-     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    # Historical `- **Model (<step>):**` lines an old archive still
-    # carries (spec 217, superseded by spec 245's per-file record below)
-    # are left exactly where they sit — no migration pass rewrites old
-    # archives, so this pass touches only the line it owns.
-    awk -v line="- **Workflow steps completed:** $completed_steps" '
-      BEGIN { written = 0 }
-      /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; written = 1 }
-        next
-      }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
-      { print }
-    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
-    # Written back only when it actually differs. The commit loop below
-    # commits whatever it finds changed, and a file rewritten to exactly
-    # what it already said would put a step's name on a commit that
-    # carries nothing.
-    if [ -s "$work_dir/status-line" ] && \
-       ! cmp -s "$work_dir/status-line" "$status_file"; then
-      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
-    fi
-  fi
-
-  # Nothing derived leaves the file alone: a fresh spec whose Phase
-  # tables have no rows yet keeps whatever placeholder it started with.
-  status_progress_for "$status_file"
-  if [ "$progress_total" -gt 0 ]; then
-    progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
-    # Format-agnostic on purpose (real specs disagree on bold/position
-    # for this line, spec 246) — only the digits are touched, everything
-    # else on the line survives.
-    awk -v pct="$progress_pct" -v done="$progress_done" -v total="$progress_total" '
-      BEGIN { written = 0 }
-      !written && /Total progress/ {
-        line = $0
-        sub(/[0-9]+%/, pct "%", line)
-        sub(/\([0-9]+[ \t]+(of|av)[ \t]+[0-9]+/, "(" done " of " total, line)
-        print line; written = 1; next
-      }
-      { print }
-    ' "$status_file" > "$work_dir/status-progress" 2>/dev/null
-    if [ -s "$work_dir/status-progress" ] && \
-       ! cmp -s "$work_dir/status-progress" "$status_file"; then
-      cat "$work_dir/status-progress" > "$status_file" 2>/dev/null || true
-    fi
-  fi
-fi
-
-# --- the spec's state file (spec 355) ----------------------------------------
-# 4-status.md is the prose; 4-status.json is what the gates and the
-# dashboard read. Derived here from the prose just rewritten, by the same
-# library aide-write-spec and aide-archive-spec use — so a run that lands
-# `analyze` on the line also lands it in the file the implement gate
-# reads. Spec 355 changed the tests to expect this and never gave the
-# runner the code: every analyze after it left the file stale, and the
-# dashboard held the next implement back as "not analyzed yet".
-# Only for a step that completed: a stopped run changes no phase, and
-# a first-ever state file on its branch would keep an otherwise empty
-# branch alive that the sweep below is meant to delete.
-# The state file keeps its own list of completed phases rather than
-# re-deriving it from prose (spec 355), so the list this run just wrote
-# to the prose line is handed over — a file that already existed before
-# the run would otherwise go on naming only the phases it had.
-if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
-  write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
 fi
 
 # --- this phase's own outcome record (spec 245) ------------------------------
-# `Workflow steps completed` (above) answers "did the SPEC run this
-# step"; this answers "how did THIS phase go" — and is written into the
-# phase's own artifact file, not 4-status.md, for every one of the four
-# phases (archive's own copy IS in 4-status.md, since that file is
-# archive's own artifact).
+# `Workflow steps completed` (below) answers "did the SPEC run this step";
+# this answers "how did THIS phase go" — and is written into the phase's
+# own artifact file, not 4-status.md, for every one of the four phases
+# (archive's own copy IS in 4-status.md, since that file is archive's own
+# artifact). Independent of $status_file on purpose (spec 343 tried
+# nesting this inside the same gate as the line and broke a plain
+# `create` run: a brand-new spec's 1-description.md is real before
+# 4-status.md exists yet, so gating THIS record on the LATTER file left a
+# fresh `create` step's own phase record unwritten). Unconditional, and
+# therefore still positioned before PASS 1 exactly as it always was — its
+# `Result:` line reflects terminal_reason as cross-checks above left it,
+# same as every terminal_reason this script already had before spec 343;
+# a run that goes on to end `unpushed` (the gate below, REQ-1) is the one
+# new case where this record can read stale (it was written on the
+# strength of a "completed" the push did not, in the end, confirm), which
+# no REQ-1 through REQ-6 asks this record to guard against — only the
+# `Workflow steps completed` line itself carries that guarantee.
 phase_file_for "$command_name" "$commit_label"
 if [ -n "$phase_file" ]; then
   run_stamp="$(date -u -r "$started_at" +'%Y-%m-%d %H:%M UTC')"
@@ -2334,64 +2322,32 @@ if [ -n "$phase_file" ]; then
   fi
 fi
 
-repos_json="[]"
-# Parallel to roots (bash 3.2 has no associative arrays): the HEAD this
-# loop ends on, whether it moved because this loop committed or because
-# the step committed on its own — archive does (spec 98). The push
-# decision below reads THIS, never `changed`, which only ever counted
-# the files this loop found uncommitted.
-head_after_per_root=()
-# Parallel to roots too: the pre-amend sha, set only when this loop
-# actually amends a root's commit — the push section below needs it,
-# scoped, to retry a rejected push with --force-with-lease (REQ-2).
-amend_source=()
+# --- committing and publishing the work, confirmed against origin (spec 343)
+# The commit loop and the push loop below both used to run exactly once.
+# Now they run as `commit_and_push_roots`, callable more than once in the
+# same invocation: once, unconditionally, for the step's own content
+# (every command, including `explore`/`manifest`/`reopen`/`reset`/
+# `schedule`, none of which ever set $status_file); and, only for the
+# four WORKFLOW_ARC commands, a second time for the `Workflow steps
+# completed` line's own small commit — made only once the first pass has
+# been CONFIRMED against origin, so the line is never written on the
+# strength of a push that has not actually landed (REQ-1).
+#
+# Run-wide accumulators, initialized once, before either call — separate
+# from commit_and_push_roots's own per-call locals (amend_source), so a
+# second call UPDATES what the first found instead of silently losing it.
+# $repos_json is assembled once, at the very end, from $head_before (the
+# run's true start) and whichever call last touched each root.
+head_after_per_root=(); changed_files_per_root=()
 i=0
 for root in "${roots[@]}"; do
-  wt="${work_roots[$i]}"
-  changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
-  if [ "$changed" -gt 0 ]; then
-    git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
-    head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
-    if [ -n "$head_now" ] && [ "$head_now" != "${head_before[$i]}" ] \
-       && ! commit_already_on_origin "$root" "$head_now"; then
-      # The step already committed part of its own work under a written
-      # message (spec 146) — fold the leftover into THAT commit rather
-      # than opening a second one under the generic subject. Only when
-      # that commit is not already public (REQ-1): amending a commit
-      # origin already has is what stranded spec 327's stamp on the
-      # machine that ran it.
-      amend_source[$i]="$head_now"
-      if [ -n "$amend_note" ]; then
-        # The step's own message can have a body, so gluing the note
-        # onto the raw %B would land it mid-paragraph: give it a line of
-        # its own and drop the leading space that only made sense
-        # inline. `--no-edit` is what is left when the note has nothing
-        # to say at all — since spec 217 that means neither a stop
-        # reason NOR a model, so it cannot be assumed from an empty
-        # $suffix alone.
-        existing_message="$(git -C "$wt" log -1 --pretty=%B)"
-        git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" >/dev/null 2>&1 || true
-      else
-        git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
-      fi
-    else
-      git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
-    fi
-  fi
-  head_after="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
-  head_after_per_root+=("$head_after")
-  repos_json="$(jq -c --arg root "$root" --arg worktree "$wt" --arg before "${head_before[$i]}" \
-    --arg after "$head_after" \
-    --argjson changed "$changed" \
-    '. + [{root:$root, worktree:$worktree, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
+  head_after_per_root[$i]="${head_before[$i]}"
+  changed_files_per_root[$i]=0
   i=$(( i + 1 ))
 done
-
-# --- publishing the work -----------------------------------------------------
-# Push mode is a SETTING, not a decision baked in here. Nothing in this
-# section may fail the run: the step's work is already committed, and a
-# push or a PR that did not happen is reported, never fatal.
+repos_json="[]"
 push_error=""; branch_url=""; pr_url=""; pr_error=""
+branch_urls_json="[]"
 
 # The compare page is the diff view a reviewer opens; it only exists for
 # GitHub remotes, so a local or self-hosted origin simply gets no link.
@@ -2410,14 +2366,16 @@ note_push_error() {
   [ -z "$push_error" ] && push_error="$1" || push_error="$push_error; $1"
 }
 
-branch_urls_json="[]"
-
 # Shared by both push paths below (a plain push and REQ-2's retried
 # force-with-lease): the compare link and, for the reader who wants one
 # link, $branch_url — the project's own when the project changed,
-# otherwise whichever repo did.
+# otherwise whichever repo did. Second-call safe (spec 343): the same
+# root pushed in an earlier call is not appended a second time when specs
+# live inside the project repo, since $branch_urls_json is no longer
+# reset between calls.
 record_branch_url() {
   local root="$1" web="" url=""
+  jq -e --arg root "$root" 'any(.[]; .root == $root)' <<<"$branch_urls_json" >/dev/null 2>&1 && return 0
   web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
   [ -n "$web" ] || return 0
   url="$web/compare/$(default_branch "$root")...$branch"
@@ -2428,46 +2386,259 @@ record_branch_url() {
   fi
 }
 
-if [ "$push_mode" != "none" ]; then
-  # A repo is pushed when its HEAD MOVED during the run — whether the
-  # commit loop above moved it or the step committed on its own. An
-  # analyze step touches nothing in the project, so its HEAD does not
-  # move and it still gets no branch: publishing an empty branch there
-  # produced a compare page with no diff on it, which is what a reader
-  # clicking the link actually got. Gating this on `changedFiles`
-  # instead left spec 92's archive branch on the serving host only — the
-  # step had committed its own work, so the loop found a clean tree and
-  # called the repo unchanged while two real commits sat on the branch.
-  i=0
+# Commits whatever is dirty in each root, then pushes every root whose
+# local tip is not yet what origin has. $amend_source is per-call
+# (local here) on purpose — a pass's own amend decision is only ever
+# read by that same pass's own push loop, below; everything else this
+# function touches is a run-wide accumulator, declared above, so a
+# second call adds to what the first one found.
+commit_and_push_roots() {
+  local i=0 root wt changed head_now amend_source=()
   for root in "${roots[@]}"; do
     wt="${work_roots[$i]}"
-    head_was="${head_before[$i]}"
-    head_is="${head_after_per_root[$i]}"
-    # Captured here, before $i advances for the next root — reading
-    # amend_source[$i] after the increment below would read the NEXT
-    # root's slot, the same way head_was/head_is already avoid that.
-    amended_sha="${amend_source[$i]:-}"
+    changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "$changed" -gt 0 ]; then
+      changed_files_per_root[$i]=$(( ${changed_files_per_root[$i]} + changed ))
+      git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
+      head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
+      # Compared against ${head_after_per_root[$i]} — the tip as THIS
+      # root stood when THIS call began — never ${head_before[$i]}, the
+      # run's own absolute start (spec 343). On a first call the two are
+      # identical (the run-wide accumulator seeds head_after_per_root
+      # from head_before before either call). On a second call they are
+      # not: head_before[$i] is now stale, still pointing at the tip
+      # BEFORE the first call's own commit, so comparing against it would
+      # read that first call's own ordinary commit as "the model must
+      # have self-committed under a written message" and route the
+      # second call's small write into a needless amend-plus-ls-remote
+      # check — network traffic (and a real behavior difference) a
+      # second pass has no reason to cause. Comparing against the
+      # PREVIOUS call's own leftover tip means $head_now (still that same
+      # tip — `add -A` never moves HEAD) equals it here on every call
+      # after the first, so this whole branch is only ever reached when
+      # something committed BETWEEN entering this function and this
+      # point — which for the very first call can only be the model's
+      # own self-commit, exactly as before.
+      if [ -n "$head_now" ] && [ "$head_now" != "${head_after_per_root[$i]}" ] \
+         && ! commit_already_on_origin "$root" "$head_now"; then
+        # The step already committed part of its own work under a written
+        # message (spec 146) — fold the leftover into THAT commit rather
+        # than opening a second one under the generic subject. Only when
+        # that commit is not already public (REQ-1): amending a commit
+        # origin already has is what stranded spec 327's stamp on the
+        # machine that ran it.
+        amend_source[$i]="$head_now"
+        if [ -n "$amend_note" ]; then
+          # The step's own message can have a body, so gluing the note
+          # onto the raw %B would land it mid-paragraph: give it a line of
+          # its own and drop the leading space that only made sense
+          # inline. `--no-edit` is what is left when the note has nothing
+          # to say at all — since spec 217 that means neither a stop
+          # reason NOR a model, so it cannot be assumed from an empty
+          # $suffix alone.
+          existing_message="$(git -C "$wt" log -1 --pretty=%B)"
+          git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" >/dev/null 2>&1 || true
+        else
+          git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
+        fi
+      else
+        git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
+      fi
+    fi
+    head_after_per_root[$i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
     i=$(( i + 1 ))
-    [ "$head_was" != "$head_is" ] || continue
-    if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
-      note_push_error "no origin remote in $root"
-      continue
-    fi
-    if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then
-      record_branch_url "$root"
-    elif [ -n "$amended_sha" ] && \
-         err="$(git -C "$wt" push -q --force-with-lease="$branch:$amended_sha" origin "$branch" 2>&1)"; then
-      # REQ-2: this run amended a commit that turned out to already be
-      # public (the pre-amend check missed it, or origin moved between
-      # the check and here) — the lease only succeeds if origin still
-      # holds exactly the commit this run rewrote, so it cannot force
-      # over anyone else's work.
-      record_branch_url "$root"
-    else
-      note_push_error "cannot push $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
-    fi
   done
+
+  if [ "$push_mode" != "none" ]; then
+    i=0
+    for root in "${roots[@]}"; do
+      wt="${work_roots[$i]}"
+      head_was="${head_before[$i]}"
+      head_is="${head_after_per_root[$i]}"
+      amended_sha="${amend_source[$i]:-}"
+      # The main checkout never leaves its default branch for the whole
+      # run (see the note above the EXIT trap at the bottom of this
+      # script) — its own current HEAD is therefore a cheap, always-local
+      # stand-in for "has this branch ever had anything beyond the
+      # default branch at all". A branch that has not is a branch with
+      # nothing to publish, whether this is its first run or its fifth:
+      # without this check, REQ-4's widened gate below would try to push
+      # it too, since a brand new branch has no ref on origin yet to
+      # compare against and so never reads as "already confirmed" either.
+      default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
+      i=$(( i + 1 ))
+      [ "$head_is" = "$default_tip" ] && continue
+      # REQ-4: a root this run did not move ($head_was = $head_is) is
+      # STILL a candidate — but only when this run itself ended
+      # `completed`. Widening this to "any root with unconfirmed content"
+      # unconditionally would publish a branch's pre-existing content on
+      # a run that did nothing of its own and reported it: archive giving
+      # up on an unresolved conflict (`git merge --abort`, HEAD never
+      # moves) must leave the branch exactly where it found it, even
+      # though that branch — built up by earlier steps — already carries
+      # commits origin has never seen. `terminal_reason`, not `ok`: a
+      # root this run DID move is pushed regardless of terminal_reason,
+      # exactly as before (a stopped run still folds its work into its
+      # own commit, spec 146, and that commit still belongs on origin).
+      if [ "$head_was" = "$head_is" ] && [ "$terminal_reason" != "completed" ]; then
+        continue
+      fi
+      # Gated on whether ORIGIN already has this tip, not on whether
+      # THIS call moved it — a commit a prior run's failed push left
+      # stranded here, with nothing new for this run's own session to
+      # commit, is retried on every later completed run until it lands,
+      # not only the run that made it. Still never a root `changedFiles`
+      # alone would have called dirty (dashboard/CLAUDE.md): the checks
+      # above already exclude a root with nothing beyond its own default
+      # branch, and a root this run neither moved nor completed.
+      commit_already_on_origin "$root" "$head_is" && continue
+      if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
+        note_push_error "no origin remote in $root"
+        continue
+      fi
+      if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then
+        record_branch_url "$root"
+      elif [ -n "$amended_sha" ] && \
+           err="$(git -C "$wt" push -q --force-with-lease="$branch:$amended_sha" origin "$branch" 2>&1)"; then
+        # REQ-2: this run amended a commit that turned out to already be
+        # public (the pre-amend check missed it, or origin moved between
+        # the check and here) — the lease only succeeds if origin still
+        # holds exactly the commit this run rewrote, so it cannot force
+        # over anyone else's work.
+        record_branch_url "$root"
+      else
+        note_push_error "cannot push $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+      fi
+    done
+  fi
+}
+
+# --- PASS 1: the step's own content, unconditionally, every command ---------
+commit_and_push_roots
+
+# --- REQ-1/REQ-2/REQ-3: only a step that would land on the line at all ------
+# is asked whether origin confirmed it — no-progress/scope-violation/
+# cli-error/timeout/budget/provider-limit runs were never going to be added
+# to the line regardless of push outcome (completed_steps_for's own guard,
+# below, already excludes them), so they are not asked this question
+# either. This IS the last git operation performed against a root that
+# fails it: the `elif` below, where anything else touches git again, only
+# runs when this check has NOT just failed.
+if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
+   && ! roots_confirmed_on_origin; then
+  # The line is never touched — nothing was written to it yet, so it
+  # reads exactly as it did before this run, both locally and on origin
+  # (REQ-3). A re-run is a normal ok:false result, not a refusal (REQ-4):
+  # the step is retried like any other failed step, and
+  # commit_and_push_roots's own widened gate retries whatever this run
+  # left stuck, whether or not the re-run's own session changes anything.
+  ok="false"
+  terminal_reason="unpushed"
+  suffix=" (stopped: unpushed)"
+  error_msg="the step's own work did not reach origin: $unpushed_roots"
+elif [ -n "$status_file" ]; then
+  completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
+  # Nothing derived leaves the file alone: an empty line says less than
+  # the one already there.
+  #
+  # A file with neither the line nor the Tracking info entry it goes
+  # under is left alone too — this writes the value, never the layout.
+  if [ -n "$completed_steps" ] && \
+     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
+    # Historical `- **Model (<step>):**` lines an old archive still
+    # carries (spec 217, superseded by spec 245's per-file record below)
+    # are left exactly where they sit — no migration pass rewrites old
+    # archives, so this pass touches only the line it owns.
+    awk -v line="- **Workflow steps completed:** $completed_steps" '
+      BEGIN { written = 0 }
+      /^- \*\*Workflow steps completed:\*\*/ {
+        if (!written) { print line; written = 1 }
+        next
+      }
+      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
+      { print }
+    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
+    # Written back only when it actually differs. The commit loop below
+    # commits whatever it finds changed, and a file rewritten to exactly
+    # what it already said would put a step's name on a commit that
+    # carries nothing.
+    if [ -s "$work_dir/status-line" ] && \
+       ! cmp -s "$work_dir/status-line" "$status_file"; then
+      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
+    fi
+  fi
+
+  # Nothing derived leaves the file alone: a fresh spec whose Phase
+  # tables have no rows yet keeps whatever placeholder it started with.
+  status_progress_for "$status_file"
+  if [ "$progress_total" -gt 0 ]; then
+    progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
+    # Format-agnostic on purpose (real specs disagree on bold/position
+    # for this line, spec 246) — only the digits are touched, everything
+    # else on the line survives.
+    awk -v pct="$progress_pct" -v done="$progress_done" -v total="$progress_total" '
+      BEGIN { written = 0 }
+      !written && /Total progress/ {
+        line = $0
+        sub(/[0-9]+%/, pct "%", line)
+        sub(/\([0-9]+[ \t]+(of|av)[ \t]+[0-9]+/, "(" done " of " total, line)
+        print line; written = 1; next
+      }
+      { print }
+    ' "$status_file" > "$work_dir/status-progress" 2>/dev/null
+    if [ -s "$work_dir/status-progress" ] && \
+       ! cmp -s "$work_dir/status-progress" "$status_file"; then
+      cat "$work_dir/status-progress" > "$status_file" 2>/dev/null || true
+    fi
+  fi
+
+  # --- the spec's state file (spec 355) --------------------------------
+  # 4-status.md is the prose; 4-status.json is what the gates and the
+  # dashboard read. Derived here from the prose just rewritten, by the
+  # same library aide-write-spec and aide-archive-spec use — so a run
+  # that lands `analyze` on the line also lands it in the file the
+  # implement gate reads. Spec 355 changed the tests to expect this and
+  # never gave the runner the code: every analyze after it left the file
+  # stale, and the dashboard held the next implement back as "not
+  # analyzed yet". Only for a step that completed: a stopped run changes
+  # no phase, and a first-ever state file on its branch would keep an
+  # otherwise empty branch alive that the sweep below is meant to
+  # delete. The state file keeps its own list of completed phases rather
+  # than re-deriving it from prose (spec 355), so the list this run just
+  # wrote to the prose line is handed over — a file that already existed
+  # before the run would otherwise go on naming only the phases it had.
+  # Placed here, after completed_steps_for has actually run (spec 343
+  # moved that call into this same branch), rather than at this block's
+  # original, earlier position — $completed_steps does not exist yet at
+  # that point any more, and this write has to ride PASS 2's commit
+  # anyway, same as the prose line it derives from.
+  if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
+    write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
+  fi
+
+  # --- PASS 2: the line has to clear the same bar (REQ-2) -------------
+  commit_and_push_roots
+  if [ "$terminal_reason" = "completed" ] && ! roots_confirmed_on_origin; then
+    ok="false"
+    terminal_reason="unpushed"
+    suffix=" (stopped: unpushed)"
+    error_msg="the workflow-steps line did not reach origin: $unpushed_roots"
+  fi
 fi
+
+# --- $repos_json, built ONCE, from the run's true start and final end -------
+# Not built inside commit_and_push_roots any more: a second call's own
+# "nothing changed here" must never overwrite a first call's real
+# headBefore/changedFiles for the same root, which building it fresh
+# inside the loop, every call, would do.
+i=0
+for root in "${roots[@]}"; do
+  repos_json="$(jq -c --arg root "$root" --arg worktree "${work_roots[$i]}" \
+    --arg before "${head_before[$i]}" --arg after "${head_after_per_root[$i]}" \
+    --argjson changed "${changed_files_per_root[$i]}" \
+    '. + [{root:$root, worktree:$worktree, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
+  i=$(( i + 1 ))
+done
 
 # A pull request is the same work, one level more public. `gh` on an
 # unattended machine needs an interactive re-auth only a human can do,
