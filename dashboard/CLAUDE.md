@@ -47,7 +47,11 @@ listed once in `core/scripts/_install-bin.sh` and sourced as
 - Gitignored paths reach a worktree only through `worktreeLinks:` in the
   committed manifest; `.aide/config`'s `AIDE_WORKTREE_LINKS` is the
   fallback, and the manifest wins.
-- A run reaches the project and its specs root, and nothing else.
+- A run reaches the project and its specs root, and nothing else — and
+  under the specs root only its own folder (and its `archive/` twin):
+  a step that writes another spec's folder ends `scope-violation`, with
+  those changes discarded before the commit. `create` is the one step
+  that makes a folder.
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.

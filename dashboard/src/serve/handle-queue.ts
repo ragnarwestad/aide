@@ -87,7 +87,9 @@ export interface HandleQueueContext {
    *  before it does. Names the port-scoped token/sort/state cookies. */
   serverPort: () => number;
   jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
-  installAfterMerge: (result: RepoMergeResult) => Promise<void>;
+  /** Runs the install; the restart it may call for comes back as a
+   *  thunk, to be fired only once the answer has been composed. */
+  installAfterMerge: (result: RepoMergeResult) => Promise<{ restart?: () => void }>;
   persistAllowlist: (what: string) => ProjectStep;
   answerProjectChange: (
     action: string,

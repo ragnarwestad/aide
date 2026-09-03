@@ -9,10 +9,11 @@
 // one change. Here it runs exactly once per landing, on exactly what
 // main is about to become.
 
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers.ts";
+import { resolveWorktreeLinks } from "../../project/discover/config.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -52,6 +53,64 @@ export async function runProjectSuiteBeforePush(
   root: string,
   job: { project: string; specFolder: string },
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
+  // The suite runs in a throwaway worktree of the merge commit, never in
+  // the live checkout: a run's own git and a fast-forward of main moved
+  // that checkout under a running suite once (2026-09-03), so the tests
+  // on disk changed while the code they import was already loaded, and
+  // five tests failed that had nothing to do with the merge.
+  const tree = await checkoutForGate(root);
+  try {
+    return await runSuiteIn(tree.dir, root, job);
+  } finally {
+    await tree.remove();
+  }
+}
+
+/** A detached worktree of `root`'s HEAD, with the project's
+ *  `worktreeLinks` (the gitignored directories its commands need —
+ *  `.venv`, `node_modules`) linked in the same way `aide-run-spec` links
+ *  them for a run, and `.aide/config` copied so the test command
+ *  resolves. Falls back to the live checkout when a worktree cannot be
+ *  made, saying so in the log. */
+async function checkoutForGate(root: string): Promise<{ dir: string; remove: () => Promise<void> }> {
+  const dir = mkdtempSync(join(tmpdir(), "aide-landing-gate-tree-"));
+  const added = await runScript(["git", "worktree", "add", "--detach", "--quiet", dir, "HEAD"], root, 60_000);
+  if (added.code !== 0) {
+    rmSync(dir, { recursive: true, force: true });
+    console.error(`queue: the landing's test gate could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
+    return { dir: root, remove: async () => {} };
+  }
+  const config = join(root, ".aide", "config");
+  if (existsSync(config)) {
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    copyFileSync(config, join(dir, ".aide", "config"));
+  }
+  for (const entry of resolveWorktreeLinks(root).links.split(/[\s,]+/).filter(Boolean)) {
+    const source = join(root, entry);
+    const target = join(dir, entry);
+    if (!existsSync(source) || existsSync(target)) continue;
+    try {
+      mkdirSync(dirname(target), { recursive: true });
+      symlinkSync(source, target);
+    } catch {
+      // A link that cannot be made leaves the command to say what is
+      // missing, exactly as a run's worktree would.
+    }
+  }
+  return {
+    dir,
+    remove: async () => {
+      await runScript(["git", "worktree", "remove", "--force", dir], root, 60_000);
+      rmSync(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+async function runSuiteIn(
+  root: string,
+  liveRoot: string,
+  job: { project: string; specFolder: string },
+): Promise<{ ok: boolean; error?: string; detail?: string }> {
   const resolver = installed("aide-resolve-test-cmd", process.env.AIDE_RESOLVE_TEST_CMD_BIN);
   const recorder = installed("aide-record-test-run", process.env.AIDE_RECORD_TEST_RUN_BIN);
   const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
@@ -85,7 +144,7 @@ export async function runProjectSuiteBeforePush(
     const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
     try {
       mkdirSync(join(log, ".."), { recursive: true });
-      appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${root} ---\n${gate.stdout}${gate.stderr}\n`);
+      appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n${gate.stdout}${gate.stderr}\n`);
     } catch {
       // A log that cannot be written must not turn a green suite red.
     }

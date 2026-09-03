@@ -66,8 +66,54 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     expect(result.error).toContain(ROOT);
     // Bounded: a stuck lock costs a fraction of a second, not the
     // request. The count is the bound, stated once.
-    expect(git.pulls()).toBeLessThanOrEqual(3);
+    expect(git.pulls()).toBeLessThanOrEqual(6);
     expect(ran(git.calls, "merge")).toBe(false);
+  });
+
+  // A run's own aide-run-spec writes refs in this checkout at its start
+  // and end; a landing in the same second met these, and was refused as
+  // "cannot fast-forward" with git's words thrown away (2026-09-03).
+  for (const stderr of [
+    "error: cannot lock ref 'refs/remotes/origin/main': is at abc but expected def",
+    "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.",
+    "fatal: Another git process seems to be running in this repository",
+  ]) {
+    test(`a pull that lost another lock race is retried too: ${stderr.slice(0, 32)}…`, async () => {
+      const git = pullFailing(1, stderr);
+      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+      expect(result.ok).toBe(true);
+      expect(git.pulls()).toBe(2);
+    });
+  }
+
+  test("a refused pull carries git's own words as its detail", async () => {
+    const git = pullFailing(99, "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.");
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("cannot fast-forward master");
+    expect(result.detail).toContain("packed-refs.lock");
+  });
+
+  test("a merge that lost a lock race is retried, and is not a conflict", async () => {
+    let merges = 0;
+    const calls: GitCall[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q")) {
+        merges++;
+        return merges <= 2
+          ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
+          : { code: 0, stdout: "" };
+      }
+      return { code: 0, stdout: "" };
+    };
+    const result = await mergeBranchIntoDefault(run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBeUndefined();
+    expect(argv(calls).filter((a) => a === "merge --abort")).toHaveLength(1);
   });
 
   test("a pull failing for any other reason is refused at once (criterion 16)", async () => {

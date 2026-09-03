@@ -5,7 +5,7 @@
 import { join } from "node:path";
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
-import { mergeBranchIntoDefault } from "../../git/branch-merge.ts";
+import { mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
 import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
 import { installAfterMerge } from "./install.ts";
@@ -37,6 +37,17 @@ import type { LandContext, Landing } from "./types.ts";
  *  them: a run records the project before its specs root, so a reader
  *  watching the page saw the code land before the plan describing it,
  *  and the code is the one that matters. */
+/** Which refusal a row gets when the retries failed too: the FIRST one,
+ *  which says what actually happened, unless a retry reached a verdict
+ *  of its own (a conflict, a red suite). A retry that merely refused
+ *  again used to overwrite "main moved on origin under this landing
+ *  twice" with "cannot fast-forward main" (364, 2026-09-03). */
+export function pickRefusal(first: RepoMergeResult, last: RepoMergeResult): RepoMergeResult {
+  if (first.ok) return last;
+  if (last.reason && last.reason !== first.reason) return last;
+  return { ...last, error: first.error, detail: first.detail ?? last.detail, reason: first.reason };
+}
+
 export async function landBranch(
   ctx: LandContext,
   job: Job,
@@ -136,10 +147,12 @@ export async function landBranch(
         ctx.mergeLock.run(repo.root, () => mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate));
       let result = await merge();
       // A red suite is an answer, not a hiccup: never re-run it here.
+      const first = result;
       for (let retry = 0; !result.ok && result.reason !== "tests-red" && retry < 2; retry++) {
         await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
         result = await merge();
       }
+      if (!result.ok) result = pickRefusal(first, result);
       if (result.ok) {
         ctx.branchStatus.invalidate(repo.root, branch);
         // Say what just happened, to whoever is listening (spec 158).

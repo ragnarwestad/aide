@@ -121,7 +121,8 @@ into and runs
 `AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
 no rule for a safe moment held up. It logs that the served page runs older code than main, and the person restarts
 when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts, and so does
-`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. Point the job anywhere else and a restart
+`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. The button answers before the restart
+fires, says the dashboard is restarting, and reloads the page once the service answers again. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
