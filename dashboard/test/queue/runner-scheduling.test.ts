@@ -240,22 +240,6 @@ describe("steps and cost", () => {
     expect(spawns).toHaveLength(1);
   });
 
-  test("an archive the gate refused is stopped with the refusal as the reason, not failed", () => {
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({
-      readResult: () => ({
-        ...okResult(0), ok: false, terminalReason: "acceptance-criteria-unticked",
-        error: "tick every row under Acceptance criteria before archiving",
-      }),
-    });
-    runner.tick();
-    runner.poll();
-    const after = store.get(job.id)!;
-    expect(after.state).toBe("stopped");
-    expect(after.stopReason as string).toBe("acceptance-criteria-unticked");
-    expect(after.error).toContain("tick every row");
-  });
-
   test("a refused or broken step fails the job", () => {
     const job = enqueue();
     const runner = makeRunner({

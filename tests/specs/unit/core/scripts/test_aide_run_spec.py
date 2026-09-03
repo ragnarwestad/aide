@@ -3850,7 +3850,7 @@ def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # would fail loudly if it were called
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
-    assert out["ok"] is False, out
+    assert out["ok"] is True, out
     assert out["terminalReason"] == "not-implemented-yet", out
     assert not fake_claude.calls.exists()
 
@@ -4637,10 +4637,7 @@ def test_a_4status_only_conflict_in_a_nested_specs_repo_resolves_to_mains_copy(
     claude = fake_claude("exit 1")  # would fail loudly if the merge ever reached it
     rc, out, _ = run(runner, ws, claude, command="archive")
     assert rc == 0, out
-    # The fixture's status file is prose with no implement stamp, so the
-    # run ends in archive's own refusal — after the conflict was resolved
-    # below, and still without the AI.
-    assert out["terminalReason"] == "not-implemented-yet", out
+    assert out["ok"] is True, out
     assert not fake_claude.calls.exists(), \
         "a mechanically-resolvable conflict must never reach the AI session"
     text = git(ws["specs"], "show", f"{branch}:{status_rel}")
@@ -4709,17 +4706,13 @@ def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
 ):
     """Criterion 1. The fixture's default status file names `analyze` but
     not `implement` — "nothing started yet" from archive's own point of
-    view — ordinary progression, never a warning, and costs nothing.
-    Still a decline, not a success: `ok` is false and the note is the
-    error, so the dashboard ends the job `stopped` and lands nothing
-    (an ok refusal once landed an archive that had not happened)."""
+    view — ordinary progression, never a warning, and costs nothing."""
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
-    assert out["ok"] is False, out
+    assert out["ok"] is True, out
     assert out["exitCode"] == 0, out
     assert out["terminalReason"] == "not-implemented-yet", out
-    assert "run /aide-implement" in out["error"], out
     assert not fake_claude.calls.exists(), "nothing to decide costs nothing"
     assert "costUsd" not in out or out.get("costUsd") == 0, out
 
@@ -4742,9 +4735,7 @@ def test_archive_skips_the_model_when_acceptance_criteria_are_unticked(
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
-    assert out["ok"] is False, out
     assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert "tick every row" in out["error"], out
     assert not fake_claude.calls.exists(), "an unticked row costs nothing"
 
 

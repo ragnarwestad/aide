@@ -32,7 +32,6 @@ import type { NotifyEvent } from "../integrations/notify.ts";
 import { errorSentence } from "../render/ui/error-sentence.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
-import { isArchiveRefusal, type StopReason } from "./steps.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
 
@@ -384,17 +383,14 @@ export class Runner {
 
     // A cap or the clock ending a run is `stopped` — never `failed`.
     // Under tight caps this is a common, healthy outcome, and a reader
-    // who cannot tell it from a broken agent will ignore both. So is an
-    // `archive` that `aide-archive-spec` refused before any model ran:
-    // nothing broke, a person has something to tick or run first, and
-    // the refusal is the reason on the row.
+    // who cannot tell it from a broken agent will ignore both.
     if (
       outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
-      outcome.terminalReason === "provider-limit" || isArchiveRefusal(outcome.terminalReason)
+      outcome.terminalReason === "provider-limit"
     ) {
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
-        stopReason: outcome.terminalReason as StopReason,
+        stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
         error: outcome.error,
       });

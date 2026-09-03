@@ -136,30 +136,31 @@ describe("every step lands its own work (spec 149)", () => {
   });
 
   // `aide-archive-spec` can refuse before any model runs (the spec has
-  // not implemented, an acceptance row is unticked). That used to come
-  // back `ok`, and the landing then merged an archive that had not
-  // happened — the folder still active, the code branch pulled into main.
-  test("an archive the gate refused ends stopped with the reason, and nothing is merged", async () => {
+  // not implemented, an acceptance row is unticked). That is ok and the
+  // job is done — the row reads "archive held back" from 4-status.md —
+  // but the landing used to run on `ok` and merged implement's code
+  // branch into main with the spec still active (365 and 366,
+  // 2026-09-03).
+  test("an archive the gate refused is done, and nothing is merged", async () => {
     const dir = own("aide-archive-refused-");
     const paths = repos(dir);
     const git = gitFor();
     const { base } = serverWithHarness(dir, paths, git);
 
-    const job = await stepWithResult(
+    await stepWithResult(
       base,
       dir,
-      "archive",
-      {
-        ok: false,
-        terminalReason: "not-implemented-yet",
-        error: "the spec has not reached implement yet — run /aide-implement next",
-        branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-      },
-      (j) => j.state === "stopped",
+      "implement",
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+      (j) => j.state === "done",
     );
+    const job = await stepWithResult(base, dir, "archive", {
+      terminalReason: "acceptance-criteria-unticked",
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
 
-    expect(job.stopReason).toBe("not-implemented-yet");
-    expect(job.error).toContain("run /aide-implement");
+    expect(job.state).toBe("done");
+    expect(job.error).toBeFalsy();
     expect(merges(git.calls, paths.project)).toHaveLength(0);
     expect(merges(git.calls, paths.specs)).toHaveLength(0);
   });
