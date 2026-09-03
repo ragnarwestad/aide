@@ -5,6 +5,7 @@
 
 import { type PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { type QueueRowView } from "../../../ui/job-state.ts";
+import { type FileStepsAnswer } from "../../../../git/workflow-history.ts";
 
 export interface QueueTarget {
   project: string;
@@ -32,11 +33,15 @@ export interface QueueTarget {
    *  finished, and the row says so instead of "not run yet" even once
    *  the queue's own memory of that attempt is gone. */
   stopped?: Record<string, string>;
-  /** What `4-status.md`'s own line claims. Not what anything is decided
-   *  from — the history above is — but the row wears a qualifier when
-   *  the two disagree, which is how a copied folder or a killed run
+  /** What the spec's own files claim, kept apart by source (spec 362):
+   *  `4-status.md`'s prose line, and `4-status.json`'s own
+   *  `completedPhases` when this spec has a state file. Not what
+   *  anything is decided from — the history above is, unless a state
+   *  file exists, in which case IT is (`resolveWorkflowState`) — but
+   *  the row wears a qualifier when the sources disagree, which is how
+   *  a copied folder, a killed run, or a stale hand-edited prose line
    *  becomes visible rather than silently wrong. */
-  fileSteps?: string[];
+  fileSteps?: FileStepsAnswer;
   /** The steps the file and the history do not agree about — said on
    *  the phase line it is about, never once per phase. */
   fileDisagrees?: string[];

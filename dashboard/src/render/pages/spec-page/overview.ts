@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { btn, tokenField } from "../../ui/components.ts";
+import { btn, ICON_PDF, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
@@ -91,10 +91,10 @@ export function archivedLine(view: SpecPageView): string {
  *  So there is one group, one form and one Save — never one per phase. */
 const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 
-export function checklist(view: SpecPageView): string {
+export function checklist(view: SpecPageView, mark = ""): string {
   const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
   if (rows.length === 0) {
-    return `<p class="muted">No acceptance criteria to tick.</p>`;
+    return `<p class="muted">No acceptance criteria to tick.${mark ? ` ${mark}` : ""}</p>`;
   }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
@@ -133,7 +133,7 @@ export function checklist(view: SpecPageView): string {
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   const head =
     `<p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>`;
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>`;
   // The boxes sit INSIDE the one form, and the Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick
@@ -181,6 +181,22 @@ export function reopenControl(view: SpecPageView): string {
     `title="take this spec back into the active list for another round: ` +
     `reset the analysis, the plan and the status, keep the description, and remove its branch">` +
     `Reopen</button></form>`
+  );
+}
+
+/** The PDF button (spec 358): opens `GET .../pdf` in a new tab, where
+ *  the browser's own viewer shows it — a plain link, never a form, so it
+ *  works with JavaScript switched off (REQ-2). Disabled with its reason
+ *  rather than hidden when the tool is missing (REQ-7), the exact shape
+ *  `resetControl` below already uses. */
+export function pdfControl(view: SpecPageView): string {
+  if (!view.pdfAction) return "";
+  if (view.pdfUnavailableReason) {
+    return `<span class="btn" aria-disabled="true" title="${esc(view.pdfUnavailableReason)}">${ICON_PDF} PDF</span>`;
+  }
+  return (
+    `<a class="btn" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
+    `title="open this spec as a PDF in a new tab">${ICON_PDF} PDF</a>`
   );
 }
 

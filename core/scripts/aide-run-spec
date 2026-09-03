@@ -1100,10 +1100,10 @@ sync_branch_with_origin() {
   git -C "$root" merge-base --is-ancestor "$tip" "$here" >/dev/null 2>&1 && return 0
   if git -C "$root" merge-base --is-ancestor "$here" "$tip" >/dev/null 2>&1; then
     git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
-      || refuse "cannot fast-forward $br to origin's copy in $root"
+      || refuse "cannot fast-forward $br to origin's copy in $root — merge it by hand, in the checkout on the serving host"
     return 0
   fi
-  refuse "$br has diverged from origin's copy in $root (each has commits the other has not — reconcile them by hand)"
+  refuse "$br has diverged from origin's copy in $root (each has commits the other has not) — reconcile them by hand, in the checkout on the serving host"
 }
 
 # True when $sha is already what origin's $branch points at — the only
@@ -1190,7 +1190,7 @@ update_branch_to_base() {
       return 0
     fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
-    refuse "cannot bring $branch up to date with $ref in $root (conflict — merge it by hand)" "conflict"
+    refuse "cannot bring $branch up to date with $ref in $root — conflict, merge it by hand, in the checkout on the serving host" "conflict"
   fi
   return 0
 }
@@ -1707,27 +1707,29 @@ elif [ -n "${provider_limit_json:-}" ]; then
   terminal_reason="provider-limit"
   limit_type="$(jq -r '.rate_limit_info.rateLimitType // "provider" | gsub("_"; " ")' <<<"$provider_limit_json")"
   reset_at="$(jq -r '.rate_limit_info.resetsAt // empty | if type == "number" then todateiso8601 else tostring end' <<<"$provider_limit_json")"
-  error_msg="$limit_type provider limit reached"
+  error_msg="$limit_type provider limit reached — press Run again once it resets"
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
   if [ "$subtype" = "error_max_budget_usd" ]; then
     terminal_reason="budget"
-    error_msg="the step's budget was reached"
+    error_msg="the step's budget was reached — raise the job cap in the project's .aide/config, then press Run again"
   elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
     [ -n "$error_msg" ] || error_msg="provider reported an error"
+    error_msg="$error_msg — press Run again"
   elif [ "$exit_code" -ne 0 ]; then
     terminal_reason="cli-error"
-    error_msg="$tool exit $exit_code"
+    error_msg="$tool exit $exit_code — press Run again"
   else
   case "$subtype" in
     success) terminal_reason="completed" ;;
     # The codex branch above has already put the turn's own message
     # here; only claude's shape needs digging out at this point.
     *) terminal_reason="cli-error"
-       [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")" ;;
+       [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
+       error_msg="$error_msg — press Run again" ;;
   esac
   fi
 else
@@ -1735,6 +1737,7 @@ else
   cost="$budget_usd"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
+  error_msg="$error_msg — press Run again"
 fi
 fi
 
@@ -2083,7 +2086,7 @@ if [ -n "$status_file" ]; then
       terminal_reason="no-progress"
       ok="false"
       suffix=" (stopped: no-progress)"
-      error_msg="the step reported success but left no real progress — nothing changed in the project"
+      error_msg="the step reported success but left no real progress — nothing changed in the project. Press Run again for this step."
     fi
   elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
     # spec 280: a "completed" archive claim is cross-checked the same
@@ -2098,7 +2101,7 @@ if [ -n "$status_file" ]; then
         terminal_reason="no-progress"
         ok="false"
         suffix=" (stopped: no-progress)"
-        error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/"
+        error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step."
         ;;
     esac
   elif [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then
@@ -2161,7 +2164,7 @@ if [ -n "$status_file" ]; then
       terminal_reason="scope-violation"
       ok="false"
       suffix=" (stopped: scope-violation)"
-      error_msg="the step reported success but changed things outside analyze's scope (the project repo, a Phase-table row's status, or the Workflow-steps-completed line)"
+      error_msg="the step reported success but changed things outside analyze's scope (the project repo, a Phase-table row's status, or the Workflow-steps-completed line). Press Run again for this step."
     fi
   fi
 

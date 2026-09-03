@@ -26,6 +26,12 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 import { lastCommitOf } from "./description-freshness.ts";
+import { errorSentence } from "../render/ui/error-sentence.ts";
+
+/** The remedy every refusal below shares, once the specific fact has
+ *  been said (REQ-3, spec 352): none of these is a press on the board —
+ *  the fix is in the shared specs checkout itself. */
+const IN_THE_CHECKOUT = "in the checkout on the serving host";
 
 export interface SpecsPullResult {
   ok: boolean;
@@ -59,7 +65,14 @@ export async function pullFastForward(
 ): Promise<SpecsPullResult> {
   try {
     const top = await run(dir, ["rev-parse", "--show-toplevel"]);
-    if (top.code !== 0) return refuse(`${dir} is not a git working tree — nothing was pulled`);
+    if (top.code !== 0) {
+      return refuse(
+        errorSentence({
+          what: `${dir} is not a git working tree — nothing was pulled.`,
+          resolve: `Check the project's specs root is a git checkout, ${IN_THE_CHECKOUT}.`,
+        }).text,
+      );
+    }
     const root = top.stdout.trim();
 
     // Uncommitted work of ANY kind, tracked files only: an untracked
@@ -67,21 +80,45 @@ export async function pullFastForward(
     // those (editor scratch, exports) between commits.
     const dirty = await run(root, ["diff", "--quiet", "HEAD"]);
     if (dirty.code !== 0) {
-      return refuse(`the specs checkout has uncommitted changes — nothing was pulled`);
+      return refuse(
+        errorSentence({
+          what: "the specs checkout has uncommitted changes — nothing was pulled.",
+          resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
+        }).text,
+      );
     }
 
     const base = await resolveBase(root);
-    if (!base) return refuse(`the specs checkout has no default branch on origin — nothing was pulled`);
+    if (!base) {
+      return refuse(
+        errorSentence({
+          what: "the specs checkout has no default branch on origin — nothing was pulled.",
+          resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
+        }).text,
+      );
+    }
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
     const on = current.stdout.trim();
     if (current.code !== 0 || on !== base) {
       // A checkout parked on a spec branch is left alone: pulling it
       // would fetch a branch whose upstream may be gone.
-      return refuse(`the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled`);
+      return refuse(
+        errorSentence({
+          what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
+          resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
+        }).text,
+      );
     }
 
     const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
-    if (fetched.code !== 0) return refuse(`origin could not be reached — nothing was pulled`);
+    if (fetched.code !== 0) {
+      return refuse(
+        errorSentence({
+          what: "origin could not be reached — nothing was pulled.",
+          resolve: "Check the network from the serving host, then try again.",
+        }).text,
+      );
+    }
 
     // Before the merge, so a divergence is its own answer rather than
     // whatever git says when the merge refuses.
@@ -89,14 +126,23 @@ export async function pullFastForward(
     const ancestor = await run(root, ["merge-base", "--is-ancestor", "HEAD", ref]);
     if (ancestor.code !== 0) {
       return refuse(
-        `the specs checkout has commits origin does not, so it cannot fast-forward — ` +
-          `nothing was pulled, merge it by hand`,
+        errorSentence({
+          what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
+          resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
+        }).text,
       );
     }
 
     const before = await run(root, ["rev-parse", "HEAD"]);
     const merged = await run(root, ["merge", "-q", "--ff-only", ref]);
-    if (merged.code !== 0) return refuse(`the pull failed — nothing was pulled`);
+    if (merged.code !== 0) {
+      return refuse(
+        errorSentence({
+          what: "the pull failed — nothing was pulled.",
+          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+        }).text,
+      );
+    }
     const after = await run(root, ["rev-parse", "HEAD"]);
 
     const from = before.code === 0 ? before.stdout.trim() : null;
@@ -244,7 +290,14 @@ export async function saveSpecFiles(
       const added = await run(dir, ["add", "--", edit.file]);
       if (added.code !== 0) {
         rollback();
-        return { ok: false, note: `${edit.file} could not be staged — nothing was saved`, committed: false };
+        return {
+          ok: false,
+          note: errorSentence({
+            what: `${edit.file} could not be staged — nothing was saved.`,
+            resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+          }).text,
+          committed: false,
+        };
       }
     }
 
@@ -275,7 +328,14 @@ export async function saveSpecFiles(
       // dirty — and a dirty checkout is what the next pull, this
       // button's or the cron's, refuses.
       await run(root, ["reset", "--hard", before.stdout.trim()]);
-      return { ok: false, note: `${subject} could not be committed — nothing was saved`, committed: false };
+      return {
+        ok: false,
+        note: errorSentence({
+          what: `${subject} could not be committed — nothing was saved.`,
+          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+        }).text,
+        committed: false,
+      };
     }
 
     const pushed = await run(root, ["push", "-q", "origin", "HEAD"]);
@@ -283,7 +343,10 @@ export async function saveSpecFiles(
       await run(root, ["reset", "--hard", before.stdout.trim()]);
       return {
         ok: false,
-        note: `${subject} was committed but the push to origin failed — nothing was kept, try again`,
+        note: errorSentence({
+          what: `${subject} was committed but the push to origin failed — nothing was kept.`,
+          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+        }).text,
         committed: false,
       };
     }

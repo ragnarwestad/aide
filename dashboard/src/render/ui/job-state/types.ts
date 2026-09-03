@@ -72,6 +72,9 @@ export interface QueueRowView {
   /** The job's own persisted landing failure (spec 327), independent of
    *  `state`/`error` — see `Job.landingError`. */
   landingError?: string;
+  /** Raw git/tool output behind `error` (spec 352, REQ-5) — see
+   *  `Job.errorDetail`. */
+  errorDetail?: string;
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;

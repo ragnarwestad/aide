@@ -339,10 +339,10 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     const html = open({ prError: RAW });
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(RAW);
-    expect(state).not.toContain("No pull request could be opened for this branch. Open one by hand.");
+    expect(state).not.toContain("No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.");
     expect(state).not.toContain("pull/7");
     expect(noticeCellHtml(html, FOLDER)).toContain(
-      "No pull request could be opened for this branch. Open one by hand.",
+      "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
     );
   });
 
@@ -353,7 +353,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     const html = open({ prError: RAW });
     expect(html).not.toContain(RAW);
     expect(noticeCellHtml(html, FOLDER)).toContain(
-      "No pull request could be opened for this branch. Open one by hand.",
+      "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
     );
   });
 
@@ -418,7 +418,7 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
     expect(state).not.toContain(MESSAGE);
     expect(state).not.toContain("not pushed");
     expect(noticeCellHtml(html, FOLDER)).toContain(
-      "A step's push did not reach origin. Pull the branch locally, then push it again.",
+      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
     );
   });
 
@@ -434,7 +434,7 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
     expect(html).not.toContain("hint:");
     expect(html).not.toContain("git push --help");
     expect(noticeCellHtml(html, FOLDER)).toContain(
-      "A step's push did not reach origin. Pull the branch locally, then push it again.",
+      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
     );
   });
 
@@ -442,6 +442,55 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
     const html = renderQueueRows([row({})], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain(MESSAGE);
     expect(html).not.toContain("not pushed");
+  });
+});
+
+// --- spec 341/352: a stale pushError does not outlive its own job ----------
+//
+// `recent.find((r) => r.pushError)` (group-builders.ts) used to scan every
+// job for the spec, newest first, and stop at the first one with a
+// `pushError` set — which is not necessarily the LEAD job. A spec whose
+// current (lead) job pushed fine still showed an older job's failure,
+// with advice that no longer applied (REQ-4).
+describe("a stale pushError clears once the spec's lead job has none (spec 341, REQ-4)", () => {
+  const FOLDER = "81-queue-and-runner";
+
+  test("an older job's pushError does not outlive it once a newer job pushes fine", () => {
+    const html = renderQueueRows(
+      [
+        row({
+          id: "older",
+          specFolder: FOLDER,
+          state: "done",
+          createdAt: "2026-08-16T09:00:00Z",
+          pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
+        }),
+        row({ id: "newer", specFolder: FOLDER, state: "done", createdAt: "2026-08-16T11:00:00Z" }),
+      ],
+      { runnerAvailable: true, targets: [] },
+    );
+    expect(noticeCellHtml(html, FOLDER)).not.toContain(
+      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
+    );
+  });
+
+  test("the lead job's own pushError still shows", () => {
+    const html = renderQueueRows(
+      [
+        row({ id: "older", specFolder: FOLDER, state: "done", createdAt: "2026-08-16T09:00:00Z" }),
+        row({
+          id: "newer",
+          specFolder: FOLDER,
+          state: "done",
+          createdAt: "2026-08-16T11:00:00Z",
+          pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
+        }),
+      ],
+      { runnerAvailable: true, targets: [] },
+    );
+    expect(noticeCellHtml(html, FOLDER)).toContain(
+      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
+    );
   });
 });
 
@@ -456,7 +505,7 @@ describe("more than one error mark, ranked, both visible in the notice line (REQ
 
   test("both sentences show, in the same order liveMarks ranks them", () => {
     const LANDING = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
-    const PUSH_SENTENCE = "A step's push did not reach origin. Pull the branch locally, then push it again.";
+    const PUSH_SENTENCE = "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.";
     const html = renderQueueRows(
       [row({ pushError: "cannot push aide/81-queue-and-runner: non-fast-forward", landingError: LANDING })],
       { runnerAvailable: true, targets: [] },

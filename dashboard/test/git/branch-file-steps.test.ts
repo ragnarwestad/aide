@@ -36,23 +36,64 @@ const fake = (answers: Record<string, { code: number; stdout?: string }>): { run
   return { run, calls };
 };
 
+const JSON_PATH = TARGET.relPath.replace(/4-status\.md$/, "4-status.json");
+
 /** What `readStatusFromBranch` needs answered, for a branch whose
- *  `4-status.md` names `steps`. */
-const branchFile = (steps: string[]) => ({
-  "fetch --quiet origin": { code: 0 },
-  "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "deadbeef1234\n" },
-  "show refs/remotes/origin/": {
-    code: 0,
-    stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n`,
-  },
-});
+ *  `4-status.md` names `proseSteps`. `stateSteps`, when given, is what
+ *  the branch's own sibling `4-status.json` answers with (spec 362) —
+ *  keyed on the FULL show path, since a generic prefix cannot tell the
+ *  `.md` request from the `.json` one apart. */
+const branchFile = (proseSteps: string[], stateSteps?: string[]) => {
+  const answers: Record<string, { code: number; stdout?: string }> = {
+    "fetch --quiet origin": { code: 0 },
+    [`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${TARGET.relPath}`]: {
+      code: 0,
+      stdout: "deadbeef1234\n",
+    },
+    [`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`]: {
+      code: 0,
+      stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${proseSteps.join(", ")}\n`,
+    },
+  };
+  if (stateSteps) {
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${JSON_PATH}`] = {
+      code: 0,
+      stdout: "cafef00d1234\n",
+    };
+    answers[`show refs/remotes/origin/${TARGET.branch}:${JSON_PATH}`] = {
+      code: 0,
+      stdout: JSON.stringify({
+        completedPhases: stateSteps,
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: [],
+        phaseCounts: {},
+      }),
+    };
+  }
+  return answers;
+};
 
 describe("BranchFileStepsChecker", () => {
   test("an open branch whose file names steps resolves those steps", async () => {
     const git = fake(branchFile(["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
-    expect(steps).toEqual(["create", "analyze", "implement"]);
+    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined });
+  });
+
+  // REQ-1/REQ-4, the branch half of spec 349's own class of bug: the
+  // branch's own `4-status.json` answers `stateSteps`, disagreeing with
+  // its own prose — proving the state file, not the prose alone, is
+  // what a caller reads once one exists on the branch.
+  test("a branch whose own 4-status.json exists answers stateSteps from it", async () => {
+    const git = fake(branchFile(["create", "analyze"], ["create", "analyze", "implement"]));
+    const checker = new BranchFileStepsChecker({ run: git.run });
+    const steps = await checker.read(DIR, FOLDER, TARGET);
+    expect(steps).toEqual({
+      proseSteps: ["create", "analyze"],
+      stateSteps: ["create", "analyze", "implement"],
+    });
   });
 
   test("peekFileSteps hands back the read answer, spawning no git", async () => {
@@ -61,7 +102,7 @@ describe("BranchFileStepsChecker", () => {
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     const { steps, checkedAt } = checker.peekFileSteps(DIR, FOLDER);
-    expect(steps).toEqual(["analyze"]);
+    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined });
     expect(checkedAt).toBe(1000);
     expect(git.calls.length).toBe(before);
   });

@@ -6,7 +6,13 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { currentAcceptancePhase, currentPhase, readSpecState, type SpecState } from "../../src/project/parse-spec-state.ts";
+import {
+  currentAcceptancePhase,
+  currentPhase,
+  parseSpecStateText,
+  readSpecState,
+  type SpecState,
+} from "../../src/project/parse-spec-state.ts";
 
 let dir: string;
 
@@ -74,6 +80,36 @@ describe("readSpecState", () => {
       phaseCounts: {},
     });
     rmSync(d, { recursive: true, force: true });
+  });
+});
+
+// spec 362: the branch reader (`BranchFileStepsChecker`) has `git show`
+// output, not a file path — `parseSpecStateText` is `readSpecState`'s
+// JSON-parsing core, pulled out so both readers share one parsing rule.
+describe("parseSpecStateText", () => {
+  test("reads every field back verbatim from a JSON string", () => {
+    const state: SpecState = {
+      completedPhases: ["create", "analyze"],
+      archived: { date: "2026-08-20" },
+      reopened: { date: "2026-08-23", boundaryCommit: "1d0fe79" },
+      acceptanceCriteria: [{ task: "REQ-1: x", done: true }],
+      phaseCounts: { "Phase 1: RED": { done: 1, total: 2 } },
+    };
+    expect(parseSpecStateText(JSON.stringify(state))).toEqual(state);
+  });
+
+  test("null on invalid JSON, never a throw", () => {
+    expect(parseSpecStateText("{not json")).toBeNull();
+  });
+
+  test("missing array/object fields default to empty rather than throwing", () => {
+    expect(parseSpecStateText("{}")).toEqual({
+      completedPhases: [],
+      archived: null,
+      reopened: null,
+      acceptanceCriteria: [],
+      phaseCounts: {},
+    });
   });
 });
 

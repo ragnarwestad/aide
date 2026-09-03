@@ -9,10 +9,24 @@
 //     mode at all; widening what an unattended run may do is not
 //     something an HTTP body gets to decide
 
+import { errorSentence } from "../render/ui/error-sentence.ts";
 import { ARCHIVE_ONLY_STEP, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ModelChoice, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
+
+/** Every refusal in this file answers a request the ordinary Run/New-
+ *  spec form does not normally post (2-analysis.md): most of these are
+ *  reachable only from a hand-crafted request, and the rest from a page
+ *  left open long enough for its own project/spec/model list to go
+ *  stale before the post landed. What resolves either one is the same,
+ *  so it is wrapped once here rather than worded by hand per call site
+ *  (REQ-1, spec 352). */
+export const invalidRequest = (what: string): string =>
+  errorSentence({
+    what,
+    resolve: "Reload the page and try again — or, if this came from a raw request, check the field this names.",
+  }).text;
 
 export const NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
 export const FOLDER_RE = /^[A-Za-z0-9._-]{1,128}$/;
@@ -26,8 +40,8 @@ export function perStep<T>(steps: WorkflowStep[], table: Record<string, T>): Rec
 // A cap override is accepted only when it is stricter than the config.
 function tighten(raw: unknown, limit: number, name: string): number | Error {
   if (raw === undefined || raw === null) return limit;
-  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return new Error(`invalid ${name}`);
-  if (raw > limit) return new Error(`${name} may only be tightened (max ${limit})`);
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return new Error(invalidRequest(`invalid ${name}`));
+  if (raw > limit) return new Error(invalidRequest(`${name} may only be tightened (max ${limit})`));
   return raw;
 }
 
@@ -45,9 +59,11 @@ function lookUpModel(defaults: QueueDefaults, name: string): ModelChoice | { err
   const found = defaults.modelChoices?.[name];
   if (found) return found;
   return {
-    error: defaults.modelChoices
-      ? `unknown or not-allowed model: ${name}`
-      : "no model choice is configured on this server",
+    error: invalidRequest(
+      defaults.modelChoices
+        ? `unknown or not-allowed model: ${name}`
+        : "no model choice is configured on this server",
+    ),
   };
 }
 
@@ -56,17 +72,17 @@ export function parseJobRequest(
   opts: { resolve: ProjectResolver; defaults: QueueDefaults },
 ): ParseResult {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ok: false, error: "body is not an object" };
+    return { ok: false, error: invalidRequest("body is not an object") };
   }
   const r = raw as Record<string, unknown>;
   const { defaults } = opts;
 
-  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: "invalid project" };
+  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: invalidRequest("invalid project") };
   const resolved = opts.resolve(r.project);
-  if (!resolved) return { ok: false, error: `unknown or not-allowed project: ${r.project}` };
+  if (!resolved) return { ok: false, error: invalidRequest(`unknown or not-allowed project: ${r.project}`) };
 
   if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) {
-    return { ok: false, error: "invalid specFolder" };
+    return { ok: false, error: invalidRequest("invalid specFolder") };
   }
   // A `schedule` job never resolves under the specs root — a schedule
   // entry is not a spec, and its tracking key is a `schedule-<name>` key
@@ -80,22 +96,22 @@ export function parseJobRequest(
   const isScheduleJob =
     Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "schedule";
   if (isScheduleJob && !r.specFolder.startsWith("schedule-")) {
-    return { ok: false, error: "invalid specFolder: a schedule job's tracking key must start with schedule-" };
+    return { ok: false, error: invalidRequest("invalid specFolder: a schedule job's tracking key must start with schedule-") };
   }
   const archivedOnly =
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
   if (!isScheduleJob && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
-    return { ok: false, error: `unknown specFolder: ${r.specFolder}` };
+    return { ok: false, error: invalidRequest(`unknown specFolder: ${r.specFolder}`) };
   }
 
   if (!Array.isArray(r.steps) || r.steps.length === 0 || r.steps.length > 8) {
-    return { ok: false, error: "steps must be a list of 1-8 workflow steps" };
+    return { ok: false, error: invalidRequest("steps must be a list of 1-8 workflow steps") };
   }
   const steps: WorkflowStep[] = [];
   for (const s of r.steps) {
     if (typeof s !== "string" || !(WORKFLOW_STEPS as readonly string[]).includes(s)) {
-      return { ok: false, error: `invalid entry in steps: ${String(s)}` };
+      return { ok: false, error: invalidRequest(`invalid entry in steps: ${String(s)}`) };
     }
     steps.push(s as WorkflowStep);
   }
@@ -109,7 +125,7 @@ export function parseJobRequest(
   if (archivedOnly && steps.some((s) => s !== ARCHIVE_ONLY_STEP)) {
     return {
       ok: false,
-      error: `${r.specFolder} is archived — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
+      error: invalidRequest(`${r.specFolder} is archived — only ${ARCHIVE_ONLY_STEP} can be asked for it`),
     };
   }
   // The mirrored direction (spec 270): `reopen` exists to bring an
@@ -122,7 +138,7 @@ export function parseJobRequest(
   if (steps.includes(ARCHIVE_ONLY_STEP) && resolved.specFolders.includes(r.specFolder)) {
     return {
       ok: false,
-      error: `${r.specFolder} is already active — nothing to ${ARCHIVE_ONLY_STEP}`,
+      error: invalidRequest(`${r.specFolder} is already active — nothing to ${ARCHIVE_ONLY_STEP}`),
     };
   }
 
@@ -148,7 +164,7 @@ export function parseJobRequest(
   let choice: ModelChoice | undefined;
   let stepModels: Record<string, string> | undefined;
   if (typeof r.model === "string" && r.model !== "") {
-    if (!NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
+    if (!NAME_RE.test(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = lookUpModel(defaults, r.model);
     if ("error" in found) return { ok: false, error: found.error };
     choice = found;
@@ -158,7 +174,7 @@ export function parseJobRequest(
     // configuration" — the branch above lets it fall through here, and
     // this guard has to let it fall through again rather than call it a
     // malformed object.
-    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: "invalid model" };
+    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     stepModels = {};
     const grants: ModelChoice[] = [];
     for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
@@ -169,7 +185,7 @@ export function parseJobRequest(
       // pre-filled (2026-08-19), every Run posts a name for all five
       // steps, whichever are ticked. Only the ticked ones apply.
       if (!steps.includes(step as WorkflowStep)) continue;
-      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: `invalid model for ${step}` };
+      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
       stepModels[step] = name;
@@ -248,13 +264,21 @@ const DESCRIPTION_MAX = 2000;
  *  is a paragraph, a title is a line. */
 const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/;
 
+// A field a person actually types into the New-spec form (REQ-2, spec
+// 352): its resolution names the form, not the raw-request wording
+// `invalidRequest()` gives the rest of this file — a title over
+// `TITLE_MAX` is a real reader who typed too much, never a hand-crafted
+// request.
+const fixInTheForm = (what: string): string =>
+  errorSentence({ what, resolve: "Fix it in the New spec form and submit again." }).text;
+
 function text(raw: unknown, max: number, name: string, multiline = false): string | Error {
-  if (typeof raw !== "string") return new Error(`invalid ${name}`);
+  if (typeof raw !== "string") return new Error(invalidRequest(`invalid ${name}`));
   const value = raw.replace(/\r\n?/g, "\n").trim();
-  if (!value) return new Error(`${name} is required`);
-  if (value.length > max) return new Error(`${name} is too long (max ${max})`);
-  if (CONTROL_CHARS.test(value)) return new Error(`${name} contains control characters`);
-  if (!multiline && value.includes("\n")) return new Error(`${name} must be one line`);
+  if (!value) return new Error(fixInTheForm(`${name} is required`));
+  if (value.length > max) return new Error(fixInTheForm(`${name} is too long (max ${max})`));
+  if (CONTROL_CHARS.test(value)) return new Error(fixInTheForm(`${name} contains control characters`));
+  if (!multiline && value.includes("\n")) return new Error(fixInTheForm(`${name} must be one line`));
   return value;
 }
 
@@ -271,13 +295,13 @@ export function parseCreateRequest(
   opts: { allow: CreateProjectAllower; resolve?: ProjectResolver; defaults: QueueDefaults },
 ): ParseResult {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ok: false, error: "body is not an object" };
+    return { ok: false, error: invalidRequest("body is not an object") };
   }
   const r = raw as Record<string, unknown>;
   const { defaults } = opts;
 
-  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: "invalid project" };
-  if (!opts.allow(r.project)) return { ok: false, error: `unknown or not-allowed project: ${r.project}` };
+  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: invalidRequest("invalid project") };
+  if (!opts.allow(r.project)) return { ok: false, error: invalidRequest(`unknown or not-allowed project: ${r.project}`) };
 
   const title = text(r.title, TITLE_MAX, "title");
   if (title instanceof Error) return { ok: false, error: title.message };
@@ -292,17 +316,17 @@ export function parseCreateRequest(
   // list-shaped field here; nothing is silently dropped.
   const dependsOn: string[] = [];
   if (r.dependsOn !== undefined && r.dependsOn !== null) {
-    if (!Array.isArray(r.dependsOn)) return { ok: false, error: "dependsOn must be a list" };
-    if (r.dependsOn.length > 20) return { ok: false, error: "dependsOn: at most 20" };
+    if (!Array.isArray(r.dependsOn)) return { ok: false, error: invalidRequest("dependsOn must be a list") };
+    if (r.dependsOn.length > 20) return { ok: false, error: invalidRequest("dependsOn: at most 20") };
     // No resolver, no known specs: a caller that never looks anything up
     // cannot name a dependency, which is the right answer for a call
     // site that does not carry the field at all.
     const known = new Set(opts.resolve?.(r.project)?.specFolders ?? []);
     for (const d of r.dependsOn) {
       if (typeof d !== "string" || !FOLDER_RE.test(d) || !known.has(d)) {
-        return { ok: false, error: `unknown spec in dependsOn: ${String(d)}` };
+        return { ok: false, error: invalidRequest(`unknown spec in dependsOn: ${String(d)}`) };
       }
-      if (dependsOn.includes(d)) return { ok: false, error: `dependsOn repeats ${d}` };
+      if (dependsOn.includes(d)) return { ok: false, error: invalidRequest(`dependsOn repeats ${d}`) };
       dependsOn.push(d);
     }
   }
@@ -341,7 +365,7 @@ export function parseCreateRequest(
   // select posts, and what a form with no Model field at all leaves out.
   let stepModels: Record<string, string> = {};
   if (r.model !== undefined && r.model !== null && r.model !== "") {
-    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: "invalid model" };
+    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     // Only the steps this job runs. A name posted for a step it does
     // not have is skipped rather than refused — the rule
     // `parseJobRequest` already follows for the same reason: a browser
@@ -349,7 +373,7 @@ export function parseCreateRequest(
     for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
       if (name === undefined || name === null || name === "") continue;
       if (!steps.includes(step as WorkflowStep)) continue;
-      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: `invalid model for ${step}` };
+      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
       stepModels[step] = name;

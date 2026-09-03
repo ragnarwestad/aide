@@ -232,24 +232,28 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
 const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitingOnReview");
 
 /** The sentence a LIVE row carries when a push never reached origin
- *  (spec 328, spec 335). Fixed prose, not `pushError`'s own text: that
- *  text is git's raw stderr with its `hint:` lines flattened onto one
- *  line before it ever reaches the dashboard (`aide-run-spec`'s own `tr
- *  '\n' ' '`), which is not a string a person should be asked to read as
- *  an instruction. */
+ *  (spec 328, spec 335, spec 352). Fixed prose, not `pushError`'s own
+ *  text: that text is git's raw stderr with its `hint:` lines flattened
+ *  onto one line before it ever reaches the dashboard (`aide-run-spec`'s
+ *  own `tr '\n' ' '`), which is not a string a person should be asked to
+ *  read as an instruction. Names the checkout (REQ-3, spec 352): "pull
+ *  it locally" said nothing about WHOSE checkout, and the only one a
+ *  reader can act on is the one on the serving host. */
 const pushErrorSentence = (lang: Language): string => t(lang, "list.pushError");
 
 /** The sentence a LIVE row carries when no pull request could be opened
- *  for its branch (spec 220, spec 335). Fixed prose for the same reason
- *  as `pushErrorSentence` — one of `prError`'s four cases is raw `gh pr
- *  create` stderr, and the other three are already custom text this
- *  sentence now stands in for uniformly. */
+ *  for its branch (spec 220, spec 335, spec 352). Fixed prose for the
+ *  same reason as `pushErrorSentence` — one of `prError`'s four cases
+ *  is raw `gh pr create` stderr, and the other three are already custom
+ *  text this sentence now stands in for uniformly. Names the checkout
+ *  (REQ-3, spec 352), the same location `pushErrorSentence` names. */
 const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
 
 /** The sentence an ARCHIVED row carries when a landing merged its branch
  *  but left it on origin because the delete failed (spec 319, spec
- *  335). Fixed prose, not `branchDeleteError`'s own text: that text is
- *  raw `git push --delete` stderr, tail 200 chars. */
+ *  335, spec 352). Fixed prose, not `branchDeleteError`'s own text: that
+ *  text is raw `git push --delete` stderr, tail 200 chars. Names the
+ *  checkout (REQ-3, spec 352). */
 const branchLeftBehindSentence = (lang: Language): string => t(lang, "list.branchLeftBehind");
 
 /** One mark this row's own live-job fields carry, before it is chosen

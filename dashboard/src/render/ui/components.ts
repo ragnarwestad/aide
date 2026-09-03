@@ -48,6 +48,14 @@ export const ICON_WARN =
 /** Something is happening. A span, not an SVG: it is one CSS rotation. */
 export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 
+/** The spec page's PDF button (spec 358): a plain document, the same
+ *  stroke-only convention every other icon here follows. */
+export const ICON_PDF =
+  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+  `<path d="M4 1.5h5.5L12 4v10a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 4 14V2a.5.5 0 0 1 .5-.5z"></path>` +
+  `<path d="M9.5 1.5V4H12"></path></svg>`;
+
 /** One chevron for every fold control on the site — the specs list's own
  *  row, a phase, and (since spec 240's Steps tab) a step's own log.
  *  Shared rather than redefined per file: the `.fold`/`.fold.shut`

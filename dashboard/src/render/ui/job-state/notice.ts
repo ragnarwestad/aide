@@ -16,6 +16,11 @@ export interface RowNotice {
   /** The class the panel's message is marked with, for the one
    *  producer that has always carried one: a refusal (spec 151). */
   hook?: string;
+  /** Raw git/tool output behind `text` (spec 352, REQ-5) — hover-only,
+   *  set only when `text` is the ONE sentence in the panel: joining two
+   *  or more parts leaves no single sentence the detail could belong
+   *  to, so it is dropped rather than misattributed. */
+  title?: string;
 }
 
 /** Which of the four applies, if any. The order is the row's own: the
@@ -92,10 +97,16 @@ export function specNotice(
   lang: Language = "en",
 ): RowNotice | undefined {
   if (refusal) return { variant: "err", text: refusal, hook: "refused" };
-  const parts: { variant: MessageVariant; text: string }[] = [];
-  if (lead?.error) parts.push({ variant: "err", text: lead.error });
+  const parts: { variant: MessageVariant; text: string; title?: string }[] = [];
+  if (lead?.error) parts.push({ variant: "err", text: lead.error, title: lead.errorDetail });
   parts.push(...marks);
-  if (parts.length) return { variant: parts[0]!.variant, text: parts.map((p) => p.text).join(" · ") };
+  if (parts.length) {
+    return {
+      variant: parts[0]!.variant,
+      text: parts.map((p) => p.text).join(" · "),
+      title: parts.length === 1 ? parts[0]!.title : undefined,
+    };
+  }
   if (lead && inFlight(lead)) return undefined;
   // The same amber the badge takes, and for the same reason: a held-back
   // archive is a common, healthy outcome — notice, not alarm. A

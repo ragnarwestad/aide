@@ -1,6 +1,7 @@
 // The one rule for what a phase shows (spec 108).
 
 import type { BadgeVariant, PipKind } from "../components.ts";
+import { errorSentence } from "../error-sentence.ts";
 import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -34,10 +35,17 @@ const FILES_DISAGREE = "the files disagree with what has run";
  *  not the generic "last re-run failed" every other failure kind
  *  shares. Attributing that generic sentence to whichever phase's badge
  *  happens to be drawing it is what let a genuinely successful
- *  `implement` phase's unrelated note hide `archive`'s real failure. */
+ *  `implement` phase's unrelated note hide `archive`'s real failure.
+ *  Its resolution matches `notLandedTitle()`'s own "re-run archive"
+ *  (cell-helpers.ts, REQ-1, spec 352) — the same fact worded two ways
+ *  is what a plan review flagged as the clearest sign no shared
+ *  convention existed yet. */
 const attemptQualifier = (attempt: QueueRowView): string =>
   attempt.errorReason === "unlanded"
-    ? "archived, but landing it failed — its branch is still open"
+    ? errorSentence({
+        what: "archived, but landing it failed — its branch is still open.",
+        resolve: "Re-run archive.",
+      }).text
     : `last re-run ${stateLabel(attempt)}`;
 
 /** The one rule, applied by everything that words a phase.
