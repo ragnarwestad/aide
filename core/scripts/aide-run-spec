@@ -2115,14 +2115,14 @@ if [ -n "$status_file" ]; then
     # claim a step beyond itself on the Workflow-steps line. All three
     # are checked against what the run actually produced, the same way
     # spec 268/280 check implement/archive.
-    proj_changed="no"
+    proj_changed="no"; proj_dirty_list=""
     proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
     if [ "$proj_head_now" != "${head_before[0]}" ]; then
       proj_changed="yes"
     else
-      proj_dirty="$(git -C "$project_wt" status --porcelain -- . \
-        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
-      [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
+      proj_dirty_list="$(git -C "$project_wt" status --porcelain -- . \
+        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | head -5 | tr '\n' ' ')"
+      [ -n "$proj_dirty_list" ] && proj_changed="yes"
     fi
 
     before_advanced=0; existing_line_before=""
@@ -2167,7 +2167,13 @@ if [ -n "$status_file" ]; then
       terminal_reason="scope-violation"
       ok="false"
       suffix=" (stopped: scope-violation)"
-      error_msg="the step reported success but changed things outside analyze's scope (the project repo, a Phase-table row's status, or the Workflow-steps-completed line). Press Run again for this step."
+      # Says WHICH check tripped, and for a dirty project tree, what was
+      # dirty: a generic sentence sent a person to guess (2026-09-03).
+      scope_what=""
+      [ "$proj_changed" = "yes" ] && scope_what="the project repo changed${proj_dirty_list:+ (uncommitted: $proj_dirty_list)}"
+      [ "$rows_advanced" = "yes" ] && scope_what="${scope_what:+$scope_what; }a Phase-table row was ticked"
+      [ "$claims_extra_step" = "yes" ] && scope_what="${scope_what:+$scope_what; }the Workflow-steps-completed line claims a step that did not run"
+      error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press Run again for this step."
     fi
   fi
 
