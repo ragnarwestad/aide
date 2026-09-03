@@ -1,0 +1,143 @@
+// Spec 359: a push that only needed a pull is retried, not reported.
+//
+// `mergeBranchIntoDefault` step 6's push used to be reported as a
+// failure on the FIRST rejection, even when the only thing wrong was
+// that origin's copy of the base branch had moved since step 3's own
+// pull (another landing, or a run's own push, in the gap between the
+// two). `pushWithRetry` asks origin directly whether it can even be
+// reached before deciding what a failed push means: unreachable is
+// retried blind (REQ-2); reachable-but-rejected means the base moved,
+// which `pull --rebase` can settle on its own (REQ-1) — unless the
+// rebase itself conflicts, which stays a person's call (REQ-3).
+
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
+import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
+
+const BRANCH = "aide/89-merge-from-the-dashboard";
+const ROOT = "/repos/aide";
+const noWait = async (_ms: number): Promise<void> => {};
+
+const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
+const ran = (calls: GitCall[], prefix: string): boolean => argv(calls).some((a) => a.startsWith(prefix));
+
+/** The table every test below starts from: a clean checkout that
+ *  reaches step 6 and attempts the push — steps 1-5 all succeed so the
+ *  push itself, and what happens after it fails, is the only thing
+ *  under test. */
+const REACHES_STEP_6 = {
+  ...CLEAN_MASTER,
+  "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
+  "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+  "pull -q --ff-only": { code: 0 },
+  "merge -q --ff-only": { code: 0 },
+  switch: { code: 0 },
+  fetch: { code: 0 },
+};
+
+describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () => {
+  test("is retried via pull --rebase, and the retry succeeds", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      "pull -q --rebase": { code: 0 },
+      push: [{ code: 1, stderr: "! [rejected] master -> master (fetch first)" }, { code: 0 }],
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(true);
+    // REQ-4: a retry-recovered success leaves no error behind.
+    expect(result.error).toBeUndefined();
+    const sequence = argv(git.calls).filter((a) => a === "push -q origin master" || a.startsWith("pull -q --rebase"));
+    expect(sequence).toEqual(["push -q origin master", "pull -q --rebase origin master", "push -q origin master"]);
+  });
+});
+
+describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
+  test("is retried, waited, up to the bound, then refused if it never recovers", async () => {
+    const waits: number[] = [];
+    const wait = async (ms: number) => {
+      waits.push(ms);
+    };
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 1 },
+      push: { code: 1, stderr: "fatal: unable to access 'origin' — Could not resolve host" },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", wait);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(ROOT);
+    expect(result.error).toContain(BRANCH);
+    expect(waits).toEqual([1000, 2000]);
+  });
+
+  test("REQ-4: a later attempt that reaches origin succeeds, leaving no error", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 1 },
+      push: [
+        { code: 1, stderr: "fatal: unable to access 'origin'" },
+        { code: 1, stderr: "fatal: unable to access 'origin'" },
+        { code: 0 },
+      ],
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(true);
+    expect(result.error).toBeUndefined();
+  });
+});
+
+describe("pushWithRetry: REQ-3/REQ-5, a rebase that hits a real conflict", () => {
+  const CONFLICTING = {
+    ...REACHES_STEP_6,
+    "ls-remote origin": { code: 0 },
+    "pull -q --rebase": { code: 1, stderr: "CONFLICT (content): Merge conflict" },
+    "rebase --abort": { code: 0 },
+    "log --oneline origin/master..master": { code: 0, stdout: "abc1234 our side\n" },
+    "log --oneline master..origin/master": { code: 0, stdout: "def5678 their side\n" },
+    push: { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
+  };
+
+  test("aborts the rebase and reports the commits on each side, with no reason set", async () => {
+    const git = fakeGit(CONFLICTING);
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(false);
+    // No `reason` — this is not the resolve-the-spec-branch conflict the
+    // page already has an action for (2-analysis.md, API dependencies).
+    expect(result.reason).toBeUndefined();
+    expect(result.error).toContain("our side");
+    expect(result.error).toContain("their side");
+    expect(ran(git.calls, "rebase --abort")).toBe(true);
+    // No push attempted after the conflict — only the ONE that triggered it.
+    expect(argv(git.calls).filter((a) => a.startsWith("push"))).toHaveLength(1);
+  });
+
+  test("REQ-7: never auto-resolved — no -X or --force ever reaches the branch", async () => {
+    const git = fakeGit(CONFLICTING);
+    await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(argv(git.calls).some((a) => a.includes("-X") || a.includes("--force"))).toBe(false);
+  });
+});
+
+// REQ-5's "same bound": `aide-run-spec`'s `PUSH_RETRY_WAITS` (bash) and
+// this file's `PUSH_RETRY_WAITS_MS` (TypeScript) are two literals
+// expressing the same rule with nothing else pinning them together —
+// read as TEXT, the same idea `parsing-schedule-and-errors.test.ts`
+// already uses for `errorReason`, since neither side has a runtime
+// value the other could import.
+describe("the bash and TypeScript retry bounds agree", () => {
+  test("PUSH_RETRY_WAITS (bash) matches PUSH_RETRY_WAITS_MS (TypeScript)", () => {
+    const bashSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "core", "scripts", "aide-run-spec"), "utf-8");
+    const bashMatch = bashSrc.match(/^PUSH_RETRY_WAITS=\(([^)]*)\)/m);
+    expect(bashMatch).not.toBeNull();
+    const bashWaitsMs = bashMatch![1]!.trim().split(/\s+/).map((n) => Number(n) * 1000);
+
+    const tsSrc = readFileSync(join(import.meta.dir, "..", "..", "src", "git", "branch-merge.ts"), "utf-8");
+    const tsMatch = tsSrc.match(/const PUSH_RETRY_WAITS_MS = \[([^\]]*)\];/);
+    expect(tsMatch).not.toBeNull();
+    const tsWaitsMs = tsMatch![1]!.split(",").map((n) => Number(n.trim()));
+
+    expect(tsWaitsMs).toEqual(bashWaitsMs);
+  });
+});

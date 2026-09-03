@@ -11,15 +11,35 @@ export interface GitCall {
   args: string[];
 }
 
+export interface Answer {
+  code: number;
+  stdout?: string;
+  stderr?: string;
+}
+
 /** A runner that answers from a table of `argv` prefixes and records
  *  everything it was asked. The first matching prefix wins, so a table
- *  can put a specific case above a general one. */
-export function fakeGit(answers: Record<string, { code: number; stdout?: string; stderr?: string }>) {
+ *  can put a specific case above a general one. A prefix's answer can
+ *  also be an ARRAY: one entry consumed per call to that prefix (the
+ *  last entry sticks once exhausted), so a test can say "the first push
+ *  fails, the second succeeds" directly — the same idea `flippingGit`'s
+ *  `schedule` already applies to `ls-remote` alone, generalized to any
+ *  prefix (spec 359). */
+export function fakeGit(answers: Record<string, Answer | Answer[]>) {
   const calls: GitCall[] = [];
+  const counts = new Map<string, number>();
   const run: GitRunner = async (dir, args) => {
     calls.push({ dir, args });
-    for (const [prefix, answer] of Object.entries(answers)) {
+    for (const [prefix, entry] of Object.entries(answers)) {
       if (args.join(" ").startsWith(prefix)) {
+        let answer: Answer;
+        if (Array.isArray(entry)) {
+          const n = counts.get(prefix) ?? 0;
+          counts.set(prefix, n + 1);
+          answer = entry[Math.min(n, entry.length - 1)];
+        } else {
+          answer = entry;
+        }
         // `stderr` only where a table says so: the one code path that
         // reads it (branch-merge's index.lock retry) must behave for an
         // absent field exactly as it did before the field existed.

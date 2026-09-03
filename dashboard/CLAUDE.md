@@ -67,6 +67,7 @@ edited by hand together.
 | `codeLanding` — whether code is reviewed before it lands | one anchored `sed` in `aide-run-spec` | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts` | `tests/fixtures/code-landing-precedence.json` |
 | The status-mark rule — which Status cells count as done | `total_progress_for` in `aide-run-spec` | `isDoneMark` in `dashboard/src/project/parse-status.ts` | `tests/fixtures/status-row-counting.json` |
 | An error sentence says what happened AND what resolves it (spec 352) | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec` | `errorSentence()` in `dashboard/src/render/ui/error-sentence.ts`, and every producer that follows its shape by hand | `dashboard/test/render/ui/error-sentence-registry.test.ts` and `tests/specs/unit/core/scripts/test_aide_run_spec.py`'s `BASH_ERROR_REGISTRY`, each reading its own side's source text |
+| The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported (spec 359) | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec` | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts` | `dashboard/test/git/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text |
 
 The workflow's own vocabulary is NOT one of these pairs (spec 349):
 `core/scripts/lib/workflow-steps.json` is the one file both sides read —
