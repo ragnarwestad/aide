@@ -163,10 +163,10 @@ describe("GET /projects (spec 115)", () => {
   // string, so a reader arriving with the token gets the same cookie `/`
   // would have given them.
   test("a token in the address is handed over as the cookie, as on `/`", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, server } = harness.start({ extra: { queueToken: TOKEN } });
     const res = await fetch(`${base}/projects?token=${TOKEN}`);
     expect(res.status).toBe(200);
-    expect(res.headers.get("set-cookie")).toContain("aide_token=");
+    expect(res.headers.get("set-cookie")).toContain(`aide_token_${server.port}=`);
   });
 
   // With no --root there is no project set to list, and an empty listing

@@ -68,10 +68,21 @@ export function cookieValue(header: string | null, name: string): string | null 
  *  a visible jump on every load.
  *
  *  Nothing here is trusted: the renderer falls back to its own defaults
- *  for a column name it does not know. */
-export const SORT_COOKIE = "aide_sort";
+ *  for a column name it does not know.
+ *
+ *  Named after the bound PORT (spec 363): a cookie is scoped by domain
+ *  and path only, never by port, so two boards on `127.0.0.1` at
+ *  different ports already share one jar — a plain, unqualified name
+ *  would let whichever board answered last overwrite the other's
+ *  choice. The port makes the two coexist in that one jar. */
+export const sortCookieName = (port: number): string => `aide_sort_${port}`;
 
-export function sortChoice(url: URL, req: Request): { sort?: string; dir?: string; setCookie?: string } {
+export function sortChoice(
+  url: URL,
+  req: Request,
+  port: number,
+): { sort?: string; dir?: string; setCookie?: string } {
+  const cookieName = sortCookieName(port);
   const sort = url.searchParams.get("sort");
   if (sort) {
     const dir = url.searchParams.get("dir") ?? "";
@@ -79,11 +90,11 @@ export function sortChoice(url: URL, req: Request): { sort?: string; dir?: strin
       sort,
       dir: dir || undefined,
       setCookie:
-        `${SORT_COOKIE}=${encodeURIComponent(`${sort}|${dir}`)}` +
+        `${cookieName}=${encodeURIComponent(`${sort}|${dir}`)}` +
         `; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
-  const stored = cookieValue(req.headers.get("cookie"), SORT_COOKIE);
+  const stored = cookieValue(req.headers.get("cookie"), cookieName);
   if (!stored) return {};
   const [remembered, dir] = stored.split("|");
   return { sort: remembered || undefined, dir: dir || undefined };
@@ -94,19 +105,23 @@ export function sortChoice(url: URL, req: Request): { sort?: string; dir?: strin
  *  wins and becomes the new memory; its absence falls back to the
  *  cookie; nothing here is trusted — `stateFilter()` in
  *  `data-model/filter-sort.ts` falls back to the default for a key it
- *  does not know. */
-export const STATE_COOKIE = "aide_state";
+ *  does not know.
+ *
+ *  Named after the bound port, for the same reason `sortCookieName`
+ *  above is (spec 363). */
+export const stateCookieName = (port: number): string => `aide_state_${port}`;
 
-export function stateChoice(url: URL, req: Request): { state?: string; setCookie?: string } {
+export function stateChoice(url: URL, req: Request, port: number): { state?: string; setCookie?: string } {
+  const cookieName = stateCookieName(port);
   const state = url.searchParams.get("state");
   if (state) {
     return {
       state,
       setCookie:
-        `${STATE_COOKIE}=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+        `${cookieName}=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
-  const stored = cookieValue(req.headers.get("cookie"), STATE_COOKIE);
+  const stored = cookieValue(req.headers.get("cookie"), cookieName);
   return stored ? { state: stored } : {};
 }
 

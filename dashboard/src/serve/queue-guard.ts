@@ -42,12 +42,41 @@ export const isQueuePath = (path: string) =>
   path.startsWith("/queue/") ||
   path.startsWith("/specs/");
 
+/** Whether a bind address is loopback-only — the one address a header
+ *  set by a proxy in front of this process cannot be forged on, since
+ *  nothing else can reach the port at all (spec 363). */
+export const isLoopbackBind = (host: string | undefined): boolean =>
+  host === "127.0.0.1" || host === "::1";
+
 /** The WHOLE queue surface is behind the token, read routes included:
  *  a token that a page hands to anyone who can load the page is not a
  *  secret. `POST /api/aide-run` is exempt on purpose — spec 80's
  *  emitter sends no credential and swallows the answer, so a 401 there
- *  would silently empty /live. */
-export function queueGuard(req: Request, url: URL, queueToken: string | undefined): Response | null {
+ *  would silently empty /live.
+ *
+ *  `port` names this server's own token cookie (spec 363): two boards
+ *  on one host share ONE cookie jar for `127.0.0.1`, so an unqualified
+ *  name would let whichever board answered last overwrite the other's
+ *  cookie — an old, unversioned `aide_token` cookie is therefore never
+ *  read here, on purpose, even if its value would have matched.
+ *
+ *  `headerAuth`, when given, is checked FIRST and can admit a request
+ *  with no token and no cookie at all — a header-only deployment (no
+ *  token file configured) must still work. The caller has already
+ *  refused to start unless the server binds loopback whenever
+ *  `headerAuth` is set (`createServer`), so honoring it here never
+ *  trusts a header a stranger could have set. */
+export function queueGuard(
+  req: Request,
+  url: URL,
+  queueToken: string | undefined,
+  port: number,
+  headerAuth?: { header: string; users: string[] },
+): Response | null {
+  if (headerAuth) {
+    const claimed = req.headers.get(headerAuth.header);
+    if (claimed && headerAuth.users.includes(claimed)) return null;
+  }
   if (!queueToken) {
     return new Response("the queue is off: no token is configured on this server\n", {
       status: 503,
@@ -57,7 +86,7 @@ export function queueGuard(req: Request, url: URL, queueToken: string | undefine
   const provided =
     req.headers.get("x-aide-token") ??
     url.searchParams.get("token") ??
-    cookieValue(req.headers.get("cookie"), "aide_token");
+    cookieValue(req.headers.get("cookie"), `aide_token_${port}`);
   if (tokenMatches(provided, queueToken)) return null;
   return new Response(
     "unauthorized\n\n" +

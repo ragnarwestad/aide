@@ -6,6 +6,7 @@ move it to another host or run the whole thing on one machine.
 ## Table of contents
 
 - [HTTPS, and the one address](#https-and-the-one-address)
+- [Signing in from a proxy's own header](#signing-in-from-a-proxys-own-header)
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
 - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -43,6 +44,41 @@ for something else.
 
 Why it matters beyond a nicer URL: a service worker needs a secure context, so installing the dashboard as an app on a
 phone or a desktop depends on it.
+
+## Signing in from a proxy's own header
+
+A `tailscale serve` proxy in front of the dashboard already knows who the reader is — it sends the signed-in user's
+name as a request header on every request it forwards. `headerAuth`, an optional block in `queue-config.json`, names
+that header and the identifiers allowed in it; a request carrying one of them is let in with no token and no cookie
+at all:
+
+```json
+{
+  "headerAuth": {
+    "header": "Tailscale-User-Login",
+    "users": ["alice@example.com"]
+  }
+}
+```
+
+**Only honoured when `BIND` is `127.0.0.1` (or `::1`).** A header from anywhere else can be set by anyone who can
+reach the port, so a server bound to any other address — `0.0.0.0` included — refuses to start at all while
+`headerAuth` is set, with a message naming both the header and the offending bind address. This is the same
+loopback requirement "HTTPS, and the one address" above already puts on the whole deploy, so a serving host that
+already binds `127.0.0.1` needs nothing further to turn this on.
+
+**The match is exact-string, not a prefix or a domain suffix.** Some proxies carry more than the bare identifier — Google
+IAP's header, for instance, prefixes it with `accounts.google.com:`. Whatever the proxy actually sends has to be the
+literal string listed in `users`; a looser match (a suffix, a substring) would risk admitting more than intended, and
+a wrong guess about the prefix is safer refused than silently widened.
+
+Other proxies that send an equivalent header, for a `headerAuth` block that names theirs instead of Tailscale's:
+
+- **oauth2-proxy** — `X-Forwarded-Email`
+- **Cloudflare Access** — `Cf-Access-Authenticated-User-Email`
+
+The token and its cookie keep working exactly as before, whether or not `headerAuth` is set — API callers and the
+spec 80 emitter, which never pass through the proxy, still need one of them.
 
 ## Installing it as an app
 
