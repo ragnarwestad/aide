@@ -15,7 +15,7 @@ import {
   type RestingState,
 } from "../../ui/job-state.ts";
 import { isArchivedRow, phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { LANDING_FAILED, NO_DATE, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TESTS_RED } from "./row-shared.ts";
+import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TESTS_RED } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -78,10 +78,10 @@ export const phaseWordCell = (
  *  cell up too, with no further server involvement. */
 export function activeDurationCell(g: SpecGroup): string {
   const ms = g.totalDurationMs ?? 0;
-  // Nothing recorded across every phase draws a dash — the same
-  // "nothing to show" rule `costCell()` already gives an all-zero spend.
-  if (ms <= 0) return "–";
-  const text = esc(durationLabel(ms));
+  // `0s`, never a dash: the column answers "how long", and nothing
+  // recorded is an answer to that question. A dash reads as "unknown",
+  // which is a different thing and one this cell never means.
+  const text = esc(durationLabel(Math.max(0, ms)));
   return g.totalDurationSince
     ? `<span class="archive-duration" data-elapsed="${esc(g.totalDurationSince)}">${text}</span>`
     : `<span class="archive-duration">${text}</span>`;
@@ -98,6 +98,11 @@ export function activeDurationCell(g: SpecGroup): string {
  *  or stopping moves nothing on the page around it. */
 export function phaseDurationCell(latest: QueueRowView | undefined, step: string, now: number): string {
   const d = latest ? phaseDuration(latest, step, now) : null;
+  // Empty when the QUEUE has nothing to say, so the caller can fall back
+  // to the phase file's own `Time spent:` stamp (spec 284) — `create`'s
+  // is the only record there is for a phase no job ever ran. The `0s`
+  // every phase ends up showing is written once, after that fallback,
+  // rather than here where it would swallow the stamp.
   if (!d) return "";
   const text = durationLabel(d.ms);
   return d.live
@@ -178,39 +183,28 @@ export function phasePips(phases: Phase[], done: string[]): string {
   );
 }
 
-/** The same column as `activeDurationCell`, with a fallback that cell has
- *  no use for (spec 224): a locked row with nothing summed falls back to
- *  its ARCHIVE date rather than a bare dash, because an archived spec's
- *  own duration comes from its phase files' `Time spent:` lines
- *  (`readerGroup`) and can genuinely be absent for an older archive.
- *
- *  "checking…" is a spec nobody has ASKED git about; `date unknown` is
- *  one git was asked about and could not date. Two different answers,
- *  and a cell saying the wrong one is a cell that lies about whether
- *  there is anything still to find out.
- *
- *  Once a duration exists, the cell shows ONLY the duration (never the
- *  date beside it) — the date was dropped after it read as noise next to
- *  the figure that actually answers "how long". */
-export function archiveDateCell(s: ArchivedSpecView, durationMs: number, lang: Language): string {
-  const date = s.archivedAt != null ? esc(s.archivedAt) : s.dateChecking ? CHECKING : esc(NO_DATE(lang));
-  // Nothing recorded across every phase draws the date alone — the same
-  // "nothing to show" rule costCell() already gives an all-zero spentUsd.
-  if (durationMs <= 0) return date;
-  return `<span class="archive-duration">${esc(durationLabel(durationMs))}</span>`;
+/** The Time column for a locked row: how long the work took, and never
+ *  anything else. A date here is a different question wearing the
+ *  column's clothes, and an empty cell asks whether anything ran — so a
+ *  spec whose phases summed to nothing reads `0s`, the same as an active
+ *  row's. */
+export function archiveDateCell(durationMs: number): string {
+  return `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>`;
 }
 
-/** When the spec was MADE (spec 317, REQ-1/REQ-4) — the same
- *  plain-date, "checking…"-or-`NO_DATE` shape `archiveDateCell` draws
- *  for the Time column's archive date, over a different question and
- *  never a fallback for it: this cell shows nothing once a spec's own
- *  duration exists, unlike that one. One call for either kind of row
- *  (REQ-6) — `SpecGroup.createdAt`/`createdAtChecking` already carry
- *  the archived-row answer by the time this is called, copied up by
- *  `readerGroup()`. */
-export function createdCell(createdAt: string | undefined, checking: boolean, lang: Language): string {
+/** When the spec was MADE (spec 317, REQ-1/REQ-4). One call for either
+ *  kind of row (REQ-6) — `SpecGroup.createdAt`/`createdAtChecking`
+ *  already carry the archived-row answer by the time this is called,
+ *  copied up by `readerGroup()`.
+ *
+ *  A dash where git has no answer, never the words "date unknown": the
+ *  cache is cold for a moment on every restart, and a row that ANNOUNCES
+ *  a failure it is about to recover from teaches the reader to distrust
+ *  the column. "checking…" still stands while the question is out, since
+ *  that one says an answer is coming. */
+export function createdCell(createdAt: string | undefined, checking: boolean): string {
   if (createdAt) return esc(createdAt.slice(0, 10));
-  return checking ? CHECKING : esc(NO_DATE(lang));
+  return checking ? CHECKING : "–";
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).

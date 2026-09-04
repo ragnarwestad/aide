@@ -243,12 +243,15 @@ describe("the job list sorts and filters", () => {
   // same dash `costCell` already uses for zero spend (criterion 2). This
   // used to be "the column falls back to the target's own creation
   // date"; spec 281 removed that fallback along with the date itself.
-  test("a spec with no job rows at all shows a dash, not a date (criterion 2)", () => {
+  test("a spec with no job rows at all shows 0s, not a date (criterion 2)", () => {
     const html = page([], { sort: "started" }, [
       target("77-evicted", { createdAt: "2026-03-01T09:00:00Z" }),
     ]);
     expect(html).toContain("77-evicted");
-    expect(startedCell(html, "77-evicted")).toContain("–");
+    // The column answers "how long", so nothing run is `0s` — and the
+    // date it once fell back to belongs under Created, one cell left.
+    expect(startedCell(html, "77-evicted")).toContain("0s");
+    expect(startedCell(html, "77-evicted")).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   // Neither spec can be dated and neither has ever run: the same

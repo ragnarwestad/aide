@@ -299,13 +299,16 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(html).toContain("90-has-run");
   });
 
-  test("a never-run spec's Cost and Started are dashes (criterion 9)", () => {
+  test("a never-run spec costs a dash and has taken 0s (criterion 9)", () => {
     const line = head(rows([], [target("90-never-run")]), "90-never-run");
     expect(line).not.toContain("$0.00");
     expect(line).not.toContain("Invalid Date");
     expect(line).not.toContain("NaN");
-    // Two dashes: one for Started, one for Cost — plus the action cell.
-    expect(line.match(/–/g)?.length).toBeGreaterThanOrEqual(2);
+    // Cost is unknown until something spends, so it stays a dash. Time
+    // is not unknown: nothing has run, and that is `0s` — an empty cell
+    // there asks the reader whether the row is broken.
+    expect(line).toContain("0s");
+    expect(line.match(/–/g)?.length).toBeGreaterThanOrEqual(1);
   });
 
   test("with neither jobs nor targets the page says there is no spec (criterion 10)", () => {

@@ -178,7 +178,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const html = rows([], [target("124-stack", { createdAt: undefined, createdAtChecking: false })]);
     const spechead = head(html, "124-stack");
     const cell = spechead.slice(spechead.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("date unknown");
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("–");
   });
 
   // The other half of the same distinction every date cell on this page

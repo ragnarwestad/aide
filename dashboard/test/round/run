@@ -37,8 +37,13 @@ WORK="$(mktemp -d)"
 echo "== building local origins in $WORK"
 
 CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"
-git init -q --bare "$CODE_ORIGIN"
-git init -q --bare "$SPECS_ORIGIN"
+# `-b main`, never the machine's own `init.defaultBranch`: git makes
+# `master` where nothing says otherwise, a clone of an empty origin takes
+# that name with it, and the seeding push of `main` then fails with "src
+# refspec main does not match any" — the same trap spec 345's cutover
+# test fell into on a machine whose default branch is master.
+git init -q --bare -b main "$CODE_ORIGIN"
+git init -q --bare -b main "$SPECS_ORIGIN"
 
 CODE="$WORK/code"; SPECS="$WORK/specs"
 git clone -q "$CODE_ORIGIN" "$CODE"
@@ -62,7 +67,18 @@ git -C "$SPECS" push -q origin main
 echo "== preparing the board's own files"
 mkdir -p "$WORK/site" "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
 ln -sfn "$CODE" "$WORK/root/aide-test"
-head -c 24 /dev/urandom | base64 | tr -d '/+=\n' > "$WORK/token"
+# The same token every round, kept outside the throwaway directory. A
+# fresh one per round meant a fresh link per round: the browser's cookie
+# is scoped to the port (spec 363) and a new token invalidates it, so
+# whoever was watching had to be handed a new URL every few minutes.
+# `AIDE_ROUND_TOKEN` overrides it; the file is made once and reused.
+TOKEN_FILE="${AIDE_ROUND_TOKEN_FILE:-$HOME/.aide-round-token}"
+if [ -n "${AIDE_ROUND_TOKEN:-}" ]; then
+  printf '%s' "$AIDE_ROUND_TOKEN" > "$WORK/token"
+else
+  [ -s "$TOKEN_FILE" ] || head -c 24 /dev/urandom | base64 | tr -d '/+=\n' > "$TOKEN_FILE"
+  cat "$TOKEN_FILE" > "$WORK/token"
+fi
 TOKEN="$(cat "$WORK/token")"
 cat > "$WORK/queue-config.json" <<CFG
 {
@@ -120,13 +136,32 @@ curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" -H "X-Aide-Token
 api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
 
 echo "== queue the specs, each through create"
-declare -a FOLDERS=() EXPECTS=()
+declare -a FOLDERS=() EXPECTS=() SLUGS=()
 fails=0
 for spec_json in "$HERE"/specs/*.json; do
   slug="$(basename "$spec_json" .json)"
   title="$(jq -r .title "$spec_json")"
   description="$(cat "$HERE/specs/$slug.md")"
-  dependsOn="$(jq -r '(.dependsOn // []) | join(",")' "$spec_json")"
+  # A fixture names its dependency by the NUMBER in its own file name
+  # ("01"), because the folder that number becomes is only decided when
+  # the spec is created — `aide_next_spec_number` counts what is already
+  # there. `/api/queue/create` takes folders it can resolve, and refuses
+  # a bare number ("unknown spec in dependsOn: 01"), which left the
+  # dependency spec uncreated and shifted every number after it. So the
+  # number is translated here, against the folders this round has already
+  # made. Bash 3.2: parallel arrays, no associative ones.
+  dependsOn=""
+  for dep in $(jq -r '(.dependsOn // [])[]' "$spec_json"); do
+    resolved=""
+    i=0
+    while [ "$i" -lt "${#SLUGS[@]}" ]; do
+      case "${SLUGS[$i]}" in "$dep"-*) resolved="${FOLDERS[$i]}" ;; esac
+      i=$((i + 1))
+    done
+    [ -n "$resolved" ] || { echo "  no folder yet for dependency $dep of $slug"; fails=1; }
+    [ -n "$dependsOn" ] && dependsOn="$dependsOn,"
+    dependsOn="$dependsOn$resolved"
+  done
   body="$(jq -cn --arg p "aide-test" --arg t "$title" --arg d "$description" --arg dep "$dependsOn" \
     '{project:$p, title:$t, description:$d} + (if $dep == "" then {} else {dependsOn:($dep|split(","))} end)')"
   create_job="$(api /api/queue/create "$body" | jq -r .job.id)"
@@ -152,6 +187,9 @@ for spec_json in "$HERE"/specs/*.json; do
   fi
   FOLDERS+=("$spec_folder")
   EXPECTS+=("$(jq -r .expected "$spec_json")")
+  # Kept beside the folder it became, so a later fixture can name this
+  # one as a dependency by the number in its own file name.
+  SLUGS+=("$slug")
   steps="$(jq -r '.steps | join(",")' "$spec_json")"
   api /api/queue "$(jq -cn --arg p "aide-test" --arg f "$spec_folder" --arg s "$steps" \
     '{project:$p, specFolder:$f, steps:($s|split(","))}')" >/dev/null

@@ -186,19 +186,18 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   test("one configured tool leaves the merged cell to the model and the box (criterion 4)", () => {
     const html = rows([], { modelChoices: ONE });
-    // One AI is nothing to choose between, so neither the picker nor
-    // its caption is drawn — and no empty cell is left standing where
-    // the AI column used to be.
-    expect(html).not.toContain("data-ai");
+    // One AI is still named — a heading with no control under it, or a
+    // control under the wrong heading, is what hiding it produced. The
+    // three still share the one merged cell; no column of its own.
     expect(html).not.toContain("toolcell");
-    expect(cells(caption(html))[1]).not.toContain(">AI<");
+    expect(cells(caption(html))[1]).toContain(">AI<");
     for (const step of ["create", "analyze", "implement", "archive"]) {
       const line = subRow(html, step);
       expect([step, cellTags(line)[1]]).toEqual([step, '<td class="modelcell">']);
       const merged = cells(line)[1] ?? "";
       expect([step, merged.includes(`<select name="model.${step}"`)]).toEqual([step, true]);
       expect([step, merged.includes(`data-phase="${step}"`)]).toEqual([step, true]);
-      expect([step, merged.includes("<select data-ai")]).toEqual([step, false]);
+      expect([step, merged.includes("<select data-ai")]).toEqual([step, true]);
     }
   });
 
@@ -206,10 +205,12 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   test("the model select's width is capped by what it IS, not where it sits (criterion 6)", async () => {
     const { CSS } = await import("../../../../src/render/ui/css.ts");
-    // The floor and the cap the caption line and the boxes are lined
-    // up by, unchanged in value from before the merge.
+    // The floor and the cap the caption line and the boxes are lined up
+    // by. 8rem, the AI select's own width: at 100px a name as ordinary
+    // as `fake-model` was clipped mid-word, and a control that cannot
+    // show what it is set to is worse than a slightly wider column.
     expect(CSS).toContain(
-      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }',
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem; max-width: 8rem; }',
     );
     // And selected by the select's own name, never by its position: an
     // AI select sits in front of it on a two-tool line, so a
@@ -221,10 +222,10 @@ describe("spec 192: the phase line's controls share one cell", () => {
     // what makes the sentence above more than a style preference.
     const both = cells(subRow(rows(), "analyze"))[1] ?? "";
     expect(both.indexOf("<select")).toBe(both.indexOf("<select data-ai"));
-    // And the one-tool line puts the model select first, so the cap
-    // has to hold in both arrangements.
+    // And so does the one-tool line: the AI is named there too, so the
+    // arrangement is the same and the cap is asked of the same control.
     const one = cells(subRow(rows([], { modelChoices: ONE }), "analyze"))[1] ?? "";
-    expect(one.indexOf("<select")).toBe(one.indexOf('<select name="model.analyze"'));
+    expect(one.indexOf("<select")).toBe(one.indexOf("<select data-ai"));
   });
 
   // --- criterion 9: seven columns, on every line -----------------------------

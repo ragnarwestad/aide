@@ -2,7 +2,32 @@
 // branch into the default branch of every repo it pushed to, and
 // report per repo (specs 93, 136, 149).
 
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
+
+/** Whether two paths name the same directory, whatever each side spells
+ *  it. `aide-run-spec` reports the root git gave it, and git resolves
+ *  symlinks; the dashboard holds the path it was configured with. On
+ *  macOS a checkout under `$TMPDIR` is `/var/folders/...` to one and
+ *  `/private/var/folders/...` to the other, so a plain string comparison
+ *  said they were different repositories — and the code root nobody
+ *  recognised got no test gate, no code-first ordering and no PR-mode
+ *  exception. A suite that was red on the merge landed on main that way.
+ *
+ *  A path that cannot be resolved — a checkout removed under us —
+ *  answers as itself rather than throwing, so the comparison is then
+ *  exactly the string one it replaces. */
+export function sameRoot(a: string, b: string): boolean {
+  if (a === b) return true;
+  const real = (p: string): string => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return p;
+    }
+  };
+  return real(a) === real(b);
+}
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
@@ -80,7 +105,8 @@ export async function landBranch(
     // root's own landing is confirmed — so for `archive` specifically,
     // code is attempted FIRST, and the loop below stops on a failed
     // code root before the specs root is ever attempted.
-    const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
+    const codeRoot = ctx.machineryProjectDir(job.project);
+    const codeRoots = { has: (root: string) => sameRoot(root, codeRoot) };
     const codeFirst = what.step === "archive";
     const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort((a, b) => {
       const av = Number(codeRoots.has(a.root));
@@ -253,11 +279,19 @@ export async function landBranch(
     // an `analyze` landing runs while implement's code branch is
     // legitimately open, and the same check there would call a
     // healthy landing failed.
-    // Not when the landing's own test gate stopped it: nothing was
-    // merged and nothing was pushed, so of course the branch is still on
-    // origin — saying so adds a second, contradicting instruction ("run
-    // archive again") to the one the gate already gave ("run implement
-    // again"), once per root.
+    // The gate stopping the landing is its own case: nothing was merged
+    // and nothing was pushed, so of course the branch is still on origin.
+    // Repeating the generic "the spec was archived, run archive again"
+    // once per root would add a second, contradicting instruction to the
+    // one the gate just gave ("run implement again") — but the row would
+    // then say nothing at all about where the work IS, while every phase
+    // line reads `done` off the branch's own record. One sentence, once.
+    if (what.step === "archive" && reason === "tests-red") {
+      const held = await ctx.rootsStillHolding(job.project, branch, true);
+      if (held.length) {
+        failures.push(`the archived spec is on ${branch}, not on the default branch yet.`);
+      }
+    }
     if (what.step === "archive" && reason !== "tests-red") {
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that

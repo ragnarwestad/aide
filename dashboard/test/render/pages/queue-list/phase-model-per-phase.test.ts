@@ -175,11 +175,14 @@ describe("spec 169: one picker per phase", () => {
     expect(cap).not.toContain("AI - Model");
   });
 
-  test("one tool is nothing to tell apart, so only the model is named", () => {
+  // One tool is still named. Hiding the AI column left the first select
+  // on the line holding a MODEL under a heading a reader takes for the
+  // AI — and a project running a scripted stand-in could not see from
+  // the row that it was running one.
+  test("one tool is named too, so the headings match the controls under them", () => {
     const cap = caption(rows([], { modelChoices: ONE_TOOL }));
     expect(cap).toContain(">Model<");
-    expect(cap).not.toContain(">AI<");
-    expect(cap).not.toContain("AI - Model");
+    expect(cap).toContain(">AI<");
   });
 
   // --- criterion 9 -----------------------------------------------------------

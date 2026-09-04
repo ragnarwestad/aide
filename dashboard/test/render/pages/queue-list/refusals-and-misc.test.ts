@@ -430,7 +430,8 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
   // machine when the answer is to run implement again.
   test("a landing the suite refused is amber and says so", () => {
     const RED =
-      "archive landing stopped: the project's tests are red on this merge, so nothing was pushed — run implement again, then archive.";
+      "archive landing stopped: the project's tests are red on this merge, so nothing was pushed. " +
+      "The gate log names the failing test; archive lands the work once it passes.";
     const html = renderQueueRows(
       [row({ state: "stopped", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
       { runnerAvailable: true, targets: [] },

@@ -284,9 +284,14 @@ case "$push_mode" in
   *) refuse "invalid --push: $push_mode (none, branch or pr)" ;;
 esac
 
+# `fake-claude` is Claude Code's own path with the binary swapped: same
+# command line, same event format, a script instead of a model. It is
+# named rather than hidden behind AIDE_CLAUDE_BIN alone so a project
+# testing the machinery says so on its rows, and so a run can refuse
+# when nothing is there to stand in.
 case "$tool" in
-  claude|codex) ;;
-  *) refuse "invalid --tool: $tool (claude or codex)" ;;
+  claude|codex|fake-claude) ;;
+  *) refuse "invalid --tool: $tool (claude, codex or fake-claude)" ;;
 esac
 
 if [ -n "$effort" ]; then
@@ -338,6 +343,14 @@ else
   specs_root="$project_root/specs"
 fi
 [ -d "$specs_root" ] || refuse "no specs root at $specs_root"
+# Resolved, because everything below compares it with `git rev-parse
+# --show-toplevel`'s answer BY TEXT to work out where inside the specs
+# repository this root sits. git resolves symlinks and a configured path
+# usually does not: on macOS `$TMPDIR` is `/var/folders/...`, a link to
+# `/private/var/folders/...`, so the prefix never matched, the whole
+# absolute path was taken for the part inside the repo, and a spec folder
+# landed under `<repo>/var/folders/.../<repo>/NN-slug`.
+specs_root="$(cd "$specs_root" 2>/dev/null && pwd -P || printf '%s' "$specs_root")"
 
 # Computed here rather than after the resolver below: the archive
 # fallback in it asks origin, in every root, whether a spec's branch is
@@ -691,6 +704,12 @@ else
   # binary without the whole dashboard following it there.
   claude_override="${AIDE_CLAUDE_BIN:-}"
   [ -n "$claude_override" ] || claude_override="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
+  # `--tool fake-claude` asks for the stand-in BY NAME, so a missing
+  # override is a refusal rather than a silent fall-through to the real
+  # CLI: a run that says it is scripted must never reach a model.
+  if [ "$tool" = "fake-claude" ] && [ -z "$claude_override" ]; then
+    refuse "--tool fake-claude needs a stand-in binary — set AIDE_CLAUDE_BIN in the project's .aide/config"
+  fi
   claude_bin="$(find_bin "$claude_override" claude)"
   [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 fi

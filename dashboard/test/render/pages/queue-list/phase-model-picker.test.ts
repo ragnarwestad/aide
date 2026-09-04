@@ -140,11 +140,11 @@ describe("spec 123: each phase line picks its own model", () => {
     const html = rows([]);
     const cap = caption(html);
     expect(cap).toContain(">Phase<");
-    // `CHOICES` is one tool's models, so there is no AI to choose
-    // between and no column headed for one: the caption is the phase
-    // and the model. Two tools add a word — the case below.
+    // `CHOICES` is one tool's models: one AI to name rather than one to
+    // choose between, and the column is headed all the same — a heading
+    // the controls under it can be lined up against, in every project.
     expect(cap).toContain(">Model<");
-    expect(cap).not.toContain(">AI<");
+    expect(cap).toContain(">AI<");
     // Between the spec's own line and the first phase line. (The
     // caption itself is compared with its stack cell stripped, so the
     // ordering is read off the row tag rather than the text.)

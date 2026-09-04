@@ -101,8 +101,13 @@ describe("the landing's test gate", () => {
 
     expect(verdict.ok).toBe(false);
     expect(verdict.error).toBe(
-      "the project's tests are red on this merge, so nothing was pushed — run implement again, then archive.",
+      "the project's tests are red on this merge, so nothing was pushed. " +
+        "The gate log names the failing test; archive lands the work once it passes.",
     );
+    // Nothing here knows that a second implement run would turn the
+    // suite green: it starts from the same description and plan, and is
+    // never told which test failed. The sentence says what is known.
+    expect(verdict.error).not.toContain("run implement again");
     expect(verdict.error).not.toContain(".log");
     expect(verdict.error).not.toContain("quieter");
     expect(verdict.detail).toContain(".log");

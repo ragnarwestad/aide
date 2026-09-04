@@ -118,14 +118,29 @@ describe("an archived spec's row", () => {
   // The stamp only started being written at spec 147; the older half of
   // the archive has none, and git remembers the commit that moved the
   // folder.
-  test("falls back to the commit that last touched the folder", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED)).toContain("2026-07-30");
+  // The Time column answers "how long", and nothing else: a spec whose
+  // phases recorded no time reads as a dash, the same "nothing to show"
+  // `costCell()` gives an all-zero spend. It used to fall back to the
+  // archive date, which put a date under a heading that asks for a
+  // duration.
+  test("a spec with no recorded time shows 0s, never a date", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
+    const timeCell = row.slice(row.indexOf('data-col="started"'));
+    const body = timeCell.slice(0, timeCell.indexOf("</td>"));
+    expect(body).toContain("0s");
+    expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   // A blank cell for half the archive is the one outcome
   // 1-description.md ruled out by name.
-  test("says so in words when neither the stamp nor git answers", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED)).toContain("date unknown");
+  // A dash, not the words "date unknown": the cache is cold for a moment
+  // after every restart, and a row that announces a failure it is about
+  // to recover from teaches the reader to distrust the column.
+  test("a spec neither the stamp nor git can date reads as a dash", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
+    expect(row).not.toContain("date unknown");
+    const cell = row.slice(row.indexOf('data-col="created"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("–");
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
@@ -135,7 +150,10 @@ describe("an archived spec's row", () => {
   // Acceptance criterion 4: nothing recorded across every phase is the
   // same "nothing to show" `costCell()` already gives an all-zero
   // `spentUsd` — a bare date, no duration span.
-  test("shows no duration span when no phase recorded a time", async () => {
+  // The column answers "how long" for every row, and `0s` is that
+  // answer when no phase recorded a time — an empty cell asks whether
+  // anything ran at all, which the row's own state already says.
+  test("shows 0s when no phase recorded a time", async () => {
     const folder = "271-no-phase-recorded-a-time";
     const { base } = start({}, {
       [folder]: {
@@ -146,7 +164,8 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).not.toContain("archive-duration");
+    expect(body).toContain("0s");
+    expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   // Acceptance criterion 2: the exact bug 1-description.md names — the
@@ -215,10 +234,9 @@ describe("an archived spec's row", () => {
 
   // --- spec 317, REQ-6: an archived row's own Created date -------------------
 
-  // SAME_DAY has no recorded phase duration, so its Time cell falls
-  // back to the archive stamp itself ("2026-08-13") — the exact case
-  // REQ-6 rules out for Created: the new cell must show the spec's TRUE
-  // beginning, not a second copy of the date already beside it.
+  // SAME_DAY has no recorded phase duration, so its Time cell reads
+  // `0s`. Created must show the spec's TRUE beginning — and no cell on
+  // the row may carry the archive stamp ("2026-08-13") in its place.
   test("carries its own creation date, distinct from the archive date beside it (REQ-6)", async () => {
     const gitRun: GitRunner = async (dir, args) => {
       if (args.join(" ").startsWith("log --follow --format=%aI") && dir.includes(SAME_DAY)) {
@@ -229,7 +247,9 @@ describe("an archived spec's row", () => {
     const { base } = start({ gitRun });
     const row = rowFor(await specsList(base, ARCHIVED_VIEW), SAME_DAY);
     const timeCell = row.slice(row.indexOf('data-col="started"'));
-    expect(timeCell.slice(0, timeCell.indexOf("</td>"))).toContain("2026-08-13");
+    const time = timeCell.slice(0, timeCell.indexOf("</td>"));
+    expect(time).toContain("0s");
+    expect(time).not.toContain("2026-08-13");
     const createdCell = row.slice(row.indexOf('data-col="created"'));
     const body = createdCell.slice(0, createdCell.indexOf("</td>"));
     expect(body).toContain("2026-07-01");
@@ -242,6 +262,6 @@ describe("an archived spec's row", () => {
   test("shows the dash convention when the rename-aware lookup cannot date it (REQ-5)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     const createdCell = row.slice(row.indexOf('data-col="created"'));
-    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("date unknown");
+    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("–");
   });
 });

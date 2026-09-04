@@ -159,7 +159,15 @@ async function runSuiteIn(
         // that lost to a busy host are for whoever goes looking, so they
         // ride in `detail` — on hover, and on the job's own page — with
         // the test output that actually names the failure.
-        error: "the project's tests are red on this merge, so nothing was pushed — run implement again, then archive.",
+        // No "run implement again": nothing here knows that a second
+        // implement run would make the suite green. It would start from
+        // the same description and the same plan, and it is never told
+        // which test failed. What IS known is where the failure is
+        // written down, and which press lands the work once the code
+        // passes — the row offers that one and no other.
+        error:
+          "the project's tests are red on this merge, so nothing was pushed. " +
+          "The gate log names the failing test; archive lands the work once it passes.",
         detail: [
           `The test output is in ${log}.`,
           "A timing test that lost to a busy host passes on a re-run: run the step again when the host is quieter.",

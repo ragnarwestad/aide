@@ -448,15 +448,19 @@ describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
     expect(answer.ok).toBe(true);
   });
 
-  test("REQ-2: the pick is reflected back on the very next render", async () => {
+  // The row draws no effort control — the level a step runs at is a
+  // configuration answer, not a per-row pick — so there is no select to
+  // reflect a pick back into. What the route still owes is the record
+  // itself, which the runner reads: a second pick lands on the same
+  // phase without complaint, and the page renders as it did before.
+  test("REQ-2: the pick is recorded, and the row draws no effort control", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
-    await pick(base, "aide", "81-queue-and-runner", "analyze", "high");
+    expect((await pick(base, "aide", "81-queue-and-runner", "analyze", "high")).status).toBe(200);
+    expect((await pick(base, "aide", "81-queue-and-runner", "analyze", "low")).status).toBe(200);
     const html = await (
       await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
     ).text();
-    const group = specControls(html, "81-queue-and-runner");
-    const select = group.match(/<select name="effort\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
-    expect(select).toMatch(/<option value="high"[^>]*selected/);
+    expect(specControls(html, "81-queue-and-runner")).not.toContain('name="effort.analyze"');
   });
 
   test("an unknown level is refused", async () => {

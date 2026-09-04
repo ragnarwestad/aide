@@ -104,10 +104,9 @@ describe("an archived spec's row, opened", () => {
   test("shows the bare recorded model name, not the tool-prefixed string, in a locked select (criterion 1)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     const line = lines["analyze"]!;
-    // The AI select, the model select, and (spec 364) the effort select
-    // — the same three a live row with two configured tools draws,
-    // never a single, hand-rolled one.
-    expect([...line.matchAll(/<select\b/g)]).toHaveLength(3);
+    // The AI select and the model select — the same two a live row
+    // draws, never a single, hand-rolled one.
+    expect([...line.matchAll(/<select\b/g)]).toHaveLength(2);
     expect(line).toContain(" disabled");
     expect(line).toContain(
       '<option value="sonnet" data-tool="claude" title="$3 per step" selected>sonnet</option>',
@@ -159,7 +158,10 @@ describe("an archived spec's row, opened", () => {
     const lines = phaseLines(await openList(), STAMPED);
     for (const step of ["create", ...STAMPED_NOT_RUN]) {
       const line = lines[step]!;
-      expect(line).toContain('<td data-col="started"></td>');
+      // Time always says something — `0s` for a step that recorded
+      // nothing — while cost stays blank: "nothing spent" and "no
+      // figure" are the same answer for money, not for time.
+      expect(line).toContain('<td data-col="started"><span class="muted small">0s</span></td>');
       expect(line).toContain('<td class="num" data-col="cost"></td>');
     }
   });

@@ -99,14 +99,17 @@ describe("a phase says how long it took", () => {
     expect(phaseCell(html, "implement")).not.toContain("40m");
   });
 
-  test("a phase nobody has run shows nothing at all", () => {
+  // Every phase says how long it took, `0s` included — an empty cell
+  // asks the reader whether the phase ran at all, which the badge beside
+  // it already answers.
+  test("a phase nobody has run reads 0s, not an empty cell", () => {
     const html = page([
       job("a1", "aa-spec", {
         startedAt: "2026-08-16T09:00:00Z",
         results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
       }),
     ]);
-    expect(phaseCell(html, "archive")).toBe("");
+    expect(phaseCell(html, "archive")).toContain("0s");
   });
 
   // A running phase carries the instant it began, so the browser can
@@ -212,9 +215,12 @@ describe("a phase says how long it took", () => {
     expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
 
-  test("a spec with no job ever run for it shows a dash", () => {
+  test("a spec with no job ever run for it reads 0s", () => {
     const html = page([], [target("aa-spec", { createdAt: "2026-06-01T09:00:00Z" })]);
-    expect(headCell(html, "aa-spec")).toContain("–");
+    expect(headCell(html, "aa-spec")).toContain("0s");
+    // And never a date: the column answers "how long", and a date under
+    // that heading is a different question wearing its clothes.
+    expect(headCell(html, "aa-spec")).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 });
 
@@ -491,7 +497,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "create", "cost")).not.toContain("$0.00");
   });
 
-  test("REQ-3-AC2: a phase that has genuinely never run stays blank, distinct from create's unknown mark", () => {
+  test("REQ-3-AC2: a phase that has genuinely never run reads 0s, distinct from create's stamped figure", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -502,7 +508,9 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       ],
       [target({ done: ["create", "analyze"] })],
     );
-    expect(phaseCell(html, "archive", "started")).toBe("");
+    expect(phaseCell(html, "archive", "started")).toContain("0s");
+    // Cost is the one that stays blank: nothing was spent, and unlike
+    // time, "nothing spent" and "no figure" are the same answer there.
     expect(phaseCell(html, "archive", "cost")).toBe("");
   });
 

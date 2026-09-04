@@ -83,7 +83,7 @@ describe("the phase lines line up in columns", () => {
     expect(CSS).not.toContain("td.toolcell");
     expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
     expect(CSS).toContain(
-      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }',
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem; max-width: 8rem; }',
     );
   });
 });
