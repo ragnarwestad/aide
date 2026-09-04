@@ -577,6 +577,12 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "status-progress.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
     )
+    # And the runner's own phases (`lib/run-spec-*.sh`, 2026-09-04): the
+    # script sources them by name, so a copy without them refuses before
+    # it starts. Copied by pattern rather than one by one, so a phase
+    # that moves between files does not have to be named here as well.
+    for part in sorted((pathlib.Path(runner).parent / "lib").glob("run-spec-*.sh")):
+        (tmp_path / "lib" / part.name).write_bytes(part.read_bytes())
     return copy
 
 
@@ -3063,10 +3069,10 @@ def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, worksp
 # the other gives a dashboard that accepts a link the run refuses.
 
 
-def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root):
+def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root, run_spec_source):
     import re
 
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    bash = run_spec_source
     m = re.search(r'^WORKTREE_LINK_DENYLIST="([^"]*)"', bash, re.M)
     assert m, "aide-run-spec no longer declares WORKTREE_LINK_DENYLIST as a plain string"
     from_bash = set(m.group(1).split())
@@ -4141,12 +4147,12 @@ def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     assert data["workflowArcRetired"] == ["review-plan"]
 
 
-def test_bash_no_longer_declares_the_step_lists_as_literals(workspace_root):
+def test_bash_no_longer_declares_the_step_lists_as_literals(workspace_root, run_spec_source):
     """REQ-2: the runner reads all four lists from workflow-steps.json now.
     WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
     `NAME="..."` shape once computed), so this checks for the absence of
     the OLD LITERAL VALUE rather than the variable's name."""
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    bash = run_spec_source
     for literal in (
         'WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"',
         'DEPENDENCY_GATED_STEPS="implement archive"',
@@ -5561,7 +5567,7 @@ def test_a_historical_model_line_survives_untouched(runner, workspace, fake_clau
     assert recorded_model(workspace, "create") == "claude claude-opus-5"
 
 
-def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root):
+def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root, run_spec_source):
     """Risk 1, and AC7's structural half. The grammar exists once in
     bash (`completed_steps_for`) and once in TypeScript
     (`subjectPattern`), with no shared source, and BOTH anchor on `$`.
@@ -5573,7 +5579,7 @@ def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root):
     """
     import re
 
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    bash = run_spec_source
     m = re.search(r'^\s*re="(\^Run /aide-[^"]*)"', bash, re.M)
     assert m, "aide-run-spec no longer builds the subject regex as a plain string"
     from_bash = m.group(1).replace("${folder}", "FOLDER")
@@ -7187,14 +7193,14 @@ BASH_ERROR_REGISTRY: list[dict] = [
 ]
 
 
-def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner):
+def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner, run_spec_source):
     """REQ-7: "A test SHALL fail for an error sentence that carries no
     resolution, over the set of sentences the board can show" — this is
     that check for the bash-authored half of the set. Each registry entry
     names a literal or regex fragment expected in the script's own source
     and either a `resolve` substring the matched text must contain, or an
     `exempt` reason there is genuinely nothing to resolve."""
-    source = runner.read_text()
+    source = run_spec_source
     for entry in BASH_ERROR_REGISTRY:
         match = re.search(entry["pattern"], source)
         assert match, f"{entry['name']}: pattern not found in {runner}"

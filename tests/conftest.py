@@ -92,6 +92,28 @@ def clean_env(monkeypatch):
 
 
 @pytest.fixture
+def run_spec_source(workspace_root):
+    """`aide-run-spec` as one text: the script plus every part it sources,
+    in the order it sources them.
+
+    The runner was one 2925-line file until 2026-09-04, when its phases
+    moved into `core/scripts/lib/run-spec-*.sh`. Every test that reads the
+    runner's own source — a sentence it must carry, a regex two copies of
+    which have to agree — reads it through here, so a part moving between
+    files is not a test failure and a sentence disappearing still is.
+    """
+    scripts = workspace_root / "core" / "scripts"
+    text = (scripts / "aide-run-spec").read_text()
+    parts = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        prefix = 'source "$SCRIPT_DIR/lib/'
+        if stripped.startswith(prefix) and stripped.endswith('"'):
+            parts.append(stripped[len(prefix):-1])
+    return "\n".join([text, *((scripts / "lib" / name).read_text() for name in parts)])
+
+
+@pytest.fixture
 def workspace_root():
     """Return actual workspace root path.
 
