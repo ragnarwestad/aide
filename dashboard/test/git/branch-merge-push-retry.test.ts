@@ -11,6 +11,7 @@
 // rebase itself conflicts, which stays a person's call (REQ-3).
 
 import { describe, expect, test } from "bun:test";
+import { runSpecSource } from "../helpers/run-spec-source.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
@@ -175,7 +176,7 @@ describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict",
 // value the other could import.
 describe("the bash and TypeScript retry bounds agree", () => {
   test("PUSH_RETRY_WAITS (bash) matches PUSH_RETRY_WAITS_MS (TypeScript)", () => {
-    const bashSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "core", "scripts", "aide-run-spec"), "utf-8");
+    const bashSrc = runSpecSource();
     const bashMatch = bashSrc.match(/^PUSH_RETRY_WAITS=\(([^)]*)\)/m);
     expect(bashMatch).not.toBeNull();
     const bashWaitsMs = bashMatch![1]!.trim().split(/\s+/).map((n) => Number(n) * 1000);
