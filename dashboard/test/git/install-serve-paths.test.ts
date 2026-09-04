@@ -17,6 +17,7 @@ import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../../src/git/dashboard-checkout.ts";
+import { parseArgs } from "../../src/serve/serve.ts";
 
 const ROOT = join(import.meta.dir, "..", "..");
 
@@ -84,6 +85,28 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
     expect(fromCode).toBe("aide-dashboard-checkouts/aide/code");
     expect(recipe).toContain(`git -C ${fromCode} pull`);
     expect(recipe).toContain(`--working-directory "$home/${fromCode}/dashboard"`);
+  });
+});
+
+// Every script the SERVICE spawns is named by absolute path in the
+// plist, because launchd hands the job a PATH with neither
+// `~/.local/bin` nor mise's shims on it. A script left to be found by
+// name works in every shell a person tries it in and fails only on the
+// serving host, where the button reports "Executable not found in
+// $PATH" — which is how `aide-generate-pdf` shipped unusable while
+// `aide-run-spec` beside it worked.
+describe("the plist names the installed scripts by absolute path", () => {
+  const recipe = dryRun("install-serve", "MINI=example-host");
+
+  test("both scripts the server spawns are passed as arguments", () => {
+    expect(recipe).toContain('--runner-bin "$home/.local/bin/aide-run-spec"');
+    expect(recipe).toContain('--pdf-bin "$home/.local/bin/aide-generate-pdf"');
+  });
+
+  test("--pdf-bin is the argument that sets the generator the PDF route spawns", () => {
+    expect(parseArgs(["--site", "/s", "--pdf-bin", "/opt/bin/aide-generate-pdf"]).pdfGeneratorBin).toBe(
+      "/opt/bin/aide-generate-pdf",
+    );
   });
 });
 

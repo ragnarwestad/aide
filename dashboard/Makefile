@@ -120,6 +120,7 @@ install-serve: require-host
 		--result-dir "$$home/$(REMOTE_STATE)/jobs" \
 		--queue-config "$$home/$(REMOTE_STATE)/queue-config.json" \
 		--runner-bin "$$home/.local/bin/aide-run-spec" \
+		--pdf-bin "$$home/.local/bin/aide-generate-pdf" \
 		--queue-projects "$(QUEUE_PROJECTS)" \
 		$(if $(ROOT),--root "$(ROOT)") \
 		$(if $(BIND),--bind "$(BIND)") \
