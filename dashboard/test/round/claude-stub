@@ -146,6 +146,7 @@ fact_for() {
     add-a-second-fact-to-the-same-file) echo "two branches that touch one line conflict when the second lands" ;;
     a-fact-that-depends-on-the-first) echo "a dependent spec waits until the dependency is archived" ;;
     a-test-that-stays-red) echo "" ;;
+    an-unticked-acceptance-row) echo "an archive with an unticked acceptance row must not land" ;;
     *) echo "" ;;
   esac
 }
@@ -181,6 +182,14 @@ case "$step" in
       a-test-that-stays-red)
         write_test "$slug" "a fact nobody ever adds"
         status_file "✅" "⬜" | write 4-status.md
+        ;;
+      an-unticked-acceptance-row)
+        fact="$(fact_for "$slug")"
+        write_test "$slug" "$fact"
+        append_fact "$fact"
+        { status_file "✅" "✅"
+          printf '\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: a person has judged this | ⬜ | |\n'
+        } | write 4-status.md
         ;;
       *)
         fact="$(fact_for "$slug")"

@@ -1,0 +1,5 @@
+{
+  "title": "An unticked acceptance row",
+  "steps": ["analyze", "implement", "archive"],
+  "expected": "not-archived"
+}

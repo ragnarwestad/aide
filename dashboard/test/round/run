@@ -199,7 +199,11 @@ echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
 start=$(date +%s)
 while :; do
   jobs="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN")"
-  live="$(printf '%s' "$jobs" | jq '[.jobs[] | select(.state=="queued" or .state=="running" or .landing==true)] | length')"
+  # A queued archive held for the acceptance-criteria gate (spec 285) never
+  # leaves "queued" on its own — nobody in this round ticks the row — so it
+  # must not count as live, or the round burns the full TIMEOUT waiting for
+  # a job that holds forever by design (spec 382, plan review must-fix 1).
+  live="$(printf '%s' "$jobs" | jq '[.jobs[] | select((.state=="queued" and (.error.key != "runner.acceptanceCriteriaUnticked")) or .state=="running" or .landing==true)] | length')"
   [ "$live" = "0" ] && break
   # What the specs cron does on the production host every two minutes:
   # the local working copy follows origin. Without this, the queue's
