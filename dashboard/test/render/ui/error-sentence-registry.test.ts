@@ -4,7 +4,7 @@ import { renderQueueRows, type ArchivedSpecView, type QueueRowView } from "../..
 import { notLandedTitle } from "../../../src/render/pages/queue-list/cell-helpers.ts";
 import { wordPhase } from "../../../src/render/ui/job-state.ts";
 import { worktreeLinksError } from "../../../src/project/project-admin/manifest-io.ts";
-import { row } from "../../render/pages/fixtures.ts";
+import { row } from "../pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes
  *  about it: either `resolve` — a substring of `text` that names what

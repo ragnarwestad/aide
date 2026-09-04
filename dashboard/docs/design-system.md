@@ -60,7 +60,7 @@ generated site is published as plain files and has to work opened from a folder.
 
 ## The guard
 
-`test/css-guard-tokens.test.ts` fails the suite on a colour literal or an off-scale font size anywhere in `css.ts`
+`test/design/css-guard-tokens.test.ts` fails the suite on a colour literal or an off-scale font size anywhere in `css.ts`
 outside the token block, and on any CSS class a render file emits that is not one of the components, one of the named
 `queue-client.ts` selector hooks (`rowrun`, `actionform`, `mergeform`, `refused`,
 `refusal`, `newspec`, `newspecform`) or one of the short list of structural names it writes out in full.
@@ -84,7 +84,7 @@ tests under `test/queue-client/` to remove for a class nothing else needs.
 A gap between two interactive controls comes from the flex `gap` on the row that holds them, never from a `margin` on
 one of the components: a component carrying its own margin looks right beside one sibling and wrong, or doubled,
 beside the next.
-`test/css-guard-class-vocabulary.test.ts` asserts that `.mergeform`,
+`test/design/css-guard-class-vocabulary.test.ts` asserts that `.mergeform`,
 `.actionform` and `.extra` declare no
 `margin`, alongside the check that `tr[data-controls] .row`
 still has a scoped, non-`center` `align-items` — a row that mixes a labelled field with plain buttons needs its own
@@ -111,7 +111,7 @@ it belongs to no form — and that is a known limitation, not an oversight.
 
 ## A structural marker with no CSS rule uses data-*, not a class
 
-`test/css-guard-class-vocabulary.test.ts` holds render files to a closed class vocabulary (see [The guard](#the-guard)). A render
+`test/design/css-guard-class-vocabulary.test.ts` holds render files to a closed class vocabulary (see [The guard](#the-guard)). A render
 change that needs to mark up a structural role — nothing to style, just something a test or a future render pass needs
 to find — should not grow that vocabulary for a class that carries no CSS rule. The per-phase caption row
 (`Phase` / `Model` above the phase lines' pickers) is marked

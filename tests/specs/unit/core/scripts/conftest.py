@@ -329,7 +329,7 @@ def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
 
 
 # The spec files the tests build, kept beside this one.
-from .run_spec_status_files import (  # noqa: E402,F401
+from .run_spec.run_spec_status_files import (  # noqa: E402,F401
     REOPEN_BOUNDARY_DATE,
     STATUS_ROW_COUNTING,
     TIME_OF_DAY_RE,
@@ -360,7 +360,7 @@ from .run_spec_status_files import (  # noqa: E402,F401
 
 # The stand-in AIs, kept beside this file — imported here so every part of
 # the suite keeps one import surface.
-from .run_spec_fakes import (  # noqa: E402,F401
+from .run_spec.run_spec_fakes import (  # noqa: E402,F401
     analyze_claude_advancing_row,
     analyze_claude_naming_implement,
     analyze_claude_renaming_the_header,
@@ -385,7 +385,7 @@ from .run_spec_fakes import (  # noqa: E402,F401
 # The project state a run is checked against, and the sentence
 # registry — kept beside this file, imported here so every part of
 # the suite keeps one import surface.
-from .run_spec_project_state import (  # noqa: E402,F401
+from .run_spec.run_spec_project_state import (  # noqa: E402,F401
     BASH_ERROR_REGISTRY,
     BASH_UNTESTABLE,
     CODE_LANDING,
@@ -404,7 +404,7 @@ from .run_spec_project_state import (  # noqa: E402,F401
 # The origins a run pushes to, kept beside this file. Imported here so
 # the fixtures among them reach every part, and so the suite keeps one
 # import surface.
-from .run_spec_origins import (  # noqa: E402,F401
+from .run_spec.run_spec_origins import (  # noqa: E402,F401
     archive_the_spec,
     fake_gh,
     fetchable_origin,
@@ -423,7 +423,7 @@ from .run_spec_origins import (  # noqa: E402,F401
 )
 
 # What a run reports back, kept beside this file.
-from .run_spec_results import (  # noqa: E402,F401
+from .run_spec.run_spec_results import (  # noqa: E402,F401
     CODEX_STREAM_FAILED,
     CODEX_STREAM_OK,
     CODEX_THREAD_ID,
@@ -439,7 +439,7 @@ from .run_spec_results import (  # noqa: E402,F401
 )
 
 # The other ways of invoking the runner, kept beside this file.
-from .run_spec_invoking import (  # noqa: E402,F401
+from .run_spec.run_spec_invoking import (  # noqa: E402,F401
     BRANCH,
     CREATE_KEY,
     SCHEDULE_KEY,

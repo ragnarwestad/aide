@@ -11,7 +11,7 @@ import { join } from "node:path";
  *  reads it through here, so a part moving between files is not a
  *  failure while a call appearing somewhere new still is. */
 export function sourceWithParts(pathUnderSrc: string): string {
-  const src = new URL("../../src/", import.meta.url).pathname;
+  const src = new URL("../../src", import.meta.url).pathname;
   const file = join(src, `${pathUnderSrc}.ts`);
   const dir = join(src, pathUnderSrc);
   const parts = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".ts")).sort() : [];

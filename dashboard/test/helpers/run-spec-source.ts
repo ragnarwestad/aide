@@ -5,7 +5,7 @@ import { join } from "node:path";
  *  reading `tests/conftest.py`'s `run_spec_source` fixture gives the
  *  Python side. The runner was one 2925-line file until 2026-09-04. */
 export function runSpecSource(): string {
-  const scripts = new URL("../../../core/scripts/", import.meta.url).pathname;
+  const scripts = new URL("../../../core/scripts", import.meta.url).pathname;
   const parts = readdirSync(join(scripts, "lib")).filter((f) => f.startsWith("run-spec-") && f.endsWith(".sh"));
   return [
     readFileSync(join(scripts, "aide-run-spec"), "utf-8"),
