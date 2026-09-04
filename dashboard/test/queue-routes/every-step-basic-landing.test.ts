@@ -3,6 +3,16 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickRefusal } from "../../src/serve/land-branch/merge.ts";
 import { TOKEN, specHead, specControls, OPEN_81, mergeEventSink, setupQueueRoutesHarness } from "./fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a job carries, as text. Since spec 380 a job stores
+ *  WHICH message and what fills its blanks; the reader composes it.
+ *  These tests assert on what a reader would see, so they compose it
+ *  the same way, in English. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 import {
   SPEC, BRANCH, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir,
   runStep, settle, merges, result, stepWithResult,
@@ -365,12 +375,12 @@ describe("every step lands its own work (spec 149)", () => {
     );
     const failed = await settle(base, archiving.id, (j) => !!j.error);
 
-    expect(String(failed.error)).toContain(paths.project);
-    expect(String(failed.error)).toContain("conflict");
+    expect(sentence(failed.error)).toContain(paths.project);
+    expect(sentence(failed.error)).toContain("conflict");
     expect(failed.errorReason).toBe("conflict");
     expect(failed.landing).toBeFalsy();
     // REQ-2 (spec 327): the message names the failing step.
-    expect(String(failed.landingError).startsWith("archive landing failed:")).toBe(true);
+    expect(sentence(failed.landingError).startsWith("archive landing failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
     expect(git.calls.some((c) => c.dir === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
@@ -411,7 +421,7 @@ describe("every step lands its own work (spec 149)", () => {
     // to notice `analyze`'s result, one to start `reset` once its
     // landing has cleared), on top of the landing's own retries.
     const running = await settle(base, id, (j) => j.stepIndex === 1 && j.state === "running", 300);
-    expect(String(running.landingError)).toContain("analyze landing failed");
+    expect(sentence(running.landingError)).toContain("analyze landing failed");
 
     writeFileSync(
       join(resultDir(dir), `${id}.json`),
@@ -420,7 +430,7 @@ describe("every step lands its own work (spec 149)", () => {
     const done = await settle(base, id, (j) => j.state === "done" && !j.landing);
 
     expect(done.error).toBeFalsy();
-    expect(String(done.landingError)).toContain("analyze landing failed");
+    expect(sentence(done.landingError)).toContain("analyze landing failed");
   }, 20000);
 
   // Criterion 6. A middle-of-the-workflow step lands what its OWN run
@@ -686,7 +696,7 @@ describe("every step lands its own work (spec 149)", () => {
       (j) => !!j.error,
     );
 
-    expect(String(failed.error)).toContain(paths.specs);
+    expect(sentence(failed.error)).toContain(paths.specs);
     expect(sink.posted).toEqual([]);
   }, 20000);
 });

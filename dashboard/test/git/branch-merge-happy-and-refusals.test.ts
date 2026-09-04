@@ -20,6 +20,15 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
@@ -156,8 +165,8 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
-    expect(result.error).toContain("conflict");
+    expect(sentence(result.error)).toContain(ROOT);
+    expect(sentence(result.error)).toContain("conflict");
     expect(argv(git.calls)).toContain("merge --abort");
     // Nothing is published from a merge that did not happen.
     expect(ran(git.calls, "push")).toBe(false);
@@ -179,7 +188,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain(ROOT);
     expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
     // Spec 96, criterion 16: a real divergence says nothing about
     // `index.lock`, so it is refused on the FIRST attempt. The retry
@@ -192,7 +201,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     const git = fakeGit({ ...CLEAN_MASTER, fetch: { code: 0 }, switch: { code: 1 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("master");
+    expect(sentence(result.error)).toContain("master");
     expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
   });
 
@@ -206,7 +215,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
       "master",
     );
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain(ROOT);
   });
 });
 
@@ -228,8 +237,8 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("merged locally");
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain("merged locally");
+    expect(sentence(result.error)).toContain(ROOT);
     expect(ran(git.calls, "reset")).toBe(false);
     expect(ran(git.calls, "merge --abort")).toBe(false);
   });
@@ -277,8 +286,8 @@ describe("every refusal names the repo AND the branch", () => {
       const git = fakeGit({ ...CLEAN_MASTER, ...overrides });
       const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
       expect(result.ok).toBe(false);
-      expect(result.error).toContain(ROOT);
-      expect(result.error).toContain(BRANCH);
+      expect(sentence(result.error)).toContain(ROOT);
+      expect(sentence(result.error)).toContain(BRANCH);
     });
   }
 

@@ -9,6 +9,15 @@ import {
   type QueueDefaults,
 } from "../../src/queue/queue.ts";
 import { parseArgs } from "../../src/serve/serve.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -250,7 +259,7 @@ describe("editing a running job's tail (spec 160)", () => {
       const answer = job.store.editTailStep(job.id, step, add);
       expect(`${step} ${add}: ${answer.ok}`).toBe(`${step} ${add}: false`);
       // Named, never a bare "no": the row has one line to say why.
-      if (!answer.ok) expect(answer.error).toContain(step);
+      if (!answer.ok) expect(sentence(answer.error)).toContain(step);
     }
     expect(job.steps()).toEqual(["analyze", "implement"]);
   });
@@ -265,7 +274,7 @@ describe("editing a running job's tail (spec 160)", () => {
     job.store.update(job.id, { stepIndex: 1 });
     const answer = job.store.editTailStep(job.id, "implement", false);
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toContain("implement");
+    if (!answer.ok) expect(sentence(answer.error)).toContain("implement");
     expect(job.steps()).toEqual(["analyze", "implement"]);
   });
 
@@ -293,7 +302,7 @@ describe("editing a running job's tail (spec 160)", () => {
     const job = running(["implement", "archive"]);
     const answer = job.store.editTailStep(job.id, "analyze", true);
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toContain("analyze");
+    if (!answer.ok) expect(sentence(answer.error)).toContain("analyze");
     expect(job.steps()).toEqual(["implement", "archive"]);
   });
 
@@ -350,7 +359,7 @@ describe("refusing an enqueue while the spec's last job is still landing (spec 2
     s.update(create.job.id, { state: "done", landing: true });
     const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(answer.error).toContain(REQ.specFolder);
+    if (!answer.ok) expect(sentence(answer.error)).toContain(REQ.specFolder);
   });
 
   test("an unrelated spec is unaffected while this one is landing", () => {

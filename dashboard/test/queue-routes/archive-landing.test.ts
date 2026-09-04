@@ -7,6 +7,16 @@ import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../archived-specs-fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a job carries, as text. Since spec 380 a job stores
+ *  WHICH message and what fills its blanks; the reader composes it.
+ *  These tests assert on what a reader would see, so they compose it
+ *  the same way, in English. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 import {
   TOKEN,
   specHead,
@@ -195,8 +205,8 @@ describe("landing an archived spec (spec 136)", () => {
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const failed = await settle(base, job.id, (j) => !!j.error);
 
-    expect(String(failed.error)).toContain(SPECS_REPO);
-    expect(String(failed.error)).toContain("conflict");
+    expect(sentence(failed.error)).toContain(SPECS_REPO);
+    expect(sentence(failed.error)).toContain("conflict");
     expect(failed.landing).toBeFalsy();
     // Nothing half-merged is left behind, and the branch is still there
     // to press Merge (or resolve) against.
@@ -278,10 +288,10 @@ describe("landing an archived spec (spec 136)", () => {
     );
     const failed = await settle(base, job.id, (j) => !!j.error);
 
-    expect(String(failed.error)).toContain(SPECS_REPO);
-    expect(String(failed.error)).toContain("conflict");
+    expect(sentence(failed.error)).toContain(SPECS_REPO);
+    expect(sentence(failed.error)).toContain("conflict");
     // The gone repo contributes nothing to the sentence a person reads.
-    expect(String(failed.error)).not.toContain("nothing left to merge");
+    expect(sentence(failed.error)).not.toContain("nothing left to merge");
     expect(failed.errorReason).toBe("conflict");
     // Two repos, each running the landing's three tries with a pause
     // between them, so this one is genuinely slower than the default.
@@ -315,8 +325,8 @@ describe("landing an archived spec (spec 136)", () => {
       );
       const failed = await settle(base, job.id, (j) => !!j.error);
 
-      expect(String(failed.error)).toContain(CODE_REPO);
-      expect(String(failed.error)).toContain("conflict");
+      expect(sentence(failed.error)).toContain(CODE_REPO);
+      expect(sentence(failed.error)).toContain("conflict");
       expect(failed.errorReason).toBe("conflict");
       // The code root was attempted (and failed) — the specs root, which
       // carries the "completed" stamp, was never attempted at all.
@@ -390,9 +400,9 @@ describe("landing an archived spec (spec 136)", () => {
       expect(landed.error).toBeFalsy();
       expect(landed.errorReason).toBeFalsy();
       expect(git.calls.some((c) => c.dir === specsRoot && c.args[0] === "push")).toBe(true);
-      expect(String(landed.branchDeleteError)).toContain(specsRoot);
-      expect(String(landed.branchDeleteError)).toContain(BRANCH);
-      expect(String(landed.branchDeleteError)).toContain("remote rejected: hook declined");
+      expect(sentence(landed.branchDeleteError)).toContain(specsRoot);
+      expect(sentence(landed.branchDeleteError)).toContain(BRANCH);
+      expect(sentence(landed.branchDeleteError)).toContain("remote rejected: hook declined");
     });
 
     // Risk mitigation from the plan: the guard must skip only the root
@@ -433,8 +443,8 @@ describe("landing an archived spec (spec 136)", () => {
       );
       const failed = await settle(base, job.id, (j) => !!j.error);
 
-      expect(String(failed.error)).toContain(codeRoot);
-      expect(String(failed.error)).not.toContain(specsRoot);
+      expect(sentence(failed.error)).toContain(codeRoot);
+      expect(sentence(failed.error)).not.toContain(specsRoot);
       expect(failed.errorReason).toBe("unlanded");
     });
   });
@@ -478,7 +488,7 @@ describe("landing an archived spec (spec 136)", () => {
       );
       const failed = await settle(base, job.id, (j) => !!j.error);
 
-      const errorText = String(failed.error);
+      const errorText = sentence(failed.error);
       expect(errorText).toContain(resolvedRoot);
       expect(errorText).not.toContain(specsRoot);
     });
@@ -513,7 +523,7 @@ describe("landing an archived spec (spec 136)", () => {
       writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
       const failed = await settle(base, job.id, (j) => !!j.error);
 
-      const errorText = String(failed.error);
+      const errorText = sentence(failed.error);
       const stillOnOrigin = errorText.split("still on origin").length - 1;
       expect(stillOnOrigin).toBe(1);
       expect(errorText).toContain(codeRoot);

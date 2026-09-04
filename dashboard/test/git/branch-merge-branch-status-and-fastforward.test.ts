@@ -7,6 +7,15 @@
 import { describe, expect, test } from "bun:test";
 import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
@@ -29,9 +38,9 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(BRANCH);
-    expect(result.error).toContain("not on origin");
-    expect(result.error).not.toContain("conflict");
+    expect(sentence(result.error)).toContain(BRANCH);
+    expect(sentence(result.error)).toContain("not on origin");
+    expect(sentence(result.error)).not.toContain("conflict");
   });
 
   // Spec 129: 54 of the 75 refusals in the log were this one, across 23
@@ -109,7 +118,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toBe(
+    expect(sentence(result.error)).toBe(
       `cannot fast-forward master — merge it by hand, in the checkout on the serving host (${BRANCH} in ${ROOT})`,
     );
     expect(result.reason).toBeUndefined();
@@ -156,7 +165,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("cannot fast-forward master");
+    expect(sentence(result.error)).toContain("cannot fast-forward master");
     expect(git.calls.some((c) => c.args[0] === "reset")).toBe(false);
   });
 
@@ -215,8 +224,8 @@ describe("fastForwardToOrigin", () => {
     const git = fakeGit({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature-x\n" } });
     const result = await fastForwardToOrigin(git.run, ROOT, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("feature-x");
-    expect(result.error).toContain("master");
+    expect(sentence(result.error)).toContain("feature-x");
+    expect(sentence(result.error)).toContain("master");
     expect(ran(git.calls, "fetch")).toBe(false);
     expect(ran(git.calls, "pull")).toBe(false);
   });
@@ -229,7 +238,7 @@ describe("fastForwardToOrigin", () => {
     });
     const result = await fastForwardToOrigin(git.run, ROOT, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain(ROOT);
   });
 
   test("the index-lock retry: a lock that clears lets the pull through", async () => {
@@ -256,7 +265,7 @@ describe("fastForwardToOrigin", () => {
     };
     const result = await fastForwardToOrigin(run, ROOT, "master");
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain(ROOT);
   });
 });
 

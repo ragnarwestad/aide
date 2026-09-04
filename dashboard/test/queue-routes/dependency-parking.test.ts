@@ -5,6 +5,15 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TOKEN, OPEN_81, setupQueueRoutesHarness } from "./fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a job carries, as text. Since spec 380 a job stores
+ *  WHICH message and what fills its blanks; the reader composes it,
+ *  and so does a test that asserts on what a reader would see. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -133,10 +142,10 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(existsSync(argvFile)).toBe(false);
 
     const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: { state: string; error?: string }[];
+      jobs: { state: string; error?: unknown }[];
     };
     expect(listed.jobs[0].state).toBe("queued");
-    expect(listed.jobs[0].error).toContain("80-dependency");
+    expect(sentence(listed.jobs[0].error)).toContain("80-dependency");
   });
 
   test("only the specs root is ever asked — the project root plays no part in this question", async () => {
@@ -359,10 +368,10 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       expect(existsSync(argvFile)).toBe(false);
 
       const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-        jobs: { state: string; error?: string }[];
+        jobs: { state: string; error?: unknown }[];
       };
       expect(listed.jobs[0].state).toBe("queued");
-      expect(listed.jobs[0].error).toBe(
+      expect(sentence(listed.jobs[0].error)).toBe(
         "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
       );
     });
@@ -417,10 +426,10 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       expect(existsSync(argvFile)).toBe(false);
 
       const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-        jobs: { state: string; error?: string }[];
+        jobs: { state: string; error?: unknown }[];
       };
       expect(listed.jobs[0].state).toBe("queued");
-      expect(listed.jobs[0].error).toBe("held back: not analyzed yet — run /aide-analyze first");
+      expect(sentence(listed.jobs[0].error)).toBe("held back: not analyzed yet — run /aide-analyze first");
     });
 
     test("the job proceeds once analyze is on the line", async () => {

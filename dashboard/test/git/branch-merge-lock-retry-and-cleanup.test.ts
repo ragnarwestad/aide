@@ -7,6 +7,15 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
@@ -63,7 +72,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     const git = pullFailing(99, LOCK);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
+    expect(sentence(result.error)).toContain(ROOT);
     // Bounded: a stuck lock costs a fraction of a second, not the
     // request. The count is the bound, stated once.
     expect(git.pulls()).toBeLessThanOrEqual(6);
@@ -90,7 +99,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     const git = pullFailing(99, "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.");
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("cannot fast-forward master");
+    expect(sentence(result.error)).toContain("cannot fast-forward master");
     expect(result.detail).toContain("packed-refs.lock");
   });
 
@@ -183,10 +192,10 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     const result = await mergeBranchIntoDefault(run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
-    expect(result.branchDeleteError).toContain(BRANCH);
+    expect(sentence(result.branchDeleteError)).toContain(BRANCH);
     // git's own stderr (spec 352, REQ-5) rides in `detail`, never in the
     // sentence itself.
-    expect(result.branchDeleteError).not.toContain("refusing to delete");
+    expect(sentence(result.branchDeleteError)).not.toContain("refusing to delete");
     expect(result.detail).toContain("refusing to delete");
   });
 
@@ -257,7 +266,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
-    expect(result.branchDeleteError).toContain(BRANCH);
+    expect(sentence(result.branchDeleteError)).toContain(BRANCH);
     // "In both places, or in neither": origin still has it, so this
     // checkout keeps its copy too.
     expect(ran(git.calls, "branch -d")).toBe(false);

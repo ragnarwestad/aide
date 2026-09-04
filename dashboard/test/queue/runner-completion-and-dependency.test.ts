@@ -4,6 +4,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../src/queue/queue.ts";
 import { DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const resolve = (project: string) =>
   project === "aide" ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] } : null;
@@ -124,7 +133,7 @@ describe("spec 93: the completion hook and the landing window", () => {
     runner.poll();
     const row = store.get(job.id);
     expect(row?.state).toBe("failed");
-    expect(row?.error).toBe("the step's own work did not reach origin: /path/to/project");
+    expect(sentence(row?.error)).toBe("the step's own work did not reach origin: /path/to/project");
   });
 
   test("a landing flag left behind by a restart never wedges the queue", () => {
@@ -160,7 +169,7 @@ describe("parked on a dependency (spec 122)", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(stored?.error).toContain("80-dependency");
+    expect(sentence(stored?.error)).toContain("80-dependency");
   });
 
   test("the same job starts once the map no longer names it", () => {
@@ -221,7 +230,7 @@ describe("parked on its own missing analyze step (spec 344)", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(stored?.error).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(stored?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
   });
 
   test("the same job starts once the set no longer names it", () => {
@@ -241,7 +250,7 @@ describe("parked on its own missing analyze step (spec 344)", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), new Set([job.id]));
     expect(spawns.length).toBe(0);
-    expect(store.get(job.id)?.error).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
   });
 
   test("no set at all is exactly today's behaviour", () => {
@@ -299,7 +308,7 @@ describe("a step appended to a running job's tail (spec 160)", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(after.error).toContain("held back: depends on 80-dependency");
+    expect(sentence(after.error)).toContain("held back: depends on 80-dependency");
   });
 });
 
@@ -317,7 +326,7 @@ describe("a job parked on unticked acceptance criteria", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(stored?.error).toBe(REASON);
+    expect(sentence(stored?.error)).toBe(REASON);
   });
 
   test("the same job starts once the set no longer names it", () => {
@@ -335,6 +344,6 @@ describe("a job parked on unticked acceptance criteria", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), undefined, new Set([job.id]));
     expect(spawns.length).toBe(0);
-    expect(store.get(job.id)?.error).toContain("held back: depends on 80-dependency");
+    expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80-dependency");
   });
 });

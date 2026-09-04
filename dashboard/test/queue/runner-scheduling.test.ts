@@ -2,6 +2,15 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -92,7 +101,7 @@ describe("several jobs at once", () => {
     expect(store.get(a.id)?.state).toBe("running");
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(held.error).toContain("another archive is running in this project");
+    expect(sentence(held.error)).toContain("another archive is running in this project");
   });
 
   // The sentence on a queued row is the reason RIGHT NOW. It used to be
@@ -126,7 +135,7 @@ describe("several jobs at once", () => {
     runner.tick();
     expect(spawns.length).toBe(0);
     const held = store.get(b.id)!;
-    expect(held.error).toContain("a landing is still running");
+    expect(sentence(held.error)).toContain("a landing is still running");
     expect(held.errorReason).toBe("held-back");
   });
 
@@ -164,7 +173,7 @@ describe("several jobs at once", () => {
     expect(store.get(a.id)?.state).toBe("running");
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(held.error).toContain("daily cap");
+    expect(sentence(held.error)).toContain("daily cap");
   });
 
   test("a job held by the daily cap does not block a cheaper one behind it", () => {
@@ -174,7 +183,7 @@ describe("several jobs at once", () => {
     runner.addSpentToday(18); // 18 + 3 > 20, but 18 + 1 is not
     runner.tick();
     expect(store.get(dear.id)?.state).toBe("queued");
-    expect(store.get(dear.id)?.error).toContain("daily cap");
+    expect(sentence(store.get(dear.id)?.error)).toContain("daily cap");
     expect(store.get(cheap.id)?.state).toBe("running");
   });
 });
@@ -213,7 +222,7 @@ describe("quick steps before slow ones", () => {
     expect(store.get(analyze.id)?.state).toBe("running");
     const held = store.get(archive.id)!;
     expect(held.state).toBe("queued");
-    expect(held.error).toContain("held back");
+    expect(sentence(held.error)).toContain("held back");
   });
 });
 
@@ -270,7 +279,7 @@ describe("steps and cost", () => {
     expect(after.state).toBe("stopped");
     expect(after.stopReason as string).toBe("provider-limit");
     expect(after.stepIndex).toBe(0);
-    expect(after.error).toContain("resets 2026-08-24");
+    expect(sentence(after.error)).toContain("resets 2026-08-24");
     runner.tick();
     expect(spawns).toHaveLength(1);
   });
@@ -283,7 +292,7 @@ describe("steps and cost", () => {
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.state).toBe("failed");
-    expect(store.get(job.id)?.error).toContain("dirty");
+    expect(sentence(store.get(job.id)?.error)).toContain("dirty");
   });
 
   // Spec 153. A step refused at START for a conflict — the runner

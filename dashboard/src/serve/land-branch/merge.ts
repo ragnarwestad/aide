@@ -98,8 +98,12 @@ export async function landBranch(
   // (`cell-helpers.ts`'s `liveMarks()`) already shows beside it — and a
   // landing runs with nobody's browser attached, so there is no `lang`
   // here to render `msg` with anyway (REQ-1/REQ-3).
-  const firstLandingError = (msg: Sentence | Sentence[]): Sentence | Sentence[] =>
-    ctx.queue.get(job.id)?.landingError ?? msg;
+  const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>
+    ctx.queue.get(job.id)?.landingError ?? {
+      key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const),
+      values: { step: what.step },
+      inner: msg,
+    };
   try {
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
@@ -253,7 +257,12 @@ export async function landBranch(
           // composes this as a `BoardMessage`, never a plain string.
           const del = result.branchDeleteError;
           deleteErrors.push(
-            typeof del === "object" ? { key: del.key, values: { ...del.values, root: repo.root } } : del,
+            typeof del === "object"
+              ? {
+                  key: result.detail ? ("landing.branchDeleteFailedWhy" as const) : del.key,
+                  values: { ...del.values, root: repo.root, ...(result.detail ? { detail: result.detail } : {}) },
+                }
+              : del,
           );
         }
       } else if (result.reason === "gone") {
@@ -362,7 +371,7 @@ export async function landBranch(
         error: failures,
         errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
         errorReason: reason,
-        landingError: firstLandingError(failures),
+        landingError: firstLandingError(failures, held),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);

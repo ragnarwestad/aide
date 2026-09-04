@@ -5,6 +5,16 @@ import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a job carries, as text. Since spec 380 a job stores
+ *  WHICH message and what fills its blanks; the reader composes it.
+ *  These tests assert on what a reader would see, so they compose it
+ *  the same way, in English. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 import {
   TOKEN,
   JOB,
@@ -219,7 +229,7 @@ describe("landing a created spec (spec 93)", () => {
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(failed.specFolder).toBe(job.specFolder);
-    expect(String(failed.error)).toContain(SPECS_REPO);
+    expect(sentence(failed.error)).toContain(SPECS_REPO);
     expect(failed.landing).toBeFalsy();
     // Nothing half-merged is left for the next thing to trip over.
     expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);

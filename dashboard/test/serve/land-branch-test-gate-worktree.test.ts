@@ -10,6 +10,15 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -100,16 +109,16 @@ describe("the landing's test gate", () => {
     const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" });
 
     expect(verdict.ok).toBe(false);
-    expect(verdict.error).toBe(
+    expect(sentence(verdict.error)).toBe(
       "the project's tests are red on this merge, so nothing was pushed. " +
         "The gate log names the failing test; archive lands the work once it passes.",
     );
     // Nothing here knows that a second implement run would turn the
     // suite green: it starts from the same description and plan, and is
     // never told which test failed. The sentence says what is known.
-    expect(verdict.error).not.toContain("run implement again");
-    expect(verdict.error).not.toContain(".log");
-    expect(verdict.error).not.toContain("quieter");
+    expect(sentence(verdict.error)).not.toContain("run implement again");
+    expect(sentence(verdict.error)).not.toContain(".log");
+    expect(sentence(verdict.error)).not.toContain("quieter");
     expect(verdict.detail).toContain(".log");
     expect(verdict.detail).toContain("quieter");
   });

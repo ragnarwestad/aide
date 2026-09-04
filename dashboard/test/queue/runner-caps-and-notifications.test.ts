@@ -4,6 +4,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dir, events, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -67,7 +76,7 @@ describe("caps are checked before a step starts", () => {
     expect(spawns.length).toBe(0);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(after.error).toContain("daily cap");
+    expect(sentence(after.error)).toContain("daily cap");
   });
 
   test("the per-job cap parks the job instead of starting another step", () => {
@@ -79,7 +88,7 @@ describe("caps are checked before a step starts", () => {
     expect(spawns.length).toBe(1);
     const after = store.get(job.id)!;
     expect(after.state).toBe("stopped");
-    expect(after.error).toContain("job cap");
+    expect(sentence(after.error)).toContain("job cap");
     expect(after.stopReason).toBe("job-cap");
   });
 

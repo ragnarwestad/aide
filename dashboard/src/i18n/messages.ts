@@ -248,11 +248,37 @@ export const MESSAGES = {
     // returns none at all.
     exempt: "a fallback for when the test gate's own verdict carries no message of its own",
   },
+  // Which step's landing this was, in front of what went wrong. The
+  // badge beside the row names the step the job is on NOW, which is not
+  // the same thing: a landing failure from an earlier step stands on the
+  // row while a later step runs (spec 327).
+  "landing.stepFailed": {
+    en: "{step} landing failed: {message}",
+    nb: "landingen av {step} feilet: {message}",
+    exempt: "the resolution is the message it carries",
+  },
+  "landing.stepStopped": {
+    en: "{step} landing stopped: {message}",
+    nb: "landingen av {step} ble stoppet: {message}",
+    exempt: "the resolution is the message it carries",
+  },
   "landing.branchDeleteFailed": {
     en: "{root}: merged, but deleting {branch} on origin failed — delete it by hand, in the checkout " +
       "on the serving host",
     nb: "{root}: slått sammen, men sletting av {branch} på origin feilet — slett den for hånd, i det " +
       "lokale repoet på serveren",
+    resolve: "delete it by hand",
+  },
+  // The same, with git's own reason in parentheses. `mergeBranchIntoDefault`
+  // keeps its stderr in `detail` and out of the sentence (spec 352,
+  // REQ-5); `landBranch` — which is what writes the JOB's own record —
+  // puts the two together, so the record still says why the delete was
+  // refused.
+  "landing.branchDeleteFailedWhy": {
+    en: "{root}: merged, but deleting {branch} on origin failed — delete it by hand, in the checkout " +
+      "on the serving host ({detail})",
+    nb: "{root}: slått sammen, men sletting av {branch} på origin feilet — slett den for hånd, i det " +
+      "lokale repoet på serveren ({detail})",
     resolve: "delete it by hand",
   },
 

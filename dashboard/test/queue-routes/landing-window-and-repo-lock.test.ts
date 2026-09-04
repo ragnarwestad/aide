@@ -9,6 +9,15 @@ import { type GitRunner } from "../../src/git/branch-status.ts";
 import { installAfterMerge, restartAfterLanding, type LandContext, type RestartHook } from "../../src/serve/land-branch.ts";
 import type { RepoMergeResult } from "../../src/git/branch-merge.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a landing carries, as text: since spec 380 it is
+ *  stored as WHICH message and what fills its blanks, and the
+ *  reader composes it. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 import {
   TOKEN,
   setupQueueRoutesHarness,
@@ -566,8 +575,8 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
 
     await installAfterMerge(ctx, result);
 
-    expect(result.installError).toContain("install command");
-    expect(result.installError).not.toContain("AIDE_INSTALL_CMD");
+    expect(sentence(result.installError)).toContain("install command");
+    expect(sentence(result.installError)).not.toContain("AIDE_INSTALL_CMD");
   });
 
   // The companion to criterion 4, rewritten around the ownership move:

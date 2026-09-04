@@ -15,6 +15,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mergeBranchIntoDefault } from "../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** What a reader would see: since spec 380 a message is stored as
+ *  its key and the values that fill its blanks, and composed when
+ *  the page is drawn. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
@@ -92,8 +101,8 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("moved on origin under this landing twice");
-    expect(result.error).toContain("run the step again");
+    expect(sentence(result.error)).toContain("moved on origin under this landing twice");
+    expect(sentence(result.error)).toContain("run the step again");
     expect(result.reason).toBeUndefined();
     const seq = argv(git.calls);
     expect(seq.filter((a) => a === "push -q origin master")).toHaveLength(2);
@@ -115,8 +124,8 @@ describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", wait);
     expect(result.ok).toBe(false);
-    expect(result.error).toContain(ROOT);
-    expect(result.error).toContain(BRANCH);
+    expect(sentence(result.error)).toContain(ROOT);
+    expect(sentence(result.error)).toContain(BRANCH);
     expect(waits).toEqual([1000, 2000]);
   });
 
@@ -220,12 +229,12 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("tests-red");
-    expect(result.error).toContain("tests are red");
+    expect(sentence(result.error)).toContain("tests are red");
     // The row's sentence is the gate's own and nothing else: the branch
     // and the checkout are for whoever goes looking, so they ride in the
     // detail — unlike every refusal beside this one, where the checkout
     // IS the place a person has to go.
-    expect(result.error).toBe("the project's tests are red on the merge");
+    expect(sentence(result.error)).toBe("the project's tests are red on the merge");
     expect(result.detail).toContain("FAILED test_x");
     expect(result.detail).toContain(`${BRANCH} in ${ROOT}`);
     const seq = argv(git.calls);

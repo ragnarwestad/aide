@@ -2,6 +2,16 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { TOKEN, setupQueueRoutesHarness } from "./fixtures.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+
+/** The message a job carries, as text. Since spec 380 a job stores
+ *  WHICH message and what fills its blanks; the reader composes it.
+ *  These tests assert on what a reader would see, so they compose it
+ *  the same way, in English. */
+function sentence(s: unknown): string {
+  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+}
+
 import {
   SPEC, BRANCH, AUTH, createOwnDirs, gitFor, repos, serverWith, resultDir,
   settle, result, stepWithResult,
@@ -57,12 +67,12 @@ describe("an archive landing asks origin whether anything stayed open", () => {
 
     expect(failed.state).toBe("failed");
     expect(failed.errorReason).toBe("unlanded");
-    expect(String(failed.error)).toContain(paths.project);
-    expect(String(failed.error)).toContain(BRANCH);
+    expect(sentence(failed.error)).toContain(paths.project);
+    expect(sentence(failed.error)).toContain(BRANCH);
     // Spec 201: the state is half the sentence — the other half is
     // the move. The row's own button already offers it; the message
     // has to say so.
-    expect(String(failed.error).toLowerCase()).toContain("run archive again");
+    expect(sentence(failed.error).toLowerCase()).toContain("run archive again");
   }, 20000);
 
   // Criterion 3. The happy path is the one this whole change must not
@@ -151,7 +161,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     // Queued for implement, with the analyze landing's refusal on the
     // row beside it — not stranded as a failed job.
     expect(after.state).toBe("queued");
-    expect(String(after.error)).toContain(paths.specs);
+    expect(sentence(after.error)).toContain(paths.specs);
   }, 20000);
 
   // Criterion 8. The way out. A re-run of `archive` needs no new step:
