@@ -51,6 +51,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.notPushed": "ikke pushet",
   "list.noPullRequest": "ingen pull-forespørsel",
   "list.landingFailed": "landing feilet",
+  "list.landingStep": "lander {step}",
   "list.testsRed": "testene er røde",
   "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",

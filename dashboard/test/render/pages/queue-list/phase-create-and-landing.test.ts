@@ -283,11 +283,34 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     );
     const line = head(html, "254-landing");
     expect(line).toContain('class="badge b-running"');
-    expect(line).toContain("creating");
+    // The landing is what the row says, not the step's own gerund: a
+    // step that reported success is not still running, and the merge is
+    // the thing everything else in the queue is waiting for.
+    expect(line).toContain("landing create");
     expect(line).not.toContain('class="badge b-ready"');
     const cell = actionCell(controlsLine(html, "254-landing"));
     expect(cell).toContain(">Cancel</button>");
     expect(cell).not.toContain(">Analyze</button>");
+  });
+
+  // The shape that used to hide the landing completely: the job has
+  // already stepped on to its NEXT step while the last one's branch is
+  // still merging, so `state` reads `queued` and the row drew
+  // "implementing 2/2" over a spec whose ANALYZE was landing — the one
+  // reason nothing in the queue could start (2026-09-04). The step named
+  // is the landing's own, the one just finished.
+  test("a job queued on its next step while the last one lands says so", () => {
+    const html = rows(
+      [row({
+        id: "j1", specFolder: "254-landing", steps: ["analyze", "implement"], stepIndex: 1,
+        state: "queued", landing: true,
+      })],
+      [target("254-landing")],
+    );
+    const line = head(html, "254-landing");
+    expect(line).toContain('class="badge b-running"');
+    expect(line).toContain("landing analyze");
+    expect(line).not.toContain("implementing");
   });
 
   // Criterion 4, the regression guard: once `landing` has cleared (the
