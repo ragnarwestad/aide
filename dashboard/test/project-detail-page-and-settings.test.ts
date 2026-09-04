@@ -254,19 +254,17 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     expect(html).toContain("docs/nightly.md");
   });
 
-  // Strengthened (spec 293): proves the tab itself is not offered, not
-  // merely that content built for a different (now-default) tab is
-  // absent — and that asking for it explicitly falls back to Config,
-  // the same silent-fallback `pickTab` already gives elsewhere.
-  test("a manifest with no schedule key offers no Schedule tab, and ?tab=schedule falls back to Config (criterion 6)", async () => {
+  // Spec 378 (REQ-6): the Schedule tab is now ALWAYS offered — a
+  // project's tab bar no longer changes shape depending on whether it
+  // has anything scheduled — and says in a sentence when it has nothing.
+  test("a manifest with no schedule key still offers a Schedule tab, saying nothing is scheduled (REQ-6)", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await get(base, "aide")).text();
-    expect(html).not.toMatch(/>Schedule</);
-    const fallback = await (await get(base, "aide", "schedule")).text();
-    expect(fallback).not.toContain("<h3>Schedule</h3>");
-    expect(fallback).not.toContain("<h3>Config</h3>");
-    expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
+    expect(html).toMatch(/>Schedule</);
+    const panel = await (await get(base, "aide", "schedule")).text();
+    expect(panel).toMatch(/aria-current="page"[^>]*>Schedule/);
+    expect(panel).toMatch(/nothing is scheduled/i);
   });
 });
 

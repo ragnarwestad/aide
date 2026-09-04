@@ -1,6 +1,6 @@
 // The one place a setting's plain-language name is written down (REQ-4,
 // spec 318). Every surface that names a setting to a reader — the
-// Config tab's row, the Health tab's warnings, the Deploy tab and its
+// Config tab's row, its checkout-level notes, the Deploy tab and its
 // refusal path — reads it from here, so introducing or changing a label
 // is a one-line edit in this file rather than a hunt across pages.
 export const SETTING_LABELS: Record<string, string> = {

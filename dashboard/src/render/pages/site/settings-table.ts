@@ -115,8 +115,8 @@ export function unifiedSettingsTable(
         // readiness's own sentence — never a second wording of the same
         // fact (`project-settings.ts` reads it verbatim). Blocking-aware
         // (spec 372): the same check's `blocking` flag decides the kind
-        // here exactly as it does on the Health tab, so the two tabs
-        // never disagree about the same fact's colour.
+        // here exactly as it does above the table, so the two never
+        // disagree about the same fact's colour.
         const problem = r.problem ? rowMessage(r.problem.blocking ? "failed" : "waiting", r.problem.text) : "";
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +

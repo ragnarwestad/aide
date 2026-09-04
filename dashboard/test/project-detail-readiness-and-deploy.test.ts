@@ -10,6 +10,7 @@ import type { GitRunner } from "../src/git/branch-status.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 import {
   harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil,
+  TOKEN, AUTH,
 } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
@@ -20,7 +21,7 @@ afterEach(() => {
 describe("what the page says about whether a run could start (criteria 4-6, 8)", () => {
   test("a checkout a run cannot move to its default branch says so, with nothing pressed (criterion 6)", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, stranded(root, "aide")), "aide", "health")).text();
+    const html = await (await get(serve(root, stranded(root, "aide")), "aide")).text();
     expect(html).toContain("there is no such branch, here or on origin");
     // The whole point: no Add, no Run, no query string — a plain GET.
     expect(html).toContain("cannot run");
@@ -28,35 +29,31 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
 
   test("a settled checkout says a run could start here", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).not.toContain("there is no such branch");
     expect(html).toContain("ready to run");
   });
 
   test("a worktree link with nothing to link is on the page (criterion 4)", async () => {
     const root = projectsRoot({ aide: "AIDE_WORKTREE_LINKS=node_modules\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("a run refuses a worktree link with nothing to link");
   });
 
-  // Spec 318 (REQ-1, REQ-3, REQ-4): the Health tab's "no worktree links
-  // configured" warning and the Config tab's row must name the setting
-  // with the SAME plain-language phrase, sourced from one registry
-  // entry — not two sentences that happen to agree today. Reverting the
-  // Health-tab wiring alone (leaving the Config tab fixed) must turn
-  // this test red; see 3-solution.md's Testing section.
-  test("the Health tab's worktree-links warning names the same setting as the Config tab (REQ-1, REQ-3, REQ-4)", async () => {
+  // Spec 378 (REQ-2): a field-owned check that is UNSET (nothing
+  // configured at all, not merely misconfigured) now carries its
+  // readiness note on the Config row too — closing the gap the Health
+  // tab's removal would otherwise have left unreachable.
+  test("no worktree links configured at all is on the Config row (REQ-2)", async () => {
     const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"));
-    const healthHtml = await (await get(base, "aide", "health")).text();
-    const configHtml = await (await get(base, "aide")).text();
-    expect(healthHtml).toMatch(/worktree links/i);
-    expect(configHtml).toMatch(/worktree links/i);
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toMatch(/worktree links/i);
+    expect(html).toContain("no worktree links are configured");
   });
 
   test("a specs root that is not there is on the page (criterion 5)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("there is no specs root at /tmp/aide-no-such-specs-root");
   });
 
@@ -83,20 +80,17 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     expect(html).not.toContain("cannot run");
   });
 
-  // Spec 293, acceptance criterion 5: readiness === null hides the Health
-  // tab itself, not merely its content — the same run that just proved
-  // "no readiness section" above also proves the tab is not offered, and
-  // that asking for it explicitly falls back to Config.
-  test("no Health tab appears when readiness could not be assessed (AC5)", async () => {
-    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
-    const run: GitRunner = async () => {
-      throw new Error("git is not on this machine");
-    };
-    const base = serve(root, { run });
+  // Spec 378 (REQ-1): the Health tab is gone entirely, whatever the
+  // readiness answer is — never offered, and a stale `?tab=health` link
+  // falls back to Config the same silent way `pickTab` already gives
+  // every unknown tab name.
+  test("no Health tab ever appears, and ?tab=health falls back to Config (AC5, REQ-1)", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
     const html = await (await get(base, "aide")).text();
     expect(html).not.toMatch(/>Health</);
     const fallback = await (await get(base, "aide", "health")).text();
-    expect(fallback).not.toContain("<h3>Config</h3>");
+    expect(fallback).not.toContain("<h3>Deploy</h3>");
     expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
@@ -245,6 +239,61 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
     }
+  });
+});
+
+// Spec 378, REQ-5: Config's Refresh control forces the one cached answer
+// the page has — origin drift — to be re-asked, rather than waiting for
+// the background poll's own interval.
+describe("POST /api/queue/projects/<name>/refresh (REQ-5)", () => {
+  const JSON_AUTH = { ...AUTH, "content-type": "application/json", accept: "application/json" };
+
+  test("busts the cached drift answer the schedule has not reached yet", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    // driftPollMs: 0 disables the background poll, so nothing but the
+    // Refresh press itself could ever populate the drift answer.
+    const base = serve(root, behindBy(root, "aide", 3), 0);
+    const before = await (await get(base, "aide", "deploy")).text();
+    expect(before).toContain("origin drift not checked yet");
+    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: JSON_AUTH });
+    expect(res.status).toBe(200);
+    const after = await (await get(base, "aide", "deploy")).text();
+    expect(after).toContain("3 commits behind origin");
+  });
+
+  test("a project with no install command still succeeds — nothing cached to force (REQ-5 ungated case)", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"), 0);
+    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: JSON_AUTH });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean };
+    expect(body.ok).toBe(true);
+  });
+
+  test("a no-script press redirects back to the Config tab", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, behindBy(root, "aide", 3), 0);
+    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "x-aide-token": TOKEN },
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=config");
+  });
+
+  test("refuses for a project this dashboard does not know", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"), 0);
+    const res = await fetch(`${base}/api/queue/projects/nosuch/refresh`, { method: "POST", headers: JSON_AUTH });
+    expect(res.status).toBe(404);
+  });
+
+  test("only POST — the button's route takes no other method", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, settled(root, "aide"), 0);
+    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { headers: JSON_AUTH });
+    expect(res.status).toBe(405);
   });
 });
 

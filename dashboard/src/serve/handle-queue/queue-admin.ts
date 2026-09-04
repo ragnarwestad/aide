@@ -300,6 +300,29 @@ export async function handleQueueAdminRoutes(
     return response;
   }
 
+  // Spec 378, REQ-5: the Config tab's Refresh button. Every other value
+  // the page needs (readiness, settings) is recomputed on every GET
+  // already — drift is the one cached answer, and forcing it here is
+  // what the redirect's fresh GET turns into a fully re-asked page.
+  const refreshPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/refresh$/);
+  if (refreshPost) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const name = decodeURIComponent(refreshPost[1]!);
+    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
+      return new Response("no such project\n", { status: 404 });
+    }
+    const root = ctx.machineryProjectDir(name);
+    if (resolveInstallCmd(root).value) {
+      await ctx.branchStatus.commitsBehindOrigin(root, true);
+    }
+    return wantsJson
+      ? json({ ok: true })
+      : new Response(null, {
+          status: 303,
+          headers: { location: `/projects/${encodeURIComponent(name)}?tab=config` },
+        });
+  }
+
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
   if (removal) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });

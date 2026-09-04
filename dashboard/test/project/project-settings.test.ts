@@ -171,10 +171,12 @@ describe("a value that does not resolve is marked, in the words readiness alread
     }
   });
 
-  // The unset case readiness reports anyway: "no worktree links are
-  // configured" is a note about a key nobody set, not a value that
-  // failed to resolve.
-  test("an unset key is not marked as unresolved, whatever readiness says about it", () => {
+  // Spec 378 (REQ-2): before this, an UNSET field-owned check's own
+  // readiness note was visible only on the (now-removed) Health tab —
+  // the row fell through to `origin: "unset"` with no `problem` at all.
+  // Closing that gap is what makes the note reachable on Config once
+  // Health is gone.
+  test("an unset key that readiness still has a note about carries it as a non-blocking problem (REQ-2)", () => {
     const unsetNote: ReadinessCheck = {
       check: "worktreeLinks",
       subject: "/tmp/p",
@@ -183,6 +185,38 @@ describe("a value that does not resolve is marked, in the words readiness alread
       detail: "no worktree links are configured — a run's worktree carries tracked files only",
     };
     const r = row(project(""), "AIDE_WORKTREE_LINKS", readiness(unsetNote));
+    expect(r.origin).toBe("unset");
+    expect(r.problem).toEqual({ text: unsetNote.detail, blocking: false });
+  });
+
+  // The blocking case: AIDE_SPECS_PATH left unset and its fallback
+  // (<project>/specs) does not exist either — a run refuses, and REQ-2
+  // asks that this reads as a `failed`-styled problem on the row.
+  test("an unset, blocking key carries a failed-styled problem (REQ-2)", () => {
+    const unresolvedFallback: ReadinessCheck = {
+      check: "specsRoot",
+      subject: "/tmp/p/specs",
+      ok: false,
+      blocking: true,
+      detail: "no specs root was given, so a run looks for /tmp/p/specs — and there is no such directory",
+    };
+    const r = row(project(""), "AIDE_SPECS_PATH", readiness(unresolvedFallback));
+    expect(r.origin).toBe("unset");
+    expect(r.problem).toEqual({ text: unresolvedFallback.detail, blocking: true });
+  });
+
+  // A check readiness reports as PASSED for the unset case (most
+  // projects need no worktree links at all) still carries no problem —
+  // "unset" is not itself a failure.
+  test("an unset key readiness reports as fine carries no problem", () => {
+    const passed: ReadinessCheck = {
+      check: "worktreeLinks",
+      subject: "/tmp/p",
+      ok: true,
+      blocking: false,
+      detail: "the worktree links are all there: ",
+    };
+    const r = row(project(""), "AIDE_WORKTREE_LINKS", readiness(passed));
     expect(r.origin).toBe("unset");
     expect(r.problem).toBeUndefined();
   });

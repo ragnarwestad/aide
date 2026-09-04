@@ -39,14 +39,18 @@ describe("renderProjectPage: title beside ← Back (spec 296)", () => {
   });
 });
 
-// Spec 369: the readiness sentence moved off `/projects` onto this tab —
-// REQ-2 asks for every check's own text as plain, selectable text, never
-// inside a clickable element.
-describe("renderProjectPage: the Health tab shows every check as plain text (spec 369)", () => {
+// Spec 378: the Health tab is gone, and a checkout-level check (one no
+// Config field owns) now reads above the settings table, on Config
+// itself — REQ-2/REQ-3 ask for every such check's own text as plain,
+// selectable text, never inside a clickable element. `gitRoot` and
+// `defaultBranch`/`dashboardCheckout` are checkout-level; a field-owned
+// check (`specsRoot`, `worktreeLinks`) is deliberately excluded here —
+// it reads on its own settings row instead (see project-settings.test.ts).
+describe("renderProjectPage: a checkout-level check shows as plain text on Config (spec 378)", () => {
   const checks: ProjectReadiness["checks"] = [
     { check: "gitRoot", subject: "/repos/aide", ok: false, blocking: true, detail: "blocking detail text" },
-    { check: "specsRoot", subject: "/repos/specs", ok: true, blocking: false, detail: "passing detail text" },
-    { check: "worktreeLinks", subject: "/repos/aide", ok: false, blocking: false, detail: "warn detail text" },
+    { check: "defaultBranch", subject: "/repos/aide", ok: true, blocking: false, detail: "passing detail text" },
+    { check: "dashboardCheckout", subject: "/repos/aide", ok: false, blocking: false, detail: "warn detail text" },
   ];
 
   test("every check's detail appears, and none of it sits inside an <a> or a <button>", () => {
@@ -56,7 +60,7 @@ describe("renderProjectPage: the Health tab shows every check as plain text (spe
       readiness(checks),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "health" },
+      { worktreeLinkCandidates: [], editing: false },
     );
     for (const c of checks) {
       expect(html).toContain(c.detail);
@@ -77,8 +81,25 @@ describe("renderProjectPage: the Health tab shows every check as plain text (spe
       readiness(fewer),
       "2026-08-31T00:00:00Z",
       NAV,
-      { worktreeLinkCandidates: [], editing: false, tab: "health" },
+      { worktreeLinkCandidates: [], editing: false },
     );
     expect(html).not.toContain(checks[checks.length - 1]!.detail);
+  });
+
+  // REQ-1: a field-owned check reads on its settings row, never a second
+  // time in the checkout-level section above it.
+  test("a field-owned check's detail does not appear in the checkout-level section", () => {
+    const fieldOwned: ProjectReadiness["checks"] = [
+      { check: "specsRoot", subject: "/repos/aide/specs", ok: false, blocking: true, detail: "field-owned detail text" },
+    ];
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      readiness(fieldOwned),
+      "2026-08-31T00:00:00Z",
+      NAV,
+      { worktreeLinkCandidates: [], editing: false },
+    );
+    expect(html).not.toContain("field-owned detail text");
   });
 });
