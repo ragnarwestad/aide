@@ -196,7 +196,7 @@ class TestUnrelatedCommitsAreUntouched:
         assert result.returncode == 0, result.stderr
 
 
-def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root):
+def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root, run_spec_source):
     """The Medium-risk mitigation named in 3-solution.md: the hook
     restates the convention regex independently in shell (spec-folder-
     agnostic, since the hook only knows which files are staged, not
@@ -205,7 +205,7 @@ def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root):
     aide-run-spec's copy (aide-run-spec:1623) ever grows a new suffix
     form, this is what notices the hook's copy did not follow.
     """
-    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    bash = run_spec_source
     m = re.search(r'^\s*re="(\^Run /aide-.*)"$', bash, re.M)
     assert m, "aide-run-spec no longer declares its commit-subject regex the same way"
     run_spec_pattern = m.group(1).replace("${folder}", "55-example")

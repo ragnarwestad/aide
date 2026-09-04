@@ -1,6 +1,7 @@
 // Split out of archived-specs.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { pageRoutesSource } from "./helpers/page-routes-source.ts";
 import { readFileSync } from "node:fs";
 import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, auth, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
 
@@ -36,7 +37,7 @@ describe("building the archived rows", () => {
   // handleQueue's own body moved on again into handle-queue/page-routes.ts
   // (split of split serve.ts, step 3) — that is where the call site lives now.
   const specViewsSrc = readFileSync(new URL("../src/serve/spec-views.ts", import.meta.url), "utf-8");
-  const pageRoutesSrc = readFileSync(new URL("../src/serve/handle-queue/page-routes.ts", import.meta.url), "utf-8");
+  const pageRoutesSrc = pageRoutesSource();
 
   test("is asked for by the reader's own chip and by nothing else", () => {
     const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
