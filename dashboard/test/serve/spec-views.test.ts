@@ -7,15 +7,14 @@
 // `DEPENDENCY_GATED_STEPS` and `errorReason` (`dashboard/CLAUDE.md`).
 
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { sourceWithParts } from "../helpers/source-with-parts.ts";
 
-const SOURCE = readFileSync(
-  join(import.meta.dir, "../../src/serve/spec-views.ts"),
-  "utf-8",
-);
+// The file and the parts beside it (`spec-views/`), since it was split
+// 2026-09-04: the claim is about the whole of what spec-views is, and a
+// function moving into a part must not quietly stop being checked.
+const SOURCE = sourceWithParts("serve/spec-views");
 
-describe("spec-views.ts reads a spec's checks through one call", () => {
+describe("spec-views reads a spec's checks through one call", () => {
   test("parseStatusChecks is never named in the file's own source", () => {
     expect(SOURCE).not.toContain("parseStatusChecks");
   });
