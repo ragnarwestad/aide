@@ -211,6 +211,14 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
 .confirmpanel [data-confirm] .field { width: 100%; }
 .confirmpanel [data-confirm] input { width: 100%; }
 
+/* The Deploy panel's own state sentence, button and refusal line,
+   spaced apart the way `.confirmpanel` already spaces its own parts —
+   via the container's `gap`, never a margin on the message or the form
+   beside it (spec 377, design-system.md "Spacing lives in the
+   container"). */
+.deploypanel { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+.deploypanel .rowmsg { margin: 0; }
+
 /* The covering layer a click that leaves the page gets, from the click
    until the new document arrives (spec 314) — the same dialog+backdrop
    box About and the confirm box are, holding a spinner instead of

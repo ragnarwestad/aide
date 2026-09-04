@@ -83,6 +83,10 @@ const STRUCTURE = [
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.
   "confirmdialog", "confirmpanel",
+  // the Deploy panel's own state sentence, button and refusal line,
+  // spaced apart by this container's gap rather than a component margin
+  // (spec 377, design-system.md "Spacing lives in the container").
+  "deploypanel",
   // the covering layer a click that leaves the page gets, from the
   // click until the new document arrives (spec 314): the same
   // `<dialog>` shape About and the confirm box are.

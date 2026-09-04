@@ -31,61 +31,78 @@ export const driftPrefix = (behind: number, checkedAt: number, now: number): str
  *  entirely, to avoid noise on every row — this page keeps the section
  *  and says plainly why there is nothing to act on.
  *
- *  A real `drift` still carries three further states, never collapsed
- *  into one: unchecked (`checkedAt === null`), level (`behind === 0`),
- *  and asked-but-unanswerable (`behind === null` with a real
- *  `checkedAt` — the fail-open case). The last of those draws no
- *  message and no button at all — the same silence the list's own
- *  `note` computation falls back to for it. */
+ *  A real `drift` still carries three further states: unchecked
+ *  (`checkedAt === null`), a real answer (`behind` a number), and
+ *  asked-but-unanswerable (`behind === null` with a real `checkedAt` —
+ *  the fail-open case, which draws no message and no button at all).
+ *
+ *  Once the answer is real, it is never split across two sentences
+ *  (spec 377): disk-vs-origin (`drift`) and process-vs-disk (`serving`)
+ *  fold into the ONE sentence the reader needs, in whichever of REQ-4's
+ *  three shapes applies — up to date, behind, or installed but not
+ *  restarted. `serving` is undefined for every project except the one
+ *  this server itself runs from (`ProjectPageOptions.serving`), so the
+ *  third shape is reachable only there; every other gated project only
+ *  ever shows the first two. */
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
-  // Independent of `drift`/`AIDE_INSTALL_CMD` on purpose (spec 269): the
-  // Serving line answers a process-vs-disk question, not a disk-vs-origin
-  // one, so it belongs on the page whether or not deploy is even
-  // configured here — both branches below append it.
-  const servingLine = opts.serving
+  const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
+  const serving = opts.serving;
+  const servingLine = serving
     ? rowMessage(
-        opts.serving.current ? "info" : "waiting",
-        opts.serving.current
-          ? `Serving ${opts.serving.sha.slice(0, 7)} — matches this checkout.`
-          : `Serving ${opts.serving.sha.slice(0, 7)}, but this checkout is now at ` +
-            `${opts.serving.checkoutHead.slice(0, 7)} — the running service has not picked up the latest merge.`,
+        serving.current ? "info" : "waiting",
+        serving.current
+          ? `Serving commit ${serving.sha.slice(0, 7)} — matches this checkout.`
+          : `Serving commit ${serving.sha.slice(0, 7)}, but this checkout is now at commit ` +
+            `${serving.checkoutHead.slice(0, 7)} — the running service has not picked up the latest merge.`,
       )
     : "";
   const drift = opts.drift;
   if (!drift) {
-    return rowMessage(
-      "info",
-      `No ${SETTING_LABELS.AIDE_INSTALL_CMD} is configured for this project, so its origin drift is not tracked here.`,
-    ) + servingLine;
+    return panel(
+      rowMessage(
+        "info",
+        `No ${SETTING_LABELS.AIDE_INSTALL_CMD} is configured for this project, so its origin drift is not tracked here.`,
+      ) + servingLine,
+    );
   }
-  const behind = drift.checkedAt !== null ? drift.behind : null;
-  const message =
-    drift.checkedAt === null ? rowMessage("waiting", UNCHECKED_NOTE)
-    : behind ? rowMessage("waiting", driftPrefix(behind, drift.checkedAt, now))
-    : behind === 0 ? rowMessage("info", "This checkout is level with origin.")
-    : ""; // asked, unanswerable — no claim, never a guess
-  // Level with origin is not "nothing to deploy": the served process can
-  // still be older than the checkout (the Serving line above says so
-  // after a landing installed but, by design, did not restart). The
-  // button is off only when both are current.
-  const stale = !!opts.serving && !opts.serving.current;
+  // Shown wherever `drift` is defined — the same scope the original
+  // function gave it (never in the ungated branch above, which a
+  // deploy press could not have been refused FROM in the first place).
+  const errorLine = opts.deployError ? rowMessage("failed", opts.deployError, { hook: "refusal", tag: "p" }) : "";
+  if (drift.checkedAt === null) return panel(errorLine + rowMessage("waiting", UNCHECKED_NOTE) + servingLine);
+  const behind = drift.behind;
+  if (behind === null) return panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
+
+  // From here the checkout's own drift IS known, so its answer and the
+  // Serving line's answer (when there is one) fold into one sentence
+  // instead of stacking as two (REQ-1, REQ-4).
+  const stale = !!serving && !serving.current;
+  const disabled = behind === 0 && !stale;
+  const sentence =
+    behind > 0
+      ? `${driftPrefix(behind, drift.checkedAt, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
+        (serving ? ", and restarts the service." : ".")
+      : stale
+        ? `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
+          `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
+        : serving
+          ? `This checkout matches origin, and the service is running commit ${serving.sha.slice(0, 7)}.`
+          : "This checkout matches origin.";
   const button =
-    behind !== null
-      ? `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
-        tokenField(opts.token) +
-        btn({
-          label: "Deploy",
-          variant: "primary",
-          pending: "deploying…",
-          ...(behind === 0 && !stale
-            ? { disabled: true, title: "This checkout is level with origin." }
-            : {}),
-        }) +
-        messageSlot("refused") +
-        `</form>`
-      : "";
-  return (opts.deployError ? rowMessage("failed", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
-    message + button + servingLine;
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
+    tokenField(opts.token) +
+    btn({
+      label: "Deploy",
+      variant: "primary",
+      pending: "deploying…",
+      // The title stays the short, common half of the sentence even
+      // when the up-to-date-with-serving-current case says more — a
+      // hover hint names WHY the button is off, not the whole state.
+      ...(disabled ? { disabled: true, title: "This checkout matches origin." } : {}),
+    }) +
+    messageSlot("refused") +
+    `</form>`;
+  return panel(errorLine + rowMessage(behind > 0 || stale ? "waiting" : "info", sentence) + button);
 }
 
 /** The Schedule section (spec 259): each entry's name, cron expression,

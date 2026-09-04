@@ -10,7 +10,8 @@ export function runCli() {
       "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
         "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
         "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
-        "                     [--runner-bin PATH] [--result-dir DIR] [--queue-config FILE]",
+        "                     [--runner-bin PATH] [--pdf-bin PATH] [--result-dir DIR]\n" +
+        "                     [--queue-config FILE]",
     );
     process.exit(2);
   }

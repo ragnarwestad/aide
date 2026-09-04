@@ -250,7 +250,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     const page = await (
       await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
     ).text();
-    expect(page).toContain("This checkout is level with origin.");
+    expect(page).toContain("This checkout matches origin.");
   });
 
   test("refuses, naming both branches, when the checkout moved off its default branch (criterion 7)", async () => {
@@ -285,7 +285,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     const page = await (
       await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
     ).text();
-    expect(page).toContain("This checkout is level with origin.");
+    expect(page).toContain("This checkout matches origin.");
   });
 
   test("refuses when no AIDE_INSTALL_CMD is configured — deploying stays a hand step", async () => {
