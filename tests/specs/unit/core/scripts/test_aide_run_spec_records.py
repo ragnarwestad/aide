@@ -15,41 +15,12 @@ import signal
 import subprocess
 import time
 import pytest
-from .conftest import (
-    BRANCH,
-    CODEX_STREAM_FAILED,
-    CODEX_STREAM_OK,
-    CODEX_USAGE,
-    FLAT_USAGE,
-    READ_SPECS,
-    RESULT_OK,
-    TIME_OF_DAY_RE,
-    TIME_SPENT_RE,
-    already_ran,
-    analyzing_claude,
-    archive_the_spec,
-    bullet,
-    create,
-    emits,
-    git,
-    has_branch,
-    make_branch,
-    phase_file_text,
-    project_only_claude,
-    recorded_line,
-    recorded_model,
-    reopen_line,
-    reset_line,
-    run,
-    specs_only_claude,
-    subject,
-    tracking_block,
-    with_analysis,
-    with_analysis_attempts,
-    with_solution,
-    with_status,
-    writing_claude,
-)
+from .conftest import READ_SPECS, git, run
+from .run_spec_fakes import analyzing_claude, project_only_claude, specs_only_claude, writing_claude
+from .run_spec_invoking import BRANCH, create
+from .run_spec_origins import archive_the_spec, has_branch, make_branch
+from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits
+from .run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, recorded_model, reopen_line, reset_line, subject, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
 
 def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude

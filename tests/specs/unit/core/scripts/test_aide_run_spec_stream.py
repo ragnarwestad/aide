@@ -15,13 +15,8 @@ import signal
 import subprocess
 import time
 import pytest
-from .conftest import (
-    RESULT_BUDGET,
-    RESULT_OK,
-    STREAM_NOISE,
-    run,
-    stream_body,
-)
+from .conftest import run
+from .run_spec_results import RESULT_BUDGET, RESULT_OK, STREAM_NOISE, stream_body
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
     stream = tmp_path / "job.stream.jsonl"

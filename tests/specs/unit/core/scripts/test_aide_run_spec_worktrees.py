@@ -15,24 +15,11 @@ import signal
 import subprocess
 import time
 import pytest
-from .conftest import (
-    BRANCH,
-    READ_SPECS,
-    RESULT_BUDGET,
-    RESULT_OK,
-    create,
-    git,
-    init_repo,
-    is_ancestor,
-    make_named_writing_claude,
-    make_worktree_add_gate,
-    probing_claude,
-    run,
-    specs_only_claude,
-    wait_until,
-    worktrees,
-    writing_claude,
-)
+from .conftest import READ_SPECS, git, init_repo, run
+from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate, probing_claude, specs_only_claude, writing_claude
+from .run_spec_invoking import BRANCH, create, wait_until, worktrees
+from .run_spec_origins import is_ancestor
+from .run_spec_results import RESULT_BUDGET, RESULT_OK
 
 def test_the_main_checkout_never_leaves_its_default_branch(runner, workspace, fake_claude):
     """The whole point. Two runs on the same repo pair are independent
