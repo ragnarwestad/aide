@@ -95,6 +95,41 @@ describe("several jobs at once", () => {
     expect(held.error).toContain("another archive is running in this project");
   });
 
+  // The sentence on a queued row is the reason RIGHT NOW. It used to be
+  // written once, by whichever gate happened to hold the job, and left
+  // there: a row went on saying "another archive is running in this
+  // project" for minutes after that archive had landed, while the real
+  // reason was a landing in flight (2026-09-04).
+  test("the hold-back sentence goes when the reason does", () => {
+    enqueue({ steps: ["archive"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    // The one slot is taken, so this pass never reaches b: the old code
+    // left whatever sentence b was carrying from an earlier pass, and
+    // the reason it names is long gone.
+    expect(store.get(b.id)?.state).toBe("queued");
+    store.update(b.id, { error: "held back: another archive is running in this project", errorReason: "held-back" });
+    runner.tick();
+    expect(store.get(b.id)?.error).toBeUndefined();
+    expect(store.get(b.id)?.errorReason).toBeUndefined();
+  });
+
+  // The whole queue stops while any job is landing, and every queued row
+  // used to sit there with no reason at all — or with an older, wrong
+  // one still on it.
+  test("a landing in flight is said on every queued row", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    store.update(a.id, { state: "done", landing: true });
+    runner.tick();
+    expect(spawns.length).toBe(0);
+    const held = store.get(b.id)!;
+    expect(held.error).toContain("a landing is still running");
+    expect(held.errorReason).toBe("held-back");
+  });
+
   test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {
     const a = enqueue({ steps: ["analyze"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });

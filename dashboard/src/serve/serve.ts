@@ -305,6 +305,7 @@ export function createServer(opts: ServerOptions) {
     invalidateScan: () => {
       state.scan = null;
     },
+    forgetBranchFileSteps: (dir, specFolder) => schedules.branchFileSteps.forget(dir, specFolder),
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,

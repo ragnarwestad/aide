@@ -61,6 +61,9 @@ export interface HandleQueueContext {
   allowed: Set<string>;
   readScan: () => { archived: string[] } | null;
   invalidateScan: () => void;
+  /** Drop the cached branch answer for one spec (`dir`, `specFolder`),
+   *  after a write that changed the file it caches. */
+  forgetBranchFileSteps?: (dir: string, specFolder: string) => void;
   targets: () => QueueTarget[];
   withFreshness: (list: QueueTarget[]) => QueueTarget[];
   specDir: (project: string, specFolder: string) => string | undefined;

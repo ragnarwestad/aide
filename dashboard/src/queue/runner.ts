@@ -123,11 +123,42 @@ export class Runner {
     // `aide-run-spec` has resolved them, which is after it has started.
     // At one operator, over-serializing costs seconds; the race costs a
     // half-merged working tree.
-    if (this.o.store.list().some((j) => j.landing)) return;
+    // Every sentence this pass writes, by job id. What is NOT in it is
+    // no longer held for anything, and `clearStaleHolds` takes its
+    // sentence off the row: a hold-back reason is only ever the reason
+    // RIGHT NOW. Left to the old code, the sentence a gate wrote stayed
+    // until some other gate happened to overwrite it — so a row read
+    // "another archive is running in this project" long after that
+    // archive had landed, and the two whole-queue pauses below wrote
+    // nothing at all on their way out (2026-09-04).
+    const held = (this.heldThisPass = new Set<string>());
+    const hold = (job: Job, reason: string): void => this.hold(job, reason);
+    if (this.o.store.list().some((j) => j.landing)) {
+      // The pause every queued row used to sit in with no explanation:
+      // a landing is in flight, so nothing starts, and being first in
+      // the queue means nothing until it finishes.
+      for (const job of this.o.store.list()) {
+        // Not the job whose OWN landing this is: its row already reads
+        // "landing <step>", and telling it that it waits for itself is
+        // both wrong and in the way of the landing's own verdict, which
+        // lands on that row moments later.
+        if (job.state === "queued" && !job.landing) {
+          hold(job, "held back: a landing is still running — this starts when it has finished");
+        }
+      }
+      this.clearStaleHolds(held);
+      return;
+    }
     // Quick steps before slow ones, oldest first within each group
     // (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
-      if (this.runningJobs().length >= this.maxConcurrent) return;
+      // Every slot is busy. The row says so by its queue position, not
+      // by a sentence — but a sentence left from an earlier pass has to
+      // go, so this leaves through the same door as everything else.
+      if (this.runningJobs().length >= this.maxConcurrent) {
+        this.clearStaleHolds(held);
+        return;
+      }
       if (job.state !== "queued") continue;
       // Two jobs for the SAME spec are never both started: analyze and
       // implement for one spec are ordered by nature, and git would
@@ -145,15 +176,13 @@ export class Runner {
         job.steps[job.stepIndex] === "archive" &&
         this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
       ) {
-        const reason = "held back: another archive is running in this project — it starts when that one has landed";
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+        hold(job, "held back: another archive is running in this project — it starts when that one has landed");
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {
-        const reason = "held back: not analyzed yet — run /aide-analyze first";
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+        hold(job, "held back: not analyzed yet — run /aide-analyze first");
         continue;
       }
       // Held back, not failed — the same shape `startOne`'s daily-cap
@@ -163,10 +192,7 @@ export class Runner {
       // `failed`, which nothing retries.
       const dependency = blocked?.get(job.id);
       if (dependency !== undefined) {
-        const reason = `held back: depends on ${dependency}, which is not archived yet`;
-        // Only when it changed: an unconditional update would rewrite
-        // the mirror every two seconds for a job that is doing nothing.
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+        hold(job, `held back: depends on ${dependency}, which is not archived yet`);
         continue;
       }
       // The same shape once more, for `archive`: an acceptance row only
@@ -175,11 +201,39 @@ export class Runner {
       // unarchived — so a chained analyze/implement/archive job waits
       // here for the tick instead, and starts by itself once it lands.
       if (acceptanceOpen?.has(job.id)) {
-        const reason = `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`;
-        if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+        hold(job, `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`);
         continue;
       }
       this.startOne(job);
+    }
+    this.clearStaleHolds(held);
+  }
+
+  /** Every job this pass held, by id — `startOne`'s own daily-cap hold
+   *  included, which is why this is a field and not a local. */
+  private heldThisPass = new Set<string>();
+
+  /** Hold one job with the reason it is held for RIGHT NOW. Written
+   *  only when it changed: an unconditional update would rewrite the
+   *  mirror every two seconds for a job that is doing nothing. */
+  private hold(job: Job, reason: string): void {
+    this.heldThisPass.add(job.id);
+    // A sentence that is not a hold-back is a RECORD — a landing that
+    // refused, a conflict to resolve — and it stays on the row. Marked
+    // as held above all the same, so `clearStaleHolds` leaves it alone.
+    if (job.errorReason && job.errorReason !== "held-back") return;
+    if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+  }
+
+  /** Take the hold-back sentence off every queued job this pass did not
+   *  hold. The reason is gone; the row must not go on naming it. Only
+   *  `held-back` sentences — a stopped job's own error is its record,
+   *  not a wait. */
+  private clearStaleHolds(held: Set<string>): void {
+    for (const job of this.o.store.list()) {
+      if (job.state !== "queued" || held.has(job.id)) continue;
+      if (job.errorReason !== "held-back") continue;
+      this.o.store.update(job.id, { error: undefined, errorReason: undefined });
     }
   }
 
@@ -214,13 +268,13 @@ export class Runner {
     // the same numbers and the cap be exceeded by (N-1) budgets before
     // anything noticed.
     if (this.reservedUsd() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
-      this.o.store.update(job.id, {
-        error: errorSentence({
+      this.hold(
+        job,
+        errorSentence({
           what: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded.`,
           resolve: "Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
         }).text,
-        errorReason: "held-back",
-      });
+      );
       return false;
     }
 

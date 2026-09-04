@@ -554,6 +554,12 @@ export async function handleSpecEditRoutes(
       logRefusal("tick", `${project}/${specFolder}`, result.note);
       return specsRedirect({}, { error: result.note }, back);
     }
+    // The branch answer this tick just changed is TTL-cached, and the
+    // Specs list reads it to decide whether to say "held back: the
+    // Acceptance criteria are not all ticked yet". Forgotten here, the
+    // very next render asks git instead of repeating what was true
+    // before the Save (337, 2026-09-04).
+    ctx.forgetBranchFileSteps?.(dir, specFolder!);
     return specsRedirect({}, undefined, back, { note: result.note, ok: true });
   }
 

@@ -71,8 +71,24 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
   return badge("done", t(lang, "list.done"));
 }
 
+/** The step a landing belongs to: the one that just finished. A job in
+ *  `done` still points at it; one that has already stepped on to its
+ *  next step points one past it. */
+function landingStep(r: QueueRowView): string {
+  return r.state === "queued" ? (r.steps[r.stepIndex - 1] ?? currentStep(r)) : currentStep(r);
+}
+
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(lang, currentStep(r)));
+  // A landing in flight is what the row says, whichever state the job
+  // has reached — `done` with the step's own branch still merging, or
+  // already `queued` on the NEXT step while the last one lands. Read as
+  // the queued case below, that second shape drew "implementing" over a
+  // job whose analyze was the thing landing, and the landing — the one
+  // reason nothing else in the queue could start — was nowhere on the
+  // page (2026-09-04). The step named is the landing's own: the step
+  // just finished, never the one queued behind it.
+  if (r.landing) return badge("running", t(lang, "list.landingStep", { step: stepLabel(landingStep(r)) }));
   if (r.state === "queued") {
     const step = currentStep(r);
     const pos = r.queuePosition;
@@ -88,7 +104,6 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   // has not landed yet (`Runner.complete()` writes both in the same
   // update — `runner.ts`). A row that fell through to `restingChip`
   // here would offer "ready" for a spec whose files do not exist yet.
-  if (r.state === "done" && r.landing) return badge("running", gerund(lang, currentStep(r)));
   if (r.state === "done") return restingChip(lang, resting);
   // Bare word only (REQ-1, spec 339) — `stateLabel()`'s "stopped —
   // <reason>" suffix is the notice line's to say now (`lead.error`,
