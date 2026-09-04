@@ -8,6 +8,10 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
+import { CSS } from "../../src/render/ui/css.ts";
+import { badge, btn } from "../../src/render/ui/components.ts";
+import { t } from "../../src/i18n/index.ts";
+import { gerund } from "../../src/render/ui/job-state/resting.ts";
 
 setDefaultTimeout(20_000);
 
@@ -114,6 +118,121 @@ for (const viewport of VIEWPORTS) {
     });
   });
 }
+
+// --- spec 379: the State column has an exact width, and the table
+// stops stretching to fill the window ------------------------------------
+//
+// The `VIEWPORTS` above (1270/1920) cannot tell this regression apart:
+// page.css's `main` carries `max-width: calc(72rem + 2 * var(--sp-6))`,
+// which caps its rendered width at 1216px — so 1270px and 1920px
+// already render `main`, and everything under it, at the identical
+// capped 1216px, on the CURRENT code too (measured directly with this
+// same harness before writing this test). 900px sits below that cap,
+// where the table genuinely still grows with the window, so it is the
+// low end here instead of 1270px; 1920px stays as the high end.
+async function measureStateRow() {
+  const [stateCol, table, tablewrap, badgeslot, actionslot] = await Promise.all([
+    page.locator('th[data-col="state"]').evaluate((el) => el.getBoundingClientRect()),
+    page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
+    page.locator(".tablewrap").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
+  ]);
+  return { stateCol, table, tablewrap, badgeslot, actionslot };
+}
+
+test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-button gap do not grow with the window", async () => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 900px");
+  const narrow = await measureStateRow();
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  const wide = await measureStateRow();
+
+  // REQ-2: the State column's own width is the same at both widths.
+  expect(wide.stateCol.width).toBeCloseTo(narrow.stateCol.width, 0);
+
+  // REQ-3: the table itself does not grow with the window, and at the
+  // wider viewport it ends before `.tablewrap` does — page background
+  // shows beside it, not air inside its own last cell.
+  expect(wide.table.width).toBeCloseTo(narrow.table.width, 0);
+  expect(wide.table.width).toBeLessThan(wide.tablewrap.width);
+
+  // REQ-4: the button follows the badge by one ordinary gap (--sp-2,
+  // 8px) at both widths, not the window-dependent distance
+  // `justify-content: space-between` produces today.
+  expect(narrow.actionslot.left - narrow.badgeslot.right).toBeCloseTo(8, 0);
+  expect(wide.actionslot.left - wide.badgeslot.right).toBeCloseTo(8, 0);
+});
+
+// REQ-5: the desktop rule's exact `width: 19rem` (rows-and-forms.css)
+// applies to the same selector the phone layout's row uses — with no
+// override, a phone under 304px would carry a box wider than its own
+// screen. `narrow.css` resets it back to `auto` alongside its existing
+// `justify-content: flex-start` override, so the row sizes to its own
+// content again, the way every other phone row already does.
+test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed width", async () => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at phone width");
+  const row = await page.locator("tr.spechead .row").first().evaluate((el) => el.getBoundingClientRect());
+  expect(row.width).toBeLessThan(280);
+  // Every test after this one shares `page` and assumes a desktop
+  // width (this file sets no viewport of its own outside `VIEWPORTS`'
+  // loop and this test) — leaving the phone size behind broke the
+  // unrelated "Created cell" test below, which reads a table-layout
+  // cell that does not exist at this width.
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
+// REQ-1: the worst-case badge/button pairing — the longest text this
+// column can draw ("updating the manifest for queued", the `manifest`
+// step's gerund, 2-analysis.md's Findings) beside a Cancel button, the
+// widest control that can share a row with it (row-controls.ts's
+// `specBusy` never draws the run-phase label on a busy — running or
+// queued — row) — fits on one line within 304px (19rem). Built with
+// `page.setContent()`, not the live harness: the harness seeds real
+// specs on disk and has no way to put one in a transient
+// `queued`/`manifest` job state on demand (2-analysis.md's Test
+// coverage). Uses the app's own CSS bundle and the same `badge()`/
+// `btn()` markup functions the real row draws with, so the fixture
+// cannot drift from the real markup by hand-typing it.
+//
+// Goes red today for the same root cause as the test above: this
+// single-column fixture table still carries `table { width: 100%; }`
+// (list.css) with no viewport to size against but the browser's
+// default one, and `justify-content: space-between` (rows-and-forms.css)
+// still spreads the badge and the button across whatever that leftover
+// is — not the two controls' own combined content width, which is the
+// number this assertion is actually about.
+test("spec 379 REQ-1: the worst-case state badge and Cancel fit on one line within 304px", async () => {
+  const worstBadge = badge("idle", t("en", "list.stateQueued", { step: gerund("en", "manifest") }));
+  const cancelButton = btn({ label: t("en", "list.cancel"), variant: "primary" });
+  const html =
+    `<!doctype html><html><head><style>${CSS}</style></head><body>` +
+    `<table class="list speclist"><thead><tr><th data-col="state"></th></tr></thead>` +
+    `<tbody><tr class="spechead"><td><span class="row">` +
+    `<span class="badgeslot">${worstBadge}</span>` +
+    `<span class="actionslot">${cancelButton}</span>` +
+    `</span></td></tr></tbody></table></body></html>`;
+  const fixturePage = await browser.newPage();
+  await withTimeout(fixturePage.setContent(html), 10_000, "fixturePage.setContent(worst-case row)");
+  const [row, badgeslot, actionslot] = await Promise.all([
+    fixturePage.locator(".row").evaluate((el) => el.getBoundingClientRect()),
+    fixturePage.locator(".badgeslot").evaluate((el) => el.getBoundingClientRect()),
+    fixturePage.locator(".actionslot").evaluate((el) => el.getBoundingClientRect()),
+  ]);
+  await fixturePage.close();
+  expect(row.width).toBeLessThanOrEqual(304);
+  // On one line: the badge and the button's vertical MIDPOINTS match
+  // (not their tops — `.badge` is 20px tall, `.btn` 28px, and `.row`'s
+  // own `align-items: center` centres each on the line rather than
+  // top-aligning them), which two boxes stacked onto separate lines by
+  // a wrap could never produce.
+  const badgeMid = badgeslot.top + badgeslot.height / 2;
+  const actionMid = actionslot.top + actionslot.height / 2;
+  expect(badgeMid).toBeCloseTo(actionMid, 0);
+});
 
 // Guards spec 326: the Created column's bare yyyy-mm-dd date breaking at
 // its own hyphens once the column narrowed past the date's width.

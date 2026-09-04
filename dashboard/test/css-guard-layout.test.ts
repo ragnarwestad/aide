@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { CSS, oneRule } from "./css-guard-fixtures.ts";
+import { CSS } from "./css-guard-fixtures.ts";
 
 // --- the gap lives in the container (spec 120) ------------------------------
 //
@@ -47,25 +47,16 @@ describe("the space between two controls comes from their container", () => {
     expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
 
-  // Spec 167. `.actionslot` has reserved a fixed width since spec 157,
-  // but the badge in FRONT of it has none — "not started", "analyzing",
-  // "archive held back", "done — nothing waiting on you" — so the
-  // buttons started at different x positions down the column and moved
-  // as a state changed. `space-between` puts the action against the
-  // column's right edge whatever the badge says, and costs no reserved
-  // space at all.
-  //
-  // Static rule, not a rendered comparison: whether two badges of
-  // different lengths anchor their buttons to the same pixel needs a
-  // browser. What this proves is that the rule exists, and that it is
-  // scoped to the State cell's row rather than added to the shared
-  // `.row {}` the phase lines and the filter bar also use.
-  test("the State cell's action is pushed to the column's right edge, scoped", () => {
-    expect(CSS).toMatch(
-      /table\.list tr\.spechead > td > \.row \{[^}]*justify-content:\s*space-between[^}]*\}/,
-    );
+  // Spec 167 pushed the State cell's action to the column's right edge
+  // with `justify-content: space-between`, scoped off the shared `.row`
+  // the phase lines and the filter bar also use — replaced by an exact
+  // column width instead (spec 379, REQ-1/REQ-3/REQ-4): once the column
+  // cannot grow, `space-between` has nothing left to justify, and the
+  // scoped rule now carries a `width` in its place (`rows-and-forms.css`).
+  test("the State cell's own row is still scoped off the shared .row, and carries an exact width", () => {
+    expect(CSS).toMatch(/table\.list tr\.spechead > td > \.row \{[^}]*width:\s*19rem[^}]*\}/);
     // The shared rule keeps its own alignment and gains nothing.
-    expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("justify-content");
+    expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("width");
   });
 });
 
@@ -153,63 +144,11 @@ describe("the state trigger reads as a control, not plain text", () => {
   });
 });
 
-// --- the Spec column is pinned to its content, State takes the surplus
-// (REQ-1/REQ-2, spec 376) -------------------------------------------------
-//
-// An auto-layout table hands its leftover width to whichever columns
-// declare no preference. Spec, Created, Time and Cost each pin their
-// header to `width: 1%`, which floors them at their own content and
-// stops them sharing in the surplus; State carries no such pin, so it
-// is the one column left to receive it — the one column whose content
-// (the badge text) actually varies in length from render to render.
-// This reverses spec 339's own version of this rule, which pinned
-// State and left Spec free.
-
-// The longest text `min-width` below has to fit on one line, from
-// 2-analysis.md's Findings: "stopped — provider limit" (24 characters)
-// and "updating the manifest for" (25) are the longest of the plain
-// state words, the `stopped — …` variants, a queued position, a
-// held-back archive and the step gerunds this column can draw. Checked
-// against the real badge markup and CSS in a headless render at both a
-// wide and a narrow-desktop window (3-solution.md, Implementation plan
-// Step 2): 14rem leaves both comfortably inside the badge with room to
-// spare, so this is the threshold below which the floor stops doing
-// its job.
-const MIN_STATE_WIDTH_REM = 14;
-
-describe("the Spec column is pinned to its content, State takes the surplus", () => {
-  test("Spec, Created, Time and Cost are pinned to their content width, State is not", () => {
-    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="created"]'));
-    expect(rule.selectors).toContain('th[data-col="spec"]');
-    expect(rule.selectors).toContain('th[data-col="started"]');
-    expect(rule.selectors).toContain('th[data-col="cost"]');
-    expect(rule.selectors).not.toContain('data-col="state"');
-    expect(rule.body).toContain("width: 1%");
-  });
-
-  test("State carries a min-width floor at least as wide as its longest text needs", () => {
-    const rule = oneRule(CSS, (r) => r.selectors.includes('th[data-col="state"]'));
-    const match = rule.body.match(/min-width:\s*([\d.]+)rem/);
-    expect(match).not.toBeNull();
-    expect(Number(match![1])).toBeGreaterThanOrEqual(MIN_STATE_WIDTH_REM);
-  });
-});
-
-// The pin above is only as wide as its content can be LAID OUT, and a
-// row that may wrap lays out two lines tall — badge over button. That is
-// what 339's own landing looked like. The State cell's row must not wrap.
-describe("the State cell's badge and button stay on one line", () => {
-  test("the spec row's .row is flex-wrap: nowrap", () => {
-    // Two rules share the selector: the desktop one, and narrow.css's
-    // phone override (justify-content: flex-start). The desktop one is
-    // the one that pairs with the width pin.
-    const rule = oneRule(
-      CSS,
-      (r) => r.selectors.includes("table.list tr.spechead > td > .row") && r.body.includes("space-between"),
-    );
-    expect(rule.body).toContain("flex-wrap: nowrap");
-  });
-});
+// The State column's own width and the badge-to-button gap (spec 379,
+// REQ-1/REQ-2/REQ-3/REQ-4) used to be guarded here by matching this
+// stylesheet's own text (`min-width` on the column, `space-between` on
+// the row) — replaced by rendered-width measurements in a real browser
+// instead (REQ-6/REQ-7), in `test/e2e/specs-page-layout.test.ts`.
 
 // --- the specs list ends at the window edge in the installed app too
 // (spec 375) -------------------------------------------------------------

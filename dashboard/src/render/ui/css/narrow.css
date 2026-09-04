@@ -107,12 +107,16 @@
   table.list tr.spechead { border-top: 2px solid var(--line-strong); }
   table.list tr.spechead > td { border-top: none; }
   table.list tbody tr.spechead:first-child { border-top: none; }
-  /* The desktop rule (space-between, base stylesheet) spaces the badge
-     and the Archive button apart to fill a table column's own width —
-     a gap that ate into line 2's space here too, for the same reason
-     the auto-margin above did: reserved space a tight line cannot
-     spare. flex-start keeps them side by side with the ordinary gap. */
-  table.list tr.spechead > td > .row { justify-content: flex-start; }
+  /* Both undo the desktop rule (`rows-and-forms.css`), which sizes and
+     spaces this row for a fixed TABLE COLUMN it no longer shares here —
+     every row is its own block on mobile, `list.css`'s width rules do
+     not apply, and a phone this narrow can be under the desktop rule's
+     own 19rem outright. `width: auto` lets the row size to its actual
+     content instead of forcing a fixed box that could be wider than
+     the phone screen; flex-start keeps the badge and the button side by
+     side with the ordinary gap once space-between's old reserved space
+     (REQ-4, spec 379) is gone. */
+  table.list tr.spechead > td > .row { width: auto; justify-content: flex-start; }
   /* .actionslot reserves 6.5rem (the widest label, "Implement") so the
      button does not shift position between rows sharing a desktop
      column. There is no such column on mobile — every row is its own

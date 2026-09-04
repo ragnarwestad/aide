@@ -20,26 +20,38 @@
    opening a row — is the exception, and it is not this. */
 .actionslot { display: inline-flex; justify-content: flex-start;
   min-width: 6.5rem; }
-/* And the slot itself stands at the column's RIGHT EDGE, whatever the
-   badge in front of it says (spec 167). The slot has reserved a fixed
-   width since spec 157, but the badge has none — its wording runs from
-   two syllables to most of a sentence — so the buttons began at
-   different x positions down the column and moved as a state changed.
-   space-between costs no reserved space at all, and it is scoped to the
-   State cell's own row: the shared .row above is the phase lines' and
-   the filter bar's too.
+/* The badge and the button follow each other by one ordinary gap now
+   (REQ-4, spec 379) — `justify-content: space-between`, which used to
+   stand here, pushed the button to the column's right edge "whatever
+   the badge says" (previous comment), a reasonable goal while the
+   column's own width was leftover-driven and unpredictable. REQ-1/
+   REQ-3 give the column an exact, table-stable width instead
+   (`list.css`), so there is nothing left for `space-between` to
+   justify: `.row`'s own `gap: var(--sp-2)` above governs the distance
+   instead, on every row, regardless of what either control says.
    No badge is QUOTED here on purpose: a comment in this file is served
    as page content, so a state's wording written out below would be
    found by every test that asks whether the page says it.
-   One residue, left open: a table column is as wide as its widest cell,
-   so the COLUMN still moves if the longest badge on the page changes.
-   Closing that needs a declared width, which no spec owns yet. */
-/* And it never wraps. `width: 1%` on the State heading (spec 339) makes
-   the column as narrow as its content CAN be laid out — and a row that
-   may wrap can be laid out two lines tall, badge over button, which is
-   exactly what happened the day 339 landed. nowrap makes the floor
-   "badge and button on one line", which is the width the spec meant. */
-table.list tr.spechead > td > .row { justify-content: space-between; flex-wrap: nowrap; }
+   `width: 19rem` is this row's OWN worst-case floor, doing for State
+   what `.spec-name`'s `width: 27rem` (list.css) already does for
+   Spec: `table.list th[data-col="state"]`'s `width: 0` only pins the
+   HEADER cell, and an auto-layout table's per-column width still comes
+   from the widest cell across every row — so the real floor has to sit
+   on the row this cell actually draws. Measured (2-analysis.md's
+   Codebase analysis) against every text the badge can show, paired
+   with whichever control actually shares its row — Cancel on a busy
+   (running/queued) row, the run-phase label on a resting one, never
+   both (row-controls.ts's `specBusy`): "updating the manifest for
+   queued" (210.69px) + one gap (8px) + Cancel (69.94px) is the true
+   worst case at ≈289px of content. 19rem (304px) clears it with a
+   margin for cross-platform font-rendering drift.
+   And it never wraps: `width: 1%` on the State heading (spec 339) used
+   to make the column as narrow as its content CAN be laid out — and a
+   row that may wrap can be laid out two lines tall, badge over button,
+   which is exactly what happened the day 339 landed. `flex-wrap:
+   nowrap` makes the floor "badge and button on one line" here instead,
+   which is what both that spec and REQ-1 mean by it. */
+table.list tr.spechead > td > .row { width: 19rem; flex-wrap: nowrap; }
 td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields since spec 124: the boxes it posts are on
    the phase lines and the button that submits it stands beside the
