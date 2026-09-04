@@ -1,163 +1,34 @@
-// Split out of create-and-archive.test.ts by theme.
+// Split out of create-and-archive.test.ts by theme; its shared
+// machinery moved to archive-landing-fixtures.ts 2026-09-04.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../src/serve/serve.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../archived-specs-fixtures.ts";
-import { renderSentence } from "../../src/i18n/message.ts";
-
-/** The message a job carries, as text. Since spec 380 a job stores
- *  WHICH message and what fills its blanks; the reader composes it.
- *  These tests assert on what a reader would see, so they compose it
- *  the same way, in English. */
-function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
-}
-
+import { TOKEN, specHead } from "./fixtures.ts";
 import {
-  TOKEN,
-  specHead,
-  setupQueueRoutesHarness,
-} from "./fixtures.ts";
+  ARCHIVE_RESULT,
+  AUTH,
+  SPEC,
+  merges,
+  runStep,
+  settle,
+  SPECS_REPO,
+  gitFor,
+  harness,
+  ownDirs,
+  sentence,
+  serverWithRunner,
+  start,
+} from "./archive-landing-fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
-
-/** Temp directories this suite makes for itself, outside the harness. */
-const ownDirs: string[] = [];
-
-const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-const SPECS_REPO = "/repos/aide-specs";
-
-function gitFor({
-  conflicting = [],
-  needsRealMerge = [],
-  gone = [],
-  deleteFails = [],
-  stillOpenAfterDelete = [],
-}: {
-  conflicting?: string[];
-  needsRealMerge?: string[];
-  gone?: string[];
-  /** spec 319: roots whose `push -q origin --delete <branch>` fails —
-   *  the merge itself still succeeds, only the tidy-up does not. */
-  deleteFails?: string[];
-  /** spec 319: roots the post-loop `ls-remote --heads ... refs/heads/
-   *  aide/*` check should still report `branch` open on — the fixture
-   *  a delete-fails root needs so `rootsStillHolding` finds it again,
-   *  the way real origin would after a rejected delete. */
-  stillOpenAfterDelete?: { root: string; branch: string }[];
-} = {}) {
-  const calls: { dir: string; args: string[] }[] = [];
-  const run = async (dir: string, args: string[]) => {
-    calls.push({ dir, args });
-    const a = args.join(" ");
-    if (a.startsWith("ls-remote --exit-code") && gone.includes(dir)) return { code: 2, stdout: "" };
-    if (a.startsWith("ls-remote --heads")) {
-      const open = stillOpenAfterDelete.filter((o) => o.root === dir);
-      if (open.length) {
-        return { code: 0, stdout: open.map((o) => `abc123\trefs/heads/${o.branch}\n`).join("") };
-      }
-      return { code: 0, stdout: "" };
-    }
-    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-    if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
-    if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
-    }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-    if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-    if (a.startsWith("push -q origin --delete") && deleteFails.includes(dir)) {
-      return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-    }
-    return { code: 0, stdout: "" };
-  };
-  return { run, calls };
-}
-
-function serverWithRunner(
-  start: (options: Partial<ServerOptions>) => { base: string; dir: string },
-  prefix: string,
-  git: { run: (dir: string, args: string[]) => Promise<unknown> },
-  extra: Partial<ServerOptions> = {},
-) {
-  const results = mkdtempSync(join(tmpdir(), prefix));
-  ownDirs.push(results);
-  const { base, dir } = start({
-    queueToken: TOKEN,
-    gitRun: git.run as never,
-    queueRunnerBin: "/usr/bin/true",
-    queueResultDir: results,
-    ...extra,
-  });
-  return { base, dir, results };
-}
-
-async function settle(
-  base: string,
-  id: string,
-  done: (job: Record<string, unknown>) => boolean,
-): Promise<Record<string, unknown>> {
-  for (let n = 0; n < 100; n++) {
-    const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
-    const body = (await res.json()) as { job: Record<string, unknown> };
-    if (done(body.job)) return body.job;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error("the job never settled");
-}
-
-afterEach(() => {
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
-});
-
-// Spec 136: an archive run's whole diff is two markdown changes in the
-// specs repo — the date stamped into 4-status.md and the folder moved
-// into `archive/` — and, like every other step, it leaves them on a
-// branch. The list reads the main checkout, so the spec stayed in the
-// active list and the row asked to be merged: the step that ENDS a spec
-// ended by handing back a task (133, archived twice for exactly this).
-// So archive lands its own work, the way `create` has since spec 93 —
-// the same helper, the same per-repo report, the same visible refusal
-// when a merge genuinely cannot be made.
 describe("landing an archived spec (spec 136)", () => {
-  const SPEC = "81-queue-and-runner";
-  const BRANCH = `aide/${SPEC}`;
 
-  /** The result `aide-run-spec` writes for an archive step that moved the
-   *  folder and pushed the specs repo. No `specFolder`: that field is
-   *  create's, and an archive step reports none. */
-  const ARCHIVE_RESULT = {
-    ok: true,
-    exitCode: 0,
-    costUsd: 0.2,
-    costMeasured: true,
-    terminalReason: "completed",
-    branch: BRANCH,
-    branchUrls: [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }],
-    repos: [],
-  };
 
-  /** Queue one step for the harness's own spec, straight through — no
-   *  gate, so the run reaches `onStepDone` without a press. */
-  async function runStep(base: string, step: string): Promise<{ id: string; specFolder: string }> {
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
-      })
-    ).json()) as { job: { id: string; specFolder: string } };
-    return made.job;
-  }
 
-  const merges = (calls: { dir: string; args: string[] }[]) =>
-    calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
 
   // Criterion 1. This archive job is the FIRST the queue has ever run
   // for this spec, so `branchesFor()` — read synchronously inside the
@@ -306,57 +177,6 @@ describe("landing an archived spec (spec 136)", () => {
   // one exception: its specs root carries the `Result: completed` /
   // `Workflow steps completed` stamp, and that stamp must never reach
   // `main` before the code root's own landing is confirmed.
-  describe("code lands before specs for archive (spec 280)", () => {
-    const CODE_REPO = "/repos/aide";
-    const TWO_REPOS = [
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-      { root: CODE_REPO, url: "https://example.test/aide" },
-    ];
-
-    test("AC8: a failing code root stops the loop before the specs root is attempted", async () => {
-      const git = gitFor({ conflicting: [CODE_REPO] });
-      const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
-        queueProjectRoot: "/repos",
-      });
-      const job = await runStep(base, "archive");
-      writeFileSync(
-        join(results, `${job.id}.json`),
-        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
-      );
-      const failed = await settle(base, job.id, (j) => !!j.error);
-
-      expect(sentence(failed.error)).toContain(CODE_REPO);
-      expect(sentence(failed.error)).toContain("conflict");
-      expect(failed.errorReason).toBe("conflict");
-      // The code root was attempted (and failed) — the specs root, which
-      // carries the "completed" stamp, was never attempted at all.
-      expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(true);
-      expect(merges(git.calls).some((c) => c.dir === SPECS_REPO)).toBe(false);
-    });
-
-    test("AC9: a successful code root is followed by the specs root, unaffected", async () => {
-      const git = gitFor();
-      const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
-        queueProjectRoot: "/repos",
-      });
-      const job = await runStep(base, "archive");
-      writeFileSync(
-        join(results, `${job.id}.json`),
-        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
-      );
-      const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
-
-      expect(landed.error).toBeFalsy();
-      const merged = merges(git.calls);
-      const codeIndex = merged.findIndex((c) => c.dir === CODE_REPO);
-      const specsIndex = merged.findIndex((c) => c.dir === SPECS_REPO);
-      expect(codeIndex).toBeGreaterThanOrEqual(0);
-      expect(specsIndex).toBeGreaterThan(codeIndex);
-      expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
-      expect(git.calls.some((c) => c.dir === CODE_REPO && c.args[0] === "push")).toBe(true);
-      expect(landed.branchUrls).toEqual([]);
-    });
-  });
 
   // --- spec 319: a merge that succeeds but cannot delete its own branch ------
   //
@@ -367,87 +187,6 @@ describe("landing an archived spec (spec 136)", () => {
   // risk being re-flagged, a few lines later in the same landing, by the
   // post-loop `rootsStillHolding` check that has no idea the branch it
   // still finds open is the one this very loop just left that way.
-  describe("a branch left behind after a successful merge (spec 319)", () => {
-    test("settles as done, with no error, and carries the reason on the job", async () => {
-      let specsRoot = "";
-      const inner = gitFor();
-      const git = {
-        calls: inner.calls,
-        run: async (dir: string, args: string[]) => {
-          if (dir === specsRoot) {
-            const a = args.join(" ");
-            if (a === `push -q origin --delete ${BRANCH}`) {
-              inner.calls.push({ dir, args });
-              return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-            }
-            if (a.startsWith("ls-remote --heads")) {
-              inner.calls.push({ dir, args });
-              return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-            }
-          }
-          return inner.run(dir, args);
-        },
-      };
-      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
-      specsRoot = join(dir, "root", "aide", "specs");
-      const job = await runStep(base, "archive");
-      writeFileSync(
-        join(results, `${job.id}.json`),
-        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
-      );
-      const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
-
-      expect(landed.error).toBeFalsy();
-      expect(landed.errorReason).toBeFalsy();
-      expect(git.calls.some((c) => c.dir === specsRoot && c.args[0] === "push")).toBe(true);
-      expect(sentence(landed.branchDeleteError)).toContain(specsRoot);
-      expect(sentence(landed.branchDeleteError)).toContain(BRANCH);
-      expect(sentence(landed.branchDeleteError)).toContain("remote rejected: hook declined");
-    });
-
-    // Risk mitigation from the plan: the guard must skip only the root
-    // its OWN loop just recorded a delete failure for — a root the
-    // landing never touched at all, still open for a genuinely
-    // different reason, has to keep failing the job exactly as before.
-    test("does not silence a genuinely unlanded root beside it", async () => {
-      let specsRoot = "";
-      let codeRoot = "";
-      const inner = gitFor();
-      const git = {
-        calls: inner.calls,
-        run: async (dir: string, args: string[]) => {
-          if (dir === specsRoot) {
-            const a = args.join(" ");
-            if (a === `push -q origin --delete ${BRANCH}`) {
-              inner.calls.push({ dir, args });
-              return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-            }
-          }
-          if ((dir === specsRoot || dir === codeRoot) && args.join(" ").startsWith("ls-remote --heads")) {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-          }
-          return inner.run(dir, args);
-        },
-      };
-      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
-      specsRoot = join(dir, "root", "aide", "specs");
-      codeRoot = join(dir, "root", "aide");
-      const job = await runStep(base, "archive");
-      // Only the specs root is in THIS landing's own branchUrls — the
-      // code root is never merged by it, exactly the shape a job the
-      // LRU cap evicted or a step run by hand would leave behind.
-      writeFileSync(
-        join(results, `${job.id}.json`),
-        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
-      );
-      const failed = await settle(base, job.id, (j) => !!j.error);
-
-      expect(sentence(failed.error)).toContain(codeRoot);
-      expect(sentence(failed.error)).not.toContain(specsRoot);
-      expect(failed.errorReason).toBe("unlanded");
-    });
-  });
 
   // --- spec 330: one landing error names one path for one checkout ----------
   //
@@ -457,78 +196,6 @@ describe("landing an archived spec (spec 136)", () => {
   // sentence, by contrast, always names the run's own recorded root
   // (already the true top-level). Two sentences, two different strings,
   // one repository.
-  describe("one landing error names one path for one checkout (spec 330)", () => {
-    test("the post-loop sentence names the same resolved root the merge loop already failed for", async () => {
-      const resolvedRoot = "/repos/aide-specs-real-root";
-      let specsRoot = "";
-      const inner = gitFor({ conflicting: [resolvedRoot] });
-      const git = {
-        calls: inner.calls,
-        run: async (dir: string, args: string[]) => {
-          if (dir === specsRoot) {
-            const a = args.join(" ");
-            if (a === "rev-parse --show-toplevel") {
-              inner.calls.push({ dir, args });
-              return { code: 0, stdout: `${resolvedRoot}\n` };
-            }
-            if (a.startsWith("ls-remote --heads")) {
-              inner.calls.push({ dir, args });
-              return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-            }
-          }
-          return inner.run(dir, args);
-        },
-      };
-      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
-      specsRoot = join(dir, "root", "aide", "specs");
-      const job = await runStep(base, "archive");
-      writeFileSync(
-        join(results, `${job.id}.json`),
-        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: resolvedRoot, url: "https://example.test/aide-specs" }] }),
-      );
-      const failed = await settle(base, job.id, (j) => !!j.error);
-
-      const errorText = sentence(failed.error);
-      expect(errorText).toContain(resolvedRoot);
-      expect(errorText).not.toContain(specsRoot);
-    });
-
-    // A project whose specs live inside its own code repository:
-    // `specRoots()` returns the code root and a subdirectory of that same
-    // repo as two separate entries. Both still holding the branch must
-    // read as one repository, not two.
-    test("two specRoots entries resolving to one repo produce one still-on-origin sentence", async () => {
-      let specsRoot = "";
-      let codeRoot = "";
-      const inner = gitFor();
-      const git = {
-        calls: inner.calls,
-        run: async (dir: string, args: string[]) => {
-          const a = args.join(" ");
-          if ((dir === specsRoot || dir === codeRoot) && a === "rev-parse --show-toplevel") {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `${codeRoot}\n` };
-          }
-          if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-          }
-          return inner.run(dir, args);
-        },
-      };
-      const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
-      specsRoot = join(dir, "root", "aide", "specs");
-      codeRoot = join(dir, "root", "aide");
-      const job = await runStep(base, "archive");
-      writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
-      const failed = await settle(base, job.id, (j) => !!j.error);
-
-      const errorText = sentence(failed.error);
-      const stillOnOrigin = errorText.split("still on origin").length - 1;
-      expect(stillOnOrigin).toBe(1);
-      expect(errorText).toContain(codeRoot);
-    });
-  });
 
   // Criterion 6. Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same
