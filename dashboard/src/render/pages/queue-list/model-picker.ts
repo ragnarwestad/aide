@@ -1,6 +1,5 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state.ts";
-import { EFFORT_LEVELS } from "../../../queue/queue.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { busyReason, runFormId } from "./cells.ts";
@@ -258,65 +257,6 @@ export function resolveRecordedEffort(recorded?: string): string {
   return recorded ?? "";
 }
 
-/** The effort select's own options: the fixed `EFFORT_LEVELS` list, flat
- *  — no `<optgroup>`, since effort has no per-tool split the way a model
- *  does — plus one leading, always-present "—" option for "nothing
- *  chosen". Mirrors `modelOptions`'s own stale-value handling: an
- *  archived phase's recorded level that no longer appears in
- *  `EFFORT_LEVELS` (the list changed since the run) still shows, bare
- *  and selected, rather than silently vanishing. */
-export function effortOptions(chosen: string): string {
-  const known = chosen === "" || (EFFORT_LEVELS as readonly string[]).includes(chosen);
-  const levels = EFFORT_LEVELS.map(
-    (level) => `<option value="${esc(level)}"${level === chosen ? " selected" : ""}>${esc(level)}</option>`,
-  ).join("");
-  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(chosen)}</option>` : "";
-  return `<option value=""${chosen === "" ? " selected" : ""}>—</option>` + levels + stale;
-}
-
-/** The effort picker itself — the sibling of `modelPicker`. Drawn only
- *  when the queue offers model choices at all (`models.length`), the
- *  same "nothing configured, nothing to choose" gate `modelPicker` and
- *  `phaseCaptionCells` already apply: a server with no queue set up has
- *  no controls of any kind on this line, effort included.
- *
- *  Locked while the ROW is busy at all, not `busy && !live` the way
- *  `modelPicker` is (3-solution.md, Approach B): there is no tail-edit
- *  route for an effort level the way spec 225 gave the model select
- *  one, so a phase this run has not reached yet still shows its effort
- *  picker disabled until the run settles — reused disabled styling, not
- *  a half-working live post with nothing to post to. */
-export function effortPicker(
-  g: SpecGroup,
-  opts: PickerOptions,
-  step: string,
-  busy: boolean,
-  /** Unread here — kept only so this call takes the same five leading
-   *  arguments as `modelPicker`/`aiPicker` at the one call site that
-   *  draws all three in a row (`phase-rows.ts`'s `pickCell`). See the
-   *  doc comment above for why effort locks on `busy` alone. */
-  _live: boolean,
-  used?: string,
-  recordedEffort?: string,
-  /** Same override, same reason, as `modelPicker`'s own (spec 342). */
-  formIdOverride?: string,
-): string {
-  const models = opts.modelChoices ?? [];
-  if (!models.length) return "";
-  const archived = isArchivedRow(g);
-  const locked = archived || busy;
-  const why = locked ? busyReason(g) : "";
-  const pending = archived ? undefined : opts.pendingEffort?.[groupKey(g.project, g.specFolder)]?.[step];
-  const chosen = archived ? resolveRecordedEffort(recordedEffort) : resolveChosenEffort(used, pending);
-  return (
-    `<select name="effort.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
-    (used !== undefined ? ` data-ran="1"` : "") +
-    (locked ? ` disabled title="${esc(why)}"` : "") +
-    `>` +
-    effortOptions(chosen) +
-    `</select>`
-  );
-}
 
 // What the phase columns under this line are. TWO of them: the phase's
 // name, hard left in a cell of its own, and the three choices a line

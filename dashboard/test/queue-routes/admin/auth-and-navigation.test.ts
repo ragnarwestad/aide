@@ -3,8 +3,6 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-} from "../../../src/render.ts";
-import {
   TOKEN,
   JOB,
   setupQueueRoutesHarness,

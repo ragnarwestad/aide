@@ -10,12 +10,6 @@ export function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function linkOrText(s: string): string {
-  return /^https?:\/\/\S+$/.test(s)
-    ? `<a href="${esc(s)}">${esc(s)}</a>`
-    : esc(s);
-}
-
 export function money(n: number | null | undefined): string {
   return typeof n === "number" ? `$${n.toFixed(2)}` : "–";
 }

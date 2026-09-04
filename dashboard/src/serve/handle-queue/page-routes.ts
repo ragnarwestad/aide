@@ -2,10 +2,6 @@
 // Settings, Add/Remove project, a project's own page, and the
 // Projects listing. Extracted from handle-queue.ts (split of split
 // serve.ts step 2).
-import { } from "node:fs";
-import type { } from "../../project/parse-manifest.ts";
-import { } from "../../project/project-settings.ts";
-import { } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 import { specsPages } from "./page-routes/specs-pages.ts";
 import { projectPages } from "./page-routes/project-pages.ts";

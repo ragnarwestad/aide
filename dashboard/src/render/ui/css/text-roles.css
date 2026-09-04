@@ -7,7 +7,6 @@
 .desc { margin-top: 0; }
 .summary { color: var(--muted); }
 .counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
-.specdesc { white-space: pre-wrap; max-width: 46rem; }
 /* A whole spec file, shown as written (spec 150). Markdown is
    deliberately not rendered, so this carries what a reader needs to
    read one anyway: the file's own line breaks, a measure that does not

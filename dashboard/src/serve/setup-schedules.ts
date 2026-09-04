@@ -164,7 +164,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
 
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    refreshDrift, warmSpec, refreshSpecCaches, refreshSchedules, tickRunner,
+    warmSpec, refreshSpecCaches, tickRunner,
     driftTimer, specCacheTimer, scheduleTimer,
   };
 }

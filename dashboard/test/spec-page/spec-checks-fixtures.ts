@@ -175,7 +175,6 @@ export const relFilePath = (file: string, folder = SPEC) => `aide/specs/${folder
 /** `4-status.md`'s own path — the one file this fixture wrote for
  *  before spec 310 generalized Save to all four. Kept as its own name
  *  since most callers here are still about the tick route's one file. */
-export const relStatusPath = (folder = SPEC) => relFilePath("4-status.md", folder);
 
 const PAD = (sha: string) => sha.padEnd(40, "0");
 export const BRANCH_TIP_SHA = PAD("branchtip");

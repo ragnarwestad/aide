@@ -94,7 +94,7 @@ const STRUCTURE = [
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
-  "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
+  "small", "muted", "num", "label", "desc", "summary", "counts",
   // one whole spec file, preformatted (spec 150) — the spec page shows
   // four of them and a phase's job page one
   "specfile",

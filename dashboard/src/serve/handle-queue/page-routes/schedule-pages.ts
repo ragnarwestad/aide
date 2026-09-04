@@ -8,8 +8,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { resolveSchedule } from "../../../project/discover.ts";
-import type { } from "../../../project/parse-manifest.ts";
-import { } from "../../../project/project-settings.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render.ts";
 import { queueClientScript } from "../../serve-helpers.ts";

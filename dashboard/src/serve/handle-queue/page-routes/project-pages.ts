@@ -5,7 +5,6 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover.ts";
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
@@ -13,7 +12,6 @@ import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../../render.ts";
 import { queueClientScript } from "../../serve-helpers.ts";
-import { } from "../../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
 export async function projectPages(
