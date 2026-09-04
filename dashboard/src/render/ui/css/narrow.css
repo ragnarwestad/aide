@@ -123,7 +123,7 @@
      block — so a shorter label ("Archive") left that width standing
      empty, which is what was still forcing Cost to wrap even after the
      other two gaps were closed. */
-  table.list tr.spechead .actionslot { min-width: 0; }
+  table.list tr.spechead .actionslot { width: auto; }
   /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
      end, in a different place on every row. On the holder, never the
@@ -131,7 +131,7 @@
      background (2026-08-24). Sized for the longest label it can carry
      now that the resting texts are one word ("ready"/"done"):
      "implementing queued", 19 characters of fs-s plus dot and padding. */
-  table.list tr.spechead .badgeslot { min-width: 9rem; margin-left: var(--sp-2); }
+  table.list tr.spechead .badgeslot { width: 9rem; margin-left: var(--sp-2); }
   /* Date and cost stand at the line's right edge, away from the action
      button (asked for 2026-08-24). An auto margin only absorbs FREE
      space, so it cannot wrap the cost by itself — what did that before

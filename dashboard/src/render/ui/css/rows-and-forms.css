@@ -11,47 +11,26 @@
    > .btn.primary` rule would also reach the Specs page's own New-spec
    link, so this class is scoped to `/schedule` alone. */
 .schedulenewlink { margin-left: auto; }
-/* The row's one action keeps its place whatever it currently is. The
-   label changes with the state — Analyze, Implement, Cancel — and a
-   box that grew with it moved the columns to its right on every
-   press. The width is the widest label ("Implement") plus the button's
-   own padding; the slot is drawn empty rather than removed on a row
-   with nothing to press, for the same reason. Deliberate movement —
-   opening a row — is the exception, and it is not this. */
-.actionslot { display: inline-flex; justify-content: flex-start;
-  min-width: 6.5rem; }
-/* The badge and the button follow each other by one ordinary gap now
-   (REQ-4, spec 379) — `justify-content: space-between`, which used to
-   stand here, pushed the button to the column's right edge "whatever
-   the badge says" (previous comment), a reasonable goal while the
-   column's own width was leftover-driven and unpredictable. REQ-1/
-   REQ-3 give the column an exact, table-stable width instead
-   (`list.css`), so there is nothing left for `space-between` to
-   justify: `.row`'s own `gap: var(--sp-2)` above governs the distance
-   instead, on every row, regardless of what either control says.
-   No badge is QUOTED here on purpose: a comment in this file is served
-   as page content, so a state's wording written out below would be
-   found by every test that asks whether the page says it.
-   `width: 19rem` is this row's OWN worst-case floor, doing for State
-   what `.spec-name`'s `width: 27rem` (list.css) already does for
-   Spec: `table.list th[data-col="state"]`'s `width: 0` only pins the
-   HEADER cell, and an auto-layout table's per-column width still comes
-   from the widest cell across every row — so the real floor has to sit
-   on the row this cell actually draws. Measured (2-analysis.md's
-   Codebase analysis) against every text the badge can show, paired
-   with whichever control actually shares its row — Cancel on a busy
-   (running/queued) row, the run-phase label on a resting one, never
-   both (row-controls.ts's `specBusy`): "updating the manifest for
-   queued" (210.69px) + one gap (8px) + Cancel (69.94px) is the true
-   worst case at ≈289px of content. 19rem (304px) clears it with a
-   margin for cross-platform font-rendering drift.
-   And it never wraps: `width: 1%` on the State heading (spec 339) used
-   to make the column as narrow as its content CAN be laid out — and a
-   row that may wrap can be laid out two lines tall, badge over button,
-   which is exactly what happened the day 339 landed. `flex-wrap:
-   nowrap` makes the floor "badge and button on one line" here instead,
-   which is what both that spec and REQ-1 mean by it. */
-table.list tr.spechead > td > .row { width: 19rem; flex-wrap: nowrap; }
+/* State and the action are two boxes of their own, each an exact width,
+   and the cell is the sum of them (spec 379's REQ-1/REQ-4, corrected
+   2026-09-04). A column has ONE width for every row, so whatever box is
+   given the leftover shows it as empty space: the row used to be a
+   single 19rem box with the badge and the button packed left inside it,
+   which put every shorter row's leftover AFTER the button — a hand's
+   width of nothing between the button and the Created column.
+   `.badgeslot` is the longest state text this column can draw (measured
+   in a browser with this stylesheet: 150px, "arkivering holdt
+   tilbake" — the widest of the sixty texts a spec row can draw);
+   `.actionslot` is the widest label a button here can carry. The action
+   therefore starts at the same place on every row — immediately after
+   the state column — and nothing but the button's own label variation
+   is left over at the end. Both are `width`, not `min-width`: a floor
+   still lets the widest row govern the column, which is what made the
+   width move with whatever the board happened to be showing. */
+.badgeslot { display: inline-flex; align-items: center; gap: var(--sp-2); width: 9.5rem; }
+.actionslot { display: inline-flex; justify-content: flex-start; width: 6.5rem; }
+/* No width of its own: the two boxes above are the width. */
+table.list tr.spechead > td > .row { flex-wrap: nowrap; }
 td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields since spec 124: the boxes it posts are on
    the phase lines and the button that submits it stands beside the

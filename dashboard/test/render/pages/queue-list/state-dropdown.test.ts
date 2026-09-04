@@ -44,10 +44,10 @@ const RUNNING_LABELS = [
   "Running-analyzing",
   "Running-implementing",
   "Running-archiving",
-  "Running-updating the manifest for",
+  "Running-updating the manifest",
   "Running-reopening",
   "Running-resetting",
-  "Running-running the schedule for",
+  "Running-running the schedule",
 ];
 
 describe("the state dropdown (spec 289)", () => {

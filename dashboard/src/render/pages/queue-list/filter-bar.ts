@@ -247,6 +247,15 @@ export function sortableHead(f: QueueFilter, lang: Language = "en"): string {
     // would take its width from the spec NAME — leaving the phase
     // names, which are short, floating in a cell as wide as a folder
     // name. Spanning lets the phase names size their own column.
+    // Each column's width is declared on the COLUMN (list.css) — the
+    // only place a table can be told one whether or not a row currently
+    // draws a cell there. The second column belongs to the phase lines
+    // alone and this head row spans across it, so a width stated on
+    // cells left it 0 wide with every row shut and 300-odd wide with one
+    // open, moving every column to its right (2026-09-04).
+    `<colgroup>${["spec", "phase", "state", "created", "started", "cost"]
+      .map((c) => `<col data-col="${c}">`)
+      .join("")}</colgroup>` +
     `<thead><tr>${th("spec", t(lang, "list.colSpec"), "", undefined, ' colspan="2" data-col="spec"')}` +
     `${th("state", t(lang, "list.colState"), "", undefined, ' data-col="state"')}` +
     `${th("created", t(lang, "list.colCreated"), "", undefined, ' data-col="created"')}` +

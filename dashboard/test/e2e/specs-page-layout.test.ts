@@ -11,7 +11,6 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 import { CSS } from "../../src/render/ui/css.ts";
 import { badge, btn } from "../../src/render/ui/components.ts";
 import { t } from "../../src/i18n/index.ts";
-import { gerund } from "../../src/render/ui/job-state/resting.ts";
 
 setDefaultTimeout(20_000);
 
@@ -172,6 +171,27 @@ test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-b
 // screen. `narrow.css` resets it back to `auto` alongside its existing
 // `justify-content: flex-start` override, so the row sizes to its own
 // content again, the way every other phone row already does.
+// The gap this rule exists to remove, measured where it actually
+// showed: BEHIND the action button. State's cell used to be one fixed
+// 19rem box with the badge and the button packed left inside it, so
+// every row shorter than the worst case carried the difference — about
+// 130px, a hand's width of nothing — between the button and the Created
+// column. Two fixed boxes (`.badgeslot`, `.actionslot`) leave nothing
+// over: the cell is their sum, and what follows the button is the
+// cell's own padding and no more.
+test("spec 379 REQ-4: nothing but the cell's padding stands between the action and the next column", async () => {
+  for (const width of [900, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto(/) at ${width}px`);
+    const [cell, action] = await Promise.all([
+      page.locator("tr.spechead .row").first().evaluate((el) => el.parentElement!.getBoundingClientRect()),
+      page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
+    ]);
+    expect(cell.right - action.right).toBeLessThanOrEqual(13);
+  }
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
 test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed width", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at phone width");
@@ -205,8 +225,12 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
 // still spreads the badge and the button across whatever that leftover
 // is — not the two controls' own combined content width, which is the
 // number this assertion is actually about.
-test("spec 379 REQ-1: the worst-case state badge and Cancel fit on one line within 304px", async () => {
-  const worstBadge = badge("idle", t("en", "list.stateQueued", { step: gerund("en", "manifest") }));
+test("spec 379 REQ-1: the widest state badge and the widest button fit the State column", async () => {
+  // The widest of the sixty texts a spec row can draw, measured
+  // 2026-09-04: the Norwegian "archive held back". `manifest` used to
+  // stand here and cannot reach a row at all — the step runs when a
+  // project is added, never as a job with a row of its own.
+  const worstBadge = badge("idle", t("nb", "list.archiveHeldBackWord"));
   const cancelButton = btn({ label: t("en", "list.cancel"), variant: "primary" });
   const html =
     `<!doctype html><html><head><style>${CSS}</style></head><body>` +
@@ -217,13 +241,21 @@ test("spec 379 REQ-1: the worst-case state badge and Cancel fit on one line with
     `</span></td></tr></tbody></table></body></html>`;
   const fixturePage = await browser.newPage();
   await withTimeout(fixturePage.setContent(html), 10_000, "fixturePage.setContent(worst-case row)");
-  const [row, badgeslot, actionslot] = await Promise.all([
-    fixturePage.locator(".row").evaluate((el) => el.getBoundingClientRect()),
+  const [badgeslot, actionslot] = await Promise.all([
     fixturePage.locator(".badgeslot").evaluate((el) => el.getBoundingClientRect()),
     fixturePage.locator(".actionslot").evaluate((el) => el.getBoundingClientRect()),
   ]);
+  const badgeFits = await fixturePage
+    .locator(".badgeslot .badge")
+    .evaluate((el) => el.scrollWidth <= (el.parentElement as HTMLElement).clientWidth);
   await fixturePage.close();
-  expect(row.width).toBeLessThanOrEqual(304);
+  // The two boxes ARE the width: `.row` around them has none of its
+  // own any more, so measuring it in this bare fixture measures the
+  // fixture's own page. The badge is not clipped inside its box, and
+  // the two together are the State column's declared width less the
+  // cell's padding.
+  expect(badgeFits).toBe(true);
+  expect(badgeslot.width + 8 + actionslot.width).toBeLessThanOrEqual(264);
   // On one line: the badge and the button's vertical MIDPOINTS match
   // (not their tops — `.badge` is 20px tall, `.btn` 28px, and `.row`'s
   // own `align-items: center` centres each on the line rather than

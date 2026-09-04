@@ -47,14 +47,19 @@ describe("the space between two controls comes from their container", () => {
     expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
 
-  // Spec 167 pushed the State cell's action to the column's right edge
-  // with `justify-content: space-between`, scoped off the shared `.row`
-  // the phase lines and the filter bar also use — replaced by an exact
-  // column width instead (spec 379, REQ-1/REQ-3/REQ-4): once the column
-  // cannot grow, `space-between` has nothing left to justify, and the
-  // scoped rule now carries a `width` in its place (`rows-and-forms.css`).
-  test("the State cell's own row is still scoped off the shared .row, and carries an exact width", () => {
-    expect(CSS).toMatch(/table\.list tr\.spechead > td > \.row \{[^}]*width:\s*19rem[^}]*\}/);
+  // The exact width sits on the two BOXES inside the cell, not on the
+  // row around them (spec 379's REQ-1/REQ-4, corrected 2026-09-04): one
+  // box holding the whole row's width put every shorter row's leftover
+  // behind the button, which is the gap the rule exists to remove. What
+  // the browser actually draws is measured in
+  // `test/e2e/specs-page-layout.test.ts`; this only keeps the two
+  // widths from quietly becoming floors again, which is what let the
+  // widest row on the page govern the column before.
+  test("the State cell's two boxes carry exact widths, and the row around them carries none", () => {
+    expect(CSS).toMatch(/\.badgeslot \{[^}]*[^-]width:\s*[\d.]+rem[^}]*\}/);
+    expect(CSS).toMatch(/\.actionslot \{[^}]*[^-]width:\s*[\d.]+rem[^}]*\}/);
+    expect(CSS).toMatch(/table\.list tr\.spechead > td > \.row \{[^}]*flex-wrap:\s*nowrap[^}]*\}/);
+    expect(CSS.match(/table\.list tr\.spechead > td > \.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("width:");
     // The shared rule keeps its own alignment and gains nothing.
     expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("width");
   });

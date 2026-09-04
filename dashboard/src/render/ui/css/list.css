@@ -44,7 +44,25 @@ table { border-collapse: collapse; width: 100%; }
    `queue-list.ts` already puts on this one table. Auto layout then
    sizes the table to the sum of its own columns' widths (below): a
    wider window leaves empty page beside the table, not inside a cell. */
-table.speclist { width: auto; }
+/* The sum of the six columns below. Stated, because `table-layout:
+   fixed` needs a definite width to work from — with `auto` the browser
+   falls back to sizing columns from their content, which is the thing
+   being replaced. Every column then holds its declared width whatever
+   any row says, and nothing is left over for one of them to absorb. */
+table.speclist { width: 63rem; table-layout: fixed; }
+/* Measured in a browser against the widest thing each column can draw,
+   plus the cell's own padding (--sp-3 on each side): Spec is
+   the first two together carry `.spec-name`'s 27rem box, which the
+   head row spans across, and separately the phase lines' own name and
+   their AI/model controls; State is
+   `.badgeslot` + the row's gap + `.actionslot` (rows-and-forms.css);
+   then the date, the longest duration and the largest cost. */
+table.speclist > colgroup > col[data-col="spec"] { width: 8rem; }
+table.speclist > colgroup > col[data-col="phase"] { width: 21.5rem; }
+table.speclist > colgroup > col[data-col="state"] { width: 18rem; }
+table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
+table.speclist > colgroup > col[data-col="started"] { width: 4.5rem; }
+table.speclist > colgroup > col[data-col="cost"] { width: 4.5rem; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
 thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);

@@ -70,7 +70,7 @@ describe("Started and Cost fold away at phone width", () => {
   test("the spec header's badge SLOT reserves one width for every state", () => {
     // The holder, never the pill: a min-width on the badge itself
     // stretched its coloured background.
-    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ min-width: [\d.]+rem/);
+    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ width: [\d.]+rem/);
     expect(NARROW).not.toMatch(/tr\.spechead \.badge \{/);
   });
 

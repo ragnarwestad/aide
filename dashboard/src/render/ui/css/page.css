@@ -75,6 +75,7 @@ main { padding: var(--sp-5) var(--sp-6); }
    row or a form and stays out of this rule. */
 header, body > nav.tabbar, main, body > p.rowmsg { max-width: calc(72rem + 2 * var(--sp-6));
   width: 100%; box-sizing: border-box; margin-inline: auto; }
+
 /* The Specs page only (spec 320), scoped by :has(#jobrows) — the id only
    that one page ever writes. Its own box (.tablewrap, list.css) is the
    only thing meant to scroll; everywhere else keeps the ordinary
