@@ -118,7 +118,7 @@ describe("spec 118: every consumption figure carries both units", () => {
   test("the same cell holds the token figure beside it", () => {
     const html = rows({ spentUsd: 0.54, spentTokens: 5234 });
     expect(html).toContain('<span class="u-usd">$0.54</span>');
-    expect(html).toContain('<span class="u-tok">5.2k tok</span>');
+    expect(html).toContain('<span class="u-tok">5.2k</span>');
   });
 
   // Criterion 7: a job that ran before this feature has no token count,
@@ -139,7 +139,7 @@ describe("spec 118: every consumption figure carries both units", () => {
       spentTokens: 9000,
       results: [{ step: "analyze", ok: true, costUsd: 0.5, tokens: 1500 }],
     });
-    expect(html).toContain('<span class="u-tok">1.5k tok</span>');
+    expect(html).toContain('<span class="u-tok">1.5k</span>');
   });
 
   // The description asks for the Cost column "(header and values)" —
@@ -183,7 +183,7 @@ describe("spec 260: the Cost cell draws on either figure, not just the dollar on
   // AC1: the spec row's own Cost cell.
   test("the spec row's Cost cell shows tokens, and a dash never $0.00, for a Codex-only spec", () => {
     const html = rows({ spentUsd: 0, spentTokens: 5234 });
-    expect(html).toContain('<span class="u-tok">5.2k tok</span>');
+    expect(html).toContain('<span class="u-tok">5.2k</span>');
     expect(html).toContain('<span class="u-usd">–</span>');
     expect(html).not.toContain("$0.00");
   });
@@ -200,7 +200,7 @@ describe("spec 260: the Cost cell draws on either figure, not just the dollar on
       results: [{ step: "analyze", ok: true, costUsd: 0, tokens: 9562 }],
     });
     const line = html.match(/data-step="analyze"[\s\S]*?<\/tr>/)![0];
-    expect(line).toContain('<span class="u-tok">9.6k tok</span>');
+    expect(line).toContain('<span class="u-tok">9.6k</span>');
   });
 
   // The regression the relaxed gate could lose: nothing measured at all
@@ -229,7 +229,7 @@ describe("spec 118: the job page's figures carry both units", () => {
   test("the Steps table's Cost column holds both figures (criteria 4, 5)", () => {
     const html = page({ results: [step({ tokens: 12_300 })] }, "steps");
     expect(html).toContain('<span class="u-usd">$0.42</span>');
-    expect(html).toContain('<span class="u-tok">12.3k tok</span>');
+    expect(html).toContain('<span class="u-tok">12.3k</span>');
   });
 
   test("a step recorded before this feature dashes rather than guessing (criterion 7)", () => {
@@ -254,7 +254,7 @@ describe("spec 118: the job page's figures carry both units", () => {
   test("the job's Cost so far row carries both (criteria 4, 5)", () => {
     const html = page({ spentUsd: 1.5, spentTokens: 2_000_000 });
     expect(html).toContain('<span class="u-usd">$1.50</span>');
-    expect(html).toContain('<span class="u-tok">2.0M tok</span>');
+    expect(html).toContain('<span class="u-tok">2.0M</span>');
   });
 
   // The live panel had a Cost so far row of its own; spec 150 removed

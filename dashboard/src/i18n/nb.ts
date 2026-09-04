@@ -21,7 +21,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.all": "Alle",
   "list.state.active": "Aktive",
   "list.state.running": "Kjører",
-  "list.state.runningAll": "alle",
   "list.state.done": "Ferdig",
   "list.state.problem": "Problemer",
   "list.state.archived": "Arkivert",

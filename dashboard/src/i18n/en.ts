@@ -22,7 +22,6 @@ export const en = {
   "list.state.all": "All",
   "list.state.active": "Active",
   "list.state.running": "Running",
-  "list.state.runningAll": "all",
   "list.state.done": "Done",
   "list.state.problem": "Problems",
   "list.state.archived": "Archived",

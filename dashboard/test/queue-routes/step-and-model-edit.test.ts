@@ -43,7 +43,7 @@ describe("a job's token count reaches the page", () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain('<span class="u-usd">$0.54</span>');
-    expect(html).toContain('<span class="u-tok">1.2M tok</span>');
+    expect(html).toContain('<span class="u-tok">1.2M</span>');
   });
 
   test("the job page shows both figures for the step and the job", async () => {
@@ -53,7 +53,7 @@ describe("a job's token count reaches the page", () => {
       await fetch(`${base}/specs/${id}?tab=steps`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(html).toContain('<span class="u-usd">$0.54</span>');
-    expect(html).toContain('<span class="u-tok">1.2M tok</span>');
+    expect(html).toContain('<span class="u-tok">1.2M</span>');
   });
 });
 

@@ -40,7 +40,7 @@ describe("a job run by Codex", () => {
       { tab: "steps" },
     );
     expect(html).not.toContain("$0.00");
-    expect(html).toContain("9.6k tok");
+    expect(html).toContain("9.6k");
   });
 });
 

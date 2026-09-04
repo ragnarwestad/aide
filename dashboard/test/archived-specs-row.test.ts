@@ -213,7 +213,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
     const cell = row.slice(row.indexOf('data-col="cost"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain('<span class="u-tok">9.6k tok</span>');
+    expect(body).toContain('<span class="u-tok">9.6k</span>');
     expect(body).not.toContain("$0.00");
   });
 

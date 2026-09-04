@@ -165,6 +165,52 @@ test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-b
   expect(wide.actionslot.left - wide.badgeslot.right).toBeCloseTo(8, 0);
 });
 
+// --- spec 381: the controls line above the list ends where the list
+// does --------------------------------------------------------------
+//
+// `.specsearch` (the search field, the state dropdown, New) used to
+// stretch to `main`'s own frame width instead of the table's — a
+// mismatch only visible once the table's own width stopped tracking
+// the window (spec 379). REQ-1 itself asks for "a window wide enough
+// that the table does not scroll": below that point `.tablewrap`'s own
+// `overflow-x: auto` (list.css) keeps the table's full 63rem width off
+// the visible page while `.specsearch` (which has no scroll box of its
+// own, by design — Risk analysis, 3-solution.md) stays within the
+// frame, so the two edges cannot and need not align there. 1100px sits
+// just above that threshold (measured directly: `#jobrows`'s own
+// content box is 1036px wide there, wider than the table's 1009px);
+// 1920px is the file's existing wide end, already used above.
+async function measureControlsAndTable() {
+  const [controls, table] = await Promise.all([
+    page.locator(".specsearch").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
+  ]);
+  return { controls, table };
+}
+
+test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, at more than one window width", async () => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1100px");
+  const narrow = await measureControlsAndTable();
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  const wide = await measureControlsAndTable();
+
+  // Within 1px: `table.list`'s own 1px border plus `border-collapse`
+  // (list.css) renders the table's box a hair wider than its declared
+  // `63rem`, a pre-existing rendering quirk this spec does not touch —
+  // `toBeCloseTo(..., 0)`'s < 0.5px tolerance is tighter than that.
+  expect(
+    Math.abs(narrow.controls.x + narrow.controls.width - (narrow.table.x + narrow.table.width)),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(wide.controls.x + wide.controls.width - (wide.table.x + wide.table.width)),
+  ).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
 // REQ-5: the desktop rule's exact `width: 19rem` (rows-and-forms.css)
 // applies to the same selector the phone layout's row uses — with no
 // override, a phone under 304px would carry a box wider than its own

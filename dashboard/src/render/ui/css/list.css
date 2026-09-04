@@ -32,7 +32,8 @@
    Undone entirely at phone width (narrow.css) instead of being made
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
-#jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+#jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
+  --speclist-width: 63rem; }
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
   padding-bottom: var(--sp-3); }
 
@@ -49,7 +50,7 @@ table { border-collapse: collapse; width: 100%; }
    falls back to sizing columns from their content, which is the thing
    being replaced. Every column then holds its declared width whatever
    any row says, and nothing is left over for one of them to absorb. */
-table.speclist { width: 63rem; table-layout: fixed; }
+table.speclist { width: var(--speclist-width); table-layout: fixed; }
 /* Measured in a browser against the widest thing each column can draw,
    plus the cell's own padding (--sp-3 on each side): Spec is
    the first two together carry `.spec-name`'s 27rem box, which the
@@ -195,6 +196,15 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    and this row already tolerates the extra width by wrapping. */
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
+/* Caps this line at the table's own width (spec 381, REQ-1/REQ-2), so
+   New — pinned to the line's own right edge below — lands at the
+   table's right edge instead of stretching to `#jobrows`'s full flex
+   width. `max-width`, not `width`: this row has no scroll box of its
+   own, so it must stay free to narrow further at a window too small
+   even for the table. Scoped to `#jobrows` because `.specsearch` is
+   shared with `/schedule` (filter-pill.css), which has no such
+   ancestor and must render exactly as it does today. */
+#jobrows .specsearch { max-width: var(--speclist-width); }
 /* The clear control (spec 226) sits IN the field, at its right edge —
    where every search box a reader has used before puts it. The wrapper
    is what the absolute position is measured from; it takes the field's

@@ -291,7 +291,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     const html = rows(list, targets);
     expect(html).toMatch(/>All \(2\)</);
     expect(html).not.toContain(">Not started");
-    expect(html).toMatch(/>Running-all \(0\)</);
+    expect(html).toMatch(/>Running \(0\)</);
     expect(html).toMatch(/>Done \(1\)</);
     expect(html).toMatch(/>Problems \(0\)</);
 

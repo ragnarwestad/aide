@@ -27,9 +27,9 @@ export function money(n: number | null | undefined): string {
 // the step used nothing.
 export function tokens(n: number | null | undefined): string {
   if (typeof n !== "number") return "–";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M tok`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k tok`;
-  return `${n} tok`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return `${n}`;
 }
 
 /** Both units, in one cell. The reader's choice is applied by CSS from

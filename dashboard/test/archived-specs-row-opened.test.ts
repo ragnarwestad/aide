@@ -202,7 +202,7 @@ describe("an archived spec's row, opened", () => {
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
     const line = lines["analyze"]!;
     const cell = line.slice(line.indexOf('data-col="cost"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain('<span class="u-tok">9.6k tok</span>');
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain('<span class="u-tok">9.6k</span>');
   });
 
   // Spec 247, criterion 7: the OLD `4-status.md` `Model (<step>):` line

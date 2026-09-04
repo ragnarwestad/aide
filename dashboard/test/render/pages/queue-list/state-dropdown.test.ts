@@ -10,7 +10,9 @@ import { row } from "../fixtures.ts";
 // Spec 374 dropped the "State:"/"States:" prefix from the closed
 // trigger in favour of the chosen option's own label and count, and
 // split the flat "Running" choice into one sub-entry per workflow step
-// plus "all" — both covered below.
+// plus "all". Spec 381 collapsed that sub-menu back to the single
+// "Running" entry it was before spec 374 — both changes are covered
+// below.
 
 const page = (opts: Partial<QueuePageOptions> = {}, rows: QueueRowView[] = []): string =>
   renderQueuePage(rows, "2026-08-30T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
@@ -33,23 +35,6 @@ const optionByLabel = (panel: string, label: string): string =>
 
 const triggerOf = (panel: string): string => panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
 
-// The ten choices "Running" split into (REQ-3), in the workflow's own
-// order — `core/scripts/lib/workflow-steps.json`'s `workflowSteps`,
-// worded through `GERUND_EN` (`resting.ts`), the same word a running
-// row's own badge shows for that step.
-const RUNNING_LABELS = [
-  "Running-all",
-  "Running-exploring",
-  "Running-creating",
-  "Running-analyzing",
-  "Running-implementing",
-  "Running-archiving",
-  "Running-updating the manifest",
-  "Running-reopening",
-  "Running-resetting",
-  "Running-running the schedule",
-];
-
 describe("the state dropdown (spec 289)", () => {
   test("renders one details.menu.state, not six separate pill links", () => {
     const html = page();
@@ -63,7 +48,7 @@ describe("the state dropdown (spec 289)", () => {
   test("every option appears in order inside the panel, each a data-nav link (REQ-3, REQ-6)", () => {
     const html = page();
     const panel = panelOf(html);
-    const order = ["All", "Active", ...RUNNING_LABELS, "Done", "Problems", "Archived"];
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
     for (const label of order) expect(optionByLabel(panel, label)).not.toBe("");
     const positions = order.map((label) => panel.indexOf(optionByLabel(panel, label)));
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
@@ -88,7 +73,7 @@ describe("the state dropdown (spec 289)", () => {
     const html = page();
     const panel = panelOf(html);
     expect(panel).toContain('<div class="menupanel" role="radiogroup">');
-    const order = ["All", "Active", "Running-all", "Running-analyzing", "Done", "Problems", "Archived"];
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
     for (const label of order) {
       expect(optionByLabel(panel, label)).toContain('role="radio"');
     }
@@ -97,7 +82,7 @@ describe("the state dropdown (spec 289)", () => {
   test("exactly one option carries aria-checked=true at a time", () => {
     const html = page({ filter: { state: "done" } });
     const panel = panelOf(html);
-    const order = ["All", "Active", ...RUNNING_LABELS, "Done", "Problems", "Archived"];
+    const order = ["All", "Active", "Running", "Done", "Problems", "Archived"];
     const checked = order.filter((label) => optionByLabel(panel, label).includes('aria-checked="true"'));
     const unchecked = order.filter((label) => optionByLabel(panel, label).includes('aria-checked="false"'));
     expect(checked).toEqual(["Done"]);
@@ -164,54 +149,46 @@ describe("the state dropdown (spec 289)", () => {
   });
 });
 
-describe("the Running sub-menu (spec 374, REQ-3/REQ-4/REQ-5)", () => {
+describe("the Running entry (spec 381, REQ-3/REQ-4)", () => {
   const jobs: QueueRowView[] = [
     row({ id: "a", specFolder: "1-a", state: "running", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "b", specFolder: "2-b", state: "queued", steps: ["implement"], stepIndex: 0 }),
     row({ id: "c", specFolder: "3-c", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];
 
-  test("each Running sub-entry counts only the specs on its own step", () => {
+  test("Running counts everything in flight, regardless of step, with no per-step option beside it (REQ-3)", () => {
     const html = page({}, jobs);
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Running-all")).toMatch(/Running-all \(3\)/);
-    expect(optionByLabel(panel, "Running-analyzing")).toMatch(/Running-analyzing \(2\)/);
-    expect(optionByLabel(panel, "Running-implementing")).toMatch(/Running-implementing \(1\)/);
-    expect(optionByLabel(panel, "Running-archiving")).toMatch(/Running-archiving \(0\)/);
+    expect(optionByLabel(panel, "Running")).toMatch(/Running \(3\)/);
+    expect(panel).not.toMatch(/Running-\w/);
   });
 
-  test("choosing a step's sub-entry narrows the table to specs on that step, and the trigger names it (REQ-4)", () => {
-    const html = page({ filter: { state: "active:analyze" } }, jobs);
-    expect(html).toContain("1-a");
-    expect(html).toContain("3-c");
-    expect(html).not.toContain("2-b");
-    const panel = panelOf(html);
-    const trigger = triggerOf(panel);
-    expect(trigger).toMatch(/>Running-analyzing \(2\)/);
-    expect(optionByLabel(panel, "Running-analyzing")).toContain('aria-checked="true"');
-  });
-
-  test("choosing active:all shows every queued-or-running spec regardless of step, and the trigger reads Running-all (REQ-4)", () => {
+  test("choosing Running shows every queued-or-running spec regardless of step, and the trigger reads Running (REQ-3)", () => {
     const html = page({ filter: { state: "active:all" } }, jobs);
     expect(html).toContain("1-a");
     expect(html).toContain("2-b");
     expect(html).toContain("3-c");
     const panel = panelOf(html);
-    expect(triggerOf(panel)).toMatch(/>Running-all \(3\)/);
+    expect(triggerOf(panel)).toMatch(/>Running \(3\)/);
+    expect(optionByLabel(panel, "Running")).toContain('aria-checked="true"');
   });
 
-  test("a compound choice survives being handed straight back in (REQ-5)", () => {
-    const html = page({ filter: { state: "active:analyze" } }, jobs);
-    const panel = panelOf(html);
-    expect(optionByLabel(panel, "Running-analyzing")).toContain('aria-checked="true"');
-    expect(optionByLabel(panel, "Running-all")).toContain('aria-checked="false"');
-  });
-
-  test("the legacy bare active key behaves exactly as active:all (REQ-5)", () => {
+  test("the legacy bare active key behaves exactly as active:all (REQ-4)", () => {
     const withLegacy = page({ filter: { state: "active" } }, jobs);
     const withNew = page({ filter: { state: "active:all" } }, jobs);
     const triggerOfHtml = (html: string) => triggerOf(panelOf(html));
     expect(triggerOfHtml(withLegacy)).toEqual(triggerOfHtml(withNew));
-    expect(optionByLabel(panelOf(withLegacy), "Running-all")).toContain('aria-checked="true"');
+    expect(optionByLabel(panelOf(withLegacy), "Running")).toContain('aria-checked="true"');
+  });
+
+  test("an old per-step key (kept in a bookmark or the aide_state cookie) renders exactly as active:all, not as All (REQ-4)", () => {
+    const withOldStep = page({ filter: { state: "active:analyze" } }, jobs);
+    const withNew = page({ filter: { state: "active:all" } }, jobs);
+    expect(withOldStep).toContain("1-a");
+    expect(withOldStep).toContain("2-b");
+    expect(withOldStep).toContain("3-c");
+    const triggerOfHtml = (html: string) => triggerOf(panelOf(html));
+    expect(triggerOfHtml(withOldStep)).toEqual(triggerOfHtml(withNew));
+    expect(optionByLabel(panelOf(withOldStep), "Running")).toContain('aria-checked="true"');
   });
 });

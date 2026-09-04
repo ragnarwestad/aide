@@ -81,7 +81,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
       job("b1", "bb-spec", { state: "running" }),
     ]);
     expect(html).toMatch(/>All \(2\)</);
-    expect(html).toMatch(/>Running-all \(1\)</);
+    expect(html).toMatch(/>Running \(1\)</);
     expect(html).toMatch(/>Done \(1\)</);
   });
 
