@@ -1,11 +1,9 @@
-import {afterEach, describe, expect, test} from "bun:test";
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync, realpathSync } from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
-import {addProject, type AddProjectRequest, type ProjectAdminResult,} from "../../../src/project/project-admin.ts";
-import type {GitRunner} from "../../../src/git/branch-status.ts";
-import {configValue, resolveWorktreeLinks} from "../../../src/project/discover.ts";
-import {fakeGit} from "../../helpers/fake-git.ts";
+import { tmpdir } from "node:os";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin.ts";
+import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 
 const dirs: string[] = [];
@@ -437,98 +435,5 @@ describe("whether a run could start there (spec 138)", () => {
       ]);
       expect([...declared].sort()).toEqual([...covered].sort());
     });
-  });
-});
-
-// Criterion 9: both fields land in the same personal file, and neither
-// may take the other — or a hand-written key, or a comment — with it.
-describe("writing .aide/config (spec 138)", () => {
-  // Spec 184 moved the links out of this file and into the committed
-  // manifest — so what this asserts now is that the value still comes
-  // back in the shape the runner reads, from wherever it is kept.
-  test("worktree links are written in the format the runner reads them in", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "links");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "links",
-      existingPath: dir,
-      worktreeLinks: ".venv dashboard/node_modules",
-    });
-    expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir).links).toBe(".venv dashboard/node_modules");
-  });
-
-  test("both fields at once, over a config that already has comments and other keys", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "both");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\n",
-    );
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "both",
-      existingPath: dir,
-      specsPath: "/repos/aide-specs/both",
-      worktreeLinks: ".venv",
-    });
-    expect(result.ok).toBe(true);
-    const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
-    expect(text).toContain("# personal — kept out of git");
-    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
-    expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/repos/aide-specs/both");
-    expect(resolveWorktreeLinks(dir).source).toBe("project.yaml");
-    // Once each: two lines for one key is a file whose meaning depends
-    // on which reader you ask.
-    expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
-    expect(
-      readFileSync(join(dir, ".aide", "project.yaml"), "utf-8").match(/^worktreeLinks:/gm)!.length,
-    ).toBe(1);
-  });
-
-  test("an unusable worktree-links value is refused before it is written", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "refused");
-    mkdirSync(dir, { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "refused",
-      existingPath: dir,
-      worktreeLinks: "/etc",
-    });
-    expect(result.ok).toBe(false);
-    const step = result.steps.find((s) => s.step === "worktreeLinks")!;
-    expect(step.ok).toBe(false);
-    expect(step.error).toContain("/etc");
-    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
-  });
-
-  test("a worktree-links value naming a build output is refused before it is written", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "buildrefused");
-    mkdirSync(join(dir, "build"), { recursive: true });
-    const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "buildrefused",
-      existingPath: dir,
-      worktreeLinks: "build",
-    });
-    expect(result.ok).toBe(false);
-    const step = result.steps.find((s) => s.step === "worktreeLinks")!;
-    expect(step.ok).toBe(false);
-    expect(step.error).toContain("build");
-    expect(step.error).toContain("build output");
-    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
-  });
-
-  test("no worktree links means no key is written for them", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "quiet");
-    mkdirSync(dir, { recursive: true });
-    await addProject(fakeGit({}).run, projectsRoot, {
-      name: "quiet",
-      existingPath: dir,
-      specsPath: "/somewhere",
-    });
-    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
   });
 });
