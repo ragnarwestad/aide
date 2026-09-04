@@ -311,23 +311,19 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).not.toContain("not landed");
   });
 
-  test("a date nobody could find is said in words, not left blank", () => {
+  // The Time column shows how long the work took and nothing else, so
+  // the archive date is no longer drawn on the row at all — and neither
+  // are the two answers that stood in for it when git could not date the
+  // folder. What the column owes the reader now is a duration, `0s`
+  // included, which the tests above hold.
+  test("the row carries no archive date, in any of its cells", () => {
     const html = rows({
-      archivedSpecs: [archivedSpec("50-archived", { archivedAt: null })],
+      archivedSpecs: [archivedSpec("50-archived", { archivedAt: "2026-08-13" })],
       filter: { state: "archived" },
     });
-    expect(html).toContain("date unknown");
-  });
-
-  test("and one nobody has asked git about yet says it is checking", () => {
-    const html = rows({
-      archivedSpecs: [archivedSpec("50-archived", { archivedAt: null, dateChecking: true })],
-      filter: { state: "archived" },
-    });
-    expect(html).not.toContain("date unknown");
-    expect(html.toLowerCase()).toContain("checking");
-    expect(html).toContain('<span class="checking" title="checking…">');
-    expect(html).not.toContain("&lt;span class=&quot;checking&quot;");
+    const row = html.slice(html.indexOf("50-archived"));
+    const timeCell = row.slice(row.indexOf('data-col="started"'));
+    expect(timeCell.slice(0, timeCell.indexOf("</td>"))).not.toContain("2026-08-13");
   });
 
   test("the search reads folder, title and description, across both kinds", () => {

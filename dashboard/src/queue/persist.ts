@@ -293,7 +293,7 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
       const choice: ModelChoice = cap === undefined
         ? { budgetUsd: e.budgetUsd }
         : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
-      if (e.tool === "claude" || e.tool === "codex") choice.tool = e.tool;
+      if (e.tool === "claude" || e.tool === "codex" || e.tool === "fake-claude") choice.tool = e.tool;
       if (typeof e.model === "string" && e.model) choice.model = e.model;
       out[name] = choice;
     }

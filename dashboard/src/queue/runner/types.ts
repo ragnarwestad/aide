@@ -28,7 +28,7 @@ export interface StepOutcome {
   costUsd?: number;
   costMeasured: boolean;
   /** Which CLI `aide-run-spec` actually started. */
-  tool?: "claude" | "codex";
+  tool?: "claude" | "codex" | "fake-claude";
   terminalReason: string;
   subtype?: string;
   sessionId?: string;

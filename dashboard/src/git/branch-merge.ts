@@ -304,8 +304,16 @@ export async function mergeBranchIntoDefault(
         const verdict = await gate(root);
         if (!verdict.ok) {
           await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+          // No `(branch in root)` tail, unlike every refusal around it:
+          // those name a checkout because that is where a person has to
+          // go and do something by hand. Here the move is a step on the
+          // row — run implement again — and the path is one more thing
+          // to read past. It rides in `detail` with the test output.
           return {
-            ...refuse(root, branch, verdict.error ?? `the project's tests are red on the merge into ${base}`, verdict.detail),
+            root,
+            ok: false,
+            error: verdict.error ?? `the project's tests are red on the merge into ${base}`,
+            ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
             reason: "tests-red",
           };
         }

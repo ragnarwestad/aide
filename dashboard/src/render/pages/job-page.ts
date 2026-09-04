@@ -23,7 +23,7 @@ export interface JobStepResultView {
   /** Which CLI ran this step (spec 125). Absent means claude — every
    *  result written before the second tool existed says nothing here,
    *  and claude is what ran it. */
-  tool?: "claude" | "codex";
+  tool?: "claude" | "codex" | "fake-claude";
   /** This step's token total, absent when the run did not measure one
    *  (spec 118). A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
@@ -77,7 +77,7 @@ export interface SpecFileView {
 export interface JobDetailView extends QueueRowView {
   /** Which CLI is running (or last ran) this job's current step. Absent
    *  means claude. */
-  tool?: "claude" | "codex";
+  tool?: "claude" | "codex" | "fake-claude";
   /** The spec's H1. */
   title?: string;
   finishedAt?: string;

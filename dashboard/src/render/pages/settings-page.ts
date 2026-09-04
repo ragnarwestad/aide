@@ -7,7 +7,7 @@ export const SETTINGS_ROUTE = "/settings";
 export const SETTINGS_STEPS = ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" }[];
+  modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[];
   defaultModels: Record<string, string>;
   budgetUsd: number;
   jobCapUsd: number;

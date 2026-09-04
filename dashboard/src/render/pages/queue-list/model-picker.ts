@@ -174,7 +174,10 @@ export function modelPicker(
  *  hidden behind the `.foldphase` fold Model's own class exists to
  *  survive. */
 export function lockedDuration(ms: number | undefined): string {
-  return ms === undefined ? "" : `<span class="muted small">${esc(durationLabel(ms))}</span>`;
+  // `0s` where nothing was recorded, never an empty cell: the column
+  // answers "how long did this phase take", and a blank leaves the
+  // reader asking whether it ran at all.
+  return `<span class="muted small">${esc(durationLabel(Math.max(0, ms ?? 0)))}</span>`;
 }
 
 /** Every configured model, grouped by the CLI it starts (spec 169).
@@ -361,12 +364,14 @@ export function phaseCaptionCells(opts: PickerOptions): string {
     // 192 put the three controls in one cell and left the captions
     // sitting where the text ended (2026-08-22).
     `<td class="modelcell"><span class="row">` +
-    (tools.size > 1
+    // The caption follows `aiPicker`: drawn whenever any tool is
+    // configured, so the heading and the control under it can never
+    // disagree about which column is which.
+    (tools.size > 0
       ? `<span class="muted small" data-cap="ai" data-ai-cap>AI</span>` +
         `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
       : "") +
     `<span class="muted small" data-cap="model">Model</span>` +
-    `<span class="muted small" data-cap="effort">Effort</span>` +
     `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td><td></td><td data-col="created"></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td>`
@@ -374,8 +379,18 @@ export function phaseCaptionCells(opts: PickerOptions): string {
 }
 
 /** What each CLI is called on the page. The config's own word is the
- *  short one the runner uses; this is the one a reader picks by. */
-export const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
+ *  short one the runner uses; this is the one a reader picks by.
+ *
+ *  `fake-claude` is the scripted stand-in a project points
+ *  `AIDE_CLAUDE_BIN` at: it speaks Claude Code's own command line and
+ *  event format, costs nothing, and answers every step the same way
+ *  every time. It is named here so a row running it says so, rather than
+ *  reading as a real Claude run. */
+export const TOOL_NAMES: Record<string, string> = {
+  claude: "Claude Code",
+  codex: "Codex",
+  "fake-claude": "Fake-Claude",
+};
 
 // The AI a phase will run on, beside the model it will run (spec 179).
 // One per phase line, in the column between the phase's name and its
@@ -433,7 +448,12 @@ export function aiPicker(
   // `modelOptions`: which AI comes first is a fact about the page, not
   // about whichever tool an admin happened to list first.
   const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
-  if (tools.length < 2) return "";
+  // Drawn for a single tool too. Hiding it left the row's first select
+  // holding a MODEL under a heading a reader takes for the AI, and a
+  // project running a stand-in could not see that it was running one.
+  // One entry is a statement rather than a choice, which is what the
+  // column is for.
+  if (tools.length === 0) return "";
   // Spec 265: drawn, disabled, on an archived row too — same reasoning
   // as `modelPicker`'s own archived branch, since this select says which
   // AI the model BESIDE it belongs to, and that model is drawn now

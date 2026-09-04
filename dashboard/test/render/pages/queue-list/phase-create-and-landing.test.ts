@@ -95,9 +95,13 @@ describe("spec 116: create is the first phase line", () => {
         'aria-label="create — already done, and not a step you can run"> ' +
         "<span></span></label>",
     );
+    // The Time cell is the exception to the emptiness: every phase says
+    // how long it took, and a phase nobody ran took `0s`. A blank there
+    // asks whether the line is broken.
     expect(line).toContain(
       '<td><span class="badge b-done">done</span></td>' +
-        '<td data-col="created"></td><td data-col="started"></td><td class="num" data-col="cost"></td>',
+        '<td data-col="created"></td><td data-col="started"><span class="muted small">0s</span></td>' +
+        '<td class="num" data-col="cost"></td>',
     );
   });
 

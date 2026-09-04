@@ -25,8 +25,11 @@ export interface StepResult {
   costUsd: number;
   /** Which CLI ran this step (spec 125). Absent on every result written
    *  before the second tool existed, which is why the readers all treat
-   *  absent as claude rather than as unknown. */
-  tool?: "claude" | "codex";
+   *  absent as claude rather than as unknown. `fake-claude` is the
+   *  scripted stand-in: Claude Code's command line and event format,
+   *  answered by a script, so a row that ran it never reads as a real
+   *  Claude run. */
+  tool?: "claude" | "codex" | "fake-claude";
   /** Absent when the run could not measure it — an old result file, or
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
@@ -216,8 +219,10 @@ export interface ModelChoice {
   jobCapUsd?: number;
   /** Which CLI runs a step picked on this entry (spec 125). Absent
    *  means claude — every config written before the second tool existed
-   *  keeps meaning exactly what it meant. */
-  tool?: "claude" | "codex";
+   *  keeps meaning exactly what it meant. `fake-claude` names the
+   *  scripted stand-in, so a project testing the machinery says so on
+   *  its rows instead of borrowing Claude Code's name. */
+  tool?: "claude" | "codex" | "fake-claude";
   /** The literal `--model` value, when it differs from this entry's own
    *  key. The key is what the picker shows and what a request posts;
    *  this is what the CLI is actually handed, so a readable name like

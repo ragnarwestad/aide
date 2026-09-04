@@ -209,17 +209,18 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
 
   // Criterion 3: `aiPicker`'s own rule — an AI picker offering one AI
   // has nothing to offer.
-  test("one tool configured: the Model select alone, no AI select", () => {
+  test("one tool configured: the AI is named beside the model, not hidden", () => {
     const html = newPage({
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
       defaultModels: { default: "sonnet" },
     });
     expect(html).toContain('name="model.create"');
-    expect(html).not.toContain('data-ai="model.create"');
+    // One tool is one option, not a hidden column: a model select under
+    // a heading that says AI is what hiding it produced.
+    expect(html).toContain('data-ai="model.create"');
     expect(html).toMatch(
-      /<span class="aimodel"><select name="model\.create"[\s\S]*?<\/select><\/span>/,
+      /<span class="aimodel"><select data-ai="model\.create"[\s\S]*?<select name="model\.create"[\s\S]*?<\/select><\/span>/,
     );
-    expect(html).not.toContain("<span>AI</span>");
     // Pre-filled from the table's fallback when the step names nothing.
     expect(html).toMatch(/<option value="sonnet"[^>]*selected/);
   });

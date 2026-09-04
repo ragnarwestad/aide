@@ -82,4 +82,35 @@ describe("the landing's test gate", () => {
     expect(existsSync(ranIn)).toBe(false);
     expect(git(root, "worktree", "list").trim().split("\n")).toHaveLength(1);
   });
+
+  // What the row shows is one sentence: what happened, and the one move
+  // that resolves it. The log's path, the caveat about a timing test
+  // that lost to a busy host, and the test output are for whoever goes
+  // looking, so they belong in the detail the row shows on hover — a row
+  // that carries all four reads as four different instructions.
+  test("a red suite says one thing on the row and keeps the rest in the detail", async () => {
+    const root = project();
+    const record = join(root, "..", `gate-red-${Date.now()}.txt`);
+    dirs.push(record);
+    fakeScripts(record);
+    // The recorder exits non-zero: a red suite, as far as the gate is
+    // concerned.
+    writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, "#!/bin/sh\necho 'FAILED test_x'\nexit 1\n", { mode: 0o755 });
+
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" });
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.error).toBe(
+      "the project's tests are red on this merge, so nothing was pushed. " +
+        "The gate log names the failing test; archive lands the work once it passes.",
+    );
+    // Nothing here knows that a second implement run would turn the
+    // suite green: it starts from the same description and plan, and is
+    // never told which test failed. The sentence says what is known.
+    expect(verdict.error).not.toContain("run implement again");
+    expect(verdict.error).not.toContain(".log");
+    expect(verdict.error).not.toContain("quieter");
+    expect(verdict.detail).toContain(".log");
+    expect(verdict.detail).toContain("quieter");
+  });
 });

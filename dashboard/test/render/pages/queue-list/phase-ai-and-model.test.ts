@@ -98,12 +98,17 @@ describe("spec 179: an AI and a model on every phase line", () => {
   });
 
   test("a tool with no model configured is not offered as an AI", () => {
-    // One tool is nothing to choose between, so the control is not
-    // drawn at all — the count that decides it is TOOLS, not models.
+    // The count that decides WHAT is offered is TOOLS, not models: one
+    // configured tool draws one option, and a tool nothing is
+    // configured for draws none. The control itself is drawn either
+    // way — a heading with no control under it, or a model select under
+    // a heading that says AI, is what hiding it produced.
     const html = rows([], { modelChoices: ONE_TOOL });
-    for (const step of STEPS) expect([step, aiSelect(html, step)]).toEqual([step, ""]);
-    expect(html).not.toContain("data-ai");
-    // And the model selects underneath are untouched by any of it.
+    for (const step of STEPS) {
+      expect([step, aiSelect(html, step).includes(">Claude Code<")]).toEqual([step, true]);
+      expect([step, aiSelect(html, step).includes(">Codex<")]).toEqual([step, false]);
+    }
+    // And the model selects beside it are untouched by any of it.
     expect(html).toContain('<select name="model.analyze"');
   });
 
@@ -188,10 +193,9 @@ describe("spec 179: an AI and a model on every phase line", () => {
       const tag = aiSelect(html, step).match(/<select[^>]*>/)![0];
       expect([step, tag.includes("name=")]).toEqual([step, false]);
     }
-    // The whole page offers exactly the named fields it always did —
-    // one model select per phase — plus, since spec 364, one effort
-    // select per phase beside it. Nothing else is named.
-    expect([...html.matchAll(/<select name="/g)]).toHaveLength(STEPS.length * 2);
+    // The whole page offers exactly the named fields it always did:
+    // one model select per phase, and nothing else.
+    expect([...html.matchAll(/<select name="/g)]).toHaveLength(STEPS.length);
   });
 });
 

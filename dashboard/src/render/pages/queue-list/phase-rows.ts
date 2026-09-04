@@ -8,7 +8,7 @@ import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, effortPicker, lockedDuration, modelPicker, phaseCaptionCells } from "./model-picker.ts";
+import { aiPicker, lockedDuration, modelPicker, phaseCaptionCells } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
@@ -287,9 +287,11 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
       const pickCell =
         `<td class="modelcell"><span class="row">` +
+        // No effort control: the line names the AI and the model, and
+        // the effort a step runs at is a configuration answer, not a
+        // per-row pick.
         `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}` +
-        `${modelPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}` +
-        `${effortPicker(g, opts, p.step, busy, live, latest?.effort, p.effort)}</span>` +
+        `${modelPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}</span>` +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (spec 274/247/284's
       // fallback in `phasesFor`), even with no Cost line recorded? Used

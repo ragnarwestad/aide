@@ -221,7 +221,13 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("tests-red");
     expect(result.error).toContain("tests are red");
-    expect(result.detail).toBe("FAILED test_x");
+    // The row's sentence is the gate's own and nothing else: the branch
+    // and the checkout are for whoever goes looking, so they ride in the
+    // detail — unlike every refusal beside this one, where the checkout
+    // IS the place a person has to go.
+    expect(result.error).toBe("the project's tests are red on the merge");
+    expect(result.detail).toContain("FAILED test_x");
+    expect(result.detail).toContain(`${BRANCH} in ${ROOT}`);
     const seq = argv(git.calls);
     expect(seq).toContain("reset -q --hard origin/master");
     expect(ran(git.calls, "push -q origin master")).toBe(false);

@@ -5,6 +5,22 @@ import { errorSentence } from "../error-sentence.ts";
 import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
+/** The reasons a step declines, each as the sentence a reader can act
+ *  on. The commit subject records the script's own token — `(stopped:
+ *  not-implemented-yet)` — and a row that prints that token makes the
+ *  reader translate machine words and names no move. A token not listed
+ *  is passed through unchanged: said plainly, it beats a guess at what
+ *  it means. */
+const STOP_SENTENCES: Record<string, string> = {
+  "not-implemented-yet": "nothing is implemented yet — run implement first",
+  "acceptance-criteria-unticked": "the Acceptance criteria are not all ticked — tick them on the Checks tab",
+  "no-passing-test-record": "the project's tests did not pass for this commit — run implement again",
+  "already-archived": "the spec was already archived — nothing to do",
+  "conflict-open": "a merge is open in the worktree — archive resolves it, so run archive again",
+};
+
+export const stopSentence = (reason: string): string => STOP_SENTENCES[reason] ?? reason;
+
 /** What one phase reads as, in the three parts a row and a job page
  *  both need: the pip, the word in the badge, and — only when the last
  *  attempt disagrees with the file — a qualifier. */
@@ -164,7 +180,7 @@ export function wordPhase(
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: "waiting", label: "stopped" },
-      qualifier: `stopped: ${history.stopped}`,
+      qualifier: `stopped: ${stopSentence(history.stopped)}`,
     };
   }
   if (!attempt) return { pip: "todo", qualifier: filesDisagree };

@@ -185,9 +185,20 @@ describe("spec 108: one rule per phase", () => {
     );
     const archive = subRow(html, "archive");
     expect(archive).toContain("stopped");
-    expect(archive).not.toContain("stopped: acceptance-criteria-unticked");
-    expect(panel(html)).toContain("stopped: acceptance-criteria-unticked");
+    expect(archive).not.toContain("acceptance-criteria-unticked");
+    // The reason is a sentence with a move in it, not the script's own
+    // token: a reader should not have to know what the token means.
+    expect(panel(html)).toContain("stopped: the Acceptance criteria are not all ticked — tick them on the Checks tab");
+    expect(panel(html)).not.toContain("acceptance-criteria-unticked");
     expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
+  });
+
+  test("a decline nobody has written a sentence for is said plainly, not hidden", () => {
+    const html = rows(
+      [row({ id: "odd", specFolder: "299-odd", steps: ["archive"], state: "done" })],
+      [target("299-odd", { done: ["analyze"], stopped: { archive: "something-new" } })],
+    );
+    expect(panel(html)).toContain("stopped: something-new");
   });
 
   test("the job page's Steps tab says held back where the row does (criterion 5)", () => {

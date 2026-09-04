@@ -66,7 +66,11 @@ export interface SummarizeOptions {
    *  job may predate the field entirely, and an unrecognised schema
    *  renders as an empty activity list, which reads as "it is doing
    *  nothing". */
-  tool?: "claude" | "codex";
+  //
+  // `fake-claude` writes Claude Code's own event shape, so it is read
+  // with the same parser and named here only so a caller can pass the
+  // job's tool through without narrowing it first.
+  tool?: "claude" | "codex" | "fake-claude";
 }
 
 /** Every line of the stream that parses, as an object. Shared by both
