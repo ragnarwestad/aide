@@ -19,7 +19,7 @@ import {
 import { readSpecState } from "../project/parse-spec-state.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseStatus } from "../project/parse-status.ts";
+import { acceptanceStillOpen, parseStatus } from "../project/parse-status.ts";
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
@@ -435,9 +435,9 @@ export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> 
     // a tick on a spec with an open branch is written there, and the
     // disk copy stays unticked until archive lands.
     const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
-    const open =
-      branchAnswer?.acceptanceOpen ?? (readSpecState(spec.dir)?.acceptanceCriteria ?? []).some((row) => !row.done);
-    if (open) blocked.add(job.id);
+    if (acceptanceStillOpen(branchAnswer?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) {
+      blocked.add(job.id);
+    }
   }
   return blocked;
 }

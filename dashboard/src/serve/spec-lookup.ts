@@ -21,7 +21,7 @@ import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
 import {
-  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
+  acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status.ts";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { QueueTarget } from "../render.ts";
@@ -133,8 +133,7 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
         // alone said "archive held back" over a spec whose every row was
         // ticked (364, 2026-09-03).
         const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
-        const acceptanceOpen =
-          branchAnswer?.acceptanceOpen ?? state?.acceptanceCriteria.some((row) => !row.done) ?? false;
+        const acceptanceOpen = acceptanceStillOpen(branchAnswer?.acceptanceOpen, state?.acceptanceCriteria);
         const heldBack = statusText
           ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;

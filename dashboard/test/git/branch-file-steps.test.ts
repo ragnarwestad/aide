@@ -143,6 +143,23 @@ describe("BranchFileStepsChecker", () => {
     expect(git.calls.length).toBeGreaterThan(before);
   });
 
+  // The Checks tab writes onto the same branch this reads, so a Save
+  // that ticks the last row leaves the cached answer wrong for the rest
+  // of the TTL — which is how the row went on saying "held back: the
+  // Acceptance criteria are not all ticked yet" straight after a Save
+  // (337, 2026-09-04). `forget` is what the tick route calls.
+  test("a forgotten spec is asked about git again inside the TTL window", async () => {
+    const git = fake(branchFile(["analyze"]));
+    let clock = 0;
+    const checker = new BranchFileStepsChecker({ run: git.run, now: () => clock });
+    await checker.read(DIR, FOLDER, TARGET);
+    const before = git.calls.length;
+    checker.forget(DIR, FOLDER);
+    expect(checker.peekFileSteps(DIR, FOLDER)).toEqual({ steps: null, checkedAt: null });
+    await checker.read(DIR, FOLDER, TARGET);
+    expect(git.calls.length).toBeGreaterThan(before);
+  });
+
   // The Risk analysis item 4 case this class itself can hit:
   // `readStatusFromBranch` throwing rather than answering with a
   // nonzero code.

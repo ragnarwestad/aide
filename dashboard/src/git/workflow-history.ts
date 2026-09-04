@@ -389,6 +389,16 @@ export class BranchFileStepsChecker {
     return steps;
   }
 
+  /** Drop one spec's cached answer, so the next `read` goes to git.
+   *  The Checks tab's tick writes the very file this caches, onto the
+   *  same branch it reads: without this the row went on saying "held
+   *  back: the Acceptance criteria are not all ticked yet" for the rest
+   *  of the TTL after a Save that ticked the last row (337,
+   *  2026-09-04). */
+  forget(dir: string, specFolder: string): void {
+    this.cache.delete(JSON.stringify([dir, specFolder]));
+  }
+
   /** No git spawn, ever — what `withFreshness` calls. `steps: null`
    *  covers two different truths the caller does not need to tell
    *  apart: no open branch, and "not warmed yet" — both mean "fall back

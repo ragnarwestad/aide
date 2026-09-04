@@ -11,6 +11,7 @@ import { join } from "node:path";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
   acceptanceCriteriaUnticked,
+  acceptanceStillOpen,
   archiveHeldBackApplies,
   archiveHeldBackReason,
   parseStatus,
@@ -282,6 +283,41 @@ describe("archiveHeldBackApplies", () => {
 
   test("every other reason applies regardless — it came out of an actual declined run", () => {
     expect(archiveHeldBackApplies("the Slack webhook (Phase 4, still unchecked)", [])).toBe(true);
+  });
+});
+
+// A tick only ever ADDS ticks, so neither copy of the file is allowed
+// to outvote the other's "all ticked": reading the branch alone said
+// held back over a spec ticked on disk (337), and reading disk alone
+// said it over a spec ticked on its branch (364).
+describe("acceptanceStillOpen", () => {
+  const open = [{ done: false }];
+  const ticked = [{ done: true }];
+
+  test("both copies still open", () => {
+    expect(acceptanceStillOpen(true, open)).toBe(true);
+  });
+
+  test("ticked on the branch, still open on disk", () => {
+    expect(acceptanceStillOpen(false, open)).toBe(false);
+  });
+
+  test("ticked on disk, still open on the branch's cached answer", () => {
+    expect(acceptanceStillOpen(true, ticked)).toBe(false);
+  });
+
+  test("no branch answer: disk decides", () => {
+    expect(acceptanceStillOpen(undefined, open)).toBe(true);
+    expect(acceptanceStillOpen(undefined, ticked)).toBe(false);
+  });
+
+  // A copy with no rows knows nothing — a spec whose acceptance rows
+  // exist only on an unlanded analyze's branch must not have the disk's
+  // silence read as agreement.
+  test("a copy with no rows at all answers nothing", () => {
+    expect(acceptanceStillOpen(true, [])).toBe(true);
+    expect(acceptanceStillOpen(true, undefined)).toBe(true);
+    expect(acceptanceStillOpen(undefined, [])).toBe(false);
   });
 });
 

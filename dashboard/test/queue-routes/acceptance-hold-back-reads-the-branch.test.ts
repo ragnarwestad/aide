@@ -106,19 +106,19 @@ describe("the queue's archive hold-back", () => {
   });
 });
 
-describe("the row's own archive held back", () => {
-  function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {
-    return {
-      projectRoot: root,
-      allowed: new Set(["aide"]),
-      ownedSpecsRoot: () => undefined,
-      readScan: () => null,
-      writeScan: () => {},
-      branchStatus: { peekOpenSpecBranches: () => ({ open: null }) },
-      readBranchFileSteps: () => checker,
-    } as unknown as SpecLookupContext;
-  }
+function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {
+  return {
+    projectRoot: root,
+    allowed: new Set(["aide"]),
+    ownedSpecsRoot: () => undefined,
+    readScan: () => null,
+    writeScan: () => {},
+    branchStatus: { peekOpenSpecBranches: () => ({ open: null }) },
+    readBranchFileSteps: () => checker,
+  } as unknown as SpecLookupContext;
+}
 
+describe("the row's own archive held back", () => {
   test("is not said over a spec whose rows are ticked on its branch", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, true);
@@ -130,6 +130,38 @@ describe("the row's own archive held back", () => {
     const { root } = projectsRoot();
     const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
     expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+  });
+});
+
+// The other half of the same rule (337, 2026-09-04): the branch answer
+// is TTL-cached, and a tick that lands on the default branch leaves it
+// saying "still open" for the rest of that window. A tick only ever ADDS
+// ticks, so the copy that says "all ticked" is never the stale one —
+// whichever copy it is.
+describe("a stale branch answer over a spec ticked on disk", () => {
+  /** The disk copy with its one acceptance row TICKED — the Save has
+   *  landed there, while the cached branch answer predates it. */
+  function tickedOnDisk(specDir: string): void {
+    writeFileSync(
+      join(specDir, "4-status.json"),
+      JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
+        acceptanceCriteria: [{ task: "REQ-1: it works", done: true }], phaseCounts: {} }),
+    );
+  }
+
+  test("does not hold the queued archive", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, false);
+    tickedOnDisk(specDir);
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, checker)).has("job-1")).toBe(false);
+  });
+
+  test("does not put 'archive held back' on the row", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, false);
+    tickedOnDisk(specDir);
+    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    expect(target?.archiveHeldBack).toBeUndefined();
   });
 });
 

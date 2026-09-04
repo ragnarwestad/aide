@@ -258,6 +258,30 @@ export function acceptanceCriteriaUnticked(content: string): boolean {
 export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
   "the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
 
+/** Whether an acceptance row is still open, read across BOTH copies
+ *  that can answer: the open branch's (`FileStepsAnswer.acceptanceOpen`,
+ *  where the Checks tab's tick lands) and the disk's own rows.
+ *
+ *  A tick only ever ADDS ticks, so a copy that says "all ticked" is
+ *  never the stale one — the row is open only while every copy that has
+ *  an answer still has an open row. Reading the branch alone said "held
+ *  back" over a spec whose rows were ticked on disk moments earlier,
+ *  because the branch answer is TTL-cached and the tick had landed on
+ *  the default branch (337, 2026-09-04); reading disk alone was the same
+ *  bug the other way round (364).
+ *
+ *  A copy with NO acceptance rows answers nothing rather than "all
+ *  ticked": a spec whose rows exist only on an unlanded analyze's
+ *  branch must not have the disk's silence read as agreement. */
+export function acceptanceStillOpen(
+  branchOpen: boolean | undefined,
+  diskRows: { done: boolean }[] | undefined,
+): boolean {
+  const diskOpen = diskRows?.length ? diskRows.some((row) => !row.done) : undefined;
+  const answers = [branchOpen, diskOpen].filter((v): v is boolean => v !== undefined);
+  return answers.length > 0 && answers.every((open) => open);
+}
+
 /** Whether a held-back reason still means anything, given which workflow
  *  steps are actually done.
  *
