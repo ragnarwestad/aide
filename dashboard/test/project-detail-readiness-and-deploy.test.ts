@@ -9,7 +9,7 @@ import { parseArgs } from "../src/serve/serve.ts";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 import {
-  harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil,
+  harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, AUTH,
 } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
@@ -158,12 +158,46 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
   test("a project level with origin says so, with a disabled Deploy button (criterion 3, spec 321)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 0), 25);
-    const html = await loadUntil(base, "aide", "level with origin", 2000, "deploy");
-    expect(html).toContain("This checkout is level with origin.");
+    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
+    expect(html).toContain("This checkout matches origin.");
     expect(html).toContain('class="deployform"');
     const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).toMatch(/<button[^>]*\bdisabled\b/);
-    expect(form).toContain('title="This checkout is level with origin."');
+    expect(form).toContain('title="This checkout matches origin."');
+  });
+
+  // spec 377 (REQ-1, REQ-3, REQ-4): once both drift and the Serving
+  // comparison are known and settled, the panel folds them into ONE
+  // sentence instead of stacking a drift line above a separate Serving
+  // line — and names the commit as a commit, never as a bare SHA.
+  test("up to date with the service current folds both into one sentence (spec 377)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const level = behindBy(root, "aide", 0);
+    const run: GitRunner = async (dir, args) =>
+      args.join(" ") === "rev-parse HEAD" ? { code: 0, stdout: "abc1234deadbeef\n" } : level.run(dir, args);
+    const base = serve(root, { run }, 25);
+    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
+    expect(html).toContain("This checkout matches origin, and the service is running commit abc1234.");
+    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
+    // REQ-3/REQ-7 regression guard: the old bare "Serving <sha> —" form
+    // must not return once a commit is named.
+    expect(html).not.toContain("Serving abc1234 —");
+  });
+
+  // Plan review Risk 4 (3-solution.md): the early-return restructuring
+  // that produced the merged sentence must not silently drop `deployError`
+  // from the states REQ-6 promises stay unchanged.
+  test("a deployError still shows beside an unchecked drift state (REQ-6)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, settled(root, "aide"), 0);
+    const html = await (
+      await fetch(`${base}/projects/aide?deployError=${encodeURIComponent("could not deploy")}&tab=deploy`, {
+        headers: AUTH,
+      })
+    ).text();
+    expect(html).toContain("could not deploy");
+    expect(html).toContain("origin drift not checked yet");
   });
 
   // Spec 321, REQ-2/REQ-5: the control is drawn in both states, never
@@ -178,7 +212,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
       .not.toMatch(/<button[^>]*\bdisabled\b/);
 
     const levelHtml = await loadUntil(
-      serve(root, behindBy(root, "aide", 0), 25), "aide", "level with origin", 2000, "deploy",
+      serve(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy",
     );
     expect(levelHtml).toContain('class="deployform"');
     expect(levelHtml.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "")
@@ -205,12 +239,14 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     const base = serve(root, { run }, 25);
     const deadline = Date.now() + 2000;
     let html = await (await get(base, "aide", "deploy")).text();
-    while ((!html.includes("level with origin") || !html.includes("has not picked up")) && Date.now() < deadline) {
+    while ((!html.includes("matches origin") || !html.includes("still running commit")) && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 25));
       html = await (await get(base, "aide", "deploy")).text();
     }
-    expect(html).toContain("This checkout is level with origin.");
-    expect(html).toContain("the running service has not picked up the latest merge.");
+    expect(html).toContain(
+      "This checkout matches origin, but the service is still running commit abc1234; " +
+        "Deploy restarts it on commit 9999999.",
+    );
     const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).toContain("Deploy");
     expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
@@ -231,7 +267,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     expect(html).not.toContain("<h3>Deploy</h3>");
     expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
     expect(html).not.toContain("commits behind origin");
-    expect(html).not.toContain("level with origin");
+    expect(html).not.toContain("matches origin");
     expect(html).not.toContain("origin drift not checked yet");
     expect(html).not.toContain('class="deployform"');
   });
@@ -286,7 +322,7 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
       2000,
       "deploy",
     );
-    expect(html).toContain("Serving abc1234 — matches this checkout.");
+    expect(html).toContain("Serving commit abc1234 — matches this checkout.");
   });
 
   test("a checkout that has moved past the served SHA draws a warn line naming both (criterion 4)", async () => {
@@ -299,7 +335,8 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
       "deploy",
     );
     expect(html).toContain(
-      "Serving abc1234, but this checkout is now at 9999999 — the running service has not picked up the latest merge.",
+      "Serving commit abc1234, but this checkout is now at commit 9999999 — " +
+        "the running service has not picked up the latest merge.",
     );
   });
 
