@@ -95,7 +95,7 @@ describe("the list says which projects cannot run yet (spec 184, moved off the l
       readinessByProject: { skjer: false },
     });
     expect(html).toContain('class="proj-row-warn"');
-    expect(html).toContain('href="/projects/skjer?tab=health"');
+    expect(html).toContain('href="/projects/skjer?tab=config"');
     expect(html).not.toContain('href="/projects/skjer/settings"');
     // Criterion 5/6: the mark is a sibling of .proj-row-link, not nested
     // inside it — the name link's own markup carries none of it.

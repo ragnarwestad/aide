@@ -108,7 +108,9 @@ async function repoChecks(run: GitRunner, root: string, label: string): Promise<
       subject: root,
       ok: false,
       blocking: true,
-      detail: `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: there is no such branch, here or on origin`,
+      detail:
+        `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: there is no such branch, here or on origin — ` +
+        `create ${base}, or point this project at a branch that exists`,
     });
     return checks;
   }
@@ -120,7 +122,9 @@ async function repoChecks(run: GitRunner, root: string, label: string): Promise<
           subject: root,
           ok: false,
           blocking: true,
-          detail: `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: another worktree has ${base} checked out at ${held}`,
+          detail:
+            `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: another worktree has ${base} checked out at ${held} — ` +
+            `free ${base} there, or point this project at ${held}`,
         }
       : {
           // Worth saying and nothing more: the runner puts a clean
@@ -233,10 +237,12 @@ export async function assessProjectReadiness(
     blocking: !isRoot,
     detail:
       top === null
-        ? `${projectDir} is not a git repository, and every step of a run branches one`
+        ? `${projectDir} is not a git repository, and every step of a run branches one — ` +
+          `make it one, or point this project at a checkout that already is`
         : isRoot
           ? `${projectDir} is its own git repository`
-          : `${projectDir} is not a repository of its own — it is inside the one at ${top}, which is what a run would branch`,
+          : `${projectDir} is not a repository of its own — it is inside the one at ${top}, which is what a run would branch — ` +
+            `move it to its own directory to fix this`,
   });
   const projectRoot = isRoot ? projectDir : top || projectDir;
 
@@ -270,7 +276,8 @@ export async function assessProjectReadiness(
       blocking: specsTop === null,
       detail:
         specsTop === null
-          ? `${specsRoot} is in no git repository, so nothing would commit the spec a run writes there`
+          ? `${specsRoot} is in no git repository, so nothing would commit the spec a run writes there — ` +
+            `put it under one, or point Specs root at a directory that already is`
           : resolve(specsTop) === resolve(projectRoot)
             ? `the specs are in the project's own repository`
             : `the specs are in the repository at ${specsTop}, which a run branches too`,

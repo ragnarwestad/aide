@@ -2,7 +2,7 @@
   "_comment": [
     "Spec 316: the prerequisites `aide-run-spec` (bash) refuses to start",
     "without, mirrored by `assessProjectReadiness()` (TypeScript) on the",
-    "Health tab. One table, read by a test on each side, the same shape",
+    "Config tab. One table, read by a test on each side, the same shape",
     "`worktree-links-precedence.json` already uses for the worktreeLinks",
     "sub-check alone.",
     "",

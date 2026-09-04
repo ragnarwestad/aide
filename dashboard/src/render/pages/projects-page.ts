@@ -102,7 +102,7 @@ export interface ProjectsPageOptions {
    *  project named by no key here gets no mark, which is what the
    *  generated page (no server, no git) shows.
    *
-   *  Spec 369: the full sentence moved to the project's own Health tab
+   *  Spec 369: the full sentence lives on the project's own Config tab
    *  — the list needs only whether a run can start, to gate the mark. */
   readinessByProject?: Record<string, boolean>;
   /** What the project is configured with today — the Settings page's
@@ -214,11 +214,12 @@ export function renderProjectsPage(
         const scheduleNote = schedule ? nextScheduledNote(schedule, now) : undefined;
         return [note, scheduleNote].filter(Boolean).join(" — ") || undefined;
       },
-      // Spec 369: the sentence itself lives on the Health tab now — the
-      // list carries only a link to it, gated on the same answer the
-      // sentence used to be gated on.
+      // Spec 369: the sentence itself lives on the Config tab now (moved
+      // off the Health tab by spec 378) — the list carries only a link
+      // to it, gated on the same answer the sentence used to be gated
+      // on.
       warnHref: (name) =>
-        opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=health` : undefined,
+        opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
     });
   // No meta refresh: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did

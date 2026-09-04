@@ -3,7 +3,7 @@
 
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { ProjectReadiness } from "../../../project/project-admin.ts";
-import type { ProjectSettingsView } from "../../../project/project-settings.ts";
+import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
@@ -106,14 +106,14 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
 }
 
 /** The Schedule section (spec 259): each entry's name, cron expression,
- *  prompt path and next fire time. Absent entirely when the project has
- *  none — acceptance criterion 6 — so a project that has never adopted
- *  the feature shows nothing new on its page. Read-only: a schedule is
- *  edited in the committed manifest, not through this form, the same
- *  way `codeLanding` is a form field but `worktreeLinks`'s SOURCE (which
- *  of the two files) is not. */
+ *  prompt path and next fire time. The tab itself is always present
+ *  (spec 378, REQ-6) — a project with nothing scheduled says so in a
+ *  sentence, rather than the tab bar changing shape from project to
+ *  project. Read-only: a schedule is edited in the committed manifest,
+ *  not through this form, the same way `codeLanding` is a form field but
+ *  `worktreeLinks`'s SOURCE (which of the two files) is not. */
 function scheduleSection(entries: readonly ScheduleEntry[]): string {
-  if (entries.length === 0) return "";
+  if (entries.length === 0) return `<p class="muted">Nothing is scheduled for this project.</p>`;
   const now = new Date();
   const rows = entries
     .map((e) => {
@@ -130,39 +130,20 @@ function scheduleSection(entries: readonly ScheduleEntry[]): string {
   );
 }
 
-/** The Config tab: today's "Settings" section, renamed only — its
- *  content (the unified settings table, and the no-`.aide/config`
- *  notice above it) is unchanged (spec 293). Always present: unlike
- *  Deploy/Health/Schedule, this table renders unconditionally today
- *  regardless of whether a config file exists, so there is no "nothing
- *  to show" state for it to hide. */
-function configSection(settings: ProjectSettingsView, name: string, opts: ProjectPageOptions): string {
-  // "No file" and "a file that sets nothing" are different states, and
-  // the first is the ordinary one for a project cloned onto a second
-  // machine — said plainly, above the rows, so seven "not set" lines
-  // have an explanation rather than reading as seven separate
-  // omissions.
-  const noFile = settings.hasConfigFile
-    ? ""
-    : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
-  return noFile + unifiedSettingsTable(settings, name, opts.editing, opts);
-}
-
-/** The Health tab: today's "Can a run start here?" section, unchanged
- *  content (spec 293). `readiness` is `null` where git could not be
- *  asked, which is also why the Health tab itself is hidden then (see
- *  `renderProjectPage`) — this function's own empty case and the tab's
- *  visibility must agree, or a reader could pick a tab that renders
- *  nothing. */
-function healthSection(readiness: ProjectReadiness | null): string {
-  if (!readiness) return "";
+/** The checks no settings row owns (spec 378, REQ-3) — the checkout
+ *  itself is not its own repository, the specs root is not in one, the
+ *  checkout cannot reach its default branch, the dashboard cannot clone
+ *  it. `FIELD_OWNED_CHECKS` is filtered out here because those checks
+ *  already read on their own settings row (`unifiedSettingsTable`) —
+ *  one source of truth for which check belongs where, so a fact is never
+ *  shown twice with two chances to disagree. */
+function checkoutSection(readiness: ProjectReadiness): string {
+  const checks = readiness.checks.filter((c) => !FIELD_OWNED_CHECKS.has(c.check));
+  if (checks.length === 0) return "";
   return (
-    `<h3>Can a run start here?</h3>` +
-    rowMessage(
-      readiness.canRun ? "info" : "failed",
-      readiness.canRun ? "Nothing stops a run: this checkout is ready to run." : "A run cannot run here yet.",
-    ) +
-    readiness.checks
+    `<h3>The checkout itself</h3>` +
+    `<p class="muted">Fixed on the machine, not on this page.</p>` +
+    checks
       .map((c) =>
         c.blocking
           ? rowMessage("failed", c.detail)
@@ -174,11 +155,58 @@ function healthSection(readiness: ProjectReadiness | null): string {
   );
 }
 
+/** A one-button form that forces the one cached answer this page has —
+ *  the origin-drift count the Deploy tab reads — to be re-asked (spec
+ *  378, REQ-5). No script binds this form (unlike Deploy's): the plain
+ *  POST/303-redirect round trip already re-asks everything the page
+ *  shows, so there is nothing an in-page swap would save. */
+function refreshControl(name: string, opts: ProjectPageOptions): string {
+  return (
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/refresh">` +
+    tokenField(opts.token) +
+    btn({ label: "Refresh" }) +
+    `</form>`
+  );
+}
+
+/** The Config tab: the settings table, plus — since the Health tab went
+ *  away (spec 378) — whether a run can start at all, and the checks no
+ *  settings row owns. `readiness` is `null` where git could not be
+ *  asked, which is also why both new pieces are absent then: a page
+ *  cannot claim a run can or cannot start on no evidence. */
+function configSection(
+  settings: ProjectSettingsView,
+  name: string,
+  readiness: ProjectReadiness | null,
+  opts: ProjectPageOptions,
+): string {
+  // "No file" and "a file that sets nothing" are different states, and
+  // the first is the ordinary one for a project cloned onto a second
+  // machine — said plainly, above the rows, so seven "not set" lines
+  // have an explanation rather than reading as seven separate
+  // omissions.
+  const noFile = settings.hasConfigFile
+    ? ""
+    : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
+  const summary = readiness
+    ? rowMessage(
+        readiness.canRun ? "info" : "failed",
+        readiness.canRun ? "Nothing stops a run: this checkout is ready to run." : "A run cannot run here yet.",
+      )
+    : "";
+  const checkout = readiness ? checkoutSection(readiness) : "";
+  return (
+    noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts) + refreshControl(name, opts)
+  );
+}
+
 /** The page's tabs, in the order the description gives them. Default
  *  capitalization (`tabBar`'s own `t[0].toUpperCase() + t.slice(1)`)
  *  already produces the exact words wanted, so — unlike `JOB_TABS`'s
- *  `steps` → "Logs" — no label override map is needed (spec 293). */
-const PROJECT_TABS = ["config", "deploy", "health", "schedule"] as const;
+ *  `steps` → "Logs" — no label override map is needed (spec 293).
+ *  Health is gone (spec 378): every check it drew now reads on Config,
+ *  either on its own settings row or in the checkout-level section. */
+const PROJECT_TABS = ["config", "deploy", "schedule"] as const;
 type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** The served project page: the settings, the readiness answer, the
@@ -207,21 +235,16 @@ export function renderProjectPage(
   // Serving line down for the one project this dashboard process
   // itself runs from.
   const showDeploy = !!opts.drift || !!opts.serving;
-  const showHealth = !!readiness;
-  const showSchedule = (opts.schedule ?? []).length > 0;
-  const visibleTabs = PROJECT_TABS.filter((t) =>
-    t === "deploy" ? showDeploy
-    : t === "health" ? showHealth
-    : t === "schedule" ? showSchedule
-    : true,
-  );
+  // Schedule is always offered (spec 378, REQ-6): a project with nothing
+  // scheduled says so on its own tab, rather than the tab bar changing
+  // shape from project to project.
+  const visibleTabs = PROJECT_TABS.filter((t) => (t === "deploy" ? showDeploy : true));
   const tab: ProjectTab = pickTab(visibleTabs, opts.tab, "config");
   const base = projectPagePath(p.name);
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now)
-    : tab === "health" ? healthSection(readiness)
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
-    : configSection(settings, p.name, opts);
+    : configSection(settings, p.name, readiness, opts);
 
   const body = tabbedBody("", tabBar(visibleTabs, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, undefined, { script: opts.script, hideHeading: true });

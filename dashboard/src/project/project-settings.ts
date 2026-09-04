@@ -52,12 +52,13 @@ export interface SettingRow {
    *  carries is precisely that it is the DEFAULT for a toolchain
    *  rather than a command anyone ran. */
   toolchain?: string;
-  /** Set only where a CONFIGURED value does not resolve, and always
-   *  the readiness check's own sentence, never a second wording of the
-   *  same fact. `blocking` is the same check's own flag (spec 372): the
-   *  Health tab already reads it to choose `failed`/`waiting`, and this
-   *  row must agree — the same fact must not read red on one tab and
-   *  amber on the other. */
+  /** Set where a CONFIGURED or an UNSET value does not resolve, and
+   *  always the readiness check's own sentence, never a second wording
+   *  of the same fact. `blocking` is the same check's own flag (spec
+   *  372): `unifiedSettingsTable` reads it to choose `failed`/`waiting`
+   *  for this row, and the checkout-level section above the table reads
+   *  it the same way for a check no row owns — the same fact must not
+   *  read red in one place and amber in the other. */
   problem?: { text: string; blocking: boolean };
 }
 
@@ -116,6 +117,11 @@ const RESOLVED_BY: Record<string, ReadinessCheckName> = {
   AIDE_SPECS_PATH: "specsRoot",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
 };
+
+/** The checks a settings row already speaks for (spec 378) — exported so
+ *  `project-page.ts` can filter its checkout-level section by the SAME
+ *  set `RESOLVED_BY` names, rather than a second, hand-copied list. */
+export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(Object.values(RESOLVED_BY));
 
 /** What `key`'s file(s) say is configured, and — for the one key with
  *  two possible files — which one answered. `null` when nothing is
@@ -179,7 +185,21 @@ export function projectSettings(
         toolchain: found.toolchain,
       };
     }
-    return { key, purpose, value: null, origin: "unset" };
+    // Spec 378 (REQ-2): the same `problem` lookup the `configured`
+    // branch above makes — an UNSET field-owned check can still be
+    // `blocking` (no specs root, and the fallback does not exist
+    // either) or worth a note (no worktree links configured at all),
+    // and before this it was visible only on the Health tab. Read
+    // verbatim, same as the `configured` branch.
+    const check = RESOLVED_BY[key];
+    const unresolved = check ? readiness?.checks.find((c) => c.check === check && !c.ok) : undefined;
+    return {
+      key,
+      purpose,
+      value: null,
+      origin: "unset",
+      ...(unresolved ? { problem: { text: unresolved.detail, blocking: unresolved.blocking } } : {}),
+    };
   });
   return { hasConfigFile: existsSync(join(projectDir, ".aide", "config")), rows };
 }
