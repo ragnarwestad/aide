@@ -34,7 +34,12 @@ ALLOWED_BASH_FILES = {
 ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/project/parse-spec-state.ts",  # the one reader
     "dashboard/src/serve/spec-lookup.ts",          # reads it through parse-spec-state.ts
-    "dashboard/src/serve/handle-queue/spec-edit.ts",  # relays what aide-write-spec derived
+    # spec-edit relays what aide-write-spec derived; since the file was
+    # split (2026-09-04) the name lives in the small shared file its
+    # families read it from, and the tick's own doc comment says which
+    # two files a tick commits together.
+    "dashboard/src/serve/handle-queue/spec-edit/shared.ts",
+    "dashboard/src/serve/handle-queue/spec-edit/checks.ts",
     "dashboard/src/git/run-aide-write-spec.ts",    # spawns the script, in scratch space
     "dashboard/src/git/branch-file.ts",            # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
