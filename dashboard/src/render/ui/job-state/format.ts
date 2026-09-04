@@ -2,6 +2,8 @@
 // going".
 
 import { badge, type BadgeVariant } from "../components.ts";
+import { renderSentence } from "../../../i18n/message.ts";
+import type { Language } from "../../../i18n/index.ts";
 import type { QueueRowView } from "./types.ts";
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -67,8 +69,12 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   interrupted: "refused",
 };
 
-export function stateChip(r: QueueRowView): string {
-  return badge(BADGE_VARIANT[r.state], stateLabel(r), r.state === "stopped" ? r.error : undefined);
+export function stateChip(r: QueueRowView, lang: Language = "en"): string {
+  return badge(
+    BADGE_VARIANT[r.state],
+    stateLabel(r),
+    r.state === "stopped" ? renderSentence(lang, r.error) : undefined,
+  );
 }
 
 /** A spec that exists and has never been run. It is this page's own

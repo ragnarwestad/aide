@@ -6,6 +6,7 @@
 import { type PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { type QueueRowView } from "../../../ui/job-state.ts";
 import { type FileStepsAnswer } from "../../../../git/workflow-history.ts";
+import type { Sentence } from "../../../../i18n/message.ts";
 
 export interface QueueTarget {
   project: string;
@@ -153,7 +154,7 @@ export interface ArchivedSpecView {
    *  or it is open for a reason no landing recorded (a spec whose branch
    *  genuinely never merged). Takes precedence over the bare `NOT_LANDED`
    *  wording for the same reason `prOpen` takes precedence over it. */
-  branchDeleteError?: string;
+  branchDeleteError?: Sentence | Sentence[];
   /** When the spec was made, from BEFORE the archive step's own `git
    *  mv` (spec 317, REQ-6) — distinct from `archivedAt` above, which is
    *  when the folder was moved. Off `firstCommitAtFollowingRenames`,
@@ -425,7 +426,7 @@ export interface SpecGroup {
    *  read straight off `lead` rather than scanned across every job for
    *  this spec the way `prError` is — see Risk analysis for why a
    *  cross-job scan would show the wrong job's failure. */
-  landingError?: string;
+  landingError?: Sentence | Sentence[];
   /** Why the lead job's landing was refused, when it was — the same
    *  field the notice line reads. `tests-red` is the one member that
    *  makes the landing mark amber instead of red: the suite went red on

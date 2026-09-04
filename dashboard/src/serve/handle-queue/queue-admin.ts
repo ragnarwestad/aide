@@ -3,6 +3,7 @@
 // for a project. Extracted from handle-queue.ts (split of split
 // serve.ts step 2).
 import { join } from "node:path";
+import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
 import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
@@ -265,7 +266,7 @@ export async function handleQueueAdminRoutes(
     const base = await ctx.branchStatus.defaultBranch(root);
     if (!base) return refuse(`cannot work out the default branch in ${root}`);
     const result = await ctx.mergeLock.run(root, () => fastForwardToOrigin(ctx.gitRun, root, base));
-    if (!result.ok) return refuse(result.error ?? `cannot bring ${root} up to date`);
+    if (!result.ok) return refuse(renderSentence("en", result.error) ?? `cannot bring ${root} up to date`);
     const after = await ctx.installAfterMerge(result);
     // Fresh, not cached: the checkout just moved, and the next reader
     // of this project's page must not see the old count for up to
@@ -279,13 +280,14 @@ export async function handleQueueAdminRoutes(
     const restarting = !!after.restart;
     let response: Response;
     if (result.installError) {
-      console.error(`queue: deploy ${name} in ${root} — ${result.installError}`);
+      const installErrorText = renderSentence("en", result.installError)!;
+      console.error(`queue: deploy ${name} in ${root} — ${installErrorText}`);
       response = wantsJson
-        ? json({ ok: true, installError: result.installError, restarting })
+        ? json({ ok: true, installError: installErrorText, restarting })
         : new Response(null, {
             status: 303,
             headers: {
-              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(result.installError)}&tab=deploy`,
+              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(installErrorText)}&tab=deploy`,
             },
           });
     } else {

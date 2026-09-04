@@ -1,6 +1,7 @@
 // The shapes the queue trades in: a job, its results, and the config
 // that bounds what a request may ask for.
 
+import type { Sentence } from "../i18n/message.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
@@ -166,9 +167,9 @@ export interface Job {
    *  say what actually happened, rather than a generic "not landed".
    *  Cleared, like `error`, the moment a later landing for the same spec
    *  deletes the branch cleanly. */
-  branchDeleteError?: string;
+  branchDeleteError?: Sentence | Sentence[];
   stopReason?: StopReason;
-  error?: string;
+  error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a
    *  real conflict. Stored on the job since spec 149, and stored rather
    *  than passed because a landing happens with nobody's browser
@@ -203,7 +204,7 @@ export interface Job {
    *  free to overwrite the moment it starts (`Runner.startOne()`) or
    *  lands. `errorReason`/`error` still say what is happening RIGHT
    *  NOW; this says what already went wrong and was never resolved. */
-  landingError?: string;
+  landingError?: Sentence | Sentence[];
   /** Raw git/tool output behind `error` (spec 352, REQ-5) — never part
    *  of `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence. Hover-only detail for whoever needs the exact words. */

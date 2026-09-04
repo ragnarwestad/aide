@@ -1,6 +1,7 @@
 // The context every landing function reads instead of `createServer`'s
 // closure, and the `Landing` description `landBranch` is driven by.
 
+import type { Sentence } from "../../i18n/message.ts";
 import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
@@ -50,7 +51,7 @@ export interface LandContext {
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job) => Promise<{ ok: boolean; error?: string; detail?: string }>;
+  landingGate?: (root: string, job: Job) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 }
 
 /** What a landing does that is not the merge itself: what to write on
@@ -66,10 +67,10 @@ export interface Landing {
    *  that IS the failure — the spec exists only on a branch that was
    *  never reported. For `archive` a HEAD that never moved is an
    *  ordinary outcome, so it says nothing and leaves no error. */
-  nothingToLand?: string;
+  nothingToLand?: Sentence;
   /** The catch-all message, which has to name the step: "landing it
    *  failed" alone leaves a reader guessing what "it" was. */
-  failedNote: (why: string) => string;
+  failedNote: (why: string) => Sentence;
   /** Which repos to land. Absent means the step's own outcome, which
    *  is right for every landing but archive's — see
    *  `landArchivedSpec` for why that one has to look further. */

@@ -30,6 +30,7 @@ export function sameRoot(a: string, b: string): boolean {
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
+import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
 import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
@@ -92,8 +93,13 @@ export async function landBranch(
   // refused the merge: the row says stopped and draws it amber, and a
   // sentence that says failed beside it is the row disagreeing with
   // itself.
-  const firstLandingError = (msg: string, held = false): string =>
-    ctx.queue.get(job.id)?.landingError ?? `${what.step} landing ${held ? "stopped" : "failed"}: ${msg}`;
+  // The step-name/stopped-or-failed prefix this used to compose is
+  // redundant with the badge label the one display site
+  // (`cell-helpers.ts`'s `liveMarks()`) already shows beside it — and a
+  // landing runs with nobody's browser attached, so there is no `lang`
+  // here to render `msg` with anyway (REQ-1/REQ-3).
+  const firstLandingError = (msg: Sentence | Sentence[]): Sentence | Sentence[] =>
+    ctx.queue.get(job.id)?.landingError ?? msg;
   try {
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
@@ -129,7 +135,7 @@ export async function landBranch(
       if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
       return;
     }
-    const failures: string[] = [];
+    const failures: Sentence[] = [];
     // Raw git output behind each failure above, if any (spec 352,
     // REQ-5) — joined the same way, so a title carrying several repos'
     // detail lines up with the sentence it belongs to.
@@ -142,7 +148,7 @@ export async function landBranch(
     // from re-flagging a root THIS loop already knows the story of;
     // `deleteErrors` is what the row reads afterwards instead of the
     // generic "not landed".
-    const deleteErrors: string[] = [];
+    const deleteErrors: Sentence[] = [];
     const leftBehindRoots = new Set<string>();
     for (const repo of repos) {
       if (leaveOpen(repo.root)) {
@@ -159,7 +165,7 @@ export async function landBranch(
       if (!base) {
         // Guessing which branch to merge INTO is the one guess with no
         // safe direction.
-        failures.push(`cannot work out the default branch in ${repo.root} — check the checkout on the serving host`);
+        failures.push({ key: "landing.cannotWorkOutDefaultBranch", values: { root: repo.root } });
         continue;
       }
       // Up to three tries with a pause: this landing races the runs
@@ -226,17 +232,29 @@ export async function landBranch(
           }
           // Never fatal, and never silent either: the merge already
           // happened, so this is reported beside it rather than
-          // turning a successful merge into a failure.
+          // turning a successful merge into a failure. A server log has
+          // no reader whose `lang` could apply; English is the source
+          // language throughout this catalog (Recommended solution,
+          // Storage, point 3).
           if (result.installError) {
-            console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.installError}`);
+            console.error(
+              `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.installError)}`,
+            );
           }
         }
         if (result.branchDeleteError) {
-          console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.branchDeleteError}`);
+          console.error(
+            `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.branchDeleteError)}`,
+          );
           leftBehindRoots.add(repo.root);
-          // The sentence says what to do (spec 352); git's own reason
-          // rides along in parentheses so the job record still says why.
-          deleteErrors.push(`${repo.root}: ${result.branchDeleteError}${result.detail ? ` (${result.detail})` : ""}`);
+          // The ROOT is folded into the message's own template here —
+          // this is the one place that knows whether several repos are
+          // being reported at once (spec 319). `branch-merge.ts` always
+          // composes this as a `BoardMessage`, never a plain string.
+          const del = result.branchDeleteError;
+          deleteErrors.push(
+            typeof del === "object" ? { key: del.key, values: { ...del.values, root: repo.root } } : del,
+          );
         }
       } else if (result.reason === "gone") {
         // Nothing to land in this repo, and not a failure of this
@@ -251,7 +269,7 @@ export async function landBranch(
         // side: the branch is not on origin at all.
         ctx.branchStatus.invalidate(repo.root, branch);
       } else {
-        failures.push(result.error ?? `cannot merge ${branch} in ${repo.root} — check the checkout on the serving host`);
+        failures.push(result.error ?? { key: "landing.cannotMergeFallback", values: { branch, root: repo.root } });
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
         if (result.reason === "tests-red") reason = "tests-red";
@@ -289,7 +307,7 @@ export async function landBranch(
     if (what.step === "archive" && reason === "tests-red") {
       const held = await ctx.rootsStillHolding(job.project, branch, true);
       if (held.length) {
-        failures.push(`the archived spec is on ${branch}, not on the default branch yet.`);
+        failures.push({ key: "landing.archivedNotYetOnDefault", values: { branch } });
       }
     }
     if (what.step === "archive" && reason !== "tests-red") {
@@ -314,7 +332,7 @@ export async function landBranch(
           // rather than as a quote of that button's label, so a
           // future rename leaves the sentence less exact but never
           // wrong.
-          `${branch} is still on origin in ${root} — the spec was archived, but its work has not landed. Run archive again to land it.`,
+          { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root } },
         );
         // Only where nothing more specific was found: a conflict is
         // the reason, and "unlanded" is what a conflict LOOKS like
@@ -341,10 +359,10 @@ export async function landBranch(
       // answer is to run implement again.
       const held = reason === "tests-red";
       const patch = {
-        error: failures.join("; "),
+        error: failures,
         errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
         errorReason: reason,
-        landingError: firstLandingError(failures.join("; "), held),
+        landingError: firstLandingError(failures),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
@@ -372,7 +390,7 @@ export async function landBranch(
       branchUrls: stillOpen,
       prUrl: review.prUrl,
       prError: review.prError,
-      branchDeleteError: deleteErrors.length ? deleteErrors.join("; ") : undefined,
+      branchDeleteError: deleteErrors.length ? deleteErrors : undefined,
       error: undefined,
       errorReason: undefined,
     });

@@ -2,6 +2,7 @@
 // single-job page need this, and neither owns it.
 
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
+import type { Sentence } from "../../../i18n/message.ts";
 
 export interface QueueRowView {
   id: string;
@@ -58,7 +59,7 @@ export interface QueueRowView {
    *  the branch like `prError`, and for the same reason: the step
    *  succeeded and its work is committed, only the push failed. */
   pushError?: string;
-  error?: string;
+  error?: Sentence | Sentence[];
   /** Why the job's own landing was refused, when it was refused for
    *  something the row can offer a way out of. Stored on the job since
    *  spec 149 and read from here: a landing happens with nobody's
@@ -71,7 +72,7 @@ export interface QueueRowView {
   errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
   /** The job's own persisted landing failure (spec 327), independent of
    *  `state`/`error` — see `Job.landingError`. */
-  landingError?: string;
+  landingError?: Sentence | Sentence[];
   /** Raw git/tool output behind `error` (spec 352, REQ-5) — see
    *  `Job.errorDetail`. */
   errorDetail?: string;

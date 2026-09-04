@@ -12,6 +12,8 @@
 // have been the fourth.
 
 import { esc, relTime, usdOrTokens } from "../ui/html.ts";
+import { renderSentence } from "../../i18n/message.ts";
+import type { Language } from "../../i18n/index.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "../ui/job-state.ts";
 import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "../ui/components.ts";
@@ -392,9 +394,10 @@ export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; now?: number } = {},
+  opts: { tab?: string; step?: string; now?: number; lang?: Language } = {},
 ): string {
   const now = opts.now ?? Date.now();
+  const lang: Language = opts.lang ?? "en";
   // While a step is running, what it is DOING is what the page was
   // opened for; a job that has stopped has nothing running, so its
   // facts open instead. Activity is gone (spec 240) — Steps is the one
@@ -419,8 +422,8 @@ export function renderJobDetailPage(
   // went, so the pips have to be somewhere a reader sees them. Their own
   // block rather than inside the paragraph — `pips()` is a `<div>`.
   const banner =
-    `<p class="pagehead">${stateChip(job)}` +
-    (job.error ? ` <span class="muted small">${esc(job.error)}</span>` : "") +
+    `<p class="pagehead">${stateChip(job, lang)}` +
+    (job.error ? ` <span class="muted small">${esc(renderSentence(lang, job.error) ?? "")}</span>` : "") +
     `</p>` +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");

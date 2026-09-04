@@ -4,7 +4,7 @@
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
-import { json } from "../serve-helpers.ts";
+import { json, languageChoice } from "../serve-helpers.ts";
 import { renderJobDetailPage, resolveBackHref } from "../../render.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -31,6 +31,7 @@ export async function handleJobDetailRoute(
       {
         tab: url.searchParams.get("tab") ?? undefined,
         step: url.searchParams.get("step") ?? undefined,
+        lang: languageChoice(url, req).lang,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

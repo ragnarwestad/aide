@@ -17,6 +17,7 @@ import {
   type WorkflowStep,
 } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
+import type { Sentence } from "../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
 import { parsePendingEffort, parsePendingModels, parseStoredJob, persistPendingEffort, persistPendingModels } from "./persist.ts";
@@ -253,7 +254,7 @@ export class QueueStore {
    *  `pullRequestFor`: newest job first, across every job the queue still
    *  holds for `project/specFolder` — a spec whose job the LRU cap has
    *  evicted simply has none, which is a blank, not a claim. */
-  branchDeleteErrorFor(project: string, specFolder: string): string | undefined {
+  branchDeleteErrorFor(project: string, specFolder: string): Sentence | Sentence[] | undefined {
     const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
     return [...this.jobs.values()]
       .filter((j) => j.project === project && j.specFolder === specFolder)

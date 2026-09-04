@@ -1,7 +1,9 @@
 // The one rule for what a phase shows (spec 108).
 
 import type { BadgeVariant, PipKind } from "../components.ts";
-import { errorSentence } from "../error-sentence.ts";
+import { renderMessage } from "../../../i18n/message.ts";
+import type { MessageKey } from "../../../i18n/messages.ts";
+import type { Language } from "../../../i18n/index.ts";
 import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -11,15 +13,18 @@ import type { QueueRowView } from "./types.ts";
  *  reader translate machine words and names no move. A token not listed
  *  is passed through unchanged: said plainly, it beats a guess at what
  *  it means. */
-const STOP_SENTENCES: Record<string, string> = {
-  "not-implemented-yet": "nothing is implemented yet — run implement first",
-  "acceptance-criteria-unticked": "the Acceptance criteria are not all ticked — tick them on the Checks tab",
-  "no-passing-test-record": "the project's tests did not pass for this commit — run implement again",
-  "already-archived": "the spec was already archived — nothing to do",
-  "conflict-open": "a merge is open in the worktree — archive resolves it, so run archive again",
+const STOP_SENTENCES: Record<string, MessageKey> = {
+  "not-implemented-yet": "wordPhase.stopNotImplementedYet",
+  "acceptance-criteria-unticked": "wordPhase.stopAcceptanceCriteriaUnticked",
+  "no-passing-test-record": "wordPhase.stopNoPassingTestRecord",
+  "already-archived": "wordPhase.stopAlreadyArchived",
+  "conflict-open": "wordPhase.stopConflictOpen",
 };
 
-export const stopSentence = (reason: string): string => STOP_SENTENCES[reason] ?? reason;
+export const stopSentence = (reason: string, lang: Language = "en"): string => {
+  const key = STOP_SENTENCES[reason];
+  return key ? renderMessage(lang, { key }) : reason;
+};
 
 /** What one phase reads as, in the three parts a row and a job page
  *  both need: the pip, the word in the badge, and — only when the last
@@ -43,7 +48,7 @@ export interface PhaseWord {
  *  (spec 154). Deliberately the same words the job-history version
  *  below uses — a reader has one thing to learn, and the file is the
  *  half that is wrong in both cases. */
-const FILES_DISAGREE = "the files disagree with what has run";
+const filesDisagreeSentence = (lang: Language): string => renderMessage(lang, { key: "wordPhase.filesDisagree" });
 
 /** The sentence for a last attempt that disagrees with the file (spec
  *  280): an `unlanded` failure is its own, specific story — the spec
@@ -56,12 +61,9 @@ const FILES_DISAGREE = "the files disagree with what has run";
  *  (cell-helpers.ts, REQ-1, spec 352) — the same fact worded two ways
  *  is what a plan review flagged as the clearest sign no shared
  *  convention existed yet. */
-const attemptQualifier = (attempt: QueueRowView): string =>
+const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
-    ? errorSentence({
-        what: "archived, but landing it failed — its branch is still open.",
-        resolve: "Re-run archive.",
-      }).text
+    ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
     : `last re-run ${stateLabel(attempt)}`;
 
 /** The one rule, applied by everything that words a phase.
@@ -93,6 +95,7 @@ export function wordPhase(
    *  `4-status.md` claiming something the history does not show, or the
    *  reverse. */
   history: { stopped?: string; fileDisagrees?: boolean } = {},
+  lang: Language = "en",
 ): PhaseWord {
   const running = !!attempt && inFlight(attempt);
   const disagrees = !!attempt && !running && attempt.state !== "done";
@@ -100,7 +103,7 @@ export function wordPhase(
   // qualifier that has something sharper to say: an attempt that ended
   // badly is the more useful sentence, and two sentences about one
   // phase is the row saying two things at once.
-  const filesDisagree = history.fileDisagrees ? FILES_DISAGREE : undefined;
+  const filesDisagree = history.fileDisagrees ? filesDisagreeSentence(lang) : undefined;
   // A phase that is running says so, whatever happened the last time it
   // ran. The history's "done" is about a previous attempt; this one is
   // in flight, and a line reading "done · 2 attempts" over a spec the
@@ -134,7 +137,7 @@ export function wordPhase(
     return {
       pip: running ? "now" : "past",
       badge: { variant: "done", label: "done" },
-      qualifier: disagrees ? attemptQualifier(attempt!) : filesDisagree,
+      qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
   // Not while something is running: a note from an earlier decline must
@@ -152,7 +155,7 @@ export function wordPhase(
       // once for the whole row (spec 143). Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
       // 1-description.md reports.
-      qualifier: disagrees ? attemptQualifier(attempt!) : filesDisagree,
+      qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
   // A step that RAN and did not finish, with nothing live left to say
@@ -180,14 +183,14 @@ export function wordPhase(
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: "waiting", label: "stopped" },
-      qualifier: `stopped: ${stopSentence(history.stopped)}`,
+      qualifier: `stopped: ${stopSentence(history.stopped, lang)}`,
     };
   }
   if (!attempt) return { pip: "todo", qualifier: filesDisagree };
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",
-      qualifier: "last run reported done, but the files disagree",
+      qualifier: renderMessage(lang, { key: "wordPhase.lastRunDisagrees" }),
     };
   }
   return {

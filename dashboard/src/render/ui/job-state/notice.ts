@@ -2,6 +2,7 @@
 
 import type { MessageVariant } from "../components.ts";
 import { t, type Language } from "../../../i18n/index.ts";
+import { renderSentence } from "../../../i18n/message.ts";
 import { inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -110,14 +111,17 @@ export function specNotice(
   // `errorReason` (spec 372), which the scheduler sets alongside the
   // sentence — never guessed from the text, which left every OTHER
   // waiting-shaped message still picking "waiting" or "failed" for itself.
-  if (lead?.error && !said(lead.error)) {
-    // `tests-red` waits for the same reason: the landing ran the
-    // project's own suite on the merged result, it went red, and nothing
-    // was pushed. The step and the merge both did what they should; the
-    // code is not green yet.
-    const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
-    const variant: MessageVariant = waiting ? "waiting" : "failed";
-    parts.push({ variant, text: lead.error, title: lead.errorDetail });
+  if (lead?.error) {
+    const text = renderSentence(lang, lead.error)!;
+    if (!said(text)) {
+      // `tests-red` waits for the same reason: the landing ran the
+      // project's own suite on the merged result, it went red, and
+      // nothing was pushed. The step and the merge both did what they
+      // should; the code is not green yet.
+      const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
+      const variant: MessageVariant = waiting ? "waiting" : "failed";
+      parts.push({ variant, text, title: lead.errorDetail });
+    }
   }
   parts.push(...marks);
   if (parts.length) {

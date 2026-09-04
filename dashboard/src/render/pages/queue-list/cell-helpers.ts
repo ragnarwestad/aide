@@ -4,6 +4,7 @@
 import { CHECKING, badge, pips, stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n/index.ts";
+import { renderSentence } from "../../../i18n/message.ts";
 import {
   completedThirds,
   durationLabel,
@@ -282,7 +283,7 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     marks.push({
       variant: held ? "waiting" : "refused",
       label: held ? TESTS_RED(lang) : LANDING_FAILED(lang),
-      sentence: g.landingError,
+      sentence: renderSentence(lang, g.landingError)!,
     });
   }
   if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });

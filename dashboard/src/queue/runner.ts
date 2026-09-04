@@ -29,8 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import type { NotifyEvent } from "../integrations/notify.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../project/parse-status.ts";
-import { errorSentence } from "../render/ui/error-sentence.ts";
+import { renderMessage, type BoardMessage } from "../i18n/message.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
@@ -132,7 +131,7 @@ export class Runner {
     // archive had landed, and the two whole-queue pauses below wrote
     // nothing at all on their way out (2026-09-04).
     const held = (this.heldThisPass = new Set<string>());
-    const hold = (job: Job, reason: string): void => this.hold(job, reason);
+    const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
     if (this.o.store.list().some((j) => j.landing)) {
       // The pause every queued row used to sit in with no explanation:
       // a landing is in flight, so nothing starts, and being first in
@@ -143,7 +142,7 @@ export class Runner {
         // both wrong and in the way of the landing's own verdict, which
         // lands on that row moments later.
         if (job.state === "queued" && !job.landing) {
-          hold(job, "held back: a landing is still running — this starts when it has finished");
+          hold(job, { key: "runner.landingPause" });
         }
       }
       this.clearStaleHolds(held);
@@ -176,13 +175,13 @@ export class Runner {
         job.steps[job.stepIndex] === "archive" &&
         this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
       ) {
-        hold(job, "held back: another archive is running in this project — it starts when that one has landed");
+        hold(job, { key: "runner.archiveRunning" });
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {
-        hold(job, "held back: not analyzed yet — run /aide-analyze first");
+        hold(job, { key: "runner.notAnalyzed" });
         continue;
       }
       // Held back, not failed — the same shape `startOne`'s daily-cap
@@ -192,7 +191,7 @@ export class Runner {
       // `failed`, which nothing retries.
       const dependency = blocked?.get(job.id);
       if (dependency !== undefined) {
-        hold(job, `held back: depends on ${dependency}, which is not archived yet`);
+        hold(job, { key: "runner.dependencyNotArchived", values: { dependency } });
         continue;
       }
       // The same shape once more, for `archive`: an acceptance row only
@@ -201,7 +200,7 @@ export class Runner {
       // unarchived — so a chained analyze/implement/archive job waits
       // here for the tick instead, and starts by itself once it lands.
       if (acceptanceOpen?.has(job.id)) {
-        hold(job, `held back: ${ACCEPTANCE_CRITERIA_UNTICKED_NOTE}`);
+        hold(job, { key: "runner.acceptanceCriteriaUnticked" });
         continue;
       }
       this.startOne(job);
@@ -216,13 +215,16 @@ export class Runner {
   /** Hold one job with the reason it is held for RIGHT NOW. Written
    *  only when it changed: an unconditional update would rewrite the
    *  mirror every two seconds for a job that is doing nothing. */
-  private hold(job: Job, reason: string): void {
+  private hold(job: Job, reason: BoardMessage): void {
     this.heldThisPass.add(job.id);
     // A sentence that is not a hold-back is a RECORD — a landing that
     // refused, a conflict to resolve — and it stays on the row. Marked
     // as held above all the same, so `clearStaleHolds` leaves it alone.
     if (job.errorReason && job.errorReason !== "held-back") return;
-    if (job.error !== reason) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
+    const current = job.error;
+    const same = !!current && typeof current === "object" && !Array.isArray(current) &&
+      current.key === reason.key && JSON.stringify(current.values) === JSON.stringify(reason.values);
+    if (!same) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
   }
 
   /** Take the hold-back sentence off every queued job this pass did not
@@ -250,16 +252,13 @@ export class Runner {
     // Both caps are checked BEFORE the step starts: a cap that only
     // stops you afterwards is a report, not a cap.
     if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
-      const reason = errorSentence({
-        what: `the job cap ($${job.jobCapUsd}) would be exceeded by the next step.`,
-        resolve: "Raise the job cap in the project's .aide/config, then press Run again.",
-      }).text;
+      const reason: BoardMessage = { key: "runner.jobCapExceeded", values: { cap: job.jobCapUsd } };
       const result = this.o.store.transition(job.id, "cap-hit", {
         stopReason: "job-cap",
         finishedAt: this.o.now(),
         error: reason,
       });
-      this.announce(result.ok ? result.job : job, "stopped", step, reason);
+      this.announce(result.ok ? result.job : job, "stopped", step, renderMessage("en", reason));
       return false;
     }
     // The budgets of jobs ALREADY IN FLIGHT count. `spentToday()` is the
@@ -268,13 +267,7 @@ export class Runner {
     // the same numbers and the cap be exceeded by (N-1) budgets before
     // anything noticed.
     if (this.reservedUsd() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
-      this.hold(
-        job,
-        errorSentence({
-          what: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded.`,
-          resolve: "Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
-        }).text,
-      );
+      this.hold(job, { key: "runner.dailyCapExceeded", values: { cap: this.o.store.defaults.dailyCapUsd } });
       return false;
     }
 
@@ -324,10 +317,7 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: errorSentence({
-            what: "the run vanished without leaving a result.",
-            resolve: "Press Run again.",
-          }).text,
+          error: { key: "runner.runVanished" },
         });
       }
     }
@@ -345,10 +335,7 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: errorSentence({
-            what: "the server restarted while this step was running, and it left no result.",
-            resolve: "Press Run again.",
-          }).text,
+          error: { key: "runner.serverRestarted" },
         });
       }
     }

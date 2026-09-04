@@ -3,7 +3,6 @@
 
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
-import { errorSentence } from "../../render/ui/error-sentence.ts";
 import { landBranch } from "./merge.ts";
 import type { LandContext } from "./types.ts";
 
@@ -20,18 +19,11 @@ export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<S
   return landBranch(ctx, job, outcome, {
     step: "create",
     landed: { specFolder: outcome.specFolder ?? job.specFolder },
-    nothingToLand: errorSentence({
-      what: "the spec was created, but the run reported no pushed branch to land it from.",
-      resolve: "Merge it by hand, in the checkout on the serving host, or check the queue's push mode.",
-    }).text,
+    nothingToLand: { key: "landing.createNothingToLand" },
     // `why` (spec 352, REQ-5) is not this function's to show: it is the
     // raw text of whatever exception `landBranch` caught, and it never
     // becomes part of the sentence — the caller keeps it as `errorDetail`.
-    failedNote: () =>
-      errorSentence({
-        what: "the spec was created, but landing it failed.",
-        resolve: "Check the checkout on the serving host, then try running the step again.",
-      }).text,
+    failedNote: () => ({ key: "landing.createLandingFailed" }),
   });
 }
 
@@ -66,11 +58,7 @@ export async function landStepBranch(
     step,
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
-    failedNote: () =>
-      errorSentence({
-        what: `the ${step} step finished, but landing it failed.`,
-        resolve: "Check the checkout on the serving host, then try running the step again.",
-      }).text,
+    failedNote: () => ({ key: "landing.stepLandingFailed", values: { step } }),
   });
 }
 
@@ -95,11 +83,7 @@ export async function landStoppedStepBranch(
     step,
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
-    failedNote: () =>
-      errorSentence({
-        what: `the ${step} step stopped at its time limit, and landing what it wrote failed.`,
-        resolve: "Check the checkout on the serving host, then try running the step again.",
-      }).text,
+    failedNote: () => ({ key: "landing.stoppedStepLandingFailed", values: { step } }),
   });
 }
 
@@ -144,10 +128,6 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     //
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
-    failedNote: () =>
-      errorSentence({
-        what: "the spec was archived, but landing it failed.",
-        resolve: "Check the checkout on the serving host, then try running the step again.",
-      }).text,
+    failedNote: () => ({ key: "landing.archiveLandingFailed" }),
   });
 }

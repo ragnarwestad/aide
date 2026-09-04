@@ -4,7 +4,6 @@
 import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
-import { errorSentence } from "../../render/ui/error-sentence.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
 import type { LandContext } from "./types.ts";
 
@@ -29,10 +28,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     // not the raw env-var key (spec 318, REQ-1) — REQ-3, spec 352 adds
     // where that setting lives, in the same plain words.
     const label = SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase();
-    result.installError = errorSentence({
-      what: `merged, not installed — no ${label} configured.`,
-      resolve: `Set the ${label} in the project's .aide/config to enable it.`,
-    }).text;
+    result.installError = { key: "landing.noInstallCommand", values: { label } };
     return false;
   }
   const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;
@@ -54,28 +50,19 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     }
     const code = await proc.exited;
     if (timedOut) {
-      result.installError = errorSentence({
-        what: `merged, but the install timed out after ${timeoutMs}ms and was stopped.`,
-        resolve: "Check the install command in the checkout on the serving host.",
-      }).text;
+      result.installError = { key: "landing.installTimedOut", values: { timeoutMs } };
       failed = true;
     } else if (code !== 0) {
       // The stderr tail (spec 352, REQ-5) stays out of the board-facing
       // sentence — logged here instead, so the exact words are still on
       // the machine for whoever goes looking, just never the sentence.
       console.error(`land-branch: install exited ${code}: ${tail.trim().slice(-200)}`);
-      result.installError = errorSentence({
-        what: `merged, but the install failed (exit ${code}).`,
-        resolve: "Check the install command in the checkout on the serving host.",
-      }).text;
+      result.installError = { key: "landing.installFailedExit", values: { code } };
       failed = true;
     }
   } catch (err) {
     console.error(`land-branch: install could not be run: ${err instanceof Error ? err.message : String(err)}`);
-    result.installError = errorSentence({
-      what: "merged, but the install could not be run.",
-      resolve: "Check the install command in the checkout on the serving host.",
-    }).text;
+    result.installError = { key: "landing.installCouldNotRun" };
     failed = true;
   }
   // A failed install wants no restart, exactly as `set -e` used to skip

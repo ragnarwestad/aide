@@ -20,6 +20,7 @@
 //     and a single collective "ok" over two repos is exactly the blind
 //     spot this whole spec exists to remove.
 
+import type { BoardMessage, Sentence } from "../i18n/message.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
 
 export interface RepoMergeResult {
@@ -27,7 +28,7 @@ export interface RepoMergeResult {
   ok: boolean;
   /** Why not, naming the repo — a refusal that does not say WHERE is
    *  the same failure as no refusal at all when two repos are in play. */
-  error?: string;
+  error?: Sentence;
   /** Raw git output behind `error` (spec 352, REQ-5) — never part of
    *  `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence naming where to act. Hover-only detail. */
@@ -38,13 +39,13 @@ export interface RepoMergeResult {
    *  install succeeded — one message about this repo's install state, or
    *  none. A merge is never turned back into a failure by it: the merge
    *  had already happened. */
-  installError?: string;
+  installError?: Sentence;
   /** The merge landed and was pushed, but the spec branch is still on
    *  origin. Reported for the same reason and in the same way as
    *  `installError`: the cleanup is what a later dependency check
    *  reads, so a failed one has to be visible — and the merge it
    *  follows is never turned back into a failure by it. */
-  branchDeleteError?: string;
+  branchDeleteError?: Sentence;
   /** WHY it was refused, when the answer is one a machine acts on. Two
    *  refusals carry it and no others.
    *
@@ -76,10 +77,10 @@ export interface RepoMergeResult {
  *  this says where: the branch being merged, or — on the deploy path,
  *  which has no feature branch — the default branch it is bringing up
  *  to date. */
-const refuse = (root: string, ref: string, why: string, detail?: string): RepoMergeResult => ({
+const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
   root,
   ok: false,
-  error: `${why} (${ref} in ${root})`,
+  error: { key: why.key, values: { ...why.values, ref, root } },
   ...(detail ? { detail } : {}),
 });
 
@@ -158,7 +159,7 @@ async function isLeftoverMerge(run: GitRunner, root: string, base: string): Prom
   return own.code === 0 && own.stdout.trim() === "";
 }
 
-export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: string; detail?: string }>;
+export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 
 export async function mergeBranchIntoDefault(
   run: GitRunner,
@@ -194,7 +195,7 @@ export async function mergeBranchIntoDefault(
     const onOrigin = await run(root, lsRemoteBranch(branch));
     if (onOrigin.code === LS_REMOTE_NO_MATCH) {
       return {
-        ...refuse(root, branch, "there is nothing left to merge — the branch is not on origin"),
+        ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }),
         reason: "gone",
       };
     }
@@ -205,7 +206,7 @@ export async function mergeBranchIntoDefault(
     //    push from a base that is behind would be rejected anyway, and
     //    a merge onto a stale base is a merge nobody reviewed.
     const switched = await run(root, ["switch", "-q", base]);
-    if (switched.code !== 0) return refuse(root, branch, `cannot switch to ${base}`);
+    if (switched.code !== 0) return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } });
     const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
     if (upstream.code === 0) {
       // A test-run.json left dirty in this checkout (a gate's record that
@@ -244,7 +245,7 @@ export async function mergeBranchIntoDefault(
         return refuse(
           root,
           branch,
-          `cannot fast-forward ${base} — merge it by hand, in the checkout on the serving host`,
+          { key: "landing.cannotFastForward", values: { base } },
           (pulled.stderr ?? "").trim().slice(-300) || undefined,
         );
       }
@@ -289,7 +290,7 @@ export async function mergeBranchIntoDefault(
           ...refuse(
             root,
             branch,
-            `cannot merge into ${base} — conflict, merge it by hand, in the checkout on the serving host`,
+            { key: "landing.mergeConflict", values: { base } },
             lastStderr.slice(-300) || undefined,
           ),
           reason: "conflict",
@@ -312,7 +313,7 @@ export async function mergeBranchIntoDefault(
           return {
             root,
             ok: false,
-            error: verdict.error ?? `the project's tests are red on the merge into ${base}`,
+            error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
             ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
             reason: "tests-red",
           };
@@ -334,7 +335,10 @@ export async function mergeBranchIntoDefault(
       const pushResult = await pushWithRetry(run, root, base, wait);
       if (pushResult.ok) break;
       if (!pushResult.moved) {
-        return refuse(root, branch, `merged locally, but the push of ${base} failed: ${pushResult.error ?? ""}`);
+        return refuse(root, branch, {
+          key: "landing.pushFailed",
+          values: { base, pushError: pushResult.error ?? "" },
+        });
       }
       await run(root, ["fetch", "--quiet", "origin", base]);
       await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
@@ -342,7 +346,7 @@ export async function mergeBranchIntoDefault(
         return refuse(
           root,
           branch,
-          `${base} moved on origin under this landing twice — nothing was pushed; run the step again`,
+          { key: "landing.baseMovedTwice", values: { base } },
           pushResult.error,
         );
       }
@@ -370,7 +374,10 @@ export async function mergeBranchIntoDefault(
       return {
         root,
         ok: true,
-        branchDeleteError: `merged, but deleting ${branch} on origin failed — delete it by hand, in the checkout on the serving host`,
+        // The ROOT is folded in where this is composed for the row
+        // (`landBranch`, spec 319), which is the one place that knows
+        // whether several repos are being reported at once.
+        branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
         detail,
       };
     }
@@ -394,7 +401,7 @@ export async function mergeBranchIntoDefault(
     return refuse(
       root,
       base,
-      "git could not be run — check the checkout on the serving host",
+      { key: "landing.gitCouldNotRun" },
       err instanceof Error ? err.message : String(err),
     );
   }
@@ -423,7 +430,7 @@ export async function fastForwardToOrigin(
       return refuse(
         root,
         base,
-        `the checkout is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first, in the checkout on the serving host`,
+        { key: "landing.deployWrongBranch", values: { on: on || "an unknown branch", base } },
       );
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
@@ -433,14 +440,14 @@ export async function fastForwardToOrigin(
       pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
     }
     if (pulled.code !== 0) {
-      return refuse(root, base, "cannot fast-forward it — bring it up to date by hand, in the checkout on the serving host");
+      return refuse(root, base, { key: "landing.deployCannotFastForward" });
     }
     return { root, ok: true };
   } catch (err) {
     return refuse(
       root,
       base,
-      "git could not be run — check the checkout on the serving host",
+      { key: "landing.gitCouldNotRun" },
       err instanceof Error ? err.message : String(err),
     );
   }
