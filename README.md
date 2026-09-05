@@ -5,6 +5,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 ## Table of contents
 
 - [What it is](#what-it-is)
+- [The aide-* skills](#the-aide--skills)
 - [For end users](#for-end-users)
 - [For aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
@@ -12,7 +13,6 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
   - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
-- [The aide-* skills](#the-aide--skills)
 - [Running a workflow step headless (opt-in)](#running-a-workflow-step-headless-opt-in)
 - [Keeping a serving host's specs current (opt-in)](#keeping-a-serving-hosts-specs-current-opt-in)
 - [Resources](#resources)
@@ -43,6 +43,29 @@ the code it describes. That structure is what lets **any AI assistant**:
 **Key benefit:** Not locked to a single AI vendor - teams can pick the
 best tool for each task, and the spec is what carries the work between
 them.
+
+---
+
+## The aide-\* skills
+
+The four spec-workflow skills, in the order a spec moves through them:
+
+| Skill              | Does                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------|
+| `/aide-create`      | Creates the 4-file spec structure (description, analysis, solution, status) for a JIRA issue or TODO plan |
+| `/aide-analyze`     | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan |
+| `/aide-implement`   | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution |
+| `/aide-archive`     | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
+
+Supporting skills, used around that workflow rather than as a step in it:
+
+| Skill              | Does                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------|
+| `/aide-explore`     | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
+| `/aide-manifest`    | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs) |
+| `/aide-reopen`      | Takes an archived spec back into the active list for another round, keeping the description and archive trail |
+| `/aide-reset`       | Resets an invalid active spec work round, keeping its README, description, commits and job history |
+| `/aide-to-pdf`      | Generates a PDF from a spec's documentation |
 
 ---
 
@@ -148,29 +171,6 @@ All AI tools follow the same basic workflow:
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
-
----
-
-## The aide-\* skills
-
-The four spec-workflow skills, in the order a spec moves through them:
-
-| Skill              | Does                                                                                  |
-|---------------------|----------------------------------------------------------------------------------------|
-| `/aide-create`      | Creates the 4-file spec structure (description, analysis, solution, status) for a JIRA issue or TODO plan |
-| `/aide-analyze`     | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan |
-| `/aide-implement`   | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution |
-| `/aide-archive`     | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
-
-Supporting skills, used around that workflow rather than as a step in it:
-
-| Skill              | Does                                                                                  |
-|---------------------|----------------------------------------------------------------------------------------|
-| `/aide-explore`     | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
-| `/aide-manifest`    | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs) |
-| `/aide-reopen`      | Takes an archived spec back into the active list for another round, keeping the description and archive trail |
-| `/aide-reset`       | Resets an invalid active spec work round, keeping its README, description, commits and job history |
-| `/aide-to-pdf`      | Generates a PDF from a spec's documentation |
 
 ---
 
