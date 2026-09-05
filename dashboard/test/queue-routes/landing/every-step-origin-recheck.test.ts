@@ -138,7 +138,10 @@ describe("an archive landing asks origin whether anything stayed open", () => {
 
   // Criterion 10. `complete()` may already have queued the job's NEXT
   // step by the time the landing's promise settles, and a landing
-  // must not overwrite a job that has moved on.
+  // must not overwrite a job that has moved on. `error`/`errorReason`
+  // say what the row is waiting for RIGHT NOW — queued for implement,
+  // not the analyze landing's bygone refusal — so only `landingError`,
+  // the permanent record of that attempt, survives onto it (spec 393).
   test("a failed landing does not overwrite a job whose next step is queued", async () => {
     const dir = own("aide-193-moved-on-");
     const paths = repos(dir);
@@ -156,12 +159,14 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       join(resultDir(dir), `${made.job.id}.json`),
       JSON.stringify(result(onlyTheSpecsRepo(paths))),
     );
-    const after = await settle(base, made.job.id, (j) => !!j.error || j.state === "failed");
+    const after = await settle(base, made.job.id, (j) => !!j.landingError || j.state === "failed");
 
-    // Queued for implement, with the analyze landing's refusal on the
-    // row beside it — not stranded as a failed job.
+    // Queued for implement, with nothing holding it back — the
+    // analyze landing's refusal is a closed record, not a current
+    // wait, and it does not block implement from starting.
     expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain(paths.specs);
+    expect(sentence(after.error)).toBe("");
+    expect(sentence(after.landingError)).toContain(paths.specs);
   }, 20000);
 
   // Criterion 8. The way out. A re-run of `archive` needs no new step:

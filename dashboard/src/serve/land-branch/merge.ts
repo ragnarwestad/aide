@@ -375,7 +375,15 @@ export async function landBranch(
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
-      if (!result.ok) ctx.queue.update(job.id, patch);
+      // The runner may already have queued this job's next step, or
+      // held it for a reason of its own, in the gap between this
+      // step's own completion and this landing settling
+      // (job-states.md, "Done to failed"). `error`/`errorReason`/
+      // `stopReason` say what the row is waiting for RIGHT NOW, and a
+      // job that has moved on is waiting for something else — only
+      // `landingError`, the permanent record of this attempt,
+      // survives onto it (spec 393).
+      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError });
       return;
     }
     // Landed. The branch is on the default branch now, so the job stops
@@ -452,7 +460,9 @@ export async function landBranch(
       landingError: firstLandingError(note),
     };
     const result = ctx.queue.transition(job.id, "landing-failed", patch);
-    if (!result.ok) ctx.queue.update(job.id, patch);
+    // Same reasoning as the ordinary failure branch above (spec 393):
+    // a job that has moved on keeps only the permanent record.
+    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError });
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.
