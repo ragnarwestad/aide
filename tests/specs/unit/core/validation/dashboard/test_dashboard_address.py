@@ -27,10 +27,12 @@ ADDRESS_FILES = (
     "implementations/claude-code/install.sh",
 )
 
-# The three that carry a worked example of the address must show the
-# HTTPS placeholder form. ROADMAP.md narrates the work instead.
+# The ones that carry a worked example of the address must show the
+# HTTPS placeholder form. ROADMAP.md narrates the work instead, and
+# dashboard/README.md now links to `docs/deploying.md` for the address
+# rather than writing one out — so it has no example to be wrong about,
+# while the plain-HTTP rule above still holds it to never gaining one.
 EXAMPLE_FILES = (
-    "dashboard/README.md",
     "dashboard/docs/deploying.md",
     ".aide/project.yaml",
     "implementations/claude-code/install.sh",

@@ -63,6 +63,18 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     return { hook, count: () => fired };
   }
 
+  /** Samples `check()` every `stepMs`, across a bounded `totalMs`
+   *  window, instead of sleeping once and asserting once — so a
+   *  regression that fires early is caught the moment a sample sees
+   *  it, not only if it happens to land on one single, fixed-delay
+   *  sample racing the same event loop's other pending timers. */
+  async function assertHoldsFor(totalMs: number, stepMs: number, check: () => void): Promise<void> {
+    for (let waited = 0; waited < totalMs; waited += stepMs) {
+      await new Promise((r) => setTimeout(r, stepMs));
+      check();
+    }
+  }
+
   test("does not fire while a DIFFERENT root is still busy (criterion 1)", async () => {
     const lock = createRootLock();
     let release = (): void => {};
@@ -71,8 +83,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     const { hook, count } = restartSpy();
 
     const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
-    await new Promise((r) => setTimeout(r, 30));
-    expect(count()).toBe(0);
+    await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
 
     release();
     await held;
@@ -101,8 +112,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     const { hook, count } = restartSpy();
 
     const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
-    await new Promise((r) => setTimeout(r, 30));
-    expect(count()).toBe(0);
+    await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
 
     release();
     await held;
@@ -127,8 +137,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
       queue: { list: () => jobs },
       exceptJobId: "landing-job",
     });
-    await new Promise((r) => setTimeout(r, 30));
-    expect(count()).toBe(0);
+    await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
 
     jobs[1]!.state = "done";
     await waiting;
