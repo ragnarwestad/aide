@@ -160,7 +160,9 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       jobs: { state: string; error?: unknown }[];
     };
     expect(listed.jobs[0].state).toBe("queued");
-    expect(sentence(listed.jobs[0].error)).toContain("80-dependency");
+    // The number, not the folder: the row names the folder a line
+    // above this message, and the sentence says it short.
+    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
   });
 
   test("only the specs root is ever asked — the project root plays no part in this question", async () => {
@@ -308,7 +310,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // The ordinary queued badge, with the reason underneath it — no
     // seventh badge variant and no new job state were introduced.
     expect(html).toContain('badge b-idle">queued');
-    expect(html).toContain("held back: depends on 80-dependency, which is not archived yet");
+    expect(html).toContain("held back: depends on 80, which is not archived yet");
   });
 
   test("cancelling a parked job cancels it like any other queued job", async () => {

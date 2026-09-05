@@ -154,10 +154,4 @@ export const refusalFor = (g: SpecGroup, opts: QueuePageOptions): string | undef
 // "an id that names a spec" stays the one convention it already is.
 export const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
-/** The leading number of a spec folder — `92-a-spec-can-depend` is 92.
- *  A value that does not open with one is shown whole: a dependency may
- *  be written as a bare number already, and anything else is better
- *  said in full than silently truncated. */
-export function specNumber(folder: string): string {
-  return /^\d+(?=-|$)/.exec(folder)?.[0] ?? folder;
-}
+export { specNumber } from "../../../project/spec-folder.ts";
