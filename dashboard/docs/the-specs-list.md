@@ -58,7 +58,8 @@ that reads as unfinished is visible and is fixed by running the step, where a si
 The State column answers what a reader came to find out, and its FIRST line is one of two things, always: the
 verb for what is happening — "analyzing", "implementing", "implementing 7/11" — or, once nothing is running, the
 resting state and what can happen next —
-"ready for implement", "archive held back — the Slack webhook", "done — nothing waiting on you". The bare words
+"ready for implement", "implementing held back", "archive held back — the Slack webhook", "done — nothing
+waiting on you". The bare words
 "done" and "queued" are neither, and neither appears alone: "done" says nothing about WHAT was done, and "queued"
 nothing about which step is waiting, while both facts are known.
 
@@ -253,6 +254,9 @@ commit whose push fails is reset away, because an unpushed commit in the one sha
 fast-forward for every project in it. Both refuse an ARCHIVED spec, whose files are history — server-side, not by
 hiding a control. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
 — and its own cap is 64 KiB.
+
+The two routes these replaced, `GET /specs/<project>/<spec>/edit` and `POST .../status/tick`, answer 404: a retired
+route is removed, not redirected.
 
 ## What the script adds
 

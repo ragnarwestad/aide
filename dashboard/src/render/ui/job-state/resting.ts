@@ -97,6 +97,12 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   if (r.landing) return badge("running", gerund(lang, landingStep(r)));
   if (r.state === "queued") {
     const step = currentStep(r);
+    // Held back (spec 396): not competing for a slot, so no number
+    // claims it is next in line for one — the row's own panel
+    // (specNotice) already says the actual reason underneath.
+    if (r.errorReason === "held-back") {
+      return badge("waiting", t(lang, "list.stateHeldBack", { step: gerund(lang, step) }));
+    }
     const pos = r.queuePosition;
     return badge(
       "idle",

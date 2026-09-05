@@ -87,11 +87,19 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
 }
 
 /** REQ-4/REQ-6: the same `queuePriorityOrder()` `Runner.tick()` calls,
- *  applied to every currently `queued` job, oldest-first as `list()`
- *  gives every other reader of the store. */
-function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } {
+ *  applied to every currently `queued` job that is actually waiting for
+ *  a slot, oldest-first as `list()` gives every other reader of the
+ *  store. A job the runner is holding back for another reason
+ *  (`errorReason === "held-back"`, set by `Runner.hold()`) is excluded
+ *  from both the count and its own place (spec 396) — it is not
+ *  competing for a slot at all. */
+function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } | undefined {
+  // Not competing for a slot: it stays where it is even if the queue
+  // were empty, so it gets no place, and it does not count toward
+  // anyone else's total either.
+  if (job.errorReason === "held-back") return undefined;
   const queued = queuePriorityOrder(
-    [...queue.list()].reverse().filter((j) => j.state === "queued"),
+    [...queue.list()].reverse().filter((j) => j.state === "queued" && j.errorReason !== "held-back"),
   );
   return { n: queued.findIndex((j) => j.id === job.id) + 1, total: queued.length };
 }
