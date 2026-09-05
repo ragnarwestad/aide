@@ -14,7 +14,7 @@ describe("parseManifest on the real manifests", () => {
     const result = parseManifest(fixture("paceup.yaml"));
     if (!result.ok) throw new Error(result.error);
     expect(result.data.name).toBe("paceup");
-    expect(result.data.deployment?.url).toBe("https://ragnarwestad.github.io/paceup/");
+    expect(result.data.deployment?.url).toBe("https://example.github.io/paceup/");
     expect(result.data.statistics).toEqual(["https://paceup.goatcounter.com"]);
     // list stays a list
     expect(result.data.logging?.where).toHaveLength(3);

@@ -32,10 +32,10 @@ def origin(workspace, tmp_path):
     specs_bare = tmp_path / "specs-origin.git"
     for bare in (project_bare, specs_bare):
         subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
-    git(workspace["project"], "remote", "add", "origin", "git@github.com:ragnarwestad/aide.git")
+    git(workspace["project"], "remote", "add", "origin", "git@github.com:example/aide.git")
     git(workspace["project"], "remote", "set-url", "--push", "origin", str(project_bare))
     git(workspace["project"], "push", "-q", "origin", "main")
-    git(workspace["specs"], "remote", "add", "origin", "git@github.com:ragnarwestad/aide-specs.git")
+    git(workspace["specs"], "remote", "add", "origin", "git@github.com:example/aide-specs.git")
     git(workspace["specs"], "remote", "set-url", "--push", "origin", str(specs_bare))
     git(workspace["specs"], "push", "-q", "origin", "main")
     return {"project": project_bare, "specs": specs_bare}
@@ -46,7 +46,7 @@ def fake_gh(tmp_path):
     """Factory for a stand-in `gh`. Records argv, then behaves as asked."""
     calls = tmp_path / "gh-calls.txt"
 
-    def make(body: str = 'echo "https://github.com/ragnarwestad/aide/pull/7"'):
+    def make(body: str = 'echo "https://github.com/example/aide/pull/7"'):
         path = tmp_path / "fake-gh"
         path.write_text("#!/usr/bin/env bash\n" f'printf "%s\\n" "$*" >> {calls}\n' f"{body}\n")
         path.chmod(0o755)

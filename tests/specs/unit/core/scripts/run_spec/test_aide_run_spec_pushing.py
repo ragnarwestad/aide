@@ -51,7 +51,7 @@ def test_push_branch_publishes_the_branch_and_links_to_the_diff(
     assert branch in git(origin["project"], "branch", "--list", branch)
     assert not fake_gh.calls.exists(), "gh is only for `pr`"
     # The compare page is the diff view a reviewer opens on a phone.
-    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+    assert out["branchUrl"] == f"https://github.com/example/aide/compare/main...{branch}"
 
 def test_push_branch_puts_the_spec_work_on_the_branch_too(runner, workspace, fake_claude, origin):
     """The whole point of `branch` is that unattended work lands
@@ -96,7 +96,7 @@ def test_the_link_points_at_the_repo_that_actually_changed(runner, workspace, fa
     rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
-    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide-specs/compare/main...{branch}"
+    assert out["branchUrl"] == f"https://github.com/example/aide-specs/compare/main...{branch}"
 
 def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_claude, origin):
     """Both changed, so both are reviewable. `branchUrl` stays the
@@ -105,11 +105,11 @@ def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_
     rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
-    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+    assert out["branchUrl"] == f"https://github.com/example/aide/compare/main...{branch}"
     urls = {e["url"] for e in out["branchUrls"]}
     assert urls == {
-        f"https://github.com/ragnarwestad/aide/compare/main...{branch}",
-        f"https://github.com/ragnarwestad/aide-specs/compare/main...{branch}",
+        f"https://github.com/example/aide/compare/main...{branch}",
+        f"https://github.com/example/aide-specs/compare/main...{branch}",
     }
 
 def test_a_repo_with_no_web_link_is_still_a_repo_the_dashboard_can_land(
@@ -144,7 +144,7 @@ def test_push_pr_opens_a_pull_request_and_reports_its_url(
     called = fake_gh.calls.read_text()
     assert "pr create" in called
     assert branch in called
-    assert out["prUrl"] == "https://github.com/ragnarwestad/aide/pull/7"
+    assert out["prUrl"] == "https://github.com/example/aide/pull/7"
     assert out.get("prError") is None
 
 def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin, command="implement"):
@@ -292,7 +292,7 @@ def test_a_repo_the_step_committed_itself_gets_its_compare_link(
     rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude, workspace), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
-    url = f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+    url = f"https://github.com/example/aide/compare/main...{branch}"
     assert url in {e["url"] for e in out["branchUrls"]}
     assert out["branchUrl"] == url
 

@@ -15,7 +15,7 @@ dependencies:
 deployment:
   host: GitHub Pages
   command: automatisk ved push til master (.github/workflows/deploy.yml)
-  url: https://ragnarwestad.github.io/paceup/
+  url: https://example.github.io/paceup/
   note: migrasjoner og Edge Functions rulles ut for hånd, ikke av arbeidsflyten
 logging:
   where:

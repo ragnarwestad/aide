@@ -1,6 +1,7 @@
 {
   "name": "aide-dashboard",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@toast-ui/editor": "3.2.2",

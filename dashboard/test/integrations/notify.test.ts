@@ -15,7 +15,7 @@ const EVENT: NotifyEvent = {
   step: "analyze",
   jobId: "job-1",
   costUsd: 2.1,
-  branchUrl: "https://github.com/ragnarwestad/aide/compare/main...aide/81-queue-and-runner",
+  branchUrl: "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
   at: "2026-08-16T22:00:00Z",
 };
 
