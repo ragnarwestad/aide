@@ -34,8 +34,13 @@
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
   --speclist-width: 63rem; }
+/* The same width as the table it scrolls, for the same reason the
+   search line above it takes it: the scrollbar belongs against the
+   list. Left at full width, the box goes on spanning the frame while
+   the table inside it stops at `--speclist-width`, and the bar sits
+   out at the window's edge with empty page between. */
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  padding-bottom: var(--sp-3); }
+  max-width: var(--speclist-width); padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }
 /* REQ-3 (spec 379): only the specs list stops stretching to the frame.
