@@ -100,6 +100,10 @@ order, stopping at the first that applies:
 The first four outcomes short of `archived` end the step without a model run. `conflict-open` and `archived` spawn
 one, for the conflict and for the documentation feedback respectively.
 
+`acceptance-criteria-unticked` never applies to a run started with the "acceptance ticking not required" switch: its
+`4-status.md` carries a one-line note under `## Acceptance criteria` instead of a row, and a section with no row is
+not one this gate can find open.
+
 **`archive`'s landing** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
 asks origin whether `aide/<folder>` is still there. A root that still holds it is a landing that did not finish: the
 job goes `failed` with `errorReason: "unlanded"`, and the spec keeps a row on the default view wearing "not landed"

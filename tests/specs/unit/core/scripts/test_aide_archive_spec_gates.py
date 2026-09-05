@@ -95,6 +95,29 @@ def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
     assert out["terminalReason"] == "archived", out
 
 
+def test_a_one_line_acceptance_note_does_not_block_archive(script, project, specs):
+    """Spec 386/REQ-4,5,7: a run that said acceptance ticking was not
+    required writes a `## Acceptance criteria` heading followed by ONE
+    plain-prose line, never a `| REQ-n | Status | Notes |`-shaped row.
+    The gate's own total is read off the table rows it finds — none
+    here — so a spec left this way archives exactly as one with no
+    section at all does."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"])
+        + "\n".join([
+            "## Acceptance criteria", "",
+            "Acceptance ticking was not required for this run.", "", "---", "",
+        ]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
 def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project, specs):
     """REQ-5: the tab that carries this checklist is called Checks
     (spec 294 renamed it from Overview) — the note must send the reader

@@ -69,7 +69,9 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
 - Leaves an `archive` job `queued` the same way — "held back: the Acceptance criteria are not all ticked yet — tick
   them on the Checks tab" — while its spec's state file has an acceptance row nobody has ticked; the tick that
   closes the last row is what releases it. A chained analyze/implement/archive job waits here between implement
-  and archive instead of ending with archive refused.
+  and archive instead of ending with archive refused. Never triggered for a spec whose `analyze` ran with the
+  "acceptance ticking not required" switch: its state file carries a one-line note instead of a row, and there is
+  no open row to hold the job back for.
 - Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
   in flight. A cheaper job behind it may take the slot.
 - Moves a job to `stopped` (`stopReason: "job-cap"`) when its NEXT step's budget would exceed the job cap. The cap is
