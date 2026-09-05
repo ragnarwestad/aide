@@ -7,7 +7,7 @@
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
 
-import { rowMessage, stepLabel } from "../../ui/components.ts";
+import { rowMessageParts, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { specNotice, wordPhase } from "../../ui/job-state.ts";
 import type { Language } from "../../../i18n";
@@ -58,6 +58,6 @@ export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: nu
   const title = notice.title ? ` title="${esc(notice.title)}"` : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}"${title}>` +
-    `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text, { hook: notice.hook })}</td></tr>`
+    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, notice.parts ?? [{ text: notice.text }], { hook: notice.hook })}</td></tr>`
   );
 }

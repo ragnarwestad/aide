@@ -13,7 +13,6 @@ import {
   costCell,
   createdCell,
   phasePips,
-  pullRequestMark,
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl, stateAction } from "./row-controls.ts";
@@ -110,19 +109,14 @@ export function specHeadRow(
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
       `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`
     : `<span class="label">${esc(g.title ?? g.specFolder)}</span>`;
-  // The one extra STATE this row can be in beyond its running/resting
-  // word: code on a branch with a pull request describing it (REQ-1,
-  // spec 339) — drawn in the State column below, never beside the name
-  // (spec 335). Every other mark a row can carry is an ERROR, not a
-  // state, and is said on the notice line instead (`specNoticeRow`).
-  const mark = pullRequestMark(g, lang);
-  const markBadge = mark
-    ? ` ${
-        mark.href
-          ? `<a href="${esc(mark.href)}">${badge(mark.variant, mark.label, mark.title)}</a>`
-          : badge(mark.variant, mark.label, mark.title)
-      }`
-    : "";
+  // A pull request open for this row's branch is a fact about the work,
+  // not a second state the spec is IN (REQ-1, spec 403 — reversing spec
+  // 339's own REQ-1, which put it here): it is true for the whole window
+  // from implement opening one to the branch finally landing, so it says
+  // nothing about which of the states the spec passes through in between
+  // it sits beside. It is said on the notice line instead, ranked among
+  // this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
+  // cell-helpers.ts).
   // The whole workflow in six millimetres, on the line you are already
   // reading — shared with the spec page's Overview tab since spec 239.
   const progress = phasePips(g.phases, g.done);
@@ -203,7 +197,7 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="row"><span class="badgeslot">${stateBadge}${markBadge}` +
+    `<td><span class="row"><span class="badgeslot">${stateBadge}` +
     `</span><span class="actionslot">${stateAction(
       g,
       opts,

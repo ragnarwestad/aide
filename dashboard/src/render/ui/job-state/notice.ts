@@ -35,6 +35,14 @@ export interface RowNotice {
    *  or more parts leaves no single sentence the detail could belong
    *  to, so it is dropped rather than misattributed. */
   title?: string;
+  /** Each mark's own sentence with its own link, when it has one — set
+   *  only when this notice came from more than one ranked mark
+   *  (`errorMarkNotices`/`archivedRowNotices`). Unlike `title`, a link
+   *  lives INSIDE the text rather than as one attribute on the whole
+   *  row, so it does not have `title`'s "only when parts.length===1"
+   *  problem: each mark keeps its own link regardless of how many
+   *  others are joined beside it with " · " (REQ-2, spec 403). */
+  parts?: { text: string; href?: string }[];
 }
 
 /** Which of the four applies, if any. The order is the row's own: the
@@ -100,18 +108,20 @@ export function specNotice(
   /** A phase's own qualifier, worded with that phase's name by the
    *  caller — this file knows nothing about a spec's phase list. */
   disagreement?: string,
-  /** The row's own error marks, ranked highest-first (REQ-2/REQ-4,
-   *  `errorMarkNotices`/`archivedRowNotices`, cell-helpers.ts) — never
-   *  "pull request", which stays a State-column badge (`pullRequestMark`,
-   *  REQ-1). Folded in at the same priority `lead.error` already holds,
-   *  and for the same reason: both say why the row is not moving, so
-   *  neither waits for "nothing in flight" (spec 327's own row already
-   *  shows `landingError` while a later step runs). */
-  marks: { variant: MessageVariant; text: string }[] = [],
+  /** The row's own marks, ranked highest-first (REQ-2/REQ-4,
+   *  `errorMarkNotices`/`archivedRowNotices`, cell-helpers.ts) — a pull
+   *  request open for the branch is one of them now (REQ-1/REQ-2, spec
+   *  403, reversing spec 339's REQ-1, which kept it out of here as a
+   *  State-column badge instead). Folded in at the same priority
+   *  `lead.error` already holds, and for the same reason: both say why
+   *  the row is not moving, so neither waits for "nothing in flight"
+   *  (spec 327's own row already shows `landingError` while a later step
+   *  runs). */
+  marks: { variant: MessageVariant; text: string; href?: string }[] = [],
   lang: Language = "en",
 ): RowNotice | undefined {
   if (refusal) return { variant: "failed", text: refusal, hook: "refused" };
-  const parts: { variant: MessageVariant; text: string; title?: string }[] = [];
+  const parts: { variant: MessageVariant; text: string; title?: string; href?: string }[] = [];
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.
@@ -155,6 +165,7 @@ export function specNotice(
       variant: parts[0]!.variant,
       text: parts.map((p) => p.text).join(" · "),
       title: parts.length === 1 ? parts[0]!.title : undefined,
+      parts: parts.map((p) => ({ text: p.text, href: p.href })),
     };
   }
   if (lead && inFlight(lead)) return undefined;
