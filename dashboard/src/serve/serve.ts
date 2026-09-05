@@ -44,7 +44,7 @@ import {
 } from "./spec-views.ts";
 import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
-import { createServerState } from "./state.ts";
+import { createServerState, setPendingRestart } from "./state.ts";
 import { setupWatch } from "./setup-watch.ts";
 import { setupProjectResolution } from "./setup-project-resolution.ts";
 import { setupSchedules } from "./setup-schedules.ts";
@@ -387,6 +387,8 @@ export function createServer(opts: ServerOptions) {
     specPageView,
     jobDetailView,
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
+    readPendingRestart: () => state.pendingRestart,
+    setPendingRestart: (jobs) => setPendingRestart(state, jobs),
     pdfCacheDir,
     pdfGeneratorBin,
     pdfToolAvailable,

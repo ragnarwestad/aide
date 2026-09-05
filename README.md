@@ -1,14 +1,15 @@
-# aide
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="aide" height="40"></picture>
 
-A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot and Codex.
+A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, GitHub Copilot and Codex.
 
 ## Table of contents
 
-- [Vision](#vision)
+- [What it is](#what-it-is)
+- [The aide-* skills](#the-aide--skills)
 - [For end users](#for-end-users)
 - [For aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
-  - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
+  - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
   - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
@@ -18,32 +19,67 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
 
 ---
 
-## Vision
+## What it is
 
-This workspace enables a workflow where **any AI assistant** can:
+An AI assistant is powerful but unpredictable when the requirements for a
+change live only in a chat history: the reasoning behind a decision
+disappears with the conversation, the next session starts from zero, and
+nobody else can review what was actually agreed before the code was
+written.
+
+aide's answer is spec-driven development: before any AI assistant writes
+code, it writes a specification — four plain-Markdown files
+(description, analysis, solution, status) that a person and any AI tool
+can read, review and continue identically, committed to git alongside
+the code it describes. That structure is what lets **any AI assistant**:
 
 - Understand complex JIRA issues and analyze the codebase automatically
-- Suggest concrete solutions with file references and line numbers
+- Suggest concrete solutions with file references and line numbers,
+  reviewable as a diff before a line of code changes
 - Implement changes using Test-Driven Development (TDD)
-- Follow established plans for technical debt and modernization
+- Follow established plans for technical debt and modernization that
+  span many sessions, not one prompt
 
-**Key benefit:** Not locked to a single AI vendor - teams can pick the best tool for each task.
+**Key benefit:** Not locked to a single AI vendor - teams can pick the
+best tool for each task, and the spec is what carries the work between
+them.
+
+---
+
+## The aide-\* skills
+
+The four spec-workflow skills, in the order a spec moves through them:
+
+| Skill              | Does                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------|
+| `/aide-create`      | Creates the 4-file spec structure (description, analysis, solution, status) for a JIRA issue or TODO plan |
+| `/aide-analyze`     | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan |
+| `/aide-implement`   | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution |
+| `/aide-archive`     | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
+
+Supporting skills, used around that workflow rather than as a step in it:
+
+| Skill              | Does                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------|
+| `/aide-explore`     | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
+| `/aide-manifest`    | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs) |
+| `/aide-reopen`      | Takes an archived spec back into the active list for another round, keeping the description and archive trail |
+| `/aide-reset`       | Resets an invalid active spec work round, keeping its README, description, commits and job history |
+| `/aide-to-pdf`      | Generates a PDF from a spec's documentation |
 
 ---
 
 ## For end users
 
-> **You do not need to clone this repo to use aide.**
+Clone the repo, then run the installer for your AI tool:
 
-Download the ready-made package for your AI tool:
+| AI tool        | Install                          | Documentation                                        |
+|----------------|-----------------------------------|------------------------------------------------------|
+| Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
+| GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
+| Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 
-| AI tool        | Package                     | Documentation                                        |
-|----------------|-----------------------------|------------------------------------------------------|
-| Claude Code    | `dist/aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
-| GitHub Copilot | `dist/aide-copilot.zip`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
-| Codex          | `dist/aide-codex.zip`       | [README.md](implementations/codex/README.md)         |
-
-Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
+`./install-all.sh` runs all three at once. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally so any project can use them.
 
 > **Windows users:** The scripts require WSL or Git Bash. See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
 
@@ -67,9 +103,11 @@ The workspace is designed to handle **cross-cutting issues** where a single JIRA
 
 ## Environment variables
 
-### AIDE_INSTALLATION_PATH (required for dist packages)
+### AIDE_INSTALLATION_PATH (optional)
 
-Path to where aide is installed.
+Path to where aide is checked out. Only a few scripts read it
+(`core/scripts/validate-env`, the uninstallers) — most of the install
+scripts find their own location instead.
 
 ```bash
 export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
@@ -128,7 +166,8 @@ All AI tools follow the same basic workflow:
 ```bash
 /aide-create PROJ-7890    # Create document structure
 /aide-analyze PROJ-7890   # Analyze codebase
-/aide-implement PROJ-7890        # Implement with TDD
+/aide-implement PROJ-7890 # Implement with TDD
+/aide-archive PROJ-7890   # Archive, feed knowledge back into the docs
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.

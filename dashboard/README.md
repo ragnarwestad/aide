@@ -1,4 +1,4 @@
-# aide-dashboard
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-board-wordmark-dark.svg"><img src="docs/assets/aide-board-wordmark-light.svg" alt="aide -board" height="40"></picture>
 
 ## Table of contents
 
@@ -48,6 +48,10 @@ Pages:
 - `/settings` — the default AI and model per step.
 - `/specs/<project>/<spec>` — the whole spec in seven tabs; see [The spec page](docs/the-specs-list.md#the-spec-page).
 - `/specs/<id>` — one job, in full. Nothing links here any more; the route stays because an old link is a promise.
+- `/schedule` — every allowed project's schedule entries, flattened into one list; `?q=`, `?sort=` and `?dir=` filter
+  and sort it. `/schedule/new` makes an entry; `/schedule/<project>/<name>` is one entry's own page (Overview/History
+  tabs); `/schedule/<project>/<name>/delete` is its delete confirmation. `/schedule-output/<project>/<key>/...` serves
+  a run's recorded output as static files.
 - `/<slug>.html` — one generated page per project (slug = lowercased name, non-alphanumerics → hyphens; collisions get
   `-2`, `-3`, …; `index`, `about` and `projects` are reserved). It is what a site published by
   `deploy/rsync-publish.sh`, with no server behind it, still shows; a live server's nav links `/projects/<name>` instead.
@@ -64,11 +68,16 @@ Queue API (`/api/queue*`):
 - `POST /api/queue/settings` — save the per-step defaults.
 - `POST /api/queue/projects` and `POST /api/queue/projects/<name>/remove` — the Projects panel's two actions.
 - `GET /api/queue/events` — `text/event-stream`; a bare `changed` event whenever something moved.
+- `POST /api/queue/schedule` — create an entry; `POST /api/queue/schedule/<project>/<name>` edits one;
+  `POST .../enabled`, `.../run` and `.../delete` toggle, fire now, and remove one. `GET /api/queue/schedule/cron-next`
+  previews a cron expression's next fire time, for the form.
 
 Live runs:
 
 - `GET /api/aide-runs` — aide runs in flight, as JSON; `POST /api/aide-run` receives one event. No page renders them:
   the spec list shows every queued run per row, and interactive sessions are claude-usage's own page.
+- `GET /api/version` — the commit SHA this process booted with, read once at start and never refreshed; unauthenticated
+  so a restart check nobody set up a token for can still reach it.
 
 Redirects and retired routes:
 

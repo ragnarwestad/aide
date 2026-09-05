@@ -214,6 +214,16 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
       // fired straight away hit the gap and the page read "the request
       // failed" for a deploy that had succeeded (2026-09-03): say what
       // is happening, wait for the service, then reload.
+      //
+      // A restart held back by running jobs (spec 385) never fires
+      // within this request, so there is nothing to wait for: the page
+      // reloads straight away, onto the Deploy tab's own "waiting"
+      // sentence.
+      if (answer?.restartWaiting?.length) {
+        formNote(form, `deployed — the restart is waiting for running jobs: ${answer.restartWaiting.join(", ")}`);
+        location.reload();
+        return;
+      }
       if (answer?.restarting) {
         formNote(form, "deployed — the dashboard is restarting; this page reloads when it is back");
         await waitForServer();

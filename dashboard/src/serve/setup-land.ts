@@ -33,7 +33,7 @@ import {
   type LandContext,
   type RestartHook,
 } from "./land-branch.ts";
-import type { ServerState } from "./state.ts";
+import { setPendingRestart, type ServerState } from "./state.ts";
 import type { BoardsContext } from "./boards/lifecycle.ts";
 
 export interface LandSetupInputs {
@@ -100,6 +100,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     restart: inputs.restart,
     restartPollMs: inputs.restartPollMs,
     restartDeferTimeoutMs: inputs.restartDeferTimeoutMs,
+    onJobsWaitChange: (jobs) => setPendingRestart(state, jobs),
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
     boards: inputs.boards,

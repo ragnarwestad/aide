@@ -172,6 +172,7 @@ export async function projectPages(
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
         serving,
+        restartWaiting: ctx.readPendingRestart()?.jobs,
         tab: url.searchParams.get("tab") ?? undefined,
       },
     );

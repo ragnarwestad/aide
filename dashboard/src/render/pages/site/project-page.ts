@@ -83,8 +83,11 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       ? `${driftPrefix(behind, drift.checkedAt, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
         (serving ? ", and restarts the service." : ".")
       : stale
-        ? `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
-          `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
+        ? opts.restartWaiting?.length
+          ? `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)} — ` +
+            `the restart is waiting for running jobs: ${opts.restartWaiting.join(", ")}.`
+          : `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
+            `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
         : serving
           ? `This checkout matches origin, and the service is running commit ${serving.sha.slice(0, 7)}.`
           : "This checkout matches origin.";

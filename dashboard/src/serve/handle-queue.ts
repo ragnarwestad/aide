@@ -111,6 +111,10 @@ export interface HandleQueueContext {
    *  stay `null` rather than "loading" until the boot-time read
    *  resolves. */
   readServing: () => { sha: string | null; repoRoot: string | null };
+  /** The Deploy tab's own pending-restart state (spec 385) — see
+   *  `state.ts`'s `pendingRestart` for what it means. */
+  readPendingRestart: () => { jobs: string[] } | null;
+  setPendingRestart: (jobs: string[]) => void;
   /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
    *  outside every checkout (REQ-4). */
   pdfCacheDir: string;
