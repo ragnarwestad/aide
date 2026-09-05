@@ -39,7 +39,15 @@ if [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; then
       git -C "$root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
       git -C "$root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
       if [ "$command_name" = "reset" ]; then
-        remote_ref="$(git -C "$root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null)" \
+        # The push above went to the PUSH url; `ls-remote origin` alone
+        # would read the FETCH url instead, which is the same host for
+        # everybody except a remote configured with a separate push url
+        # (every test fixture in this suite, to isolate pushes from the
+        # network) — resolve it explicitly so the verification checks
+        # the place the deletion actually happened.
+        push_url="$(git -C "$root" remote get-url --push origin 2>/dev/null)" \
+          || push_url="$(git -C "$root" remote get-url origin 2>/dev/null)"
+        remote_ref="$(git -C "$root" ls-remote --heads "$push_url" "refs/heads/$branch" 2>/dev/null)" \
           || refuse "cannot verify that origin/$branch was removed from $root"
         [ -z "$remote_ref" ] || refuse "cannot remove origin/$branch from $root"
       fi
