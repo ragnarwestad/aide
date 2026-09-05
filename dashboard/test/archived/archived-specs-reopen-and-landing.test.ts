@@ -74,8 +74,12 @@ describe("an archived spec whose branch is still on origin", () => {
         : gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
     const { base } = start({ gitRun: unreachable });
     // Wait for a tick to have happened at all, then ask: a page checked
-    // before the schedule ran would pass for the wrong reason.
-    await listUntil(base, "never appears", ARCHIVED_VIEW, 200);
+    // before the schedule ran would pass for the wrong reason. This was
+    // written as a poll for a string that never appears, which is a
+    // sleep wearing a poll's clothes -- said plainly now that the poll
+    // it borrowed throws when its condition never holds. It is still a
+    // guess at how long a tick takes, and the weakest wait in this file.
+    await Bun.sleep(200);
     expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 

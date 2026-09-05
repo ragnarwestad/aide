@@ -76,16 +76,34 @@ export const OPEN_81 = openQuery("aide/81-queue-and-runner");
  *  regression then reads as the assertion it broke rather than as a
  *  timeout with nothing to look at. The same idiom `projects-route.test.ts`
  *  has used for the drift poll since spec 203. */
+/** Poll the list until `ok` holds, and THROW when it never does.
+ *
+ *  It used to return the last page instead. A budget that ran out on a
+ *  loaded host then handed the caller a page that had never reached the
+ *  state it was waiting for, and the assertion after it failed on that
+ *  page — so the report named the assertion, and the wait that actually
+ *  gave up was invisible. That is what stopped a landing on 2026-09-05:
+ *  the row still carried "the files disagree with what has run" because
+ *  `dated` had never come true, and the failure read as a broken row.
+ *
+ *  `what` names the condition in that error. The budget is generous
+ *  because it costs nothing when the condition holds — the loop returns
+ *  the moment it does — and a tight one only decides how loaded a host
+ *  has to be before a passing test turns red. */
 export const listUntil = async (
   base: string,
   ok: (html: string) => boolean,
-  budgetMs = 3000,
+  budgetMs = 10_000,
+  what = "the condition it was given",
 ): Promise<string> => {
   const deadline = Date.now() + budgetMs;
   let html = "";
   for (;;) {
     html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    if (ok(html) || Date.now() > deadline) return html;
+    if (ok(html)) return html;
+    if (Date.now() > deadline) {
+      throw new Error(`the specs list never reached ${what} within ${budgetMs}ms`);
+    }
     await new Promise((r) => setTimeout(r, 25));
   }
 };
