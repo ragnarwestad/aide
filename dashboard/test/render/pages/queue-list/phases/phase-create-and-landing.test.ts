@@ -283,10 +283,11 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     );
     const line = head(html, "254-landing");
     expect(line).toContain('class="badge b-running"');
-    // The landing is what the row says, not the step's own gerund: a
-    // step that reported success is not still running, and the merge is
-    // the thing everything else in the queue is waiting for.
-    expect(line).toContain("landing create");
+    // The step's own gerund: from outside, a spec whose create branch is
+    // being merged is still creating. The merge is not a stage of its
+    // own to a reader, and naming it as one asked them to act on a
+    // division they have no move in.
+    expect(line).toContain("creating");
     expect(line).not.toContain('class="badge b-ready"');
     const cell = actionCell(controlsLine(html, "254-landing"));
     expect(cell).toContain(">Cancel</button>");
@@ -309,7 +310,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     );
     const line = head(html, "254-landing");
     expect(line).toContain('class="badge b-running"');
-    expect(line).toContain("landing analyze");
+    expect(line).toContain("analyzing");
     expect(line).not.toContain("implementing");
   });
 

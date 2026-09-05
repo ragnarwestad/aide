@@ -405,3 +405,20 @@ class TestRequirementsTracingIsDocumented:
             "'REQ-tagged criterion' — it names one row per REQ-n id instead"
         assert "REQ-n id" in skill, \
             "aide-analyze/SKILL.md's Step 8 pointer must say 'REQ-n id'"
+
+    # Spec 386
+    def test_requirements_tracing_documents_the_run_level_switch(self, workspace_root):
+        section = self._requirements_tracing(workspace_root)[
+            self._requirements_tracing(workspace_root).index("## Step 8"):
+        ]
+        assert "386" in section, \
+            "requirements-tracing.md's Step 8 must cite spec 386 for the run-level switch branch"
+        lowered = section.lower()
+        assert "one plain sentence" in lowered, \
+            "the switch branch must say the note is one plain sentence, never a table row"
+        assert "never a table row" in lowered, \
+            "the switch branch must explicitly rule out a table row"
+        assert "1-description.md" in section and "req-6" in lowered, \
+            "the switch branch must state requirements still land in 1-description.md (REQ-6)"
+        assert "req-7" in lowered and "without the switch" in lowered, \
+            "the switch branch must state a later run without the switch writes the ordinary table (REQ-7)"

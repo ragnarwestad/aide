@@ -225,6 +225,14 @@ export function parseJobRequest(
     }
   }
 
+  // Whether this run says acceptance ticking is not required (spec
+  // 386), whole-job like `modelChoice` rather than per-step like
+  // `effort` above — the same checkbox-parsing idiom
+  // `schedule-admin-routes.ts`'s Enabled toggle already uses: a request
+  // posts "1" or true, or nothing at all, and "nothing chosen" has to
+  // stay a real, reachable answer (REQ-3).
+  const acceptanceNotRequired = r.acceptanceNotRequired === "1" || r.acceptanceNotRequired === true;
+
   const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
   const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
@@ -264,6 +272,7 @@ export function parseJobRequest(
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
       effort: stepEffort,
+      ...(acceptanceNotRequired ? { acceptanceNotRequired: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,
@@ -401,6 +410,11 @@ export function parseCreateRequest(
     }
   }
 
+  // Whether this run says acceptance ticking is not required (spec
+  // 386) — the same whole-job checkbox `parseJobRequest` parses, so
+  // the New-spec page and a spec row's Run form agree on the shape.
+  const acceptanceNotRequired = r.acceptanceNotRequired === "1" || r.acceptanceNotRequired === true;
+
   return {
     ok: true,
     job: {
@@ -422,6 +436,7 @@ export function parseCreateRequest(
       // Omitted entirely when nothing was chosen: "nothing chosen means
       // no line", all the way down.
       ...(dependsOn.length ? { createDependsOn: dependsOn } : {}),
+      ...(acceptanceNotRequired ? { acceptanceNotRequired: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

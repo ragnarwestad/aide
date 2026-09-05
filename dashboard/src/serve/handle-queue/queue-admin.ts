@@ -5,6 +5,7 @@
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
+import { runningJobIds } from "../land-branch/restart.ts";
 import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
@@ -276,14 +277,18 @@ export async function handleQueueAdminRoutes(
     // restart awaited in here landed before the answer went out, and
     // the page read "the request failed" for a deploy that had
     // succeeded (2026-09-03). `restarting` tells the page to wait for
-    // the service to come back before it reloads.
-    const restarting = !!after.restart;
+    // the service to come back before it reloads; `restartWaiting`
+    // (spec 385) names the jobs holding that restart back instead, when
+    // there are any — the two never both appear.
+    const restartWaiting = after.restart ? runningJobIds(ctx.queue) : [];
+    if (restartWaiting.length > 0) ctx.setPendingRestart(restartWaiting);
+    const restarting = !!after.restart && restartWaiting.length === 0;
     let response: Response;
     if (result.installError) {
       const installErrorText = renderSentence("en", result.installError)!;
       console.error(`queue: deploy ${name} in ${root} — ${installErrorText}`);
       response = wantsJson
-        ? json({ ok: true, installError: installErrorText, restarting })
+        ? json({ ok: true, installError: installErrorText, restarting, ...(restartWaiting.length > 0 && { restartWaiting }) })
         : new Response(null, {
             status: 303,
             headers: {
@@ -292,7 +297,7 @@ export async function handleQueueAdminRoutes(
           });
     } else {
       response = wantsJson
-        ? json({ ok: true, restarting })
+        ? json({ ok: true, restarting, ...(restartWaiting.length > 0 && { restartWaiting }) })
         : new Response(null, {
             status: 303,
             headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },

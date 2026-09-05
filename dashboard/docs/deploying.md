@@ -11,6 +11,7 @@ move it to another host or run the whole thing on one machine.
 - [On a second host](#on-a-second-host)
 - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
 - [On one machine](#on-one-machine)
+- [Known gaps](#known-gaps)
 
 ---
 
@@ -189,3 +190,14 @@ tracked repo names nobody's machine, and this is where yours lives instead.
 host involved. `PORT=`
 and an optional `ROOT=` (the directory to scan for projects) are the only knobs. This is the whole thing running in one
 place.
+
+## Known gaps
+
+The Deploy button's restart is not gated on `isDashboardRoot`. The automatic per-step landing
+(`land-branch/merge.ts`) only restarts this dashboard when the landed repo IS this dashboard's own
+checkout. The Deploy button's wrapped `installAfterMerge` (`setup-land.ts`) carries no equivalent
+check: pressing Deploy on any project with an install command, on a host where this dashboard's own
+launchd job is registered, triggers the same restart wait and fire. No current page depends on this
+being scoped further, since the Deploy tab's own `serving` comparison only ever exists for the
+dashboard's own project — but a future project added to the dashboard whose install is slow or
+disruptive would restart the dashboard itself as a side effect of deploying something unrelated.

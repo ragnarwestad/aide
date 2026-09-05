@@ -6,13 +6,13 @@
 // are unchanged and keep their names.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 
-import { AUTH, createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult } from "./every-step-lands-fixtures.ts";
+import { AUTH, createOwnDirs, gitFor, repos, installs, runStep, serverWith, settle, merges, stepWithResult } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -198,6 +198,77 @@ describe("a landing that installs and asks for a restart", () => {
     for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
     expect(fired).toBe(1);
     expect(firedAt).toBeGreaterThanOrEqual(answeredAt);
+  });
+
+  // Spec 385 (REQ-1, REQ-2, REQ-3): a Deploy press whose install succeeds
+  // while another job is running must not claim the dashboard is
+  // restarting — it names the job the restart is waiting for instead,
+  // both in the press's own answer and, for as long as the wait lasts,
+  // on the project's own Deploy tab.
+  test("Deploy waits for a running job, says so in its answer and on the tab (REQ-1, REQ-2, REQ-3)", async () => {
+    const dir = own("aide-deploy-waiting-");
+    const paths = repos(dir);
+    const goFile = join(dir, "go");
+    const fakeRunner = join(dir, "fake-run-spec");
+    writeFileSync(fakeRunner, `#!/bin/sh\nwhile [ ! -f ${goFile} ]; do sleep 0.05; done\n`, { mode: 0o755 });
+    let headCalls = 0;
+    const inner = gitFor();
+    const git = {
+      calls: inner.calls,
+      run: async (d: string, args: string[]) => {
+        const a = args.join(" ");
+        if (a === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: "master\n" };
+        if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${paths.project}\n` };
+        if (a === "rev-parse HEAD") {
+          headCalls += 1;
+          return { code: 0, stdout: `${headCalls === 1 ? "abc1234deadbeef" : "9999999cafefeed"}\n` };
+        }
+        // Level with origin: the deploy tab's "stale" sentence (the one
+        // REQ-3 changes) is only reached once `behind` is a real 0, not
+        // the unanswerable-null gitFor()'s own fallback would otherwise
+        // leave it at.
+        if (a.startsWith("rev-list --count")) return { code: 0, stdout: "0\n" };
+        return inner.run(d, args);
+      },
+    };
+    let fired = 0;
+    const { base } = serverWithHarness(dir, paths, git, {
+      dashboardRoot: paths.project,
+      queueRunnerBin: fakeRunner,
+      restart: {
+        registered: async () => true,
+        fire: () => {
+          fired += 1;
+        },
+      },
+    });
+    installs(paths.project);
+
+    try {
+      const job = await runStep(base, "analyze");
+      await settle(base, job.id, (j) => j.state === "running");
+
+      const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { ok: boolean; restarting?: boolean; restartWaiting?: string[] };
+      expect(body.ok).toBe(true);
+      expect(body.restarting).toBe(false);
+      expect(body.restartWaiting).toEqual([job.id.slice(0, 8)]);
+      // The restart hook never fires within this test's own window — the
+      // wait is bounded by RESTART_JOBS_DEFER_MS (two hours) by default.
+      expect(fired).toBe(0);
+
+      const deadline = Date.now() + 2000;
+      let html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
+      while (!html.includes("the restart is waiting for running jobs") && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+        html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
+      }
+      expect(html).toContain(`the restart is waiting for running jobs: ${job.id.slice(0, 8)}`);
+      expect(html).not.toContain("Deploy restarts it on commit");
+    } finally {
+      writeFileSync(goFile, "");
+    }
   });
 
   test("a landing into a project that is not the dashboard's own never restarts it", async () => {

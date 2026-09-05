@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
-import { installAfterMerge, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch.ts";
+import { installAfterMerge, restartAfterLanding, runningJobIds, type LandContext, type RestartHook } from "../../../src/serve/land-branch.ts";
 import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
 
 /** The message a landing carries, as text: since spec 380 it is
@@ -295,6 +295,99 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(result.installError).toBeUndefined();
     expect(wantsRestart).toBe(true);
     expect(count()).toBe(0);
+  });
+});
+
+// Spec 385: nothing before this told anything outside `restartAfterLanding`
+// itself when a wait started, changed, or ended — the Deploy tab had no
+// signal to draw a "waiting" sentence from. `onJobsWaitChange` is that
+// signal, and `runningJobIds` is the check both this loop and the deploy
+// route need to make independently, without disagreeing on what a
+// running-job list means.
+describe("runningJobIds (spec 385)", () => {
+  test("lists running jobs' short ids, excluding the one named", () => {
+    const queue = {
+      list: () => [
+        { id: "abcdef12-full", state: "running" },
+        { id: "landing-job", state: "running" },
+        { id: "done-job", state: "done" },
+      ],
+    };
+    expect(runningJobIds(queue, "landing-job")).toEqual(["abcdef12"]);
+  });
+
+  test("with no exceptJobId, every running job counts", () => {
+    const queue = { list: () => [{ id: "job-one", state: "running" }, { id: "job-two", state: "queued" }] };
+    expect(runningJobIds(queue)).toEqual(["job-one"]);
+  });
+
+  test("no queue at all is no running jobs", () => {
+    expect(runningJobIds(undefined)).toEqual([]);
+  });
+});
+
+describe("onJobsWaitChange (spec 385)", () => {
+  function restartSpy(registered = true) {
+    let fired = 0;
+    const hook: RestartHook = {
+      registered: async () => registered,
+      fire: () => {
+        fired += 1;
+      },
+    };
+    return { hook, count: () => fired };
+  }
+
+  test("called with the running snapshot the moment a wait starts, and again with [] once it clears", async () => {
+    const jobs = [
+      { id: "landing-job", state: "running" },
+      { id: "other-job", state: "running" },
+    ];
+    const { hook } = restartSpy();
+    const seen: string[][] = [];
+    const waiting = restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartJobsDeferMs: 500,
+      queue: { list: () => jobs },
+      exceptJobId: "landing-job",
+      onJobsWaitChange: (j) => seen.push(j),
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(seen[0]).toEqual(["other-jo"]);
+
+    jobs[1]!.state = "done";
+    await waiting;
+    expect(seen[seen.length - 1]).toEqual([]);
+  });
+
+  test("called with [] immediately when nothing is registered to restart", async () => {
+    const { hook } = restartSpy(false);
+    const seen: string[][] = [];
+    await restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      onJobsWaitChange: (j) => seen.push(j),
+    });
+    expect(seen).toEqual([[]]);
+  });
+
+  test("called with [] right before firing, once the jobs deadline is exceeded with a job still stuck", async () => {
+    const { hook, count } = restartSpy();
+    const seen: string[][] = [];
+    await restartAfterLanding({
+      mergeLock: createRootLock(),
+      restart: hook,
+      restartPollMs: 5,
+      restartJobsDeferMs: 30,
+      queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+      onJobsWaitChange: (j) => seen.push(j),
+    });
+    expect(count()).toBe(1);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen[seen.length - 1]).toEqual([]);
   });
 });
 

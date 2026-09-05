@@ -88,7 +88,13 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   // reason nothing else in the queue could start — was nowhere on the
   // page (2026-09-04). The step named is the landing's own: the step
   // just finished, never the one queued behind it.
-  if (r.landing) return badge("running", t(lang, "list.landingStep", { step: stepLabel(landingStep(r)) }));
+  // The step's own gerund, not a word for the merge: from outside, a
+  // spec whose archive branch is being merged is archiving. Splitting
+  // "the step ran" from "its branch is merging" is the machinery's own
+  // division, and a reader is asked to act on neither half. The STEP
+  // named is still the landing's own — that is what keeps the merge
+  // visible as the reason nothing else in the queue can start.
+  if (r.landing) return badge("running", gerund(lang, landingStep(r)));
   if (r.state === "queued") {
     const step = currentStep(r);
     const pos = r.queuePosition;

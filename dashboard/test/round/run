@@ -152,7 +152,7 @@ SERVER=$!
 # Removed on exit unless told to keep the board up — same shape
 # test-instance's own stop()/trap already had.
 stop() {
-  if [ "$KEEP" = yes ]; then
+  if [ "$KEEP" = yes ] && kill -0 "$SERVER" 2>/dev/null; then
     if [ -n "$BRANCH" ]; then
       echo "left running: pid $SERVER, $BASE/?token=$TOKEN — serving $BRANCH @ $COMMIT (this board's specs are the round's own fixtures, not yours), $WORK"
       # $SERVER is already bun's own pid (the subshell above execs into
@@ -181,6 +181,22 @@ trap stop EXIT
 for _ in $(seq 1 40); do curl -s -m 2 -o /dev/null "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" && break; sleep 0.5; done
 curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" | grep -q 200 \
   || { echo "the server did not come up; see $WORK/serve.log" >&2; tail -20 "$WORK/serve.log" >&2; exit 1; }
+# The check above only proves SOMETHING answers on $PORT with the round's
+# own token — the same value on purpose across every round (line ~106), so
+# an older, --keep'd board answers it just as well as the one this round
+# just started. A held port answers this instantly, before our own bun
+# process has even finished loading its module graph to reach the
+# Bun.serve() call that would throw EADDRINUSE and kill it (measured
+# ~0.8s) — so a single kill -0 right here can catch a process that is
+# about to die but has not yet. Give it a few seconds to reveal that
+# before trusting it, and refuse as soon as it does.
+alive=no
+for _ in $(seq 1 6); do
+  kill -0 "$SERVER" 2>/dev/null && alive=yes || { alive=no; break; }
+  sleep 0.5
+done
+[ "$alive" = yes ] \
+  || { echo "port $PORT is already held by another board — our own server (pid $SERVER) is not running; see $WORK/serve.log" >&2; exit 1; }
 
 api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
 

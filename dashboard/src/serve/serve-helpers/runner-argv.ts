@@ -111,6 +111,11 @@ export function runnerArgv(
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
+    // Whole-job, read by `aide-run-spec` for the `analyze` step alone
+    // (spec 386): passed on every step's own invocation of this job,
+    // exactly like `--depends-on` above, and ignored by every step but
+    // the one it names.
+    ...(job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.

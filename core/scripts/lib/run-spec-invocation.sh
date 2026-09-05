@@ -95,7 +95,14 @@ if [ "$command_name" = "schedule" ]; then
   prompt="$(cat "$project_root/$prompt_file")
 $headless_note"
 elif [ -n "$spec_folder" ]; then
-  prompt="/aide-$command_name $spec_id
+  # Spec 386: stated to the skill, not just to the harness — a CLI flag
+  # on the claude/codex binary is invisible to the skill's own
+  # reasoning, and Step 8's branch has to be read out of the prompt the
+  # same way depends_line already is for /aide-create.
+  acceptance_line=""
+  [ "$command_name" = "analyze" ] && [ "$acceptance_not_required" = "yes" ] && acceptance_line="
+Acceptance ticking is not required for this run: per Step 8, do not write the acceptance-criteria table into 4-status.md — write the one-line note instead."
+  prompt="/aide-$command_name $spec_id$acceptance_line
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own
