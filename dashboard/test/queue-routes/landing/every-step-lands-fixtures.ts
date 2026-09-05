@@ -147,14 +147,17 @@ export function serverWith(
 
 export const resultDir = (dir: string) => join(dir, "jobs");
 
-export async function runStep(base: string, step: string): Promise<{ id: string }> {
+export async function runStep(
+  base: string,
+  step: string,
+): Promise<{ id: string; project: string; specFolder: string }> {
   const made = (await (
     await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
     })
-  ).json()) as { job: { id: string } };
+  ).json()) as { job: { id: string; project: string; specFolder: string } };
   return made.job;
 }
 

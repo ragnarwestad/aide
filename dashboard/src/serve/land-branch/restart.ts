@@ -74,13 +74,19 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
 /** Every job the restart is waiting on, by short id — the one check both
  *  this loop and the deploy route (spec 385) need to make, so the two
  *  can never disagree about what "running" means. */
-export function runningJobIds(
-  queue: { list(): { id: string; state: string }[] } | undefined,
+/** What a restart is waiting for, named the way a reader knows it:
+ *  `project:folder`, not the job's own id. A short id identifies the
+ *  job to the machinery and nothing to the person reading the sentence
+ *  it lands in — which is what "name the jobs it is waiting for" got
+ *  built into on the first pass. A job with neither project nor folder
+ *  keeps its id, since something is better than an empty name. */
+export function runningJobNames(
+  queue: { list(): { id: string; state: string; project?: string; specFolder?: string }[] } | undefined,
   exceptJobId?: string,
 ): string[] {
   return (queue?.list() ?? [])
     .filter((j) => j.state === "running" && j.id !== exceptJobId)
-    .map((j) => j.id.slice(0, 8));
+    .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
 
 export async function restartAfterLanding(ctx: {
@@ -101,7 +107,7 @@ export async function restartAfterLanding(ctx: {
     return;
   }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
-  const running = (): string[] => runningJobIds(ctx.queue, ctx.exceptJobId);
+  const running = (): string[] => runningJobNames(ctx.queue, ctx.exceptJobId);
   const jobsDeadline = Date.now() + (ctx.restartJobsDeferMs ?? RESTART_JOBS_DEFER_MS);
   let waiting = running();
   if (waiting.length > 0) {

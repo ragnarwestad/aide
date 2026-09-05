@@ -5,7 +5,7 @@
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
-import { runningJobIds } from "../land-branch/restart.ts";
+import { runningJobNames } from "../land-branch/restart.ts";
 import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
@@ -280,7 +280,7 @@ export async function handleQueueAdminRoutes(
     // the service to come back before it reloads; `restartWaiting`
     // (spec 385) names the jobs holding that restart back instead, when
     // there are any — the two never both appear.
-    const restartWaiting = after.restart ? runningJobIds(ctx.queue) : [];
+    const restartWaiting = after.restart ? runningJobNames(ctx.queue) : [];
     if (restartWaiting.length > 0) ctx.setPendingRestart(restartWaiting);
     const restarting = !!after.restart && restartWaiting.length === 0;
     let response: Response;

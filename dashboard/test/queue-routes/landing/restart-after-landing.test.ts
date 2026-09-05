@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
-import { installAfterMerge, restartAfterLanding, runningJobIds, type LandContext, type RestartHook } from "../../../src/serve/land-branch.ts";
+import { installAfterMerge, restartAfterLanding, runningJobNames, type LandContext, type RestartHook } from "../../../src/serve/land-branch.ts";
 import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
 
 /** The message a landing carries, as text: since spec 380 it is
@@ -313,25 +313,37 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
 // signal, and `runningJobIds` is the check both this loop and the deploy
 // route need to make independently, without disagreeing on what a
 // running-job list means.
-describe("runningJobIds (spec 385)", () => {
-  test("lists running jobs' short ids, excluding the one named", () => {
+describe("runningJobNames (spec 385)", () => {
+  test("names running jobs by their spec, excluding the one named", () => {
     const queue = {
       list: () => [
-        { id: "abcdef12-full", state: "running" },
-        { id: "landing-job", state: "running" },
-        { id: "done-job", state: "done" },
+        { id: "abcdef12-full", state: "running", project: "aide", specFolder: "399-a-spec" },
+        { id: "landing-job", state: "running", project: "aide", specFolder: "400-another" },
+        { id: "done-job", state: "done", project: "aide", specFolder: "401-finished" },
       ],
     };
-    expect(runningJobIds(queue, "landing-job")).toEqual(["abcdef12"]);
+    expect(runningJobNames(queue, "landing-job")).toEqual(["aide:399-a-spec"]);
   });
 
   test("with no exceptJobId, every running job counts", () => {
-    const queue = { list: () => [{ id: "job-one", state: "running" }, { id: "job-two", state: "queued" }] };
-    expect(runningJobIds(queue)).toEqual(["job-one"]);
+    const queue = {
+      list: () => [
+        { id: "job-one", state: "running", project: "woodstack", specFolder: "31-a-spec" },
+        { id: "job-two", state: "queued", project: "woodstack", specFolder: "32-another" },
+      ],
+    };
+    expect(runningJobNames(queue)).toEqual(["woodstack:31-a-spec"]);
+  });
+
+  // A job that names neither keeps its id: an empty name in that
+  // sentence would say less than the id it replaced.
+  test("a job with no project or folder falls back to its short id", () => {
+    const queue = { list: () => [{ id: "abcdef12-full", state: "running" }] };
+    expect(runningJobNames(queue)).toEqual(["abcdef12"]);
   });
 
   test("no queue at all is no running jobs", () => {
-    expect(runningJobIds(undefined)).toEqual([]);
+    expect(runningJobNames(undefined)).toEqual([]);
   });
 });
 
