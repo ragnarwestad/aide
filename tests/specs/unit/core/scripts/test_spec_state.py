@@ -115,6 +115,28 @@ def test_archived_stamp_carries_the_last_dated_mark(tmp_path):
     assert state["archived"] == {"date": "2026-08-20"}
 
 
+def test_closed_stamp_is_null_when_absent(tmp_path):
+    content = "# Spec - Status\n\n## Tracking info\n\n- **Task:** `x/`\n"
+    state = write_state(tmp_path, content)
+    assert state["closed"] is None
+
+
+def test_closed_stamp_carries_the_date_and_reason(tmp_path):
+    content = "# Spec - Status\n\n## Tracking info\n\n**Closed:** 2026-09-05 — this idea does not hold\n"
+    state = write_state(tmp_path, content)
+    assert state["closed"] == {"date": "2026-09-05", "reason": "this idea does not hold"}
+
+
+def test_the_last_closed_mark_wins(tmp_path):
+    content = (
+        "# Spec - Status\n\n## Tracking info\n\n"
+        "**Closed:** 2026-09-01 — first reason\n"
+        "**Closed:** 2026-09-05 — second reason\n"
+    )
+    state = write_state(tmp_path, content)
+    assert state["closed"] == {"date": "2026-09-05", "reason": "second reason"}
+
+
 def test_reopened_stamp_carries_date_and_boundary_commit(tmp_path):
     content = (
         "# Spec - Status\n\n## Tracking info\n\n"

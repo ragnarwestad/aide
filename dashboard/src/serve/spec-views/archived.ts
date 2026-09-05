@@ -2,7 +2,7 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specArchivedDate, specFileText } from "../../project/discover.ts";
+import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover.ts";
 import { parseStatus } from "../../project/parse-status.ts";
 import { specPhaseOutcome, PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, PHASE_LINES, ArchivedSpecView } from "../../render.ts";
@@ -168,6 +168,11 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       done: archivedSteps(ref.dir),
       models: archivedModels(ref.dir),
       phaseOutcomes: archivedPhaseOutcomes(ref.dir),
+      // spec 406, REQ-7: off the same `SpecRef` the scan already carries
+      // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
+      // what turns this into the row's own `CLOSED_STATE`.
+      closed: ref.closed,
+      closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });
   }
   return rows;

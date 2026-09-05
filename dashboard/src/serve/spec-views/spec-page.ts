@@ -2,7 +2,9 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specAcceptanceNotRequired, specFileText, stripDependsOnLine } from "../../project/discover.ts";
+import {
+  specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
+} from "../../project/discover.ts";
 import { parseStatus } from "../../project/parse-status.ts";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, SpecPageView } from "../../render.ts";
 import type { BoardStatusView } from "../../render/pages/spec-page/types.ts";
@@ -208,6 +210,9 @@ export async function specPageView(
     specFolder,
     title: ref?.title ?? undefined,
     archived: ref?.archived ?? false,
+    closed: ref?.closed ?? false,
+    closedDate: ref?.closed ? (specClosedDate(dir) ?? undefined) : undefined,
+    closeReason: ref?.closed ? (specCloseReason(dir) ?? undefined) : undefined,
     // Spec 166: the dependency line is lifted OUT of the textarea and
     // into a field of its own. Left in both, a save could not tell
     // which of the two the person meant. The Description tab strips
@@ -253,9 +258,14 @@ export async function specPageView(
     // button that posts where nothing listens.
     updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
     resetAction: `${specPagePath(project, specFolder)}/reset`,
+    // spec 406: same "always present, disabled with a reason while
+    // busy" shape as resetAction — closeControl (overview.ts) is what
+    // hides it once the spec is archived.
+    closeAction: `${specPagePath(project, specFolder)}/close`,
     pdfAction: `${specPagePath(project, specFolder)}/pdf`,
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
     resetUnavailableReason: busyReason,
+    closeUnavailableReason: busyReason,
     boardAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board` : undefined,
     boardStopAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
     boardUnavailableReason: boardCapable ? busyReason : undefined,

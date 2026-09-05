@@ -493,3 +493,35 @@ def test_the_flag_is_read_for_analyze_alone(runner, workspace, fake_claude):
     )
     assert rc == 0, out
     assert "Acceptance ticking" not in out["prompt"], out["prompt"]
+
+# --- spec 406: a close run states the reason to the skill -------------------
+#
+# Modelled on the acceptance-ticking case just above: `--reason` is a CLI
+# flag on the runner, invisible to `/aide-close`'s own reasoning unless it
+# is also stated as a sentence in the prompt.
+
+def test_close_states_the_reason_the_person_typed(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(
+        runner, workspace, claude, command="close", reason="this idea does not hold", dry_run=True,
+    )
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert prompt.startswith("/aide-close"), prompt
+    assert "Use exactly this reason when closing the spec: this idea does not hold" in prompt, prompt
+
+def test_close_without_a_reason_says_nothing_about_one(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="close", dry_run=True)
+    assert rc == 0, out
+    assert "reason" not in out["prompt"].lower(), out["prompt"]
+
+def test_the_reason_is_read_for_close_alone(runner, workspace, fake_claude):
+    """Passed on every step's own invocation (like `--depends-on`), but
+    only the `close` branch of the prompt may ever read it."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(
+        runner, workspace, claude, command="implement", reason="this idea does not hold", dry_run=True,
+    )
+    assert rc == 0, out
+    assert "this idea does not hold" not in out["prompt"], out["prompt"]

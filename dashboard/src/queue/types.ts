@@ -130,6 +130,12 @@ export interface Job {
    *  writer but a person at a shell. Validated against the SAME
    *  project's active specs; absent means no line at all. */
   createDependsOn?: string[];
+  /** Why a `close` job is closing the spec (spec 406, REQ-3/REQ-5) —
+   *  handed to `aide-run-spec` as `--reason`, which states it to the
+   *  skill the same way `createTitle`/`createDescription` above are.
+   *  Only a close job has it; every other job's own reason for existing
+   *  is what its spec already says. */
+  closeReason?: string;
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The
@@ -293,6 +299,14 @@ export type ProjectResolver = (project: string) => {
    *  its branch is still open. That exception lives in `specFolders`,
    *  where it belongs; this one is per step. */
   archivedFolders?: string[];
+  /** The subset of `archivedFolders` that were CLOSED rather than
+   *  archived (spec 406) — same one-step exception, `reopen` alone, but
+   *  a different refusal sentence: "is closed" rather than "is archived"
+   *  (REQ-7). Kept apart from `archivedFolders` rather than merged into
+   *  it for the same reason `archivedFolders` is kept apart from
+   *  `specFolders` — the wording a caller reaches for is per list, not
+   *  per flag on one shared list. */
+  closedFolders?: string[];
 } | null;
 
 /** Whether this project may have a spec CREATED in it. The raw

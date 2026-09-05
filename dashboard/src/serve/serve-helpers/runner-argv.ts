@@ -112,6 +112,8 @@ export function runnerArgv(
     // title and the description are the whole of what the step is for.
     ...(job.createTitle ? ["--title", job.createTitle] : []),
     ...(job.createDescription ? ["--description", job.createDescription] : []),
+    // spec 406: only a `close` job has this, exactly like the two above.
+    ...(job.closeReason ? ["--reason", job.closeReason] : []),
     // What the new spec builds on (spec 110): ONE flag, comma-joined,
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.

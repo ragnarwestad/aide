@@ -167,6 +167,74 @@ def test_reset_is_legal_from_analyzed_and_implemented(tmp_path):
     assert may_apply(implemented, "reset")["RC"] == "0"
 
 
+# --- close: legal from any pre-archive phase, unlike archive (REQ-1, REQ-13) --
+
+
+def test_close_is_legal_from_created_with_no_step_completed(tmp_path):
+    status_file = _status_file(tmp_path, "1-x")
+    result = may_apply(status_file, "close")
+    assert result["RC"] == "0"
+
+
+def test_close_is_legal_from_analyzed(tmp_path):
+    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze")
+    result = may_apply(status_file, "close")
+    assert result["RC"] == "0"
+
+
+def test_close_is_legal_from_implemented(tmp_path):
+    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze, implement")
+    result = may_apply(status_file, "close")
+    assert result["RC"] == "0"
+
+
+def test_close_refused_on_an_archived_spec_names_reopen(tmp_path):
+    status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement", archived="2026-09-01")
+    result = may_apply(status_file, "close")
+    assert result["RC"] == "1"
+    assert result["REASON"] == "already-archived"
+    assert "only reopen" in result["MESSAGE"]
+
+
+def _closed_status_file(tmp_path, folder, workflow_line=None):
+    d = tmp_path / folder
+    d.mkdir(exist_ok=True)
+    lines = ["# X - Status", "", "## Tracking info", ""]
+    if workflow_line is not None:
+        lines.append(f"- **Workflow steps completed:** {workflow_line}")
+    lines.append("")
+    lines.append("**Closed:** 2026-09-05 — this idea does not hold")
+    status_file = d / "4-status.md"
+    status_file.write_text("\n".join(lines) + "\n")
+    return status_file
+
+
+def test_closed_spec_refuses_every_event_but_reopen(tmp_path):
+    status_file = _closed_status_file(tmp_path, "1-x", workflow_line="create")
+    for event in ("create", "analyze", "implement", "archive", "close"):
+        result = may_apply(status_file, event)
+        assert result["RC"] == "1", f"{event} should be refused on a closed spec"
+        assert result["REASON"] == "already-closed"
+        assert "only reopen" in result["MESSAGE"]
+
+
+def test_reopen_is_legal_from_closed(tmp_path):
+    status_file = _closed_status_file(tmp_path, "1-x", workflow_line="create")
+    result = may_apply(status_file, "reopen")
+    assert result["RC"] == "0"
+
+
+def test_write_phase_stamp_writes_the_closed_stamp_with_its_reason(tmp_path):
+    status_file = _status_file(tmp_path, "1-x")
+    write_stamp_and_mirror(status_file, "closed", "this idea does not hold")
+    text = status_file.read_text()
+    assert "**Closed:**" in text
+    assert "this idea does not hold" in text
+    state = json.loads((status_file.parent / "4-status.json").read_text())
+    assert state["closed"]["reason"] == "this idea does not hold"
+    assert state["closed"]["date"]
+
+
 # --- may_apply never writes (REQ-3) -----------------------------------------
 
 

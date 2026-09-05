@@ -113,6 +113,22 @@ _spec_state_archived_json() {
   fi
 }
 
+# The `**Closed:** <date> — <reason>` stamp, last match wins — mirrors
+# `_spec_state_archived_json` above, plus the reason typed by the person
+# closing it.
+_spec_state_closed_json() {
+  local file="$1" line date reason
+  line="$(sed -n 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Closed:\*\*[[:space:]]*\([0-9-]*\)[[:space:]]*—[[:space:]]*\(.*\)/\1\t\2/p' \
+    "$file" 2>/dev/null | tail -1)"
+  if [ -n "$line" ]; then
+    date="${line%%$'\t'*}"
+    reason="${line#*$'\t'}"
+    jq -cn --arg d "$date" --arg r "$reason" '{date:$d, reason:$r}'
+  else
+    printf 'null'
+  fi
+}
+
 # The `**Reopened:**`/`**Reset:**` stamp with its boundary commit —
 # same grammar and same "last mark wins" rule as
 # aide-run-spec's work_round_boundary_in.
@@ -152,8 +168,9 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
       jq -R -s -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
   fi
 
-  local archived_json reopened_json
+  local archived_json closed_json reopened_json
   archived_json="$(_spec_state_archived_json "$status_file")"
+  closed_json="$(_spec_state_closed_json "$status_file")"
   reopened_json="$(_spec_state_reopened_json "$status_file")"
 
   local phasecounts_json acceptance_json rows_tmp
@@ -178,10 +195,11 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
   jq -cn \
     --argjson completedPhases "$completed_json" \
     --argjson archived "$archived_json" \
+    --argjson closed "$closed_json" \
     --argjson reopened "$reopened_json" \
     --argjson acceptanceCriteria "$acceptance_json" \
     --argjson phaseCounts "$phasecounts_json" \
-    '{completedPhases:$completedPhases, archived:$archived, reopened:$reopened,
+    '{completedPhases:$completedPhases, archived:$archived, closed:$closed, reopened:$reopened,
       acceptanceCriteria:$acceptanceCriteria, phaseCounts:$phaseCounts}' \
     > "$tmp" && mv "$tmp" "$state_file"
 }

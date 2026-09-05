@@ -6,7 +6,7 @@ import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { ARCHIVED_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { ARCHIVED_STATE, CLOSED_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -141,8 +141,11 @@ export function specHeadRow(
   // both is that it is over — the bare word, always (REQ-1, spec 339).
   // A branch left open or not landed is an ERROR, not a second state,
   // and is said on the notice line instead (`archivedRowNotices`).
+  // spec 406, REQ-7: a closed row's badge word is CLOSED_STATE
+  // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
+  // badge already followed for "archived", now told apart by `g.state`.
   const stateBadge = locked
-    ? badge("done", ARCHIVED_STATE)
+    ? badge("done", g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE)
     : g.lead
       ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
       // A spec with no job in the queue's memory reads the same way

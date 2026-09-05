@@ -31,7 +31,7 @@ export function sameRoot(a: string, b: string): boolean {
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
-import { mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
+import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
 import { specFileText } from "../../project/discover.ts";
 import { STATUS_SPEC_FILE } from "../../render.ts";
 import { installAfterMerge } from "./install.ts";
@@ -135,6 +135,14 @@ export async function landBranch(
      *  description scopes this to the code. */
     const leaveOpen = (root: string): boolean =>
       what.step === "archive" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
+    /** The code root's branch on a `close` landing (spec 406): deleted,
+     *  never merged, since Close records that the work will not be used
+     *  — the specs root still merges normally through the ordinary
+     *  path below, carrying the folder move and the `**Closed:**`
+     *  stamp into the specs repo's own history. `close` alone, by the
+     *  literal step name, and the code root alone — mirrors `leaveOpen`
+     *  above exactly in shape. */
+    const discard = (root: string): boolean => what.step === "close" && codeRoots.has(root);
     if (!branch || repos.length === 0) {
       if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
       return;
@@ -185,7 +193,12 @@ export async function landBranch(
         ? (root: string) => ctx.landingGate!(root, job)
         : undefined;
       const merge = () =>
-        ctx.mergeLock.run(repo.root, () => mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate));
+        ctx.mergeLock.run(
+          repo.root,
+          () => discard(repo.root)
+            ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
+            : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate),
+        );
       let result = await merge();
       // A red suite is an answer, not a hiccup: never re-run it here.
       const first = result;
@@ -196,54 +209,60 @@ export async function landBranch(
       if (!result.ok) result = pickRefusal(first, result);
       if (result.ok) {
         ctx.branchStatus.invalidate(repo.root, branch);
-        // Say what just happened, to whoever is listening (spec 158).
-        // Once per repo whose merge SUCCEEDED — not once per landing,
-        // and not only for code roots: a spec-markdown merge is
-        // exactly the kind claude-usage cannot see today, so it is
-        // reported the same as any other. `report` never throws and
-        // never retries; a sink that is down costs this path one short
-        // timeout and nothing else.
-        //
-        // `specFolder` is read from the landing rather than the job:
-        // a create step's job still carries its provisional key here,
-        // and is only renamed once every repo is through the loop.
-        await ctx.mergeEvents.report({
-          project: job.project,
-          specFolder: what.landed?.specFolder ?? job.specFolder,
-          branch,
-          repoRoot: repo.root,
-          step: what.step,
-          jobId: job.id,
-          timestamp: new Date().toISOString(),
-        });
-        // Merged is not deployed. For a tool that lives in
-        // `~/.local/bin`, the code landing on the default branch
-        // changes nothing on the machine until it is installed —
-        // which is why spec 92's merged code kept running as the old
-        // version. The install belongs to the project, so the project
-        // says what it is.
-        if (codeRoots.has(repo.root)) {
-          // The install is the project's own business, whatever it does.
-          // A landing never restarts the dashboard: a restart mid-run
-          // kills every job's process, and no rule for "when it is safe"
-          // held up (2026-09-03). The person restarts it — Deploy on the
-          // board, or launchctl — when it suits; until then the served
-          // page runs the older code, and the log says so.
-          if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) {
-            console.error(
-              `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page still runs the older code; restart it with Deploy when it suits`,
-            );
-          }
-          // Never fatal, and never silent either: the merge already
-          // happened, so this is reported beside it rather than
-          // turning a successful merge into a failure. A server log has
-          // no reader whose `lang` could apply; English is the source
-          // language throughout this catalog (Recommended solution,
-          // Storage, point 3).
-          if (result.installError) {
-            console.error(
-              `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.installError)}`,
-            );
+        // spec 406: a discarded root never merged anything — nothing to
+        // report to a merge-events sink, and nothing to install. Both
+        // blocks below are `mergeBranchIntoDefault`'s own success
+        // reporting, which `deleteBranchOnly` never earns.
+        if (!result.discarded) {
+          // Say what just happened, to whoever is listening (spec 158).
+          // Once per repo whose merge SUCCEEDED — not once per landing,
+          // and not only for code roots: a spec-markdown merge is
+          // exactly the kind claude-usage cannot see today, so it is
+          // reported the same as any other. `report` never throws and
+          // never retries; a sink that is down costs this path one short
+          // timeout and nothing else.
+          //
+          // `specFolder` is read from the landing rather than the job:
+          // a create step's job still carries its provisional key here,
+          // and is only renamed once every repo is through the loop.
+          await ctx.mergeEvents.report({
+            project: job.project,
+            specFolder: what.landed?.specFolder ?? job.specFolder,
+            branch,
+            repoRoot: repo.root,
+            step: what.step,
+            jobId: job.id,
+            timestamp: new Date().toISOString(),
+          });
+          // Merged is not deployed. For a tool that lives in
+          // `~/.local/bin`, the code landing on the default branch
+          // changes nothing on the machine until it is installed —
+          // which is why spec 92's merged code kept running as the old
+          // version. The install belongs to the project, so the project
+          // says what it is.
+          if (codeRoots.has(repo.root)) {
+            // The install is the project's own business, whatever it does.
+            // A landing never restarts the dashboard: a restart mid-run
+            // kills every job's process, and no rule for "when it is safe"
+            // held up (2026-09-03). The person restarts it — Deploy on the
+            // board, or launchctl — when it suits; until then the served
+            // page runs the older code, and the log says so.
+            if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) {
+              console.error(
+                `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page still runs the older code; restart it with Deploy when it suits`,
+              );
+            }
+            // Never fatal, and never silent either: the merge already
+            // happened, so this is reported beside it rather than
+            // turning a successful merge into a failure. A server log has
+            // no reader whose `lang` could apply; English is the source
+            // language throughout this catalog (Recommended solution,
+            // Storage, point 3).
+            if (result.installError) {
+              console.error(
+                `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.installError)}`,
+              );
+            }
           }
         }
         if (result.branchDeleteError) {

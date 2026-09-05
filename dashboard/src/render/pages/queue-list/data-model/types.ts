@@ -199,6 +199,16 @@ export interface ArchivedSpecView {
    *  `readerGroup()` builds `Phase.model`. A step the file names nothing
    *  for is absent from the map, exactly as `models` leaves one out. */
   phaseOutcomes: Record<string, PhaseOutcome>;
+  /** Closed rather than archived (spec 406, REQ-7) — the `**Closed:**`
+   *  stamp's presence. `readerGroup()` reads this before `notLanded` to
+   *  pick `CLOSED_STATE` over either archived state: a closed spec's
+   *  code branch is deleted, never left open for review, so `notLanded`/
+   *  `prOpen` never legitimately apply to one — but this is checked
+   *  first regardless, rather than assumed exclusive. */
+  closed?: boolean;
+  /** The reason typed by the person who closed it (REQ-5), for the
+   *  row's own detail. Present only when `closed` is. */
+  closeReason?: string;
 }
 
 /** This page's own pseudo-states for an archived spec (spec 221). No job
@@ -224,6 +234,12 @@ export interface ArchivedSpecView {
  *  (`head-row.ts`'s `stateBadge`), so the two never disagree. */
 export const ARCHIVED_STATE = "archived";
 export const ARCHIVED_OPEN_STATE = "archived-unlanded";
+/** A spec closed rather than archived (spec 406, REQ-7) — its own state,
+ *  never folded into either archived state above: a chip built to mean
+ *  "finished work" (Archived) or "everything still going on"
+ *  (not-archived/Active) would misdescribe a closed spec either way it
+ *  joined, so it joins neither (see `STATE_FILTERS`, filter-sort.ts). */
+export const CLOSED_STATE = "closed";
 
 export interface QueueFilter {
   state?: string;
@@ -351,12 +367,13 @@ export interface SpecGroup {
   // that question with `createdAt` below, and nothing else ever read
   // the field. The recency ORDER survives it: `jobGroup` still sorts
   // the jobs by activity to pick the one the header speaks for.
-  /** `not-started` and `archived` are this page's own pseudo-states, not
-   *  a job's: a spec that exists and has never been run, and a spec
-   *  whose folder has moved into `archive/`. They are the filter keys
-   *  and the CSS suffixes; the words the reader sees are "not started"
-   *  and "archived". */
-  state: QueueRowView["state"] | "not-started" | "archived" | "archived-unlanded";
+  /** `not-started`, `archived` and `closed` are this page's own
+   *  pseudo-states, not a job's: a spec that exists and has never been
+   *  run, a spec whose folder has moved into `archive/`, and one moved
+   *  there because it will not work (spec 406). They are the filter
+   *  keys and the CSS suffixes; the words the reader sees are "not
+   *  started", "archived" and "closed". */
+  state: QueueRowView["state"] | "not-started" | "archived" | "archived-unlanded" | "closed";
   spentUsd: number;
   /** Whether any step summed into `spentUsd` was over-charged rather
    *  than measured (spec 152). Rolled up across every job the spec has

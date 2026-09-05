@@ -134,3 +134,34 @@ export function specArchivedDate(dir: string): string | null {
   return m[1].replace(/`/g, "").trim() || null;
 }
 
+/** Whether this spec was CLOSED rather than archived (spec 406), off
+ *  the `**Closed:** <date> — <reason>` stamp `aide-close-spec` writes —
+ *  the same stamp `core/scripts/lib/spec-state.sh`'s
+ *  `_spec_state_closed_json` reads on the bash side. Last match wins,
+ *  same rule as `specArchivedDate`. */
+export function specClosed(dir: string): boolean {
+  const status = specFileText(dir, "4-status.md");
+  return status ? /\*\*Closed:\*\*/.test(status) : false;
+}
+
+/** WHEN this spec was closed, off the same `**Closed:**` stamp —
+ *  `specArchivedDate`'s sibling. `null` covers a spec never closed. */
+export function specClosedDate(dir: string): string | null {
+  const status = specFileText(dir, "4-status.md");
+  if (!status) return null;
+  const m = status.match(/^.*\*\*Closed:\*\*[ \t]*([0-9-]*)/m);
+  if (!m) return null;
+  return m[1].trim() || null;
+}
+
+/** The reason typed by the person who closed this spec (REQ-5), off the
+ *  same `**Closed:**` stamp. `null` covers a spec that was never closed
+ *  and one whose stamp somehow carries no reason. */
+export function specCloseReason(dir: string): string | null {
+  const status = specFileText(dir, "4-status.md");
+  if (!status) return null;
+  const m = status.match(/^.*\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/m);
+  if (!m) return null;
+  return m[1].trim() || null;
+}
+

@@ -87,6 +87,12 @@ export async function handleJobActionRoutes(
         const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
           ? { date: "" }
           : null;
+        // spec 406: the same ref, the same reasoning — closed is a fact
+        // about this request's own project/specFolder, read off the one
+        // resolved answer rather than a second, independent check.
+        const closed = ctx.specRef(askedFor.project, askedFor.specFolder)?.closed
+          ? { date: "" }
+          : null;
         // A bundled job (e.g. analyze+implement+archive queued together
         // for a fresh spec, spec-lifecycle.md's "Into create") asks for
         // several steps at once, each meant to run only once the one
@@ -96,7 +102,7 @@ export async function handleJobActionRoutes(
         // would make illegal is refused; a spec already mid-workflow
         // (implement queued alone while analyzed) starts from its real
         // phase, unaffected by steps it was not asked to run.
-        let phase = phaseFromState(completedPhases, archived);
+        let phase = phaseFromState(completedPhases, archived, closed);
         for (const step of askedFor.steps) {
           if (typeof step !== "string") continue;
           const move = isLegalMove(phase, step, askedFor.specFolder);

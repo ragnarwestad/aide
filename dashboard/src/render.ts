@@ -108,6 +108,7 @@ export {
   documentTabScript,
   renderSpecPage,
   renderResetSpecPage,
+  renderCloseSpecPage,
   specPagePath,
   specTabPath,
 } from "./render/pages/spec-page.ts";

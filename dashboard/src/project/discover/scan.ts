@@ -10,12 +10,18 @@ import { parseStatus } from "../parse-status.ts";
 import type { ProjectView } from "../../render/pages/site.ts";
 import { configSpecsPath } from "./config.ts";
 import { specDependsOn } from "./depends-on.ts";
-import { specDescription, specTitle } from "./spec-files.ts";
+import { specClosed, specDescription, specTitle } from "./spec-files.ts";
 
 export interface SpecRef {
   folder: string;
   dir: string;
   archived: boolean;
+  /** Closed rather than archived (spec 406) — always `false` for a spec
+   *  not under `archive/`, since the `**Closed:**` stamp is only ever
+   *  written there. Kept apart from `archived` rather than folded into
+   *  it: both live under the same folder physically, but read as two
+   *  different states everywhere a spec's state is shown (REQ-7). */
+  closed: boolean;
   title: string | null;
   /** What the spec is ABOUT. The title says `02-job-detail-view`; this
    *  says why anyone queued it (spec 02). */
@@ -44,6 +50,7 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
       folder: entry,
       dir,
       archived,
+      closed: archived && specClosed(dir),
       title: specTitle(dir),
       description: specDescription(dir),
       dependsOn: specDependsOn(dir),

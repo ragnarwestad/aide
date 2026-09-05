@@ -11,6 +11,8 @@
 export type { LandContext } from "./land-branch/types.ts";
 export { installAfterMerge } from "./land-branch/install.ts";
 export { landBranch } from "./land-branch/merge.ts";
-export { landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec } from "./land-branch/steps.ts";
+export {
+  landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
+} from "./land-branch/steps.ts";
 export { withFreshness } from "./land-branch/freshness.ts";
 export { createLaunchdRestart, restartAfterLanding, runningJobIds, type RestartHook } from "./land-branch/restart.ts";
