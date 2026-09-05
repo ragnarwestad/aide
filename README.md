@@ -8,7 +8,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 - [For end users](#for-end-users)
 - [For aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
-  - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
+  - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
   - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
@@ -47,17 +47,15 @@ them.
 
 ## For end users
 
-> **You do not need to clone this repo to use aide.**
+Clone the repo, then run the installer for your AI tool:
 
-Download the ready-made package for your AI tool:
+| AI tool        | Install                          | Documentation                                        |
+|----------------|-----------------------------------|------------------------------------------------------|
+| Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
+| GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
+| Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 
-| AI tool        | Package                     | Documentation                                        |
-|----------------|-----------------------------|------------------------------------------------------|
-| Claude Code    | `dist/aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
-| GitHub Copilot | `dist/aide-copilot.zip`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
-| Codex          | `dist/aide-codex.zip`       | [README.md](implementations/codex/README.md)         |
-
-Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
+`./install-all.sh` runs all three at once. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally so any project can use them.
 
 > **Windows users:** The scripts require WSL or Git Bash. See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
 
@@ -81,9 +79,11 @@ The workspace is designed to handle **cross-cutting issues** where a single JIRA
 
 ## Environment variables
 
-### AIDE_INSTALLATION_PATH (required for dist packages)
+### AIDE_INSTALLATION_PATH (optional)
 
-Path to where aide is installed.
+Path to where aide is checked out. Only a few scripts read it
+(`core/scripts/validate-env`, the uninstallers) — most of the install
+scripts find their own location instead.
 
 ```bash
 export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
