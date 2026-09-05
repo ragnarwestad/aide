@@ -23,6 +23,11 @@ import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers.ts";
 export interface RunnerSetupContext {
   store: QueueStore;
   machineryProjectDir: (project: string) => string;
+  /** `machineryProjectDir`'s sibling for the specs root (spec 402) —
+   *  `setupLand()` already takes this for the identical reason; passed
+   *  here too so `Runner.tick()` can scope its landing pause to a
+   *  project's actual repos rather than holding the whole board. */
+  machinerySpecsRoot: (project: string) => string | undefined;
   queueRunnerBin: string | undefined;
   queueResultDir: string | undefined;
   scheduleOutputRoot: string | undefined;
@@ -69,6 +74,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
   return new Runner({
     store: ctx.store,
     projectDir: ctx.machineryProjectDir,
+    specsRoot: ctx.machinerySpecsRoot,
     runnerBin,
     resultDir: ctx.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
     maxConcurrent: ctx.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,

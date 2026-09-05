@@ -262,8 +262,18 @@ export async function mergeBranchIntoDefault(
     //      time onto a base that moved on origin while the first attempt's
     //      tests ran, after the first attempt's merge is dropped. The
     //      tests run on exactly what main is about to become, so a moved
-    //      base means they run again.
+    //      base means they run again — unless it reproduces a tree already
+    //      gated once (below).
+    // Spec 402, REQ-5: a resulting tree already gated once for THIS
+    // landing is never gated again. Scoped to the lifetime of this one
+    // `mergeBranchIntoDefault()` call — never module- or server-lifetime
+    // — so no verdict outlives the landing it was reached for.
+    const gateVerdicts = new Map<string, { ok: boolean; error?: Sentence; detail?: string }>();
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
+      // Spec 402, REQ-4: the tip BEFORE this attempt's own merge, so a
+      // branch that adds nothing to THIS repo can be told apart from one
+      // that does.
+      const preMergeHead = gate ? (await run(root, ["rev-parse", "HEAD"])).stdout.trim() : "";
       await run(root, ["fetch", "--quiet", "origin", base, branch]);
       // A merge that lost a lock race is retried like the pull is — it
       // used to be reported as a conflict, which it is not.
@@ -302,21 +312,34 @@ export async function mergeBranchIntoDefault(
       // sees it; the branch is untouched, so implement can be run again
       // on it.
       if (gate) {
-        const verdict = await gate(root);
-        if (!verdict.ok) {
-          await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
-          // No `(branch in root)` tail, unlike every refusal around it:
-          // those name a checkout because that is where a person has to
-          // go and do something by hand. Here the move is a step on the
-          // row — run implement again — and the path is one more thing
-          // to read past. It rides in `detail` with the test output.
-          return {
-            root,
-            ok: false,
-            error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
-            ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
-            reason: "tests-red",
-          };
+        // Spec 402, REQ-4: an empty diff against the pre-merge tip means
+        // this merge added nothing to `root` — there is nothing the
+        // suite could fail for that this merge caused, so it never runs.
+        const changed = await run(root, ["diff", "--quiet", preMergeHead, "HEAD"]);
+        if (changed.code !== 0) {
+          // Spec 402, REQ-5: an identical resulting tree reuses the
+          // verdict already reached for it within this same call, rather
+          // than running the suite again.
+          const treeRes = await run(root, ["rev-parse", "HEAD^{tree}"]);
+          const tree = treeRes.code === 0 ? treeRes.stdout.trim() : "";
+          const cached = tree ? gateVerdicts.get(tree) : undefined;
+          const verdict = cached ?? (await gate(root));
+          if (tree && !cached) gateVerdicts.set(tree, verdict);
+          if (!verdict.ok) {
+            await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+            // No `(branch in root)` tail, unlike every refusal around it:
+            // those name a checkout because that is where a person has to
+            // go and do something by hand. Here the move is a step on the
+            // row — run implement again — and the path is one more thing
+            // to read past. It rides in `detail` with the test output.
+            return {
+              root,
+              ok: false,
+              error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
+              ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
+              reason: "tests-red",
+            };
+          }
         }
       }
       return null;

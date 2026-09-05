@@ -85,6 +85,11 @@ const NAV_OVERLAY_SCRIPT = transpile("nav-overlay.ts");
 // form-busy.ts (no form) nor nav-busy.ts/nav-overlay.ts (both decline a
 // target="_blank" link, since this document is never replaced) cover.
 const PDF_BUSY_SCRIPT = transpile("pdf-busy.ts");
+// The ninth (spec 391): Save and Cancel enable together the instant a
+// spec form has an edit, and disable together again once Cancel puts it
+// back — one script for every `.specform` on the page rather than one
+// per tab.
+const SPEC_FORM_ACTIONS_SCRIPT = transpile("spec-form-actions.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -346,7 +351,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader(lang)}

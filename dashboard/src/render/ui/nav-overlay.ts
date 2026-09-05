@@ -50,6 +50,20 @@
     }, DELAY_MS);
   });
 
+  // REQ-8 (spec 391): a Save form's own POST is, from the browser's
+  // perspective, the same kind of "this document is about to be
+  // replaced" event a link click is — this document IS replaced by the
+  // 303 back, once the request answers. No delay, unlike the click
+  // case above: a Save always commits and pushes for real, so there is
+  // no fast case to avoid flashing for.
+  document.addEventListener("submit", (event: Event) => {
+    const e = event as Event & { defaultPrevented: boolean };
+    if (e.defaultPrevented) return;
+    const form = e.target as { matches?: (selector: string) => boolean } | null;
+    if (!form?.matches?.(".specform") || timer !== null || (dialog && dialog.open)) return;
+    openOverlay();
+  });
+
   window.addEventListener("pageshow", (event: Event) => {
     if (!(event as PageTransitionEvent).persisted) return;
     if (timer !== null) {

@@ -143,8 +143,10 @@ describe("the Remove page", () => {
 
   test("it says what removal does and does not do, before the confirmation field", () => {
     // The form and the copy above it — not the shell, whose stylesheet
-    // contains ":disabled" selectors of its own.
-    const html = remove("atlasaurus").split("</style>").pop()!;
+    // contains ":disabled" selectors of its own and whose head scripts
+    // (spec 391's spec-form-actions.ts among them) read and write a
+    // `.disabled` DOM property of their own.
+    const html = remove("atlasaurus").split("<main>").pop()!;
     const copy = html.slice(0, html.indexOf('name="confirm"'));
     expect(copy).toContain("allowlist");
     expect(copy.toLowerCase()).toContain("checkout");

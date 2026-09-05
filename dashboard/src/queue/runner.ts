@@ -98,6 +98,19 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
+  /** Every repo a job for this project could reach: the code root
+   *  always, and the specs root beside it only when the project keeps
+   *  specs in a repo of their own (spec 402) — the same two paths
+   *  `land-branch/merge.ts`'s own `codeRoots` set already resolves a
+   *  landing's gate against. A project that keeps specs inside its own
+   *  code repo collapses to one root, so it never collides with
+   *  anything beyond itself. */
+  private repoRootsFor(project: string): string[] {
+    const code = this.o.projectDir(project);
+    const specs = this.o.specsRoot?.(project) ?? code;
+    return specs === code ? [code] : [code, specs];
+  }
+
   /** Fill every free slot, oldest queued job first.
    *
    *  `blocked` maps a job id to the folder of the dependency it is
@@ -114,15 +127,6 @@ export class Runner {
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
   tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
-    // NOTHING starts while a job is landing, whatever it is and whatever
-    // repo it is for. A landing merges directly into the SHARED main
-    // checkout — the one every run switches and reads at its own start —
-    // and worktree isolation (spec 91) protects a run's work from other
-    // runs, not that checkout from a landing writing to it. Queue-wide
-    // rather than per repo: a job's target repos are only known once
-    // `aide-run-spec` has resolved them, which is after it has started.
-    // At one operator, over-serializing costs seconds; the race costs a
-    // half-merged working tree.
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -133,22 +137,31 @@ export class Runner {
     // nothing at all on their way out (2026-09-04).
     const held = (this.heldThisPass = new Set<string>());
     const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
-    if (this.o.store.list().some((j) => j.landing)) {
-      // The pause every queued row used to sit in with no explanation:
-      // a landing is in flight, so nothing starts, and being first in
-      // the queue means nothing until it finishes.
-      for (const job of this.o.store.list()) {
-        // Not the job whose OWN landing this is: its row already reads
-        // "landing <step>", and telling it that it waits for itself is
-        // both wrong and in the way of the landing's own verdict, which
-        // lands on that row moments later.
-        if (job.state === "queued" && !job.landing) {
-          hold(job, { key: "runner.landingPause" });
-        }
-      }
-      this.clearStaleHolds(held);
-      return;
+
+    // A landing merges directly into the SHARED main checkout — the one
+    // every run switches and reads at its own start — and worktree
+    // isolation (spec 91) protects a run's work from other runs, not
+    // that checkout from a landing writing to it. Scoped to the repos a
+    // landing ACTUALLY occupies (spec 402): WHICH of a project's own
+    // repos a step reaches is unknown until `aide-run-spec` has resolved
+    // them, after it has started — but WHICH repos the project HAS is
+    // known now, from the same two resolvers the lock and the landing's
+    // own gate already use. A job whose repos are disjoint from every
+    // one of them reads nothing a landing anywhere else on the board is
+    // writing to.
+    const repoCache = new Map<string, string[]>();
+    const rootsFor = (project: string): string[] => {
+      const cached = repoCache.get(project);
+      if (cached) return cached;
+      const roots = this.repoRootsFor(project);
+      repoCache.set(project, roots);
+      return roots;
+    };
+    const landingRepos = new Set<string>();
+    for (const j of this.o.store.list()) {
+      if (j.landing) for (const root of rootsFor(j.project)) landingRepos.add(root);
     }
+
     // Quick steps before slow ones, oldest first within each group
     // (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
@@ -160,6 +173,17 @@ export class Runner {
         return;
       }
       if (job.state !== "queued") continue;
+      // NOTHING starts while a job in the SAME repo is landing — the
+      // repos it MIGHT touch, since which ones this step will actually
+      // reach is only known once `aide-run-spec` has resolved them. Not
+      // exempted for the job whose OWN landing this is: its repos are
+      // always in `landingRepos` too, so it is left un-started all the
+      // same — only the redundant sentence is skipped, since its row
+      // already reads "landing <step>" through a different path.
+      if (landingRepos.size > 0 && rootsFor(job.project).some((root) => landingRepos.has(root))) {
+        if (!job.landing) hold(job, { key: "runner.landingPause" });
+        continue;
+      }
       // Two jobs for the SAME spec are never both started: analyze and
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a
@@ -381,6 +405,22 @@ export class Runner {
     // missing stays missing. There is nothing to default it to.
     const tokens = tokenUsage(outcome.tokens);
     if (tokens) this.addSpentTokensToday(tokens.total);
+    // BEFORE `results` is built: whether this step's own `at` is written
+    // now or deferred until its landing settles (spec 395) is known
+    // while the entry is constructed. BEFORE the state transitions
+    // below too, and folded into every one of them: a hook that took
+    // ownership of a landing must have its flag set in the same call
+    // stack that would otherwise free this job's concurrency slot. A
+    // `tick()` interleaved between the two would see a job that is
+    // merely `done` and start something else against the checkout the
+    // landing is writing to.
+    const landingWork = this.o.onStepDone?.(job, step, outcome);
+    const landing = landingWork ? true : undefined;
+    // The index this step's own entry will occupy — captured so the
+    // settle callback below can find it again without searching by
+    // name, which a re-run of the same step later in this job's life
+    // could make ambiguous.
+    const resultIndex = job.results.length;
     const results = [
       ...job.results,
       {
@@ -400,24 +440,41 @@ export class Runner {
         // step whose result carried no session was still run under one.
         sessionId: outcome.sessionId ?? job.sessionId,
         streamFile: job.streamFile,
-        at: this.o.now(),
+        // A step whose work lands (spec 395, REQ-3): the clock this
+        // stamp ends is the step's OWN work, and that work is not over
+        // until the merge is. Written immediately only when there is
+        // no landing to wait for.
+        at: landingWork ? undefined : this.o.now(),
         // This step's own start (spec 384) — moves off `Job.stepStartedAt`
         // and onto the result it produced.
         startedAt: job.stepStartedAt,
       },
     ];
-    // BEFORE the state transitions below, and folded into every one of
-    // them: a hook that took ownership of a landing must have its flag
-    // set in the same call stack that would otherwise free this job's
-    // concurrency slot. A `tick()` interleaved between the two would see
-    // a job that is merely `done` and start something else against the
-    // checkout the landing is writing to.
-    const landingWork = this.o.onStepDone?.(job, step, outcome);
-    const landing = landingWork ? true : undefined;
     if (landingWork) {
+      // Runs once, whichever way the landing settles — the same
+      // "always clear the flag" shape already used below, extended to
+      // also close out this step's own duration at the instant its
+      // work is actually done. Nothing else can extend `job.results`
+      // for THIS job before this fires: `Runner.tick()` starts no job
+      // at all while any job is landing (`docs/job-states.md`, "Beside
+      // the state"), so `resultIndex` still names the same entry.
+      const settleDuration = (): void => {
+        const current = this.o.store.get(job.id);
+        const entry = current?.results[resultIndex];
+        if (!entry || entry.step !== step || entry.at !== undefined) return;
+        const patched = [...current!.results];
+        patched[resultIndex] = { ...entry, at: this.o.now() };
+        this.o.store.update(job.id, { results: patched });
+      };
       void Promise.resolve(landingWork).then(
-        () => this.o.store.update(job.id, { landing: undefined }),
-        () => this.o.store.update(job.id, { landing: undefined }),
+        () => {
+          settleDuration();
+          this.o.store.update(job.id, { landing: undefined });
+        },
+        () => {
+          settleDuration();
+          this.o.store.update(job.id, { landing: undefined });
+        },
       );
     }
     const base = {

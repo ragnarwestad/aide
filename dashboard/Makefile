@@ -1,4 +1,4 @@
-.PHONY: test generate publish serve-local require-host install-serve deploy-serve
+.PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve
 
 # Your machine's answers to the questions this Makefile refuses to guess
 # — MINI, ROOT, BIND, CLAUDE_USAGE. Gitignored, because naming them here
@@ -16,11 +16,35 @@
 # that comes from an included file is not, which is the case here.)
 export AIDE_DASH_HOST
 
+# The gate a merge runs, and the one to run while working: everything
+# except the browser tests below.
+#
+# `test/e2e` is left out because those are the only tests that can fail
+# with nothing wrong. They drive a real Chromium and measure what it
+# painted, so on a host running several Claude sessions and another
+# suite they lose to load and stop a merge that carried no fault --
+# three times on 2026-09-05, once with 201 dangling processes killed at
+# the end of the run. The other four thousand only compute, and never
+# noticed. They also answer a different question from the one a merge
+# asks: whether the page looks right, not whether the change broke
+# something.
 test:
 	bunx tsc --noEmit
 	# 20 s per test, not bun's 5 s: the git-backed route tests run beside
 	# three other jobs' suites on the serving host and lose to load alone.
-	bun test --timeout 20000
+	# `--path-ignore-patterns`, not a list of directories to include:
+	# tests live under `src/` too (the message catalogue's own), and
+	# naming the directories left them out.
+	bun test --timeout 20000 --path-ignore-patterns='**/test/e2e/**'
+
+# The browser tests, on their own, for a quiet machine. Run them when
+# layout or the page's own behaviour changed -- they are not part of
+# `test`, so nothing runs them for you.
+test-e2e:
+	bun test --timeout 20000 test/e2e
+
+# Both, for the rare time you want the lot.
+test-all: test test-e2e
 
 generate:
 	bun run src/main.ts generate

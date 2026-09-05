@@ -67,12 +67,12 @@ select[name^="model."] {
 .field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
   min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
 .newspecform textarea { overflow-x: auto; }
-.specform .factions { margin-top: var(--sp-1); }
-/* The banner's own tracking form (spec 394): the same gap `.specform`
-   gives its Save row, under its own class rather than `.specform`
-   itself — the Checks tab's tick form already carries that class, and a
-   second form sharing it on the same page would be two `.specform
-   button[type="submit"]`s for anything that ever has to find one. */
+/* The banner's own tracking form (spec 394), under its own class rather
+   than `.specform` itself — the Checks tab's tick form already carries
+   that class, and a second form sharing it on the same page would be
+   two `.specform button[type="submit"]`s for anything that ever has to
+   find one. Its Save sits below its own fields, unlike `.specform`'s
+   (spec 391, rows-and-forms.css's `.panelhead`), so it keeps this gap. */
 .trackingform .factions { margin-top: var(--sp-1); }
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart. Project+Name share

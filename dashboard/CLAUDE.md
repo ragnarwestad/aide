@@ -88,6 +88,13 @@ with the tests and assertions that pin all of them.
   separated. The manifest is a DEFAULT for `--push`, never an override;
   the specs root keeps auto-merging; `errorReason` has no member for it —
   `prOpen`/`PR_OPEN` split the wording instead.
+- **`StepResult.at` is absent until a landing step's merge settles**, not
+  from the moment its own process exits — `Runner.complete()` defers the
+  stamp so a phase's own duration keeps counting through the merge. Any
+  new reader of `Job.results[]` has to treat `at` as optional; a
+  standalone type that copies `StepResult`'s shape by hand (rather than
+  reusing it) needs the same optionality, or `tsc --noEmit` only catches
+  the mismatch once something is assigned into it.
 
 ## Archive
 
