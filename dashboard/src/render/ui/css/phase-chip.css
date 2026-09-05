@@ -11,6 +11,11 @@
    `#jobrows .tablewrap` already makes (list.css). */
 .phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1);
   max-height: 116px; overflow-y: auto; }
+/* Spec 404: the picked half of the Depends-on control sits above the
+   scrolling list and is never capped or scrolled itself — there are
+   normally only a handful of dependencies, and REQ-1 is exactly that
+   they read without scrolling. */
+.phases.picked { max-height: none; }
 .phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
   padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
   background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }

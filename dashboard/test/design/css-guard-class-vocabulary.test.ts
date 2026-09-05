@@ -16,6 +16,9 @@ const COMPONENTS = [
   "awaiting",
   "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
   "phases", "phase", "default", "checked", "done", "off", "box",
+  // the picked half of the Depends-on control (spec 404): the same
+  // .phases wrapper, uncapped, ahead of the scrolling remainder.
+  "picked",
   "rowmsg", "failed", "waiting", "info",
   // the invisible holder around the spec row's state badge (2026-08-24),
   // mirroring actionslot: it reserves the width on mobile so the pill

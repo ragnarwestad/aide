@@ -197,8 +197,10 @@ export function phaseChip(o: {
 }
 
 /** A group of them. One class, so the row does not need a spacing rule
- *  of its own. */
-export const phases = (chips: string): string => `<span class="phases">${chips}</span>`;
+ *  of its own — `cls` adds a second, for the one caller (spec 404's
+ *  "picked" block) that needs a variant of the same wrapper. */
+export const phases = (chips: string, cls?: string): string =>
+  `<span class="${["phases", cls].filter(Boolean).join(" ")}">${chips}</span>`;
 
 // --- row-level message ----------------------------------------------------------
 
