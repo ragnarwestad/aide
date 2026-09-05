@@ -80,11 +80,24 @@ export interface ServerState {
    *  error. */
   servingSha: string | null;
   servingRepoRoot: string | null;
+  /** Non-null exactly while a Deploy press's restart is being held back
+   *  by running jobs (spec 385) — the Deploy tab's own "waiting" state,
+   *  read fresh on every GET the way `servingSha` already is. */
+  pendingRestart: { jobs: string[] } | null;
 }
 
 export function createServerState(): ServerState {
   return {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null,
+    servingSha: null, servingRepoRoot: null, pendingRestart: null,
   };
+}
+
+/** The one place that decides what a running-job list means for
+ *  `pendingRestart` — called from the deploy route (the moment a press
+ *  learns jobs are running) and from `restartAfterLanding`'s own wait
+ *  loop (as that answer changes or the wait ends), so the two writers
+ *  can never disagree about the shape. */
+export function setPendingRestart(state: ServerState, jobs: string[]): void {
+  state.pendingRestart = jobs.length > 0 ? { jobs } : null;
 }

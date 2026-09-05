@@ -141,6 +141,11 @@ describe("reconciliation after a restart", () => {
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.reconcile();
     expect(store.get(job.id)?.state).toBe("interrupted");
+    // Spec 385 (REQ-4): the STATE transition above is only half of what
+    // the job's own row needs — the rendered "the server restarted while
+    // this step was running..." sentence is drawn from this `error`
+    // field, which this test used to leave unasserted.
+    expect(store.get(job.id)?.error).toEqual({ key: "runner.serverRestarted" });
   });
 });
 

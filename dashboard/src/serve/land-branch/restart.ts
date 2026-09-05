@@ -71,6 +71,18 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
  *  nothing is running any more (four jobs, 2026-09-03 00:13). So the
  *  restart also waits until no job but the landing one is running —
  *  bounded by `restartJobsDeferMs`, long enough for an implement. */
+/** Every job the restart is waiting on, by short id — the one check both
+ *  this loop and the deploy route (spec 385) need to make, so the two
+ *  can never disagree about what "running" means. */
+export function runningJobIds(
+  queue: { list(): { id: string; state: string }[] } | undefined,
+  exceptJobId?: string,
+): string[] {
+  return (queue?.list() ?? [])
+    .filter((j) => j.state === "running" && j.id !== exceptJobId)
+    .map((j) => j.id.slice(0, 8));
+}
+
 export async function restartAfterLanding(ctx: {
   mergeLock: ReturnType<typeof createRootLock>;
   restart: RestartHook;
@@ -79,23 +91,31 @@ export async function restartAfterLanding(ctx: {
   restartJobsDeferMs?: number;
   queue?: { list(): { id: string; state: string }[] };
   exceptJobId?: string;
+  /** Called with the current running-job list whenever it changes, and
+   *  with `[]` once the wait is over one way or another (spec 385) — the
+   *  one signal the Deploy tab's "waiting" sentence is drawn from. */
+  onJobsWaitChange?: (jobs: string[]) => void;
 }): Promise<void> {
-  if (!(await ctx.restart.registered())) return;
+  if (!(await ctx.restart.registered())) {
+    ctx.onJobsWaitChange?.([]);
+    return;
+  }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
-  const running = (): string[] =>
-    (ctx.queue?.list() ?? [])
-      .filter((j) => j.state === "running" && j.id !== ctx.exceptJobId)
-      .map((j) => j.id.slice(0, 8));
+  const running = (): string[] => runningJobIds(ctx.queue, ctx.exceptJobId);
   const jobsDeadline = Date.now() + (ctx.restartJobsDeferMs ?? RESTART_JOBS_DEFER_MS);
-  if (running().length > 0) {
-    console.error(`queue: a code change landed; the restart waits for running jobs: ${running().join(", ")}`);
+  let waiting = running();
+  if (waiting.length > 0) {
+    console.error(`queue: a code change landed; the restart waits for running jobs: ${waiting.join(", ")}`);
+    ctx.onJobsWaitChange?.(waiting);
   }
-  while (running().length > 0 && Date.now() < jobsDeadline) {
+  while (waiting.length > 0 && Date.now() < jobsDeadline) {
     await new Promise((r) => setTimeout(r, pollMs));
+    waiting = running();
+    ctx.onJobsWaitChange?.(waiting);
   }
-  if (running().length > 0) {
+  if (waiting.length > 0) {
     console.error(
-      `queue: restarting the dashboard while jobs are still running: ${running().join(", ")} — they will have to be run again`,
+      `queue: restarting the dashboard while jobs are still running: ${waiting.join(", ")} — they will have to be run again`,
     );
   }
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
@@ -113,5 +133,6 @@ export async function restartAfterLanding(ctx: {
   // unconditionally once `registered()` is true — the laptop/test case
   // above already returned before this line.
   console.error("queue: restarting the dashboard to pick up a landed code change");
+  ctx.onJobsWaitChange?.([]);
   ctx.restart.fire();
 }
