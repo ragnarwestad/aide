@@ -130,119 +130,106 @@ describe("the Description tab", () => {
     expect(html).toContain("archived");
   });
 
-  // --- spec 174, moved with the form: the New-spec page's own picker -------
-  //
-  // The dependency line is stored in `1-description.md`'s own text, so
-  // the control that changes it stays with that file's own Save — one
-  // commit for the description and the line together, exactly as
-  // before. Overview shows the same thing read-only.
-  describe("the Depends on picker", () => {
-    const OPTIONS = [
-      { project: "aide", specFolder: "164-a-spec-can-depend" },
-      { project: "aide", specFolder: "09-ninth" },
-    ];
-    const withOptions = (checked: string[] = []) =>
-      edit(view({ dependsOnOptions: OPTIONS, dependsOn: checked }));
-
-    test("one checkbox per spec offered, not a text box to type into", () => {
-      const html = withOptions();
-      expect(html).toContain('name="dependsOn"');
-      expect(html).toContain('value="164-a-spec-can-depend"');
-      expect(html).toContain('value="09-ninth"');
-      expect(html).not.toContain('<input type="text" name="dependsOn"');
-    });
-
-    // The same order the New-spec page draws: newest first, because the
-    // number is the order a reader thinks in.
-    test("newest first, as on the New-spec page", () => {
-      const html = withOptions();
-      expect(html.indexOf('value="164-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
-    });
-
-    test("what the spec already depends on is ticked", () => {
-      const html = withOptions(["164-a-spec-can-depend"]);
-      expect(html).toMatch(/value="164-a-spec-can-depend"[^>]*checked/);
-      expect(html).not.toMatch(/value="09-ninth"[^>]*checked/);
-    });
-
-    test("a spec that depends on nothing has nothing ticked", () => {
-      // The boxes themselves: the page's stylesheet has a `.checked`
-      // rule in it, which a search of the whole document would find.
-      const boxes = [...withOptions().matchAll(/<input[^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]);
-      expect(boxes).toHaveLength(2);
-      for (const box of boxes) expect(box).not.toContain("checked");
-    });
-
-    // A project with one spec in it — the one being edited — has
-    // nothing to offer, and the server has already left it out. The
-    // field is then absent rather than an empty box (the New-spec page
-    // does the same).
-    test("nothing to depend on, no field", () => {
-      const html = edit(view({ dependsOnOptions: [], dependsOn: [] }));
-      expect(html).not.toContain('name="dependsOn"');
-      // The note about when a dependency takes effect goes with it:
-      // there is nothing on the page for it to be about.
-      expect(html).not.toContain("next gated step");
-    });
-
-    test("the note about when it takes effect stays beside the picker", () => {
-      expect(withOptions()).toContain("next gated step");
-    });
-
-    // An archived spec has no form to put the picker in.
-    test("an archived spec is offered no picker", () => {
-      expect(edit(view({ archived: true, dependsOnOptions: OPTIONS }))).not.toContain('name="dependsOn"');
-    });
+  // Spec 394 (REQ-1) moved the Depends on picker out of this tab's own
+  // form and into the banner above the tab row — see the describe block
+  // below. This tab's own Save form no longer carries it at all, though
+  // the banner above it (part of every page) still does.
+  test("no Depends on field inside this tab's own Save form", () => {
+    const html = edit(view({
+      dependsOnOptions: [{ project: "aide", specFolder: "164-a-spec-can-depend" }],
+      dependsOn: ["164-a-spec-can-depend"],
+    }));
+    const saveForm = html.slice(html.indexOf('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save"'));
+    expect(saveForm).not.toContain('name="dependsOn"');
   });
 });
 
-// --- spec 212: what the spec depends on, read-only, in the banner -----------
+// --- spec 394 (REQ-1, REQ-2, REQ-4): what the spec depends on, and
+// whether it requires acceptance ticking, editable in the banner ------------
 //
-// Spec 294 moved this fact (and `archivedLine`) from the Overview panel
-// into the banner itself, so it renders on every tab, not just one — the
-// same visibility the removed state chip had.
+// Spec 294 moved the (then read-only) "Depends on" fact from the
+// Overview panel into the banner, so it rendered on every tab. Spec 394
+// moves the PICKER itself there too — a dependency is a fact about the
+// spec, not about the Description document, and REQ-4 drops the
+// separate read-only echo this banner used to draw beside it.
 
-describe("spec 212: the Depends on line, in the banner on every tab", () => {
-  test("names what the spec depends on, and posts nothing", () => {
-    const html = page(view({ dependsOn: ["164-a-spec-can-depend", "09-ninth"] }));
-    expect(html).toContain("<strong>Depends on</strong>");
-    expect(html).toContain("164-a-spec-can-depend");
-    expect(html).toContain("09-ninth");
-    // The read-only line, not the picker: the control that changes it
-    // is on the Description tab, with the file the line is stored in.
+describe("spec 394: the Depends on picker, in the banner on every tab", () => {
+  const OPTIONS = [
+    { project: "aide", specFolder: "164-a-spec-can-depend" },
+    { project: "aide", specFolder: "09-ninth" },
+  ];
+  const withOptions = (checked: string[] = []) =>
+    page(view({ dependsOnOptions: OPTIONS, dependsOn: checked }));
+
+  test("one checkbox per spec offered, not a text box to type into", () => {
+    const html = withOptions();
+    expect(html).toContain('name="dependsOn"');
+    expect(html).toContain('value="164-a-spec-can-depend"');
+    expect(html).toContain('value="09-ninth"');
+    expect(html).not.toContain('<input type="text" name="dependsOn"');
+  });
+
+  // The same order the New-spec page draws: newest first, because the
+  // number is the order a reader thinks in.
+  test("newest first, as on the New-spec page", () => {
+    const html = withOptions();
+    expect(html.indexOf('value="164-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
+  });
+
+  test("what the spec already depends on is ticked", () => {
+    const html = withOptions(["164-a-spec-can-depend"]);
+    expect(html).toMatch(/value="164-a-spec-can-depend"[^>]*checked/);
+    expect(html).not.toMatch(/value="09-ninth"[^>]*checked/);
+  });
+
+  test("a spec that depends on nothing has nothing ticked", () => {
+    // The boxes themselves: the page's stylesheet has a `.checked`
+    // rule in it, which a search of the whole document would find.
+    const boxes = [...withOptions().matchAll(/<input[^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]);
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) expect(box).not.toContain("checked");
+  });
+
+  // A project with one spec in it — the one being edited — has nothing
+  // to offer, and the server has already left it out. The field is then
+  // absent rather than an empty box (the New-spec page does the same).
+  test("nothing to depend on, no field", () => {
+    const html = page(view({ dependsOnOptions: [], dependsOn: [] }));
     expect(html).not.toContain('name="dependsOn"');
+    // The note about when a dependency takes effect goes with it: there
+    // is nothing on the page for it to be about.
+    expect(html).not.toContain("next gated step");
+  });
+
+  test("the note about when it takes effect stays beside the picker", () => {
+    expect(withOptions()).toContain("next gated step");
+  });
+
+  // REQ-4: the fact is shown once — inside the control — never as a
+  // separate read-only "Depends on: ..." sentence beside it.
+  test("no separate read-only echo of the dependency beside the control", () => {
+    expect(withOptions(["164-a-spec-can-depend"])).not.toContain("<strong>Depends on</strong>");
   });
 
   // Criterion 7: the banner is built once, before the tab switch, and
-  // returned unconditionally — so a non-checks tab carries the same fact
-  // line rather than it being Checks-only as it was on the old Overview.
-  test("still renders on a non-checks tab, since the banner is unconditional (criterion 7)", () => {
-    const html = page(view({ dependsOn: ["164-a-spec-can-depend"] }), "description");
-    expect(html).toContain("<strong>Depends on</strong>");
-    expect(html).toContain("164-a-spec-can-depend");
+  // returned unconditionally — so a non-description tab carries the same
+  // control rather than it being Description-only as it was before.
+  test("still renders on a non-description tab, since the banner is unconditional", () => {
+    const html = page(view({ dependsOnOptions: OPTIONS, dependsOn: ["164-a-spec-can-depend"] }), "checks");
+    expect(html).toContain('name="dependsOn"');
+    expect(html).toMatch(/value="164-a-spec-can-depend"[^>]*checked/);
   });
 
-  // The same convention `dependsOnField` keeps for a project with
-  // nothing to offer: nothing to say, no line.
-  // The words themselves are in the page's own stylesheet, in a
-  // comment about the New-spec form's layout — so the claim is about
-  // the LINE, not about the document.
-  test("a spec that depends on nothing draws no line at all", () => {
-    expect(page(view({ dependsOn: [] }))).not.toContain("<strong>Depends on</strong>");
-    expect(page(view())).not.toContain("<strong>Depends on</strong>");
-  });
-
-  // An archived spec is a record — the line is a fact about it, and a
-  // fact is not a control.
-  test("an archived spec still shows it, read-only", () => {
-    const html = page(view({ archived: true, dependsOn: ["164-a-spec-can-depend"] }));
+  // REQ-7: an archived spec is a record — read-only, no form.
+  test("an archived spec shows the dependency read-only, with no picker", () => {
+    const html = page(view({ archived: true, dependsOnOptions: OPTIONS, dependsOn: ["164-a-spec-can-depend"] }));
     expect(html).toContain("164-a-spec-can-depend");
     expect(html).not.toContain('name="dependsOn"');
   });
 
   // A folder name is arbitrary text off disk.
   test("the folder names are escaped", () => {
-    const html = page(view({ dependsOn: ['<img src=x onerror="alert(1)">'] }));
+    const html = page(view({ archived: true, dependsOn: ['<img src=x onerror="alert(1)">'] }));
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img");
   });

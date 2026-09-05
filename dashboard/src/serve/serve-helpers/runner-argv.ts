@@ -80,6 +80,11 @@ export function runnerArgv(
     timeoutSec?: Record<string, number>;
     permissionMode?: Record<string, string>;
     model?: Record<string, string>;
+    /** Whether `analyze`'s own invocation should be told acceptance
+     *  ticking is not required (spec 394) — resolved by the caller from
+     *  a fresh read of the spec's own record, never from `job` itself.
+     *  Meaningless, and ignored, for every step but `analyze`. */
+    acceptanceNotRequiredForAnalyze?: boolean;
   },
   sessionId?: string,
   streamFile?: string,
@@ -111,11 +116,14 @@ export function runnerArgv(
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
-    // Whole-job, read by `aide-run-spec` for the `analyze` step alone
-    // (spec 386): passed on every step's own invocation of this job,
-    // exactly like `--depends-on` above, and ignored by every step but
-    // the one it names.
-    ...(job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
+    // Spec 386 introduced this as a whole-job field, read by
+    // `aide-run-spec` for the `analyze` step alone; spec 394 narrows the
+    // JOB field itself to `create`'s own invocation (REQ-8) — a second
+    // job queued later for the same spec has no checkbox to carry it,
+    // and `analyze` instead reads a fresh file read the caller resolves
+    // into `acceptanceNotRequiredForAnalyze` below.
+    ...(step === "create" && job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
+    ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.

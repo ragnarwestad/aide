@@ -17,7 +17,7 @@ import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir } from "../queue/schedu
 import { QueueStore, type Job, type WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import type { Notifier } from "../integrations/notify.ts";
-import type { CodeLanding } from "../project/discover.ts";
+import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover.ts";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers.ts";
 
 export interface RunnerSetupContext {
@@ -38,6 +38,29 @@ export interface RunnerSetupContext {
   landStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   landArchivedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
+  /** The spec's own on-disk folder (spec 394) — the same `specDir` →
+   *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
+   *  to reach it, added here so `analyze`'s own spawn can read the
+   *  spec's RECORDED acceptance choice fresh, rather than trusting a
+   *  job field that may belong to a job created long before this one. */
+  specDir: (project: string, specFolder: string) => string | undefined;
+  peekMachinerySpecDir: (project: string, dir: string) => string;
+}
+
+/** Whether `analyze`'s own invocation of `job` should be told acceptance
+ *  ticking is not required (spec 394, REQ-8) — read fresh off the
+ *  spec's own `1-description.md` at spawn time, never off `job` itself:
+ *  a job queued from the specs list long after `create` finished has no
+ *  checkbox of its own to carry the choice on. `false`, never a throw,
+ *  for a spec `specDir` cannot resolve — the same defensive shape
+ *  `specAcceptanceNotRequired` already has for a missing file. */
+export function acceptanceNotRequiredForAnalyze(
+  ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir">,
+  job: Job,
+): boolean {
+  const found = ctx.specDir(job.project, job.specFolder);
+  if (!found) return false;
+  return specAcceptanceNotRequired(ctx.peekMachinerySpecDir(job.project, found));
 }
 
 export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
@@ -119,6 +142,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,
             model: ctx.store.defaults.model,
+            acceptanceNotRequiredForAnalyze:
+              step === "analyze" ? acceptanceNotRequiredForAnalyze(ctx, job) : false,
           },
           sessionId,
           streamFile,

@@ -50,6 +50,7 @@ export const view = (extra: Partial<SpecPageView> = {}): SpecPageView => ({
   updateAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/update",
   saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
   tickAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick",
+  trackingAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tracking",
   ...extra,
 });
 

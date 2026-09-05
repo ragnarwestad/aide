@@ -159,11 +159,6 @@ const STRUCTURE = [
   // a sentence out of a status file or a runner's refusal wraps instead
   // of running off the right edge of a cell sized for a word.
   "specnotice",
-  // the acceptance-not-required switch's own row (spec 386): a row of
-  // its own, spanning the table, distinct from "subrow" — a phase
-  // line's own count is asserted exactly in several test files, and
-  // this row is not a phase.
-  "acceptancerow",
   "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
   "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,
@@ -192,6 +187,12 @@ const STRUCTURE = [
   // the description (spec 229). A class of its own for one rule: their
   // buttons sit a step lower than an ordinary form's do.
   "specform",
+  // the banner's own depends-on/acceptance form (spec 394), on every
+  // tab including Checks — its own class rather than "specform", which
+  // the Checks tab's tick form already carries; two forms sharing one
+  // class on the same page broke the e2e suite's "find the one
+  // .specform button" locator.
+  "trackingform",
   // /schedule (spec 276, reworked spec 278): the New-job link's own
   // right-alignment, the detail page's key/value overview, the
   // create/edit form's error line, and the Cron field's input and its

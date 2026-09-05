@@ -176,8 +176,9 @@ describe("a chosen effort reaches the runner", () => {
   });
 });
 
-// Spec 386: whole-job, like createDependsOn — appended to every step's
-// own invocation, not looked up per step the way effort/model are.
+// Spec 386 introduced this as a whole-job field; spec 394 narrows it to
+// `create`'s own invocation (REQ-8) and moves `analyze`'s own answer to
+// a fresh file read the caller resolves into `acceptanceNotRequiredForAnalyze`.
 describe("the acceptance-not-required switch reaches the runner", () => {
   const switchJob = (acceptanceNotRequired?: boolean) =>
     ({
@@ -191,21 +192,43 @@ describe("the acceptance-not-required switch reaches the runner", () => {
       ...(acceptanceNotRequired ? { acceptanceNotRequired } : {}),
     }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
 
-  test("--acceptance-not-required lands in argv when the job chose it", async () => {
+  test("--acceptance-not-required lands in analyze's argv from the file-backed option, not the job field", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const argv = runnerArgv(switchJob(), "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+      acceptanceNotRequiredForAnalyze: true,
+    });
+    expect(argv).toContain("--acceptance-not-required");
+  });
+
+  test("the job's own field no longer reaches analyze's argv at all", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const argv = runnerArgv(switchJob(true), "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
       push: "branch",
     });
-    expect(argv).toContain("--acceptance-not-required");
+    expect(argv).not.toContain("--acceptance-not-required");
   });
 
-  test("no flag at all when the job named nothing — byte-for-byte the old argv", async () => {
+  test("no flag at all when neither the job nor the file says so — byte-for-byte the old argv", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const withNoSwitch = runnerArgv(switchJob(), "analyze", "/tmp/r.json", o);
     expect(withNoSwitch).not.toContain("--acceptance-not-required");
+  });
+
+  test("the job's own field still reaches create's own invocation unchanged", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const createJob = { ...switchJob(true), steps: ["create"] } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(createJob, "create", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    });
+    expect(argv).toContain("--acceptance-not-required");
   });
 });
 

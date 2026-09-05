@@ -172,23 +172,27 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
       `${box}</span></td></tr>`
     );
   }).join("");
-  // Spec 386: a switch beside the phase table, unchecked by default —
-  // its own row, spanning both of the table's columns, so it aligns
-  // beneath the phase name and the model+box column above it.
-  const acceptanceRow =
-    `<tr class="subrow"><td colspan="2">` +
-    phaseChip({
-      dataAttr: "data-acceptance",
-      value: "1",
-      label: "acceptance ticking not required",
-      name: "acceptanceNotRequired",
-      form: formId,
-      checked: false,
-      plain: true,
-      title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
-    }) +
-    `</td></tr>`;
-  return `<table class="list"><tbody>${captionRow}${phaseRows}${acceptanceRow}</tbody></table>`;
+  return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
+}
+
+// Spec 394 (REQ-2, REQ-3): the acceptance switch, paired with "Depends
+// on" beside it rather than living inside the phase table's own rows —
+// neither is about one phase, both are about the spec as a whole.
+// Spec 386's original placement (a row inside `newSpecPhaseTable`) split
+// this pair across the phase table; REQ-9 also flips the default to
+// CHECKED, so a spec made without touching the switch is recorded as
+// not requiring ticking.
+function acceptanceField(formId: string): string {
+  return phaseChip({
+    dataAttr: "data-acceptance",
+    value: "1",
+    label: "acceptance ticking not required",
+    name: "acceptanceNotRequired",
+    form: formId,
+    checked: true,
+    plain: true,
+    title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
+  });
 }
 
 // The fields needed to make the spec: which project, its phase table,
@@ -200,10 +204,11 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
   // Four lines, read top to bottom: Project on its own, the phase table
-  // beneath it, Depends on and Title on lines of their own, then
-  // Description with Create and Cancel at its right-hand side. Each
-  // `.frow` is a full-width row inside the same wrapping flex the Add
-  // form shares, so the shared `.newspecform` look is untouched.
+  // beneath it, Depends on paired with the acceptance switch (spec 394,
+  // REQ-3) on a line of their own, Title on the next, then Description
+  // with Create and Cancel at its right-hand side. Each `.frow` is a
+  // full-width row inside the same wrapping flex the Add form shares,
+  // so the shared `.newspecform` look is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
     tokenField(opts.token) +
@@ -216,7 +221,13 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     ) +
     `</span>` +
     newSpecPhaseTable(opts, formId) +
+    // Spec 394 (REQ-3): the two whole-spec facts drawn adjacent to each
+    // other, in one row — never split across the phase table the way
+    // spec 386 originally left the switch.
+    `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
+    acceptanceField(formId) +
+    `</span>` +
     field(
       "Title",
       `<input type="text" name="title" maxlength="120" required ` +

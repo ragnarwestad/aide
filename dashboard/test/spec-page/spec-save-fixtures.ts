@@ -12,6 +12,10 @@ export const TOKEN = "s3cret-token";
 export const SPEC = "81-queue-and-runner";
 export const EDIT = `/specs/aide/${SPEC}/edit`;
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
+// Spec 394: the banner's own tracking route — what the spec depends on
+// and whether it requires acceptance ticking, both posted here now
+// instead of riding on the Description tab's own SAVE.
+export const TRACKING = `/api/queue/specs/aide/${SPEC}/tracking`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
 export const CHECKS_TAB = `/specs/aide/${SPEC}?tab=checks`;

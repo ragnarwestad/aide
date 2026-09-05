@@ -225,13 +225,13 @@ export function parseJobRequest(
     }
   }
 
-  // Whether this run says acceptance ticking is not required (spec
-  // 386), whole-job like `modelChoice` rather than per-step like
-  // `effort` above — the same checkbox-parsing idiom
-  // `schedule-admin-routes.ts`'s Enabled toggle already uses: a request
-  // posts "1" or true, or nothing at all, and "nothing chosen" has to
-  // stay a real, reachable answer (REQ-3).
-  const acceptanceNotRequired = r.acceptanceNotRequired === "1" || r.acceptanceNotRequired === true;
+  // `acceptanceNotRequired` was parsed here until spec 394 — spec 386's
+  // whole-job checkbox, read by `analyze`'s own invocation alone. The
+  // choice is recorded on the spec itself now
+  // (`specAcceptanceNotRequired`, read fresh at spawn time), so a second
+  // job for an existing spec has nothing left to post; the specs-list
+  // row that used to post it is gone (REQ-8). Like `gateAfter` above it
+  // is an unknown key now, ignored rather than refused.
 
   const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
@@ -272,7 +272,6 @@ export function parseJobRequest(
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
       effort: stepEffort,
-      ...(acceptanceNotRequired ? { acceptanceNotRequired: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

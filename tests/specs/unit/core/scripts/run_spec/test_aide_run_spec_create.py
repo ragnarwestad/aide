@@ -81,6 +81,27 @@ def test_create_without_the_flag_says_nothing_about_dependencies(runner, workspa
     assert rc == 0, out
     assert "Depends-on" not in out["prompt"], out["prompt"]
 
+def test_create_states_the_acceptance_record_when_the_flag_is_given(runner, workspace, fake_claude):
+    """Spec 394: stated to the skill, not just to the harness, mirroring
+    `depends_line` — Step 4 is the step that actually writes the file,
+    so the instruction names it by number."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, acceptance_not_required=True, dry_run=True)
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert (
+        "Record this spec's Tracking info with an explicit "
+        "acceptance-not-required line (Step 4)." in prompt
+    ), prompt
+
+def test_create_without_the_flag_says_nothing_about_acceptance(runner, workspace, fake_claude):
+    """Nothing chosen means no line — the same rule `depends_line` and
+    the switch above already follow."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, dry_run=True)
+    assert rc == 0, out
+    assert "acceptance-not-required" not in out["prompt"], out["prompt"]
+
 def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
     """Read off the disk, never computed: the run diffs the specs root
     before and after, so the number and the slug stay the skill's
