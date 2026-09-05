@@ -136,3 +136,43 @@ describe("REQ-5: dark mode", () => {
     expect(themedEl.classList.contains("toastui-editor-dark")).toBe(true);
   });
 });
+
+// Spec 391: spec-form-actions.ts's Cancel handler resets the hidden raw
+// textarea from outside and asks a mounted editor to redraw from it —
+// the only way in, since the WYSIWYG view is a separate DOM tree this
+// instance owns.
+describe("REQ-4: a \"spec-cancel\" event on the raw textarea redraws the mounted editor", () => {
+  test("the visible WYSIWYG content reflects raw.value after the event, not what was mounted with", () => {
+    setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
+    mount();
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    const contents = document.querySelector(".toastui-editor-contents")!;
+    expect(contents.textContent).toContain("original");
+
+    raw.value = "# replaced\n";
+    raw.dispatchEvent(new Event("spec-cancel"));
+
+    expect(contents.textContent).toContain("replaced");
+    expect(contents.textContent).not.toContain("original");
+  });
+});
+
+// Spec 391: spec-form-actions.ts's one-way dirty latch needs to see an
+// "input" on the raw textarea the instant the editor's own content
+// changes — cheap and immediate, with no getMarkdown() call of its own.
+describe("REQ-2: an editor content change re-dispatches as \"input\" on the raw textarea", () => {
+  test("setMarkdown (the same call the Cancel-redraw above makes) fires an \"input\" on raw", () => {
+    setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
+    mount();
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    let fired = false;
+    raw.addEventListener("input", () => {
+      fired = true;
+    });
+
+    raw.value = "# changed\n";
+    raw.dispatchEvent(new Event("spec-cancel"));
+
+    expect(fired).toBe(true);
+  });
+});
