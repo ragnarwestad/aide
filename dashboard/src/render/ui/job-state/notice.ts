@@ -3,8 +3,21 @@
 import type { MessageVariant } from "../components.ts";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
+import type { MessageKey } from "../../../i18n/messages.ts";
 import { inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
+
+/** The three held-back reasons that resolve on their own — the queue
+ *  starts the work itself the moment the thing in front of it finishes,
+ *  so nobody has anything to act on. Every other held-back reason,
+ *  named here or not, keeps the waiting kind's warning triangle: a
+ *  message added to this family later and left off this list defaults
+ *  to "waiting", not silently to "info" (spec 389). */
+const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
+  "runner.landingPause",
+  "runner.archiveRunning",
+  "runner.dependencyNotArchived",
+]);
 
 /** A sentence a row has to show, and how loudly. The row draws it in a
  *  panel of its own (`specNoticeRow`, queue-list.ts) rather than in a
@@ -114,12 +127,25 @@ export function specNotice(
   if (lead?.error) {
     const text = renderSentence(lang, lead.error)!;
     if (!said(text)) {
+      // Three of the six held-back reasons resolve on their own —
+      // nothing for the reader to act on — so they read as info, not
+      // the waiting kind's warning triangle. Read off the message's own
+      // KEY, never the rendered text (REQ-3): `lead.error` is always a
+      // single BoardMessage while a job is held back (`Runner.hold()`).
+      // A held-back key this set does not name falls through to
+      // "waiting" — the safer default.
+      const heldBackKey =
+        lead.errorReason === "held-back" && lead.error && typeof lead.error === "object" &&
+          !Array.isArray(lead.error)
+          ? lead.error.key
+          : undefined;
+      const heldBackInfo = heldBackKey !== undefined && HELD_BACK_INFO_KEYS.has(heldBackKey);
       // `tests-red` waits for the same reason: the landing ran the
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they
       // should; the code is not green yet.
       const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
-      const variant: MessageVariant = waiting ? "waiting" : "failed";
+      const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       parts.push({ variant, text, title: lead.errorDetail });
     }
   }

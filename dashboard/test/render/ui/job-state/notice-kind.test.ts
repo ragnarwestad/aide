@@ -43,3 +43,19 @@ describe("specNotice's held-back branch reads errorReason, not a text prefix", (
     expect(notice?.variant).toBe("waiting");
   });
 });
+
+// Spec 389: three of the six held-back reasons resolve on their own —
+// nothing for the reader to act on — and take the info kind instead of
+// the waiting kind's warning triangle. The other three still wait on a
+// person and keep the triangle.
+describe("specNotice's held-back branch tells self-resolving reasons from ones a person must act on", () => {
+  test("a held-back key that resolves on its own renders info", () => {
+    const notice = specNotice(lead({ error: { key: "runner.landingPause" }, errorReason: "held-back" }));
+    expect(notice?.variant).toBe("info");
+  });
+
+  test("a held-back key that waits on a person renders waiting", () => {
+    const notice = specNotice(lead({ error: { key: "runner.notAnalyzed" }, errorReason: "held-back" }));
+    expect(notice?.variant).toBe("waiting");
+  });
+});

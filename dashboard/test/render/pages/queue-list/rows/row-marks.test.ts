@@ -105,30 +105,35 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   });
 });
 
-// --- a held-back job waits in amber, never in red --------------------------
+// --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --
 //
-// Every reason the scheduler leaves a job queued starts "held back:", and
-// each is ordinary progress (a dependency, a missing analyze, another
-// archive landing, an acceptance row for a person to tick). They take
-// the amber "archive held back" already takes, not the red of a refusal.
-describe("a job the scheduler is holding is a warning, not an error", () => {
+// Every reason the scheduler leaves a job queued starts "held back:", but
+// they are not all the same: three resolve on their own (another landing
+// or archive finishing, a dependency being archived) and take the info
+// kind; three wait on a person (not analyzed, acceptance rows unticked,
+// the daily cap) and keep the amber "archive held back" warning triangle.
+describe("a job the scheduler is holding is info when it resolves on its own, waiting when a person must act", () => {
   const FOLDER = "81-queue-and-runner";
-  const notice = (error: string, errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
+  const notice = (error: QueueRowView["error"], errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
     noticeCellHtml(
       renderQueueRows([row({ state: "queued", error, errorReason })], { runnerAvailable: true, targets: [] }),
       FOLDER,
     );
 
-  test("every held-back reason is drawn amber", () => {
-    for (const reason of [
-      "held back: another archive is running in this project — it starts when that one has landed",
-      "held back: depends on 80-dependency, which is not archived yet",
-      "held back: not analyzed yet — run /aide-analyze first",
-      "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
-    ]) {
-      const html = notice(reason, "held-back");
-      expect(html).toContain(reason);
+  test("a held-back reason that resolves on its own is drawn info, not waiting or failed", () => {
+    for (const key of ["runner.landingPause", "runner.archiveRunning", "runner.dependencyNotArchived"] as const) {
+      const html = notice({ key }, "held-back");
+      expect(html).toMatch(/class="[^"]*rowmsg info/);
+      expect(html).not.toMatch(/class="[^"]*rowmsg waiting/);
+      expect(html).not.toMatch(/class="[^"]*rowmsg failed/);
+    }
+  });
+
+  test("a held-back reason that waits on a person is drawn waiting, not info or failed", () => {
+    for (const key of ["runner.notAnalyzed", "runner.acceptanceCriteriaUnticked", "runner.dailyCapExceeded"] as const) {
+      const html = notice({ key }, "held-back");
       expect(html).toMatch(/class="[^"]*rowmsg waiting/);
+      expect(html).not.toMatch(/class="[^"]*rowmsg info/);
       expect(html).not.toMatch(/class="[^"]*rowmsg failed/);
     }
   });
