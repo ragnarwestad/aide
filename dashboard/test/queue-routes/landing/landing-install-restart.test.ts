@@ -266,6 +266,14 @@ describe("a landing that installs and asks for a restart", () => {
       }
       expect(html).toContain(`the restart is waiting for running jobs: ${job.id.slice(0, 8)}`);
       expect(html).not.toContain("Deploy restarts it on commit");
+      // Spec 392 (REQ-9): the button stays live (a press still retries
+      // the install), but its title says a press will not restart the
+      // service sooner.
+      const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form).not.toMatch(/<button[^>]*\bdisabled\b/);
+      expect(form).toContain(
+        'title="Pressing again only repeats the pull and install — it does not restart the service sooner."',
+      );
     } finally {
       writeFileSync(goFile, "");
     }

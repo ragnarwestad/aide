@@ -127,14 +127,28 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
-  test("a project with AIDE_INSTALL_CMD but no drift check yet shows 'not checked' and no button (criterion 2)", async () => {
+  // Spec 392 (REQ-1, REQ-2, REQ-3, REQ-4): the never-asked state used to
+  // return before the button existed at all — now it says so in the same
+  // one sentence every other state uses, with a present, inactive button.
+  test("a project with AIDE_INSTALL_CMD but no drift check yet shows the not-yet-checked sentence and a disabled button (criterion 2)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // The schedule is off entirely, so the answer never arrives: exactly
     // the state a fresh boot or a project just added is in.
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).not.toContain("<h3>Deploy</h3>");
-    expect(html).toContain("origin drift not checked yet");
-    expect(html).not.toContain('class="deployform"');
+    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
+    expect(panel).toContain("Whether this checkout is behind origin has not been checked yet.");
+    // REQ-2: plain language, not the internal check name or setting key —
+    // scoped to the panel itself, since the page's own CSS comments use
+    // "drift" in an unrelated sense (layout drifting out of alignment).
+    expect(panel).not.toContain("drift");
+    expect(panel).not.toContain("AIDE_INSTALL_CMD");
+    // REQ-3, REQ-4: the button is present and inactive, with a title
+    // naming why.
+    expect(html).toContain('class="deployform"');
+    const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toMatch(/<button[^>]*\bdisabled\b/);
+    expect(form).toContain('title="Origin has not been checked yet."');
   });
 
   test("a project behind origin shows the count and a Deploy button (criterion 1)", async () => {
@@ -191,7 +205,66 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
       })
     ).text();
     expect(html).toContain("could not deploy");
-    expect(html).toContain("origin drift not checked yet");
+    expect(html).toContain("Whether this checkout is behind origin has not been checked yet.");
+  });
+
+  // Spec 392 (REQ-1, REQ-7): the one state where the panel names what the
+  // served commit actually is — how far behind it is, and what the newest
+  // change was — rather than a bare hash, because origin itself is still
+  // unknown here.
+  describe("the not-yet-checked sentence naming the served commit (REQ-7)", () => {
+    /** A never-checked drift (`settled`, no background poll) that is ALSO
+     *  the checkout this server runs from: the boot-time `rev-parse HEAD`
+     *  answers `bootSha` once, every later read (the page's own, and the
+     *  two REQ-7 reads gated on the not-yet-checked state) answers
+     *  `checkoutSha`/the given subject/count. */
+    const servingUnchecked = (
+      root: string,
+      name: string,
+      bootSha: string,
+      checkoutSha: string,
+      newestSubject: string,
+      behindCount: number,
+    ) =>
+      fakeGit({
+        "rev-parse --show-toplevel": { code: 0, stdout: `${join(root, name)}\n` },
+        "rev-parse HEAD": [{ code: 0, stdout: `${bootSha}\n` }, { code: 0, stdout: `${checkoutSha}\n` }],
+        "log -1 --format=%s": { code: 0, stdout: `${newestSubject}\n` },
+        "rev-list --count": { code: 0, stdout: `${behindCount}\n` },
+      });
+
+    test("names how far behind the service is and the newest change (criteria 2, 8)", async () => {
+      const root = projectsRoot({ aide: INSTALLS });
+      const base = serve(
+        root,
+        servingUnchecked(root, "aide", "abc1234deadbeef", "9999999cafefeed", "Add the frobnicator", 2),
+        0,
+      );
+      const html = await loadUntil(base, "aide", "Whether this checkout", 2000, "deploy");
+      // The sentence is rendered through `esc()`, so its quotes come out
+      // as `&quot;` the same way any other HTML text does.
+      expect(html).toContain(
+        "Whether this checkout is behind origin has not been checked yet; the service is 2 commits " +
+          "behind this checkout — the newest change is &quot;Add the frobnicator&quot;.",
+      );
+      const form = html.match(/<form[^>]*class="deployform"[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form).toMatch(/<button[^>]*\bdisabled\b/);
+    });
+
+    test("names the newest change with no 'behind' claim when the service is current (criterion 9)", async () => {
+      const root = projectsRoot({ aide: INSTALLS });
+      const base = serve(
+        root,
+        servingUnchecked(root, "aide", "abc1234deadbeef", "abc1234deadbeef", "Add the frobnicator", 0),
+        0,
+      );
+      const html = await loadUntil(base, "aide", "Whether this checkout", 2000, "deploy");
+      expect(html).toContain(
+        "Whether this checkout is behind origin has not been checked yet; the service is already " +
+          "running the newest change, &quot;Add the frobnicator&quot;.",
+      );
+      expect(html).not.toContain("commits behind this checkout");
+    });
   });
 
   // Spec 321, REQ-2/REQ-5: the control is drawn in both states, never
@@ -254,7 +327,10 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     // very first load, which would still be in the unchecked state.
     const deadline = Date.now() + 2000;
     let html = await (await get(base, "aide", "deploy")).text();
-    while (html.includes("origin drift not checked yet") && Date.now() < deadline) {
+    while (
+      html.includes("Whether this checkout is behind origin has not been checked yet") &&
+      Date.now() < deadline
+    ) {
       await new Promise((r) => setTimeout(r, 25));
       html = await (await get(base, "aide", "deploy")).text();
     }
@@ -262,7 +338,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
     expect(html).not.toContain("commits behind origin");
     expect(html).not.toContain("matches origin");
-    expect(html).not.toContain("origin drift not checked yet");
+    expect(html).not.toContain("Whether this checkout is behind origin has not been checked yet");
     expect(html).not.toContain('class="deployform"');
   });
 
@@ -290,7 +366,7 @@ describe("POST /api/queue/projects/<name>/refresh (REQ-5)", () => {
     // Refresh press itself could ever populate the drift answer.
     const base = serve(root, behindBy(root, "aide", 3), 0);
     const before = await (await get(base, "aide", "deploy")).text();
-    expect(before).toContain("origin drift not checked yet");
+    expect(before).toContain("Whether this checkout is behind origin has not been checked yet");
     const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: JSON_AUTH });
     expect(res.status).toBe(200);
     const after = await (await get(base, "aide", "deploy")).text();
