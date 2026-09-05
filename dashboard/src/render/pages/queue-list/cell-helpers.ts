@@ -15,7 +15,7 @@ import {
   type QueueRowView,
   type RestingState,
 } from "../../ui/job-state.ts";
-import { isArchivedRow, phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
+import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TESTS_RED } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
@@ -293,78 +293,58 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   return marks;
 }
 
-/** The one small badge the State column draws beside its own running/
- *  resting word, for the "pull request" state alone (REQ-1, spec 339) —
- *  the code is on a branch and a request describes it, which is where
- *  the spec stands, not an error. `undefined` where there is nothing to
- *  add, which is most rows. */
-export interface RowMark {
-  variant: BadgeVariant;
-  label: string;
-  title: string;
-  href?: string;
-}
-
-/** `isArchivedRow(g)` is enough to pick the right group: `readerGroup`
- *  never sets `prUrl`, and `jobGroup` never sets `archive` — so the two
- *  groups never both apply to the same row and there is no ordering
- *  between them to invent. An archived row's `notLanded`/
- *  `branchDeleteError` are mutually exclusive with `prOpen` at the
- *  SOURCE (`spec-views.ts`), so `prOpen` is the only Archive fact this
- *  function ever draws. */
-export function pullRequestMark(g: SpecGroup, lang: Language): RowMark | undefined {
-  if (isArchivedRow(g)) {
-    if (!g.archive?.prOpen) return undefined;
-    return {
-      variant: "waiting",
-      label: PULL_REQUEST(lang),
-      title: g.archive.prUrl
-        ? waitingOnReviewSentence(lang)
-        : t(lang, "list.noPullRequestOpened"),
-      href: g.archive.prUrl,
-    };
-  }
-  if (!g.prUrl) return undefined;
-  return { variant: "waiting", label: PULL_REQUEST(lang), title: waitingOnReviewSentence(lang), href: g.prUrl };
-}
-
 /** One sentence in the row's notice line (REQ-2/REQ-3), ranked among
- *  whichever others apply (REQ-4) — the badge-and-title shape
- *  `pullRequestMark` above still carries a State word never carries a
- *  full sentence, and REQ-3 asks for one readable without hovering. */
+ *  whichever others apply (REQ-4). `href` carries a mark's own link
+ *  (a pull request's URL) so it survives being joined with another
+ *  mark's sentence on the same line (REQ-2, spec 403). */
 export interface RowMarkNotice {
   variant: MessageVariant;
   text: string;
+  href?: string;
 }
 
-/** The three real errors a LIVE row can carry, ranked exactly as
- *  `liveMarks()` ranks them (REQ-4) — `prUrl`'s own mark is filtered
- *  out here; it is `pullRequestMark`'s alone. The label prefixes a
+/** The four things a LIVE row's own fields can say, ranked exactly as
+ *  `liveMarks()` ranks them (REQ-4) — a pull request open for the
+ *  branch is one of them now (REQ-1/REQ-2, spec 403, reversing spec
+ *  339's REQ-1, which drew it as a State-column badge instead: a badge
+ *  true for the whole open-PR window says nothing about which state the
+ *  spec is passing through underneath it). The label prefixes a
  *  sentence only when more than one applies at once — the same nuance
- *  the badge's hover title used to carry, so a reader can still tell
+ *  the old badge's hover title used to carry, so a reader can still tell
  *  which mark is which without it costing every ordinary row (at most
  *  one, most of the time) an unnecessary label. */
 export function errorMarkNotices(g: SpecGroup, lang: Language): RowMarkNotice[] {
-  const marks = liveMarks(g, lang).filter((m) => m.label !== PULL_REQUEST(lang));
+  const marks = liveMarks(g, lang);
   // The mark's own variant decides the colour: every one of these is a
-  // refusal except a landing the project's suite went red on, which is
-  // waiting for a green run rather than broken.
+  // refusal except a landing the project's suite went red on, or a pull
+  // request waiting on review, neither of which is broken.
   return marks.map((m) => ({
     variant: m.variant === "waiting" ? ("waiting" as MessageVariant) : ("failed" as MessageVariant),
     text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence,
+    href: m.href,
   }));
 }
 
-/** An archived row's own error: `notLanded`/`branchDeleteError` are
+/** An archived row's own facts: `notLanded`/`branchDeleteError` are
  *  mutually exclusive with `prOpen` at the source (`spec-views.ts`), so
- *  this is ever at most one sentence — `prOpen` is `pullRequestMark`'s
- *  alone, never reaches here. `failed`, not `waiting` (spec 372): this
- *  is the same "a step's push did not reach origin" story
- *  `errorMarkNotices()` already tells in red for a live row — an
+ *  this is ever at most one sentence. A branch still open for review
+ *  (REQ-4, spec 403, reversing spec 339's REQ-1 the same way
+ *  `errorMarkNotices()` above does) reads the same sentence a live row's
+ *  `prUrl` gets, linked when `gh` opened one and `list.noPullRequestOpened`
+ *  when it did not. `failed`, not `waiting` (spec 372), for the other
+ *  two facts: this is the same "a step's push did not reach origin"
+ *  story `errorMarkNotices()` already tells in red for a live row — an
  *  archived row telling it in amber was the description's own bug
  *  pattern, live in the one place it had not yet been reported. */
 export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number, lang: Language): RowMarkNotice[] {
-  if (!a || a.prOpen) return [];
+  if (!a) return [];
+  if (a.prOpen) {
+    return [{
+      variant: "waiting",
+      text: a.prUrl ? waitingOnReviewSentence(lang) : t(lang, "list.noPullRequestOpened"),
+      href: a.prUrl,
+    }];
+  }
   const title = lockedStateTitle(a, now, lang);
   return title ? [{ variant: "failed", text: title }] : [];
 }

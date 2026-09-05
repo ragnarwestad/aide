@@ -244,6 +244,23 @@ export function rowMessage(
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(text)}</span></${tag}>`;
 }
 
+/** `rowMessage()` for more than one ranked part, each keeping its own
+ *  link (REQ-2, spec 403) rather than flattening to one string first —
+ *  a link lives inside a part's own sentence, so it survives being
+ *  joined with another part's sentence on the same line, unlike `title`
+ *  (notice.ts), which cannot be attributed once more than one part
+ *  joins and is dropped instead. */
+export function rowMessageParts(
+  variant: MessageVariant,
+  parts: { text: string; href?: string }[],
+  o: { hook?: string; tag?: "div" | "p" } = {},
+): string {
+  const tag = o.tag ?? "div";
+  const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
+  const body = parts.map((p) => (p.href ? `<a href="${esc(p.href)}">${esc(p.text)}</a>` : esc(p.text))).join(" · ");
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
+}
+
 /** The slot a refusal is WRITTEN into by the browser code, as opposed
  *  to one the server rendered. It must stay empty until then —
  *  `.rowmsg:empty` draws nothing — so it gets no icon: `textContent`

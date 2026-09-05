@@ -126,7 +126,7 @@ const PHASE_1_PILOT: RegistryEntry[] = [
     resolve: "checkout on the serving host",
   },
   {
-    name: "archived, no pull request was opened (cell-helpers.ts, pullRequestMark)",
+    name: "archived, no pull request was opened (cell-helpers.ts, archivedRowNotices)",
     text: rowBlock(archived("70-noPr", { prOpen: true }), "70-noPr"),
     resolve: "Open one by hand, in the checkout on the serving host.",
   },
