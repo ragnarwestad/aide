@@ -6,9 +6,8 @@ import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
-import { discoverProjects, withDependsOnLine } from "../../../project/discover.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, resolveDependencyFolder, specsRedirect } from "../../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers.ts";
 import { STATE_SPEC_FILE, stateRelPath } from "./shared.ts";
 
 import type { HandleQueueContext } from "../../handle-queue.ts";
@@ -146,55 +145,11 @@ export async function specPageRoutes(
     if (typeof body.text !== "string") {
       return specsRedirect({}, { error: "no text was submitted — nothing was saved" }, back);
     }
-    // REQ-7: dependsOn stays Description-only; the other tabs' forms
-    // never send it, and this parsing only ever touches the file the
-    // "Depends on" line actually lives in.
-    let text = body.text;
-    if (file === EDITABLE_SPEC_FILE) {
-      // Spec 166: the "Depends on" field, resolved the way the runtime
-      // gate will later resolve it (`resolveDependencyFolder`, which
-      // takes a bare number or a full folder and sees archived specs
-      // too) — so a dependency the page accepts is one the gate can
-      // read. Refused entry by entry, never filtered: a typo left to
-      // drop out silently is a dead gate nobody is told about.
-      //
-      // `bodyToObject` wraps a lone `dependsOn` value in an array for
-      // the New-spec form's chip set, so this field's one comma-
-      // separated string arrives as `["164, 165"]`. Both shapes are
-      // taken apart the same way rather than un-wrapping one of them.
-      const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
-        .filter((v): v is string => typeof v === "string")
-        .flatMap((v) => v.split(","))
-        .map((id) => id.trim())
-        .filter(Boolean);
-      if (ids.length > 0) {
-        // `specDir` above already 404s a project that does not resolve,
-        // so this cannot actually be undefined — defence in depth, not
-        // a path a request can reach.
-        const discovered = ctx.opts.projectRoot
-          ? discoverProjects(ctx.opts.projectRoot).find((p) => p.name === project)
-          : undefined;
-        if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
-        for (const id of ids) {
-          const dep = resolveDependencyFolder(discovered, id);
-          if (!dep) {
-            return specsRedirect({}, { error: `no such spec in this project: ${id} — nothing was saved` }, back);
-          }
-          if (dep.folder === specFolder) {
-            return specsRedirect({}, { error: `a spec cannot depend on itself: ${id} — nothing was saved` }, back);
-          }
-        }
-      }
-      const merged = withDependsOnLine(body.text, ids);
-      if (merged === null) {
-        return specsRedirect(
-          {},
-          { error: `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved` },
-          back,
-        );
-      }
-      text = merged;
-    }
+    // REQ-1 (spec 394): the "Depends on" picker moved out of the
+    // Description tab's own form into the banner above the tab row, so
+    // this route no longer merges a posted `dependsOn` field at all —
+    // that is `spec-edit/tracking.ts`'s route now, for every tab.
+    const text = body.text;
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
     // spec 355 (REQ-2): a document-tab Save of 4-status.md itself is as
     // real a write to it as a skill's or the tick route's, and the

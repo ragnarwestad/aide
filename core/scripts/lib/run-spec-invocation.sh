@@ -123,9 +123,15 @@ else
   depends_line=""
   [ -n "$depends_on" ] && depends_line="
 Use exactly this Depends-on value in Tracking info: $depends_on"
+  # Spec 394: stated to the skill beside depends_line, for the same
+  # reason — Step 4 is the step that actually writes the file, so the
+  # instruction names it by number.
+  accept_line=""
+  [ "$acceptance_not_required" = "yes" ] && accept_line="
+Record this spec's Tracking info with an explicit acceptance-not-required line (Step 4)."
   prompt="/aide-create TODO-$title_slug $description
 
-Use exactly this title for the spec: $title$depends_line
+Use exactly this title for the spec: $title$depends_line$accept_line
 $headless_note"
 fi
 if [ "$tool" = "codex" ]; then

@@ -41,7 +41,7 @@ def specs_root(tmp_path):
 
 
 def run(script, specs_root, number, slug, title, description,
-        depends_on=None, result_file=None, extra_args=None):
+        depends_on=None, result_file=None, extra_args=None, acceptance_not_required=False):
     args = [
         str(script),
         "--specs-root", str(specs_root),
@@ -52,6 +52,8 @@ def run(script, specs_root, number, slug, title, description,
     ]
     if depends_on is not None:
         args += ["--depends-on", depends_on]
+    if acceptance_not_required:
+        args += ["--acceptance-not-required"]
     if result_file:
         args += ["--result-file", str(result_file)]
     if extra_args:
@@ -107,6 +109,41 @@ def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "Depends on" not in desc
+
+
+# --- acceptance (spec 394, REQ-9) ------------------------------------------
+
+
+def test_acceptance_not_required_flag_writes_the_line_after_created(script, specs_root):
+    rc, out, _ = run(
+        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        acceptance_not_required=True,
+    )
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    lines = desc.splitlines()
+    created_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Created:**"))
+    assert lines[created_idx + 1] == "- **Acceptance:** not required"
+
+
+def test_no_acceptance_flag_writes_no_acceptance_line(script, specs_root):
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    assert "Acceptance" not in desc
+
+
+def test_acceptance_and_depends_on_both_land_after_created_in_order(script, specs_root):
+    rc, out, _ = run(
+        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        depends_on="105", acceptance_not_required=True,
+    )
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    lines = desc.splitlines()
+    created_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Created:**"))
+    assert lines[created_idx + 1] == "- **Depends on:** `105`"
+    assert lines[created_idx + 2] == "- **Acceptance:** not required"
 
 
 # --- refusal (AC4, AC5) ----------------------------------------------------

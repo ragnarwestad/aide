@@ -3,7 +3,6 @@
 
 import { field, tokenField, btn } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import { dependsOnField } from "../new-spec-page.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page.ts";
 import { activeJob, EDITABLE_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
@@ -81,8 +80,14 @@ export function documentPanel(view: SpecPageView, label: string, now: number, ma
   return `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>${editableDocumentForm(view, label, file.text)}`;
 }
 
-/** The Description tab: the one file of the four with a depends-on
- *  picker beside its Save (spec 162, moved onto this page by spec 212).
+/** The Description tab (spec 162, moved onto this page by spec 212).
+ *
+ *  The depends-on picker that used to sit above this tab's own Save
+ *  moved into the banner above the tab row (spec 394, REQ-1): a
+ *  dependency is a fact about the SPEC, not about this one document,
+ *  and now lives beside the acceptance switch, the other whole-spec
+ *  fact. This panel is left with exactly the shape every other document
+ *  tab already has.
  *
  *  An archived spec, or one with a job in flight, gets the read-only
  *  panel instead: an archived spec is a RECORD, and a Save on either
@@ -92,22 +97,8 @@ export function documentPanel(view: SpecPageView, label: string, now: number, ma
 export function descriptionPanel(view: SpecPageView, now: number, mark = ""): string {
   const file = view.files.find((f) => f.label === EDITABLE_SPEC_FILE);
   if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, mark);
-  const picker = dependsOnField(view.dependsOnOptions ?? [], new Set(view.dependsOn ?? []));
-  // Spec 166: above the file, because a dependency is about the spec
-  // rather than about the prose — and because the line it writes is the
-  // one line the textarea below no longer shows. The control is the
-  // New-spec page's own since spec 174.
-  //
-  // The note goes with the picker rather than standing on its own: a
-  // project with nothing to depend on draws neither, and a sentence
-  // about a control that is not there is one more thing to read past.
-  const extra = picker
-    ? `<span class="frow">${picker}</span>` +
-      `<p class="muted">A dependency applies from this spec's next gated step ` +
-      `(implement, resolve, archive) — never to a step already running.</p>`
-    : "";
   return (
     `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>` +
-    editableDocumentForm(view, EDITABLE_SPEC_FILE, file?.text ?? "", extra)
+    editableDocumentForm(view, EDITABLE_SPEC_FILE, file?.text ?? "")
   );
 }

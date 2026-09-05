@@ -187,10 +187,19 @@ export function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
-    // REQ-5: a spec git could not date sorts as the epoch — the oldest
-    // possible date, and the least surprising place for "unknown" to
-    // land in a list that opens newest-first — never a job's own time.
-    : sort === "created" ? (Date.parse(g.createdAt ?? "") || 0)
+    // A spec git could not date sorts as the NEWEST, not the oldest.
+    // Spec 208's REQ-5 put it at the epoch, reasoning that "unknown"
+    // should land where it surprises least. In use it is the opposite:
+    // the cell reads "–" because git has not caught up with a folder
+    // that was made moments ago, so the one spec that is certainly
+    // newest was the one sent to the bottom of a newest-first list.
+    // Never a job's own time, as before.
+    //
+    // MAX_SAFE_INTEGER rather than Infinity: two undated specs would
+    // subtract to NaN, and a comparator returning NaN orders them by
+    // nothing at all — the folder tie-break below never runs, because
+    // NaN !== 0.
+    : sort === "created" ? (Date.parse(g.createdAt ?? "") || Number.MAX_SAFE_INTEGER)
     : (g.totalDurationMs ?? 0);
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);

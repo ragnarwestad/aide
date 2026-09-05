@@ -265,6 +265,8 @@ export function createServer(opts: ServerOptions) {
     landStepBranch: land.landStepBranch,
     landArchivedSpec: land.landArchivedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
+    specDir: resolution.specDir,
+    peekMachinerySpecDir: resolution.peekMachinerySpecDir,
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

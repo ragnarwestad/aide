@@ -35,6 +35,11 @@ set -uo pipefail
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
 stamp_outcome="no"; folder=""; start_epoch=""; model=""
+# Whether this spec's Tracking info should say acceptance ticking is not
+# required (spec 394). A bare flag, like --pull/--dry-run elsewhere:
+# there is nothing to validate, and its absence is the byte-for-byte
+# behaviour every caller before this flag existed already has (REQ-11).
+acceptance_not_required="no"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,6 +49,7 @@ while [ $# -gt 0 ]; do
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; depends_on_given="yes"; shift 2 ;;
+    --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
     --stamp-outcome) stamp_outcome="yes"; shift ;;
     --folder) folder="${2:-}"; shift 2 ;;
@@ -181,6 +187,9 @@ if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
   [ -n "$formatted" ] && depends_line=$'\n- **Depends on:** '"$formatted"
 fi
 
+accept_line=""
+[ "$acceptance_not_required" = "yes" ] && accept_line=$'\n- **Acceptance:** not required'
+
 mkdir -p "$dest" || refuse "could not create $dest"
 
 # The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
@@ -220,7 +229,7 @@ cat > "$dest/1-description.md" <<AIDE_EOF
 ## Tracking info
 
 - **Task:** \`${folder}/\`
-- **Created:** \`${today}\`${depends_line}
+- **Created:** \`${today}\`${depends_line}${accept_line}
 
 ---
 

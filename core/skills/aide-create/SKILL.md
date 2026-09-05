@@ -124,6 +124,7 @@ aide-create-spec \
 AIDE_DESC
 )" \
   --depends-on "<value>"   # omit this flag entirely when the prompt states none
+  --acceptance-not-required   # the default — see "Acceptance" below
 ```
 
 **Depends on:** if the prompt states a Depends-on value (the "New spec"
@@ -140,6 +141,17 @@ per entry:
 
 When the prompt states no such value, omit the `--depends-on` flag
 entirely. Never infer a dependency from the description.
+
+**Acceptance:** by default, pass `--acceptance-not-required` — a spec
+is created with acceptance ticking NOT required unless the person
+asking explicitly wants ticking to be required for this spec. When
+the dashboard's New-spec page or a job's own prompt states the
+instruction under "Record this spec's Tracking info with an explicit
+acceptance-not-required line" (Step 4), pass the flag. When creating a
+spec directly (no such instruction present, e.g. a bare `/aide-create`
+typed in a session), still pass the flag by default; omit it only when
+the person creating the spec has said they want acceptance ticking
+required.
 
 **A collision you can see is a question to ask, not a dependency to
 guess.** Before creating the spec, check whether an open spec already

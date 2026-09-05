@@ -4,22 +4,62 @@
 
 import { btn, ICON_PDF, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
+import { dependsOnField } from "../new-spec-page.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
-/** What the spec depends on, on the front page, in words (spec 212).
+/** The two whole-spec facts that sit above the tabs (spec 394): what the
+ *  spec depends on, and whether it requires acceptance ticking. Neither
+ *  is about any one document — REQ-1 moves the depends-on picker out of
+ *  the Description tab's own save form for exactly that reason, and
+ *  REQ-2 puts the acceptance switch beside it rather than leaving it
+ *  homeless on the specs list's own row.
  *
- *  Read-only, whether the spec is archived or not: the control that
- *  CHANGES it is the Description tab's picker, because the line it
- *  writes is a line of `1-description.md` and belongs with that file's
- *  own Save. Two controls for one fact can disagree; one cannot.
+ *  Read-only sentences for an archived spec — the same shape this
+ *  banner always drew, since an archived spec is a RECORD with no form
+ *  to draw at all (REQ-7). One combined form for a live spec, posting
+ *  to `view.trackingAction`.
  *
- *  Nothing at all when the spec depends on nothing — the same
- *  convention `dependsOnField` keeps for a project with nothing to
- *  offer. */
-export function dependsOnLine(view: SpecPageView): string {
+ *  The acceptance switch is drawn LOCKED, not omitted, once `analyze`
+ *  has already decided the question (REQ-6) — the same disabled-with-
+ *  title shape `pdfControl`/`resetControl` use below for "possible in
+ *  principle, not right now". A locked box submits nothing at all, the
+ *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
+ *  precisely so the route can tell those two apart (see
+ *  `spec-edit/tracking.ts`). */
+export function trackingControl(view: SpecPageView): string {
   const folders = view.dependsOn ?? [];
-  if (folders.length === 0) return "";
-  return fact("Depends on", folders.map((f) => esc(f)).join(", "));
+  const options = view.dependsOnOptions ?? [];
+  if (view.archived) {
+    const dep = folders.length ? fact("Depends on", folders.map((f) => esc(f)).join(", ")) : "";
+    return dep + fact("Acceptance", view.acceptanceNotRequired ? "not required" : "required");
+  }
+  const acceptanceLocked = view.done?.includes("analyze") ?? false;
+  const picker = options.length ? dependsOnField(options, new Set(folders), { wide: true }) : "";
+  const note = picker
+    ? `<p class="muted">A dependency applies from this spec's next gated step ` +
+      `(implement, resolve, archive) — never to a step already running.</p>`
+    : "";
+  const acceptance = acceptanceLocked
+    ? `<span class="checkbox" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
+      `<span>acceptance ticking not required</span></span>`
+    : `<label class="checkbox">` +
+      `<input type="hidden" name="acceptanceEditable" value="1">` +
+      `<input type="checkbox" name="acceptanceNotRequired" value="1"${view.acceptanceNotRequired ? " checked" : ""}>` +
+      `<span>acceptance ticking not required</span></label>`;
+  // `.trackingform`, never `.specform`: the Checks tab's tick form
+  // already carries that class, and the banner renders on every tab —
+  // Checks included — so a shared class would leave that tab with TWO
+  // `.specform` forms, breaking anything that finds one by that class
+  // alone (`dashboard/test/e2e/acceptance-gate-checks-tab.test.ts`,
+  // spec 382).
+  return (
+    `<form class="trackingform" method="post" action="${esc(view.trackingAction)}">` +
+    tokenField(view.token) +
+    (picker ? `<span class="frow">${picker}</span>` : "") +
+    note +
+    `<p class="factions">${acceptance} ${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
+    `</form>`
+  );
 }
 
 /** One labelled fact about the spec: what it is, then what it says.
