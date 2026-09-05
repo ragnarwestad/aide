@@ -28,7 +28,10 @@ export interface QueueRowView {
    *  `n` is its 1-indexed place in `queuePriorityOrder()`'s order
    *  (REQ-1), `total` the number of jobs `queued` right now. Computed by
    *  `jobRow()` off the SAME function `Runner.tick()` calls (REQ-6), so
-   *  the two cannot disagree. Absent for every state but `queued`. */
+   *  the two cannot disagree. Absent for every state but `queued`
+   *  genuinely waiting for a slot — a job the runner is holding back for
+   *  a different reason (`errorReason === "held-back"`, spec 396) gets
+   *  none either, however `queuePriorityOrder()` would have sorted it. */
   queuePosition?: { n: number; total: number };
   state:
     | "queued" | "running" | "done"

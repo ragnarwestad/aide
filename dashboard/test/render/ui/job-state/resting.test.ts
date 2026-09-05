@@ -6,6 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
+import { specNotice } from "../../../../src/render/ui/job-state/notice.ts";
 import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
 
 describe("GERUND_EN/GERUND_NB (spec 350)", () => {
@@ -51,5 +52,35 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
   test("English is unchanged (REQ-5)", () => {
     const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "en");
     expect(html).toContain("analyzing");
+  });
+});
+
+// Spec 396: a queued job the runner is holding back is not competing for
+// a slot, so its badge must not carry the n/total wording meant for a job
+// that is.
+describe("specStateChip() on a held-back queued row (spec 396)", () => {
+  test("reads '<step> held back', with no n/total figure", () => {
+    const html = specStateChip(
+      row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
+      "en",
+    );
+    expect(html).toContain("implementing held back");
+    expect(html).not.toMatch(/\d+\/\d+/);
+  });
+
+  test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {
+    const heldRow = row({
+      state: "queued",
+      steps: ["implement"],
+      stepIndex: 0,
+      errorReason: "held-back",
+      error: "held back: depends on 80-x, which is not archived yet",
+    });
+    const badgeHtml = specStateChip(heldRow, "en");
+    const notice = specNotice(heldRow);
+
+    expect(badgeHtml).toContain("implementing held back");
+    expect(badgeHtml).not.toMatch(/\d+\/\d+/);
+    expect(notice?.text.startsWith("held back:")).toBe(true);
   });
 });
