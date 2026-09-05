@@ -22,15 +22,15 @@ phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec
 
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
-| State         | Meaning                                                                                        |
-|---------------|------------------------------------------------------------------------------------------------|
-| `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.        |
+| State         | Meaning                                                                                         |
+|---------------|-------------------------------------------------------------------------------------------------|
+| `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.         |
 | `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set. |
 | `done`        | Every step succeeded and, for a step that lands, the landing succeeded too.                     |
 | `stopped`     | A cap ended the run before or during a step. `stopReason` says which cap.                       |
-| `failed`      | A step reported failure, or a landing after a successful step did not finish.                  |
-| `cancelled`   | A person pressed Cancel.                                                                       |
-| `interrupted` | The step's process died without leaving a result.                                              |
+| `failed`      | A step reported failure, or a landing after a successful step did not finish.                   |
+| `cancelled`   | A person pressed Cancel.                                                                        |
+| `interrupted` | The step's process died without leaving a result.                                               |
 
 Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`). Every other state has released
 it: the same step may be queued again for the same spec, and the duplicate guard no longer refuses it.

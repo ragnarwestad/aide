@@ -21,12 +21,12 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 
 ## The four phases
 
-| Phase       | Writes                                                                 | Lands                                                     |
-|-------------|------------------------------------------------------------------------|-----------------------------------------------------------|
+| Phase       | Writes                                                                                                                   | Lands                                                                                |
+|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | `create`    | The spec folder: `0-README.md`, `1-description.md` and empty `2-`, `3-`, `4-` files, via `core/scripts/aide-create-spec` | Merged into the specs repo's default branch at once; the branch is deleted on origin |
-| `analyze`   | `2-analysis.md`, `3-solution.md`, `4-status.md`, in the specs repo only | Merged into the specs repo's default branch at once; the branch is deleted on origin |
-| `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec | Nothing. The code waits on `aide/<folder>` |
-| `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
+| `analyze`   | `2-analysis.md`, `3-solution.md`, `4-status.md`, in the specs repo only                                                  | Merged into the specs repo's default branch at once; the branch is deleted on origin |
+| `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
+| `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
 
 Other steps exist — `explore`, `manifest`, `schedule`, `reopen` — but they are not phases: none of them appears in the
 workflow arc, and none moves the spec along it.
@@ -88,14 +88,14 @@ checked: an `implement` run against an empty `3-solution.md` is refused by the s
 **`implement` to `archive`.** `core/scripts/aide-archive-spec` runs before any model is spawned and decides in this
 order, stopping at the first that applies:
 
-| Outcome                        | Meaning                                                                                       |
-|--------------------------------|-----------------------------------------------------------------------------------------------|
-| `refused`                      | Bad arguments, or the spec cannot be found                                                    |
-| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs           |
-| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it     |
-| `not-implemented-yet`          | `implement` is not on the completed line                                                      |
+| Outcome                        | Meaning                                                                                         |
+|--------------------------------|-------------------------------------------------------------------------------------------------|
+| `refused`                      | Bad arguments, or the spec cannot be found                                                      |
+| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs             |
+| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
+| `not-implemented-yet`          | `implement` is not on the completed line                                                        |
 | `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a person ticks those |
-| `archived`                     | Stamped and moved; the landing follows                                                        |
+| `archived`                     | Stamped and moved; the landing follows                                                          |
 
 The first four outcomes short of `archived` end the step without a model run. `conflict-open` and `archived` spawn
 one, for the conflict and for the documentation feedback respectively.
@@ -118,12 +118,12 @@ until `archive` is run again — see [Branches and landing](landing.md).
 
 ## Where the work is between phases
 
-| After       | Specs repo                                              | Project                                        |
-|-------------|---------------------------------------------------------|------------------------------------------------|
-| `create`    | Folder on the default branch                            | Untouched                                      |
-| `analyze`   | Analysis, plan and status on the default branch         | Untouched                                      |
-| `implement` | Status rows on `aide/<folder>` — implement lands nothing | Code on `aide/<folder>`, pushed to origin       |
-| `archive`   | Folder under `archive/` on the default branch           | Code on the default branch, or a pull request left open when `codeLanding: pr` |
+| After       | Specs repo                                               | Project                                                                        |
+|-------------|----------------------------------------------------------|--------------------------------------------------------------------------------|
+| `create`    | Folder on the default branch                             | Untouched                                                                      |
+| `analyze`   | Analysis, plan and status on the default branch          | Untouched                                                                      |
+| `implement` | Status rows on `aide/<folder>` — implement lands nothing | Code on `aide/<folder>`, pushed to origin                                      |
+| `archive`   | Folder under `archive/` on the default branch            | Code on the default branch, or a pull request left open when `codeLanding: pr` |
 
 `implement` is the one phase whose work is deliberately left on its branch, in both repos: the branch is the
 inspection point, and `archive` is what lands it. A project that sets `codeLanding: pr` in its manifest keeps the CODE
