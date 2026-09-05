@@ -123,7 +123,9 @@ Three fields say something the state alone does not, and each is read by the pag
   flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
   that reads `queue.list()` sees its own triggering job still marked `landing: true` even though the landing calling
   it has already succeeded, and must treat that one row as settled by hand; every other row's flag is as trustworthy
-  as ever.
+  as ever. The step's own phase line follows the same flag: its badge reads the step's gerund, not "done", and its
+  own duration keeps counting until the landing settles — the row's state and the phase line never disagree about
+  whether the step is still going.
 - **`stopReason`** is `budget`, `timeout`, `provider-limit` or `job-cap`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under tight caps a cap-stop is a common, healthy outcome.
 - **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running

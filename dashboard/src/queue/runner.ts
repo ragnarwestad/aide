@@ -381,6 +381,22 @@ export class Runner {
     // missing stays missing. There is nothing to default it to.
     const tokens = tokenUsage(outcome.tokens);
     if (tokens) this.addSpentTokensToday(tokens.total);
+    // BEFORE `results` is built: whether this step's own `at` is written
+    // now or deferred until its landing settles (spec 395) is known
+    // while the entry is constructed. BEFORE the state transitions
+    // below too, and folded into every one of them: a hook that took
+    // ownership of a landing must have its flag set in the same call
+    // stack that would otherwise free this job's concurrency slot. A
+    // `tick()` interleaved between the two would see a job that is
+    // merely `done` and start something else against the checkout the
+    // landing is writing to.
+    const landingWork = this.o.onStepDone?.(job, step, outcome);
+    const landing = landingWork ? true : undefined;
+    // The index this step's own entry will occupy — captured so the
+    // settle callback below can find it again without searching by
+    // name, which a re-run of the same step later in this job's life
+    // could make ambiguous.
+    const resultIndex = job.results.length;
     const results = [
       ...job.results,
       {
@@ -400,24 +416,41 @@ export class Runner {
         // step whose result carried no session was still run under one.
         sessionId: outcome.sessionId ?? job.sessionId,
         streamFile: job.streamFile,
-        at: this.o.now(),
+        // A step whose work lands (spec 395, REQ-3): the clock this
+        // stamp ends is the step's OWN work, and that work is not over
+        // until the merge is. Written immediately only when there is
+        // no landing to wait for.
+        at: landingWork ? undefined : this.o.now(),
         // This step's own start (spec 384) — moves off `Job.stepStartedAt`
         // and onto the result it produced.
         startedAt: job.stepStartedAt,
       },
     ];
-    // BEFORE the state transitions below, and folded into every one of
-    // them: a hook that took ownership of a landing must have its flag
-    // set in the same call stack that would otherwise free this job's
-    // concurrency slot. A `tick()` interleaved between the two would see
-    // a job that is merely `done` and start something else against the
-    // checkout the landing is writing to.
-    const landingWork = this.o.onStepDone?.(job, step, outcome);
-    const landing = landingWork ? true : undefined;
     if (landingWork) {
+      // Runs once, whichever way the landing settles — the same
+      // "always clear the flag" shape already used below, extended to
+      // also close out this step's own duration at the instant its
+      // work is actually done. Nothing else can extend `job.results`
+      // for THIS job before this fires: `Runner.tick()` starts no job
+      // at all while any job is landing (`docs/job-states.md`, "Beside
+      // the state"), so `resultIndex` still names the same entry.
+      const settleDuration = (): void => {
+        const current = this.o.store.get(job.id);
+        const entry = current?.results[resultIndex];
+        if (!entry || entry.step !== step || entry.at !== undefined) return;
+        const patched = [...current!.results];
+        patched[resultIndex] = { ...entry, at: this.o.now() };
+        this.o.store.update(job.id, { results: patched });
+      };
       void Promise.resolve(landingWork).then(
-        () => this.o.store.update(job.id, { landing: undefined }),
-        () => this.o.store.update(job.id, { landing: undefined }),
+        () => {
+          settleDuration();
+          this.o.store.update(job.id, { landing: undefined });
+        },
+        () => {
+          settleDuration();
+          this.o.store.update(job.id, { landing: undefined });
+        },
       );
     }
     const base = {

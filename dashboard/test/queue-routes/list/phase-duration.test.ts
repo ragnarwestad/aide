@@ -213,6 +213,24 @@ describe("a phase says how long it took", () => {
     expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
 
+  // REQ-3: a step whose own work is still landing has no `at` yet
+  // (spec 395) — the phase must keep counting from its own start
+  // instead of reading a settled duration off a timestamp that has not
+  // been written.
+  test("a phase still landing reads live, counting from its own start (spec 395, REQ-3)", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        state: "done",
+        landing: true,
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1 }],
+      }),
+    ]);
+    const cell = phaseCell(html, "analyze");
+    expect(cell).toContain('data-elapsed="2026-08-16T09:00:00Z"');
+    expect(cell).toContain("3h00m");
+  });
+
   test("a spec with no job ever run for it reads 0s", () => {
     const html = page([], [target("aa-spec", { createdAt: "2026-06-01T09:00:00Z" })]);
     expect(headCell(html, "aa-spec")).toContain("0s");
@@ -300,6 +318,26 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(total?.live).toBe(true);
     // since = create's start (09:00) minus the settled 20 minutes = 08:40.
     expect(total?.since).toBe("2026-08-20T08:40:00.000Z");
+  });
+
+  // REQ-7: `computeSpecTotalDurationMs` is built on `phaseDuration`, so a
+  // step still landing must inherit REQ-3's fix automatically — the
+  // spec's TOTAL, not only the one phase cell, keeps counting through
+  // the merge (spec 395).
+  test("a step still landing counts live in the spec's total, not frozen at 0 (spec 395, REQ-7)", () => {
+    const withLanding = [
+      row("a1", {
+        steps: ["archive"],
+        state: "done",
+        landing: true,
+        startedAt: "2026-08-20T09:00:00Z",
+        results: [{ step: "archive", ok: true, costUsd: 1 }],
+      }),
+    ];
+    const now = Date.parse("2026-08-20T09:05:00Z");
+    const total = computeSpecTotalDurationMs(withLanding, now);
+    expect(total?.live).toBe(true);
+    expect(total?.ms).toBe(5 * 60 * 1000);
   });
 
   test("a spec nothing has ever run for measures nothing", () => {
@@ -420,6 +458,24 @@ describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
     // Not the boundary-based figure (09:10 to 10:40 = 90 minutes), which
     // is what today's formula would have returned.
     expect(d?.ms).not.toBe(90 * 60 * 1000);
+  });
+
+  // spec 395, REQ-3: a step whose own work is still landing has no `at`
+  // recorded yet — `phaseDuration` must count live from the step's own
+  // start rather than returning null (no end) or a stale settled figure.
+  test("a landing step counts live from its own start, with no at recorded yet (spec 395, REQ-3)", () => {
+    const r = row({
+      landing: true,
+      startedAt: "2026-08-16T09:00:00Z",
+      results: [
+        { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
+        { step: "implement", ok: true, costUsd: 2, startedAt: "2026-08-16T10:30:00Z" },
+      ],
+    });
+    const d = phaseDuration(r, "implement", Date.parse("2026-08-16T12:00:00Z"));
+    expect(d?.live).toBe(true);
+    expect(d?.ms).toBe(90 * 60 * 1000);
+    expect(d?.since).toBe("2026-08-16T10:30:00Z");
   });
 
   // The literal "listed at over ten hours... nine and a half held back"

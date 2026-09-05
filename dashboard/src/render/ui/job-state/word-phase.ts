@@ -4,7 +4,8 @@ import type { BadgeVariant, PipKind } from "../components.ts";
 import { renderMessage } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import type { Language } from "../../../i18n";
-import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
+import { BADGE_VARIANT, currentStep, inFlight, stateLabel } from "./format.ts";
+import { gerund } from "./resting.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The reasons a step declines, each as the sentence a reader can act
@@ -111,6 +112,20 @@ export function wordPhase(
   // (reported 2026-08-23). Only the pip moved before, and a pip is not
   // a word.
   if (running) {
+    // A step whose own process already ended is still "running" from a
+    // reader's chair while its work is being merged (spec 395, REQ-2):
+    // `attempt.state` reads "done" the instant the process exits, well
+    // before `attempt.landing` clears, and a badge built from `state`
+    // alone would say so. The word is the SAME gerund `specStateChip`
+    // already draws for the row above this line (`resting.ts`), so a
+    // reader never sees the row and the phase name the wait two ways.
+    if (attempt!.landing) {
+      return {
+        pip: "now",
+        badge: { variant: "running", label: gerund(lang, currentStep(attempt!)) },
+        qualifier: filesDisagree,
+      };
+    }
     return {
       pip: "now",
       badge: {

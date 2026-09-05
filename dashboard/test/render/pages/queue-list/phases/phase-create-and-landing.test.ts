@@ -436,6 +436,32 @@ describe("a landing marks only the step being landed, not every finished step", 
     );
   const pipKind = (html: string, label: string) =>
     html.match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
+  // The phase LINE's own badge only exists once the row is OPEN (spec
+  // 103) — `rows()` above never opens one, since every existing test in
+  // this describe reads the compact header pip instead. The two badge
+  // assertions below are the first in this describe to read the
+  // phase LINE itself, so they open the row explicitly rather than
+  // widening `rows()` for every other test here.
+  const openRows = (list: QueueRowView[], done: string[] = []) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "375-landing-pips", done }],
+        filter: { open: "aide/375-landing-pips" },
+      },
+      Date.parse("2026-09-03T14:20:00Z"),
+    );
+  /** A phase LINE's own badge text — not the row's, and not just its
+   *  pip (spec 395). A "live" variant's badge carries a leading dot
+   *  span (`components.ts`'s `badge()`); stripped first the same way
+   *  `phase-row-rendering.test.ts`'s own helper does. */
+  const badgeLabel = (html: string, step: string): string =>
+    (
+      html
+        .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0]
+        ?.replace(/<span class="dot"[^>]*><\/span>/g, "") ?? ""
+    ).match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
 
   const chained = row({
     id: "j375",
@@ -466,5 +492,29 @@ describe("a landing marks only the step being landed, not every finished step", 
   test("the step being landed still reads running", () => {
     const html = rows([chained]);
     expect(pipKind(html, "archive")).toBe("now");
+  });
+
+  // spec 395, REQ-2: the phase LINE's own badge, not only the row above
+  // it, must say the step is still going while its work is landing —
+  // never "done" with a clock that has stopped.
+  test("the step being landed reads its own gerund, not done (spec 395, REQ-2)", () => {
+    const html = openRows([chained]);
+    expect(badgeLabel(html, "archive")).toBe("archiving");
+  });
+
+  // spec 395, REQ-5: the rule holds for every step that lands its own
+  // work, not only archive.
+  test("a non-archive landing step reads its own gerund too (spec 395, REQ-5)", () => {
+    const analyzing = row({
+      id: "j375b",
+      specFolder: "375-landing-pips",
+      steps: ["analyze"],
+      stepIndex: 0,
+      state: "done",
+      landing: true,
+      results: [{ step: "analyze", ok: true, costUsd: 1 }],
+    });
+    const html = openRows([analyzing]);
+    expect(badgeLabel(html, "analyze")).toBe("analyzing");
   });
 });

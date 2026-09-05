@@ -34,7 +34,9 @@ export interface JobStepResultView {
   terminalReason: string;
   subtype?: string;
   sessionId?: string;
-  at: string;
+  /** Absent while this step's own work is still landing (spec 395) — see
+   *  `StepResult.at`, the field this is built from. */
+  at?: string;
   /** This step's OWN transcript, already-escaped (spec 240) — read from
    *  its own `streamFile` (`queue.ts:143`), never the job's live
    *  pointer. Absent when the step wrote no transcript of its own (a
@@ -223,7 +225,7 @@ export function stepResults(
         `${r.tool === "codex" || r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
-        `<td class="muted small">${esc(r.at)}</td></tr>`;
+        `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const log = isOpen
         ? `<tr class="steplog"><td colspan="6">${stepLogPanel(r.logs, r.terminalReason)}</td></tr>`
         : "";
