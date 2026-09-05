@@ -10,12 +10,10 @@
 Longer pages of their own:
 
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
-- [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own
-  page
+- [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back
-- [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside
-  it
+- [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app
@@ -29,15 +27,13 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 and renders a small static site — an overview page plus one page per project, all sharing a left-column nav. Generated
 where the repos live and served by a small Bun server that also receives live aide-run events; that server listens on
 localhost, and a `tailscale serve` proxy puts HTTPS in front of it
-(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Generator and server can run on the
-same machine or on
+(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Generator and server can run on the same machine or on
 two — no host is named anywhere in this repo.
 
 ## URL scheme
 
 This is the map. The rules behind each page — what a row says, what a tab shows, what a route refuses — are in
-[The specs list and the spec page](docs/the-specs-list.md) and [Running specs](docs/running-specs.md). Every served page
-and every `/api/queue*` route requires
+[The specs list and the spec page](docs/the-specs-list.md) and [Running specs](docs/running-specs.md). Every served page and every `/api/queue*` route requires
 [the token](docs/running-specs.md#the-token); the generated `.html` pages and the app-install files do not.
 
 Pages:
@@ -45,10 +41,8 @@ Pages:
 - `/` — the spec list: one row per spec of every allowlisted project, phases beneath, run and cancel from the row.
   `?state=` picks a chip and `?q=` searches;
   see [Filtering and searching the list](docs/the-specs-list.md#filtering-and-searching-the-list).
-- `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done
-  nothing.
-- `/projects` — every project with its spec counts, plus the panel that adds and removes them;
-  see [Projects](docs/projects.md).
+- `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done nothing.
+- `/projects` — every project with its spec counts, plus the panel that adds and removes them; see [Projects](docs/projects.md).
 - `/projects/<name>` — one project: what its `.aide/config` says, whether a run could start there, and the settings
   that can be edited inline.
 - `/settings` — the default AI and model per step.
@@ -60,8 +54,7 @@ Pages:
   a run's recorded output as static files.
 - `/<slug>.html` — one generated page per project (slug = lowercased name, non-alphanumerics → hyphens; collisions get
   `-2`, `-3`, …; `index`, `about` and `projects` are reserved). It is what a site published by
-  `deploy/rsync-publish.sh`, with no server behind it, still shows; a live server's nav links `/projects/<name>`
-  instead.
+  `deploy/rsync-publish.sh`, with no server behind it, still shows; a live server's nav links `/projects/<name>` instead.
 
 Queue API (`/api/queue*`):
 
