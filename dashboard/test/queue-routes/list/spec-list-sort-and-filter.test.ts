@@ -155,15 +155,17 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("109-earlier")).toBeLessThan(html.indexOf("104-later"));
   });
 
-  // REQ-5: a spec git could not date sorts as the OLDEST possible date —
-  // never floating to the top of a newest-first list, and never
-  // crashing the sort.
-  test("a spec with no creation date sorts as the oldest, not the newest (REQ-5)", () => {
+  // Spec 208's REQ-5 sorted an undated spec as the epoch, so it never
+  // floated to the top of a newest-first list. Reversed: the cell reads
+  // "–" because git has not caught up with a folder made moments ago,
+  // so the spec that is certainly the newest was the one sent to the
+  // bottom. It sorts as the newest now, and still never crashes the sort.
+  test("a spec with no creation date sorts as the newest", () => {
     const html = page([], { sort: "created" }, [
       target("50-dated", { createdAt: "2026-08-10T09:00:00Z" }),
       target("51-undated"),
     ]);
-    expect(html.indexOf("50-dated")).toBeLessThan(html.indexOf("51-undated"));
+    expect(html.indexOf("51-undated")).toBeLessThan(html.indexOf("50-dated"));
   });
 
   // REQ-2/REQ-6, the exact gap plan review's must-fix 1 found: an
