@@ -1,7 +1,8 @@
 // Split out of runner.test.ts by theme.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import { join } from "node:path";
+import { dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** What a reader would see: since spec 380 a message is stored as
@@ -161,6 +162,43 @@ describe("several jobs at once", () => {
     runner.tick();
     expect(spawns.length).toBe(0);
     const held = store.get(b.id)!;
+    expect(sentence(held.error)).toContain("a landing is still running");
+    expect(held.errorReason).toBe("held-back");
+  });
+
+  // Spec 402, REQ-3/REQ-6: the whole-board pause used to hold every
+  // queued job while ANY job was landing, whatever repo either one
+  // touched. Two different project names whose `projectDir`s resolve to
+  // two different paths never contend with each other.
+  test("a job started while a merge runs in a repo it does not share", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ project: "other-project", steps: ["analyze"] });
+    const runner = makeRunner({
+      maxConcurrent: 2,
+      projectDir: (p) => join(dir, p),
+    });
+    store.update(a.id, { state: "done", landing: true });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  // Spec 402, REQ-2/REQ-6: the decision is made from the RESOLVED path,
+  // never from `job.project` — so two different project names sharing
+  // one repository (a shared specs remote, in the description's own
+  // example) hold each other back exactly as two jobs in the same
+  // project already do.
+  test("a job waits for a merge in a repository it shares, even under a different project name", () => {
+    const sharedRoot = join(dir, "shared-repo");
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ project: "other-project", steps: ["analyze"] });
+    const runner = makeRunner({
+      maxConcurrent: 2,
+      projectDir: (p) => (p === "aide" || p === "other-project" ? sharedRoot : join(dir, p)),
+    });
+    store.update(a.id, { state: "done", landing: true });
+    runner.tick();
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
     expect(sentence(held.error)).toContain("a landing is still running");
     expect(held.errorReason).toBe("held-back");
   });
