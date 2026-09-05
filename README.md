@@ -1,6 +1,6 @@
 # aide
 
-A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot and Codex.
+A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, GitHub Copilot and Codex.
 
 ## Table of contents
 
@@ -20,14 +20,28 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
 
 ## Vision
 
-This workspace enables a workflow where **any AI assistant** can:
+An AI assistant is powerful but unpredictable when the requirements for a
+change live only in a chat history: the reasoning behind a decision
+disappears with the conversation, the next session starts from zero, and
+nobody else can review what was actually agreed before the code was
+written.
+
+aide's answer is spec-driven development: before any AI assistant writes
+code, it writes a specification — four plain-Markdown files
+(description, analysis, solution, status) that a person and any AI tool
+can read, review and continue identically, committed to git alongside
+the code it describes. That structure is what lets **any AI assistant**:
 
 - Understand complex JIRA issues and analyze the codebase automatically
-- Suggest concrete solutions with file references and line numbers
+- Suggest concrete solutions with file references and line numbers,
+  reviewable as a diff before a line of code changes
 - Implement changes using Test-Driven Development (TDD)
-- Follow established plans for technical debt and modernization
+- Follow established plans for technical debt and modernization that
+  span many sessions, not one prompt
 
-**Key benefit:** Not locked to a single AI vendor - teams can pick the best tool for each task.
+**Key benefit:** Not locked to a single AI vendor - teams can pick the
+best tool for each task, and the spec is what carries the work between
+them.
 
 ---
 
