@@ -162,7 +162,7 @@ describe("several jobs at once", () => {
     runner.tick();
     expect(spawns.length).toBe(0);
     const held = store.get(b.id)!;
-    expect(sentence(held.error)).toContain("a landing is still running");
+    expect(sentence(held.error)).toContain("a merge is still running");
     expect(held.errorReason).toBe("held-back");
   });
 
@@ -199,7 +199,7 @@ describe("several jobs at once", () => {
     runner.tick();
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("a landing is still running");
+    expect(sentence(held.error)).toContain("a merge is still running");
     expect(held.errorReason).toBe("held-back");
   });
 

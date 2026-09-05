@@ -50,7 +50,7 @@ export const en = {
   "list.pullRequest": "pull request",
   "list.notPushed": "not pushed",
   "list.noPullRequest": "no pull request",
-  "list.landingFailed": "landing failed",
+  "list.landingFailed": "merge failed",
   "list.testsRed": "tests red",
   "list.dateUnknown": "date unknown",
   "list.waitingOnReview": "its code is waiting on a pull request — open it to review",

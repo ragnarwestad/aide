@@ -3,6 +3,7 @@
 // run.
 
 import { currentStep, inFlight, stateLabel } from "../../ui/job-state.ts";
+import { gerund, landingStep } from "../../ui/job-state/resting.ts";
 import { stepLabel } from "../../ui/components.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, groupKey, type SpecGroup } from "./data-model.ts";
@@ -20,9 +21,21 @@ export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
 
 /** Why the row will not take a click, in the words the badge uses. One
  *  sentence for the whole row: about the JOB, so every locked control
- *  says the same thing rather than each wording it freshly. */
-export const busyReason = (g: SpecGroup): string =>
-  g.lead ? `${stepLabel(currentStep(g.lead))} is ${g.lead.landing ? "landing" : stateLabel(g.lead)}` : "";
+ *  says the same thing rather than each wording it freshly.
+ *
+ *  A landing in flight names the step whose MERGE is actually running —
+ *  `landingStep`'s own rule (spec 399, REQ-3), the same one the row's
+ *  badge (`specStateChip`) uses — not `currentStep()`, which names the
+ *  wrong step once the job has already advanced to `queued` on its next
+ *  one while the previous step's branch is still merging. */
+export const busyReason = (g: SpecGroup): string => {
+  if (!g.lead) return "";
+  if (g.lead.landing) {
+    const step = landingStep(g.lead);
+    return `${stepLabel(step)} is ${gerund("en", step)}`;
+  }
+  return `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}`;
+};
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot

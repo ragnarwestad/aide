@@ -181,7 +181,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     // that reason, and by counting the analyze job's one step. A page
     // that had taken the decoy as lead would offer Reset and know
     // nothing of a landing.
-    expect(html).toContain('title="a landing is in progress">Reset</span>');
+    expect(html).toContain('title="a merge is in progress">Reset</span>');
     expect(html).toContain("Logs (1)");
     expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 

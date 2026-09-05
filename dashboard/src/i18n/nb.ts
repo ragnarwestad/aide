@@ -29,7 +29,7 @@ export const nb: Record<TranslationKey, string> = {
     "Søker i prosjekt:mappe, tittelen og beskrivelsen — hele beskrivelsen, også den " +
     "delen raden ikke viser.",
   "list.searchPlaceholder": "et ord i ett av tre felt",
-  "list.searchAriaLabel": "Søk i spesifikasjonene",
+  "list.searchAriaLabel": "Søk i specene",
   "list.searchClearTitle": "Tøm søket",
   "list.search": "Søk",
   "list.newSpec": "Ny",
@@ -49,7 +49,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.pullRequest": "pull-forespørsel",
   "list.notPushed": "ikke pushet",
   "list.noPullRequest": "ingen pull-forespørsel",
-  "list.landingFailed": "landing feilet",
+  "list.landingFailed": "merge feilet",
   "list.testsRed": "testene er røde",
   "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
@@ -60,14 +60,14 @@ export const nb: Record<TranslationKey, string> = {
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
   "list.branchLeftBehind":
-    "Denne spesifikasjonen ble slått sammen, men grenen kunne ikke slettes på origin. — " +
+    "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +
     "Slett den for hånd, i det lokale repoet på serveren.",
   "list.noPullRequestOpened":
     "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
     "Opprett en for hånd, i det lokale repoet på serveren.",
   "list.archiveHeldBack": "arkivering holdt tilbake — {reason}",
-  "list.noSpecMatchesFilter": "Ingen spesifikasjon matcher dette filteret.",
-  "list.noSpecAtAll": "Ingen spesifikasjon å vise — ingen prosjekt på denne maskinen har en å kjøre.",
+  "list.noSpecMatchesFilter": "Ingen spec matcher dette filteret.",
+  "list.noSpecAtAll": "Ingen spec å vise — ingen prosjekt på denne maskinen har en å kjøre.",
   "list.noRunner":
     "Ingen kjøretjeneste er installert på denne maskinen ennå (del 81b) — køede jobber blir " +
     "stående i kø, og ingenting her koster penger.",

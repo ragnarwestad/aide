@@ -63,7 +63,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
 
   test("the empty-list message is Norwegian", () => {
     const html = page({ lang: "nb" });
-    expect(html).toContain("Ingen spesifikasjon å vise");
+    expect(html).toContain("Ingen spec å vise");
     expect(html).not.toContain("No spec to show");
   });
 });

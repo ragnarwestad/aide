@@ -379,4 +379,26 @@ describe("refusing an enqueue while the spec's last job is still landing (spec 2
     const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
     expect(answer.ok).toBe(true);
   });
+
+  // REQ-3, spec 399: `resting.ts:83-96`'s documented case — the landing
+  // job has already advanced to "queued" on its NEXT step while the
+  // PREVIOUS one is still merging. The refusal names the step whose
+  // merge is actually in progress ("create"), the same one the row's
+  // own badge would show, not the step it is now queued on ("analyze").
+  test("the refusal names the step whose merge is actually in progress, not the one already queued behind it", () => {
+    const s = store();
+    const first = s.enqueue({ ...REQ, steps: ["create", "analyze"] });
+    if (!first.ok) throw new Error(first.error);
+    s.update(first.job.id, { state: "queued", stepIndex: 1, landing: true });
+    const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["create"] });
+    // sanity check only: a different spec is never held back by this
+    expect(answer.ok).toBe(true);
+    const clash = s.enqueue({ ...REQ, steps: ["archive"] });
+    expect(clash.ok).toBe(false);
+    if (!clash.ok) {
+      const text = sentence(clash.error);
+      expect(text).toContain("creating");
+      expect(text).not.toContain("analyzing");
+    }
+  });
 });

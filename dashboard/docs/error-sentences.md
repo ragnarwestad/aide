@@ -10,6 +10,7 @@ next sentence is written the same way.
 - [The three parts](#the-three-parts)
 - [The shared builder](#the-shared-builder)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
+- [Words the reader does not use](#words-the-reader-does-not-use)
 
 ---
 
@@ -53,3 +54,10 @@ sentence is migrated to this convention — an entry is added once a sentence is
 An error that has resolved itself — the work reached origin another way — is cleared, not shown with advice that no
 longer applies. `group-builders.ts`'s `pushError` reads the spec's LEAD job, not the newest job that happens to have
 one set, for exactly this reason: an older job's failed push must not outlive a newer job that pushed fine.
+
+## Words the reader does not use
+
+`src/i18n/banned-words.ts` lists the words a message may not use, in either language, and what to say instead —
+"landing" for a merge, "spesifikasjon" for a spec, "sammenslåing"/"slå ... sammen" for a merge. `banned-words.test.ts`
+reads every entry in `messages.ts`, `en.ts` and `nb.ts` against that list, so a new message reaching for one of them
+fails on sight.

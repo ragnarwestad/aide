@@ -102,7 +102,7 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(sentence(result.error)).toContain("moved on origin under this landing twice");
+    expect(sentence(result.error)).toContain("moved on origin under this merge twice");
     expect(sentence(result.error)).toContain("run the step again");
     expect(result.reason).toBeUndefined();
     const seq = argv(git.calls);

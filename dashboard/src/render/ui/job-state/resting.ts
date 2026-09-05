@@ -71,11 +71,19 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
   return badge("done", t(lang, "list.done"));
 }
 
+/** The rule itself: the index of the step a landing belongs to, from the
+ *  three fields that name it. Exported (spec 399) so a caller with a raw
+ *  `Job` (`queue/store.ts`) rather than a `QueueRowView` can apply the
+ *  same rule `landingStep` below uses, without a type it does not have. */
+export function landingStepIndex(state: string, stepIndex: number): number {
+  return state === "queued" ? stepIndex - 1 : stepIndex;
+}
+
 /** The step a landing belongs to: the one that just finished. A job in
  *  `done` still points at it; one that has already stepped on to its
  *  next step points one past it. */
-function landingStep(r: QueueRowView): string {
-  return r.state === "queued" ? (r.steps[r.stepIndex - 1] ?? currentStep(r)) : currentStep(r);
+export function landingStep(r: QueueRowView): string {
+  return r.steps[landingStepIndex(r.state, r.stepIndex)] ?? currentStep(r);
 }
 
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {

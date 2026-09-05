@@ -20,6 +20,7 @@ import type { Sentence } from "../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
 import { parsePendingEffort, parsePendingModels, parseStoredJob, persistPendingEffort, persistPendingModels } from "./persist.ts";
+import { gerund, landingStepIndex } from "../render/ui/job-state/resting.ts";
 
 
 import type { PendingEffortResult, PendingModelResult, QueueOptions, TransitionResult } from "./store/types.ts";
@@ -126,11 +127,19 @@ export class QueueStore {
     }
     const landing = this.landingJob(parsed.job);
     if (landing) {
+      // The step actually merging, in the same word the row's own badge
+      // shows for it (spec 399, REQ-3) — `landing.steps[landing.stepIndex]`
+      // taken raw names the WRONG step once `landing` has already advanced
+      // to "queued" on its next one while the previous step's branch is
+      // still merging (`resting.ts`'s `landingStepIndex`, the same rule
+      // `landingStep` applies for a `QueueRowView`).
+      const lastStep = landing.steps[landingStepIndex(landing.state, landing.stepIndex)] ?? landing.steps[landing.stepIndex]!;
       return {
         ok: false,
         error:
-          `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while its last step is still landing ` +
-          `(job ${landing.id.slice(0, 8)}) — press Run again in a moment, once the landing finishes`,
+          `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while ` +
+          `${gerund("en", lastStep)} is still in progress ` +
+          `(job ${landing.id.slice(0, 8)}) — press Run again in a moment, once the merge finishes`,
       };
     }
     this.jobs.set(parsed.job.id, parsed.job);

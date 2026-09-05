@@ -49,7 +49,7 @@ export async function runControlRoutes(
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
     if (ref.archived) return refuseReset(`${specFolder} is archived — Reset is only for active specs`);
-    if (ctx.queue.list().some((job) => job.landing)) return refuseReset("a landing is in progress");
+    if (ctx.queue.list().some((job) => job.landing)) return refuseReset("a merge is in progress");
     if (ctx.queue.list().some((job) =>
       job.project === project && job.specFolder === specFolder &&
       (job.state === "queued" || job.state === "running")

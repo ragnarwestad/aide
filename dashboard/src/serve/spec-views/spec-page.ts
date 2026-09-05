@@ -201,7 +201,7 @@ export async function specPageView(
   const busyReason = matchingJobs.some((job) => job.state === "queued" || job.state === "running")
     ? "another job for this spec is still running"
     : ctx.queue.list().some((job) => job.landing)
-      ? "a landing is in progress"
+      ? "a merge is in progress"
       : undefined;
   return {
     project,
