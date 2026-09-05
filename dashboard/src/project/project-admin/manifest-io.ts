@@ -147,8 +147,10 @@ function serializeScheduleEntry(entry: ScheduleEntry): string[] {
   return lines;
 }
 
-/** Set the WHOLE `schedule:` list in a `.aide/project.yaml`, touching
- *  nothing else in the file (spec 276).
+/** The WHOLE new `.aide/project.yaml` text with its `schedule:` list
+ *  replaced, given the file's CURRENT text — pure, no disk access, so a
+ *  caller that commits and pushes the result (`schedule-admin.ts`) can
+ *  ask for the bytes without this function writing them itself.
  *
  *  Block-span text surgery, exactly like `upsertManifestScalar`'s
  *  single-line surgery and for the same reason: a manifest carries a
@@ -158,12 +160,11 @@ function serializeScheduleEntry(entry: ScheduleEntry): string[] {
  *  freshly-serialized entries; every other line is untouched.
  *
  *  Before returning, the new text is re-parsed and compared against the
- *  intended entries — a mismatch throws rather than writes a corrupt or
+ *  intended entries — a mismatch throws rather than returns a corrupt or
  *  silently-different file, catching a quoting or validation bug before
- *  it reaches disk. */
-export function writeScheduleList(file: string, entries: readonly ScheduleEntry[]): void {
-  const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
-  const lines = text.split("\n");
+ *  it reaches a caller. */
+export function scheduleListText(currentText: string, entries: readonly ScheduleEntry[]): string {
+  const lines = currentText.split("\n");
   const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
   const at = lines.findIndex((line) => line.startsWith("schedule:"));
   const block = entries.length > 0 ? ["schedule:", ...entries.flatMap(serializeScheduleEntry)] : [];
@@ -190,11 +191,19 @@ export function writeScheduleList(file: string, entries: readonly ScheduleEntry[
   const reparsed = parseManifest(output);
   if (!reparsed.ok || JSON.stringify(reparsed.data.schedule) !== JSON.stringify(expected)) {
     throw new Error(
-      `writing the schedule list to ${file} would produce a manifest that does not reparse to the ` +
+      "writing the schedule list would produce a manifest that does not reparse to the " +
         "intended entries — refusing to write",
     );
   }
+  return output;
+}
 
+/** Set the WHOLE `schedule:` list in a `.aide/project.yaml`, touching
+ *  nothing else in the file (spec 276). A thin disk-writing wrapper over
+ *  `scheduleListText`. */
+export function writeScheduleList(file: string, entries: readonly ScheduleEntry[]): void {
+  const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
+  const output = scheduleListText(text, entries);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, output);
 }
