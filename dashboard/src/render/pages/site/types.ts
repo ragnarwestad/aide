@@ -55,7 +55,22 @@ export interface ProjectPageOptions {
   /** This process's own boot-time commit vs. this checkout's current
    *  HEAD (spec 269) — undefined for every project except the one this
    *  server is actually running from. */
-  serving?: { sha: string; checkoutHead: string; current: boolean };
+  serving?: {
+    sha: string;
+    checkoutHead: string;
+    current: boolean;
+    /** REQ-7 (spec 392): the checkout HEAD's own commit subject — only
+     *  fetched (and only ever rendered) while origin itself has not
+     *  been checked yet; `undefined` when git could not answer, never a
+     *  guess. */
+    newestSubject?: string;
+    /** REQ-7 (spec 392): commits between the served SHA and the
+     *  checkout HEAD, local to this checkout — never origin's drift
+     *  count, which this state by definition does not have.
+     *  `undefined` when `current` (there is nothing to count) or when
+     *  git could not answer. */
+    behindCount?: number;
+  };
   /** Non-empty while a Deploy press's restart is held back by these
    *  running jobs (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];

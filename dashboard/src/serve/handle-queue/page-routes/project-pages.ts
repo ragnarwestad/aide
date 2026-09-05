@@ -147,7 +147,21 @@ export async function projectPages(
             const head = await ctx.gitRun(driftRoot, ["rev-parse", "HEAD"]);
             if (head.code !== 0) return undefined;
             const checkoutHead = head.stdout.trim();
-            return { sha: servingSha, checkoutHead, current: servingSha === checkoutHead };
+            const current = servingSha === checkoutHead;
+            // REQ-7 (spec 392): only fetched while origin itself has not
+            // been checked yet — the one sentence that needs to say what
+            // the served commit actually is, never a bare hash.
+            if (drift?.checkedAt !== null) return { sha: servingSha, checkoutHead, current };
+            const subj = await ctx.gitRun(driftRoot, ["log", "-1", "--format=%s", checkoutHead]);
+            const newestSubject = subj.code === 0 ? subj.stdout.trim() : undefined;
+            if (current) return { sha: servingSha, checkoutHead, current, newestSubject };
+            const count = await ctx.gitRun(driftRoot, ["rev-list", "--count", `${servingSha}..${checkoutHead}`]);
+            // Same guard `branch-status.ts`'s own `commitsBehindOrigin`
+            // uses for the identical command: a zero exit with
+            // non-numeric stdout must not render as "NaN commits behind".
+            const parsed = count.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
+            const behindCount = Number.isFinite(parsed) ? parsed : undefined;
+            return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
     const html = renderProjectPage(

@@ -12,7 +12,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
-import { UNCHECKED_NOTE, type ProjectPageOptions, type ProjectView } from "./types.ts";
+import type { ProjectPageOptions, ProjectView } from "./types.ts";
 
 /** The shared half of the drift sentence — one wording source, two
  *  endings (spec 258): the list's own `driftNote` in `projects-page.ts`
@@ -69,18 +69,41 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // function gave it (never in the ungated branch above, which a
   // deploy press could not have been refused FROM in the first place).
   const errorLine = opts.deployError ? rowMessage("failed", opts.deployError, { hook: "refusal", tag: "p" }) : "";
-  if (drift.checkedAt === null) return panel(errorLine + rowMessage("waiting", UNCHECKED_NOTE) + servingLine);
+  const notYetChecked = drift.checkedAt === null;
   const behind = drift.behind;
-  if (behind === null) return panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
+  // Only "asked, unanswerable" still bails out with no claim and no
+  // button (REQ-5) — "never asked" now falls into the shared chain
+  // below (spec 392, REQ-1, REQ-3).
+  if (!notYetChecked && behind === null) return panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
 
-  // From here the checkout's own drift IS known, so its answer and the
-  // Serving line's answer (when there is one) fold into one sentence
-  // instead of stacking as two (REQ-1, REQ-4).
+  // From here the checkout's own drift is either known, or not yet
+  // asked at all, so its answer and the Serving line's answer (when
+  // there is one) fold into one sentence instead of stacking as two
+  // (REQ-1, REQ-4).
   const stale = !!serving && !serving.current;
-  const disabled = behind === 0 && !stale;
-  const sentence =
-    behind > 0
-      ? `${driftPrefix(behind, drift.checkedAt, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
+  const disabled = notYetChecked || (behind === 0 && !stale);
+
+  // REQ-1, REQ-2, REQ-7 (spec 392): what to say about the served commit
+  // when origin itself is still unknown — never a bare hash, and never
+  // phrased twice (the `stale` sentence below keeps its own bare-hash
+  // wording exactly as it is, per REQ-5).
+  const servedCommitPhrase = (s: NonNullable<typeof serving>): string | undefined =>
+    s.newestSubject === undefined
+      ? undefined // git could not answer — fail open, no invented claim
+      : s.current
+        ? `the service is already running the newest change, "${s.newestSubject}"`
+        : `the service is ${s.behindCount ?? "some"} commit${s.behindCount === 1 ? "" : "s"} behind this checkout` +
+          ` — the newest change is "${s.newestSubject}"`;
+
+  const sentence = notYetChecked
+    ? (() => {
+        const phrase = serving && servedCommitPhrase(serving);
+        return phrase
+          ? `Whether this checkout is behind origin has not been checked yet; ${phrase}.`
+          : "Whether this checkout is behind origin has not been checked yet.";
+      })()
+    : behind! > 0
+      ? `${driftPrefix(behind!, drift.checkedAt!, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
         (serving ? ", and restarts the service." : ".")
       : stale
         ? opts.restartWaiting?.length
@@ -91,6 +114,18 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         : serving
           ? `This checkout matches origin, and the service is running commit ${serving.sha.slice(0, 7)}.`
           : "This checkout matches origin.";
+
+  const title = notYetChecked
+    ? "Origin has not been checked yet."
+    : disabled
+      ? "This checkout matches origin."
+      // REQ-9 (spec 392): the button stays live (a press still retries
+      // the install), but hovering it says a press will not restart the
+      // service sooner.
+      : stale && opts.restartWaiting?.length
+        ? "Pressing again only repeats the pull and install — it does not restart the service sooner."
+        : undefined;
+
   const button =
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
     tokenField(opts.token) +
@@ -101,11 +136,12 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       // The title stays the short, common half of the sentence even
       // when the up-to-date-with-serving-current case says more — a
       // hover hint names WHY the button is off, not the whole state.
-      ...(disabled ? { disabled: true, title: "This checkout matches origin." } : {}),
+      ...(disabled ? { disabled: true } : {}),
+      ...(title ? { title } : {}),
     }) +
     messageSlot("refused") +
     `</form>`;
-  return panel(errorLine + rowMessage(behind > 0 || stale ? "waiting" : "info", sentence) + button);
+  return panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence) + button);
 }
 
 /** The Schedule section (spec 259): each entry's name, cron expression,
