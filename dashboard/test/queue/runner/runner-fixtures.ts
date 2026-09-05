@@ -31,8 +31,15 @@ export const DEFAULTS: QueueDefaults = {
 // Two spec folders, not one: since spec 91 the scheduler may run several
 // jobs at once, and a store that cannot resolve a second spec refuses the
 // enqueue long before tick() is reached.
+//
+// A second project name, resolving to the same two folders (spec 402):
+// the repo-scoped hold-back tests need two DIFFERENT project strings to
+// enqueue jobs under, whatever repo `makeRunner()`'s own overrides then
+// point each one at.
 const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] } : null;
+  project === "aide" || project === "other-project"
+    ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] }
+    : null;
 
 export let dir: string;
 export let store: QueueStore;
@@ -54,6 +61,11 @@ export function makeRunner(opts: {
   newSessionId?: () => string;
   maxConcurrent?: number;
   onStepDone?: RunnerOptions["onStepDone"];
+  /** Overrides the default `(p) => join(dir, p)` — needed for a test
+   *  that maps two different project strings onto the SAME path (spec
+   *  402's REQ-6), which the default, injective mapping cannot produce. */
+  projectDir?: (project: string) => string;
+  specsRoot?: RunnerOptions["specsRoot"];
 } = {}) {
   return new Runner({
     store,
@@ -61,7 +73,8 @@ export function makeRunner(opts: {
     // 1 unless a test says otherwise, so every case written before spec
     // 91 still describes the behaviour it was written for.
     maxConcurrent: opts.maxConcurrent,
-    projectDir: (p) => join(dir, p),
+    projectDir: opts.projectDir ?? ((p) => join(dir, p)),
+    specsRoot: opts.specsRoot,
     runnerBin: "/bin/true",
     resultDir: dir,
     now: () => new Date(now).toISOString(),

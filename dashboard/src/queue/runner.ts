@@ -98,6 +98,19 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
+  /** Every repo a job for this project could reach: the code root
+   *  always, and the specs root beside it only when the project keeps
+   *  specs in a repo of their own (spec 402) — the same two paths
+   *  `land-branch/merge.ts`'s own `codeRoots` set already resolves a
+   *  landing's gate against. A project that keeps specs inside its own
+   *  code repo collapses to one root, so it never collides with
+   *  anything beyond itself. */
+  private repoRootsFor(project: string): string[] {
+    const code = this.o.projectDir(project);
+    const specs = this.o.specsRoot?.(project) ?? code;
+    return specs === code ? [code] : [code, specs];
+  }
+
   /** Fill every free slot, oldest queued job first.
    *
    *  `blocked` maps a job id to the folder of the dependency it is
@@ -114,15 +127,6 @@ export class Runner {
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
   tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
-    // NOTHING starts while a job is landing, whatever it is and whatever
-    // repo it is for. A landing merges directly into the SHARED main
-    // checkout — the one every run switches and reads at its own start —
-    // and worktree isolation (spec 91) protects a run's work from other
-    // runs, not that checkout from a landing writing to it. Queue-wide
-    // rather than per repo: a job's target repos are only known once
-    // `aide-run-spec` has resolved them, which is after it has started.
-    // At one operator, over-serializing costs seconds; the race costs a
-    // half-merged working tree.
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -133,22 +137,31 @@ export class Runner {
     // nothing at all on their way out (2026-09-04).
     const held = (this.heldThisPass = new Set<string>());
     const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
-    if (this.o.store.list().some((j) => j.landing)) {
-      // The pause every queued row used to sit in with no explanation:
-      // a landing is in flight, so nothing starts, and being first in
-      // the queue means nothing until it finishes.
-      for (const job of this.o.store.list()) {
-        // Not the job whose OWN landing this is: its row already reads
-        // "landing <step>", and telling it that it waits for itself is
-        // both wrong and in the way of the landing's own verdict, which
-        // lands on that row moments later.
-        if (job.state === "queued" && !job.landing) {
-          hold(job, { key: "runner.landingPause" });
-        }
-      }
-      this.clearStaleHolds(held);
-      return;
+
+    // A landing merges directly into the SHARED main checkout — the one
+    // every run switches and reads at its own start — and worktree
+    // isolation (spec 91) protects a run's work from other runs, not
+    // that checkout from a landing writing to it. Scoped to the repos a
+    // landing ACTUALLY occupies (spec 402): WHICH of a project's own
+    // repos a step reaches is unknown until `aide-run-spec` has resolved
+    // them, after it has started — but WHICH repos the project HAS is
+    // known now, from the same two resolvers the lock and the landing's
+    // own gate already use. A job whose repos are disjoint from every
+    // one of them reads nothing a landing anywhere else on the board is
+    // writing to.
+    const repoCache = new Map<string, string[]>();
+    const rootsFor = (project: string): string[] => {
+      const cached = repoCache.get(project);
+      if (cached) return cached;
+      const roots = this.repoRootsFor(project);
+      repoCache.set(project, roots);
+      return roots;
+    };
+    const landingRepos = new Set<string>();
+    for (const j of this.o.store.list()) {
+      if (j.landing) for (const root of rootsFor(j.project)) landingRepos.add(root);
     }
+
     // Quick steps before slow ones, oldest first within each group
     // (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
@@ -160,6 +173,17 @@ export class Runner {
         return;
       }
       if (job.state !== "queued") continue;
+      // NOTHING starts while a job in the SAME repo is landing — the
+      // repos it MIGHT touch, since which ones this step will actually
+      // reach is only known once `aide-run-spec` has resolved them. Not
+      // exempted for the job whose OWN landing this is: its repos are
+      // always in `landingRepos` too, so it is left un-started all the
+      // same — only the redundant sentence is skipped, since its row
+      // already reads "landing <step>" through a different path.
+      if (landingRepos.size > 0 && rootsFor(job.project).some((root) => landingRepos.has(root))) {
+        if (!job.landing) hold(job, { key: "runner.landingPause" });
+        continue;
+      }
       // Two jobs for the SAME spec are never both started: analyze and
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a

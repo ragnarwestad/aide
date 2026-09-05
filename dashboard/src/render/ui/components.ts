@@ -57,9 +57,15 @@ export function btn(o: {
   /** The override next to a disabled Merge: deliberately not a second
    *  button of the same size. */
   small?: boolean;
+  /** A stable id for a script to find this exact button directly
+   *  (`spec-form-actions.ts`'s Save/Cancel pair) rather than by
+   *  position — most buttons need none, since a form-level submit
+   *  listener finds them by `closest()`/`querySelector` instead. */
+  id?: string;
 }): string {
   const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
   const attrs =
+    (o.id ? `id="${esc(o.id)}" ` : "") +
     `type="${o.type ?? "submit"}" class="${cls}"` +
     (o.pending ? ` data-pending="${esc(o.pending)}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +
@@ -68,6 +74,22 @@ export function btn(o: {
   // control reads as busy without a second element beside it.
   const spin = o.variant === "busy" ? SPINNER : "";
   return `<button ${attrs}>${spin}${esc(o.label)}</button>`;
+}
+
+/** The Save/Cancel pair every `.specform` carries (spec 391), on the
+ *  same line as the tab's own help mark rather than below the field it
+ *  saves. Save renders enabled — REQ-7 needs it to keep working with
+ *  scripting off — and `spec-form-actions.ts` disables both the instant
+ *  it runs, only re-enabling them once the form has seen an edit.
+ *  Cancel renders `disabled` from the start: nothing asks it to work
+ *  without that script, so there is nothing wrong with it needing one. */
+export function saveCancelActions(): string {
+  return (
+    `<span class="factions">` +
+    btn({ id: "specform-save", label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ id: "specform-cancel", label: "Cancel", type: "button", disabled: true }) +
+    `</span>`
+  );
 }
 
 // --- status badge --------------------------------------------------------------

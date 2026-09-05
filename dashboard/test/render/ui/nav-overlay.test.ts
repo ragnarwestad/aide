@@ -39,10 +39,12 @@ function harness() {
     },
   };
   let clickHandler: ((event: unknown) => void) | undefined;
+  let submitHandler: ((event: unknown) => void) | undefined;
   const document = {
     body,
     addEventListener: (type: string, fn: (event: unknown) => void) => {
       if (type === "click") clickHandler = fn;
+      if (type === "submit") submitHandler = fn;
     },
   };
   let pageshowHandler: ((event: unknown) => void) | undefined;
@@ -76,10 +78,25 @@ function harness() {
 
   const pageshow = (persisted: boolean) => pageshowHandler!({ persisted });
 
+  const submit = (
+    form: { matches?: (sel: string) => boolean } | null,
+    extra: Partial<{ defaultPrevented: boolean }> = {},
+  ) =>
+    submitHandler!({
+      target: form,
+      defaultPrevented: extra.defaultPrevented ?? false,
+    });
+
+  const form = (className: string) => ({
+    matches: (sel: string) => sel === ".specform" && className === "specform",
+  });
+
   return {
     click,
     link,
     pageshow,
+    submit,
+    form,
     isOpen: () => !!dialog?.open,
     wasInserted: () => insertedHTML !== null,
     insertedHTML: () => insertedHTML,
@@ -192,5 +209,39 @@ describe("a link that leaves the page covers it until the new one arrives", () =
     h.click(h.link("/spec?tab=logs"));
     await Bun.sleep(DELAY_MS + 10);
     expect(h.isOpen()).toBe(true);
+  });
+});
+
+// Spec 391, REQ-8: a Save form's own submit covers the page the same
+// way a navigating link does — immediately, not after the click
+// listener's delay, since a Save always commits and pushes for real.
+describe("a Save form's submit covers the page until the answer comes back (REQ-8)", () => {
+  test("submitting form.specform opens the overlay with no delay", () => {
+    const h = harness();
+    h.submit(h.form("specform"));
+    expect(h.isOpen()).toBe(true);
+  });
+
+  test("submitting a form without the specform class does nothing", () => {
+    const h = harness();
+    h.submit(h.form("otherform"));
+    expect(h.isOpen()).toBe(false);
+  });
+
+  test("a submit already spoken for (defaultPrevented) does nothing", () => {
+    const h = harness();
+    h.submit(h.form("specform"), { defaultPrevented: true });
+    expect(h.isOpen()).toBe(false);
+  });
+
+  test("a submit while a click's own timer is still pending shares that guard, and opens nothing yet", () => {
+    const h = harness();
+    h.click(h.link("/other"));
+    h.submit(h.form("specform"));
+    // Both listeners share the same `timer`/`dialog` state: a submit
+    // that lands while a click's delay is still counting down declines,
+    // exactly as a second click would. The click's own timer still
+    // opens the overlay once it elapses (proven elsewhere in this file).
+    expect(h.isOpen()).toBe(false);
   });
 });
