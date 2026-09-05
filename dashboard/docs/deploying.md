@@ -125,7 +125,8 @@ when it suits — the Deploy button on the project's own page (`/projects/aide`)
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. The button answers before the restart
 fires, says the dashboard is restarting, and reloads the page once the service answers again. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting
-success. The path is written once in the Makefile (`MINI_REPO`) and once in
+success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
+never refreshed — unauthenticated, so a restart check nobody set up a token for can still reach it. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
 `test/git/checkout/install-serve-paths.test.ts` reads both and fails if they disagree.
 
