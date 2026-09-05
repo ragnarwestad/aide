@@ -172,7 +172,23 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
       `${box}</span></td></tr>`
     );
   }).join("");
-  return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
+  // Spec 386: a switch beside the phase table, unchecked by default —
+  // its own row, spanning both of the table's columns, so it aligns
+  // beneath the phase name and the model+box column above it.
+  const acceptanceRow =
+    `<tr class="subrow"><td colspan="2">` +
+    phaseChip({
+      dataAttr: "data-acceptance",
+      value: "1",
+      label: "acceptance ticking not required",
+      name: "acceptanceNotRequired",
+      form: formId,
+      checked: false,
+      plain: true,
+      title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
+    }) +
+    `</td></tr>`;
+  return `<table class="list"><tbody>${captionRow}${phaseRows}${acceptanceRow}</tbody></table>`;
 }
 
 // The fields needed to make the spec: which project, its phase table,

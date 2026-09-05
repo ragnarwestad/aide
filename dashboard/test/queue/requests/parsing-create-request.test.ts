@@ -322,3 +322,32 @@ describe("parseCreateRequest — steps (spec 342)", () => {
     expect(r.ok && r.job.steps).toEqual(["create", "analyze"]);
   });
 });
+
+// --- spec 386: a run may say acceptance ticking is not required ------------
+
+describe("parseCreateRequest — acceptanceNotRequired", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test("REQ-1: posted as \"1\" or true is accepted", () => {
+    const r1 = parseCreateRequest({ ...CREATE, acceptanceNotRequired: "1" }, { allow, defaults: DEFAULTS });
+    expect(r1.ok && r1.job.acceptanceNotRequired).toBe(true);
+    const r2 = parseCreateRequest({ ...CREATE, acceptanceNotRequired: true }, { allow, defaults: DEFAULTS });
+    expect(r2.ok && r2.job.acceptanceNotRequired).toBe(true);
+  });
+
+  test("REQ-3: nothing chosen means no field at all — exactly today's behaviour", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.acceptanceNotRequired).toBeUndefined();
+  });
+
+  test.each([["0"], [false], [""]])(
+    "REQ-3: acceptanceNotRequired %p leaves the field absent",
+    (value) => {
+      const r = parseCreateRequest({ ...CREATE, acceptanceNotRequired: value }, { allow, defaults: DEFAULTS });
+      expect(r.ok).toBe(true);
+      expect(r.ok && r.job.acceptanceNotRequired).toBeUndefined();
+    },
+  );
+});

@@ -450,3 +450,46 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
     assert marker.exists(), "SIGTERM must reach the child"
     assert elapsed < 30, "the run should end when the child exits, not wait out the whole grace"
     assert out["terminalReason"] == "timeout"
+
+# --- spec 386: a run may say acceptance ticking is not required ------------
+#
+# The value has to be STATED to the skill, not just handed to the harness
+# binary as a CLI flag: `/aide-analyze`'s own Step 8 reasoning has no way
+# to see an argv entry passed to the `claude`/`codex` process that hosts
+# it. Modelled on `depends_line` (spec 110), the one existing case of a
+# per-run value turned into a sentence appended to a skill's prompt.
+
+def test_analyze_states_the_switch_was_chosen(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(
+        runner, workspace, claude, command="analyze", acceptance_not_required=True, dry_run=True,
+    )
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert prompt.startswith("/aide-analyze"), prompt
+    assert (
+        "Acceptance ticking is not required for this run: per Step 8, do not "
+        "write the acceptance-criteria table into 4-status.md — write the "
+        "one-line note instead." in prompt
+    ), prompt
+
+def test_analyze_without_the_flag_says_nothing_about_acceptance(runner, workspace, fake_claude):
+    """REQ-3: nothing chosen means no line — the prompt must not mention
+    the switch at all, exactly the byte-for-byte rule `depends_line`
+    already follows."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="analyze", dry_run=True)
+    assert rc == 0, out
+    assert "Acceptance ticking" not in out["prompt"], out["prompt"]
+
+def test_the_flag_is_read_for_analyze_alone(runner, workspace, fake_claude):
+    """The flag is passed on every step's own invocation of a job (like
+    `--depends-on`), but only the `analyze` branch of the prompt may
+    ever read it — a future step growing its own use for it is a risk
+    this test is the tripwire for."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(
+        runner, workspace, claude, command="implement", acceptance_not_required=True, dry_run=True,
+    )
+    assert rc == 0, out
+    assert "Acceptance ticking" not in out["prompt"], out["prompt"]

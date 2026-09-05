@@ -200,6 +200,39 @@ describe("parseJobRequest", () => {
     if (!looser.ok) expect(looser.error).toContain("budgetUsd");
   });
 
+  // --- spec 386: a run may say acceptance ticking is not required --------
+
+  test("REQ-1: acceptanceNotRequired posted as \"1\" is accepted", () => {
+    const r = parseJobRequest({ ...REQ, acceptanceNotRequired: "1" }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.acceptanceNotRequired).toBe(true);
+  });
+
+  test("REQ-1: acceptanceNotRequired posted as true is accepted", () => {
+    const r = parseJobRequest({ ...REQ, acceptanceNotRequired: true }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.acceptanceNotRequired).toBe(true);
+  });
+
+  test("REQ-3: left untouched, the field is absent — not merely false", () => {
+    const r = parseJobRequest(REQ, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.acceptanceNotRequired).toBeUndefined();
+  });
+
+  test.each([["0"], [false], [""]])(
+    "REQ-3: acceptanceNotRequired %p leaves the field absent",
+    (value) => {
+      const r = parseJobRequest({ ...REQ, acceptanceNotRequired: value }, { resolve, defaults: DEFAULTS });
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(r.job.acceptanceNotRequired).toBeUndefined();
+    },
+  );
+
   // --- spec 364: a step runs at a chosen effort level --------------------
 
   test("REQ-3: a per-step effort choice is accepted", () => {
