@@ -28,6 +28,7 @@
 // theme); the Runner class itself — the only stateful piece — stays
 // here, re-exporting them for every existing importer.
 
+import { specNumber } from "../project/spec-folder.ts";
 import type { NotifyEvent } from "../integrations/notify.ts";
 import { renderMessage, type BoardMessage } from "../i18n/message.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
@@ -191,7 +192,13 @@ export class Runner {
       // `failed`, which nothing retries.
       const dependency = blocked?.get(job.id);
       if (dependency !== undefined) {
-        hold(job, { key: "runner.dependencyNotArchived", values: { dependency } });
+        // The NUMBER, not the folder: the row already says "depends on:
+        // 393" a line above this message, from the same helper, and a
+        // sentence that spells the whole folder out beside it is the
+        // same fact twice at four times the width. The folder stays the
+        // spec's address everywhere it IS one -- the branch, the commit
+        // subjects, the spec's own Depends on.
+        hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specNumber(dependency) } });
         continue;
       }
       // The same shape once more, for `archive`: an acceptance row only

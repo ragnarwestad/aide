@@ -171,7 +171,9 @@ describe("parked on a dependency (spec 122)", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toContain("80-dependency");
+    // The NUMBER, not the folder: the row already names the folder a
+    // line above, and the sentence beside it says the same fact short.
+    expect(sentence(stored?.error)).toContain("depends on 80,");
   });
 
   test("the same job starts once the map no longer names it", () => {
@@ -310,7 +312,7 @@ describe("a step appended to a running job's tail (spec 160)", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain("held back: depends on 80-dependency");
+    expect(sentence(after.error)).toContain("held back: depends on 80,");
   });
 });
 
@@ -346,7 +348,7 @@ describe("a job parked on unticked acceptance criteria", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), undefined, new Set([job.id]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80-dependency");
+    expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80,");
   });
 });
 
