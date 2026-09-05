@@ -4,11 +4,20 @@
 // refuse before any write, then either a JSON answer (script) or a
 // no-JS redirect back to the list.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
+import type { ScheduleGit } from "../../project/project-admin/schedule-admin.ts";
 import { resolveSchedule } from "../../project/discover.ts";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render.ts";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
+
+/** The `git` seam every write route below hands to `schedule-admin.ts`
+ *  (REQ-2) — the same `ctx.gitRun`/`ctx.branchStatus.defaultBranch` pair
+ *  `spec-page.ts`/`checks.ts` already build for `saveSpecFiles`. */
+const scheduleGit = (ctx: HandleQueueContext): ScheduleGit => ({
+  run: ctx.gitRun,
+  resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root),
+});
 
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
@@ -63,7 +72,10 @@ export async function handleScheduleAdminRoutes(
     // route (acceptance criterion 8) — a plain `{enabled}` body is
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
-    const result = setScheduleEnabled(ctx.machineryProjectDir(project), name, enabled);
+    const codeRoot = ctx.machineryProjectDir(project);
+    const result = await ctx.mergeLock.run(codeRoot, () =>
+      setScheduleEnabled(scheduleGit(ctx), codeRoot, name, enabled),
+    );
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
@@ -105,7 +117,8 @@ export async function handleScheduleAdminRoutes(
       const error = `type ${name} exactly to confirm Delete`;
       return wantsJson ? json({ error }, 400) : specsRedirect(body, { error }, back);
     }
-    const result = deleteScheduleEntry(ctx.machineryProjectDir(project), name);
+    const codeRoot = ctx.machineryProjectDir(project);
+    const result = await ctx.mergeLock.run(codeRoot, () => deleteScheduleEntry(scheduleGit(ctx), codeRoot, name));
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }
@@ -119,9 +132,12 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const result = updateScheduleEntry(ctx.machineryProjectDir(project), name, {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
-    }, knownModels(ctx));
+    const codeRoot = ctx.machineryProjectDir(project);
+    const result = await ctx.mergeLock.run(codeRoot, () =>
+      updateScheduleEntry(scheduleGit(ctx), codeRoot, name, {
+        name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+      }, knownModels(ctx)),
+    );
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
@@ -139,9 +155,12 @@ export async function handleScheduleAdminRoutes(
     const body = sent.body;
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const result = createScheduleEntry(ctx.machineryProjectDir(project), {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
-    }, knownModels(ctx));
+    const codeRoot = ctx.machineryProjectDir(project);
+    const result = await ctx.mergeLock.run(codeRoot, () =>
+      createScheduleEntry(scheduleGit(ctx), codeRoot, {
+        name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+      }, knownModels(ctx)),
+    );
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }

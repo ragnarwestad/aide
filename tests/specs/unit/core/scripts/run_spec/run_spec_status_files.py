@@ -125,6 +125,31 @@ def nested_workspace(tmp_path, project_name="aide"):
     }
 
 
+def tracked_specs_inside_project_workspace(tmp_path):
+    """A project repo whose specs root is TRACKED inside the same
+    repository — spec 405's own layout (`specs_repo == project_root`),
+    unlike `workspace`/`nested_workspace` above, both a SEPARATE specs
+    repo. No `.aide/config` is needed: `aide_specs_root()` already falls
+    back to `<root>/specs` when none is set."""
+    project = init_repo(tmp_path / "proj")
+    specs_root = project / "specs"
+    (specs_root / "81-queue-and-runner").mkdir(parents=True)
+    (specs_root / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
+    (specs_root / "81-queue-and-runner" / "4-status.md").write_text(
+        "# Queue - Status\n\n## Tracking info\n\n"
+        "- **Task:** `81-queue-and-runner/`\n"
+        "- **Workflow steps completed:** analyze\n"
+    )
+    subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-qm", "add spec"], check=True)
+    return {
+        "project": project,
+        "specs": specs_root,
+        "folder": "81-queue-and-runner",
+        "wtbase": tmp_path / "worktrees",
+    }
+
+
 def status_only_conflict(ws, project_name="aide", second_file=None):
     """Diverges the spec's own `4-status.md` between its branch and the
     specs repo's main — the branch's stale copy vs. main's corrected one

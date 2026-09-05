@@ -9,6 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
+import { savable } from "../spec-page/spec-save-fixtures.ts";
 
 const harness = queueHarness("aide-schedule-page-route-");
 afterEach(() => harness.cleanup());
@@ -293,7 +294,7 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
     writeSchedule(dir, "aide", NIGHTLY);
     const del = await fetch(`${base}/api/queue/schedule/aide/nightly-report/delete`, {
       method: "POST",

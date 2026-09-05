@@ -14,6 +14,17 @@
 # to look (spec 93).
 specs_root_wt="$specs_root"
 
+# Spec 405: the pathspec that keeps the specs root out of "did the
+# project repo change" (run-spec-status-line.sh's analyze scope-check).
+# Populated below, only when the specs root sits inside THIS worktree
+# (single-worktree layout) — with a separate specs worktree the project
+# checkout never sees spec files in its own `git status` at all, so
+# there is nothing to exclude. Kept apart from git_add_excludes, which
+# answers a different question (what gets COMMITTED): a tracked specs
+# root must still be committed, just not counted as "the project
+# changed" for a step that is only allowed to touch its own folder.
+specs_root_excludes=()
+
 # A worktree of the PROJECT isolates nothing an `analyze` step writes:
 # AIDE_SPECS_PATH is an absolute path into another repository, and it
 # resolves to the shared checkout from inside a worktree just as well as
@@ -65,6 +76,10 @@ repoint_specs_path() {
         ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
         git_add_excludes+=(":(exclude,top)$rel")
       fi
+      # Tracked or symlinked-in, the specs root's own changes are the
+      # step's real output, not "the project changed" — whether or not
+      # it needed linking in above (spec 405).
+      [ -n "$rel" ] && specs_root_excludes+=(":(exclude,top)$rel")
       ;;
   esac
   return 0

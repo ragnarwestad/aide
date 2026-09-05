@@ -348,6 +348,7 @@ from .run_spec.run_spec_status_files import (  # noqa: E402,F401
     status_only_conflict,
     status_with_phase,
     subject,
+    tracked_specs_inside_project_workspace,
     tracking_block,
     with_analysis,
     with_analysis_attempts,
