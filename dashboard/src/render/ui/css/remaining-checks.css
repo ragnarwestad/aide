@@ -6,11 +6,6 @@
    go muted and struck through. Nothing here depends on the mark's
    colour alone. */
 .checks { margin: var(--sp-4) 0 0; }
-/* The generic ".specform .factions" gap (var(--sp-1), 4px) reads as the
-   Save button sitting on top of the checklist's last row — this form's
-   list is taller and denser than the other specforms that rule serves. */
-.checks .factions { margin-top: var(--sp-3); }
-.checkshead { margin: 0 0 var(--sp-2); }
 .checklist { list-style: none; margin: 0; padding: 0;
   display: flex; flex-direction: column; gap: var(--sp-1); }
 .checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;

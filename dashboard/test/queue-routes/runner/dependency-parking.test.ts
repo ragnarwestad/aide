@@ -332,9 +332,20 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect((await fetch(`${base}/api/queue/${made.job.id}/cancel`, { method: "POST", headers: AUTH })).status)
       .toBe(200);
     const after = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: { id: string; state: string }[];
+      jobs: { id: string; state: string; error?: unknown; errorReason?: unknown }[];
     };
-    expect(after.jobs.find((j) => j.id === made.job.id)?.state).toBe("cancelled");
+    const job = after.jobs.find((j) => j.id === made.job.id);
+    expect(job?.state).toBe("cancelled");
+    // The held-back reason answered "why is this not running" — a
+    // question cancelling already answered a different way. It must not
+    // survive onto the cancelled job (REQ-1).
+    expect(job?.error).toBeUndefined();
+    expect(job?.errorReason).toBeUndefined();
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    // Nor go on rendering on the row (REQ-2).
+    expect(html).not.toContain("held back: depends on 80, which is not archived yet");
   });
 
   // --- spec 344: the same park, one question earlier -------------------------

@@ -74,6 +74,31 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(spawns.length).toBe(before + 1);
   });
 
+  // A step whose OWN work lands is not over when its process exits — the
+  // merge that follows is still that step's own work (spec 395, REQ-3).
+  // `results[].at` must stay absent for as long as the landing is in
+  // flight, so a phase's own duration keeps counting instead of
+  // freezing on a timestamp stamped before the merge even started.
+  test("a landing step's results[].at is absent until the landing settles, then set (spec 395)", async () => {
+    let finish!: () => void;
+    const work = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const job = enqueue({ steps: ["create"] });
+    const runner = makeRunner({ readResult: () => outcome(), onStepDone: () => work });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.landing).toBe(true);
+    expect(store.get(job.id)?.results[0]?.at).toBeUndefined();
+
+    finish();
+    await work;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.get(job.id)?.landing).toBeUndefined();
+    expect(store.get(job.id)?.results[0]?.at).toBeDefined();
+  });
+
   test("a hook that finishes without ever awaiting still leaves the queue open", async () => {
     // The ordering hazard the runner owns both sides of the flag for: an
     // async function whose body happens not to await anything settles

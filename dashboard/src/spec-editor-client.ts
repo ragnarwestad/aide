@@ -130,6 +130,18 @@ if (host && raw) {
     if (event.target === raw.form) raw.value = instance.getMarkdown();
   });
 
+  // spec-form-actions.ts's dirty latch listens for "input"/"change" on
+  // the FORM, which this editor's own contenteditable surface never
+  // fires — cheap and immediate, deliberately not calling getMarkdown()
+  // on every edit, which would re-serialize the whole ProseMirror tree
+  // for no reader benefit; that value is read off raw.value at submit
+  // time exactly as above.
+  instance.on("change", () => raw.dispatchEvent(new Event("input", { bubbles: true })));
+  // spec-form-actions.ts's Cancel handler resets raw.value from outside
+  // and asks a mounted editor to redraw from it — the WYSIWYG view is a
+  // separate DOM tree this instance owns, with no other way in.
+  raw.addEventListener("spec-cancel", () => instance.setMarkdown(raw.value));
+
   // REQ-5: the library's own `theme` option is construction-time
   // only (2-analysis.md) — this dashboard's theme changes live, with no
   // reload (`theme-script.ts`), so the dark class is managed by hand

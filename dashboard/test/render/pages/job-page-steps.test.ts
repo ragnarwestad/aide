@@ -182,6 +182,18 @@ describe("spec 360: specFilePanel/stepResults' optional mark is a no-op by defau
   });
 });
 
+// spec 395: a step whose own work is still landing has no `at` yet —
+// the Steps tab must show a dash for it, not `esc(undefined)` throwing
+// or printing the literal word "undefined".
+describe("spec 395: a step still landing renders no timestamp, not undefined", () => {
+  test("stepResults renders a dash when a result's own at is absent", () => {
+    const html = stepResults([
+      { step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed" },
+    ]);
+    expect(html).toContain('<td class="muted small">–</td></tr>');
+  });
+});
+
 // --- spec 152: a figure that was over-charged says so wherever it is summed ---
 //
 // A killed step is charged its whole budget, because a SIGKILLed run

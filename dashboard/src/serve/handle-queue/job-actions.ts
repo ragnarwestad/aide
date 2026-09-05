@@ -172,7 +172,14 @@ export async function handleJobActionRoutes(
     // "cancelled" over it would say someone ended a run that had
     // already ended on its own. The table's own `queued`/`running`
     // entries for `cancel` are what draws that line now.
-    const result = ctx.queue.transition(id, "cancel", { finishedAt: new Date().toISOString() });
+    const result = ctx.queue.transition(id, "cancel", {
+      finishedAt: new Date().toISOString(),
+      // A held-back `error`/`errorReason` describes why the job was NOT
+      // running a moment ago; cancelling answers that question a different
+      // way; the old reason must not survive to say the wrong thing.
+      error: undefined,
+      errorReason: undefined,
+    });
     if (!result.ok) {
       const spec = `${job.project}/${job.specFolder}`;
       const reason = `the job is already ${result.state}; only a queued or running job can be cancelled`;

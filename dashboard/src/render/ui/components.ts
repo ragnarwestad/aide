@@ -57,9 +57,15 @@ export function btn(o: {
   /** The override next to a disabled Merge: deliberately not a second
    *  button of the same size. */
   small?: boolean;
+  /** A stable id for a script to find this exact button directly
+   *  (`spec-form-actions.ts`'s Save/Cancel pair) rather than by
+   *  position — most buttons need none, since a form-level submit
+   *  listener finds them by `closest()`/`querySelector` instead. */
+  id?: string;
 }): string {
   const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
   const attrs =
+    (o.id ? `id="${esc(o.id)}" ` : "") +
     `type="${o.type ?? "submit"}" class="${cls}"` +
     (o.pending ? ` data-pending="${esc(o.pending)}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +
@@ -68,6 +74,22 @@ export function btn(o: {
   // control reads as busy without a second element beside it.
   const spin = o.variant === "busy" ? SPINNER : "";
   return `<button ${attrs}>${spin}${esc(o.label)}</button>`;
+}
+
+/** The Save/Cancel pair every `.specform` carries (spec 391), on the
+ *  same line as the tab's own help mark rather than below the field it
+ *  saves. Save renders enabled — REQ-7 needs it to keep working with
+ *  scripting off — and `spec-form-actions.ts` disables both the instant
+ *  it runs, only re-enabling them once the form has seen an edit.
+ *  Cancel renders `disabled` from the start: nothing asks it to work
+ *  without that script, so there is nothing wrong with it needing one. */
+export function saveCancelActions(): string {
+  return (
+    `<span class="factions">` +
+    btn({ id: "specform-save", label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ id: "specform-cancel", label: "Cancel", type: "button", disabled: true }) +
+    `</span>`
+  );
 }
 
 // --- status badge --------------------------------------------------------------
@@ -175,8 +197,10 @@ export function phaseChip(o: {
 }
 
 /** A group of them. One class, so the row does not need a spacing rule
- *  of its own. */
-export const phases = (chips: string): string => `<span class="phases">${chips}</span>`;
+ *  of its own — `cls` adds a second, for the one caller (spec 404's
+ *  "picked" block) that needs a variant of the same wrapper. */
+export const phases = (chips: string, cls?: string): string =>
+  `<span class="${["phases", cls].filter(Boolean).join(" ")}">${chips}</span>`;
 
 // --- row-level message ----------------------------------------------------------
 
@@ -220,6 +244,23 @@ export function rowMessage(
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(text)}</span></${tag}>`;
+}
+
+/** `rowMessage()` for more than one ranked part, each keeping its own
+ *  link (REQ-2, spec 403) rather than flattening to one string first —
+ *  a link lives inside a part's own sentence, so it survives being
+ *  joined with another part's sentence on the same line, unlike `title`
+ *  (notice.ts), which cannot be attributed once more than one part
+ *  joins and is dropped instead. */
+export function rowMessageParts(
+  variant: MessageVariant,
+  parts: { text: string; href?: string }[],
+  o: { hook?: string; tag?: "div" | "p" } = {},
+): string {
+  const tag = o.tag ?? "div";
+  const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
+  const body = parts.map((p) => (p.href ? `<a href="${esc(p.href)}">${esc(p.text)}</a>` : esc(p.text))).join(" · ");
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
 }
 
 /** The slot a refusal is WRITTEN into by the browser code, as opposed

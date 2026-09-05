@@ -57,8 +57,11 @@ describe("the Description tab", () => {
     expect(html.indexOf('id="spec-editor-host"')).toBeLessThan(html.indexOf('class="spec-editor-raw"'));
   });
 
-  test("the Save row has one spacing token above it", () => {
-    expect(edit()).toContain('.specform .factions { margin-top: var(--sp-1); }');
+  // Spec 391: Save moved onto the panel's own head line, above the
+  // field it saves rather than below it — `.panelhead` carries the one
+  // spacing token to the field beneath it now.
+  test("the panel head carries one spacing token down to the field below it", () => {
+    expect(edit()).toMatch(/\.panelhead\s*\{[^}]*margin-bottom:\s*var\(--sp-2\)/);
   });
 
   // The description says "each with the commit stamp it has today" —
@@ -232,5 +235,74 @@ describe("spec 394: the Depends on picker, in the banner on every tab", () => {
     const html = page(view({ archived: true, dependsOn: ['<img src=x onerror="alert(1)">'] }));
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img");
+  });
+});
+
+// --- spec 404: what is picked sits above the scrolling list -----------------
+//
+// The picker renders every option newest-first in one capped, scrolling
+// list, so a spec's own already-ticked dependencies can be wherever the
+// sort put them — not necessarily inside the visible first few rows.
+// A second, uncapped block ahead of the scrolling one holds exactly the
+// ticked chips instead.
+
+describe("spec 404: what is picked sits above the scrolling list", () => {
+  const OPTIONS = [
+    { project: "aide", specFolder: "164-a-spec-can-depend" },
+    { project: "aide", specFolder: "09-ninth" },
+  ];
+  const withOptions = (checked: string[] = []) =>
+    page(view({ dependsOnOptions: OPTIONS, dependsOn: checked }));
+
+  // REQ-1: what is already picked sits in an uncapped block ahead of the
+  // scrolling list.
+  test("a ticked chip sits inside .phases.picked, ahead of the scrolling .phases list, uncapped", () => {
+    const html = withOptions(["164-a-spec-can-depend"]);
+    const pickedIdx = html.indexOf('class="phases picked"');
+    const restIdx = html.indexOf('class="phases"');
+    expect(pickedIdx).toBeGreaterThan(-1);
+    expect(restIdx).toBeGreaterThan(-1);
+    expect(pickedIdx).toBeLessThan(restIdx);
+    const pickedBlock = html.slice(pickedIdx, restIdx);
+    expect(pickedBlock).toContain('value="164-a-spec-can-depend"');
+  });
+
+  // REQ-2: unticking (the outcome of a save with the box unchecked)
+  // returns the chip to the scrolling list alone.
+  test("an unticked option appears only in the scrolling list, never in the picked block", () => {
+    const html = withOptions([]);
+    expect(html).not.toContain('class="phases picked"');
+    const restIdx = html.indexOf('class="phases"');
+    const restBlock = html.slice(restIdx);
+    expect(restBlock).toContain('value="164-a-spec-can-depend"');
+  });
+
+  // REQ-3: ticking a previously-unpicked option (the outcome of a save
+  // with the box checked) lifts it into the picked block.
+  test("a newly ticked option appears in the picked block", () => {
+    const html = withOptions(["09-ninth"]);
+    const pickedIdx = html.indexOf('class="phases picked"');
+    const restIdx = html.indexOf('class="phases"');
+    const pickedBlock = html.slice(pickedIdx, restIdx);
+    expect(pickedBlock).toContain('value="09-ninth"');
+  });
+
+  // Every chip in both halves still posts the one `dependsOn` field from
+  // the one form — the split is a render-time partition, not a second
+  // control.
+  test("every chip in both halves posts the same dependsOn field from the one trackingform", () => {
+    const html = withOptions(["164-a-spec-can-depend"]);
+    const formStart = html.indexOf('<form class="trackingform"');
+    const formEnd = html.indexOf("</form>", formStart);
+    const form = html.slice(formStart, formEnd);
+    const boxes = [...form.matchAll(/<input[^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]);
+    expect(boxes).toHaveLength(2);
+    expect(html.match(/<form class="trackingform"/g)?.length).toBe(1);
+  });
+
+  // REQ-4: a spec with nothing ticked shows no picked block at all.
+  test("no .phases.picked element when nothing is picked", () => {
+    const html = withOptions([]);
+    expect(html).not.toContain('class="phases picked"');
   });
 });

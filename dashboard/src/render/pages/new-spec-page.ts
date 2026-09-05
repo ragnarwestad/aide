@@ -95,24 +95,26 @@ export function dependsOnField(
       -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
   );
   if (specs.length === 0) return "";
+  const chip = (t: QueueTarget) =>
+    `<span data-project="${esc(t.project)}">` +
+    phaseChip({
+      dataAttr: "data-depends",
+      value: t.specFolder,
+      label: t.specFolder,
+      name: "dependsOn",
+      checked: checked.has(t.specFolder),
+    }) +
+    `</span>`;
+  // Spec 404: what is already ticked sits above the scrolling list
+  // (REQ-1), never capped itself — one partition of the same set, not
+  // two controls (REQ-3): every chip still posts `dependsOn` from the
+  // one form, whichever half it renders in.
+  const picked = specs.filter((t) => checked.has(t.specFolder));
+  const rest = specs.filter((t) => !checked.has(t.specFolder));
+  const pickedBlock = picked.length ? phases(picked.map(chip).join(""), "picked") : "";
   return field(
     "Depends on",
-    phases(
-      specs
-        .map(
-          (t) =>
-            `<span data-project="${esc(t.project)}">` +
-            phaseChip({
-              dataAttr: "data-depends",
-              value: t.specFolder,
-              label: t.specFolder,
-              name: "dependsOn",
-              checked: checked.has(t.specFolder),
-            }) +
-            `</span>`,
-        )
-        .join(""),
-    ),
+    pickedBlock + phases(rest.map(chip).join("")),
     { group: true, wide: o.wide },
   );
 }

@@ -16,6 +16,9 @@ const COMPONENTS = [
   "awaiting",
   "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
   "phases", "phase", "default", "checked", "done", "off", "box",
+  // the picked half of the Depends-on control (spec 404): the same
+  // .phases wrapper, uncapped, ahead of the scrolling remainder.
+  "picked",
   "rowmsg", "failed", "waiting", "info",
   // the invisible holder around the spec row's state badge (2026-08-24),
   // mirroring actionslot: it reserves the width on mobile so the pill
@@ -183,6 +186,10 @@ const STRUCTURE = [
   // the same-sized span a done or archived row shows in its place, so
   // the two kinds of row line up.
   "checks", "checkshead", "checklist", "checkphase", "check", "checktask", "checkbox",
+  // the tab's head line and its Save/Cancel pair, on the same line (spec
+  // 391) — the form's first child on the Checks tab and every document
+  // tab, so this is the ONE class the two share for it.
+  "panelhead",
   // the two forms on the spec page that post one of those checks and
   // the description (spec 229). A class of its own for one rule: their
   // buttons sit a step lower than an ordinary form's do.

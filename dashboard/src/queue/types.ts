@@ -43,7 +43,15 @@ export interface StepResult {
    *  per step, so a finished step stays readable after the next one has
    *  overwritten the job's live pointers. */
   streamFile?: string;
-  at: string;
+  /** When this step's OWN work finished landing — not when its process
+   *  exited. Absent for a step whose landing has not settled yet (spec
+   *  395): `Runner.complete()` stamps this once the promise `onStepDone`
+   *  returned resolves, not when the result file first appears, so a
+   *  phase's own duration keeps counting through its merge instead of
+   *  freezing at the process's own end. A step with no landing of its
+   *  own (`implement`) gets this written immediately, exactly as
+   *  before. */
+  at?: string;
   /** When this step STARTED (spec 384) — the instant `Runner.startOne()`
    *  actually spawned it, held on `Job.stepStartedAt` until this result is
    *  written. Absent on a result written before this field existed, and

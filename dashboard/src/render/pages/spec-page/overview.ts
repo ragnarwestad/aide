@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { btn, ICON_PDF, tokenField } from "../../ui/components.ts";
+import { btn, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -174,10 +174,13 @@ export function checklist(view: SpecPageView, mark = ""): string {
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
-  const head =
-    `<p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>`;
-  // The boxes sit INSIDE the one form, and the Save closes it — no id
+  // The head line and, when the boxes are tickable, Save/Cancel beside it
+  // (spec 391) — one `.panelhead` div, the form's first child, so the
+  // buttons sit on the same line as the mark rather than below the list.
+  const panelHead = (actions = ""): string =>
+    `<div class="panelhead"><p class="checkshead"><strong>Checks</strong> ` +
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>${actions}</div>`;
+  // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick
     ? `<form class="specform" method="post" action="${esc(view.tickAction)}">` +
@@ -186,11 +189,11 @@ export function checklist(view: SpecPageView, mark = ""): string {
       // Empty rather than absent for a file git has never committed —
       // the same answer the description's own field gives.
       `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
+      panelHead(saveCancelActions()) +
       list +
-      `<p class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
       `</form>`
-    : list;
-  return `<section class="checks">${head}${body}</section>`;
+    : panelHead() + list;
+  return `<section class="checks">${body}</section>`;
 }
 
 /** The one action an archived spec offers (spec 198).
@@ -231,15 +234,23 @@ export function reopenControl(view: SpecPageView): string {
  *  the browser's own viewer shows it — a plain link, never a form, so it
  *  works with JavaScript switched off (REQ-2). Disabled with its reason
  *  rather than hidden when the tool is missing (REQ-7), the exact shape
- *  `resetControl` below already uses. */
+ *  `resetControl` below already uses.
+ *
+ *  An icon alone, not the word "PDF" beside it (spec 391): it opens a
+ *  document, so it reads as one — the same `aria-label` says what it
+ *  does to a reader who cannot see the icon, on both branches. */
 export function pdfControl(view: SpecPageView): string {
   if (!view.pdfAction) return "";
+  const what = "open this spec as a PDF in a new tab";
   if (view.pdfUnavailableReason) {
-    return `<span class="btn" aria-disabled="true" title="${esc(view.pdfUnavailableReason)}">${ICON_PDF} PDF</span>`;
+    return (
+      `<span class="btn" aria-disabled="true" aria-label="${esc(what)}" ` +
+      `title="${esc(view.pdfUnavailableReason)}">${ICON_PDF}</span>`
+    );
   }
   return (
     `<a class="btn" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
-    `title="open this spec as a PDF in a new tab">${ICON_PDF} PDF</a>`
+    `aria-label="${esc(what)}" title="${esc(what)}">${ICON_PDF}</a>`
   );
 }
 

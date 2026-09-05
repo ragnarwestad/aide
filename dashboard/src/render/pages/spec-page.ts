@@ -79,12 +79,13 @@ export function renderSpecPage(
   const tab = resolveSpecTab(opts.tab);
   const lead = view.lead;
 
-  // No title line. The folder name sits directly above it and IS the
-  // title, lowercased and hyphenated — so the label spec 301 added, to
-  // stop a bare bold sentence being read as anything but the title, was
-  // answering a question its own neighbour already answers. Three
-  // spellings of one name on one page; the document's own heading below
-  // is the file's text and stays as it is.
+  // No title line. The project and folder sit directly above it and ARE
+  // the title (spec 404: the project leads, matching the identifier
+  // every other surface uses for this spec) — so the label spec 301
+  // added, to stop a bare bold sentence being read as anything but the
+  // title, was answering a question its own neighbour already answers.
+  // Three spellings of one name on one page; the document's own heading
+  // below is the file's text and stays as it is.
   const banner =
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
@@ -144,7 +145,7 @@ export function renderSpecPage(
     ),
     panel,
     view.backHref ?? "/",
-    view.specFolder,
+    `${view.project}:${view.specFolder}`,
   );
 
   return pageShell(
