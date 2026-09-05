@@ -46,11 +46,11 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // dashboard and every test alike).
 export type WorkflowStep =
   | "explore" | "create" | "analyze" | "implement" | "archive" | "manifest" | "reopen" | "reset"
-  | "schedule";
+  | "schedule" | "close";
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
   "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset",
-  "schedule",
+  "schedule", "close",
 ];
 
 export const WORKFLOW_STEPS = workflowStepsData.workflowSteps as readonly WorkflowStep[];
@@ -117,15 +117,16 @@ export function currentWorkRoundJobs<T extends {
  *  bash copy in `aide-run-spec`. */
 export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
 
-/** The two steps quick enough to jump a queued job ahead of a slower one
+/** The steps quick enough to jump a queued job ahead of a slower one
  *  (REQ-1): `create` and `archive` take minutes, `analyze` and
- *  `implement` a half hour or more. Every step not named here — `explore`,
- *  `manifest`, `reopen`, `reset`, `schedule` — stays in the slow group:
- *  none of them is characterized the way these four are, and REQ-1 names
- *  only these four. Module-internal: nothing outside this file needs it
- *  directly (only `queuePriorityOrder`, below, is exported for other
- *  files to call). */
-const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive"];
+ *  `implement` a half hour or more. `close` (spec 406) does no model
+ *  work either, in the same sense `archive` doesn't. Every step not
+ *  named here — `explore`, `manifest`, `reopen`, `reset`, `schedule` —
+ *  stays in the slow group: none of them is characterized the way these
+ *  are. Module-internal: nothing outside this file needs it directly
+ *  (only `queuePriorityOrder`, below, is exported for other files to
+ *  call). */
+const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive", "close"];
 
 /** The order a free slot is filled from (REQ-1), and the same order a
  *  queued row's position is read off (REQ-6): quick steps before slow

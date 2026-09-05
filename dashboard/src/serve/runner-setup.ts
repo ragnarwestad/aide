@@ -42,6 +42,7 @@ export interface RunnerSetupContext {
   landNewSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   landArchivedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
+  landClosedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   /** The spec's own on-disk folder (spec 394) — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
@@ -217,6 +218,13 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         // `already-landed` has nothing left to land either.
         if (step === "archive") {
           return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
+        }
+        // spec 406: `close` lands on `closed` alone, the same rule
+        // `archive` follows for `completed` — every other terminalReason
+        // (`already-closed`, `already-archived`, `conflict-open`,
+        // `refused`) moved nothing, so there is nothing to land.
+        if (step === "close") {
+          return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
         }
         // `implement`, `explore` and `manifest` fall through: the first
         // by design, the other two because neither leaves a spec branch

@@ -8,6 +8,7 @@ import { activityMs, phasesFor, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
+  CLOSED_STATE,
   PHASE_LINES,
   groupKey,
   type ArchivedSpecView,
@@ -167,8 +168,12 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     specFolder: s.folder,
     // It came out of a folder on disk, so the name IS the spec's.
     named: true,
-    // The one place the two archived states are told apart.
-    state: s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
+    // Closed checked first (spec 406, REQ-7): a closed spec must never
+    // read as either archived state, even a defensive one — see
+    // `ArchivedSpecView.closed`'s own comment for why the two are
+    // checked independently rather than assumed exclusive. Otherwise
+    // the one place the two archived states are told apart.
+    state: s.closed ? CLOSED_STATE : s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
     spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
     costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
     // Spec 260: the sibling roll-up for a Codex-only archive, which has

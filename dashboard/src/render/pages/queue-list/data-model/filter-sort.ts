@@ -4,7 +4,7 @@
 
 import { IN_FLIGHT } from "../../../ui/job-state.ts";
 import { t, type Language, type TranslationKey } from "../../../../i18n";
-import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
+import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
 
 // "Problems" holds everything that did not simply finish — a cap-stop
 // and a crash are different, but both are things you go looking for on
@@ -39,7 +39,11 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // swap — the whole archive renders in the same tenth of a second the
   // active-only view does, so nothing here waits on paging.
   { key: "all", label: "All" },
-  { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE] },
+  // CLOSED_STATE joins the exclusion (spec 406, REQ-7): a closed spec
+  // is no more "everything still going on" than an archived one is, but
+  // it has its own word and must not borrow ARCHIVED_STATE's meaning
+  // just to be kept out of this chip.
+  { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
   // Read off `IN_FLIGHT` rather than written out a second time: a state
   // added to one and forgotten in the other is exactly the drift this
   // page cannot afford, and the single-job page needs the same set.
@@ -132,11 +136,16 @@ export function filterShowsArchived(state: string | undefined): boolean {
   return matchesState(stateFilter(state), ARCHIVED_STATE);
 }
 
-/** Whether a row is an archived spec's, whichever of the two states it
- *  carries. Read wherever the ROW SHAPE is the question rather than the
- *  filter's — which is the routing in `groupRows` and the chip counts. */
+/** Whether a row is LOCKED — built by `readerGroup()` off the archive
+ *  walk, read-only, no live job. Kept under its old name (spec 406):
+ *  every caller's own question is "does this row's shape carry a live
+ *  job, or is it a record with nothing left to run" — true of a closed
+ *  row in exactly the same sense as an archived one, since both are the
+ *  same `readerGroup()` builder over the same archive/ walk. Read
+ *  wherever the ROW SHAPE is the question rather than the filter's —
+ *  which is the routing in `groupRows` and the chip counts. */
 export const isArchivedRow = (g: SpecGroup): boolean =>
-  g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE;
+  g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
 
 /** Everything the search reads, as one lowercase haystack. The WHOLE
  *  description, not the two lines a row shows: a term found in the

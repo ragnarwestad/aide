@@ -9,6 +9,7 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
   ARCHIVED_STATE,
+  CLOSED_STATE,
   DEFAULT_SORT,
   FILTER_KEYS,
   SORTS,
@@ -76,16 +77,29 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
   const built = new Set(
     groups.filter(isArchivedRow).map((g) => groupKey(g.project, g.specFolder)),
   );
-  const uncounted = (f.q ?? "").trim()
+  // spec 406, REQ-7: split in two rather than one `uncounted` total —
+  // an unbuilt CLOSED key must count toward "All" but never toward
+  // "Archived", the same split its own chip already keeps once a row
+  // IS built (`matchesStateFilter` on `CLOSED_STATE`). `opts.closed` is
+  // the same cheap key list `opts.archived` is, filtered server-side to
+  // the ones actually closed.
+  const closedKeys = new Set(opts.closed ?? []);
+  const searching = (f.q ?? "").trim() !== "";
+  const uncountedArchived = searching
     ? 0
-    : (opts.archived ?? []).filter((k) => !built.has(k)).length;
+    : (opts.archived ?? []).filter((k) => !built.has(k) && !closedKeys.has(k)).length;
+  const uncountedClosed = searching
+    ? 0
+    : (opts.archived ?? []).filter((k) => !built.has(k) && closedKeys.has(k)).length;
   // A chip per project stood here until 2026-08-23. It was one control
   // that grew with the machine: fine at two projects, unreadable at
   // twenty, and the dashboard now serves whatever a person has. Nothing
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  return searchForm(f, opts, stateDropdown(f, current, counted, uncounted, lang), lang);
+  return searchForm(
+    f, opts, stateDropdown(f, current, counted, uncountedArchived, uncountedClosed, lang), lang,
+  );
 }
 
 // One dropdown, six links, the same single-value `queueHref` merge the
@@ -104,7 +118,8 @@ function stateDropdown(
   f: QueueFilter,
   current: string,
   counted: SpecGroup[],
-  uncounted: number,
+  uncountedArchived: number,
+  uncountedClosed: number,
   lang: Language,
 ): string {
   // Computed once, so the trigger and the panel option for the SAME
@@ -115,7 +130,10 @@ function stateDropdown(
     const on = s.key === current;
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
-      (matchesState(s, ARCHIVED_STATE) ? uncounted : 0);
+      (matchesState(s, ARCHIVED_STATE) ? uncountedArchived : 0) +
+      // spec 406, REQ-7: an unbuilt closed key never reaches "Archived"
+      // (CLOSED_STATE is not in that chip's `states`), only "All".
+      (matchesState(s, CLOSED_STATE) ? uncountedClosed : 0);
     return { s, on, count };
   });
   const options = rows

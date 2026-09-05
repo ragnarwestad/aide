@@ -334,11 +334,14 @@ overview names the soonest across a project's entries.
 `tz:` field. Check what
 "3am" means on the machine actually running the poll before relying on it across a daylight-saving transition.
 
-**A schedule is a committed, reviewed setting, like `codeLanding` — it has no `.aide/config` fallback and no edit
-form.** Change it by editing
-`.aide/project.yaml` directly. A `prompt:` path that would resolve outside the project root (an absolute path, or one
-whose `..` climbs past it) is dropped at parse time, and a malformed `cron:` drops that one entry — never the whole
-list.
+**A schedule is a committed, reviewed setting, like `codeLanding` — it has no `.aide/config` fallback.**
+Creating, editing, enabling/disabling or deleting an entry through `/schedule`'s own forms commits and
+pushes the change from the dashboard's own checkout immediately, the same way a spec's own Save does — no
+manual git step. A save that cannot be committed or pushed (no reachable origin, a checkout that cannot
+fast-forward) is refused with the reason on the page, and the manifest is left exactly as it was rather
+than holding an edit nothing recorded. A `prompt:` path that would resolve outside the project root (an
+absolute path, or one whose `..` climbs past it) is dropped at parse time, and a malformed `cron:` drops
+that one entry — never the whole list.
 
 ## How many run at once
 

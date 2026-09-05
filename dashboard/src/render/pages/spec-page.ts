@@ -51,7 +51,10 @@ import { helpPopover, rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
-import { archivedLine, boardControl, checklist, pdfControl, reopenControl, resetControl, trackingControl } from "./spec-page/overview.ts";
+import {
+  archivedLine, boardControl, checklist, closedLine, closeControl, pdfControl, reopenControl,
+  resetControl, resetCloseNote, trackingControl,
+} from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
 import {
   RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
@@ -64,6 +67,7 @@ export {
   documentTabScript, specPagePath, specTabPath,
 } from "./spec-page/tabs.ts";
 export { renderResetSpecPage } from "./spec-page/reset-page.ts";
+export { renderCloseSpecPage } from "./spec-page/close-page.ts";
 
 export function renderSpecPage(
   view: SpecPageView,
@@ -79,17 +83,19 @@ export function renderSpecPage(
   const tab = resolveSpecTab(opts.tab);
   const lead = view.lead;
 
-  // No title line. The folder name sits directly above it and IS the
-  // title, lowercased and hyphenated — so the label spec 301 added, to
-  // stop a bare bold sentence being read as anything but the title, was
-  // answering a question its own neighbour already answers. Three
-  // spellings of one name on one page; the document's own heading below
-  // is the file's text and stays as it is.
+  // No title line. The project and folder sit directly above it and ARE
+  // the title (spec 404: the project leads, matching the identifier
+  // every other surface uses for this spec) — so the label spec 301
+  // added, to stop a bare bold sentence being read as anything but the
+  // title, was answering a question its own neighbour already answers.
+  // Three spellings of one name on one page; the document's own heading
+  // below is the file's text and stays as it is.
   const banner =
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
     archivedLine(view) +
+    closedLine(view) +
     trackingControl(view) +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
@@ -103,6 +109,8 @@ export function renderSpecPage(
     (view.archived ? reopenControl(view) : "") +
     pdfControl(view) +
     resetControl(view) +
+    closeControl(view) +
+    resetCloseNote(view) +
     boardControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
@@ -144,7 +152,7 @@ export function renderSpecPage(
     ),
     panel,
     view.backHref ?? "/",
-    view.specFolder,
+    `${view.project}:${view.specFolder}`,
   );
 
   return pageShell(

@@ -102,7 +102,13 @@ elif [ -n "$spec_folder" ]; then
   acceptance_line=""
   [ "$command_name" = "analyze" ] && [ "$acceptance_not_required" = "yes" ] && acceptance_line="
 Acceptance ticking is not required for this run: per Step 8, do not write the acceptance-criteria table into 4-status.md — write the one-line note instead."
-  prompt="/aide-$command_name $spec_id$acceptance_line
+  # Spec 406: stated to the skill the same way depends_line/acceptance_line
+  # are — a CLI flag alone is invisible to the skill's own reasoning, and
+  # Step 1 hands this straight to `aide-close-spec --reason`.
+  reason_line=""
+  [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
+Use exactly this reason when closing the spec: $reason"
+  prompt="/aide-$command_name $spec_id$acceptance_line$reason_line
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own

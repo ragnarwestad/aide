@@ -5,6 +5,7 @@
 import { btn, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
+import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
 /** The two whole-spec facts that sit above the tabs (spec 394): what the
@@ -84,10 +85,31 @@ export function fact(label: string, value: string): string {
  *  What IS true is that the description's textarea and the checks'
  *  boxes are gone until it is reopened. */
 export function archivedLine(view: SpecPageView): string {
-  if (!view.archived) return "";
+  // spec 406, REQ-7: a closed spec is under archive/ too (the same
+  // folder move), but must never read as "archived" on its own page —
+  // closedLine, below, is what draws for it instead.
+  if (!view.archived || view.closed) return "";
   return (
     `<p class="desc"><span class="muted">The spec has moved into <code>archive/</code>, ` +
     `and the description and the checks cannot be edited until the spec is reopened</span></p>`
+  );
+}
+
+/** What being closed actually means for this spec (spec 406, REQ-7) —
+ *  `archivedLine`'s sibling, drawn instead of it. Names the reason and
+ *  the date (REQ-5's "travels with the spec"), never the word
+ *  "archived": the description's own emphasis is that closing must not
+ *  look like archiving, and this is where a reader of the spec's own
+ *  page meets that distinction stated as fact rather than left to be
+ *  inferred from the folder alone. */
+export function closedLine(view: SpecPageView): string {
+  if (!view.closed) return "";
+  const when = view.closedDate ? ` on ${esc(view.closedDate)}` : "";
+  const reason = view.closeReason ? `: ${esc(view.closeReason)}` : "";
+  return (
+    `<p class="desc"><span class="muted">This spec was closed${when}${reason} — ` +
+    `it did not work out, and the description and the checks cannot be edited ` +
+    `until the spec is reopened</span></p>`
   );
 }
 
@@ -315,4 +337,30 @@ export function resetControl(view: SpecPageView): string {
     return `<span class="btn" aria-disabled="true" title="${esc(view.resetUnavailableReason)}">Reset</span>`;
   }
   return `<a class="btn" href="${esc(view.resetAction)}" title="start this active spec again from its description">Reset</a>`;
+}
+
+/** The other operation that ends a work round (spec 406, REQ-1), drawn
+ *  beside Reset. Same disabled-with-`title` shape as `resetControl` for
+ *  "possible in principle, not right now" (REQ-11) — `view.archived`
+ *  hides it for an archived OR a closed spec alike, the same one flag
+ *  `resetControl` already checks, since neither move applies once a
+ *  spec has left the active list. */
+export function closeControl(view: SpecPageView): string {
+  if (!view.closeAction || view.archived) return "";
+  if (view.closeUnavailableReason) {
+    return `<span class="btn" aria-disabled="true" title="${esc(view.closeUnavailableReason)}">Close</span>`;
+  }
+  return `<a class="btn" href="${esc(view.closeAction)}" title="say this spec is not going to work, and archive the record">Close</a>`;
+}
+
+/** Drawn once, beside both controls — REQ-2's non-hover distinction: a
+ *  reader meets Close and Reset differently only in a `title` attribute
+ *  otherwise, which REQ-2 explicitly says is not enough. Shares its
+ *  exact wording with the close confirmation page's own prose
+ *  (`CLOSE_VS_RESET_SENTENCE`, close-page.ts) so the two places can
+ *  never say it differently. */
+export function resetCloseNote(view: SpecPageView): string {
+  if (!view.resetAction && !view.closeAction) return "";
+  if (view.archived) return "";
+  return `<p class="small muted">${esc(CLOSE_VS_RESET_SENTENCE)}</p>`;
 }

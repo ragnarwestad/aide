@@ -10,7 +10,7 @@
 # The workflow's own vocabulary (spec 349): one file, read here and
 # imported by the dashboard — see core/scripts/lib/workflow-steps.json's
 # own comment for what each list is and why it is shaped the way it is
-# (WORKFLOW_STEPS is the nine names --command accepts; DEPENDENCY_GATED_STEPS
+# (WORKFLOW_STEPS is the names --command accepts; DEPENDENCY_GATED_STEPS
 # is narrower, since analyze and create write only the spec's own folder
 # in the specs repo and conflict with nothing). A missing or unparsable
 # file refuses loudly rather than leaving these names unset under `set -u`.
@@ -62,6 +62,11 @@ title=""; description=""
 # exactly the shape the line has on disk — stated in the create prompt,
 # meaningless everywhere else.
 depends_on=""
+# Why a `close` step is closing the spec (spec 406, REQ-3/REQ-5): typed
+# by the person closing it, stated in the close prompt so the skill can
+# hand it straight to `aide-close-spec --reason`, meaningless for every
+# other command.
+reason=""
 # Whether this run's analyze step should skip the acceptance-criteria
 # table in 4-status.md (spec 386). A bare flag, like --pull/--dry-run:
 # there is nothing to validate, and its absence is the byte-for-byte
@@ -107,6 +112,7 @@ while [ $# -gt 0 ]; do
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; shift 2 ;;
+    --reason) reason="${2:-}"; shift 2 ;;
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;

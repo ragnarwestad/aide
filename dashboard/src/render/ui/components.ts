@@ -197,8 +197,10 @@ export function phaseChip(o: {
 }
 
 /** A group of them. One class, so the row does not need a spacing rule
- *  of its own. */
-export const phases = (chips: string): string => `<span class="phases">${chips}</span>`;
+ *  of its own — `cls` adds a second, for the one caller (spec 404's
+ *  "picked" block) that needs a variant of the same wrapper. */
+export const phases = (chips: string, cls?: string): string =>
+  `<span class="${["phases", cls].filter(Boolean).join(" ")}">${chips}</span>`;
 
 // --- row-level message ----------------------------------------------------------
 
@@ -242,6 +244,23 @@ export function rowMessage(
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(text)}</span></${tag}>`;
+}
+
+/** `rowMessage()` for more than one ranked part, each keeping its own
+ *  link (REQ-2, spec 403) rather than flattening to one string first —
+ *  a link lives inside a part's own sentence, so it survives being
+ *  joined with another part's sentence on the same line, unlike `title`
+ *  (notice.ts), which cannot be attributed once more than one part
+ *  joins and is dropped instead. */
+export function rowMessageParts(
+  variant: MessageVariant,
+  parts: { text: string; href?: string }[],
+  o: { hook?: string; tag?: "div" | "p" } = {},
+): string {
+  const tag = o.tag ?? "div";
+  const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
+  const body = parts.map((p) => (p.href ? `<a href="${esc(p.href)}">${esc(p.text)}</a>` : esc(p.text))).join(" · ");
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
 }
 
 /** The slot a refusal is WRITTEN into by the browser code, as opposed

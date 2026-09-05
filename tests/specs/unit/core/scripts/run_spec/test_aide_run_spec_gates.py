@@ -252,7 +252,7 @@ def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     assert path.is_file(), f"the shared workflow-step file is missing: {path}"
     data = json.loads(path.read_text())
     assert data["workflowSteps"] == [
-        "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule",
+        "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule", "close",
     ]
     assert data["dependencyGatedSteps"] == ["implement", "archive"]
     assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]

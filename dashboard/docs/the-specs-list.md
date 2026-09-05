@@ -68,13 +68,14 @@ button stands next to the badge and NAMES the phase it would run. The page says 
 done.
 The pips answer their own narrower question beside it.
 
-Every status the list reports lives in the State column, and nowhere else on the row — the spec's name carries only
-its name, its project, the pips and the fold control. A push that never reached origin, a landing that did not finish,
-a pull request the code is waiting on, or an archived branch left open (whether because a landing's own delete failed,
-or because nothing has landed it at all) each draw a second, small badge beside the running/resting word — one badge,
-the one that needs a person first, when more than one applies. Its title carries a sentence written for a person, what
-happened and what to do, never git's own stderr; and when more than one condition applies, every one of their
-sentences rides on that SAME title, so hovering the one badge reaches all of them rather than only the winner.
+The State column carries only the spec's own state — the running/resting word, and nothing beside it. A push that
+never reached origin, a landing that did not finish, a pull request the code is waiting on (or one `gh` could not
+open), or an archived branch left open (whether because a landing's own delete failed, or because nothing has
+landed it at all) are facts about the work, not a second state the spec is IN, so none of them draw a badge in that
+column. Each is said once in the row's own notice line instead, ranked, joined with " · " when more than one
+applies, in a sentence written for a person — what happened and what to do, never git's own stderr — and each
+keeping its own link where it has one, so a reader never loses one fact's link by another fact joining it on the
+same line.
 
 The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
 New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT

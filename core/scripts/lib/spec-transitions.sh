@@ -40,15 +40,20 @@ TRANSITIONS_JSON="${TRANSITIONS_JSON:-$_spec_transitions_lib_dir/transitions.jso
 # shellcheck source=/dev/null
 [ -f "$_spec_transitions_lib_dir/spec-state.sh" ] && source "$_spec_transitions_lib_dir/spec-state.sh"
 
-# current_phase_from($state_json) — prints the phase name. The
-# `archived` stamp decides first: it is written (aide-archive-spec)
-# before completedPhases ever gains "archive" (that only happens once
-# aide-run-spec's own post-step bookkeeping runs), so a spec mid-archive
-# already reads as archived the moment its stamp exists. Falling back to
-# completedPhases membership (not "last element": the array is not
-# guaranteed ordered) for the three phases before that.
+# current_phase_from($state_json) — prints the phase name. The `closed`
+# stamp decides first, then `archived`: both are written (aide-close-spec,
+# aide-archive-spec) before completedPhases ever gains the matching step,
+# so a spec mid-close/mid-archive already reads as such the moment its
+# stamp exists. Falling back to completedPhases membership (not "last
+# element": the array is not guaranteed ordered) for the three phases
+# before that.
 current_phase_from() {
-  local json="$1" archived completed
+  local json="$1" closed archived completed
+  closed="$(jq -r '.closed' <<<"$json" 2>/dev/null)"
+  if [ -n "$closed" ] && [ "$closed" != "null" ]; then
+    printf 'closed'
+    return
+  fi
   archived="$(jq -r '.archived' <<<"$json" 2>/dev/null)"
   if [ -n "$archived" ] && [ "$archived" != "null" ]; then
     printf 'archived'
@@ -98,13 +103,14 @@ _peek_spec_state() {
     state_json="$(cat "$state_file" 2>/dev/null || echo '{}')"
     return
   fi
-  local prose_line completed_json archived_json
+  local prose_line completed_json archived_json closed_json
   prose_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" 2>/dev/null | tail -1)"
   completed_json="$(printf '%s' "$prose_line" | \
     jq -R -s -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
   archived_json="$(_spec_state_archived_json "$status_file")"
-  state_json="$(jq -cn --argjson c "$completed_json" --argjson a "$archived_json" \
-    '{completedPhases:$c, archived:$a, reopened:null, acceptanceCriteria:[], phaseCounts:{}}')"
+  closed_json="$(_spec_state_closed_json "$status_file")"
+  state_json="$(jq -cn --argjson c "$completed_json" --argjson a "$archived_json" --argjson cl "$closed_json" \
+    '{completedPhases:$c, archived:$a, closed:$cl, reopened:null, acceptanceCriteria:[], phaseCounts:{}}')"
 }
 
 may_apply_spec_transition() {   # $1 = status_file, $2 = event
@@ -146,8 +152,9 @@ may_apply_spec_transition() {   # $1 = status_file, $2 = event
 # $kind is one of: workflow-line (create/analyze/implement/archive's own
 # entry on the "Workflow steps completed" line, $value = the new
 # comma-separated list), archived (the "**Archived:**" stamp, no
-# $value needed), reopened/reset (the boundary mark, $value = the
-# boundary sha). Deliberately NOT keyed on the table's event name:
+# $value needed), closed (the "**Closed:**" stamp, $value = the reason
+# typed by the person closing it), reopened/reset (the boundary mark,
+# $value = the boundary sha). Deliberately NOT keyed on the table's event name:
 # "archive" the EVENT and "archive" appearing in the workflow-steps list
 # are two different writes at two different times (aide-archive-spec
 # writes the stamp before the move; aide-run-spec's own post-step
@@ -166,6 +173,10 @@ write_phase_stamp() {
     archived)
       local today; today="$(date -u +%Y-%m-%d)"
       printf '\n**Archived:** %s\n' "$today" >> "$status_file"
+      ;;
+    closed)
+      local today; today="$(date -u +%Y-%m-%d)"
+      printf '\n**Closed:** %s — %s\n' "$today" "$value" >> "$status_file"
       ;;
     workflow-line)
       [ -n "$value" ] || return 0

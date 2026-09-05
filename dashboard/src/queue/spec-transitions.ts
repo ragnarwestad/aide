@@ -8,7 +8,7 @@
 
 import transitionsData from "../../../core/scripts/lib/transitions.json" with { type: "json" };
 
-export type SpecPhase = "created" | "analyzed" | "implemented" | "archived";
+export type SpecPhase = "created" | "analyzed" | "implemented" | "archived" | "closed";
 
 interface TransitionRow {
   phase: SpecPhase;
@@ -25,14 +25,19 @@ export type LegalMove = { ok: true; next: SpecPhase } | { ok: false; reason: str
 /** The phase a spec with these `completedPhases` (spec 355's
  *  `4-status.json`) is in — the same rule
  *  core/scripts/lib/spec-transitions.sh's `current_phase_from` derives
- *  in bash: the `archived` stamp decides first (written before
- *  `completedPhases` ever gains "archive"), then membership in
- *  `completedPhases` for the three phases before that — never "last
- *  element", since the array is not guaranteed ordered. */
+ *  in bash: the `closed` stamp decides first, then `archived` (both
+ *  written before `completedPhases` ever gains the matching step), then
+ *  membership in `completedPhases` for the three phases before that —
+ *  never "last element", since the array is not guaranteed ordered.
+ *  `closed` is optional so callers untouched by spec 406 (there are
+ *  several, threading `closedFolders` through is Phase 3's own work)
+ *  keep compiling unchanged; omitted, a spec is never read as closed. */
 export function phaseFromState(
   completedPhases: readonly string[],
   archived: { date: string } | null | undefined,
+  closed?: { date: string } | null,
 ): SpecPhase {
+  if (closed) return "closed";
   if (archived) return "archived";
   if (completedPhases.includes("implement")) return "implemented";
   if (completedPhases.includes("analyze")) return "analyzed";

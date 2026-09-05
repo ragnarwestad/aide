@@ -126,11 +126,18 @@ export function createServer(opts: ServerOptions) {
     // in a list of its OWN, never appended to `specFolders` — widening
     // that list would take spec 193's guarantee with it.
     const archived: string[] = [];
+    // The CLOSED subset of the same list (spec 406, REQ-7): read off
+    // the scan's own `refs` rather than a second walk — `archived`,
+    // above, is already the exact key set this filters, and `SpecRef`
+    // already carries `closed` for every one of them.
+    const closed: string[] = [];
     for (const key of state.scan?.archived ?? []) {
-      if (key.startsWith(prefix)) archived.push(key.slice(prefix.length));
+      if (!key.startsWith(prefix)) continue;
+      archived.push(key.slice(prefix.length));
+      if (state.scan?.refs.get(key)?.closed) closed.push(key.slice(prefix.length));
     }
     return folders.length > 0 || archived.length > 0
-      ? { specFolders: folders, archivedFolders: archived }
+      ? { specFolders: folders, archivedFolders: archived, closedFolders: closed }
       : null;
   };
 
@@ -265,6 +272,7 @@ export function createServer(opts: ServerOptions) {
     landNewSpec: land.landNewSpec,
     landStepBranch: land.landStepBranch,
     landArchivedSpec: land.landArchivedSpec,
+    landClosedSpec: land.landClosedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,

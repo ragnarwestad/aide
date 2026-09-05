@@ -125,6 +125,13 @@ export const MESSAGES = {
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
+  "landing.closeLandingFailed": {
+    en: "the spec was closed, but landing it failed. — Check the checkout on the serving host, " +
+      "then try running the step again.",
+    nb: "spesifikasjonen ble lukket, men landing av den feilet. — Sjekk det lokale repoet på serveren, " +
+      "og prøv å kjøre steget igjen.",
+    resolve: "Check the checkout on the serving host",
+  },
   "landing.noInstallCommand": {
     en: "merged, not installed — no {label} configured. — Set the {label} in the project's .aide/config " +
       "to enable it.",

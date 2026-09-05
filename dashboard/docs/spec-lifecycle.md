@@ -15,6 +15,7 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 - [What holds a phase back](#what-holds-a-phase-back)
 - [Where the work is between phases](#where-the-work-is-between-phases)
 - [Going backwards: reopen and reset](#going-backwards-reopen-and-reset)
+- [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
 - [What the list makes of it](#what-the-list-makes-of-it)
 
 ---
@@ -28,8 +29,8 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
 | `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
 
-Other steps exist — `explore`, `manifest`, `schedule`, `reopen` — but they are not phases: none of them appears in the
-workflow arc, and none moves the spec along it.
+Other steps exist — `explore`, `manifest`, `schedule`, `reopen`, `reset`, `close` — but they are not phases: none of
+them appears in the workflow arc, and none moves the spec along it.
 
 ## What "has had a phase" means
 
@@ -71,6 +72,10 @@ stateDiagram-v2
     archived --> created: reopen (a new work round)
     analyzed --> created: reset (same round discarded)
     implemented --> created: reset
+    created --> closed: close says the spec will not work
+    analyzed --> closed: close says the spec will not work
+    implemented --> closed: close says the spec will not work
+    closed --> created: reopen (a new work round)
 ```
 
 **Into `create`.** `POST /api/queue/create` queues a job with the single step `create`, under a provisional key
@@ -119,7 +124,7 @@ until `archive` is run again — see [Branches and landing](landing.md).
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **A landing in progress, anywhere.** Nothing starts while any job has `landing` set.
 - **The caps.** A job cap stops the job before the step; the daily cap parks it — [A job's states](job-states.md).
-- **An archived spec.** The server refuses every step but `reopen` for it (`ARCHIVE_ONLY_STEP`).
+- **An archived or closed spec.** The server refuses every step but `reopen` for it (`ARCHIVE_ONLY_STEP`).
 
 ## Where the work is between phases
 
@@ -149,12 +154,22 @@ runner decides on its own.
 A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs, and the row pre-ticks
 every phase.
 
+## Closing: a different terminal move from archive
+
+`close` reaches `closed` from `created`, `analyzed` or `implemented` — any phase Archive would refuse, since Close
+carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. `core/scripts/aide-close-spec` writes a
+`**Closed:** <date> — <reason>` stamp (the reason is required) and moves the folder into `archive/`, exactly as
+`aide-archive-spec` does — but its landing deletes the code root's branch instead of merging it, since Close records
+that the work will not be used, not that it was. A closed spec reads `closed`, never `archived`, everywhere a spec's
+state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.
+
 ## What the list makes of it
 
 The row's state is one of: `not-started` (the spec has no job at all), the state of its most recent or in-flight job
-(`queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted`), `archived`, or `archived-unlanded`
-(archived with its branch still on origin). The chips group those — "All" is the default, "Active" is everything not
-archived, "Running" the in-flight states, "Done", "Problems" (the four failure states and `archived-unlanded`) and
-"Archived" (both archived states). Which PHASE a spec has reached is not a state on that axis: it is read off the
-completed line and drawn as the pips and the resting-state sentence ("ready for implement") — see
+(`queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted`), `archived`, `archived-unlanded`
+(archived with its branch still on origin), or `closed`. The chips group those — "All" is the default, "Active" is
+everything not archived and not closed, "Running" the in-flight states, "Done", "Problems" (the four failure states
+and `archived-unlanded`) and "Archived" (both archived states — `closed` is deliberately in neither the "Active" nor
+the "Archived" chip, so it never reads as one of them). Which PHASE a spec has reached is not a state on that axis:
+it is read off the completed line and drawn as the pips and the resting-state sentence ("ready for implement") — see
 [The specs list and the spec page](the-specs-list.md).

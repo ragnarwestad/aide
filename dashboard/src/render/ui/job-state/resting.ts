@@ -152,12 +152,12 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
 export const GERUND_EN: Record<string, string> = {
   create: "creating", analyze: "analyzing", implement: "implementing", archive: "archiving",
   explore: "exploring", manifest: "updating the manifest", reopen: "reopening", reset: "resetting",
-  schedule: "running the schedule",
+  schedule: "running the schedule", close: "closing",
 };
 export const GERUND_NB: Record<string, string> = {
   create: "oppretter", analyze: "analyserer", implement: "implementerer", archive: "arkiverer",
   explore: "utforsker", manifest: "oppdaterer manifestet", reopen: "gjenåpner", reset: "tilbakestiller",
-  schedule: "kjører planen",
+  schedule: "kjører planen", close: "lukker",
 };
 export function gerund(lang: Language, step: string): string {
   const table = lang === "nb" ? GERUND_NB : GERUND_EN;

@@ -87,6 +87,12 @@ export async function handleJobActionRoutes(
         const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
           ? { date: "" }
           : null;
+        // spec 406: the same ref, the same reasoning — closed is a fact
+        // about this request's own project/specFolder, read off the one
+        // resolved answer rather than a second, independent check.
+        const closed = ctx.specRef(askedFor.project, askedFor.specFolder)?.closed
+          ? { date: "" }
+          : null;
         // A bundled job (e.g. analyze+implement+archive queued together
         // for a fresh spec, spec-lifecycle.md's "Into create") asks for
         // several steps at once, each meant to run only once the one
@@ -96,7 +102,7 @@ export async function handleJobActionRoutes(
         // would make illegal is refused; a spec already mid-workflow
         // (implement queued alone while analyzed) starts from its real
         // phase, unaffected by steps it was not asked to run.
-        let phase = phaseFromState(completedPhases, archived);
+        let phase = phaseFromState(completedPhases, archived, closed);
         for (const step of askedFor.steps) {
           if (typeof step !== "string") continue;
           const move = isLegalMove(phase, step, askedFor.specFolder);
@@ -172,7 +178,14 @@ export async function handleJobActionRoutes(
     // "cancelled" over it would say someone ended a run that had
     // already ended on its own. The table's own `queued`/`running`
     // entries for `cancel` are what draws that line now.
-    const result = ctx.queue.transition(id, "cancel", { finishedAt: new Date().toISOString() });
+    const result = ctx.queue.transition(id, "cancel", {
+      finishedAt: new Date().toISOString(),
+      // A held-back `error`/`errorReason` describes why the job was NOT
+      // running a moment ago; cancelling answers that question a different
+      // way; the old reason must not survive to say the wrong thing.
+      error: undefined,
+      errorReason: undefined,
+    });
     if (!result.ok) {
       const spec = `${job.project}/${job.specFolder}`;
       const reason = `the job is already ${result.state}; only a queued or running job can be cancelled`;

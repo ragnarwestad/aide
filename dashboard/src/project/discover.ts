@@ -18,6 +18,7 @@ export {
 
 export {
   SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,
+  specClosed, specClosedDate, specCloseReason,
 } from "./discover/spec-files.ts";
 
 export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./discover/depends-on.ts";

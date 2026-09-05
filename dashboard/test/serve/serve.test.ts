@@ -213,6 +213,7 @@ describe("resolveDependencyFolder (spec 122)", () => {
     folder,
     dir: `/specs/${folder}`,
     archived,
+    closed: false,
     title: null,
     description: null,
     dependsOn: [],

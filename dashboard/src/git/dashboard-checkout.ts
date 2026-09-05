@@ -218,9 +218,16 @@ function linkWorktreePaths(personDir: string, code: string): void {
  *  to fetch.
  *
  *  Fast-forward only, and a failure is not fatal: these checkouts stay
- *  on their default branch and nobody commits in them, so there is
- *  nothing here to lose — and an origin that cannot be reached should
- *  leave the run to work with what it has rather than refusing. */
+ *  on their default branch and nobody commits in them — except
+ *  `saveSpecFile`/`saveSpecFiles` (`git/specs-pull.ts`), which commit
+ *  and push into the SPECS checkout on every document-tab Save and
+ *  Checks-tab tick, and `schedule-admin.ts`'s four write functions,
+ *  which commit and push into the CODE checkout on every schedule
+ *  create, edit, delete and enabled toggle. Both push immediately, on
+ *  the request that made the edit, under `mergeLock`, so there is
+ *  nothing else here to lose — and an origin that cannot be reached
+ *  should leave the run to work with what it has rather than
+ *  refusing. */
 async function bringUpToDate(run: GitRunner, dir: string): Promise<void> {
   const branch = await run(dir, ["symbolic-ref", "--short", "HEAD"]);
   const name = branch.code === 0 ? branch.stdout.trim() : "";

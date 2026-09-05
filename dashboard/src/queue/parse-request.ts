@@ -123,9 +123,15 @@ export function parseJobRequest(
   // by name here, and `aide-run-spec`'s own `--spec` gate refuses it a
   // second time for a run started by hand.
   if (archivedOnly && steps.some((s) => s !== ARCHIVE_ONLY_STEP)) {
+    // spec 406, REQ-7: "closed" and "archived" must never blur into one
+    // word even in a refusal sentence — the gate itself (only `reopen`
+    // is legal) is unchanged either way.
+    const closed = (resolved.closedFolders ?? []).includes(r.specFolder);
     return {
       ok: false,
-      error: invalidRequest(`${r.specFolder} is archived — only ${ARCHIVE_ONLY_STEP} can be asked for it`),
+      error: invalidRequest(
+        `${r.specFolder} is ${closed ? "closed" : "archived"} — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
+      ),
     };
   }
   // The mirrored direction (spec 270): `reopen` exists to bring an
@@ -233,6 +239,22 @@ export function parseJobRequest(
   // row that used to post it is gone (REQ-8). Like `gateAfter` above it
   // is an unknown key now, ignored rather than refused.
 
+  // spec 406, REQ-3/REQ-5: why a `close` step is closing the spec — typed
+  // by the person closing it, refused empty by close-controls.ts's own
+  // POST route before a request ever reaches here, so an empty string
+  // reaching this parser is only ever a hand-crafted request; bounded
+  // for the same reason `description`, below, is.
+  let closeReason: string | undefined;
+  if (steps.includes("close")) {
+    if (typeof r.closeReason !== "string" || r.closeReason.trim() === "") {
+      return { ok: false, error: invalidRequest("a close step requires a reason") };
+    }
+    if (r.closeReason.length > DESCRIPTION_MAX) {
+      return { ok: false, error: invalidRequest(`closeReason may be at most ${DESCRIPTION_MAX} characters`) };
+    }
+    closeReason = r.closeReason.trim();
+  }
+
   const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
   const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
@@ -272,6 +294,7 @@ export function parseJobRequest(
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
       effort: stepEffort,
+      closeReason,
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

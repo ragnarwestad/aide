@@ -11,8 +11,8 @@ describe("the listing on /projects", () => {
       project("alpha", {
         manifest: { ok: true, data: { name: "alpha", description: "the first one" } },
         specs: [
-          { folder: "01-a", dir: "/x/01-a", archived: false, title: "A", description: null, dependsOn: [], status: null },
-          { folder: "02-b", dir: "/x/archive/02-b", archived: true, title: "B", description: null, dependsOn: [], status: null },
+          { folder: "01-a", dir: "/x/01-a", archived: false, closed: false, title: "A", description: null, dependsOn: [], status: null },
+          { folder: "02-b", dir: "/x/archive/02-b", archived: true, closed: false, title: "B", description: null, dependsOn: [], status: null },
         ],
       }),
       project("beta"),

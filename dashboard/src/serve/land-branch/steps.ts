@@ -139,3 +139,29 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     onLanded: async () => stopBoard(ctx.boards, job.project, job.specFolder),
   });
 }
+
+/** Take a closed spec out of the active list, the same way
+ *  `landArchivedSpec` does (spec 406) — but the code root's branch is
+ *  DISCARDED here, not merged: closing records that the work will not
+ *  be used, and `landBranch`'s own `discard(root)` (`merge.ts`) is what
+ *  turns "close" into "delete, never merge" for the code root alone.
+ *  The specs root still merges normally, carrying the folder move and
+ *  the `**Closed:**` stamp into the specs repo's own history.
+ *
+ *  `repos` is `landArchivedSpec`'s own reasoning, unchanged: a headless
+ *  close writes only the specs repo (`core/scripts/aide-close-spec`,
+ *  `core/skills/aide-close/SKILL.md`), so whether its own git touches
+ *  the code root is not guaranteed — `branchesFor` is the record that
+ *  still has it, from whichever earlier `implement` step pushed it. */
+export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+  return landBranch(ctx, job, outcome, {
+    step: "close",
+    repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
+    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // own note above.
+    failedNote: () => ({ key: "landing.closeLandingFailed" }),
+    // Spec 388, REQ-7's own reasoning: a board running this spec's code
+    // branch has nothing left to serve once that branch is gone.
+    onLanded: async () => stopBoard(ctx.boards, job.project, job.specFolder),
+  });
+}

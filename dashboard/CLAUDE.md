@@ -114,3 +114,32 @@ with the tests and assertions that pin all of them.
 - **A re-run of `archive` finds a folder that has moved:** `aide-run-spec`
   resolves `--spec` against the active folder first and `archive/` second,
   gated on the branch still being on origin.
+
+## Close
+
+A spec whose idea did not hold (spec 406) — a fourth member of the
+archive/reopen/reset family, with its own phase (`closed`) rather than
+reusing `archived`'s. `core/scripts/aide-close-spec` is `aide-archive-spec`'s
+stamp-and-move tail without its `not-implemented-yet`/`acceptance-criteria-
+unticked` gates: Close is legal from every phase Archive would refuse.
+
+- **The code root's branch is deleted, never merged.** `landClosedSpec`
+  (`land-branch/steps.ts`) lands like `landArchivedSpec`, but
+  `landBranch`'s own `discard(root)` (`land-branch/merge.ts`) routes the
+  code root to `deleteBranchOnly` (`git/branch-merge.ts`) instead of
+  `mergeBranchIntoDefault` — steps 1, 7 and 8 of that function alone, no
+  merge, no gate, no push. The specs root still merges normally, carrying
+  the folder move and the `**Closed:**` stamp into the specs repo's own
+  history.
+- **A discarded root reports and installs nothing.** `RepoMergeResult.discarded`
+  is what tells `landBranch`'s per-repo success branch a root was deleted
+  rather than merged — the merge-events report and `installAfterMerge`
+  both skip it; a failed branch delete is still recorded through the same
+  `branchDeleteError` archived specs already carry.
+- **`closed` reads distinctly from `archived` everywhere a spec's state is
+  shown** (REQ-7): `SpecRef.closed` (off the `**Closed:**` stamp), the
+  specs list's own `CLOSED_STATE` (excluded from both the Archived and
+  Active filters), and the spec page's `closedLine` in place of
+  `archivedLine`. `isArchivedRow` (queue-list) is widened to include it —
+  every caller's real question is "is this row locked", true of a closed
+  row the same way.

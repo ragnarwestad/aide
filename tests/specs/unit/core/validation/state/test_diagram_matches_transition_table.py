@@ -30,6 +30,7 @@ DIAGRAM_LABEL_TO_EVENT = {
     "reopen (a new work round)": "reopen",
     "reset (same round discarded)": "reset",
     "reset": "reset",
+    "close says the spec will not work": "close",
 }
 
 

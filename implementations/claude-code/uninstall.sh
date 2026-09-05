@@ -52,6 +52,7 @@ echo "4️⃣  Removing skills from ~/.claude/skills/..."
 SKILLS=(
   "aide-analyze"
   "aide-archive"
+  "aide-close"
   "aide-explore"
   "aide-reopen"
   "aide-reset"

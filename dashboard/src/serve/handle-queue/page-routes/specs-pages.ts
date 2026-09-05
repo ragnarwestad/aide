@@ -30,6 +30,13 @@ export async function specsPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const liveTargets = ctx.withFreshness(ctx.targets());
     const archivedKeys = ctx.readScan()?.archived ?? [];
+    // spec 406, REQ-7: the closed subset of the same cheap key list, off
+    // `ctx.specRef` — the same per-key lookup job-actions.ts already
+    // uses, never a second walk.
+    const closedKeys = archivedKeys.filter((k) => {
+      const cut = k.indexOf("/");
+      return ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.closed;
+    });
     // The reader's own choice of state, from the address or from the
     // cookie it was last written into (spec 338, mirroring the sort
     // column's own `chosenSort` below).
@@ -55,6 +62,7 @@ export async function specsPages(
       runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
       targets: liveTargets,
       archived: archivedKeys,
+      closed: closedKeys,
       lang: langResult.lang,
       archivedSpecs,
       script: await queueClientScript(),

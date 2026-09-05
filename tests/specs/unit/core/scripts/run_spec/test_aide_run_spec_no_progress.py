@@ -23,7 +23,7 @@ from .run_spec_invoking import create
 from .run_spec_origins import origin
 from .run_spec_project_state import BASH_ERROR_REGISTRY
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import conflicting_branch, recorded_line, status_with_phase, with_status, write_raw_status
+from .run_spec_status_files import conflicting_branch, recorded_line, status_with_phase, tracked_specs_inside_project_workspace, with_status, write_raw_status
 
 
 def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
@@ -365,3 +365,64 @@ def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, 
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
+
+def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation_when_specs_are_tracked_inside_the_project(
+    runner, fake_claude, tmp_path
+):
+    """REQ-2: specs TRACKED inside the project's own repository — the
+    layout the description names, where `specs_repo == project_root`. An
+    analyze step that writes only its own spec folder there must
+    complete, not be downgraded because `git status` on the whole project
+    worktree sees that folder's own legitimate change."""
+    ws = tracked_specs_inside_project_workspace(tmp_path)
+    folder = ws["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + f'echo "analysis" >> "$PWD/specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_discarded_when_specs_are_tracked_inside_the_project(
+    runner, fake_claude, tmp_path
+):
+    """REQ-3: a foreign spec folder written under the same TRACKED,
+    inside-the-project specs root is still caught and reverted —
+    run-spec-specs-guard.sh's own existing behavior, now reached for this
+    layout because the false positive that used to pre-empt it is gone."""
+    ws = tracked_specs_inside_project_workspace(tmp_path)
+    folder = ws["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'mkdir -p "$PWD/specs/999-made-by-the-run" && echo "# 999" > "$PWD/specs/999-made-by-the-run/1-description.md"\n'
+        + f'echo "analysis" >> "$PWD/specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+    assert "999-made-by-the-run" in out["error"], out
+    tree = git(ws["project"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
+    assert "999-made-by-the-run" not in tree, tree
+    assert f"specs/{folder}/2-analysis.md" in tree, tree
+
+def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded_when_specs_are_tracked_inside_the_project(
+    runner, fake_claude, tmp_path
+):
+    """REQ-4 regression: a step that writes a real project file OUTSIDE
+    the specs root, in the tracked-inside-project layout, is still
+    stopped — exactly as it is today."""
+    ws = tracked_specs_inside_project_workspace(tmp_path)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out

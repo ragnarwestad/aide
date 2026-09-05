@@ -56,6 +56,30 @@
     { "phase": "implemented", "event": "reset", "next": "created", "refusal": null, "condition": null },
     { "phase": "archived", "event": "reset", "next": null,
       "refusal": { "reason": "already-archived", "message": "%s is archived — only reopen can be asked for it" },
+      "condition": null },
+
+    { "phase": "created", "event": "close", "next": "closed", "refusal": null, "condition": null },
+    { "phase": "analyzed", "event": "close", "next": "closed", "refusal": null, "condition": null },
+    { "phase": "implemented", "event": "close", "next": "closed", "refusal": null, "condition": null },
+    { "phase": "archived", "event": "close", "next": null,
+      "refusal": { "reason": "already-archived", "message": "%s is archived — only reopen can be asked for it" },
+      "condition": null },
+
+    { "phase": "closed", "event": "reopen", "next": "created", "refusal": null, "condition": null },
+    { "phase": "closed", "event": "create", "next": null,
+      "refusal": { "reason": "already-closed", "message": "%s is closed — only reopen can be asked for it" },
+      "condition": null },
+    { "phase": "closed", "event": "analyze", "next": null,
+      "refusal": { "reason": "already-closed", "message": "%s is closed — only reopen can be asked for it" },
+      "condition": null },
+    { "phase": "closed", "event": "implement", "next": null,
+      "refusal": { "reason": "already-closed", "message": "%s is closed — only reopen can be asked for it" },
+      "condition": null },
+    { "phase": "closed", "event": "archive", "next": null,
+      "refusal": { "reason": "already-closed", "message": "%s is closed — only reopen can be asked for it" },
+      "condition": null },
+    { "phase": "closed", "event": "close", "next": null,
+      "refusal": { "reason": "already-closed", "message": "%s is closed — only reopen can be asked for it" },
       "condition": null }
   ]
 }

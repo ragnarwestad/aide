@@ -76,13 +76,22 @@ if [ -n "$status_file" ]; then
     # claim a step beyond itself on the Workflow-steps line. All three
     # are checked against what the run actually produced, the same way
     # spec 268/280 check implement/archive.
+    #
+    # spec 405: "the project repo changed" is the wrong question where
+    # the specs root lives INSIDE the project repo — the step's own spec
+    # folder is then part of that same checkout, and writing it is the
+    # whole point of the step, not a violation. specs_root_excludes
+    # (empty unless that is the layout) keeps the specs root out of this
+    # check; a foreign spec folder under it is still caught, precisely,
+    # by run-spec-specs-guard.sh right after this.
     proj_changed="no"; proj_dirty_list=""
     proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
     if [ "$proj_head_now" != "${head_before[0]}" ]; then
       proj_changed="yes"
     else
       proj_dirty_list="$(git -C "$project_wt" status --porcelain -- . \
-        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | head -5 | tr '\n' ' ')"
+        ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
+        ${specs_root_excludes[@]+"${specs_root_excludes[@]}"} 2>/dev/null | head -5 | tr '\n' ' ')"
       [ -n "$proj_dirty_list" ] && proj_changed="yes"
     fi
 

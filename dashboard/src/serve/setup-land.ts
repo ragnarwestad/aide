@@ -27,6 +27,7 @@ import {
   landStepBranch as landStepBranchImpl,
   landStoppedStepBranch as landStoppedStepBranchImpl,
   landArchivedSpec as landArchivedSpecImpl,
+  landClosedSpec as landClosedSpecImpl,
   installAfterMerge as installAfterMergeImpl,
   restartAfterLanding,
   withFreshness as withFreshnessImpl,
@@ -117,6 +118,9 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landArchivedSpecImpl(landCtx, job, outcome);
   }
+  function landClosedSpec(job: Job, outcome: Partial<StepOutcome>) {
+    return landClosedSpecImpl(landCtx, job, outcome);
+  }
   /** The deploy button's install. The restart it may call for is handed
    *  back as a thunk rather than fired here: the route answers the
    *  browser FIRST and fires it after — awaited here, the kickstart
@@ -136,6 +140,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   }
 
   return {
-    jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, installAfterMerge, withFreshness,
+    jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
+    installAfterMerge, withFreshness,
   };
 }

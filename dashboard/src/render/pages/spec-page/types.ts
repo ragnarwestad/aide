@@ -73,6 +73,20 @@ export interface SpecPageView {
    *  (spec 162), and a Save on an archived spec would have written,
    *  committed and pushed into `archive/`. */
   archived?: boolean;
+  /** Closed rather than archived (spec 406, REQ-7) — a spec whose idea
+   *  did not hold, recorded with the reason it was closed. Always
+   *  `false` unless `archived` is also `true`: the folder physically
+   *  moves the same way either way, and this is what tells the two
+   *  apart everywhere the page reads `archived` to mean "record,
+   *  nothing editable" — `closedLine` draws in place of `archivedLine`
+   *  when this is set, and `closeControl` stays hidden alongside
+   *  `resetControl` for the same `view.archived` check both already
+   *  make. */
+  closed?: boolean;
+  /** The reason typed by the person who closed this spec (REQ-5), and
+   *  when — off the `**Closed:**` stamp. Present only when `closed` is. */
+  closedDate?: string;
+  closeReason?: string;
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
@@ -80,6 +94,15 @@ export interface SpecPageView {
   resetAction?: string;
   /** Why Reset cannot be selected at this instant. */
   resetUnavailableReason?: string;
+  /** Confirmation page for closing a spec that is not going to work
+   *  (spec 406, REQ-1) — present in every phase Reset's own control is,
+   *  absent once the spec is archived (closed included: `closeControl`
+   *  checks `view.archived` the same way `resetControl` does). */
+  closeAction?: string;
+  /** Why Close cannot be selected at this instant (REQ-11) — the same
+   *  busy reason `resetUnavailableReason` reads, since a job in flight
+   *  or a landing in progress blocks either lifecycle move alike. */
+  closeUnavailableReason?: string;
   /** Where the PDF button opens (spec 358) — a plain `GET`, streamed
    *  inline, never a form. */
   pdfAction?: string;
