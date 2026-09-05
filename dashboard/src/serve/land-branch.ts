@@ -15,4 +15,4 @@ export {
   landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
 } from "./land-branch/steps.ts";
 export { withFreshness } from "./land-branch/freshness.ts";
-export { createLaunchdRestart, restartAfterLanding, runningJobIds, type RestartHook } from "./land-branch/restart.ts";
+export { createLaunchdRestart, restartAfterLanding, runningJobNames, type RestartHook } from "./land-branch/restart.ts";

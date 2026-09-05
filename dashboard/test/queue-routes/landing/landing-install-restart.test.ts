@@ -253,7 +253,9 @@ describe("a landing that installs and asks for a restart", () => {
       const body = (await res.json()) as { ok: boolean; restarting?: boolean; restartWaiting?: string[] };
       expect(body.ok).toBe(true);
       expect(body.restarting).toBe(false);
-      expect(body.restartWaiting).toEqual([job.id.slice(0, 8)]);
+      // Named by its spec, not its id: the sentence this lands in is read
+      // by a person, and a short id names nothing to them.
+      expect(body.restartWaiting).toEqual([`${job.project}:${job.specFolder}`]);
       // The restart hook never fires within this test's own window — the
       // wait is bounded by RESTART_JOBS_DEFER_MS (two hours) by default.
       expect(fired).toBe(0);
@@ -264,7 +266,7 @@ describe("a landing that installs and asks for a restart", () => {
         await new Promise((r) => setTimeout(r, 25));
         html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
       }
-      expect(html).toContain(`the restart is waiting for running jobs: ${job.id.slice(0, 8)}`);
+      expect(html).toContain(`the restart is waiting for running jobs: ${job.project}:${job.specFolder}`);
       expect(html).not.toContain("Deploy restarts it on commit");
       // Spec 392 (REQ-9): the button stays live (a press still retries
       // the install), but its title says a press will not restart the
