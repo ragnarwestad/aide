@@ -1,4 +1,4 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%2040%22%20height%3D%2240%22%3E%3Cg%20transform%3D%22scale(0.625)%22%3E%3Crect%20x%3D%2210%22%20y%3D%2226%22%20width%3D%229%22%20height%3D%2212%22%20rx%3D%224.5%22%20fill%3D%22%238E2A12%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%2220%22%20width%3D%229%22%20height%3D%2224%22%20rx%3D%224.5%22%20fill%3D%22%23C33E1F%22%2F%3E%3Crect%20x%3D%2238%22%20y%3D%2214%22%20width%3D%229%22%20height%3D%2236%22%20rx%3D%224.5%22%20fill%3D%22%23F0663F%22%2F%3E%3Crect%20x%3D%2252%22%20y%3D%2226%22%20width%3D%229%22%20height%3D%2212%22%20rx%3D%224.5%22%20fill%3D%22%23F5B7A3%22%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%2248%22%20y%3D%2229%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2C'Segoe%20UI'%2Csans-serif%22%20font-size%3D%2226%22%20letter-spacing%3D%22-0.9%22%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%23ECE9E2%22%3Ea%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%23DA5A34%22%3Ei%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%23ECE9E2%22%3Ede%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22400%22%20fill%3D%22%239A958B%22%3E%20-board%3C%2Ftspan%3E%3C%2Ftext%3E%3C%2Fsvg%3E"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%2040%22%20height%3D%2240%22%3E%3Cg%20transform%3D%22scale(0.625)%22%3E%3Crect%20x%3D%2210%22%20y%3D%2226%22%20width%3D%229%22%20height%3D%2212%22%20rx%3D%224.5%22%20fill%3D%22%236B1D0C%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%2220%22%20width%3D%229%22%20height%3D%2224%22%20rx%3D%224.5%22%20fill%3D%22%23A8331A%22%2F%3E%3Crect%20x%3D%2238%22%20y%3D%2214%22%20width%3D%229%22%20height%3D%2236%22%20rx%3D%224.5%22%20fill%3D%22%23D8492A%22%2F%3E%3Crect%20x%3D%2252%22%20y%3D%2226%22%20width%3D%229%22%20height%3D%2212%22%20rx%3D%224.5%22%20fill%3D%22%23E8A491%22%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%2248%22%20y%3D%2229%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2C'Segoe%20UI'%2Csans-serif%22%20font-size%3D%2226%22%20letter-spacing%3D%22-0.9%22%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%2316181C%22%3Ea%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%23A8331A%22%3Ei%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22600%22%20fill%3D%22%2316181C%22%3Ede%3C%2Ftspan%3E%3Ctspan%20font-weight%3D%22400%22%20fill%3D%22%236B6760%22%3E%20-board%3C%2Ftspan%3E%3C%2Ftext%3E%3C%2Fsvg%3E" alt="aide -board" height="40"></picture>
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-board-wordmark-dark.svg"><img src="docs/assets/aide-board-wordmark-light.svg" alt="aide -board" height="40"></picture>
 
 ## Table of contents
 
@@ -10,10 +10,12 @@
 Longer pages of their own:
 
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
-- [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
+- [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own
+  page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back
-- [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
+- [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside
+  it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app
@@ -27,13 +29,15 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 and renders a small static site — an overview page plus one page per project, all sharing a left-column nav. Generated
 where the repos live and served by a small Bun server that also receives live aide-run events; that server listens on
 localhost, and a `tailscale serve` proxy puts HTTPS in front of it
-(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Generator and server can run on the same machine or on
+(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Generator and server can run on the
+same machine or on
 two — no host is named anywhere in this repo.
 
 ## URL scheme
 
 This is the map. The rules behind each page — what a row says, what a tab shows, what a route refuses — are in
-[The specs list and the spec page](docs/the-specs-list.md) and [Running specs](docs/running-specs.md). Every served page and every `/api/queue*` route requires
+[The specs list and the spec page](docs/the-specs-list.md) and [Running specs](docs/running-specs.md). Every served page
+and every `/api/queue*` route requires
 [the token](docs/running-specs.md#the-token); the generated `.html` pages and the app-install files do not.
 
 Pages:
@@ -41,8 +45,10 @@ Pages:
 - `/` — the spec list: one row per spec of every allowlisted project, phases beneath, run and cancel from the row.
   `?state=` picks a chip and `?q=` searches;
   see [Filtering and searching the list](docs/the-specs-list.md#filtering-and-searching-the-list).
-- `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done nothing.
-- `/projects` — every project with its spec counts, plus the panel that adds and removes them; see [Projects](docs/projects.md).
+- `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done
+  nothing.
+- `/projects` — every project with its spec counts, plus the panel that adds and removes them;
+  see [Projects](docs/projects.md).
 - `/projects/<name>` — one project: what its `.aide/config` says, whether a run could start there, and the settings
   that can be edited inline.
 - `/settings` — the default AI and model per step.
@@ -54,7 +60,8 @@ Pages:
   a run's recorded output as static files.
 - `/<slug>.html` — one generated page per project (slug = lowercased name, non-alphanumerics → hyphens; collisions get
   `-2`, `-3`, …; `index`, `about` and `projects` are reserved). It is what a site published by
-  `deploy/rsync-publish.sh`, with no server behind it, still shows; a live server's nav links `/projects/<name>` instead.
+  `deploy/rsync-publish.sh`, with no server behind it, still shows; a live server's nav links `/projects/<name>`
+  instead.
 
 Queue API (`/api/queue*`):
 
