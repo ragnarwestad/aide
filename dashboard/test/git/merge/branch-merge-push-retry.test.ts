@@ -264,4 +264,51 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(result.ok).toBe(true);
     expect(ran(git.calls, "push -q origin master")).toBe(true);
   });
+
+  // Spec 402, REQ-4: an empty branch (an `analyze` step whose code
+  // repository the branch never touches) still merges cleanly, but there
+  // is nothing the suite could fail for that THIS merge caused — so it
+  // is never run at all.
+  test("REQ-4: the gate is skipped when the merge changes nothing in the target", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      checkout: { code: 0 },
+      push: { code: 0 },
+      "diff --quiet": { code: 0 },
+    });
+    let gates = 0;
+    const gate = async () => {
+      gates += 1;
+      return { ok: true };
+    };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
+    expect(result.ok).toBe(true);
+    expect(gates).toBe(0);
+    expect(ran(git.calls, "push -q origin master")).toBe(true);
+  });
+
+  // Spec 402, REQ-5: a push rejected because base moved drops the local
+  // merge and merges again onto the new base (REQ-1 above) — if that
+  // reproduces the exact tree already gated once, the verdict stands
+  // rather than being reached a second time.
+  test("REQ-5: the gate is not re-run for an identical tree across a base-moved retry", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      checkout: { code: 0 },
+      reset: { code: 0 },
+      push: [{ code: 1, stderr: "! [rejected]" }, { code: 0 }],
+      "diff --quiet": { code: 1 },
+      "rev-parse HEAD^{tree}": { code: 0, stdout: "sametree\n" },
+    });
+    let gates = 0;
+    const gate = async () => {
+      gates += 1;
+      return { ok: true };
+    };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
+    expect(result.ok).toBe(true);
+    expect(gates).toBe(1);
+  });
 });

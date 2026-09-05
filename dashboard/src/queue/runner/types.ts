@@ -91,6 +91,12 @@ export interface RunnerOptions {
   store: QueueStore;
   /** Where a project's checkout lives on this machine. */
   projectDir: (project: string) => string;
+  /** Where a project's SPECS checkout lives, when it is a repository of
+   *  its own (spec 402) — `projectDir`'s sibling, used only to widen the
+   *  set of repos a landing occupies beyond its code root. Undefined, or
+   *  equal to `projectDir(project)`, both mean "one repo": a project
+   *  whose specs live inside its own code repo. */
+  specsRoot?: (project: string) => string | undefined;
   runnerBin: string;
   resultDir: string;
   spawn: Spawner;
