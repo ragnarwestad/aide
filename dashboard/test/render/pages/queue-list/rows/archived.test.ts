@@ -336,10 +336,11 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(seen("60-live")).toEqual(["60-live"]);
     expect(seen("gone")).toEqual(["50-archived"]);
     // Whitespace is not a term: it must not empty the list. Order is
-    // the list's own default now (spec 317): Created, newest first —
-    // the archived fixture's own `createdAt` default is a real date,
-    // the live target's is not, so the archived row sorts first.
-    expect(seen("  ")).toEqual(["50-archived", "60-live"]);
+    // the list's own default (spec 317): Created, newest first — the
+    // archived fixture's own `createdAt` default is a real date, the
+    // live target's is not, and a spec git has not dated sorts as the
+    // newest, so the live row sorts first.
+    expect(seen("  ")).toEqual(["60-live", "50-archived"]);
   });
 
   test("the chips count the archived specs the page did not build", () => {

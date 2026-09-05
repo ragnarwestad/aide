@@ -256,16 +256,26 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(html).toContain("01-first");
   });
 
-  test("never-run specs form a stable block at the bottom (criterion 7)", () => {
+  // The block sits at the TOP now, not the bottom: a never-run spec git
+  // has not dated shows "–" in Created, and that is a folder made
+  // moments ago rather than an old one. Sorting it as the oldest sent
+  // the newest thing on the list to the bottom of a newest-first list.
+  // What criterion 7 asked for — that they stay a stable block, ordered
+  // by folder — is unchanged.
+  test("never-run specs form a stable block at the top", () => {
     const html = rows(
       [job("j1", "analyze", { startedAt: "2026-08-16T09:00:00Z" })],
-      [target("90-has-run"), target("88-never"), target("89-never")],
+      // Dated, so it is not itself one of the undated ones: the point
+      // here is where the undated BLOCK sits relative to a spec that
+      // has a date, and a fixture with no date on any of the three
+      // would put all of them in the block.
+      [target("90-has-run", { createdAt: "2026-08-16T09:00:00Z" }), target("88-never"), target("89-never")],
     );
     const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
       (m) => m[1],
     );
     // The higher-numbered folder comes first within the block.
-    expect(order).toEqual(["90-has-run", "89-never", "88-never"]);
+    expect(order).toEqual(["89-never", "88-never", "90-has-run"]);
   });
 
   test("two specs that have both RUN keep the order they have today (criterion 7)", () => {
