@@ -77,8 +77,13 @@ export function renderSpecPage(
   const tab = resolveSpecTab(opts.tab);
   const lead = view.lead;
 
+  // No title line. The folder name sits directly above it and IS the
+  // title, lowercased and hyphenated — so the label spec 301 added, to
+  // stop a bare bold sentence being read as anything but the title, was
+  // answering a question its own neighbour already answers. Three
+  // spellings of one name on one page; the document's own heading below
+  // is the file's text and stays as it is.
   const banner =
-    (view.title ? `<p class="desc"><span class="label">Title:</span><strong>${esc(view.title)}</strong></p>` : "") +
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
