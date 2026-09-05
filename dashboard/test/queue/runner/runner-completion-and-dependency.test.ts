@@ -3,7 +3,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
-import { DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import {
+  DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
+} from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** What a reader would see: since spec 380 a message is stored as
@@ -345,5 +347,71 @@ describe("a job parked on unticked acceptance criteria", () => {
     runner.tick(new Map([[job.id, "80-dependency"]]), undefined, new Set([job.id]));
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80-dependency");
+  });
+});
+
+// --- spec 384: a stamp per STEP, not one per job -----------------------------
+//
+// A job's own `startedAt` is set once and reused for every step behind
+// it; that is exactly the bug this spec fixes. `StepResult.startedAt`
+// is set FRESH at every `startOne()` call, so a step's recorded start is
+// its own, whatever the previous step's own end was and however long a
+// hold-back sat between the two.
+
+describe("spec 384: the queue records when each STEP started", () => {
+  test("a finished step's recorded start is its own spawn instant, not the previous step's end (REQ-1)", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+
+    setNow(Date.parse("2026-08-16T10:00:00Z")); // analyze spawned
+    runner.tick();
+    setNow(Date.parse("2026-08-16T10:05:00Z")); // analyze finishes
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.startedAt).toBe(
+      new Date(Date.parse("2026-08-16T10:00:00Z")).toISOString(),
+    );
+
+    // implement is not actually spawned until two hours later.
+    setNow(Date.parse("2026-08-16T12:00:00Z"));
+    runner.tick();
+    setNow(Date.parse("2026-08-16T12:10:00Z"));
+    runner.poll();
+
+    const results = store.get(job.id)?.results ?? [];
+    expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
+    // Not the previous step's own end (10:05) — the boundary-based
+    // figure today's formula would have used instead.
+    expect(results[1]?.startedAt).not.toBe(results[0]?.at);
+  });
+
+  test("a real hold-back window between two tick() calls does not leak into the eventually-recorded start (REQ-4)", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+
+    setNow(Date.parse("2026-08-16T10:00:00Z")); // analyze spawned
+    runner.tick();
+    setNow(Date.parse("2026-08-16T10:05:00Z")); // analyze finishes; queued for implement
+    runner.poll();
+
+    // Held back on an unmerged dependency for an hour — a real hold-back
+    // window, checked at tick() and never spawned.
+    setNow(Date.parse("2026-08-16T11:00:00Z"));
+    runner.tick(new Map([[job.id, "80-dependency"]]));
+    expect(spawns.length).toBe(1);
+    expect(store.get(job.id)?.state).toBe("queued");
+
+    // The dependency clears an hour later still — this is the instant
+    // implement is actually spawned.
+    setNow(Date.parse("2026-08-16T12:00:00Z"));
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    setNow(Date.parse("2026-08-16T12:10:00Z"));
+    runner.poll();
+
+    const results = store.get(job.id)?.results ?? [];
+    expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
+    // Neither the hold-back check (11:00) nor the first step's own end
+    // (10:05) leaked into the recorded start.
+    expect(results[1]?.startedAt).not.toBe(results[0]?.at);
   });
 });

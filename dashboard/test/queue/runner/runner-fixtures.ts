@@ -40,6 +40,13 @@ export let spawns: { jobId: string; step: string; resultFile: string; sessionId:
 export let events: NotifyEvent[];
 export let now: number;
 
+/** Move the injected clock (spec 384) — an imported `let` binding cannot
+ *  be assigned from outside this module, so a test that advances time
+ *  between two `tick()`/`poll()` calls goes through this instead. */
+export function setNow(ms: number): void {
+  now = ms;
+}
+
 export function makeRunner(opts: {
   spawn?: Spawner;
   alive?: (pid: number) => boolean;

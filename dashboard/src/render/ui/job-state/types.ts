@@ -43,6 +43,11 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
+  /** The render-side mirror of `Job.stepStartedAt` (spec 384): when the
+   *  step now in flight was actually spawned. Absent whenever the job has
+   *  no step actually running right now — including while merely `queued`
+   *  for its next one. */
+  stepStartedAt?: string;
   stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap" | "tests-red";
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  (spec 220). Stored on the job rather than derived at render time —
@@ -108,12 +113,15 @@ export interface StepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
-  /** When this step ENDED (spec 199). It is the only per-step instant
-   *  there is: a job carries one `startedAt` however many steps it ran,
-   *  so a step's own span is sliced between this and the previous
-   *  step's end. Absent on a result written before the runner recorded
-   *  it, and then that step simply has no duration to show. */
+  /** When this step ENDED (spec 199). Absent on a result written before
+   *  the runner recorded it, and then that step simply has no duration
+   *  to show. */
   at?: string;
+  /** When this step STARTED (spec 384) — the render-side mirror of
+   *  `StepResult.startedAt`. Absent on a result written before the runner
+   *  recorded one, or before this field existed; the step's duration then
+   *  falls back to the boundary it always used. */
+  startedAt?: string;
   /** This step's own token total, absent when the run did not measure
    *  one. Per STEP, because a phase line speaks for its own attempt and
    *  not for the job's running total. */

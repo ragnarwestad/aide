@@ -73,3 +73,32 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
     expect(html).toContain(`implementing ${n}/${total}`);
   });
 });
+
+// Spec 384: `Job.stepStartedAt`/`StepResult.startedAt` are the one link
+// in the five-file thread that fails silently rather than loudly — a
+// dropped optional field compiles fine and simply reads as "no start
+// recorded" forever. Guarded here, independent of the math that
+// consumes the fields once they arrive.
+describe("jobRow() carries the per-step start stamps through (spec 384)", () => {
+  test("Job.stepStartedAt and StepResult.startedAt survive the hop into QueueRowView/StepResultView", async () => {
+    const store = makeStore();
+    const runStore = new AideRunStore();
+    const enq = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+    if (!enq.ok) throw new Error("enqueue failed");
+    store.update(enq.job.id, {
+      stepStartedAt: "2026-08-16T12:00:00Z",
+      results: [
+        {
+          step: "analyze", ok: true, costUsd: 1, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-16T09:10:00Z",
+          startedAt: "2026-08-16T09:00:00Z",
+        },
+      ],
+    });
+    const job = store.get(enq.job.id)!;
+    const ctx = { queue: store, store: runStore };
+    const row = await jobRow(ctx, job);
+    expect(row.stepStartedAt).toBe("2026-08-16T12:00:00Z");
+    expect(row.results?.[0]?.startedAt).toBe("2026-08-16T09:00:00Z");
+  });
+});

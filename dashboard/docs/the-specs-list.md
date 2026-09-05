@@ -360,10 +360,15 @@ Two traps worth knowing before touching this:
   is read with `firstCommitAtFollowingRenames()` against `0-README.md` (written once by `/aide-create`, never
   independently edited or renamed), not the plain directory lookup live rows use.
 
-The other half is duration. **Nothing stores one.** A job carries a single `startedAt` however many steps it ran, so `finishedAt -
-startedAt` is the whole job's span and belongs to no one step of it — reaching for that is the mistake `phaseDuration`
-exists to prevent. What does exist is an end per finished step (`StepResult.at`), so a step's own span runs from where
-the step before it ended, or from the job's own start for the first one.
+The other half is duration. A job carries a single `startedAt` however many steps it ran, so `finishedAt - startedAt`
+is the whole job's span and belongs to no one step of it — reaching for that is the mistake `phaseDuration` exists to
+prevent. Instead, **the queue stamps each step's own start** (`Job.stepStartedAt`, set fresh the instant the runner
+actually spawns it) and carries it onto that step's own result once it ends (`StepResult.startedAt`) — a step's
+duration is that result's own end minus its own recorded start. A job merely `queued` between two steps — held back
+for a landing, a dependency, an open acceptance row, a full concurrency slot, or the daily cap — has not started its
+next step yet and shows no duration for it at all, however long the previous step's own end sits in the past: none of
+that waiting is ever inside the figure. A result written before this stamp existed falls back to the boundary the
+page always used — the step before it ending, or the job's own start for the first one.
 
 Three things the column then says, by row type:
 

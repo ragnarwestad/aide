@@ -286,6 +286,9 @@ export class Runner {
       sessionId,
       streamFile,
       startedAt: job.startedAt ?? this.o.now(),
+      // Fresh every call, unlike `startedAt` above — this step's own start,
+      // not the job's (spec 384).
+      stepStartedAt: this.o.now(),
       error: undefined,
     });
     return true;
@@ -390,6 +393,9 @@ export class Runner {
         sessionId: outcome.sessionId ?? job.sessionId,
         streamFile: job.streamFile,
         at: this.o.now(),
+        // This step's own start (spec 384) — moves off `Job.stepStartedAt`
+        // and onto the result it produced.
+        startedAt: job.stepStartedAt,
       },
     ];
     // BEFORE the state transitions below, and folded into every one of
@@ -432,6 +438,10 @@ export class Runner {
       // The step is over: nothing is live under this id any more, and a
       // page that kept showing it would say the job is still working.
       sessionId: undefined,
+      // Its value just moved onto the result above (spec 384); left set,
+      // a job merely `queued` for its NEXT step would read as still
+      // ticking from the step that already finished.
+      stepStartedAt: undefined,
     };
 
     // A cap or the clock ending a run is `stopped` — never `failed`.

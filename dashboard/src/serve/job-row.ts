@@ -48,6 +48,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default", ctx.queue.defaults.timeoutSec),
     createdAt: job.createdAt,
     startedAt: job.startedAt,
+    stepStartedAt: job.stepStartedAt,
     // Spec 220: stored on the job — only the run that called `gh` knows
     // the URL, and there is nothing on this machine to work it out from.
     prUrl: job.prUrl,
@@ -72,10 +73,11 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
         : undefined,
     results: job.results.map((r) => ({
       step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
-      // When the step ENDED (spec 199). The only per-step instant
-      // there is — a job has one `startedAt` however many steps it
-      // ran — so it is what a phase's own duration is sliced out of.
+      // When the step ENDED (spec 199) — what a phase's own duration
+      // is sliced out of, together with its own recorded start below.
       at: r.at,
+      // This step's own recorded start (spec 384), when there is one.
+      startedAt: r.startedAt,
       // Carried, not dropped: the totals the list and the overview tab
       // build out of these results have no other way to know a figure
       // they are summing was over-charged (spec 152).
