@@ -27,7 +27,11 @@ describe("the spec page is a page of this site like any other", () => {
 
   test("a tab name nobody offers falls back to the Description tab instead of a blank page", () => {
     const html = page(view(), "../secrets");
-    expect(html).toContain("One page shows the whole spec");
+    // The description document's own text, not the spec's title: the
+    // title used to stand in for "the page is not blank" and no longer
+    // appears on the page at all. This says the same thing about the
+    // tab the fallback actually lands on.
+    expect(html).toContain("The dashboard never shows a spec.");
     expect(html).toMatch(/aria-current="page"[^>]*>Description/);
   });
 

@@ -20,22 +20,29 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
   });
 
   // Spec 294: the phase-status chip is gone from the banner entirely —
-  // no badge, no state word, on any tab. The Update button and the
-  // title stay.
-  test("no chip/badge shows a state, but the Update button and the title are still there", () => {
+  // no badge, no state word, on any tab. The Update button stays. The
+  // title line that used to stay with it is gone too, for the reason
+  // the next test carries.
+  test("no chip/badge shows a state, but the Update button is still there", () => {
     const html = page();
     expect(html).not.toContain('class="chip"');
     expect(html).not.toContain("not started");
     expect(html).toContain("Update");
-    expect(html).toContain("One page shows the whole spec");
   });
 
-  // Spec 301: a reader meeting the page for the first time should not
-  // have to work out from position alone that the bold sentence is the
-  // spec's title.
-  test('the title is preceded by a "Title:" label (REQ-5)', () => {
+  // Spec 301's REQ-5 put a "Title:" label in front of the title, so a
+  // reader meeting the page for the first time would not have to work
+  // out from position alone that the bold sentence was the title. That
+  // is reversed: the folder name sits directly above and IS the title,
+  // lowercased and hyphenated, so the label answered a question its own
+  // neighbour already answers — and the page said one name three ways.
+  // The document's own heading below stays: it is the file's text.
+  test("the banner carries no labelled title", () => {
     const html = page();
-    expect(html).toContain('<span class="label">Title:</span><strong>One page shows the whole spec</strong>');
+    expect(html).not.toContain('<span class="label">Title:</span>');
+    // The spec is still named on the page, by the identifier every other
+    // surface uses for it — the branch, the commit subjects, the gate log.
+    expect(html).toContain("150-one-page-shows-the-whole-spec");
   });
 
   test("every document is offered as a tab of its own", () => {

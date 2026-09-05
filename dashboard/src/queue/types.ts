@@ -100,6 +100,14 @@ export interface Job {
    *  config-default tier and no whole-job `modelChoice`-style field —
    *  "nothing chosen" has to stay a real, reachable value. */
   effort?: Record<string, string>;
+  /** Whether acceptance ticking is not required for this run (spec 386).
+   *  Whole-job, not per-step, like `modelChoice` — the switch answers a
+   *  question about looking at the SPEC, not about one particular
+   *  phase. Read only by the `analyze` step; absent, like a job
+   *  persisted before this existed, means exactly what unset always
+   *  means here: no line reaches the prompt, `analyze` writes the
+   *  acceptance table as it always has (REQ-3). */
+  acceptanceNotRequired?: boolean;
   /** What a `create` job is FOR: the spec it is about to make. Both are
    *  handed to `aide-run-spec` as `--title`/`--description`, and only a
    *  create job has them — every other job names a spec that already

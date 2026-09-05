@@ -176,6 +176,39 @@ describe("a chosen effort reaches the runner", () => {
   });
 });
 
+// Spec 386: whole-job, like createDependsOn — appended to every step's
+// own invocation, not looked up per step the way effort/model are.
+describe("the acceptance-not-required switch reaches the runner", () => {
+  const switchJob = (acceptanceNotRequired?: boolean) =>
+    ({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze"],
+      budgetUsd: 15,
+      timeoutSec: 2700,
+      permissionMode: { analyze: "bypassPermissions" },
+      model: {},
+      ...(acceptanceNotRequired ? { acceptanceNotRequired } : {}),
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+
+  test("--acceptance-not-required lands in argv when the job chose it", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const argv = runnerArgv(switchJob(true), "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    });
+    expect(argv).toContain("--acceptance-not-required");
+  });
+
+  test("no flag at all when the job named nothing — byte-for-byte the old argv", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
+    const withNoSwitch = runnerArgv(switchJob(), "analyze", "/tmp/r.json", o);
+    expect(withNoSwitch).not.toContain("--acceptance-not-required");
+  });
+});
+
 // --- spec 152: the wall clock is per step, and a stand-in cost says so -------
 //
 // 149's implement was killed at its own 45-minute limit with its tests

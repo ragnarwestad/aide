@@ -368,6 +368,18 @@ describe("spec 342: the phase table", () => {
     expect(line).toContain(expectedAi);
     expect(line).toContain(expectedModel);
   });
+
+  // REQ-2, REQ-3 (spec 386): the switch sits beside the phase table,
+  // unchecked by default so an untouched form behaves exactly as it did
+  // before this switch existed.
+  test("spec 386: the acceptance-not-required switch is drawn beside the phase table, unchecked", () => {
+    const html = table(newPage());
+    const box = html.match(/<input type="checkbox"[^>]*name="acceptanceNotRequired"[^>]*>/)?.[0] ?? "";
+    expect(box).not.toBe("");
+    expect(box).not.toContain("checked");
+    expect(box).toContain('value="1"');
+    expect(box).toContain('form="new-spec-form"');
+  });
 });
 
 describe("spec 113: the runs explanation is a popover beside the filter chips", () => {
