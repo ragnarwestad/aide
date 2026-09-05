@@ -74,6 +74,49 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
   });
 });
 
+// Spec 396: a job the runner has held back (`errorReason: "held-back"`)
+// is not competing for a slot at all, so it gets no place, and it must
+// not be counted in any OTHER queued job's total either.
+describe("jobRow()'s queuePosition excludes held-back jobs (spec 396)", () => {
+  test("a held-back job gets no queuePosition, and the genuinely-queued job's total excludes it", async () => {
+    const store = makeStore();
+    const runStore = new AideRunStore();
+    const held = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
+    const waiting = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+    if (!held.ok || !waiting.ok) throw new Error("enqueue failed");
+    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
+
+    const ctx = { queue: store, store: runStore };
+    const heldJob = store.get(held.job.id)!;
+    const waitingJob = store.get(waiting.job.id)!;
+    const heldRow = await jobRow(ctx, heldJob);
+    const waitingRow = await jobRow(ctx, waitingJob);
+
+    expect(heldRow.queuePosition).toBeUndefined();
+    expect(waitingRow.queuePosition?.n).toBe(1);
+    expect(waitingRow.queuePosition?.total).toBe(1);
+  });
+
+  test("same, with the held-back job sorting AFTER the genuinely-queued one", async () => {
+    const store = makeStore();
+    const runStore = new AideRunStore();
+    const waiting = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
+    const held = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+    if (!waiting.ok || !held.ok) throw new Error("enqueue failed");
+    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
+
+    const ctx = { queue: store, store: runStore };
+    const heldJob = store.get(held.job.id)!;
+    const waitingJob = store.get(waiting.job.id)!;
+    const heldRow = await jobRow(ctx, heldJob);
+    const waitingRow = await jobRow(ctx, waitingJob);
+
+    expect(heldRow.queuePosition).toBeUndefined();
+    expect(waitingRow.queuePosition?.n).toBe(1);
+    expect(waitingRow.queuePosition?.total).toBe(1);
+  });
+});
+
 // Spec 384: `Job.stepStartedAt`/`StepResult.startedAt` are the one link
 // in the five-file thread that fails silently rather than loudly — a
 // dropped optional field compiles fine and simply reads as "no start

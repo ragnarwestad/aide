@@ -76,4 +76,5 @@ export const en = {
   "list.stateQueued": "{step} queued",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",
+  "list.stateHeldBack": "{step} held back",
 } as const;
