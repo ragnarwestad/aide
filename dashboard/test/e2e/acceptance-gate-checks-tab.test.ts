@@ -43,6 +43,20 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
+/** Poll until a condition holds, or give up saying which one did not.
+ *  For anything the board reaches by its OWN poll rather than by the
+ *  write that caused it: a fixed sleep has to guess how long that poll
+ *  takes, and a guess that is long enough on an idle machine is not long
+ *  enough on a loaded one. */
+async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
+  const deadline = Date.now() + ms;
+  for (;;) {
+    if (await cond()) return;
+    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 // A bounded wait around every browser/page call, not just error handling —
 // the same helper specs-page-layout.test.ts uses.
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -68,7 +82,22 @@ beforeAll(async () => {
   // the hand-written status/state files alone are not enough. Mirrors
   // specs-page-layout.test.ts's own beforeAll.
   ran(started.dir, ["analyze", "implement"]);
-  await new Promise((r) => setTimeout(r, 400));
+  // The row carries its acceptance message only once the freshness check
+  // has verified "implement" against real git history, and the list
+  // reaches that by its own poll, not by the write above. A fixed sleep
+  // here raced that poll and lost under load — the row was left on its
+  // honest interim message ("the files disagree with what has run") and
+  // REQ-4 went red on a board that was working correctly. Waiting for the
+  // message itself removes the guess without weakening what REQ-4 proves:
+  // a board that never shows it still fails, on the bound below.
+  await waitUntil(
+    async () => {
+      const res = await fetch(`${base}/?token=${TOKEN}&live=0`);
+      return (await res.text()).includes("tick them on the Checks tab");
+    },
+    10_000,
+    "the specs list to carry the acceptance hold-back message",
+  );
 });
 
 afterAll(async () => { await browser.close(); harness.cleanup(); });
