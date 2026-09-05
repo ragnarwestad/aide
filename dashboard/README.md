@@ -1,4 +1,4 @@
-# aide-dashboard
+# <picture><source media="(prefers-color-scheme: dark)" srcset="../docs/assets/aide-board-wordmark-dark.svg"><img src="../docs/assets/aide-board-wordmark-light.svg" alt="aide -board" height="40"></picture>
 
 ## Table of contents
 
