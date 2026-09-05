@@ -56,6 +56,9 @@ export interface ProjectPageOptions {
    *  HEAD (spec 269) — undefined for every project except the one this
    *  server is actually running from. */
   serving?: { sha: string; checkoutHead: string; current: boolean };
+  /** Non-empty while a Deploy press's restart is held back by these
+   *  running jobs (spec 385) — undefined everywhere `serving` is. */
+  restartWaiting?: string[];
   /** Which tab is open, off the request's own `?tab=` (spec 293) — the
    *  same URL-driven pattern `ScheduleDetailPageOptions.tab` already
    *  uses, and for the same reason: this page reloads on a timer, so a

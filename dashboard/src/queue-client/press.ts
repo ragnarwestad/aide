@@ -37,6 +37,9 @@ export interface ActionResult {
    *  service restarts right after this answer, and the page has to wait
    *  for it to be back before reloading. */
   restarting?: boolean;
+  /** A Deploy whose restart is held back by these running jobs (spec
+   *  385) — present instead of `restarting`, never alongside it. */
+  restartWaiting?: string[];
 }
 
 /** Why the server said no, whichever shape it said it in: the project
