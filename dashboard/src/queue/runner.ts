@@ -224,10 +224,11 @@ export class Runner {
    *  mirror every two seconds for a job that is doing nothing. */
   private hold(job: Job, reason: BoardMessage): void {
     this.heldThisPass.add(job.id);
-    // A sentence that is not a hold-back is a RECORD — a landing that
-    // refused, a conflict to resolve — and it stays on the row. Marked
-    // as held above all the same, so `clearStaleHolds` leaves it alone.
-    if (job.errorReason && job.errorReason !== "held-back") return;
+    // Every caller reaches this with a job that IS queued right now,
+    // so the reason it holds for is always the current one — whatever
+    // `errorReason` an earlier, unrelated attempt left behind (spec
+    // 393: a refused landing's own record lives in `landingError`,
+    // which this never touches, not in `error`/`errorReason`).
     const current = job.error;
     const same = !!current && typeof current === "object" && !Array.isArray(current) &&
       current.key === reason.key && JSON.stringify(current.values) === JSON.stringify(reason.values);

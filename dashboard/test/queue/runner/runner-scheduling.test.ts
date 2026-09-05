@@ -124,6 +124,32 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.errorReason).toBeUndefined();
   });
 
+  // A landing that failed after its own job had already moved on used
+  // to leave `error`/`errorReason` naming that bygone attempt — a
+  // RECORD, not a hold-back — so `hold()`'s guard refused to touch it
+  // and the row went on naming a landing failure through every later
+  // hold reason (spec 393). `landingError` is where that record lives;
+  // `error`/`errorReason` say what the row is waiting for right now.
+  test("a stale landing failure gives way to the reason a job is held for now", () => {
+    const a = enqueue({ steps: ["archive"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    store.update(b.id, {
+      error: "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
+      errorReason: "conflict",
+      landingError: "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
+    });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    // The current reason, not the stale one.
+    expect(sentence(held.error)).toContain("another archive is running in this project");
+    expect(held.errorReason).toBe("held-back");
+    // The attempt that failed keeps its own record.
+    expect(sentence(held.landingError)).toContain("conflict — merge it by hand");
+  });
+
   // The whole queue stops while any job is landing, and every queued row
   // used to sit there with no reason at all — or with an older, wrong
   // one still on it.

@@ -100,8 +100,10 @@ is one and writes `cancelled`. A job that has already finished is refused with 4
 `done`, and the landing runs afterwards. When that landing is refused for a conflict, or `archive`'s landing finds the
 spec's branch still on origin, the `landing-failed` transition moves the job to `failed` with `errorReason` — and only
 from `done`: the runner may have queued the job's next step in between, and a landing must not overwrite a job that
-has moved on; the table simply has no entry for that case, so the attempt is refused and the narrative fields are
-recorded without moving the state. See [Branches and landing](landing.md).
+has moved on; the table simply has no entry for that case, so the attempt is refused. `error`/`errorReason`/
+`stopReason` say what a row is waiting for RIGHT NOW, so none of them are written onto a job that has moved on — only
+`landingError`, the permanent record of that attempt, survives there, exactly as it already does on the `done`/
+`stopped` path below. See [Branches and landing](landing.md).
 
 **Done to stopped** is the same transition for the one landing failure that is nobody's fault. The landing runs the
 project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`
