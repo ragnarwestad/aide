@@ -114,7 +114,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
    *  the fixture's own writes. */
   const listPage = async (base: string): Promise<string> => {
     await new Promise((r) => setTimeout(r, 400));
-    return listUntil(base, dated);
+    return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
   test("REQ-1: a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {

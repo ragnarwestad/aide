@@ -53,7 +53,7 @@ describe("spec 154: what has run is what has been committed", () => {
     // boot-time warm took. Waiting for the ROW to stop changing does
     // not do it: the row is stable for those 300 ms, at the old answer.
     await new Promise((r) => setTimeout(r, 400));
-    return listUntil(base, dated);
+    return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
   // Criterion 1: the 153 incident.

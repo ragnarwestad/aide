@@ -274,13 +274,19 @@ export const modelChoicesWith = (extra: Record<string, { budgetUsd: number; tool
  *  background schedule last found, so the page is polled until the
  *  first tick has landed rather than assumed to have made the call
  *  itself. The same bounded loop `projects-route.test.ts` uses. */
-export const listUntil = async (base: string, text: string, query = "", budgetMs = 2000): Promise<string> => {
+/** Poll the archived list until `text` shows, and THROW when it never
+ *  does — see `queue-routes/fixtures.ts`'s twin for what returning the
+ *  last page instead cost on 2026-09-05: a wait that gave up silently,
+ *  and an assertion blamed for it. */
+export const listUntil = async (base: string, text: string, query = "", budgetMs = 10_000): Promise<string> => {
   const deadline = Date.now() + budgetMs;
   let html = "";
-  while (Date.now() < deadline) {
+  for (;;) {
     html = await specsList(base, query);
     if (html.toLowerCase().includes(text.toLowerCase())) return html;
+    if (Date.now() > deadline) {
+      throw new Error(`the archived list never showed "${text}" within ${budgetMs}ms`);
+    }
     await new Promise((r) => setTimeout(r, 25));
   }
-  return html;
 };
