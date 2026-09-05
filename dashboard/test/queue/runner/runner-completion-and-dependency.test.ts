@@ -217,6 +217,27 @@ describe("parked on a dependency (spec 122)", () => {
     expect(store.get(job.id)?.state).toBe("running");
     expect(store.get(job.id)?.error).toBeUndefined();
   });
+
+  // spec 398 (REQ-3): a job reaching `implement` by CHAINING through its
+  // own finished `analyze` is parked with the same sentence a job queued
+  // FRESH as `["implement"]` alone gets — `tick()` reads the map by job
+  // id alone, never by how a job's current step became current.
+  test("a chained job's held-back sentence reads identically to a fresh job's", () => {
+    const chained = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick(); // chained job's own analyze starts
+    runner.poll(); // analyze finishes; the job returns to "queued" on implement
+    expect(store.get(chained.id)?.stepIndex).toBe(1);
+
+    const fresh = enqueue({ steps: ["implement"] });
+    const spawnsBefore = spawns.length;
+    runner.tick(new Map([[fresh.id, "80-dependency"], [chained.id, "80-dependency"]]));
+    expect(spawns.length).toBe(spawnsBefore); // neither started
+    expect(store.get(fresh.id)?.state).toBe("queued");
+    expect(store.get(chained.id)?.state).toBe("queued");
+    expect(sentence(store.get(chained.id)?.error)).toBe(sentence(store.get(fresh.id)?.error));
+    expect(sentence(store.get(chained.id)?.error)).toContain("depends on 80,");
+  });
 });
 
 // --- spec 344: implement refuses to start before analyze has run -----------
