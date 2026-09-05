@@ -3,7 +3,7 @@
 
 import { badge, type BadgeVariant } from "../components.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n/index.ts";
+import type { Language } from "../../../i18n";
 import type { QueueRowView } from "./types.ts";
 
 // A stopped job is NOT a failed one, and the two must never render as

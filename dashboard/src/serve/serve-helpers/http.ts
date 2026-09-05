@@ -3,7 +3,7 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { MAX_BODY } from "./config.ts";
-import type { Language } from "../../i18n/translations.ts";
+import type { Language } from "../../i18n";
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

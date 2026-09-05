@@ -2,7 +2,7 @@
 
 import { badge, stepLabel } from "../components.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
-import { t, type Language } from "../../../i18n/index.ts";
+import { t, type Language } from "../../../i18n";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 

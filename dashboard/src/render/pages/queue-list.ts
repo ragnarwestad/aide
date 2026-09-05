@@ -32,7 +32,7 @@
 import { rowMessage } from "../ui/components.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import type { QueueRowView } from "../ui/job-state.ts";
-import { t, type Language } from "../../i18n/index.ts";
+import { t, type Language } from "../../i18n";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split
 // between this file and `queue-list/model-picker.ts` is invisible to

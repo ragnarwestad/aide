@@ -1,7 +1,7 @@
 // The one long message a row has to say (spec 143).
 
 import type { MessageVariant } from "../components.ts";
-import { t, type Language } from "../../../i18n/index.ts";
+import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
