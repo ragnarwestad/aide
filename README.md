@@ -4,7 +4,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 
 ## Table of contents
 
-- [Vision](#vision)
+- [What it is](#what-it-is)
 - [For end users](#for-end-users)
 - [For aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
@@ -18,7 +18,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 
 ---
 
-## Vision
+## What it is
 
 An AI assistant is powerful but unpredictable when the requirements for a
 change live only in a chat history: the reasoning behind a decision
