@@ -40,10 +40,15 @@ export function trackingControl(view: SpecPageView): string {
     ? `<p class="muted">A dependency applies from this spec's next gated step ` +
       `(implement, resolve, archive) — never to a step already running.</p>`
     : "";
+  // `.row`, not `.checkbox`: that class is the fixed 18px square an
+  // acceptance ROW draws so every row's mark lines up, and it carries
+  // `width: 18px; flex: none`. Wrapped around a label with words in it,
+  // the words were squeezed into eighteen pixels, wrapped to three
+  // lines, and the Save button beside them landed on top.
   const acceptance = acceptanceLocked
-    ? `<span class="checkbox" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
+    ? `<span class="row" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
       `<span>acceptance ticking not required</span></span>`
-    : `<label class="checkbox">` +
+    : `<label class="row">` +
       `<input type="hidden" name="acceptanceEditable" value="1">` +
       `<input type="checkbox" name="acceptanceNotRequired" value="1"${view.acceptanceNotRequired ? " checked" : ""}>` +
       `<span>acceptance ticking not required</span></label>`;

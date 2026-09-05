@@ -38,7 +38,10 @@ export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 /** The spec page's PDF button (spec 358): a plain document, the same
  *  stroke-only convention every other icon here follows. */
 export const ICON_PDF =
-  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+  // Sized on the tag, like the icons below it. The ones that leave it
+  // off are drawn inside `.rowmsg`, which sizes them in CSS; this one
+  // sits in a `.btn`, where nothing does, and rendered as an empty box.
+  `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" ` +
   `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
   `<path d="M4 1.5h5.5L12 4v10a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 4 14V2a.5.5 0 0 1 .5-.5z"></path>` +
   `<path d="M9.5 1.5V4H12"></path></svg>`;
