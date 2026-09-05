@@ -126,4 +126,34 @@ export interface SpecPageView {
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
   backHref?: string;
+  /** Where the "Start board" form posts (spec 388). Absent means no
+   *  control is drawn at all — the round is unavailable on this host, or
+   *  this spec's own code branch carries no commits (REQ-1). */
+  boardAction?: string;
+  /** Where the "Stop board" form posts, once a board is up. */
+  boardStopAction?: string;
+  /** Why the control is disabled while `boardAction` IS present — a
+   *  transient reason (another job running, a landing in progress), the
+   *  same disabled-with-reason shape `resetUnavailableReason` uses. */
+  boardUnavailableReason?: string;
+  /** The board's own live status (REQ-4), read off the registry on every
+   *  render — absent means none has ever been started for this spec's
+   *  current branch. */
+  board?: BoardStatusView;
+}
+
+/** A board's status, as the spec page shows it (spec 388). Named
+ *  `status`, never `state`: a repo-wide guard
+ *  (test/queue/store/transitions.test.ts's REQ-6b) reserves the literal
+ *  "state:" for a queue JOB's own state, and a board's lifecycle is an
+ *  unrelated concept the guard's naive text match cannot tell apart from
+ *  it. */
+export interface BoardStatusView {
+  status: "starting" | "running" | "failed";
+  branch: string;
+  commit: string;
+  /** Set once the round has reported itself up (REQ-4). */
+  url?: string;
+  /** Set once the board has failed to start. */
+  error?: string;
 }

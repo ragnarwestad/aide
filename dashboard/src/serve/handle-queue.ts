@@ -37,6 +37,7 @@ import type {
 } from "../render.ts";
 import type { createRootLock } from "./serve-helpers.ts";
 import type { ServerOptions } from "./options.ts";
+import type { BoardsContext } from "./boards/lifecycle.ts";
 import { handlePageRoutes } from "./handle-queue/page-routes.ts";
 import { handleQueueEvents } from "./handle-queue/sse.ts";
 import { handleQueueAdminRoutes } from "./handle-queue/queue-admin.ts";
@@ -119,6 +120,10 @@ export interface HandleQueueContext {
   /** Whether `md-to-pdf` is resolvable on this host (REQ-7), resolved
    *  once at boot. */
   pdfToolAvailable: boolean;
+  /** The board registry and everything `startBoard`/`stopBoard`
+   *  (spec 388) need to reach the round without a second copy of its
+   *  own worktree/checkout logic. */
+  boards: BoardsContext;
 }
 
 export async function handleQueue(ctx: HandleQueueContext, req: Request, url: URL, path: string): Promise<Response> {

@@ -1,4 +1,6 @@
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
@@ -49,6 +51,8 @@ import { setupSchedules } from "./setup-schedules.ts";
 import { setupLand } from "./setup-land.ts";
 import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
+import { BoardStore } from "./boards/store.ts";
+import { findFreePort, type BoardsContext } from "./boards/lifecycle.ts";
 
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts without a token is only
@@ -170,6 +174,53 @@ export function createServer(opts: ServerOptions) {
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
+  // The board registry (spec 388) — built before `land`, which needs it
+  // to stop a spec's board once its archive actually lands (REQ-7).
+  // `spawn`/`isAlive` are test seams the same shape `restart`/
+  // `landingGate` already are just below: no test should start a real
+  // round, which takes minutes and real model spend.
+  const boardStore = new BoardStore({ path: opts.boardsPath });
+  const boardsCtx: BoardsContext = {
+    store: boardStore,
+    aideCheckout: (project) => resolution.machineryProjectDir(project),
+    roundScript: (project) => join(resolution.machineryProjectDir(project), "dashboard", "test", "round", "run"),
+    // A capability check, never a hardcoded project name (REQ-1): the
+    // round only ever makes sense for a project whose own checkout
+    // carries dashboard code, which in practice is `aide` alone,
+    // self-hosting.
+    roundAvailable: (project) =>
+      opts.boardsAvailable ??
+      (existsSync(join(resolution.machineryProjectDir(project), "dashboard", "test", "round", "run")) &&
+        existsSync(join(resolution.machineryProjectDir(project), "dashboard", "src", "serve", "serve.ts"))),
+    gitRun,
+    spawn:
+      opts.boardsSpawn ??
+      ((cmd, logPath) => {
+        const proc = Bun.spawn({ cmd, stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
+        proc.unref();
+        return { pid: proc.pid };
+      }),
+    isAlive:
+      opts.boardsIsAlive ??
+      ((pid) => {
+        try {
+          process.kill(pid, 0);
+          return true;
+        } catch {
+          return false;
+        }
+      }),
+    now: () => new Date().toISOString(),
+    makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-")),
+    // REQ-10: the served board's own port, plus every OTHER tracked
+    // board's port — a `failed` entry no longer holds anything.
+    reservedPorts: () => [
+      state.server?.port ?? opts.port,
+      ...boardStore.all().filter((e) => e.status !== "failed").map((e) => e.port),
+    ],
+    findFreePort,
+  };
+
   const land = setupLand(state, {
     machineryProjectDir: resolution.machineryProjectDir,
     displayProjectDir: resolution.displayProjectDir,
@@ -194,6 +245,7 @@ export function createServer(opts: ServerOptions) {
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
     landingGate: opts.landingGate ?? runProjectSuiteBeforePush,
+    boards: boardsCtx,
   });
 
   const runnerSetupCtx: RunnerSetupContext = {
@@ -283,6 +335,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     specCreatedAt: schedules.specCreatedAt,
     pdfToolAvailable,
+    boards: boardsCtx,
   };
   function archivedSpecRows(state: string | undefined) {
     return archivedSpecRowsImpl(specViewsCtx, state);
@@ -337,6 +390,7 @@ export function createServer(opts: ServerOptions) {
     pdfCacheDir,
     pdfGeneratorBin,
     pdfToolAvailable,
+    boards: boardsCtx,
   };
 
   const coreCtx: CoreRoutesContext = {

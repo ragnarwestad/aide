@@ -11,6 +11,7 @@ import type { CodeLanding } from "../../project/discover.ts";
 import type { QueueRowView } from "../../render.ts";
 import type { createRootLock } from "../serve-helpers.ts";
 import type { RestartHook } from "./restart.ts";
+import type { BoardsContext } from "../boards/lifecycle.ts";
 
 /** Everything `landBranch` and its helpers read off `createServer`'s
  *  closure, bundled the same way `HandleQueueContext` and
@@ -52,6 +53,9 @@ export interface LandContext {
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
   landingGate?: (root: string, job: Job) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  /** The board registry (spec 388, REQ-7): `landArchivedSpec` stops
+   *  whatever is tracked for a spec once its archive actually lands. */
+  boards: BoardsContext;
 }
 
 /** What a landing does that is not the merge itself: what to write on

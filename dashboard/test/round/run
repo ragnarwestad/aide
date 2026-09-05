@@ -32,10 +32,17 @@ while [ $# -gt 0 ]; do
 done
 # Refused here, before WORK is ever created (mktemp is the next thing
 # that runs): the round must not build anything for a branch that does
-# not exist.
+# not exist. A branch pushed only to origin (never fetched into this
+# checkout) is not "does not exist" — spec 388, REQ-9 — so it is fetched
+# and tracked locally before the refusal is decided.
 if [ -n "$BRANCH" ] && ! git -C "$AIDE" show-ref --verify --quiet "refs/heads/$BRANCH"; then
-  echo "no such branch: $BRANCH in $AIDE" >&2
-  exit 2
+  git -C "$AIDE" fetch -q origin "$BRANCH" 2>/dev/null || true
+  if git -C "$AIDE" show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+    git -C "$AIDE" branch -q "$BRANCH" "origin/$BRANCH"
+  else
+    echo "no such branch: $BRANCH in $AIDE or its origin" >&2
+    exit 2
+  fi
 fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"

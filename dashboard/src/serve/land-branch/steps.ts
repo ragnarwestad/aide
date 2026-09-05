@@ -3,6 +3,7 @@
 
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
+import { stopBoard } from "../boards/lifecycle.ts";
 import { landBranch } from "./merge.ts";
 import type { LandContext } from "./types.ts";
 
@@ -129,5 +130,12 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.archiveLandingFailed" }),
+    // Spec 388, REQ-7: a board is a running process against this
+    // spec's own code branch, and once that branch is archived there is
+    // nothing left for it to serve. Only fires once the merge has
+    // actually landed (never on a held-back refusal, which never
+    // reaches `landBranch` at all) — `stopBoard` itself is a no-op when
+    // nothing is tracked for this spec.
+    onLanded: async () => stopBoard(ctx.boards, job.project, job.specFolder),
   });
 }

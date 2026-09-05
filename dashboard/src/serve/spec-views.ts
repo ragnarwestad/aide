@@ -9,6 +9,7 @@ import { SpecFileView, QueueRowView, QueueTarget } from "../render.ts";
 import { QueueStore, Job } from "../queue/queue.ts";
 import { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
+import type { BoardsContext } from "./boards/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,
  *  bundled the same way `HandleQueueContext` bundles `handleQueue`'s.
@@ -52,6 +53,10 @@ export interface SpecViewsContext {
    *  `pdfGeneratorBin` live only on `HandleQueueContext`, where the
    *  route that actually spawns the script runs. */
   pdfToolAvailable: boolean;
+  /** The board registry and `roundAvailable`/status-refresh primitives
+   *  (spec 388) — the only new field `specPageView` itself reads;
+   *  the routes that start/stop a board live on `HandleQueueContext`. */
+  boards: BoardsContext;
 }
 
 export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {

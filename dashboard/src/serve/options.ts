@@ -7,6 +7,7 @@ import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
 import type { RestartHook } from "./land-branch.ts";
+import type { Spawner } from "./boards/lifecycle.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -159,4 +160,22 @@ export interface ServerOptions {
    *  loopback (`127.0.0.1` or `::1`), since a header from anywhere else
    *  can be forged by anyone who can reach the port. */
   headerAuth?: { header: string; users: string[] };
+  /** Where the board registry persists (spec 388) — the `boards.json`
+   *  sibling of the queue mirror. Absent means a tracked board is never
+   *  durable across a restart, exactly as `pendingModelsPath` absent
+   *  behaves for a pending model pick. */
+  boardsPath?: string;
+  /** Overrides the boot-time "is the round available on this host" check
+   *  (REQ-1), the same test-seam shape `pdfToolAvailable` already is: no
+   *  test should depend on a real checkout carrying
+   *  `dashboard/test/round/run`. */
+  boardsAvailable?: boolean;
+  /** Spawns the round script for a board (spec 388). A test seam: the
+   *  real one is `Bun.spawn(..., { detached: true })` + `.unref()`, and
+   *  no test should start a real round, which takes minutes and real
+   *  model spend. */
+  boardsSpawn?: Spawner;
+  /** Polls whether a tracked board's own wrapper process is still alive
+   *  (spec 388). A test seam, like `boardsSpawn`. */
+  boardsIsAlive?: (pid: number) => boolean;
 }

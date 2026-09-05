@@ -203,6 +203,61 @@ export function pdfControl(view: SpecPageView): string {
   );
 }
 
+/** The board control (spec 388): a spec whose own code branch carries
+ *  commits offers to start the round against it, and to see it running.
+ *
+ *  `boardAction` absent draws nothing at all — the round is unavailable
+ *  on this host, or the branch carries no commits (REQ-1); there is
+ *  nothing in principle to offer. `boardUnavailableReason` is the
+ *  DIFFERENT, transient case `resetControl` already has a shape for:
+ *  the control is possible in principle but not RIGHT NOW.
+ *
+ *  REQ-3's warning is drawn as page text, not a hover `title` the way
+ *  `pdfControl`'s own reason is — the cost has to be seen BEFORE the
+ *  press, and a title is read only after choosing to hover. */
+export function boardControl(view: SpecPageView): string {
+  if (!view.boardAction) return "";
+  if (view.boardUnavailableReason) {
+    return `<span class="btn" aria-disabled="true" title="${esc(view.boardUnavailableReason)}">Start board</span>`;
+  }
+  const warning =
+    `<p class="small muted">Starting a board runs a full round on this branch: ` +
+    `several minutes, and real model spend.</p>`;
+  if (!view.board) {
+    return (
+      warning +
+      `<form class="actionform" method="post" action="${esc(view.boardAction)}">` +
+      tokenField(view.token) +
+      `<button class="btn" type="submit" ` +
+      `title="start a board running this spec's own branch, seeded with the round's own fixture specs">` +
+      `Start board</button></form>`
+    );
+  }
+  if (view.board.status === "starting") {
+    return (
+      `<p class="desc"><span class="muted">Starting a board for ${esc(view.board.branch)} @ ` +
+      `${esc(view.board.commit)} — this can take several minutes.</span></p>`
+    );
+  }
+  if (view.board.status === "failed") {
+    return (
+      `<p class="desc"><span class="muted">The board failed to start` +
+      `${view.board.error ? `: ${esc(view.board.error)}` : ""}.</span></p>`
+    );
+  }
+  // running — REQ-4 (its address, branch and commit) and REQ-5 (whose
+  // specs these are).
+  return (
+    `<p class="desc"><strong>Board:</strong> ` +
+    `<a href="${esc(view.board.url ?? "")}" target="_blank" rel="noopener">${esc(view.board.url ?? "")}</a> ` +
+    `<span class="muted">— serving ${esc(view.board.branch)} @ ${esc(view.board.commit)}. ` +
+    `These are the round's own fixture specs, not this project's.</span></p>` +
+    `<form class="actionform" method="post" action="${esc(view.boardStopAction ?? "")}">` +
+    tokenField(view.token) +
+    `<button class="btn" type="submit">Stop board</button></form>`
+  );
+}
+
 export function resetControl(view: SpecPageView): string {
   if (!view.resetAction || view.archived) return "";
   if (view.resetUnavailableReason) {

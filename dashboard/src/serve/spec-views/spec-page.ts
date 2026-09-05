@@ -5,9 +5,11 @@
 import { specFileText, stripDependsOnLine } from "../../project/discover.ts";
 import { parseStatus } from "../../project/parse-status.ts";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, SpecPageView } from "../../render.ts";
+import type { BoardStatusView } from "../../render/pages/spec-page/types.ts";
 import { currentWorkRoundJobs, Job } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import { refreshBoardStatus } from "../boards/lifecycle.ts";
 import { SpecViewsContext, specFileViews } from "../spec-views.ts";
 
 import { jobDetailView } from "./job-detail.ts";
@@ -175,6 +177,32 @@ export async function specPageView(
     .map((j, i) => jobDetails[i]!.results.map((r) => ({ ...r, attempt: attemptNumber(j) })))
     .reverse()
     .flat();
+  // Spec 388, REQ-1: "a branch that carries code" is read off the same
+  // source `landArchivedSpec` already reads (`branchesFor`) — a spec
+  // with no implement step yet, or one already archived, has nothing
+  // there. `roundAvailable` is a capability check on the checkout the
+  // round would actually run FROM, never a hardcoded project name.
+  const boardCapable =
+    !ref?.archived &&
+    ctx.boards.roundAvailable(project) &&
+    ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.boards.aideCheckout(project));
+  const boardEntry = boardCapable ? refreshBoardStatus(ctx.boards, project, specFolder) : undefined;
+  const board: BoardStatusView | undefined = boardEntry && {
+    status: boardEntry.status,
+    branch: boardEntry.branch,
+    commit: boardEntry.commit,
+    url: boardEntry.url,
+    error: boardEntry.error,
+  };
+  // The same busy reasons `resetUnavailableReason` already reads below —
+  // a board is another lifecycle action against this spec's own branch,
+  // and neither should run while a job for it is in flight or a landing
+  // is under way.
+  const busyReason = matchingJobs.some((job) => job.state === "queued" || job.state === "running")
+    ? "another job for this spec is still running"
+    : ctx.queue.list().some((job) => job.landing)
+      ? "a landing is in progress"
+      : undefined;
   return {
     project,
     specFolder,
@@ -223,11 +251,11 @@ export async function specPageView(
     resetAction: `${specPagePath(project, specFolder)}/reset`,
     pdfAction: `${specPagePath(project, specFolder)}/pdf`,
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
-    resetUnavailableReason: matchingJobs.some((job) => job.state === "queued" || job.state === "running")
-      ? "another job for this spec is still running"
-      : ctx.queue.list().some((job) => job.landing)
-        ? "a landing is in progress"
-        : undefined,
+    resetUnavailableReason: busyReason,
+    boardAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board` : undefined,
+    boardStopAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
+    boardUnavailableReason: boardCapable ? busyReason : undefined,
+    board,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
     tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
     // The Reopen control on an archived spec posts to `/api/queue`,
