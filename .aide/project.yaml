@@ -56,6 +56,7 @@ docs:
   - docs/AI_SUPPORT_MATRIX.md
   - docs/SKILL_GUIDE.md
   - dashboard/README.md
+  - dashboard/docs/bash-typescript-decisions.md
   - dashboard/docs/running-specs.md
   - dashboard/docs/the-specs-list.md
   - dashboard/docs/landing.md

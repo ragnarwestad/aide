@@ -159,6 +159,11 @@ const STRUCTURE = [
   // a sentence out of a status file or a runner's refusal wraps instead
   // of running off the right edge of a cell sized for a word.
   "specnotice",
+  // the acceptance-not-required switch's own row (spec 386): a row of
+  // its own, spanning the table, distinct from "subrow" — a phase
+  // line's own count is asserted exactly in several test files, and
+  // this row is not a phase.
+  "acceptancerow",
   "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
   "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,

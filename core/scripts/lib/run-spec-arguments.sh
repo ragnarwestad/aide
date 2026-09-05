@@ -62,6 +62,11 @@ title=""; description=""
 # exactly the shape the line has on disk — stated in the create prompt,
 # meaningless everywhere else.
 depends_on=""
+# Whether this run's analyze step should skip the acceptance-criteria
+# table in 4-status.md (spec 386). A bare flag, like --pull/--dry-run:
+# there is nothing to validate, and its absence is the byte-for-byte
+# behaviour every caller before this flag existed already has (REQ-3).
+acceptance_not_required="no"
 # The file whose contents become the prompt VERBATIM, for `--command
 # schedule` alone (spec 259). A schedule entry names no aide skill and
 # no spec folder — its whole "job" is the text at this path, read from
@@ -102,6 +107,7 @@ while [ $# -gt 0 ]; do
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; shift 2 ;;
+    --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;

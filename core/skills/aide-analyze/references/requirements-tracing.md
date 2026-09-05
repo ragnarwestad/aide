@@ -50,3 +50,15 @@ spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
 tick (spec 285). `aide-archive-spec` refuses to archive while any of
 them is still unticked. No Requirements section: `4-status.md` is
 written exactly as it is today, with no such section.
+
+The run itself may say ticking is not required (spec 386): when the
+prompt states this, write a `## Acceptance criteria` heading followed by
+ONE plain sentence — "Acceptance ticking was not required for this
+run." — never a table row. A reader can then tell "nobody wrote
+requirements" (no heading at all) apart from "requirements exist and a
+deliberate choice skipped the tick" (the heading, with this one line
+under it). Requirements are still written into `1-description.md`
+exactly as they are today (REQ-6) — this branch changes `4-status.md`
+alone. Running analyze again on the same spec WITHOUT the switch writes
+the ordinary table (REQ-7): the prompt says nothing that run, so the
+first branch above applies as if this paragraph did not exist.

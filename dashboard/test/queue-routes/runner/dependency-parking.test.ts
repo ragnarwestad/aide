@@ -111,10 +111,25 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
 
-  /** Long enough for a spawn to have written its file: the runner ticks
-   *  on the enqueue itself, so a job that was going to start has started
-   *  well before this returns. */
+  /** Long enough for a spawn to have written its file, for the checks
+   *  that assert it did NOT: proving an absence needs a real pause, not
+   *  a wait that ends when something appears. A check that the spawn DID
+   *  happen uses `spawned()` below instead — a fixed pause there is a
+   *  guess about how long a spawn takes, and a guess that holds on an
+   *  idle machine does not hold on a loaded one. */
   const settle = () => Bun.sleep(400);
+
+  /** Wait for the stub runner to have written its file, bounded. Fails
+   *  saying so when it never does, so a queue that wrongly parks the job
+   *  is still caught — it just is not caught by the clock. */
+  const spawned = async (argvFile: string, ms = 10_000): Promise<boolean> => {
+    const deadline = Date.now() + ms;
+    while (!existsSync(argvFile)) {
+      if (Date.now() >= deadline) return false;
+      await Bun.sleep(25);
+    }
+    return true;
+  };
 
   function own(prefix: string) {
     const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -391,8 +406,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         },
       });
       expect((await queueArchive(base)).status).toBe(200);
-      await settle();
-      expect(existsSync(argvFile)).toBe(true);
+      expect(await spawned(argvFile)).toBe(true);
     });
   });
 

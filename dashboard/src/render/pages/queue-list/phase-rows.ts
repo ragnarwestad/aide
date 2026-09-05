@@ -10,6 +10,7 @@ import { QUEUE_STEPS, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, lockedDuration, modelPicker, phaseCaptionCells } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
+import { LIST_COLUMNS } from "./row-shared.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
 // else. Shared by `create` (always) and by any other phase once
@@ -339,5 +340,27 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           }</td>`,
       });
     });
+  // Spec 386: the same switch as the New-spec page, drawn on a row of
+  // its own beside the phase controls — a bare `phaseChip` would
+  // misalign every column beneath it in this table's six-column
+  // layout, so it is wrapped in its own spanning cell rather than
+  // reusing the `phases()` wrapper (which this table's own "no phases
+  // group survives" rule already forbids).
+  lines.push({
+    tag: `<tr class="acceptancerow">`,
+    cells:
+      `<td colspan="${LIST_COLUMNS}">` +
+      phaseChip({
+        dataAttr: "data-acceptance",
+        value: "1",
+        label: "acceptance ticking not required",
+        name: "acceptanceNotRequired",
+        form: runFormId(g),
+        checked: false,
+        plain: true,
+        title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
+      }) +
+      `</td>`,
+  });
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
