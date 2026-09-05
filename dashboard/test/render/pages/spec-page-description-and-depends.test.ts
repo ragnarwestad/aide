@@ -57,8 +57,11 @@ describe("the Description tab", () => {
     expect(html.indexOf('id="spec-editor-host"')).toBeLessThan(html.indexOf('class="spec-editor-raw"'));
   });
 
-  test("the Save row has one spacing token above it", () => {
-    expect(edit()).toContain('.specform .factions { margin-top: var(--sp-1); }');
+  // Spec 391: Save moved onto the panel's own head line, above the
+  // field it saves rather than below it — `.panelhead` carries the one
+  // spacing token to the field beneath it now.
+  test("the panel head carries one spacing token down to the field below it", () => {
+    expect(edit()).toMatch(/\.panelhead\s*\{[^}]*margin-bottom:\s*var\(--sp-2\)/);
   });
 
   // The description says "each with the commit stamp it has today" —
