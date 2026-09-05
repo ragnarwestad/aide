@@ -44,6 +44,11 @@ export interface StepResult {
    *  overwritten the job's live pointers. */
   streamFile?: string;
   at: string;
+  /** When this step STARTED (spec 384) — the instant `Runner.startOne()`
+   *  actually spawned it, held on `Job.stepStartedAt` until this result is
+   *  written. Absent on a result written before this field existed, and
+   *  then this step simply falls back to the boundary it always used. */
+  startedAt?: string;
 }
 
 /** One repo a step pushed the spec's branch to, and the compare page for
@@ -118,6 +123,13 @@ export interface Job {
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
+  /** The instant the step now in flight was actually spawned (spec 384),
+   *  set fresh on every `startOne()` call — unlike `startedAt` above, which
+   *  is set once for the whole job and kept. Transient like `sessionId`/
+   *  `streamFile`/`pid`/`pgid` beside it: cleared the moment the step ends,
+   *  since its value has by then moved onto that step's own
+   *  `StepResult.startedAt`. */
+  stepStartedAt?: string;
   pid?: number;
   pgid?: number;
   resultFile?: string;

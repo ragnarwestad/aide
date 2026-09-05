@@ -3,7 +3,7 @@
 // every form on this page repeats.
 
 import { esc } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n/index.ts";
+import { t, type Language } from "../../../i18n";
 import { FILTER_FIELD_PREFIX, FILTER_KEYS, type QueueFilter } from "./data-model.ts";
 
 /** What the date cell says when the spec carries no stamp and git

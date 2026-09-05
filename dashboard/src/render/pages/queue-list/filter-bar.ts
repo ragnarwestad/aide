@@ -6,7 +6,7 @@
 import { NEW_SPEC_ROUTE } from "../site.ts";
 import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n/index.ts";
+import { t, type Language } from "../../../i18n";
 import {
   ARCHIVED_STATE,
   DEFAULT_SORT,

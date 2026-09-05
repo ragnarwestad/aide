@@ -59,15 +59,18 @@ export function activityMs(r: QueueRowView): number {
   return Date.parse(r.startedAt ?? r.createdAt) || 0;
 }
 
-/** How long ONE step of a job took, or has taken so far (spec 199).
+/** How long ONE step of a job took, or has taken so far (spec 199, spec
+ *  384).
  *
- *  Nothing stores a per-step duration. A job carries a single
- *  `startedAt` however many steps it ran, so `finishedAt - startedAt`
- *  is the whole job's span and belongs to no one step of it — reaching
- *  for that is the one mistake this function exists to prevent. What
- *  does exist is an end per finished step (`results[i].at`), and a
- *  step's own span runs from where the step before it ended, or from
- *  the job's own start for the first one.
+ *  A job carries a single `startedAt` however many steps it ran, so
+ *  `finishedAt - startedAt` is the whole job's span and belongs to no
+ *  one step of it — reaching for that is the one mistake this function
+ *  exists to prevent. What a step's own span is built from instead:
+ *  its own recorded start (`results[i].startedAt`, spec 384) and its own
+ *  end (`results[i].at`) when both exist; failing that, the boundary
+ *  before this fix already used — the step before it ending, or the
+ *  job's own start for the first one — for a result written before the
+ *  runner recorded a per-step start.
  *
  *  `live` marks the step being worked right now: its figure is elapsed,
  *  not settled, and the browser takes over counting it from `since`. */
@@ -85,7 +88,10 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   const index = results.findIndex((x) => x.step === step);
   if (index !== -1) {
     const end = results[index]!.at;
-    const start = boundary(index);
+    // This step's OWN recorded start (spec 384), when there is one — the
+    // previous step's end is a fallback for a result written before the
+    // runner recorded one (REQ-3), never the first choice any more.
+    const start = results[index]!.startedAt ?? boundary(index);
     if (!end || !start) return null;
     const ms = Date.parse(end) - Date.parse(start);
     return Number.isNaN(ms) ? null : { ms, live: false, since: start };
@@ -93,7 +99,20 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   // Not among the finished steps, so the only way it has a span at all
   // is by being the one in flight.
   if (currentStep(r) !== step || !inFlight(r)) return null;
-  const start = boundary(results.length);
+  // A step only has a start once the runner has actually spawned it
+  // (`stepStartedAt`, spec 384). A job merely QUEUED for this step — held
+  // back for a landing, the daily cap, a dependency, an open acceptance
+  // row, or a full concurrency slot — has not started it yet and owes it
+  // no duration at all, however long the previous step's own end sits in
+  // the past. `running` with no recorded `stepStartedAt` (a step spawned
+  // before this field existed) keeps the old boundary fallback, so an
+  // in-flight step never regresses to blank across a deploy. `landing`
+  // needs no fallback of its own: it is set on the SAME transition that
+  // moves `stepIndex` to the next, not-yet-started step, so
+  // `stepStartedAt` is unset for it for the same reason it is unset for
+  // any other queued hold — the step has not been spawned, and owes no
+  // duration either way.
+  const start = r.state === "running" ? (r.stepStartedAt ?? boundary(results.length)) : r.stepStartedAt;
   if (!start) return null;
   const ms = now - Date.parse(start);
   return Number.isNaN(ms) ? null : { ms, live: true, since: start };

@@ -232,32 +232,6 @@ export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"
   return groups + stale;
 }
 
-// --- spec 364: an effort level, chosen per phase, beside the model --------
-//
-// A strict subset of the model select's own resolution chain
-// (`resolveChosenModel`): used -> pending -> nothing. No configured-
-// default tier — there is nothing for a config to grant per effort
-// level, unlike a model's budget (2-analysis.md, "Config-vs-code
-// precedence tables are for THINGS THAT COST MONEY") — and no
-// fallback-to-first-entry tier either: "nothing chosen" has to stay a
-// real, reachable answer (REQ-4), where model's own select can never be
-// genuinely unset once `modelChoices` names at least one entry.
-
-/** Which effort level a phase is actually ON (spec 364) — the sibling of
- *  `resolveChosenModel`, three tiers instead of four. `""` is the
- *  resting value for "nothing chosen", never a name of its own. */
-export function resolveChosenEffort(used?: string, pending?: string): string {
-  return used ?? pending ?? "";
-}
-
-/** What an archived phase's own record wins with — the sibling of
- *  `resolveRecordedModel`, with no configured-default tier beneath it
- *  to fall back to. */
-export function resolveRecordedEffort(recorded?: string): string {
-  return recorded ?? "";
-}
-
-
 // What the phase columns under this line are. TWO of them: the phase's
 // name, hard left in a cell of its own, and the three choices a line
 // offers — the AI, the model, the phase's box — together in the cell

@@ -10,7 +10,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 import { CSS } from "../../src/render/ui/css.ts";
 import { badge, btn } from "../../src/render/ui/components.ts";
-import { t } from "../../src/i18n/index.ts";
+import { t } from "../../src/i18n";
 
 setDefaultTimeout(20_000);
 

@@ -3,7 +3,7 @@
 // against.
 
 import { IN_FLIGHT } from "../../../ui/job-state.ts";
-import { t, type Language, type TranslationKey } from "../../../../i18n/index.ts";
+import { t, type Language, type TranslationKey } from "../../../../i18n";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
 
 // "Problems" holds everything that did not simply finish — a cap-stop

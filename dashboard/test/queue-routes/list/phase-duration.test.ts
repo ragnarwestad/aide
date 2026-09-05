@@ -9,6 +9,7 @@ import {
   type QueueTarget,
 } from "../../../src/render.ts";
 import { durationLabel } from "../../../src/render/ui/job-state.ts";
+import { phaseDuration } from "../../../src/render/pages/queue-list/data-model/phases.ts";
 
 // --- spec 199: time becomes something worth reading -------------------------
 //
@@ -375,5 +376,61 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     });
     expect(liveMs).toBeDefined();
     expect(html).toContain(durationLabel(liveMs!));
+  });
+});
+
+// spec 384: a step's own recorded start, not the boundary before it --------
+//
+// The finished-step branch now prefers `StepResult.startedAt` — set once
+// the runner actually spawned that step — over the previous step's own
+// end. The in-flight branch stops treating a job merely `queued` for its
+// next step as though that step were already running: held back for a
+// dependency, an open acceptance row, a landing, a full concurrency slot
+// or the daily cap, it owes no duration until it is actually spawned.
+//
+// Every existing test above sets neither `startedAt` nor
+// `stepStartedAt` on its fixtures, which is exactly REQ-3's own
+// regression guard: none of them are touched here.
+describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
+  const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id: "a1",
+    project: "aide",
+    specFolder: "aa-spec",
+    steps: ["analyze", "implement"],
+    stepIndex: 1,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T08:00:00Z",
+    ...extra,
+  });
+
+  test("a finished step's own recorded start wins over the previous step's end (REQ-2)", () => {
+    const r = row({
+      startedAt: "2026-08-16T09:00:00Z",
+      results: [
+        { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
+        // implement's own recorded start sits an hour after analyze
+        // ended — the gap this fix now excludes.
+        { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T10:40:00Z", startedAt: "2026-08-16T10:30:00Z" },
+      ],
+    });
+    const d = phaseDuration(r, "implement", Date.parse("2026-08-16T12:00:00Z"));
+    expect(d?.ms).toBe(10 * 60 * 1000);
+    // Not the boundary-based figure (09:10 to 10:40 = 90 minutes), which
+    // is what today's formula would have returned.
+    expect(d?.ms).not.toBe(90 * 60 * 1000);
+  });
+
+  // The literal "listed at over ten hours... nine and a half held back"
+  // case 1-description.md opens with.
+  test("a queued job between two steps shows no live duration, however long the previous step's own end sits in the past (REQ-4)", () => {
+    const r = row({
+      state: "queued",
+      startedAt: "2026-08-16T09:00:00Z",
+      results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" }],
+    });
+    const d = phaseDuration(r, "implement", Date.parse("2026-08-16T20:00:00Z"));
+    expect(d).toBeNull();
   });
 });

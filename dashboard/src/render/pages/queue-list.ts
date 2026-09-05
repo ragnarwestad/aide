@@ -32,7 +32,7 @@
 import { rowMessage } from "../ui/components.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import type { QueueRowView } from "../ui/job-state.ts";
-import { t, type Language } from "../../i18n/index.ts";
+import { t, type Language } from "../../i18n";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split
 // between this file and `queue-list/model-picker.ts` is invisible to
@@ -129,7 +129,9 @@ export interface QueuePageOptions {
   pendingModels?: Record<string, Record<string, string>>;
   /** The sibling of `pendingModels`, for an effort level picked before
    *  any job exists for it to attach to (spec 364) — same shape, same
-   *  role, read by `resolveChosenEffort()`'s own pending tier. */
+   *  role. The store keeps it; no row renders it, since the effort a
+   *  step runs at is a configuration answer rather than a per-row pick
+   *  (`phase-rows.ts`, "No effort control"). */
   pendingEffort?: Record<string, Record<string, string>>;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half

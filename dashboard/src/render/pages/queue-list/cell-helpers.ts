@@ -3,7 +3,7 @@
 
 import { CHECKING, badge, pips, stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n/index.ts";
+import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import {
   completedThirds,

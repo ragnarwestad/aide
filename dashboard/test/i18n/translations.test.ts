@@ -1,7 +1,7 @@
 // Spec 350, REQ-1/REQ-2: t() round-trips both languages, and a {param}
 // placeholder is substituted rather than left literal.
 import { describe, expect, test } from "bun:test";
-import { t } from "../../src/i18n/index.ts";
+import { t } from "../../src/i18n";
 
 describe("t()", () => {
   test("returns the English source string for en", () => {

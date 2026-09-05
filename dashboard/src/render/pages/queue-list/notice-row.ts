@@ -10,7 +10,7 @@
 import { rowMessage, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { specNotice, wordPhase } from "../../ui/job-state.ts";
-import type { Language } from "../../../i18n/index.ts";
+import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./cell-helpers.ts";
 import { isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";

@@ -3,7 +3,7 @@
 import type { BadgeVariant, PipKind } from "../components.ts";
 import { renderMessage } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
-import type { Language } from "../../../i18n/index.ts";
+import type { Language } from "../../../i18n";
 import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 

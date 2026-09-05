@@ -44,13 +44,13 @@ the `.aide` written a second earlier is part of what the runner will see. Two ro
 not refuse on either today, a known asymmetry recorded in
 `tests/fixtures/project-readiness-prerequisites.json`'s own comment rather than pinned against the runner.
 
-| Check           | Blocks a run when                                                                                                        |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------|
+| Check           | Blocks a run when                                                                                                                                           |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `gitRoot`       | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case) |
-| `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory           |
-| `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing |
-| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out         |
-| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                              |
+| `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                              |
+| `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing         |
+| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out                                                            |
+| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                                                                                 |
 
 `worktreeLinks` is read from the project's committed `.aide/project.yaml`
 first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as

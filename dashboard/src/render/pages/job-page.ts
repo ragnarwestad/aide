@@ -13,7 +13,7 @@
 
 import { esc, relTime, usdOrTokens } from "../ui/html.ts";
 import { renderSentence } from "../../i18n/message.ts";
-import type { Language } from "../../i18n/index.ts";
+import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "../ui/job-state.ts";
 import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "../ui/components.ts";

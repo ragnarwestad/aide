@@ -11,7 +11,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
-import { t, type Language, type TranslationKey } from "../../i18n/index.ts";
+import { t, type Language, type TranslationKey } from "../../i18n";
 
 const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
 
