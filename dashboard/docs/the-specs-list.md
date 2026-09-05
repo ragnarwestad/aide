@@ -254,6 +254,9 @@ fast-forward for every project in it. Both refuse an ARCHIVED spec, whose files 
 hiding a control. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
 — and its own cap is 64 KiB.
 
+The two routes these replaced, `GET /specs/<project>/<spec>/edit` and `POST .../status/tick`, answer 404: a retired
+route is removed, not redirected.
+
 ## What the script adds
 
 The page's own browser code does one thing to the controls: it keeps the reader where they are. Every one of them — Run,

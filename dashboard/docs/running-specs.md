@@ -20,6 +20,7 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [Notifications](#notifications)
 - [Telling claude-usage a branch landed](#telling-claude-usage-a-branch-landed)
+- [Live runs](#live-runs)
 - [What a finished step publishes](#what-a-finished-step-publishes)
 
 ---
@@ -308,6 +309,14 @@ expression, and a prompt file's path, relative to the project's own root. A back
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
 whenever an entry is due and nothing is already queued or running for it.
 
+`/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
+sort it); `/schedule/new` makes an entry and `/schedule/<project>/<name>` is one entry's own page (Overview and
+History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. A run's own recorded output is
+served as static files under `/schedule-output/<project>/<key>/...`. The pages post to
+`POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
+`POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
+previews a cron expression's next fire time for the form.
+
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
 since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
 forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
@@ -470,6 +479,52 @@ request, bounded at 1.5 s, no retries.
 
 The receiving end is claude-usage's to settle: `pipeline_event` is keyed on a transcript uuid and a session id, and a
 merge reported by a machine has neither. Leave `mergeEventUrl` unset until that endpoint exists.
+
+## Live runs
+
+A spec's row shows a live indicator — session id, and (see below) liveness and cost so far — while an `/aide-*`
+command is actually running against it. Two things feed that, and most people never have to touch either: the queue
+side works with nothing configured.
+
+**The queue's own runner is the producer for anything it queued itself.** When it spawns a step, it hands the child
+`AIDE_RUN_URL` pointing at this server's own `POST /api/aide-run`, derived from the port it actually bound — so a
+headless run's phases reach the row automatically. Before that existed, every phase report from a headless step
+exited silently and the row sat at `phase: null`.
+
+**A Claude Code `UserPromptSubmit` hook is the other producer, and it is a person's own, opt-in setting** — for
+reporting an `/aide-*` command run BY HAND, in an interactive terminal, outside the queue entirely. `aide-emit-run`
+(installed by aide to `~/.local/bin`) POSTs one small event per slash-launched command — host, session id, command,
+spec, project; never the prompt text. It is inert until `AIDE_RUN_URL` is set; an `AIDE_RUN_URL` already in the
+server's own environment (the case above) is left alone, so pointing reporting at another sink still works. aide's
+`install.sh` prints the ready-to-paste block; it lives in `~/.claude/settings.json` as:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AIDE_RUN_URL=\"https://<serving-host>.<tailnet>.ts.net/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The address in that block is the HTTPS one; the `:8788` address answers on the serving host itself and nowhere
+else. A bookmark carrying `?token=` works on the HTTPS address, and a browser signed in on the old one signs in
+once more, because the token cookie belongs to the origin it was set on.
+
+**`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
+queued run per row, and interactive sessions are claude-usage's own page. The job page (and that route) merge the
+stored runs with claude-usage's `/api/live` (same host — but if claude-usage there binds one address only, pass it
+explicitly: `CLAUDE_USAGE=http://<address>:8787 make install-serve`; fetched lazily and cached 5 s): liveness state,
+subagent count and cost so far. claude-usage unreachable → rows render without enrichment and a notice; never an
+error. Runs are kept in memory (LRU 512) and mirrored to `~/aide-dashboard/aide-runs.json` so restarts keep them.
 
 ## What a finished step publishes
 
