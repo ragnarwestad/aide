@@ -1,9 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-mark-dark.svg">
-  <img src="docs/assets/aide-mark-light.svg" alt="aide" width="64" height="64">
-</picture>
-
-# aide
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-mark-dark.svg"><img src="docs/assets/aide-mark-light.svg" alt="" width="40" height="40" align="top"></picture> aide
 
 A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, GitHub Copilot and Codex.
 
