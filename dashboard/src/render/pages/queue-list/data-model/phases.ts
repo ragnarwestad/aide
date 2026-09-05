@@ -87,11 +87,20 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
     (i > 0 ? results[i - 1]!.at : undefined) ?? r.startedAt;
   const index = results.findIndex((x) => x.step === step);
   if (index !== -1) {
-    const end = results[index]!.at;
     // This step's OWN recorded start (spec 384), when there is one — the
     // previous step's end is a fallback for a result written before the
     // runner recorded one (REQ-3), never the first choice any more.
     const start = results[index]!.startedAt ?? boundary(index);
+    // Still landing (spec 395, REQ-3): the step's own process ended,
+    // but its work has not reached the default branch yet, so the
+    // clock counts on from this step's own start rather than freezing
+    // on an `at` `Runner.complete()` has not written yet.
+    if (r.landing) {
+      if (!start) return null;
+      const ms = now - Date.parse(start);
+      return Number.isNaN(ms) ? null : { ms, live: true, since: start };
+    }
+    const end = results[index]!.at;
     if (!end || !start) return null;
     const ms = Date.parse(end) - Date.parse(start);
     return Number.isNaN(ms) ? null : { ms, live: false, since: start };

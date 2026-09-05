@@ -55,12 +55,21 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
 
   // Spec 296: the spec folder title sits beside ← Back, on one line,
   // rather than in `pageShell()`'s own separate heading above it.
+  // Spec 404 (REQ-5): the project leads the folder, matching the
+  // `<project>:<folder>` identifier every other surface already uses.
   test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
     const html = page();
     expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>150-one-page-shows-the-whole-spec</h1></div>',
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>aide:150-one-page-shows-the-whole-spec</h1></div>',
     );
-    expect(html.match(/<h1>150-one-page-shows-the-whole-spec<\/h1>/g)?.length ?? 0).toBe(1);
+    expect(html.match(/<h1>aide:150-one-page-shows-the-whole-spec<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+
+  // REQ-5, REQ-6: the format is read off `view.project`, not hardcoded
+  // to the fixture's own default of "aide".
+  test("the title's project comes from the view, not a hardcoded default", () => {
+    const html = page(view({ project: "atlasaurus" }));
+    expect(html).toContain("<h1>atlasaurus:150-one-page-shows-the-whole-spec</h1>");
   });
 
   // Spec 295: Checks used to sit right after Solution; it belongs

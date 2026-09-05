@@ -20,9 +20,9 @@
 // preformatted text before the reader reached whatever they came for.
 // The renamed Checks tab (spec 294) carries no file text either — just
 // the checks that are still holding the spec back, as real boxes with a
-// Save of their own. Update, the title, what the spec depends on and
-// whether it is archived are the banner's, visible on every tab rather
-// than one.
+// Save of their own. Update, the title, whether the spec is archived,
+// what it depends on and whether it requires acceptance ticking (spec
+// 394) are the banner's, visible on every tab rather than one.
 //
 // The reload went with that split. This page refreshed itself every ten
 // seconds on every tab, which is why editing the description lived on a
@@ -30,8 +30,9 @@
 // list. Checks and the four document tabs no longer refresh; Activity
 // and Steps still do, because they are the two that move while a step
 // runs and neither holds a form. The price is every banner fact — what
-// the spec depends on, whether it is archived — only as fresh as the
-// last time the page was asked for, with the Update button beside it.
+// the spec depends on, whether it requires acceptance ticking, whether
+// it is archived — only as fresh as the last time the page was asked
+// for, with the Update button beside it.
 //
 // Activity and Steps are the lead job's, through the JOB page's own
 // functions. Not copies of them: `development.md` names the
@@ -40,16 +41,17 @@
 //
 // Split by theme into spec-page/ (split spec-page.ts by theme):
 // types.ts (the view types), tabs.ts (paths, tabs, file/phase maps),
-// overview.ts (the banner's read-only facts, the Checks tab, Reopen/
-// Reset), panels.ts (the document tabs), reset-page.ts (the reset
-// confirmation page). `renderSpecPage` itself — the one function that
-// assembles all of them — stays here.
+// overview.ts (the banner's own facts — archived read-only, the
+// depends-on/acceptance tracking control editable — the Checks tab,
+// Reopen/Reset), panels.ts (the document tabs), reset-page.ts (the
+// reset confirmation page). `renderSpecPage` itself — the one function
+// that assembles all of them — stays here.
 
 import { helpPopover, rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
-import { archivedLine, boardControl, checklist, dependsOnLine, pdfControl, reopenControl, resetControl } from "./spec-page/overview.ts";
+import { archivedLine, boardControl, checklist, pdfControl, reopenControl, resetControl, trackingControl } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
 import {
   RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
@@ -77,18 +79,19 @@ export function renderSpecPage(
   const tab = resolveSpecTab(opts.tab);
   const lead = view.lead;
 
-  // No title line. The folder name sits directly above it and IS the
-  // title, lowercased and hyphenated — so the label spec 301 added, to
-  // stop a bare bold sentence being read as anything but the title, was
-  // answering a question its own neighbour already answers. Three
-  // spellings of one name on one page; the document's own heading below
-  // is the file's text and stays as it is.
+  // No title line. The project and folder sit directly above it and ARE
+  // the title (spec 404: the project leads, matching the identifier
+  // every other surface uses for this spec) — so the label spec 301
+  // added, to stop a bare bold sentence being read as anything but the
+  // title, was answering a question its own neighbour already answers.
+  // Three spellings of one name on one page; the document's own heading
+  // below is the file's text and stays as it is.
   const banner =
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
     archivedLine(view) +
-    dependsOnLine(view) +
+    trackingControl(view) +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
 
@@ -142,7 +145,7 @@ export function renderSpecPage(
     ),
     panel,
     view.backHref ?? "/",
-    view.specFolder,
+    `${view.project}:${view.specFolder}`,
   );
 
   return pageShell(

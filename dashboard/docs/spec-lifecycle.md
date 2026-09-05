@@ -80,7 +80,8 @@ spec exists once its folder is on the specs repo's default branch — that is wh
 
 **`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row pre-ticks every phase the
 spec has not had, so a fresh spec's Run queues analyze, implement and archive as one job. The runner queues each following step the moment the one
-before it completes, and starts it once that step's landing has settled.
+before it completes, and starts it once that step's landing has settled. Until then, that step's own phase line and
+duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
 **`analyze` to `implement`.** Held back while a dependency is unmerged — see the next section. Nothing else is
 checked: an `implement` run against an empty `3-solution.md` is refused by the skill, not by the queue.

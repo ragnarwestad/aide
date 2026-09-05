@@ -2,24 +2,64 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { btn, ICON_PDF, tokenField } from "../../ui/components.ts";
+import { btn, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
+import { dependsOnField } from "../new-spec-page.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
-/** What the spec depends on, on the front page, in words (spec 212).
+/** The two whole-spec facts that sit above the tabs (spec 394): what the
+ *  spec depends on, and whether it requires acceptance ticking. Neither
+ *  is about any one document — REQ-1 moves the depends-on picker out of
+ *  the Description tab's own save form for exactly that reason, and
+ *  REQ-2 puts the acceptance switch beside it rather than leaving it
+ *  homeless on the specs list's own row.
  *
- *  Read-only, whether the spec is archived or not: the control that
- *  CHANGES it is the Description tab's picker, because the line it
- *  writes is a line of `1-description.md` and belongs with that file's
- *  own Save. Two controls for one fact can disagree; one cannot.
+ *  Read-only sentences for an archived spec — the same shape this
+ *  banner always drew, since an archived spec is a RECORD with no form
+ *  to draw at all (REQ-7). One combined form for a live spec, posting
+ *  to `view.trackingAction`.
  *
- *  Nothing at all when the spec depends on nothing — the same
- *  convention `dependsOnField` keeps for a project with nothing to
- *  offer. */
-export function dependsOnLine(view: SpecPageView): string {
+ *  The acceptance switch is drawn LOCKED, not omitted, once `analyze`
+ *  has already decided the question (REQ-6) — the same disabled-with-
+ *  title shape `pdfControl`/`resetControl` use below for "possible in
+ *  principle, not right now". A locked box submits nothing at all, the
+ *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
+ *  precisely so the route can tell those two apart (see
+ *  `spec-edit/tracking.ts`). */
+export function trackingControl(view: SpecPageView): string {
   const folders = view.dependsOn ?? [];
-  if (folders.length === 0) return "";
-  return fact("Depends on", folders.map((f) => esc(f)).join(", "));
+  const options = view.dependsOnOptions ?? [];
+  if (view.archived) {
+    const dep = folders.length ? fact("Depends on", folders.map((f) => esc(f)).join(", ")) : "";
+    return dep + fact("Acceptance", view.acceptanceNotRequired ? "not required" : "required");
+  }
+  const acceptanceLocked = view.done?.includes("analyze") ?? false;
+  const picker = options.length ? dependsOnField(options, new Set(folders), { wide: true }) : "";
+  const note = picker
+    ? `<p class="muted">A dependency applies from this spec's next gated step ` +
+      `(implement, resolve, archive) — never to a step already running.</p>`
+    : "";
+  const acceptance = acceptanceLocked
+    ? `<span class="checkbox" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
+      `<span>acceptance ticking not required</span></span>`
+    : `<label class="checkbox">` +
+      `<input type="hidden" name="acceptanceEditable" value="1">` +
+      `<input type="checkbox" name="acceptanceNotRequired" value="1"${view.acceptanceNotRequired ? " checked" : ""}>` +
+      `<span>acceptance ticking not required</span></label>`;
+  // `.trackingform`, never `.specform`: the Checks tab's tick form
+  // already carries that class, and the banner renders on every tab —
+  // Checks included — so a shared class would leave that tab with TWO
+  // `.specform` forms, breaking anything that finds one by that class
+  // alone (`dashboard/test/e2e/acceptance-gate-checks-tab.test.ts`,
+  // spec 382).
+  return (
+    `<form class="trackingform" method="post" action="${esc(view.trackingAction)}">` +
+    tokenField(view.token) +
+    (picker ? `<span class="frow">${picker}</span>` : "") +
+    note +
+    `<p class="factions">${acceptance} ${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
+    `</form>`
+  );
 }
 
 /** One labelled fact about the spec: what it is, then what it says.
@@ -134,10 +174,13 @@ export function checklist(view: SpecPageView, mark = ""): string {
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
-  const head =
-    `<p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>`;
-  // The boxes sit INSIDE the one form, and the Save closes it — no id
+  // The head line and, when the boxes are tickable, Save/Cancel beside it
+  // (spec 391) — one `.panelhead` div, the form's first child, so the
+  // buttons sit on the same line as the mark rather than below the list.
+  const panelHead = (actions = ""): string =>
+    `<div class="panelhead"><p class="checkshead"><strong>Checks</strong> ` +
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>${actions}</div>`;
+  // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick
     ? `<form class="specform" method="post" action="${esc(view.tickAction)}">` +
@@ -146,11 +189,11 @@ export function checklist(view: SpecPageView, mark = ""): string {
       // Empty rather than absent for a file git has never committed —
       // the same answer the description's own field gives.
       `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
+      panelHead(saveCancelActions()) +
       list +
-      `<p class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
       `</form>`
-    : list;
-  return `<section class="checks">${head}${body}</section>`;
+    : panelHead() + list;
+  return `<section class="checks">${body}</section>`;
 }
 
 /** The one action an archived spec offers (spec 198).
@@ -191,15 +234,23 @@ export function reopenControl(view: SpecPageView): string {
  *  the browser's own viewer shows it — a plain link, never a form, so it
  *  works with JavaScript switched off (REQ-2). Disabled with its reason
  *  rather than hidden when the tool is missing (REQ-7), the exact shape
- *  `resetControl` below already uses. */
+ *  `resetControl` below already uses.
+ *
+ *  An icon alone, not the word "PDF" beside it (spec 391): it opens a
+ *  document, so it reads as one — the same `aria-label` says what it
+ *  does to a reader who cannot see the icon, on both branches. */
 export function pdfControl(view: SpecPageView): string {
   if (!view.pdfAction) return "";
+  const what = "open this spec as a PDF in a new tab";
   if (view.pdfUnavailableReason) {
-    return `<span class="btn" aria-disabled="true" title="${esc(view.pdfUnavailableReason)}">${ICON_PDF} PDF</span>`;
+    return (
+      `<span class="btn" aria-disabled="true" aria-label="${esc(what)}" ` +
+      `title="${esc(view.pdfUnavailableReason)}">${ICON_PDF}</span>`
+    );
   }
   return (
     `<a class="btn" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
-    `title="open this spec as a PDF in a new tab">${ICON_PDF} PDF</a>`
+    `aria-label="${esc(what)}" title="${esc(what)}">${ICON_PDF}</a>`
   );
 }
 

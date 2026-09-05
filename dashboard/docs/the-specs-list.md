@@ -68,13 +68,14 @@ button stands next to the badge and NAMES the phase it would run. The page says 
 done.
 The pips answer their own narrower question beside it.
 
-Every status the list reports lives in the State column, and nowhere else on the row — the spec's name carries only
-its name, its project, the pips and the fold control. A push that never reached origin, a landing that did not finish,
-a pull request the code is waiting on, or an archived branch left open (whether because a landing's own delete failed,
-or because nothing has landed it at all) each draw a second, small badge beside the running/resting word — one badge,
-the one that needs a person first, when more than one applies. Its title carries a sentence written for a person, what
-happened and what to do, never git's own stderr; and when more than one condition applies, every one of their
-sentences rides on that SAME title, so hovering the one badge reaches all of them rather than only the winner.
+The State column carries only the spec's own state — the running/resting word, and nothing beside it. A push that
+never reached origin, a landing that did not finish, a pull request the code is waiting on (or one `gh` could not
+open), or an archived branch left open (whether because a landing's own delete failed, or because nothing has
+landed it at all) are facts about the work, not a second state the spec is IN, so none of them draw a badge in that
+column. Each is said once in the row's own notice line instead, ranked, joined with " · " when more than one
+applies, in a sentence written for a person — what happened and what to do, never git's own stderr — and each
+keeping its own link where it has one, so a reader never loses one fact's link by another fact joining it on the
+same line.
 
 The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
 New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT
@@ -200,9 +201,10 @@ with one in flight it answers with the clash refusal.
 (Description, Analysis, Solution, Status — each stamped with the commit that last changed it), and Activity and Steps
 for one of its runs. Overview carries no file text at all — stacking four files in full there put thousands of lines
 of preformatted text between the reader and what they came for. It is where the spec STANDS: the state chip, the
-Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`), the title, what the
-spec depends on (read-only — the picker that CHANGES it is on the Description tab, with the file the line is stored
-in), and the checks, as real boxes with a Save of their own.
+Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`), the title, and the
+checks, as real boxes with a Save of their own. Two more facts sit here too, above the tab row rather than inside any
+one document: what the spec depends on, and whether it requires acceptance ticking — both editable in one form
+(`POST /api/queue/specs/<project>/<spec>/tracking`), since neither belongs to a single tab.
 
 **A phase line on the spec list opens the tab that shows what that phase MADE**: create → Description, analyze →
 Solution, implement → Status, archive → Overview, since archive writes no file of its own. `PHASE_TAB` in
@@ -222,10 +224,10 @@ with Update beside it.
 from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is
 a record.
 
-**The Description tab** is `1-description.md` in a textarea with its own Save, plus the `Depends on` picker (also the
-New-spec page's own control — the line it writes is a line of this very file, and leaving it in the textarea too would
-mean two writers for one fact). It is the one of the four files a person owns: the other three are written by a step,
-and a hand edit there is overwritten the next time that step runs.
+**The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
+person owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
+runs. The `Depends on` picker used to sit on this tab; it moved into the banner above the tab row, since a dependency
+is a fact about the SPEC rather than about this one document.
 
 **The checks on Overview** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
 nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first
@@ -236,9 +238,12 @@ mark, never its prose.
 
 ### Saving from the page
 
-`POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the Description tab's form carried
-(`1-description.md`, the `Depends on` line included), on the specs repo's default branch, then returns to that tab.
-ONE commit, ONE file.
+`POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the open document tab's own form
+carried, on the specs repo's default branch, then returns to that tab. ONE commit, ONE file.
+
+`POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: what the spec depends on and whether it
+requires acceptance ticking, both merged into `1-description.md`'s Tracking info in one commit, refused once
+`analyze` has already decided the acceptance half of the question.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own commit,
 back to Overview. It is a route of its own so that ticking a box does not mean opening the description's editor. A

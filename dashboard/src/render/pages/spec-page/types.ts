@@ -111,6 +111,17 @@ export interface SpecPageView {
    *  own project, itself left out. Empty — a project whose only spec is
    *  this one — and the picker is not drawn (spec 174). */
   dependsOnOptions?: QueueTarget[];
+  /** Whether the spec's own Tracking info says acceptance ticking is not
+   *  required (spec 394) — read fresh off `1-description.md`
+   *  (`specAcceptanceNotRequired`), the same file `dependsOn` above
+   *  comes from. Absent/false means "required", exactly as no line at
+   *  all does (REQ-11). */
+  acceptanceNotRequired?: boolean;
+  /** Where the banner's combined depends-on/acceptance form posts (spec
+   *  394) — its own route, since the banner is drawn once per page load
+   *  regardless of which document tab is open, unlike `saveAction`
+   *  below, which belongs to whichever tab's own textarea is showing. */
+  trackingAction: string;
   /** The commit whichever document tab's own file was read at, carried
    *  through that tab's form so a save whose file has moved since can be
    *  refused (spec 310: one field, since only one tab's form is ever

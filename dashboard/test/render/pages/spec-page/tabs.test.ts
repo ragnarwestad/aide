@@ -15,6 +15,7 @@ const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
   updateAction: "/update",
   saveAction: "/save",
   tickAction: "/tick",
+  trackingAction: "/tracking",
   ...overrides,
 });
 

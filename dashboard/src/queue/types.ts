@@ -43,7 +43,15 @@ export interface StepResult {
    *  per step, so a finished step stays readable after the next one has
    *  overwritten the job's live pointers. */
   streamFile?: string;
-  at: string;
+  /** When this step's OWN work finished landing — not when its process
+   *  exited. Absent for a step whose landing has not settled yet (spec
+   *  395): `Runner.complete()` stamps this once the promise `onStepDone`
+   *  returned resolves, not when the result file first appears, so a
+   *  phase's own duration keeps counting through its merge instead of
+   *  freezing at the process's own end. A step with no landing of its
+   *  own (`implement`) gets this written immediately, exactly as
+   *  before. */
+  at?: string;
   /** When this step STARTED (spec 384) — the instant `Runner.startOne()`
    *  actually spawned it, held on `Job.stepStartedAt` until this result is
    *  written. Absent on a result written before this field existed, and
@@ -100,13 +108,15 @@ export interface Job {
    *  config-default tier and no whole-job `modelChoice`-style field —
    *  "nothing chosen" has to stay a real, reachable value. */
   effort?: Record<string, string>;
-  /** Whether acceptance ticking is not required for this run (spec 386).
-   *  Whole-job, not per-step, like `modelChoice` — the switch answers a
-   *  question about looking at the SPEC, not about one particular
-   *  phase. Read only by the `analyze` step; absent, like a job
-   *  persisted before this existed, means exactly what unset always
-   *  means here: no line reaches the prompt, `analyze` writes the
-   *  acceptance table as it always has (REQ-3). */
+  /** Whether acceptance ticking is not required for a `create` job's own
+   *  invocation (spec 386, narrowed to `create` alone by spec 394): the
+   *  choice a `create` job makes is recorded onto the new spec's own
+   *  `1-description.md` (`specAcceptanceNotRequired`), which is what
+   *  `analyze` reads from — fresh, at spawn time — for every job after
+   *  the first, including one created before this field existed. Absent
+   *  means exactly what unset always means here: no line reaches the
+   *  prompt, `analyze` writes the acceptance table as it always has
+   *  (REQ-11). */
   acceptanceNotRequired?: boolean;
   /** What a `create` job is FOR: the spec it is about to make. Both are
    *  handed to `aide-run-spec` as `--title`/`--description`, and only a

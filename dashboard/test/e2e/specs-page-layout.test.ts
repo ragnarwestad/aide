@@ -130,14 +130,14 @@ for (const viewport of VIEWPORTS) {
 // where the table genuinely still grows with the window, so it is the
 // low end here instead of 1270px; 1920px stays as the high end.
 async function measureStateRow() {
-  const [stateCol, table, tablewrap, badgeslot, actionslot] = await Promise.all([
+  const [stateCol, table, frame, badgeslot, actionslot] = await Promise.all([
     page.locator('th[data-col="state"]').evaluate((el) => el.getBoundingClientRect()),
     page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
-    page.locator(".tablewrap").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
     page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect()),
     page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
   ]);
-  return { stateCol, table, tablewrap, badgeslot, actionslot };
+  return { stateCol, table, frame, badgeslot, actionslot };
 }
 
 test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-button gap do not grow with the window", async () => {
@@ -153,10 +153,13 @@ test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-b
   expect(wide.stateCol.width).toBeCloseTo(narrow.stateCol.width, 0);
 
   // REQ-3: the table itself does not grow with the window, and at the
-  // wider viewport it ends before `.tablewrap` does — page background
-  // shows beside it, not air inside its own last cell.
+  // wider viewport it ends before the page's own frame does — page
+  // background shows beside it, not air inside its own last cell.
+  // Measured against `main`, not `.tablewrap`: the scroll box now takes
+  // the table's own width, so that the scrollbar sits against the list
+  // rather than out at the frame's edge, and the two no longer differ.
   expect(wide.table.width).toBeCloseTo(narrow.table.width, 0);
-  expect(wide.table.width).toBeLessThan(wide.tablewrap.width);
+  expect(wide.table.width).toBeLessThan(wide.frame.width);
 
   // REQ-4: the button follows the badge by one ordinary gap (--sp-2,
   // 8px) at both widths, not the window-dependent distance
@@ -207,6 +210,26 @@ test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, 
   expect(
     Math.abs(wide.controls.x + wide.controls.width - (wide.table.x + wide.table.width)),
   ).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
+// The scroll box holding the list ends where the list does, so its
+// scrollbar sits against the table rather than out at the window's
+// edge. Same shape as the controls line above: `.tablewrap` used to
+// span `main`'s frame while the table inside it stopped at 63rem, and
+// the gap only appeared once the table's width stopped tracking the
+// window. Measured wide, where there IS empty page to the right for
+// the bar to drift into.
+test("the list's scroll box ends where the table does", async () => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  const [wrap, table] = await Promise.all([
+    page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
+    page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
+  ]);
+
+  expect(Math.abs(wrap.x + wrap.width - (table.x + table.width))).toBeLessThanOrEqual(1);
 
   await page.setViewportSize({ width: 1270, height: 800 });
 });

@@ -92,14 +92,19 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
     // Spec 342: the phase table has replaced Project's row's own
     // hand-rolled AI/Model pair (criterion 8, spec 228) as what sits
-    // between Project's row and Depends on — still not inside a second
-    // `.frow`.
-    const betweenProjectAndDepends = html.slice(
+    // between Project's row and Depends on. Spec 394 (REQ-3) then paired
+    // Depends on with the acceptance switch in one `.frow` of their
+    // own — the phase table's own rows are still not inside a `.frow`.
+    const betweenProjectAndTable = html.slice(
       html.indexOf('<select name="project">'),
-      html.indexOf('name="dependsOn"'),
+      html.indexOf('<table class="list">'),
     );
-    expect(betweenProjectAndDepends).toContain('<table class="list">');
-    expect(betweenProjectAndDepends).not.toContain('<span class="frow">');
+    expect(betweenProjectAndTable).not.toContain('<span class="frow">');
+    const betweenTableAndDepends = html.slice(
+      html.indexOf("</table>"),
+      html.indexOf('<span>Depends on</span>'),
+    );
+    expect(betweenTableAndDepends).toBe('</table><span class="frow"><span class="field wide">');
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
@@ -369,16 +374,31 @@ describe("spec 342: the phase table", () => {
     expect(line).toContain(expectedModel);
   });
 
-  // REQ-2, REQ-3 (spec 386): the switch sits beside the phase table,
-  // unchecked by default so an untouched form behaves exactly as it did
-  // before this switch existed.
-  test("spec 386: the acceptance-not-required switch is drawn beside the phase table, unchecked", () => {
-    const html = table(newPage());
+  // REQ-2, REQ-3, REQ-5 (spec 394): the switch is paired with "Depends
+  // on" rather than living inside the phase table, and starts CHECKED —
+  // a spec made without touching it is recorded as not requiring
+  // ticking, so an untouched form does not stop a later run for ticking.
+  test("spec 394: the acceptance-not-required switch is drawn beside Depends on, checked by default", () => {
+    const html = newPage();
     const box = html.match(/<input type="checkbox"[^>]*name="acceptanceNotRequired"[^>]*>/)?.[0] ?? "";
     expect(box).not.toBe("");
-    expect(box).not.toContain("checked");
+    expect(box).toContain("checked");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
+  });
+
+  // REQ-3: the two sit together, not separated by the phase table — a
+  // "Depends on" field is only drawn at all when there is another spec
+  // to build on, so this exercises that case rather than the bare page.
+  test("spec 394: Depends on and the acceptance switch are drawn adjacent, in one row", () => {
+    const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
+    const dependsIdx = html.indexOf("<span>Depends on</span>");
+    const acceptIdx = html.indexOf('name="acceptanceNotRequired"');
+    expect(dependsIdx).toBeGreaterThan(-1);
+    expect(acceptIdx).toBeGreaterThan(dependsIdx);
+    const between = html.slice(dependsIdx, acceptIdx);
+    // Nothing from the phase table's own rows sits between them.
+    expect(between).not.toContain("data-step=");
   });
 });
 

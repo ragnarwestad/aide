@@ -63,14 +63,57 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
       targets: [],
     });
 
-  // Spec 335, REQ-2: the link used to sit beside the name; it is read
-  // from the State column now, same as every other status the row has.
-  test("the link is in the State column, beside the running/resting word", () => {
+  // Spec 403, REQ-1/REQ-2: reverses spec 335's own placement — the link
+  // used to sit in the State column; a pull request being open is a fact
+  // about the work, not a second state the row is IN, so it moves to the
+  // notice line, where every other such fact already lives.
+  test("the link is in the notice line, never in the State column", () => {
     const html = open({ prUrl: "https://github.test/aide/pull/7" });
     expect(specCell(html, FOLDER)).not.toContain("pull/7");
     const state = stateCellHtml(html, FOLDER);
-    expect(state).toContain('href="https://github.test/aide/pull/7"');
-    expect(state.toLowerCase()).toContain("pull request");
+    expect(state).not.toContain("pull/7");
+    expect(state.toLowerCase()).not.toContain("pull request");
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice).toContain('href="https://github.test/aide/pull/7"');
+    expect(notice.toLowerCase()).toContain("pull request");
+  });
+
+  // REQ-3: the fact must not be hidden by the "nothing to say while
+  // running" branch that blanks an otherwise-empty notice line.
+  test("a running row with a pull request open still shows the notice sentence", () => {
+    const html = renderQueueRows([row({ steps: ["archive"], state: "running", prUrl: "https://github.test/aide/pull/7" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(noticeCellHtml(html, FOLDER)).toContain('href="https://github.test/aide/pull/7"');
+  });
+
+  // REQ-2: the link must survive being joined with another mark's
+  // sentence on the same line, not only when it is the sole mark.
+  test("the pull-request link keeps its own href when joined with another mark", () => {
+    const html = open({
+      pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
+      prUrl: "https://github.test/aide/pull/7",
+    });
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice).toContain(
+      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
+    );
+    expect(notice).toContain('href="https://github.test/aide/pull/7"');
+  });
+
+  // REQ-6: the column reads the same with or without a pull request
+  // open, across more than one state.
+  test.each(["running", "done"] as const)("REQ-6: the State cell is identical with and without prUrl (%s)", (state) => {
+    const withPr = renderQueueRows([row({ steps: ["archive"], state, prUrl: "https://github.test/aide/pull/7" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    const withoutPr = renderQueueRows([row({ steps: ["archive"], state })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(stateCellHtml(withPr, FOLDER)).toBe(stateCellHtml(withoutPr, FOLDER));
   });
 
   // Spec 339, REQ-2: `prError` is one of the three real ERRORS, not the

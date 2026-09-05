@@ -74,6 +74,31 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(spawns.length).toBe(before + 1);
   });
 
+  // A step whose OWN work lands is not over when its process exits — the
+  // merge that follows is still that step's own work (spec 395, REQ-3).
+  // `results[].at` must stay absent for as long as the landing is in
+  // flight, so a phase's own duration keeps counting instead of
+  // freezing on a timestamp stamped before the merge even started.
+  test("a landing step's results[].at is absent until the landing settles, then set (spec 395)", async () => {
+    let finish!: () => void;
+    const work = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const job = enqueue({ steps: ["create"] });
+    const runner = makeRunner({ readResult: () => outcome(), onStepDone: () => work });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.landing).toBe(true);
+    expect(store.get(job.id)?.results[0]?.at).toBeUndefined();
+
+    finish();
+    await work;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.get(job.id)?.landing).toBeUndefined();
+    expect(store.get(job.id)?.results[0]?.at).toBeDefined();
+  });
+
   test("a hook that finishes without ever awaiting still leaves the queue open", async () => {
     // The ordering hazard the runner owns both sides of the flag for: an
     // async function whose body happens not to await anything settles
@@ -216,6 +241,27 @@ describe("parked on a dependency (spec 122)", () => {
     runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(store.get(job.id)?.state).toBe("running");
     expect(store.get(job.id)?.error).toBeUndefined();
+  });
+
+  // spec 398 (REQ-3): a job reaching `implement` by CHAINING through its
+  // own finished `analyze` is parked with the same sentence a job queued
+  // FRESH as `["implement"]` alone gets — `tick()` reads the map by job
+  // id alone, never by how a job's current step became current.
+  test("a chained job's held-back sentence reads identically to a fresh job's", () => {
+    const chained = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick(); // chained job's own analyze starts
+    runner.poll(); // analyze finishes; the job returns to "queued" on implement
+    expect(store.get(chained.id)?.stepIndex).toBe(1);
+
+    const fresh = enqueue({ steps: ["implement"] });
+    const spawnsBefore = spawns.length;
+    runner.tick(new Map([[fresh.id, "80-dependency"], [chained.id, "80-dependency"]]));
+    expect(spawns.length).toBe(spawnsBefore); // neither started
+    expect(store.get(fresh.id)?.state).toBe("queued");
+    expect(store.get(chained.id)?.state).toBe("queued");
+    expect(sentence(store.get(chained.id)?.error)).toBe(sentence(store.get(fresh.id)?.error));
+    expect(sentence(store.get(chained.id)?.error)).toContain("depends on 80,");
   });
 });
 

@@ -4,6 +4,7 @@ import { boardControlRoutes } from "./spec-edit/board-controls.ts";
 import { checkRoutes } from "./spec-edit/checks.ts";
 import { runControlRoutes } from "./spec-edit/run-controls.ts";
 import { specPageRoutes } from "./spec-edit/spec-page.ts";
+import { trackingRoutes } from "./spec-edit/tracking.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 // Its old home, so every caller keeps the import it has.
@@ -23,6 +24,7 @@ export async function handleSpecEditRoutes(
     (await runControlRoutes(ctx, req, url, path, wantsJson)) ??
     (await boardControlRoutes(ctx, req, path, wantsJson)) ??
     (await specPageRoutes(ctx, req, url, path, wantsJson)) ??
+    (await trackingRoutes(ctx, req, url, path, wantsJson)) ??
     (await checkRoutes(ctx, req, url, path, wantsJson))
   );
 }

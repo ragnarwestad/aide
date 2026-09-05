@@ -25,7 +25,10 @@ Structure - follow the spec structure § 1-description:
   prompt states one — Depends on=the stated value, one backticked
   identifier per comma-separated entry, on the line after `Created`
   (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
-  when nothing was stated. Nothing about a phase outcome record either —
+  when nothing was stated. Then, by default (see this skill's own
+  "Acceptance" paragraph), a `- **Acceptance:** not required` line —
+  omitted only when the person creating the spec has said they want
+  acceptance ticking required. Nothing about a phase outcome record either —
   the template names none of it, and this file has two writers for it
   now: `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no
   `Repo` — nothing has been analyzed against yet) into this file's own

@@ -251,6 +251,7 @@ export function createServer(opts: ServerOptions) {
   const runnerSetupCtx: RunnerSetupContext = {
     store: queue,
     machineryProjectDir: resolution.machineryProjectDir,
+    machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,
     queueResultDir: opts.queueResultDir,
     scheduleOutputRoot: opts.scheduleOutputRoot,
@@ -265,6 +266,8 @@ export function createServer(opts: ServerOptions) {
     landStepBranch: land.landStepBranch,
     landArchivedSpec: land.landArchivedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
+    specDir: resolution.specDir,
+    peekMachinerySpecDir: resolution.peekMachinerySpecDir,
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

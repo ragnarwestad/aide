@@ -200,31 +200,17 @@ describe("parseJobRequest", () => {
     if (!looser.ok) expect(looser.error).toContain("budgetUsd");
   });
 
-  // --- spec 386: a run may say acceptance ticking is not required --------
+  // --- spec 394 (REQ-8): the ongoing-job parser no longer reads this --------
+  //
+  // The choice is recorded on the spec itself now (`specAcceptanceNotRequired`)
+  // and `analyze`'s own invocation reads it fresh at spawn time — a
+  // second job queued from the specs list has no checkbox of its own to
+  // post, and one posted anyway (a stale client, a hand-crafted request)
+  // is an unknown key, ignored like `gateAfter`/`extraProjects` above,
+  // never refused.
 
-  test("REQ-1: acceptanceNotRequired posted as \"1\" is accepted", () => {
-    const r = parseJobRequest({ ...REQ, acceptanceNotRequired: "1" }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.acceptanceNotRequired).toBe(true);
-  });
-
-  test("REQ-1: acceptanceNotRequired posted as true is accepted", () => {
-    const r = parseJobRequest({ ...REQ, acceptanceNotRequired: true }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.acceptanceNotRequired).toBe(true);
-  });
-
-  test("REQ-3: left untouched, the field is absent — not merely false", () => {
-    const r = parseJobRequest(REQ, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.acceptanceNotRequired).toBeUndefined();
-  });
-
-  test.each([["0"], [false], [""]])(
-    "REQ-3: acceptanceNotRequired %p leaves the field absent",
+  test.each(["1", true, "0", false, ""])(
+    "acceptanceNotRequired %p is ignored — the field never reaches the job",
     (value) => {
       const r = parseJobRequest({ ...REQ, acceptanceNotRequired: value }, { resolve, defaults: DEFAULTS });
       expect(r.ok).toBe(true);

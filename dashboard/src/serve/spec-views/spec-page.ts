@@ -2,7 +2,7 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specFileText, stripDependsOnLine } from "../../project/discover.ts";
+import { specAcceptanceNotRequired, specFileText, stripDependsOnLine } from "../../project/discover.ts";
 import { parseStatus } from "../../project/parse-status.ts";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, SpecPageView } from "../../render.ts";
 import type { BoardStatusView } from "../../render/pages/spec-page/types.ts";
@@ -234,6 +234,10 @@ export async function specPageView(
     // active specs. Self excluded — the one box that could only ever
     // earn spec 166's "cannot depend on itself" refusal.
     dependsOnOptions: ctx.targets().filter((t) => t.project === project && t.specFolder !== specFolder),
+    // Spec 394: read off the same on-disk directory `dependsOn` above
+    // comes from — a fresh read, since the banner is drawn once per page
+    // load and this fact only changes via the banner's own Save.
+    acceptanceNotRequired: specAcceptanceNotRequired(dir),
     phases: phasesFor(jobRows, target),
     // `targets()` deliberately drops an archived spec (serve.ts:792-796),
     // so `target` — and `target?.done` — is always empty for one. The
@@ -258,6 +262,7 @@ export async function specPageView(
     board,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
     tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
+    trackingAction: `/api/queue${specPagePath(project, specFolder)}/tracking`,
     // The Reopen control on an archived spec posts to `/api/queue`,
     // which checks the token like every other enqueue (spec 198).
     token: ctx.queueToken,

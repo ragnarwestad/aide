@@ -231,16 +231,15 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(line).not.toContain('name="steps" value="create"');
   });
 
-  // REQ-2, REQ-3 (spec 386): the same switch as the New-spec page, drawn
-  // on a row of its own beside the phase controls, unchecked by default.
-  test("spec 386: the acceptance-not-required switch is drawn beside a spec row's phase controls, unchecked", () => {
+  // Spec 386 drew a row-level acceptance switch here; spec 394 (REQ-2,
+  // REQ-8) removes it — the choice lives on the spec page's own banner
+  // now, recorded on the spec itself, so a later job reads that record
+  // instead of a checkbox that started unchecked on every render.
+  test("spec 394: no row-level acceptance switch survives — the choice lives on the spec page now", () => {
     const html = rows([]);
     const chunk = group(html, "124-stack");
-    const box = chunk.match(/<input type="checkbox"[^>]*name="acceptanceNotRequired"[^>]*>/)?.[0] ?? "";
-    expect(box).not.toBe("");
-    expect(box).not.toContain("checked");
-    expect(box).toContain('value="1"');
-    expect(box).toContain('form="rowrun-aide/124-stack"');
+    expect(chunk).not.toContain("acceptanceNotRequired");
+    expect(chunk).not.toContain("acceptancerow");
   });
 
   test("no strip of phase boxes and no controls line survive (criterion 2)", () => {

@@ -311,6 +311,35 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).not.toContain("not landed");
   });
 
+  // Spec 403, REQ-4: `gh` could not open one — the archived counterpart
+  // to a live row's `prError`, unlinked, said in the notice line the
+  // same way `pullRequestMark`'s hover title used to say it.
+  test("says a pull request could not be opened when the branch is open with no URL", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { prOpen: true })],
+      filter: { state: "archived" },
+    });
+    const notice = noticeCellHtml(html, "50-archived");
+    expect(notice).toContain("no pull request was opened for it");
+    expect(notice).not.toContain("<a href=");
+  });
+
+  // Spec 403, REQ-1/REQ-6: the State cell reads the bare word whether or
+  // not the branch has a pull request open — the fact moved to the
+  // notice line and left no trace in the column.
+  test("REQ-6: the State cell is identical with and without archive.prOpen", () => {
+    const withPr = rows({
+      archivedSpecs: [archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" })],
+      filter: { state: "archived" },
+    });
+    const withoutPr = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      filter: { state: "archived" },
+    });
+    expect(withPr).toContain('<span class="badge b-done">archived</span>');
+    expect(withoutPr).toContain('<span class="badge b-done">archived</span>');
+  });
+
   // The Time column shows how long the work took and nothing else, so
   // the archive date is no longer drawn on the row at all — and neither
   // are the two answers that stood in for it when git could not date the
@@ -336,10 +365,11 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(seen("60-live")).toEqual(["60-live"]);
     expect(seen("gone")).toEqual(["50-archived"]);
     // Whitespace is not a term: it must not empty the list. Order is
-    // the list's own default now (spec 317): Created, newest first —
-    // the archived fixture's own `createdAt` default is a real date,
-    // the live target's is not, so the archived row sorts first.
-    expect(seen("  ")).toEqual(["50-archived", "60-live"]);
+    // the list's own default (spec 317): Created, newest first — the
+    // archived fixture's own `createdAt` default is a real date, the
+    // live target's is not, and a spec git has not dated sorts as the
+    // newest, so the live row sorts first.
+    expect(seen("  ")).toEqual(["60-live", "50-archived"]);
   });
 
   test("the chips count the archived specs the page did not build", () => {
