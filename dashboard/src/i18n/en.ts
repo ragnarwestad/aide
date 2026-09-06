@@ -8,7 +8,6 @@ export const en = {
   "shell.theme": "Theme",
   "shell.language": "Language",
   "shell.more": "More",
-  "shell.units": "Units",
   "shell.settings": "Settings",
   "shell.about": "About",
   "shell.themeDark": "Dark",

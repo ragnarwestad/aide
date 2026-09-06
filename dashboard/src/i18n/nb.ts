@@ -7,7 +7,6 @@ export const nb: Record<TranslationKey, string> = {
   "shell.theme": "Tema",
   "shell.language": "Språk",
   "shell.more": "Mer",
-  "shell.units": "Enheter",
   "shell.settings": "Innstillinger",
   "shell.about": "Om",
   "shell.themeDark": "Mørk",

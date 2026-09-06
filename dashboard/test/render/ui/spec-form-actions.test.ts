@@ -71,6 +71,21 @@ function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTe
   };
 }
 
+/** A Settings-shaped form (spec 409): one text-ish field, plus the same
+ *  Save/Cancel pair, under the third registered prefix. */
+function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
+  document.body.innerHTML =
+    `<form id="settings-form" class="settingsform" method="post">` +
+    `<input type="number" name="budgetUsd" value="3">` +
+    `<button id="settingsform-save" type="submit">Save</button>` +
+    `<button id="settingsform-cancel" type="button" disabled>Cancel</button>` +
+    `</form>`;
+  return {
+    form: document.querySelector("form.settingsform") as HTMLFormElement,
+    input: document.querySelector('input[name="budgetUsd"]') as HTMLInputElement,
+  };
+}
+
 /** Mounts the script and fires DOMContentLoaded — the event this script
  *  waits for before touching any element, exactly as `theme-script.ts`
  *  and the shell's other head scripts do. */
@@ -214,5 +229,30 @@ describe("REQ-5/REQ-10: Cancel writes nothing", () => {
     });
     cancel().dispatchEvent(new Event("click", { bubbles: true }));
     expect(submitted).toBe(false);
+  });
+});
+
+// Spec 409, REQ-9: a third form, "settingsform", gets the exact same
+// dirty latch every `.specform`/`.trackingform` already has — nothing
+// new to prove about the mechanism itself, only that this prefix is
+// actually registered in the bind() loop.
+describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
+  test("Save/Cancel enable on an edit, and Cancel restores the field and re-disables both", () => {
+    const { input } = settingsForm();
+    mount();
+    const save = document.getElementById("settingsform-save") as HTMLButtonElement;
+    const cancel = document.getElementById("settingsform-cancel") as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(cancel.disabled).toBe(true);
+
+    input.value = "8";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(save.disabled).toBe(false);
+    expect(cancel.disabled).toBe(false);
+
+    cancel.dispatchEvent(new Event("click", { bubbles: true }));
+    expect(input.value).toBe("3");
+    expect(save.disabled).toBe(true);
+    expect(cancel.disabled).toBe(true);
   });
 });

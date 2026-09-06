@@ -40,8 +40,7 @@ describe("the state dropdown (spec 289)", () => {
     const html = page();
     expect(html).toContain('<details class="menu state" data-filter="state">');
     // The old per-chip markup is gone: no standalone `.filters` group
-    // for the state control (`unitControl()`'s Units switch is the
-    // remaining `.filters` user, and it carries no `data-filter="state"`).
+    // for the state control.
     expect(html).not.toMatch(/<span class="filters" data-filter="state">/);
   });
 

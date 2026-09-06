@@ -110,6 +110,21 @@ describe("pageShell language (spec 350)", () => {
     expect(html).toContain('href="/?lang=en"');
     expect(html).toContain('href="/?lang=nb"');
   });
+
+  // Spec 409, REQ-1: PaceUp draws each language choice as a flag plus
+  // the language's own name ("🇬🇧 English", "🇳🇴 Norsk"), never a bare
+  // two-letter code.
+  test("the trigger shows the current language's flag, and both dropdown links carry flag + name", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
+    expect(lang).toContain(">🇳🇴</summary>");
+    expect(lang).toContain('href="/?lang=nb" aria-current="true">🇳🇴 Norsk</a>');
+    expect(lang).toContain('href="/?lang=en">🇬🇧 English</a>');
+    expect(lang).not.toMatch(/>NO</);
+    expect(lang).not.toMatch(/>EN</);
+  });
 });
 
 // Spec 408, REQ-2: Settings belongs to none of the tabs the bar offers,

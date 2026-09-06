@@ -30,7 +30,7 @@
     // Every form on the page that carries the pair, not just the one:
     // the spec page has the Checks/document form AND the tracking form
     // above the tabs, and they save different things (spec 394).
-    for (const prefix of ["specform", "trackingform"]) bind(prefix);
+    for (const prefix of ["specform", "trackingform", "settingsform"]) bind(prefix);
   });
 
   function bind(prefix: string): void {
