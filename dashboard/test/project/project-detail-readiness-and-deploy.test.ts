@@ -10,7 +10,7 @@ import type { GitRunner } from "../../src/git/branch-status.ts";
 import { fakeGit } from "../helpers/fake-git.ts";
 import {
   harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil,
-  TOKEN, AUTH,
+  AUTH,
 } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
@@ -106,25 +106,27 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 });
 
-// Spec 258 (behavior changed by spec 293): the Deploy tab is offered
-// only when it has something to show — a drift answer (AIDE_INSTALL_CMD
-// configured) or a Serving comparison (this is the process's own
-// checkout). A project with neither no longer carries the tab at all.
-describe("the Deploy section on a project's own page (spec 258, spec 293)", () => {
-  test("a project with no AIDE_INSTALL_CMD and no Serving comparison has no Deploy tab (AC2)", async () => {
+// Spec 407 (REQ-1, REQ-4): the Deploy tab is offered on every project,
+// whatever it is configured with — the same rule spec 378 already
+// settled for Schedule. A project with nothing to deploy from here says
+// so on its own tab, rather than losing the tab.
+describe("the Deploy section on a project's own page (spec 258, spec 407)", () => {
+  test("a project with no AIDE_INSTALL_CMD and no Serving comparison still has a Deploy tab (REQ-1)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).not.toMatch(/>Deploy</);
+    expect(html).toMatch(/>Deploy</);
   });
 
-  // AC2's second clause: the pickTab fallback itself. Neither an
-  // omitted tab (above) nor a hidden one exercises this path.
-  test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving falls back to Config (AC2)", async () => {
+  // REQ-2, REQ-3: `?tab=deploy` opens the tab, and its panel names why
+  // there is nothing to deploy, with no button at all.
+  test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving opens the Deploy tab, saying why (REQ-2, REQ-3)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
-    expect(html).not.toContain("<h3>Config</h3>");
-    expect(html).not.toContain("<h3>Deploy</h3>");
-    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
+    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
+    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
+    expect(panel).toMatch(/install command/i);
+    expect(panel).not.toContain('class="deployform"');
+    expect(panel).not.toContain("<button");
   });
 
   // Spec 392 (REQ-1, REQ-2, REQ-3, REQ-4): the never-asked state used to
@@ -354,58 +356,23 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
   });
 });
 
-// Spec 378, REQ-5: Config's Refresh control forces the one cached answer
-// the page has — origin drift — to be re-asked, rather than waiting for
-// the background poll's own interval.
-describe("POST /api/queue/projects/<name>/refresh (REQ-5)", () => {
-  const JSON_AUTH = { ...AUTH, "content-type": "application/json", accept: "application/json" };
-
-  test("busts the cached drift answer the schedule has not reached yet", async () => {
+// Spec 407, REQ-5: the Refresh button and the route it posted to are
+// both gone. The value it forced — origin drift — keeps refreshing on
+// its own, on the unchanged background schedule (REQ-6).
+describe("the Refresh button and its route are gone (REQ-5)", () => {
+  test("the Config tab renders no Refresh button", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    // driftPollMs: 0 disables the background poll, so nothing but the
-    // Refresh press itself could ever populate the drift answer.
-    const base = serve(root, behindBy(root, "aide", 3), 0);
-    const before = await (await get(base, "aide", "deploy")).text();
-    expect(before).toContain("Whether this checkout is behind origin has not been checked yet");
-    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: JSON_AUTH });
-    expect(res.status).toBe(200);
-    const after = await (await get(base, "aide", "deploy")).text();
-    expect(after).toContain("3 commits behind origin");
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).not.toMatch(/>Refresh</);
   });
 
-  test("a project with no install command still succeeds — nothing cached to force (REQ-5 ungated case)", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"), 0);
-    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: JSON_AUTH });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean };
-    expect(body.ok).toBe(true);
-  });
-
-  test("a no-script press redirects back to the Config tab", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, behindBy(root, "aide", 3), 0);
-    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "x-aide-token": TOKEN },
-    });
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=config");
-  });
-
-  test("refuses for a project this dashboard does not know", async () => {
-    const root = projectsRoot({ aide: null });
-    const base = serve(root, settled(root, "aide"), 0);
-    const res = await fetch(`${base}/api/queue/projects/nosuch/refresh`, { method: "POST", headers: JSON_AUTH });
-    expect(res.status).toBe(404);
-  });
-
-  test("only POST — the button's route takes no other method", async () => {
+  test("the refresh route is gone — every method 404s", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, settled(root, "aide"), 0);
-    const res = await fetch(`${base}/api/queue/projects/aide/refresh`, { headers: JSON_AUTH });
-    expect(res.status).toBe(405);
+    const post = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: AUTH });
+    expect(post.status).toBe(404);
+    const getResponse = await fetch(`${base}/api/queue/projects/aide/refresh`, { headers: AUTH });
+    expect(getResponse.status).toBe(404);
   });
 });
 
@@ -465,11 +432,10 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     );
   });
 
-  // Also covers spec 293 acceptance criterion 2: `other` has neither
-  // drift (no AIDE_INSTALL_CMD) nor a Serving comparison (this process
-  // runs from `aide`, not `other`), so the Deploy tab this spec's
-  // behavior change hides is absent — unlike the old single-scroll
-  // layout, where the section stayed regardless.
+  // `other` has neither drift (no AIDE_INSTALL_CMD) nor a Serving
+  // comparison (this process runs from `aide`, not `other`) — its Deploy
+  // tab is still offered (spec 407, REQ-1), it just has no Serving line
+  // to show on it.
   test("a project this server does not run from shows no Serving line at all (criterion 5)", async () => {
     const root = projectsRoot({ aide: null, other: null });
     const base = serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"));
@@ -479,14 +445,15 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     await loadUntil(base, "aide", "Serving", 2000, "deploy");
     const html = await (await get(base, "other")).text();
     expect(html).not.toContain("Serving");
-    expect(html).not.toMatch(/>Deploy</);
+    expect(html).toMatch(/>Deploy</);
   });
 
   // Spec 318 (REQ-1): the Deploy tab's ungated note stops naming
   // AIDE_INSTALL_CMD by its raw key. The Serving comparison, not drift,
-  // is what keeps the Deploy tab present here (spec 293's showDeploy
-  // gate), so this is the one case that exercises the "no install
-  // command configured" branch without a drift answer at all.
+  // is what keeps this project's Deploy tab non-empty (spec 407 keeps the
+  // tab on every project, gated or not), so this is the one case that
+  // exercises the "no install command configured" branch without a drift
+  // answer at all.
   test("the Deploy tab's ungated note names the setting in plain words (REQ-1)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await loadUntil(
@@ -498,6 +465,32 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     );
     expect(html).toMatch(/install command/i);
     expect(html).not.toContain("AIDE_INSTALL_CMD");
+  });
+});
+
+// Spec 407 (REQ-4, REQ-7): a gated and an ungated project render the
+// identical tab bar — the same three tabs, in the same order — and the
+// ungated one's Deploy tab names why it has nothing to deploy.
+describe("the same tab bar on a gated and an ungated project (REQ-7)", () => {
+  const tabLabels = (html: string): string[] => {
+    const subtabs = html.match(/<nav class="tabbar subtabs">[\s\S]*?<\/nav>/)?.[0] ?? "";
+    return [...subtabs.matchAll(/<a class="tab"[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!);
+  };
+
+  test("both show exactly Config, Deploy, Schedule, in that order", async () => {
+    const gatedRoot = projectsRoot({ aide: INSTALLS });
+    const gatedHtml = await (await get(serve(gatedRoot, settled(gatedRoot, "aide")), "aide")).text();
+    const ungatedRoot = projectsRoot({ aide: null });
+    const ungatedHtml = await (await get(serve(ungatedRoot, settled(ungatedRoot, "aide")), "aide")).text();
+    expect(tabLabels(gatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
+    expect(tabLabels(ungatedHtml)).toEqual(["Config", "Deploy", "Schedule"]);
+  });
+
+  test("the ungated project's Deploy tab says why it cannot deploy", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
+    const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
+    expect(panel).toMatch(/install command/i);
   });
 });
 
