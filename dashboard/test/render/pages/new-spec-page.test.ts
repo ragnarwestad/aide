@@ -372,6 +372,7 @@ describe("spec 342: the phase table", () => {
     const row: SpecGroup = {
       project: "", specFolder: "new", named: false, state: "not-started",
       spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
+      totalDurationSessionOnly: false,
     };
     const opts = { modelChoices: models, defaultModels: { default: "sonnet" } };
     const expectedAi = aiPicker(row, opts, "create", false, false, undefined, undefined, "new-spec-form");

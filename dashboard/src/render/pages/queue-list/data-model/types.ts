@@ -423,6 +423,13 @@ export interface SpecGroup {
    *  `since` (`Phase`'s per-attempt `PhaseDuration.since`). Absent
    *  whenever nothing under this spec is running. */
   totalDurationSince?: string;
+  /** True when `totalDurationMs` leaned on at least one phase's own
+   *  file stamp rather than a queue-measured span for it (spec 410,
+   *  REQ-4) — mirrors `costUnmeasured`'s own shape. Computed the same
+   *  way for every row; only a LOCKED row's own render path draws a
+   *  mark from it (`archiveDateCell`/`lockedDuration`), per REQ-4's own
+   *  wording, which names an archived spec specifically. */
+  totalDurationSessionOnly: boolean;
   /** The pull request a `pr`-mode run opened for this spec's code branch
    *  (spec 220), off the most recently active job that reported one. A
    *  project whose code is reviewed archives with that branch still on

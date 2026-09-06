@@ -167,12 +167,14 @@ control that should not be drawn. The date is the `**Archived:**` stamp in `4-st
 stamp, the commit that last touched it; a spec neither can date reads "date unknown" rather than leaving the column
 blank, and one with no `## Description` section reads as a dash.
 
-**What that row says a spec cost, in time,** is read the way Cost is: a live `reduce` in `readerGroup()`
-(`data-model/group-builders.ts`) over each phase's own `timeSpentMs`, off the per-phase Tracking info — never a figure
-worked out once, at archive-landing time, off the queue's own job records. The queue keeps 200 jobs while the archive
-holds more and grows, so a figure stamped at landing time is unwritable for any spec whose jobs the queue has already
-forgotten. A total of `0` across every phase draws a bare date with no duration span, the same "nothing recorded" rule
-the Cost cell gives an all-zero `spentUsd`.
+**What that row says a spec cost, in time,** is computed the same way whether the row is live or archived
+(`totalDuration()`, `data-model/phases.ts`): a queue-measured span per phase — the worktree, the AI session, the commit
+and the push, all of it — is preferred where the queue still remembers the job, and only where it does not (an archived
+spec older than the queue's 200-job memory, or a phase no job ever ran) does the phase's own file stamp stand in, which
+is the AI session's own duration alone. An archived row whose total leaned on that fallback for any phase carries a
+"part." mark beside the figure, so a reader is never shown a session-only duration as though it were the whole phase's
+time; a live row's own rare version of the same fallback stays unmarked. A total of `0` across every phase draws a bare
+date with no duration span, the same "nothing recorded" rule the Cost cell gives an all-zero `spentUsd`.
 
 **Building archived rows is gated on the chip** (`filterShowsArchived` in `data-model/filter-sort.ts`, beside the
 chips, so the gate and the chips cannot disagree). A row costs two small file reads, aide alone has archived well over

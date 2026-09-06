@@ -18,6 +18,7 @@ const group = (lead: SpecGroup["lead"]): SpecGroup => ({
   done: [],
   dependsOn: [],
   analyzeStale: false,
+  totalDurationSessionOnly: false,
   lead,
 });
 

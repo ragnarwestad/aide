@@ -149,11 +149,22 @@ interface SpecTotal {
    *  plus the live phase's own elapsed time, with the exact same
    *  `[data-elapsed]` rewrite a phase line already carries. */
   since?: string;
+  /** True when the total ate at least one phase's own file stamp
+   *  rather than a queue-measured span for it (spec 410, REQ-4) — that
+   *  phase's contribution is the AI session's own duration alone (no
+   *  worktree, commit or push), so the total is not the whole
+   *  workflow's time for every phase it covers. Computed the same way
+   *  for every row — the render layer decides whether to show it: a
+   *  live row's own rare fallback (a phase no queue job ever ran, e.g.
+   *  a hand-analysed spec) stays unmarked, unchanged from today, while
+   *  an archived row's own fallback is exactly what REQ-4 is about. */
+  sessionOnly: boolean;
 }
 
 function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
   let settled = 0;
   let measured = false;
+  let sessionOnly = false;
   let liveSince: string | undefined;
   for (const p of phases) {
     let any = false;
@@ -173,13 +184,14 @@ function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
       // fallback, wired in by `specPhases` below, spec 284).
       settled += p.timeSpentMs;
       measured = true;
+      sessionOnly = true;
     }
   }
   if (liveSince !== undefined) {
     const since = new Date(Date.parse(liveSince) - settled).toISOString();
-    return { ms: settled + (now - Date.parse(liveSince)), live: true, since };
+    return { ms: settled + (now - Date.parse(liveSince)), live: true, since, sessionOnly };
   }
-  return measured ? { ms: settled, live: false } : undefined;
+  return measured ? { ms: settled, live: false, sessionOnly } : undefined;
 }
 
 /** The same sum, for a caller that has already built the phase lines
@@ -211,6 +223,26 @@ export function computeSpecTotalDurationMs(
   dir?: string,
 ): SpecTotal | undefined {
   return totalDuration(specPhases(rows, dir), now);
+}
+
+/** Which of a spec's own remembered queue jobs speak for each phase
+ *  (spec 410) — the same per-step split `specPhases` builds its
+ *  `attempts` from, on its own so a caller that already has a phase's
+ *  cost/model/tokens from elsewhere (an archived spec's own file
+ *  record) can route its DURATION through the identical
+ *  queue-preferred computation without inheriting `specPhases`'s file
+ *  fallback for those other fields too — that fallback fires whenever
+ *  `attempts.length === 0`, which would blank a locked row's real,
+ *  file-recorded cost the moment a job happens to still be remembered
+ *  for that phase. */
+export function attemptsPerStep(jobs: QueueRowView[]): Record<string, QueueRowView[]> {
+  const recent = [...jobs].sort((a, b) => activityMs(b) - activityMs(a));
+  const steps = new Set(jobs.flatMap(stepsTouched));
+  const result: Record<string, QueueRowView[]> = {};
+  for (const step of steps) {
+    result[step] = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
+  }
+  return result;
 }
 
 /** The phase lines a spec's row and a spec's total are both built over:

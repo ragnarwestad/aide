@@ -98,6 +98,20 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
       }
     });
 
+    // A genuinely positive span must never round down to "0s" — that
+    // reads as "nothing recorded", indistinguishable from a phase the
+    // queue never measured at all (spec 410, REQ-5).
+    test("a sub-second span never rounds down to 0s, on either side of the hand-paired pair", () => {
+      const h = fresh();
+      h.visibility("visible");
+      const mark = { dataset: { elapsed: started }, textContent: "" };
+      h.elapsed.push(mark);
+      h.clock.at = Date.parse(started) + 400;
+      h.ticks.forEach((t) => t());
+      expect(mark.textContent).toBe("1s");
+      expect(mark.textContent).toBe(durationLabel(400));
+    });
+
     // A mark whose stamp says nothing is left exactly as the server
     // drew it, rather than being overwritten with "NaN".
     test("an unreadable stamp is left alone", () => {

@@ -239,7 +239,7 @@ export function specHeadRow(
     // where nothing has settled yet: deliberately not a creation date,
     // which is the text this change removes from this cell for good.
     (locked
-      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
+      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0, g.totalDurationSessionOnly)}</td>`
       : `<td data-col="started">${activeDurationCell(g)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     `</tr>`

@@ -159,6 +159,25 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "archive", "cost")).toBe("");
   });
 
+  // Spec 410, REQ-4: REQ-4's own wording names an ARCHIVED row's
+  // fallback specifically — a live row's own rare version of the same
+  // fallback (a phase no queue job ever ran, `create` above all) stays
+  // unmarked, exactly as it reads today.
+  test("REQ-4: a live row's own file-stamp fallback carries no session-only mark", () => {
+    stampCreate("3m00s");
+    const html = page(
+      [
+        job("a1", {
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
+        }),
+      ],
+      [target({ done: ["create", "analyze"] })],
+    );
+    expect(phaseCell(html, "create", "started")).not.toContain("part.");
+    expect(headCell(html)).not.toContain("part.");
+  });
+
   test("a phase WITH a queue-job attempt is unaffected by a stamped file for the same step (no double count)", () => {
     // create itself ran as a queue job this time — the file fallback
     // must not also apply, or its duration would be counted twice.
