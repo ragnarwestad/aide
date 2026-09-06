@@ -155,6 +155,7 @@ export async function handleQueueAdminRoutes(
       description: text(asked.description),
       specsPath: text(asked.specsPath),
       worktreeLinks: text(asked.worktreeLinks),
+      codeLanding: text(asked.codeLanding),
     });
     const steps = [...result.steps];
     let readiness = result.readiness;

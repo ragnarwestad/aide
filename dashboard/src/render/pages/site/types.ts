@@ -34,6 +34,11 @@ export interface ProjectDrift {
 export const UNCHECKED_NOTE = "origin drift not checked yet";
 
 export interface ProjectPageOptions {
+  /** The project's own name for its default branch, off `origin/HEAD`
+   *  — so the Code-landing choice reads "Merge into main" (or `master`)
+   *  rather than naming a term from GitHub's settings that is nowhere
+   *  on this page. Absent when the checkout could not be asked. */
+  defaultBranch?: string;
   token?: string;
   script?: string;
   codeLanding?: "merge" | "pr";

@@ -99,6 +99,12 @@ export interface AddProjectRequest {
    *  means the config is not written at all — `<project>/specs` is the
    *  fallback both readers already implement. */
   specsPath?: string;
+  /** What happens to code when a spec is archived, the same choice the
+   *  project page's own Edit offers. `merge` is the default and writes
+   *  NOTHING: it is what a manifest with no `codeLanding` already
+   *  means, and a key stating the default is a key that has to be kept
+   *  in step with it. */
+  codeLanding?: string;
   /** `worktreeLinks`: the space-separated, repo-relative paths a
    *  run has to link into its worktree because git does not carry them
    *  — `node_modules`, `.venv`. Omitted means the key is not written:

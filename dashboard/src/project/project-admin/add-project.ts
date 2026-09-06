@@ -203,6 +203,23 @@ export async function addProject(
       return stop("worktreeLinks", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+  // Only `pr` is written: `merge` is what an absent key already means,
+  // and the same `wanted` rule the project page's own save follows
+  // (`update-settings.ts`). Refused before it is written, for the
+  // reason that file gives: a manifest every reader will reject is
+  // worse than one never written.
+  const landing = (req.codeLanding ?? "").trim();
+  if (landing && landing !== "merge") {
+    if (landing !== "pr") {
+      return stop("codeLanding", `code landing must be merge or pr — not "${landing}"`);
+    }
+    try {
+      upsertManifestScalar(manifest, "codeLanding", landing);
+      steps.push({ step: "codeLanding", ok: true });
+    } catch (err) {
+      return stop("codeLanding", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   // Last, and only once every file this add writes is on disk: the
   // `.aide/config` written a moment ago names the specs root the

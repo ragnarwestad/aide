@@ -193,6 +193,14 @@ export async function projectPages(
         // cells straight off those same rows — one read per row's
         // data, not two that could drift.
         codeLanding: resolveCodeLanding(dir),
+        // The one resolver, never a second copy of the question: two
+        // would eventually disagree, and the one that decides where a
+        // merge lands is not the one to get it wrong
+        // (`git/branch-status.ts`).
+        // `.catch`, like `readiness` above: a git that throws must leave
+        // the page standing. A name nobody could fetch is no name, and
+        // the choice falls back to the general word.
+        defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
         schedule: resolveSchedule(dir),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         editing: url.searchParams.get("edit") === "1",

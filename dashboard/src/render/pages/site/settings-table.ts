@@ -37,9 +37,18 @@ function originText(r: SettingRow): string {
  *  for each — shared between the row's read-only text and its `<select>`
  *  (spec 255; unchanged from the choices `runConfigurationBlock`'s old
  *  editor offered). */
-const CODE_LANDING_CHOICES: { value: "merge" | "pr"; label: string }[] = [
-  { value: "merge", label: "Merge into the default branch" },
-  { value: "pr", label: "Leave it for a pull request" },
+/** `defaultBranch` is the project's OWN branch name, off `origin/HEAD`
+ *  — "the default branch" is GitHub's term for it, not a name anybody
+ *  reading this row is looking at. `null` where there is no name to
+ *  give: the checkout could not be asked, or — the Add form — the
+ *  project is not on this machine yet.
+ *
+ *  "Create", not "leave it for": a `pr` landing runs `gh pr create`
+ *  (`aide-run-spec`), so the pull request is made for you. The old
+ *  wording read as though nothing would happen. */
+export const codeLandingChoices = (defaultBranch: string | null): { value: "merge" | "pr"; label: string }[] => [
+  { value: "merge", label: `Merge into ${defaultBranch ?? "the project's main branch"}` },
+  { value: "pr", label: "Create a pull request" },
 ];
 
 /** Which `SETTING_KEYS` entry posts under which form field name, in
@@ -81,12 +90,13 @@ function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOpti
  *  `key`/`purpose`/`origin` of its own, only what `resolveCodeLanding()`
  *  answers — so it is built from its own small literal here rather than
  *  coerced into the shape the seven `SETTING_KEYS` rows share. */
-function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean): string {
+function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBranch: string | null): string {
+  const choices = codeLandingChoices(defaultBranch);
   const value = editing
-    ? `<select name="codeLanding">${CODE_LANDING_CHOICES.map(
+    ? `<select name="codeLanding">${choices.map(
         (o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
       ).join("")}</select>`
-    : esc(CODE_LANDING_CHOICES.find((o) => o.value === codeLanding)!.label);
+    : esc(choices.find((o) => o.value === codeLanding)!.label);
   return `<tr><td>Code landing</td><td>${value}</td><td>What happens to code when a spec is archived</td></tr>`;
 }
 
@@ -124,7 +134,7 @@ export function unifiedSettingsTable(
           `<td>${esc(r.purpose)} — ${originText(r)}${problem}</td></tr>`
         );
       })
-      .join("") + codeLandingRow(codeLanding, editing);
+      .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
   const table =
     `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Value</th>` +
     `<th>Comment</th></tr></thead><tbody>${rows}</tbody></table></div>`;

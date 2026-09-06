@@ -135,7 +135,9 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toContain("AIDE_WORKTREE_LINKS");
     expect(html).toContain("node_modules");
     expect(html).toContain("Code landing");
-    expect(html).toContain("Leave it for a pull request");
+    // "Create", not "leave it for": the run makes the pull request
+    // itself (`gh pr create` in aide-run-spec).
+    expect(html).toContain("Create a pull request");
     // Criterion 2: the manifest's value wins over `.aide/config`'s (there
     // is none here to conflict with), and the Comment column names which
     // file it came from.
