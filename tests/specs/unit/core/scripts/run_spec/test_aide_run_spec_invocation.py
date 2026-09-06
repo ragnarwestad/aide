@@ -17,8 +17,8 @@ import time
 import pytest
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
-from .run_spec_invoking import _standalone_runner_copy
-from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_BUDGET, RESULT_OK, emits
+from .run_spec_invoking import BRANCH, _standalone_runner_copy
+from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_BUDGET, RESULT_ERROR, RESULT_OK, emits
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # dry run: must not be called
@@ -525,3 +525,46 @@ def test_the_reason_is_read_for_close_alone(runner, workspace, fake_claude):
     )
     assert rc == 0, out
     assert "this idea does not hold" not in out["prompt"], out["prompt"]
+
+# --- the close's own word reaches the caller --------------------------------
+#
+# The dashboard lands a close on `closed` alone (runner-setup.ts). A
+# session's terminal reason is `completed` whatever it did, so without
+# the runner asking `aide-close-spec` the merge was skipped in silence:
+# the folder was stamped and moved on the branch and main never saw it.
+
+def test_a_finished_close_reports_closed_not_completed(runner, workspace, fake_claude):
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
+    assert rc == 0, json.dumps(out, indent=1)
+    assert out["ok"] is True, json.dumps(out, indent=1)
+    assert out["terminalReason"] == "closed", json.dumps(out, indent=1)
+
+def test_the_close_leaves_the_spec_under_archive_with_its_reason(runner, workspace, fake_claude):
+    """The word is not a label the runner invents: it comes from
+    `aide-close-spec`, which is what actually stamps and moves."""
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
+    assert rc == 0, out
+    # On the step's own BRANCH, where every step leaves its work — the
+    # main checkout keeps the active folder until the merge lands.
+    moved = f"archive/{workspace['folder']}/4-status.md"
+    stamped = git(workspace["specs"], "show", f"{BRANCH}:{moved}")
+    assert "the idea does not hold" in stamped, stamped
+
+def test_only_close_is_asked_the_question(runner, workspace, fake_claude):
+    """Every other step keeps `completed`: asking `aide-close-spec` on
+    an archive or an implement would close a spec nobody closed."""
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze", reason="the idea does not hold")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert not (workspace["specs"] / "archive" / workspace["folder"]).exists()
+
+def test_a_session_that_failed_closes_nothing(runner, workspace, fake_claude):
+    """The question is asked only after a session that finished — a run
+    that died must not have its spec closed as a side effect."""
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_ERROR)}'")
+    rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
+    assert out["terminalReason"] != "closed", out
+    assert not (workspace["specs"] / "archive" / workspace["folder"]).exists()
