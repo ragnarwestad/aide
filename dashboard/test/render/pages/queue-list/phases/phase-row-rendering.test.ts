@@ -176,10 +176,11 @@ describe("a spec's row runs its own phases", () => {
     // No percentage on the row at all any more — neither this spec's
     // nor another's.
     expect(line).not.toContain("% done");
-    // Neither spec's title or phase is on the row at all any more.
-    expect(line).not.toContain("Row runs it");
-    expect(line).not.toContain("Phase 2: GREEN");
+    // The row's name is its OWN spec's title — the point of this test:
+    // the other spec's title, and both specs' phases, stay off it.
+    expect(line).toContain("Row runs it");
     expect(line).not.toContain("Another spec");
+    expect(line).not.toContain("Phase 2: GREEN");
     expect(line).not.toContain("Phase 1: RED");
   });
 
