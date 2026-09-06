@@ -381,17 +381,17 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
   });
 
   // REQ-3/REQ-5: the same phase timings, summed by each of the two
-  // pipelines this page has — the live one (job records, via this
-  // function) and the archived one (`readerGroup`'s reduce over each
-  // phase file's own `Time spent:` line) — must agree, for the no-retry
-  // case both pipelines can represent (3-solution.md, "Behavior delta").
-  // This is not provably ONE shared source (2-analysis.md, "REQ-2's
-  // 'same computation source'..."), so it proves parity on equivalent
-  // inputs rather than asserting one implementation calls the other. It
-  // also now proves REQ-3/REQ-5's "same rule" claim under the new
-  // summing behavior (every attempt), not only the old latest-only one —
-  // `rows()` has no retried phase, so both pipelines see one attempt per
-  // step either way.
+  // fixture shapes this page draws a total from — job records, off this
+  // function, and an archived spec's own file stamps, off `readerGroup`
+  // — must agree. Spec 410 made this genuinely ONE shared source: with
+  // no queue job left for the archived side to read, `readerGroup` falls
+  // back to `totalDuration()`'s own file-stamp branch, the identical
+  // function `computeSpecTotalDurationMs` calls here — so this is no
+  // longer parity between two implementations, only between two
+  // fixtures fed into the one implementation both take. It also proves
+  // REQ-3/REQ-5's "same rule" claim under the new summing behavior
+  // (every attempt), not only the old latest-only one — `rows()` has no
+  // retried phase, so both fixtures see one attempt per step either way.
   test("agrees with the archived figure for the same underlying phase timings (REQ-3, REQ-5)", () => {
     const liveMs = computeSpecTotalDurationMs(rows(), NOW)?.ms;
     const archived: ArchivedSpecView = {
@@ -414,6 +414,93 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     });
     expect(liveMs).toBeDefined();
     expect(html).toContain(durationLabel(liveMs!));
+  });
+});
+
+// --- spec 410: an archived row reads the queue's own memory too -----------
+//
+// `readerGroup()` used to sum only each phase file's own `Time spent:`
+// stamp — the AI session's own duration, never the worktree, the commit
+// or the push around it. Where the queue still remembers the job (a
+// recently archived spec, or a small project under its 200-job cap),
+// this reads the SAME queue-preferred figure `jobGroup()`/`emptyGroup()`
+// already draw, through the one shared `totalDuration()` (REQ-1).
+describe("an archived row reads a still-remembered queue job the same way a live row does (spec 410, REQ-1/2/3)", () => {
+  const NOW = Date.parse("2026-08-16T12:00:00Z");
+  const KEY = "aide/aa-spec";
+
+  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id,
+    project: "aide",
+    specFolder: "aa-spec",
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T08:00:00Z",
+    ...extra,
+  });
+
+  const archived = (extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder: "aa-spec",
+    archivedAt: "2026-08-16T09:20:00Z",
+    done: ["create", "analyze", "implement"],
+    models: {},
+    phaseOutcomes: { implement: { timeSpentMs: 1000 } },
+    ...extra,
+  });
+
+  const headCell = (html: string): string =>
+    html
+      .match(/<tr class="spechead[^"]*"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
+      ?.match(/<td[^>]*data-col="started"[^>]*>(.*?)<\/td>/)?.[1] ?? "";
+
+  test("REQ-1/REQ-3: a queue-measured phase wins over that phase's own file stamp, even on a locked row", () => {
+    const rows = [
+      job("a1", {
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
+      }),
+    ];
+    const html = renderQueueRows(
+      rows,
+      {
+        runnerAvailable: true,
+        targets: [],
+        archived: [KEY],
+        archivedSpecs: [archived()],
+        filter: { state: "archived" },
+      },
+      NOW,
+    );
+    // analyze: 4s off the queue's own job; implement: 1s off the file
+    // stamp, the queue having forgotten it — 5s together.
+    expect(headCell(html)).toContain("5s");
+  });
+
+  test("REQ-2: the archived row reports the identical figure the live row showed for the same jobs", () => {
+    const rows = [
+      job("a1", {
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
+      }),
+    ];
+    const liveMs = computeSpecTotalDurationMs(rows, NOW)?.ms;
+    const html = renderQueueRows(
+      rows,
+      {
+        runnerAvailable: true,
+        targets: [],
+        archived: [KEY],
+        archivedSpecs: [archived({ phaseOutcomes: {} })],
+        filter: { state: "archived" },
+      },
+      NOW,
+    );
+    expect(liveMs).toBeDefined();
+    expect(headCell(html)).toContain(durationLabel(liveMs!));
   });
 });
 

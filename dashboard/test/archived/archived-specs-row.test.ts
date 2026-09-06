@@ -147,6 +147,17 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SPENT);
   });
 
+  // Spec 410, REQ-4: the queue has no memory of STAMPED's jobs at all —
+  // this harness never queues one — so the figure above is the phase
+  // file's own stamp, the AI session's own duration alone. The row says
+  // so, rather than presenting it as the phase's whole time.
+  test("marks a file-only duration as the AI session's own time, not the whole phase's (spec 410, REQ-4)", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const cell = row.slice(row.indexOf('data-col="started"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain("the AI session's own time only");
+  });
+
   // Acceptance criterion 4: nothing recorded across every phase is the
   // same "nothing to show" `costCell()` already gives an all-zero
   // `spentUsd` — a bare date, no duration span.

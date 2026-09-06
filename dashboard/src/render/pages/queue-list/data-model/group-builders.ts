@@ -4,7 +4,7 @@
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
-import { activityMs, phasesFor, totalDurationOf } from "./phases.ts";
+import { activityMs, attemptsPerStep, phasesFor, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -33,6 +33,7 @@ function emptyGroup(t: QueueTarget, now: number): SpecGroup {
     phases,
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
+    totalDurationSessionOnly: total?.sessionOnly ?? false,
     ...fromTarget(t),
   };
 }
@@ -133,8 +134,14 @@ export function groupBySpec(
   return [
     ...fromJobs,
     // Only ever a list the server chose to build: under the default
-    // filter it is absent, and this adds nothing at all.
-    ...(archivedSpecs ?? []).map(readerGroup),
+    // filter it is absent, and this adds nothing at all. Its own
+    // remembered queue jobs (if any survive the queue's memory) are
+    // handed in too (spec 410, REQ-2/REQ-3) — an archived spec's key
+    // being IN `byKey` at all is exactly the "queue still remembers"
+    // case `readerGroup` now reads.
+    ...(archivedSpecs ?? []).map((s) =>
+      readerGroup(s, currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []), now),
+    ),
     ...targets.filter((t) => {
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
@@ -162,7 +169,40 @@ export function groupBySpec(
  *  job to attribute one to — `wordPhase` renders a truthful "done" from
  *  `happened` alone, so the lines and the pip strip are correct without
  *  one, and the duration and cost cells are simply blank. */
-function readerGroup(s: ArchivedSpecView): SpecGroup {
+function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): SpecGroup {
+  // Spec 410: the phase lines this row's total is a sum over — cost,
+  // tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
+  // before; only `attempts` (and therefore `totalDuration`'s own
+  // queue-preferred duration) is new. `attemptsPerStep` deliberately
+  // does not go through `specPhases`'s file-fallback join, which would
+  // blank a locked phase's real, file-recorded cost the moment a job
+  // happens to still be remembered for it (2-analysis.md, "Patterns").
+  const attemptsByStep = attemptsPerStep(jobs);
+  const phases = PHASE_LINES.map((step) => {
+    const outcome = s.phaseOutcomes[step];
+    return {
+      step,
+      attempts: attemptsByStep[step] ?? [],
+      history: {},
+      // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
+      // format — wins over `s.models[step]` — spec 244's old,
+      // `4-status.md`-only format — when both could theoretically apply.
+      // They never do for the same real archive (`2-analysis.md`,
+      // "Findings"), so this is a merge order, not a live disagreement.
+      model: outcome?.model ?? s.models[step],
+      // No `s.efforts[step]`-style fallback the way `model` has one:
+      // effort is introduced fresh in spec 245's per-phase-file format
+      // (spec 364), with no earlier, `4-status.md`-only format to fall
+      // back to.
+      effort: outcome?.effort,
+      timeSpentMs: outcome?.timeSpentMs,
+      cost: outcome?.cost,
+      costUnmeasured: outcome?.costUnmeasured,
+      tokens: outcome?.tokens,
+      attemptCount: outcome?.attempts,
+    };
+  });
+  const total = totalDurationOf(phases, now);
   return {
     project: s.project,
     specFolder: s.folder,
@@ -183,34 +223,16 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
       ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
       : undefined,
-    // Spec 273: the same reduce as spentUsd above, over time instead of
-    // money — reliable for every archived spec with per-phase Tracking
-    // info, unlike the one-shot queue-history stamp this replaces.
-    totalDurationMs: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.timeSpentMs ?? 0), 0),
-    // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
-    // format — wins over `s.models[step]` — spec 244's old,
-    // `4-status.md`-only format — when both could theoretically apply.
-    // They never do for the same real archive (`2-analysis.md`,
-    // "Findings"), so this is a merge order, not a live disagreement.
-    phases: PHASE_LINES.map((step) => {
-      const outcome = s.phaseOutcomes[step];
-      return {
-        step,
-        attempts: [],
-        history: {},
-        model: outcome?.model ?? s.models[step],
-        // No `s.efforts[step]`-style fallback the way `model` has one:
-        // effort is introduced fresh in spec 245's per-phase-file format
-        // (spec 364), with no earlier, `4-status.md`-only format to fall
-        // back to.
-        effort: outcome?.effort,
-        timeSpentMs: outcome?.timeSpentMs,
-        cost: outcome?.cost,
-        costUnmeasured: outcome?.costUnmeasured,
-        tokens: outcome?.tokens,
-        attemptCount: outcome?.attempts,
-      };
-    }),
+    // Spec 410: routed through the same queue-preferred `totalDuration`
+    // every other row uses (REQ-1) — the queue's own measured span for a
+    // phase it still remembers, the phase's own file stamp only where
+    // the queue has forgotten it or never had one. Was a raw reduce over
+    // `s.phaseOutcomes`' own `timeSpentMs`, unconditionally — the AI
+    // session's own duration alone, presented as the whole phase's time.
+    totalDurationMs: total?.ms,
+    totalDurationSince: total?.since,
+    totalDurationSessionOnly: total?.sessionOnly ?? false,
+    phases,
     done: s.done,
     title: s.title,
     description: s.description,
@@ -282,6 +304,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: num
     // time.
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
+    totalDurationSessionOnly: total?.sessionOnly ?? false,
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.

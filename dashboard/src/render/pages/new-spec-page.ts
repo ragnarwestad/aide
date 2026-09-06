@@ -191,7 +191,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   const row: SpecGroup = {
     project: "", specFolder: "new", named: false, state: "not-started",
     spentUsd: 0, costUnmeasured: false, phases: [], done: [],
-    dependsOn: [], analyzeStale: false,
+    dependsOn: [], analyzeStale: false, totalDurationSessionOnly: false,
   };
   const captionRow = (opts.modelChoices ?? []).length
     ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts)}</tr>`

@@ -186,13 +186,33 @@ export function phasePips(phases: Phase[], done: string[]): string {
   );
 }
 
+/** What an archived row's duration cells share (spec 410, REQ-4): a
+ *  mark for a total that leaned on a phase's own file stamp rather than
+ *  a queue-measured span for it, since that stamp is the AI session's
+ *  own duration alone — no worktree, commit or push around it — and is
+ *  not the phase's whole time the rest of this column means.
+ *
+ *  Archived-only by construction: `activeDurationCell` never calls
+ *  this, and `lockedDuration` only passes a true flag when `locked`
+ *  (`phase-rows.ts`) — REQ-4's own wording names an archived spec
+ *  specifically, so a live row's own rare version of the same fallback
+ *  (a phase no queue job ever ran) stays unmarked, as it is today. */
+const SESSION_ONLY_TITLE =
+  "the AI session's own time only — the queue has no external measurement of this phase to prefer";
+
+export const sessionOnlyMark = (show: boolean): string =>
+  show ? ` <span class="muted small" title="${esc(SESSION_ONLY_TITLE)}">part.</span>` : "";
+
 /** The Time column for a locked row: how long the work took, and never
  *  anything else. A date here is a different question wearing the
  *  column's clothes, and an empty cell asks whether anything ran — so a
  *  spec whose phases summed to nothing reads `0s`, the same as an active
  *  row's. */
-export function archiveDateCell(durationMs: number): string {
-  return `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>`;
+export function archiveDateCell(durationMs: number, sessionOnly: boolean): string {
+  return (
+    `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>` +
+    sessionOnlyMark(sessionOnly)
+  );
 }
 
 /** When the spec was MADE (spec 317, REQ-1/REQ-4). One call for either
