@@ -1,11 +1,11 @@
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { esc } from "../ui/html.ts";
-import { backLink } from "../ui/components.ts";
+import { backLink, btn } from "../ui/components.ts";
 import type { Language } from "../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
 
 export const SETTINGS_ROUTE = "/settings";
-export const SETTINGS_STEPS = ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"] as const;
+export const SETTINGS_STEPS = ["explore", "create", "analyze", "implement", "archive", "close", "manifest", "reopen"] as const;
 
 export interface SettingsPageOptions {
   modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[];
@@ -28,7 +28,7 @@ export interface SettingsPageOptions {
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   explore: "Explore", create: "Create", analyze: "Analyze", implement: "Implement",
-  archive: "Archive", manifest: "Manifest", reopen: "Reopen",
+  archive: "Archive", close: "Close", manifest: "Manifest", reopen: "Reopen",
 };
 
 // The only other place this codebase already displays a timeout
@@ -57,23 +57,30 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       const preferred = defaultModelForTool(models, name, configured);
       return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
     }).join("");
-    return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th><td>` +
-      `<select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select>` +
-      `<select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select>` +
-      `</td>${timeoutCell}</tr>`;
+    return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>` +
+      `<td><select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
+      `<td><select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
+      `${timeoutCell}</tr>`;
   }).join("");
   const message = opts.error ?? opts.notice ?? "";
-  const modelHeader = models.length ? "<th>Default AI and model</th>" : "";
+  const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
-  const body = `<main>${back}<form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
+  const unitsBlock = `<p class="row"><span class="lbl">Units</span>` +
+    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
+    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>` +
+    `</p>`;
+  const body = `<main>${back}<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<p><label>Budget per job (USD) <input type="number" min="0.01" max="100" step="0.01" ` +
     `name="budgetUsd" value="${opts.budgetUsd}"></label></p>` +
     `<p><label>Job cap (USD) <input type="number" min="0.01" max="300" step="0.01" ` +
     `name="jobCapUsd" value="${opts.jobCapUsd}"></label></p>` +
     noModelsNote +
-    `<table><thead><tr><th>Step</th>${modelHeader}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<div class="factions"><button class="btn primary" type="submit">Save</button></div></form></main>`;
+    `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<div class="configactions">` +
+    btn({ id: "settingsform-save", label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
+    `</div></form>${unitsBlock}</main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
   });

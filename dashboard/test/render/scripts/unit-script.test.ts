@@ -1,5 +1,9 @@
 // Spec 118: the second half of the one script every page carries — the
-// UNIT the reader wants consumption in, dollars or tokens.
+// UNIT the reader wants consumption in, dollars or tokens. Spec 409
+// moved the control itself from the "…" menu to /settings and from a
+// pair of buttons to a radio group (REQ-2, REQ-3) — this file proves
+// the SCRIPT's own radio/change/checked semantics, independent of where
+// the matching markup lives.
 //
 // `unit-script.ts` is `theme-script.ts`'s sibling in every way that
 // matters here: it can neither import nor export anything (the shell
@@ -21,9 +25,10 @@ const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transform
   readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "unit-script.ts"), "utf-8"),
 );
 
-interface FakeButton {
+interface FakeRadio {
   choice: string;
   attrs: Record<string, string>;
+  checked: boolean;
 }
 
 /** A page with a Units control and nothing else. `stored` is what
@@ -46,28 +51,27 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
   const root = { dataset: {} as Record<string, string | undefined> };
   const listeners: Record<string, () => void> = {};
 
-  const button = (choice: string, current = false): FakeButton & Record<string, unknown> => {
+  const radio = (choice: string, current = false): FakeRadio & Record<string, unknown> => {
     const attrs: Record<string, string> = { "data-unit-choice": choice };
-    if (current) attrs["aria-current"] = "true";
-    return {
+    const self: FakeRadio & Record<string, unknown> = {
       choice,
       attrs,
+      checked: current,
       getAttribute: (name: string) => attrs[name] ?? null,
-      setAttribute: (name: string, value: string) => void (attrs[name] = value),
-      removeAttribute: (name: string) => void delete attrs[name],
       addEventListener: (type: string, fn: () => void) =>
         void (listeners[`${choice}:${type}`] = fn),
     };
+    return self;
   };
 
   // Dollars is what the server rendered as chosen: it has no way to know
   // what this reader picked, and dollars is what every page said before
   // this control existed.
-  const buttons = [button("usd", true), button("tokens")];
+  const radios = [radio("usd", true), radio("tokens")];
 
   const document = {
     documentElement: root,
-    querySelectorAll: (sel: string) => (sel.includes("data-unit-choice") ? buttons : []),
+    querySelectorAll: (sel: string) => (sel.includes("data-unit-choice") ? radios : []),
     addEventListener: (type: string, fn: () => void) => void (listeners[`document:${type}`] = fn),
   };
 
@@ -79,8 +83,8 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
     written,
     /** The DOM is parsed; whatever the script deferred until then runs now. */
     ready: () => listeners["document:DOMContentLoaded"]!(),
-    click: (choice: string) => listeners[`${choice}:click`]!(),
-    marked: () => buttons.filter((b) => b.attrs["aria-current"]).map((b) => b.choice),
+    change: (choice: string) => listeners[`${choice}:change`]!(),
+    marked: () => (radios as unknown as FakeRadio[]).filter((r) => r.checked).map((r) => r.choice),
   };
 }
 
@@ -104,13 +108,13 @@ describe("the stored unit, applied on load (criterion 5)", () => {
   test("storage that throws leaves the page in dollars instead of breaking it", () => {
     const h = harness({ storageThrows: true });
     expect(h.root.dataset.unit).toBeUndefined();
-    // And the rest of the script still ran: the buttons are wired.
+    // And the rest of the script still ran: the radios are wired.
     expect(() => h.ready()).not.toThrow();
-    expect(() => h.click("tokens")).not.toThrow();
+    expect(() => h.change("tokens")).not.toThrow();
     expect(h.root.dataset.unit).toBe("tokens");
   });
 
-  test("the marker moves to the stored choice once the buttons exist", () => {
+  test("the marker moves to the stored choice once the radios exist", () => {
     const h = harness({ stored: "tokens" });
     h.ready();
     expect(h.marked()).toEqual(["tokens"]);
@@ -123,11 +127,11 @@ describe("the stored unit, applied on load (criterion 5)", () => {
   });
 });
 
-describe("clicking a unit (criterion 5)", () => {
+describe("choosing a unit (criterion 5)", () => {
   test("it re-renders at once, remembers the choice, and moves the marker", () => {
     const h = harness({ stored: null });
     h.ready();
-    h.click("tokens");
+    h.change("tokens");
     expect(h.root.dataset.unit).toBe("tokens");
     expect(h.written).toEqual([["unit", "tokens"]]);
     expect(h.marked()).toEqual(["tokens"]);
@@ -136,7 +140,7 @@ describe("clicking a unit (criterion 5)", () => {
   test("choosing $ again puts the dollars back", () => {
     const h = harness({ stored: "tokens" });
     h.ready();
-    h.click("usd");
+    h.change("usd");
     expect(h.root.dataset.unit).toBeUndefined();
     expect(h.written).toEqual([["unit", "usd"]]);
     expect(h.marked()).toEqual(["usd"]);
@@ -145,7 +149,7 @@ describe("clicking a unit (criterion 5)", () => {
   test("the unit is remembered under its own key, never the theme's", () => {
     const h = harness({ stored: null });
     h.ready();
-    h.click("tokens");
+    h.change("tokens");
     expect(h.written.map(([key]) => key)).toEqual(["unit"]);
   });
 });

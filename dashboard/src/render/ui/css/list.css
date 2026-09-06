@@ -56,6 +56,13 @@ table { border-collapse: collapse; width: 100%; }
    being replaced. Every column then holds its declared width whatever
    any row says, and nothing is left over for one of them to absorb. */
 table.speclist { width: var(--speclist-width); table-layout: fixed; }
+/* Spec 409, REQ-7: the Settings table's own exception, the same idea as
+   `.speclist` above scoped to this one table — three narrow-content
+   columns (a label, two selects, one number input) otherwise stretch to
+   the page's full width, and the unclaimed space in the AI/Model cell
+   reads as "Timeout is far to the right" rather than beside its
+   neighbours. Auto layout sizes the table to its own columns instead. */
+table.settingstable { width: auto; }
 /* Measured in a browser against the widest thing each column can draw,
    plus the cell's own padding (--sp-3 on each side): Spec is
    the first two together carry `.spec-name`'s 27rem box, which the

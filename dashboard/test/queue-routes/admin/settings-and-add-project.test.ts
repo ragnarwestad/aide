@@ -58,7 +58,7 @@ const projectsIn = (file: string): string[] =>
   (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
 
 describe("Settings routes (spec 232)", () => {
-  const STEPS = ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"];
+  const STEPS = ["explore", "create", "analyze", "implement", "archive", "close", "manifest", "reopen"];
   const DEFAULTS = {
     budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
     timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },

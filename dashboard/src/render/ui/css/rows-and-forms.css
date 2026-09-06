@@ -149,11 +149,6 @@ td form { margin: 0; display: inline-block; }
   font: var(--fs-m)/1 var(--sans); cursor: pointer; }
 .menupanel > button:hover { background: var(--surface-2); }
 .menupanel > button[aria-current] { font-weight: 600; }
-/* Units' label and its buttons (spec 243): equal specificity to the
-   rule above and later in the file, so without this it would flatten
-   the row right back to block and the flex gap between them would be
-   lost even though the stacking is fixed. */
-.menupanel > .row { display: flex; align-items: center; gap: var(--sp-2); }
 
 /* The state dropdown's own rows (spec 289): a round, radio-STYLED glyph
    beside each option, matching the control's underlying semantics —

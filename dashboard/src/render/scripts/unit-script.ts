@@ -42,23 +42,19 @@
     else delete root.dataset.unit;
   }
 
-  function mark(buttons: NodeListOf<Element>, choice: string): void {
-    buttons.forEach((button) => {
-      if (button.getAttribute("data-unit-choice") === choice) {
-        button.setAttribute("aria-current", "true");
-      } else {
-        button.removeAttribute("aria-current");
-      }
+  function mark(radios: NodeListOf<Element>, choice: string): void {
+    radios.forEach((radio) => {
+      (radio as HTMLInputElement).checked = radio.getAttribute("data-unit-choice") === choice;
     });
   }
 
   apply(stored());
 
   document.addEventListener("DOMContentLoaded", () => {
-    const buttons = document.querySelectorAll("[data-unit-choice]");
-    buttons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const choice = button.getAttribute("data-unit-choice") ?? "usd";
+    const radios = document.querySelectorAll("[data-unit-choice]");
+    radios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        const choice = radio.getAttribute("data-unit-choice") ?? "usd";
         try {
           localStorage.setItem(KEY, choice);
         } catch {
@@ -68,10 +64,10 @@
         // No reload: both figures are already in the page, and the
         // attribute decides which one is shown.
         apply(choice);
-        mark(buttons, choice);
+        mark(radios, choice);
       });
     });
     // The server marked $, because it had no way to know. Now we do.
-    mark(buttons, stored());
+    mark(radios, stored());
   });
 })();

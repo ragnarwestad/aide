@@ -213,6 +213,14 @@ const STRUCTURE = [
   // the Config tab's button row (spec 301): always two buttons, right-
   // aligned, with its own margin to the table below.
   "configactions",
+  // the Settings page's own table (spec 409): sized to its own content
+  // rather than stretching to the frame, the same idea as "speclist"
+  // scoped to this one table.
+  "settingstable",
+  // the Settings form itself (spec 409): the third dirty-latch prefix
+  // spec-form-actions.ts's bind() loop registers, beside "specform" and
+  // "trackingform".
+  "settingsform",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

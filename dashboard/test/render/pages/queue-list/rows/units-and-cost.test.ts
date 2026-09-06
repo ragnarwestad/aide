@@ -6,7 +6,6 @@ import {
   type JobDetailView,
   type QueueRowView,
 } from "../../../../../src/render.ts";
-import { CSS } from "../../../../../src/render/ui/css.ts";
 import { site, NAV, detail, row } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.
@@ -25,75 +24,39 @@ import { site, NAV, detail, row } from "../../fixtures.ts";
 // that both figures are in the HTML, in the right span, with the right
 // text: given that, the CSS rule (asserted in css-token-guard.test.ts)
 // is the whole of the switch.
-describe("spec 118: the Units choice in the … menu", () => {
+// Spec 409, REQ-2: Units moved out of the "…" menu and onto /settings —
+// this suite only proves the menu's own side of that (the menu carries
+// no trace of Units any more); the Units radios on /settings are
+// settings-page.test.ts's own concern.
+describe("spec 409: the … menu no longer carries Units", () => {
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
 
-  test("every page offers $ and Tokens, wrapped with their label in one row", () => {
+  test("no page's … menu has a data-unit-choice element or the word Units", () => {
     for (const page of site) {
       const m = menu(page.html);
-      const choices = [...m.matchAll(/data-unit-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
-        (x) => [x[1], x[2]],
-      );
-      expect(choices).toEqual([["usd", "$"], ["tokens", "Tokens"]]);
-      expect(m).toContain(">Units</span>");
-      // Theme moved to the header (spec 243) — the menu carries no
-      // trace of it any more.
-      expect(m).not.toContain("data-theme-choice");
-      // Units' label and buttons are children of one shared wrapper, not
-      // two separate direct children of .menupanel — the structural
-      // precondition for them to render on one line rather than
-      // stacking under `.menupanel > * { display: block; }` (criterion 6).
-      expect(m).toMatch(/<span class="row"><span class="lbl">Units<\/span><span class="filters">/);
+      expect(m).not.toContain("data-unit-choice");
+      expect(m).not.toContain("Units");
     }
   });
 
-  // The wrapper above sits INSIDE .menupanel, where `.menupanel > * {
-  // display: block; }` (equal specificity, later in css.ts) would
-  // otherwise flatten it right back — losing the flex gap between the
-  // label and the buttons even though the stacking bug is gone
-  // (criterion 6, plan review should-fix).
-  test("css.ts keeps .menupanel > .row flex, or the wrapper above loses its gap", () => {
-    const body = CSS.match(/\.menupanel > \.row\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(body).toContain("display: flex");
-    expect(body).toContain("gap:");
-  });
-
-  // Spec 243, criterion 5: Theme is gone and the remaining three keep a
-  // fixed order.
-  test("the menu panel's children are Units, Settings, About, in that order", () => {
+  // Spec 243, criterion 5, narrowed by spec 409: Theme and Units are
+  // both gone from this menu; only Settings and About remain, in order.
+  test("the menu panel's children are Settings, About, in that order", () => {
     for (const page of site) {
       const panel = menu(page.html).match(/<div class="menupanel">([\s\S]*?)<\/div>/)?.[1] ?? "";
-      const unitsAt = panel.indexOf(">Units</span>");
       const settingsAt = panel.indexOf('href="/settings"');
       const aboutAt = panel.indexOf("data-about");
-      expect([unitsAt, settingsAt, aboutAt].every((i) => i >= 0)).toBe(true);
-      expect(unitsAt).toBeLessThan(settingsAt);
+      expect([settingsAt, aboutAt].every((i) => i >= 0)).toBe(true);
       expect(settingsAt).toBeLessThan(aboutAt);
     }
   });
 
-  test("the choices are buttons, not links — they go nowhere", () => {
-    const m = menu(site[0]!.html);
-    expect(m).toMatch(/<button type="button" data-unit-choice="usd"/);
-    expect(m).not.toMatch(/<a[^>]*data-unit-choice/);
-  });
-
-  test("$ is marked as chosen, because the server cannot know better", () => {
-    for (const page of site) {
-      const marked = [...menu(page.html).matchAll(/data-unit-choice="([^"]+)" aria-current=/g)].map(
-        (x) => x[1],
-      );
-      expect(marked).toEqual(["usd"]);
-    }
-  });
-
-  test("one script tag still, carrying both settings", () => {
+  test("one script tag still, carrying the unit setting", () => {
     for (const page of site) {
       const scripts = [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
       // The overview is a redirect and has a second script of its own;
-      // every other page has exactly one, and it holds both.
+      // every other page has exactly one, and it holds it.
       const shared = scripts[0]!;
-      expect(shared).toContain("data-theme-choice");
       expect(shared).toContain("data-unit-choice");
     }
   });

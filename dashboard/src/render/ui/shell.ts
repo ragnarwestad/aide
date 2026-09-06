@@ -100,12 +100,13 @@ const DEPENDS_LIFT_SCRIPT = transpile("depends-lift.ts");
 // which means "the page you are on".
 const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]];
 
-// Dollars or tokens. A CAP is always a dollar figure — the model
-// dropdown's "$15 per step" is money the machine agreed to spend — so
-// this flips consumption only, and dollars stays the default: it is the
-// ABSENCE of the choice, which is what makes a page whose script never
-// ran read the way it always did.
-const UNIT_CHOICES: [string, string][] = [["usd", "$"], ["tokens", "Tokens"]];
+// Each language's own flag and name, in that language — PaceUp's own
+// picker (`ViewControls.tsx`) draws every choice this way ("🇳🇴 Norsk",
+// "🇬🇧 English"), never a bare two-letter code (REQ-1, spec 409).
+const LANGUAGE_NAMES: Record<Language, { flag: string; name: string }> = {
+  en: { flag: "🇬🇧", name: "English" },
+  nb: { flag: "🇳🇴", name: "Norsk" },
+};
 
 // Icons keyed by choice — the header control below draws no text label
 // of its own, so the icon is what says which button is which (the
@@ -114,19 +115,6 @@ const UNIT_CHOICES: [string, string][] = [["usd", "$"], ["tokens", "Tokens"]];
 const THEME_ICONS: Record<string, string> = {
   dark: ICON_THEME_DARK, light: ICON_THEME_LIGHT, auto: ICON_THEME_AUTO,
 };
-
-function unitControl(lang: Language): string {
-  const buttons = UNIT_CHOICES.map(
-    ([choice, label]) =>
-      `<button type="button" data-unit-choice="${choice}"` +
-      `${choice === "usd" ? ' aria-current="true"' : ""}>${label}</button>`,
-  );
-  // Wrapped in one `.row` so the label and its buttons share a line
-  // instead of stacking under `.menupanel > * { display: block; }` —
-  // css.ts carries a matching `.menupanel > .row` rule to keep the flex
-  // gap once inside that panel.
-  return `<span class="row"><span class="lbl">${t(lang, "shell.units")}</span><span class="filters">${buttons.join("")}</span></span>`;
-}
 
 // The header-level switch (spec 243, moved out of the "…" menu; a
 // popup of its own since PaceUp's own header is the reference for HOW,
@@ -172,13 +160,13 @@ function themeControl(lang: Language): string {
 // always targets `/`, unchanged".
 function languageControl(lang: Language): string {
   const other: Language = lang === "nb" ? "en" : "nb";
-  const label = (l: Language) => (l === "nb" ? "NO" : "EN");
+  const choice = (l: Language) => `${LANGUAGE_NAMES[l].flag} ${LANGUAGE_NAMES[l].name}`;
   const langLabel = t(lang, "shell.language");
   return (
-    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${label(lang)}</summary>` +
+    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_NAMES[lang].flag}</summary>` +
     `<div class="menupanel">` +
-    `<a href="/?lang=${lang}" aria-current="true">${label(lang)}</a>` +
-    `<a href="/?lang=${other}">${label(other)}</a>` +
+    `<a href="/?lang=${lang}" aria-current="true">${choice(lang)}</a>` +
+    `<a href="/?lang=${other}">${choice(other)}</a>` +
     `</div></details>`
   );
 }
@@ -248,9 +236,8 @@ function pageHeader(lang: Language): string {
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    // Units, then Settings, then About: reached-for-constantly first,
-    // reached-for-rarely last (spec 243).
-    `<div class="menupanel">${unitControl(lang)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
+    // Units moved to Settings itself (spec 409); Settings, then About.
+    `<div class="menupanel"><a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></span></header>`
   );
