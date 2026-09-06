@@ -45,7 +45,7 @@ def run(script, specs_root, number, slug, title, description,
     args = [
         str(script),
         "--specs-root", str(specs_root),
-        "--number", number,
+        *(["--number", number] if number is not None else []),
         "--slug", slug,
         "--title", title,
         "--description", description,
@@ -160,7 +160,10 @@ def test_refuses_when_the_folder_already_exists(script, specs_root):
     assert [p.name for p in contents] == ["marker.txt"]
 
 
-@pytest.mark.parametrize("missing", ["--specs-root", "--number", "--slug", "--title", "--description"])
+# `--number` is deliberately absent from this list: it is optional now,
+# and its own tests below cover what the script picks when it is left
+# out.
+@pytest.mark.parametrize("missing", ["--specs-root", "--slug", "--title", "--description"])
 def test_refuses_on_missing_required_flag(script, specs_root, missing):
     args = [
         str(script),
@@ -417,3 +420,59 @@ def test_stamp_outcome_refuses_when_file_has_no_tracking_info_heading(script, sp
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
     assert (folder / "1-description.md").read_text() == before
+
+
+# --- the number is the script's to pick -----------------------------------
+#
+# It used to be worked out by the calling session and handed over as
+# --number, so two sessions read the same highest number and wrote the
+# same folder. That is why the round had to send its fixture specs one
+# at a time. `mkdir` settles it now.
+
+def test_picks_the_next_number_when_none_is_given(script, specs_root):
+    (specs_root / "07-earlier").mkdir()
+    rc, out, _ = run(script, specs_root, None, "a-new-one", "A new one", "why")
+    assert rc == 0, out
+    assert out["specFolder"] == "08-a-new-one"
+    assert (specs_root / "08-a-new-one").is_dir()
+
+
+def test_an_archived_number_is_never_reused(script, specs_root):
+    (specs_root / "archive").mkdir()
+    (specs_root / "archive" / "12-gone").mkdir()
+    rc, out, _ = run(script, specs_root, None, "a-new-one", "A new one", "why")
+    assert rc == 0, out
+    assert out["specFolder"] == "13-a-new-one"
+
+
+def test_an_empty_specs_root_starts_at_01(script, specs_root):
+    rc, out, _ = run(script, specs_root, None, "the-first", "The first", "why")
+    assert rc == 0, out
+    assert out["specFolder"] == "01-the-first"
+
+
+def test_a_given_number_is_still_used_exactly_as_stated(script, specs_root):
+    (specs_root / "07-earlier").mkdir()
+    rc, out, _ = run(script, specs_root, "42", "chosen", "Chosen", "why")
+    assert rc == 0, out
+    assert out["specFolder"] == "42-chosen"
+
+
+def test_two_creates_at_once_get_different_numbers(script, specs_root):
+    """The whole point: concurrent creates, each with its own number and
+    its own folder, neither refused."""
+    import concurrent.futures
+
+    def one(slug):
+        return run(script, specs_root, None, slug, slug.title(), "why")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(one, ["alpha", "beta", "gamma", "delta"]))
+
+    for rc, out, _ in results:
+        assert rc == 0, out
+    folders = sorted(out["specFolder"] for _, out, _ in results)
+    numbers = sorted(f.split("-")[0] for f in folders)
+    assert numbers == ["01", "02", "03", "04"], folders
+    for f in folders:
+        assert (specs_root / f).is_dir()

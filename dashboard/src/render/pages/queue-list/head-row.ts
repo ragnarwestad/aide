@@ -99,16 +99,24 @@ export function specHeadRow(
   // browser is left to get on with it. Without it the reader saw the
   // old page, unchanged, for however long `specPageView` took, and a
   // click that changes nothing reads as a click that did not register.
-  // A create job's spec has no folder yet (REQ-1/REQ-2, spec 307): the
-  // row names itself after the title given on the New spec form, drawn
-  // as plain text rather than a link, because there is no page for it
-  // to open yet. `g.named` flips true, and this goes back to the link
-  // above, the moment the folder lands.
+  // A create job's spec has no folder yet (REQ-1/REQ-2, spec 307), so
+  // the row names itself after the title given on the New spec form.
+  // The PROJECT is known from the first moment either way, and is drawn
+  // on both: a create row without it was the one row on the list shaped
+  // differently from every other, for no reason a reader could see.
+  // What changes when the folder lands is that the name becomes a link
+  // — there is a page to open now — and gains its number, the
+  // identifier every other surface uses for this spec.
+  const specName = g.named ? g.specFolder : (g.title ?? g.specFolder);
+  const project = `<span class="muted">${esc(g.project)}:</span>`;
   const spec = g.named
     ? `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
-      `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`
-    : `<span class="label">${esc(g.title ?? g.specFolder)}</span>`;
+      `title="${esc(g.project)}:${esc(specName)}">` +
+      `${project}${esc(specName)}</a>`
+    // No `title` attribute here: the whole name is already on the line,
+    // and a tooltip repeating it would put the spec's title on the page
+    // twice (`row-links-and-branches.test.ts`).
+    : `<span class="label">${project}${esc(specName)}</span>`;
   // A pull request open for this row's branch is a fact about the work,
   // not a second state the spec is IN (REQ-1, spec 403 — reversing spec
   // 339's own REQ-1, which put it here): it is true for the whole window
