@@ -271,7 +271,7 @@ describe("spec 404: what is picked sits above the scrolling list", () => {
   // returns the chip to the scrolling list alone.
   test("an unticked option appears only in the scrolling list, never in the picked block", () => {
     const html = withOptions([]);
-    expect(html).not.toContain('class="phases picked"');
+    expect(html).toContain('class="phases picked"></span>');
     const restIdx = html.indexOf('class="phases"');
     const restBlock = html.slice(restIdx);
     expect(restBlock).toContain('value="164-a-spec-can-depend"');
@@ -301,8 +301,59 @@ describe("spec 404: what is picked sits above the scrolling list", () => {
   });
 
   // REQ-4: a spec with nothing ticked shows no picked block at all.
-  test("no .phases.picked element when nothing is picked", () => {
+  // The box is always drawn, empty when nothing is picked: the word
+  // "none" in its place left the browser's own lift with nothing to
+  // move a chip into, so ticking a box did nothing until the form was
+  // saved. `none` is a sibling the CSS hides once the box has a chip.
+  test("the picked box is drawn empty, with none beside it, when nothing is picked", () => {
     const html = withOptions([]);
-    expect(html).not.toContain('class="phases picked"');
+    expect(html).toContain('class="phases picked"></span>');
+    expect(html).toContain("data-none");
+  });
+});
+
+describe("the tracking form's Save/Cancel ride on the Depends on label line", () => {
+  const OPTIONS = [
+    { project: "aide", specFolder: "164-a-spec-can-depend" },
+    { project: "aide", specFolder: "09-ninth" },
+  ];
+
+  // The pair belongs to the picker it saves, so it sits at the end of
+  // that field's own label line — after the "(?)" — not under a list
+  // tall enough to push it away from what it is about.
+  test("the pair sits inside the field's label line, after the (?), ahead of the chips", () => {
+    const html = page(view({ dependsOnOptions: OPTIONS, dependsOn: [] }));
+    const headIdx = html.indexOf('class="fieldhead"');
+    const endIdx = html.indexOf('class="fieldend"');
+    const saveIdx = html.indexOf('id="trackingform-save"');
+    const helpIdx = html.indexOf("what a dependency does");
+    const pickedIdx = html.indexOf('class="phases picked"');
+    expect(headIdx).toBeGreaterThan(-1);
+    expect(endIdx).toBeGreaterThan(headIdx);
+    expect(helpIdx).toBeLessThan(saveIdx);
+    expect(saveIdx).toBeLessThan(pickedIdx);
+  });
+
+  // One pair, not two: it moved, it was not copied.
+  test("the form draws exactly one Save and one Cancel", () => {
+    const html = page(view({ dependsOnOptions: OPTIONS, dependsOn: [] }));
+    expect(html.match(/id="trackingform-save"/g)?.length).toBe(1);
+    expect(html.match(/id="trackingform-cancel"/g)?.length).toBe(1);
+  });
+
+  // A spec with nothing to depend on draws no picker at all, and the
+  // acceptance switch beside it still has to be savable.
+  test("a spec with no picker keeps the pair below the acceptance switch", () => {
+    const html = page(view({ dependsOnOptions: [], dependsOn: [] }));
+    expect(html).not.toContain('name="dependsOn"');
+    const acceptIdx = html.indexOf("acceptance ticking not required");
+    const saveIdx = html.indexOf('id="trackingform-save"');
+    expect(saveIdx).toBeGreaterThan(acceptIdx);
+  });
+
+  // An archived spec is a record with no form: no pair to draw.
+  test("an archived spec has no Save at all", () => {
+    const html = page(view({ archived: true, dependsOnOptions: OPTIONS, dependsOn: ["09-ninth"] }));
+    expect(html).not.toContain('id="trackingform-save"');
   });
 });

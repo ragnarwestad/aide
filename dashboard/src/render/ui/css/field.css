@@ -73,7 +73,12 @@ select[name^="model."] {
    two `.specform button[type="submit"]`s for anything that ever has to
    find one. Its Save sits below its own fields, unlike `.specform`'s
    (spec 391, rows-and-forms.css's `.panelhead`), so it keeps this gap. */
-.trackingform .factions { margin-top: var(--sp-1); }
+/* The same row `.panelhead` and `.newspecform` give their own pair:
+   `.factions` carries no spacing of its own, so Save and Cancel sat
+   edge to edge here. No top margin: this pair rides on the "Depends on"
+   label line, and the fallback pair below the switch sits in a `.field`
+   row that already spaces it. */
+.trackingform .factions { display: flex; gap: var(--sp-2); }
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart. Project+Name share
    a `.frow`, Cron+Prompt share another (`schedule-page/form.ts`) — a
@@ -106,3 +111,19 @@ select[name^="model."] {
 .spec-editor-mount[data-mounted] { display: block; }
 .spec-editor-mount[data-mounted] + .spec-editor-raw { display: none; }
 
+
+/* A field whose label line carries its own "(?)": the mark sits at the
+   far end of that line, so the explanation is beside the name of the
+   thing it explains rather than in a paragraph under the control. */
+.field > .fieldhead { display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-2); width: 100%; }
+/* Everything after the label's own words — the "(?)", and a form's
+   Save/Cancel when the field is its only control — kept as ONE end of
+   the line, so `space-between` above puts the label at one edge and
+   this group at the other rather than spreading three items apart. */
+.fieldhead > .fieldend { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* "none" beside the Selected box, gone the moment the box has a chip in
+   it — including a chip the browser just moved there, which is why this
+   is a sibling rule rather than something the server decides. */
+.phases.picked:not(:empty) + [data-none] { display: none; }
