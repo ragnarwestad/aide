@@ -27,9 +27,16 @@
 
 (() => {
   document.addEventListener("DOMContentLoaded", () => {
-    const form = document.querySelector("form.specform") as HTMLFormElement | null;
-    const save = document.getElementById("specform-save") as HTMLButtonElement | null;
-    const cancel = document.getElementById("specform-cancel") as HTMLButtonElement | null;
+    // Every form on the page that carries the pair, not just the one:
+    // the spec page has the Checks/document form AND the tracking form
+    // above the tabs, and they save different things (spec 394).
+    for (const prefix of ["specform", "trackingform"]) bind(prefix);
+  });
+
+  function bind(prefix: string): void {
+    const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
+    const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
+    const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
     if (!form || !save || !cancel) return;
 
     const fields = (): (HTMLInputElement | HTMLTextAreaElement)[] =>
@@ -67,6 +74,17 @@
       // Last: both controls go back to inactive, even if the redraw
       // above fired its own change event along the way.
       setDirty(false);
+      // The chips the lift script moved follow their boxes back: it
+      // listens for `change` on the document, and a restore is silent.
+      // Unquoted attribute value, which CSS allows for an identifier:
+      // quoted, the emitted script would contain the literal
+      // `name="dependsOn"`, and the shell inlines this file in the page
+      // head — where a test looking for that field would find the
+      // script instead.
+      for (const el of form.querySelectorAll("input[name=dependsOn]")) {
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      setDirty(false);
     });
-  });
+  }
 })();

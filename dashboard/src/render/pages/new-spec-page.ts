@@ -18,7 +18,7 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField } from "../ui/components.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { PHASE_LINES, type QueuePageOptions, type QueueTarget, type SpecGroup } from "./queue-list.ts";
@@ -92,7 +92,11 @@ export function dependsOnField(
   // offered. They are drawn ticked and disabled, above the rest with
   // the other picked ones, so the page says what the specs list says
   // without offering a change it cannot make.
-  o: { wide?: boolean; locked?: string[]; project?: string } = {},
+  // `actions`: a Save/Cancel pair to draw on the "Depends on" line
+  // itself, after the "(?)". The spec page's tracking form has this
+  // field as its only real control, and its buttons belong beside the
+  // label rather than under a list tall enough to push them off screen.
+  o: { wide?: boolean; locked?: string[]; project?: string; actions?: string } = {},
 ): string {
   const specs = [...targets].sort(
     (a, b) =>
@@ -132,12 +136,30 @@ export function dependsOnField(
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
   const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
-  const pickedBlock =
-    picked.length || lockedBlock ? phases(lockedBlock + picked.map(chip).join(""), "picked") : "";
+  // "Selected:" is drawn whether or not anything is: an empty picked
+  // block was no block at all, so a spec that depends on nothing looked
+  // exactly like one whose dependencies the page had failed to show,
+  // and the framed list below read as the answer.
+  // The picked box is ALWAYS drawn, even with nothing in it: the word
+  // "none" in its place left the script that lifts a chip on tick with
+  // no box to lift into, so ticking did nothing. "none" is a sibling
+  // that CSS hides the moment the box has a chip (`field.css`).
+  const selected = `<span class="row"><span class="lbl">Selected:</span>` +
+    phases(lockedBlock + picked.map(chip).join(""), "picked") +
+    `<span class="muted" data-none>none</span></span>`;
   return field(
     "Depends on",
-    pickedBlock + phases(rest.map(chip).join("")),
-    { group: true, wide: o.wide },
+    selected + phases(rest.map(chip).join("")),
+    {
+      group: true,
+      wide: o.wide,
+      help: helpPopover(
+        "what a dependency does",
+        "A dependency applies from this spec's next gated step (implement, resolve, archive) — " +
+          "never to a step already running.",
+      ),
+      actions: o.actions,
+    },
   );
 }
 

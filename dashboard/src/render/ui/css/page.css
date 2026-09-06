@@ -42,7 +42,7 @@ nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: v
    .schedulenewlink already use elsewhere on this site. Wraps to its own
    line, still right-aligned on it, once the row no longer fits both
    groups side by side. */
-nav.tabbar.subtabs > .row { margin-left: auto; }
+nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; }
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own
    rhythm by their padding instead. */

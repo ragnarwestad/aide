@@ -83,11 +83,11 @@ export function btn(o: {
  *  it runs, only re-enabling them once the form has seen an edit.
  *  Cancel renders `disabled` from the start: nothing asks it to work
  *  without that script, so there is nothing wrong with it needing one. */
-export function saveCancelActions(): string {
+export function saveCancelActions(prefix = "specform"): string {
   return (
     `<span class="factions">` +
-    btn({ id: "specform-save", label: "Save", variant: "primary", pending: "saving…" }) +
-    btn({ id: "specform-cancel", label: "Cancel", type: "button", disabled: true }) +
+    btn({ id: `${prefix}-save`, label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ id: `${prefix}-cancel`, label: "Cancel", type: "button", disabled: true }) +
     `</span>`
   );
 }
@@ -281,13 +281,21 @@ export function field(
   // A `<label>` around a GROUP of checkboxes would nest labels, which
   // is invalid and makes the click target ambiguous — so a group asks
   // for a plain wrapper and keeps the same look.
-  o: { wide?: boolean; group?: boolean } = {},
+  // `help` is a `helpPopover()` — the "(?)" disclosure — placed at the
+  // far end of the label's own line, where a field's explanation goes
+  // rather than as a paragraph under the control it explains.
+  // `actions` is a form's own Save/Cancel pair, put on that same line
+  // after the "(?)" when the field IS the form's only control, so the
+  // buttons sit where the eye already is instead of below a tall list.
+  o: { wide?: boolean; group?: boolean; help?: string; actions?: string } = {},
 ): string {
   const tag = o.group ? "span" : "label";
-  return (
-    `<${tag} class="field${o.wide ? " wide" : ""}">` +
-    `<span>${esc(label)}</span>${control}</${tag}>`
-  );
+  const trail = `${o.help ?? ""}${o.actions ?? ""}`;
+  const head = trail
+    ? `<span class="fieldhead"><span>${esc(label)}</span>` +
+      `<span class="fieldend">${trail}</span></span>`
+    : `<span>${esc(label)}</span>`;
+  return `<${tag} class="field${o.wide ? " wide" : ""}">${head}${control}</${tag}>`;
 }
 
 /** The token, when the page was given one, as the form's own hidden

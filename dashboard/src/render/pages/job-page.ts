@@ -348,12 +348,21 @@ export function tabBar<T extends string>(
  *  `Referer` (spec 252) — this layer only draws it. */
 export function tabbedBody(
   banner: string, tabs: string, panel: string, backHref: string, title?: string,
+  /** True for a page whose content is FIELDS: they cap themselves at a
+   *  reading width narrower than `.doc`'s own, and the wrapper takes
+   *  theirs so the page has one right edge. A page of tables — this
+   *  one, Projects — keeps the wider default. */
+  formFields = false,
 ): string {
   // One wrapper, one right edge: the head line's buttons used to sit at
   // the frame's width while the open tab's text stopped well short of
   // it (2026-08-23).
   return (
-    `<div class="doc">` +
+    // Both spellings written out rather than built by hand: the class
+    // guard reads the literal the class attribute holds, and a ternary
+    // in there is a class name it cannot check
+    // (css-guard-class-vocabulary).
+    (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
     backLink(backHref, title) +
     banner +
     tabs +

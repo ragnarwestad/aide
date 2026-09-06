@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { btn, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
+import { helpPopover, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
@@ -45,14 +45,24 @@ export function trackingControl(view: SpecPageView): string {
   // make.
   const known = new Set(options.map((t) => t.specFolder));
   const locked = folders.filter((f) => !known.has(f));
+  // The Save/Cancel pair rides on the "Depends on" label line, after
+  // its "(?)" — the picker is the form's one real control, and a pair
+  // under a list this tall sat far from what it saves. A spec with no
+  // picker to draw at all still needs them, so they fall back to a row
+  // of their own below.
+  const actions = saveCancelActions("trackingform");
   const picker =
     options.length || locked.length
-      ? dependsOnField(options, new Set(folders), { wide: true, locked, project: view.project })
+      ? dependsOnField(options, new Set(folders), {
+        wide: true,
+        locked,
+        project: view.project,
+        actions,
+      })
       : "";
-  const note = picker
-    ? `<p class="muted">A dependency applies from this spec's next gated step ` +
-      `(implement, resolve, archive) — never to a step already running.</p>`
-    : "";
+  // The sentence that stood here is the field's own "(?)" now, on the
+  // label's line, rather than a paragraph under the control.
+  const note = "";
   // `.row`, not `.checkbox`: that class is the fixed 18px square an
   // acceptance ROW draws so every row's mark lines up, and it carries
   // `width: 18px; flex: none`. Wrapped around a label with words in it,
@@ -76,7 +86,13 @@ export function trackingControl(view: SpecPageView): string {
     tokenField(view.token) +
     (picker ? `<span class="frow">${picker}</span>` : "") +
     note +
-    `<p class="factions">${acceptance} ${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
+    // Not `.factions`: the switch is a FIELD, not an action, and the
+    // page's one actions row is the Save/Cancel pair below it.
+    `<p class="row">${acceptance}</p>` +
+    // The same pair, and the same rules, the document forms already
+    // have: both inactive until something changes, Cancel putting the
+    // form back the way the page opened it.
+    (picker ? "" : actions) +
     `</form>`
   );
 }
@@ -294,36 +310,21 @@ export function pdfControl(view: SpecPageView): string {
   );
 }
 
-/** The board control (spec 388): a spec whose own code branch carries
- *  commits offers to start the round against it, and to see it running.
+/** What a board is doing, when one was ever asked for: starting,
+ *  failed, or running at an address (REQ-4: its branch and commit;
+ *  REQ-5: whose specs these are), with the Stop button beside it.
  *
- *  `boardAction` absent draws nothing at all — the round is unavailable
- *  on this host, or the branch carries no commits (REQ-1); there is
- *  nothing in principle to offer. `boardUnavailableReason` is the
- *  DIFFERENT, transient case `resetControl` already has a shape for:
- *  the control is possible in principle but not RIGHT NOW.
+ *  There is no Start button on this page. It sat in the tab row, where
+ *  it took the width that made the row wider than the fields and the
+ *  editor below it, and starting a round costs minutes and real model
+ *  spend — a press that expensive needs a home of its own, not the
+ *  corner of a row of small navigation actions. The route it posted to
+ *  is untouched; what is gone is the button.
  *
- *  REQ-3's warning is drawn as page text, not a hover `title` the way
- *  `pdfControl`'s own reason is — the cost has to be seen BEFORE the
- *  press, and a title is read only after choosing to hover. */
-export function boardControl(view: SpecPageView): string {
-  if (!view.boardAction) return "";
-  if (view.boardUnavailableReason) {
-    return `<span class="btn" aria-disabled="true" title="${esc(view.boardUnavailableReason)}">Start board</span>`;
-  }
-  const warning =
-    `<p class="small muted">Starting a board runs a full round on this branch: ` +
-    `several minutes, and real model spend.</p>`;
-  if (!view.board) {
-    return (
-      warning +
-      `<form class="actionform" method="post" action="${esc(view.boardAction)}">` +
-      tokenField(view.token) +
-      `<button class="btn" type="submit" ` +
-      `title="start a board running this spec's own branch, seeded with the round's own fixture specs">` +
-      `Start board</button></form>`
-    );
-  }
+ *  Drawn in the banner, above the tabs: it is a sentence, and the tab
+ *  row holds buttons only. */
+export function boardStatus(view: SpecPageView): string {
+  if (!view.boardAction || !view.board) return "";
   if (view.board.status === "starting") {
     return (
       `<p class="desc"><span class="muted">Starting a board for ${esc(view.board.branch)} @ ` +
@@ -336,8 +337,6 @@ export function boardControl(view: SpecPageView): string {
       `${view.board.error ? `: ${esc(view.board.error)}` : ""}.</span></p>`
     );
   }
-  // running — REQ-4 (its address, branch and commit) and REQ-5 (whose
-  // specs these are).
   return (
     `<p class="desc"><strong>Board:</strong> ` +
     `<a href="${esc(view.board.url ?? "")}" target="_blank" rel="noopener">${esc(view.board.url ?? "")}</a> ` +
@@ -380,5 +379,8 @@ export function closeControl(view: SpecPageView): string {
 export function resetCloseNote(view: SpecPageView): string {
   if (!view.resetAction && !view.closeAction) return "";
   if (view.archived) return "";
-  return `<p class="small muted">${esc(CLOSE_VS_RESET_SENTENCE)}</p>`;
+  // A "(?)", not a `<p>`: this sits in the tab row beside the two
+  // buttons it distinguishes, and a block element there makes the whole
+  // action group wrap below the tabs and stacks the buttons.
+  return helpPopover("Reset or Close", esc(CLOSE_VS_RESET_SENTENCE));
 }

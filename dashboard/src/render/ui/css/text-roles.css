@@ -20,6 +20,12 @@
    frame's, because the spec LIST is a table that wants all of it.
    Declared for both selectors at once so the number has one home. */
 .doc, .specfile { max-width: 60rem; }
+/* A page whose content is FIELDS takes the fields' own right edge
+   instead: `.field.wide` caps itself at 48rem to stay readable, so at
+   60rem the tab row's buttons sat 12rem clear of the editor and the
+   pickers they act on — the same complaint the rule above answers,
+   one number further in. */
+.doc.formdoc, .doc.formdoc .specfile { max-width: 48rem; }
 .specfile { white-space: pre-wrap; overflow-x: auto;
   font: var(--fs-s)/1.5 var(--mono); color: var(--text);
   background: var(--surface); border: 1px solid var(--line);
