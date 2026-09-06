@@ -11,6 +11,15 @@
    `#jobrows .tablewrap` already makes (list.css). */
 .phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1);
   max-height: 116px; overflow-y: auto; }
+/* The list of what is still available is a FIELD, framed and a fixed
+   height, not a row of chips that happens to cap at four rows. With a
+   handful of specs to choose from the cap never bit, so the two halves
+   of the control looked identical and lifting a chip out of one read as
+   the order changing. `align-content: flex-start` keeps the chips at
+   the top of the box rather than spread down it. */
+.phases:not(.picked) { height: 116px; align-content: flex-start;
+  border: 1px solid var(--line); border-radius: var(--r-s);
+  background: var(--surface); padding: var(--sp-2); box-sizing: border-box; }
 /* Spec 404: the picked half of the Depends-on control sits above the
    scrolling list and is never capped or scrolled itself — there are
    normally only a handful of dependencies, and REQ-1 is exactly that

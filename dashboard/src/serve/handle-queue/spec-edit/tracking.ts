@@ -78,14 +78,24 @@ export async function trackingRoutes(
     return specsRedirect({}, { error: "1-description.md could not be read — nothing was saved" }, back);
   }
 
-  const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-  if (baseSha !== null && baseSha !== currentSha) {
+  // This form carries no `baseSha` of its own — it is not one document's
+  // Save, and the file it writes is `1-description.md` whatever tab the
+  // reader is on, while the page's own `formBaseSha` belongs to the tab.
+  // Absent means "no check", which is what the comparison below already
+  // says; passing the null straight on to the write made every save
+  // refuse, because a real sha never equals null.
+  const sentSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+  if (sentSha !== null && sentSha !== currentSha) {
     return specsRedirect(
       {},
       { error: "the description changed since you opened this page — reload and try again" },
       back,
     );
   }
+  // What the write compares against: what this route just read, when the
+  // form sent nothing to compare. A branch that moves between that read
+  // and the write is still refused there.
+  const baseSha = sentSha ?? currentSha;
 
   // Depends on — the same validation `/save` used to make inline
   // (`resolveDependencyFolder`, which takes a bare number or a full

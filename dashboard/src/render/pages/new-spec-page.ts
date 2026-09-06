@@ -87,14 +87,19 @@ export function dependsOnField(
   // A row of its own, or a field sharing one. The New-spec page asks for
   // the first since spec 228; the Edit page, the other caller, keeps the
   // layout it has by leaving this alone.
-  o: { wide?: boolean } = {},
+  // `locked`: folders this spec already depends on that are NOT among
+  // the targets — archived ones, which cannot be chosen and so are not
+  // offered. They are drawn ticked and disabled, above the rest with
+  // the other picked ones, so the page says what the specs list says
+  // without offering a change it cannot make.
+  o: { wide?: boolean; locked?: string[]; project?: string } = {},
 ): string {
   const specs = [...targets].sort(
     (a, b) =>
       a.project.localeCompare(b.project) ||
       -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
   );
-  if (specs.length === 0) return "";
+  if (specs.length === 0 && !(o.locked ?? []).length) return "";
   const chip = (t: QueueTarget) =>
     `<span data-project="${esc(t.project)}">` +
     phaseChip({
@@ -109,9 +114,26 @@ export function dependsOnField(
   // (REQ-1), never capped itself — one partition of the same set, not
   // two controls (REQ-3): every chip still posts `dependsOn` from the
   // one form, whichever half it renders in.
+  // An archived dependency is an ordinary chip, ticked. It cannot be
+  // ADDED — nothing archived is offered in the list below — but a
+  // dependency you already have is one you can drop, and a box that
+  // will not untick would say otherwise.
+  const lockedChip = (folder: string) =>
+    `<span data-project="${esc(o.project ?? "")}">` +
+    phaseChip({
+      dataAttr: "data-depends",
+      value: folder,
+      label: folder,
+      name: "dependsOn",
+      checked: true,
+      title: "archived — it can be dropped here, but not added back",
+    }) +
+    `</span>`;
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
-  const pickedBlock = picked.length ? phases(picked.map(chip).join(""), "picked") : "";
+  const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
+  const pickedBlock =
+    picked.length || lockedBlock ? phases(lockedBlock + picked.map(chip).join(""), "picked") : "";
   return field(
     "Depends on",
     pickedBlock + phases(rest.map(chip).join("")),

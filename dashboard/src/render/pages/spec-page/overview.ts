@@ -35,7 +35,20 @@ export function trackingControl(view: SpecPageView): string {
     return dep + fact("Acceptance", view.acceptanceNotRequired ? "not required" : "required");
   }
   const acceptanceLocked = view.done?.includes("analyze") ?? false;
-  const picker = options.length ? dependsOnField(options, new Set(folders), { wide: true }) : "";
+  // A spec this one depends on that is no longer a valid CHOICE is
+  // still a fact about this spec. Nothing archived is among the
+  // options — it cannot be picked — so a spec whose dependencies have
+  // all been archived showed a list of specs it does NOT depend on and
+  // none of the ones it does, while the specs list one click away
+  // printed them plainly. They are shown, locked: a box that cannot be
+  // unticked says what is true without promising a change it cannot
+  // make.
+  const known = new Set(options.map((t) => t.specFolder));
+  const locked = folders.filter((f) => !known.has(f));
+  const picker =
+    options.length || locked.length
+      ? dependsOnField(options, new Set(folders), { wide: true, locked, project: view.project })
+      : "";
   const note = picker
     ? `<p class="muted">A dependency applies from this spec's next gated step ` +
       `(implement, resolve, archive) — never to a step already running.</p>`

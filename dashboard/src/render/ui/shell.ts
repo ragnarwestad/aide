@@ -90,6 +90,9 @@ const PDF_BUSY_SCRIPT = transpile("pdf-busy.ts");
 // back — one script for every `.specform` on the page rather than one
 // per tab.
 const SPEC_FORM_ACTIONS_SCRIPT = transpile("spec-form-actions.ts");
+/** Ticking a dependency moves its chip between the two blocks at
+ *  once, rather than only when the form comes back saved. */
+const DEPENDS_LIFT_SCRIPT = transpile("depends-lift.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -351,7 +354,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader(lang)}
