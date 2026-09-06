@@ -23,6 +23,7 @@ import {
   typedConfirm,
 } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
+import { codeLandingChoices } from "./site/settings-table.ts";
 import type { Language } from "../../i18n";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { nextFireTime } from "../../queue/schedule.ts";
@@ -318,6 +319,20 @@ export function renderAddProjectPage(
       `<input type="text" name="specsPath" maxlength="300" ` +
         prefill("specsPath") +
         `placeholder="optional — its own specs/ otherwise">`,
+    ) +
+    // The same choice the project page's Edit offers, asked here so a
+    // project that must never merge straight in does not spend its
+    // first specs doing exactly that. `merge` is the default and
+    // writes nothing.
+    field(
+      "Code landing",
+      `<select name="codeLanding">` +
+        // `null`: the project is not cloned yet, so it HAS no branch
+        // name to show. The project page names the real one.
+        codeLandingChoices(null)
+          .map((o) => `<option value="${o.value}">${esc(o.label)}</option>`)
+          .join("") +
+        `</select>`,
     ) +
     `</span>` +
     `<span class="frow">` +

@@ -436,4 +436,45 @@ describe("whether a run could start there (spec 138)", () => {
       expect([...declared].sort()).toEqual([...covered].sort());
     });
   });
+
+  // Add asks the same Code-landing question the project page's Edit
+  // does — a project that must never merge straight into its main
+  // branch should not spend its first specs doing exactly that.
+  describe("Code landing, asked at Add", () => {
+    const manifestOf = (dir: string) => readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
+
+    test("pr is written into the project's own manifest", async () => {
+      const { projectsRoot, dir } = checkout("alpha");
+      const r = await assess(dir, projectsRoot, {}, { codeLanding: "pr" });
+      expect(r.steps.find((s) => s.step === "codeLanding")?.ok).toBe(true);
+      expect(manifestOf(dir)).toContain("codeLanding: pr");
+    });
+
+    // `merge` is what an absent key already means. Writing it would put
+    // a second statement of the default in a file that has to be kept
+    // in step with the first.
+    test("merge writes nothing at all", async () => {
+      const { projectsRoot, dir } = checkout("alpha");
+      const r = await assess(dir, projectsRoot, {}, { codeLanding: "merge" });
+      expect(r.steps.find((s) => s.step === "codeLanding")).toBeUndefined();
+      expect(manifestOf(dir)).not.toContain("codeLanding");
+    });
+
+    test("not asked at all writes nothing either", async () => {
+      const { projectsRoot, dir } = checkout("alpha");
+      await assess(dir, projectsRoot, {});
+      expect(manifestOf(dir)).not.toContain("codeLanding");
+    });
+
+    // Refused before it is written, the same rule the project page's
+    // own save follows: a manifest every reader rejects is worse than
+    // one never written.
+    test("anything else is refused, and nothing is written", async () => {
+      const { projectsRoot, dir } = checkout("alpha");
+      const r = await assess(dir, projectsRoot, {}, { codeLanding: "squash" });
+      expect(r.ok).toBe(false);
+      expect(r.steps.find((s) => s.step === "codeLanding")?.error).toContain("merge or pr");
+      expect(manifestOf(dir)).not.toContain("codeLanding");
+    });
+  });
 });
