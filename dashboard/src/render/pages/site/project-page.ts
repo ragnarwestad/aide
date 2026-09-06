@@ -194,20 +194,6 @@ function checkoutSection(readiness: ProjectReadiness): string {
   );
 }
 
-/** A one-button form that forces the one cached answer this page has —
- *  the origin-drift count the Deploy tab reads — to be re-asked (spec
- *  378, REQ-5). No script binds this form (unlike Deploy's): the plain
- *  POST/303-redirect round trip already re-asks everything the page
- *  shows, so there is nothing an in-page swap would save. */
-function refreshControl(name: string, opts: ProjectPageOptions): string {
-  return (
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/refresh">` +
-    tokenField(opts.token) +
-    btn({ label: "Refresh" }) +
-    `</form>`
-  );
-}
-
 /** The Config tab: the settings table, plus — since the Health tab went
  *  away (spec 378) — whether a run can start at all, and the checks no
  *  settings row owns. `readiness` is `null` where git could not be
@@ -234,9 +220,7 @@ function configSection(
       )
     : "";
   const checkout = readiness ? checkoutSection(readiness) : "";
-  return (
-    noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts) + refreshControl(name, opts)
-  );
+  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editing, opts);
 }
 
 /** The page's tabs, in the order the description gives them. Default
@@ -265,26 +249,17 @@ export function renderProjectPage(
   const stamped = Date.parse(generatedAt);
   const now = Number.isNaN(stamped) ? Date.now() : stamped;
 
-  // Deploy answers two independent questions bundled onto one tab
-  // (spec 269's own comment on `deploySection`): disk-vs-origin
-  // (`drift`, gated on AIDE_INSTALL_CMD) and process-vs-disk
-  // (`serving`, never gated — it belongs on the page "whether or not
-  // deploy is even configured here"). Hiding the tab needs BOTH to
-  // have nothing to say; gating on `drift` alone would also take the
-  // Serving line down for the one project this dashboard process
-  // itself runs from.
-  const showDeploy = !!opts.drift || !!opts.serving;
-  // Schedule is always offered (spec 378, REQ-6): a project with nothing
-  // scheduled says so on its own tab, rather than the tab bar changing
-  // shape from project to project.
-  const visibleTabs = PROJECT_TABS.filter((t) => (t === "deploy" ? showDeploy : true));
-  const tab: ProjectTab = pickTab(visibleTabs, opts.tab, "config");
+  // Deploy is offered on every project, the same as Schedule (spec 407,
+  // REQ-1, REQ-4): a project with nothing to deploy from here says so on
+  // its own tab (`deploySection`'s ungated branch), rather than the tab
+  // bar changing shape from project to project.
+  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, "config");
   const base = projectPagePath(p.name);
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now)
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
     : configSection(settings, p.name, readiness, opts);
 
-  const body = tabbedBody("", tabBar(visibleTabs, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
+  const body = tabbedBody("", tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, undefined, { script: opts.script, hideHeading: true });
 }
