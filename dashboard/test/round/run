@@ -119,6 +119,11 @@ else
   cat "$TOKEN_FILE" > "$WORK/token"
 fi
 TOKEN="$(cat "$WORK/token")"
+# `concurrency` matches the serving board's own, so the queue behaves the
+# way it does there: how many rows run at once, and which are held back,
+# is the whole of what a round is watched for. The caps below are
+# deliberately NOT the serving board's — they only stop a fixture spec
+# costing real money, and cap nothing a reader looks at.
 cat > "$WORK/queue-config.json" <<CFG
 {
   "budgetUsd": 1, "jobCapUsd": 5, "dailyCapUsd": 50,
@@ -126,7 +131,7 @@ cat > "$WORK/queue-config.json" <<CFG
   "permissionMode": { "default": "bypassPermissions" },
   "model": { "default": "script" },
   "modelChoices": { "script": { "budgetUsd": 1 } },
-  "push": "branch", "concurrency": 2,
+  "push": "branch", "concurrency": 6,
   "projects": ["aide-test"]
 }
 CFG

@@ -67,7 +67,10 @@ describe("the queue row links to the spec (criterion 12)", () => {
       runnerAvailable: true,
       targets: [],
     });
-    expect(html).toContain('<span class="label">My new idea</span>');
+    // The project is on this row from the first moment too, the same
+    // shape every landed row has — only the link is missing, because
+    // there is no page to open yet.
+    expect(html).toContain('<span class="label"><span class="muted">aide:</span>My new idea</span>');
     expect(html).not.toContain("data-goto");
   });
 
@@ -80,5 +83,20 @@ describe("the queue row links to the spec (criterion 12)", () => {
     });
     expect(html.match(/My new idea/g)).toHaveLength(1);
     expect(html).not.toContain('<div class="spec-title">My new idea</div>');
+  });
+
+  // The project is what makes a create row the same shape as every
+  // other row on the list. It is known from the first moment — the
+  // form asked for it — so nothing justifies leaving it off until the
+  // folder lands.
+  test("the project is named on a create row and on a landed one alike", () => {
+    const creating = renderQueueRows([row({ steps: ["create"], createTitle: "My new idea" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    const landed = renderQueueRows([row({ steps: ["analyze"] })], { runnerAvailable: true, targets: [] });
+    for (const html of [creating, landed]) {
+      expect(html).toContain('<span class="muted">aide:</span>');
+    }
   });
 });

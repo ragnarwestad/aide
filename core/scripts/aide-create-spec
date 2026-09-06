@@ -23,7 +23,7 @@
 # terminalReason: refused | created | stamped
 #
 # Usage:
-#   aide-create-spec --specs-root <path> --number <NN> --slug <slug>
+#   aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
 #                     --title <title> --description <text>
 #                     [--depends-on <value>] [--result-file <path>]
 #   aide-create-spec --specs-root <path> --stamp-outcome --folder <NN-slug>
@@ -31,6 +31,12 @@
 #                     [--result-file <path>]
 
 set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# `aide_next_spec_number` — the one place that answers "what is the next
+# number", shared with every other caller so two answers cannot drift.
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
@@ -142,7 +148,12 @@ if [ "$stamp_outcome" = "yes" ]; then
   emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
 fi
 
-[ -n "$number" ] || refuse "missing --number"
+# --number is OPTIONAL: given, it is used as stated; omitted, this
+# script picks it, and picking it HERE is what lets two creates run at
+# once. Read-then-write from two sessions reads the same highest number
+# and writes the same folder — which is why the round had to send its
+# fixture specs one at a time. `mkdir` settles it instead: the loser of
+# the race takes the next free number and tries again.
 [ -n "$slug" ] || refuse "missing --slug"
 [ -n "$title" ] || refuse "missing --title"
 [ -n "$description" ] || refuse "missing --description"
@@ -169,9 +180,46 @@ done <<REQ_CHECK_EOF
 $description
 REQ_CHECK_EOF
 
-folder="${number}-${slug}"
-dest="$specs_root/$folder"
-[ -d "$dest" ] && refuse "spec folder already exists: $dest"
+if [ -n "$number" ]; then
+  folder="${number}-${slug}"
+  dest="$specs_root/$folder"
+  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+else
+  declare -f aide_next_spec_number >/dev/null 2>&1 \
+    || refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide, or pass --number"
+  # The lock has to be on the NUMBER, not on the folder: two creates
+  # with different slugs make different directories at the same number,
+  # so `mkdir "$dest"` locks nothing. `mkdir` of one shared name does —
+  # it is atomic, and it fails for whoever is second.
+  #
+  # Held for the few milliseconds it takes to read the highest number
+  # and make the folder, which is what has to be indivisible. Removed on
+  # every exit path below, and broken when it is older than a minute:
+  # a run killed mid-claim must not stop every later one.
+  lock="$specs_root/.aide-create.lock"
+  claimed=""
+  for _ in $(seq 1 100); do
+    if mkdir "$lock" 2>/dev/null; then
+      number="$(aide_next_spec_number "$specs_root")"
+      folder="${number}-${slug}"
+      dest="$specs_root/$folder"
+      if [ -d "$dest" ]; then
+        rmdir "$lock" 2>/dev/null
+        refuse "spec folder already exists: $dest"
+      fi
+      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; refuse "could not create $dest"; }
+      rmdir "$lock" 2>/dev/null
+      claimed="yes"
+      break
+    fi
+    # A lock nobody is holding any more: whoever made it is gone.
+    if [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+      rmdir "$lock" 2>/dev/null
+    fi
+    sleep 0.1
+  done
+  [ -n "$claimed" ] || refuse "could not claim a spec number under $specs_root — $lock is held"
+fi
 
 today="$(date -u +%Y-%m-%d)"
 
@@ -190,6 +238,8 @@ fi
 accept_line=""
 [ "$acceptance_not_required" = "yes" ] && accept_line=$'\n- **Acceptance:** not required'
 
+# Already made above when this run claimed its own number; `-p` is what
+# makes that case a no-op rather than a second, failing create.
 mkdir -p "$dest" || refuse "could not create $dest"
 
 # The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
