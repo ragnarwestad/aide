@@ -173,6 +173,35 @@ source "$SCRIPT_DIR/lib/run-spec-outcome.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-publish.sh"
 
+# --- what a `close` step actually DID, in the script's own word -------------
+# The dashboard lands a close on `closed` alone (runner-setup.ts), and a
+# session's own terminal reason is `completed` whatever it did — so
+# without this the merge was skipped in silence: the folder was stamped
+# and moved on the branch, and main never saw it.
+#
+# `aide-close-spec` is the one thing that knows. It is idempotent —
+# `already-closed` is its answer to a second call — so asking it again
+# after the session either confirms what the skill just did, does the
+# stamp-and-move itself if the skill did not, or says `conflict-open`
+# for a merge still open. Run BEFORE PASS 1, so anything it moves is
+# committed and pushed with the rest of the step's work.
+#
+# Only after a session that finished: a run that failed, timed out or
+# was refused must not have its spec closed as a side effect of asking.
+#
+# The answer is only REMEMBERED here. `terminal_reason` stays
+# `completed` through the pushing below, so an unpushed close still
+# takes the `unpushed` branch every other step takes — a `closed` the
+# dashboard would land while the branch never reached origin is the one
+# thing this must not report.
+close_outcome=""
+if [ "$command_name" = "close" ] && [ "$terminal_reason" = "completed" ]; then
+  close_args=(--project-dir "$project_wt" --spec "$spec_folder" --reason "$reason")
+  [ "$specs_root_wt" != "$project_wt" ] && close_args+=(--specs-dir "$specs_root_wt")
+  close_after="$("$SCRIPT_DIR/aide-close-spec" "${close_args[@]}" 2>/dev/null)"
+  close_outcome="$(jq -r '.terminalReason // empty' <<<"$close_after" 2>/dev/null)"
+fi
+
 # --- PASS 1: the step's own content, unconditionally, every command ---------
 commit_and_push_roots
 
@@ -267,6 +296,18 @@ elif [ -n "$status_file" ]; then
     suffix=" (stopped: unpushed)"
     error_msg="the workflow-steps line did not reach origin: $unpushed_roots"
   fi
+fi
+
+# The close's own word, now that the push has been confirmed: a spec
+# that was stamped and moved, and whose branch reached origin, is
+# `closed` — the one terminal reason the dashboard lands a close on.
+# Anything else the script answered (`conflict-open`, `refused`,
+# `already-archived`) moved nothing, so `completed` stands and nothing
+# is landed.
+if [ "$terminal_reason" = "completed" ]; then
+  case "$close_outcome" in
+    closed|already-closed) terminal_reason="closed" ;;
+  esac
 fi
 
 # --- $repos_json, built ONCE, from the run's true start and final end -------
