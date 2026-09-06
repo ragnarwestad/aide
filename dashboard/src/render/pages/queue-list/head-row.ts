@@ -107,11 +107,23 @@ export function specHeadRow(
   // What changes when the folder lands is that the name becomes a link
   // — there is a page to open now — and gains its number, the
   // identifier every other surface uses for this spec.
-  const specName = g.named ? g.specFolder : (g.title ?? g.specFolder);
+  // The number, then the spec's own TITLE. The number is the identifier
+  // every other surface uses and is never reused; the title is what a
+  // reader recognises the spec by. The slug between them said the title
+  // over again in hyphens, and is left to the link's href.
+  // A create job has neither number nor folder yet, so its row is the
+  // title alone until the folder lands.
+  // No title on disk — a spec whose 1-description.md says none — leaves
+  // the folder name standing on its own: it already carries the number,
+  // and prefixing it again read "81-81-queue-and-runner".
+  const number = g.named ? g.specFolder.split("-")[0] : "";
+  const specName = g.title ? (number ? `${number}-${g.title}` : g.title) : g.specFolder;
   const project = `<span class="muted">${esc(g.project)}:</span>`;
   const spec = g.named
     ? `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
-      `title="${esc(g.project)}:${esc(specName)}">` +
+      // The tooltip is the IDENTIFIER — project and folder — which is
+      // what a reader copies into a command or another page.
+      `title="${esc(g.project)}:${esc(g.specFolder)}">` +
       `${project}${esc(specName)}</a>`
     // No `title` attribute here: the whole name is already on the line,
     // and a tooltip repeating it would put the spec's title on the page

@@ -20,10 +20,13 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // The project leads the name since 2026-08-21: a folder number is
     // only unique within its project, and the line under the name — where
     // the project used to sit — now carries what nothing else says.
+    // Project, then the spec's NUMBER and its title. The slug is left
+    // to the href: it says the title over again in hyphens.
     expect(html).toContain(
-      `<a class="label" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">`+
-        `<span class="muted">aide:</span>81-queue-and-runner</a>`,
+      `<a class="label" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">` +
+        `<span class="muted">aide:</span>81-`,
     );
+    expect(html).toContain(`href="${SPEC_HREF}"`);
   });
 
   // "A spec that has never run has no job page to point at, so the name

@@ -84,12 +84,10 @@ describe("spec 103: a collapsed row shows status only", () => {
       ),
       "103-idle",
     );
+    // The spec's own title is what the line says now — the folder name
+    // is the identifier, and lives in the link's href and its tooltip.
+    expect(line).toContain("Status only");
     expect(line).toContain("103-idle");
-    // The title left the row on 2026-08-21 — the folder name is it, in
-    // slug form — and the percentage left it in spec 167, so what a
-    // collapsed row keeps of the spec's own status is the pips and the
-    // badge below.
-    expect(line).not.toContain("Status only");
     expect(line).not.toContain("% done");
     // Spec 132: the badge says the resting state — one word since
     // 2026-08-24; the button beside it is what names the next phase.
