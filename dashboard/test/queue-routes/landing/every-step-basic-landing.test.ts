@@ -389,13 +389,4 @@ describe("every step lands its own work (spec 149)", () => {
     expect("gateAfter" in body.job).toBe(false);
     expect(body.job.state).not.toBe("awaiting-approval");
   });
-
-  // --- spec 158: a merge is an event claude-usage can see ---------------
-  //
-  // The dashboard merges in its own Bun process, so nothing writes a
-  // transcript for claude-usage to read a merge out of. It has to say
-  // what it did — for EVERY repo it lands, not only the code roots
-  // `installAfterMerge` cares about, because the spec-markdown merges
-  // an `analyze` makes are exactly the ones the ledger
-  // is missing today.
 });

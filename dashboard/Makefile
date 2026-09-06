@@ -1,7 +1,7 @@
 .PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve
 
 # Your machine's answers to the questions this Makefile refuses to guess
-# — MINI, ROOT, BIND, CLAUDE_USAGE. Gitignored, because naming them here
+# — MINI, ROOT, BIND. Gitignored, because naming them here
 # is exactly what spec 03 took out of the tracked files. Optional: with
 # no file, every variable is still settable on the command line.
 # See .env.deploy.example. Included FIRST so it wins over the `?=`
@@ -148,7 +148,6 @@ install-serve: require-host
 		--queue-projects "$(QUEUE_PROJECTS)" \
 		$(if $(ROOT),--root "$(ROOT)") \
 		$(if $(BIND),--bind "$(BIND)") \
-		$(if $(CLAUDE_USAGE),--claude-usage "$(CLAUDE_USAGE)") \
 		> "$$plist" && \
 	scp -q "$$plist" $(MINI):Library/LaunchAgents/$(LABEL).plist
 	@# `bootout` returns before the job is gone. Bootstrapping into that

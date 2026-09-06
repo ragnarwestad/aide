@@ -4,7 +4,6 @@
 
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
-import type { LiveEnricher } from "../integrations/live.ts";
 import {
   json, readBounded, serveStatic, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
@@ -12,7 +11,6 @@ import {
 
 export interface CoreRoutesContext {
   store: AideRunStore;
-  enricher: LiveEnricher;
   notifyQueueChanged: () => void;
   siteDir: string;
   /** This process's own boot-time commit (spec 269), a getter since it
@@ -51,8 +49,7 @@ export async function handleCore(
 
   if (path === "/api/aide-runs") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const { rows, enriched } = await ctx.enricher.rows(ctx.store);
-    return json({ generatedAt: new Date().toISOString(), enriched, rows });
+    return json({ generatedAt: new Date().toISOString(), rows: ctx.store.list() });
   }
 
   // What commit this process is actually running (spec 269) — read

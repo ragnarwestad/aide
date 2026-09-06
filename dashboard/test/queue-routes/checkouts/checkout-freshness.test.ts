@@ -6,7 +6,6 @@ import {
 } from "../../../src/serve/serve.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
-import { failFetch } from "../../helpers/queue-server.ts";
 import {
   TOKEN,
   setupQueueRoutesHarness,
@@ -98,7 +97,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     );
 
     const server = createServer({
-      siteDir: site, port: 0, claudeUsageFetch: failFetch,
+      siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
       dashboardCheckoutRoot: owned, gitRun: gated,

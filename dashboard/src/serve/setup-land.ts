@@ -17,7 +17,6 @@ import type {
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
 import type { CodeLanding } from "../project/discover.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
-import type { MergeEventReporter } from "../integrations/merge-event.ts";
 import type { Job, QueueStore, WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import type { QueueTarget } from "../render.ts";
@@ -46,7 +45,6 @@ export interface LandSetupInputs {
   mergeLock: ReturnType<typeof import("./serve-helpers.ts").createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
-  mergeEvents: MergeEventReporter;
   warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
   machinerySpecsRoot: (project: string) => string | undefined;
   specsRoot: (dir: string) => Promise<string>;
@@ -84,7 +82,6 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     mergeLock: inputs.mergeLock,
     gitRun: inputs.gitRun,
     branchStatus: inputs.branchStatus,
-    mergeEvents: inputs.mergeEvents,
     warmSpec: inputs.warmSpec,
     machinerySpecsRoot: inputs.machinerySpecsRoot,
     specsRoot: inputs.specsRoot,

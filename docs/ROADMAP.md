@@ -69,12 +69,9 @@ reference only — do not develop there.
 - **claude-usage is consumed, never modified** (spec 80, August 2026).
   `~/develop/claude-usage` is a pristine clone of RuneLind/claude-usage
   — an actively developed personal tool with no support promise.
-  aide's dashboard reads its HTTP API (`/api/live`: session state,
-  subagents, `sessionCostUSD` in one row) and keeps every aide-specific
-  receiver in aide-dashboard. Patching claude-usage would be permanent
-  fork drift. Two facts that bit: its server on the mini binds its
-  Tailscale IP only (not localhost), and its `/api/live` advances live
-  state on each poll — so poll it lazily, never on a standing timer.
+  aide-dashboard keeps every aide-specific receiver in its own code
+  rather than patching claude-usage, which would be permanent fork
+  drift. aide's dashboard makes no request to claude-usage's HTTP API.
 
 ## Phase 3: Make the tool truly generic
 

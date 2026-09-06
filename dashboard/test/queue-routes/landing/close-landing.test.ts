@@ -7,7 +7,6 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mergeEventSink } from "../fixtures.ts";
 import {
   AUTH,
   SPEC,
@@ -81,22 +80,6 @@ describe("spec 406: landing a close step", () => {
     expect(git.calls.some((c) => c.dir === CODE_REPO && c.args[0] === "branch" && c.args.includes("-D"))).toBe(true);
     // And it landed clean.
     expect(landed.branchUrls).toEqual([]);
-  });
-
-  test("no merge-event report fires for the discarded code root — only for the merged specs root", async () => {
-    const git = gitFor();
-    const sink = mergeEventSink();
-    const { base, results } = serverWithRunner(start, "aide-close-results-", git, {
-      queueProjectRoot: "/repos",
-      ...sink,
-    });
-    const job = await runCloseStep(base);
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CLOSE_RESULT));
-    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
-
-    expect(landed.error).toBeFalsy();
-    expect(sink.posted.some((p) => p.repoRoot === SPECS_REPO)).toBe(true);
-    expect(sink.posted.some((p) => p.repoRoot === CODE_REPO)).toBe(false);
   });
 
   test("a failed origin delete is reported the same way archive's own left-behind branch is", async () => {

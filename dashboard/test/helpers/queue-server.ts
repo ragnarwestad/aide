@@ -9,11 +9,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../../src/serve/serve.ts";
 
-/** claude-usage unreachable: the queue must work without it. */
-export const failFetch = (async () => {
-  throw new Error("down");
-}) as unknown as typeof fetch;
-
 export interface StartOptions {
   extra?: Partial<ServerOptions>;
   /** Further discoverable projects, for jobs that span repos. */
@@ -97,7 +92,6 @@ export function queueHarness(prefix: string): QueueHarness {
       const server = createServer({
         siteDir: dir,
         port: 0,
-        claudeUsageFetch: failFetch,
         mirrorPath: join(dir, "runs.json"),
         queueMirrorPath: join(dir, "queue.json"),
         projectRoot: root,

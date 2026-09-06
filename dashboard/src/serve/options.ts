@@ -12,8 +12,6 @@ import type { Spawner } from "./boards/lifecycle.ts";
 export interface ServerOptions {
   siteDir: string;
   port: number;
-  claudeUsageUrl?: string;
-  claudeUsageFetch?: typeof fetch;
   mirrorPath?: string;
   // Nav entries for /live: derived from --root's manifests when given,
   // else from the site dir's project pages.
@@ -78,14 +76,6 @@ export interface ServerOptions {
   /** argv for the gate notifier — claude-usage's contract, run with no
    *  shell. Absent means no notifications are sent. */
   queueNotifyCommand?: string[];
-  /** Where to report a landed branch, so claude-usage's ledger can see a
-   *  merge no transcript records (spec 158). From the queue config's
-   *  `mergeEventUrl`. Absent means nothing is ever sent — and absent it
-   *  must stay absent, unlike `claudeUsageUrl`, which `createServer`
-   *  always resolves to a default and so can never be off. */
-  mergeEventUrl?: string;
-  /** How that report is sent. A test seam, like `gitRun`. */
-  mergeEventFetch?: typeof fetch;
   /** How the merge check runs git. A test seam: the real one spawns a
    *  subprocess, which no test should. */
   gitRun?: GitRunner;

@@ -47,7 +47,6 @@ export function parseArgs(argv: string[]): ServerOptions {
     const v = argv[i + 1];
     if (a === "--site" && v) opts.siteDir = argv[++i]!;
     else if (a === "--port" && v) opts.port = Number(argv[++i]);
-    else if (a === "--claude-usage" && v) opts.claudeUsageUrl = argv[++i];
     else if (a === "--mirror" && v) opts.mirrorPath = argv[++i];
     else if (a === "--root" && v) root = argv[++i];
     else if (a === "--bind" && v) opts.bindHost = argv[++i];
@@ -104,10 +103,6 @@ export function parseArgs(argv: string[]): ServerOptions {
       if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
         opts.queueNotifyCommand = raw.notifyCommand as string[];
       }
-      // Where a landed branch is reported (spec 158). Off unless the
-      // file names a URL — the same direction every other key here
-      // fails in, and the reason this one has no built-in default.
-      if (typeof raw.mergeEventUrl === "string" && raw.mergeEventUrl) opts.mergeEventUrl = raw.mergeEventUrl;
       if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
       opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
       // The allowlist WINS over `--queue-projects` when the file has

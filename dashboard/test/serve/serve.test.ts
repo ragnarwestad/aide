@@ -5,17 +5,13 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer } from "../../src/serve/serve.ts";
+import { createServer, parseArgs } from "../../src/serve/serve.ts";
 import { renderSite } from "../../src/render.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 let dir: string;
 let server: ReturnType<typeof createServer>;
 let base: string;
-
-const failFetch = (async () => {
-  throw new Error("down");
-}) as unknown as typeof fetch;
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-serve-"));
@@ -24,7 +20,6 @@ beforeAll(() => {
   server = createServer({
     siteDir: dir,
     port: 0,
-    claudeUsageFetch: failFetch,
     mirrorPath: join(dir, "runs.json"),
   });
   base = `http://127.0.0.1:${server.port}`;
@@ -66,6 +61,7 @@ describe("POST /api/aide-run", () => {
     expect(bad.status).toBe(400);
     const runs = (await (await fetch(`${base}/api/aide-runs`)).json()) as { rows: { spec: string }[] };
     expect(runs.rows.map((r) => r.spec)).toEqual(["80"]);
+    expect("enriched" in runs).toBe(false);
   });
 
   test("oversize body → 413", async () => {
@@ -78,8 +74,7 @@ describe("POST /api/aide-run", () => {
 });
 
 // The /live page is gone (2026-08-18): the spec list shows every queued
-// run per row, and interactive sessions are claude-usage's own page. The
-// receiver stays — the job page still enriches a running step from it.
+// run per row, and interactive sessions are claude-usage's own page.
 describe("GET /live", () => {
   test("is not a page any more, and nothing links to it", async () => {
     expect((await fetch(`${base}/live`)).status).toBe(404);
@@ -208,6 +203,12 @@ describe("generated site nav (criterion 5)", () => {
 // then an `<id>-` prefix, live specs before archived ones. A second
 // reader of one rule, so it gets its own tests — the cases below mirror
 // the bash suite's one for one.
+describe("parseArgs (spec 412)", () => {
+  test("--claude-usage is refused as an unknown argument, not silently accepted", () => {
+    expect(() => parseArgs(["--claude-usage", "http://x"])).toThrow("unknown argument: --claude-usage");
+  });
+});
+
 describe("resolveDependencyFolder (spec 122)", () => {
   const spec = (folder: string, archived = false) => ({
     folder,

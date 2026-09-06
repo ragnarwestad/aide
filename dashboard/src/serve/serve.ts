@@ -4,11 +4,10 @@ import { join, resolve } from "node:path";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
-// /live through the generator's layout, enriched lazily from
-// claude-usage's /api/live. Replaces the python3 static server on the
-// serving host — same port, same launchd label.
+// /live through the generator's layout. Replaces the python3 static
+// server on the serving host — same port, same launchd label.
 //
-// CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
+// CLI: serve --site DIR [--port N] [--mirror FILE]
 //
 // `createServer` is a staged assembly, not one long body: each of the
 // setup-*.ts files it calls builds one cluster of wiring that used to
@@ -24,9 +23,7 @@ import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // built after schedules, since it needs the land functions).
 
 import { AideRunStore } from "../queue/aide-run-store.ts";
-import { LiveEnricher } from "../integrations/live.ts";
 import { Notifier } from "../integrations/notify.ts";
-import { MergeEventReporter } from "../integrations/merge-event.ts";
 import { QueueStore, type Job, type ProjectResolver } from "../queue/queue.ts";
 
 import { QUEUE_DEFAULTS, navFromSite, compressResponse } from "./serve-helpers.ts";
@@ -71,10 +68,6 @@ export function createServer(opts: ServerOptions) {
   }
 
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
-  const enricher = new LiveEnricher({
-    baseUrl: opts.claudeUsageUrl ?? "http://localhost:8787",
-    fetch: opts.claudeUsageFetch,
-  });
   const nav = () => opts.navEntries ?? navFromSite(opts.siteDir);
   const state = createServerState();
   const allowed = new Set(opts.queueProjects ?? []);
@@ -162,9 +155,6 @@ export function createServer(opts: ServerOptions) {
   // run — and the group is what SIGTERM must reach, since claude spawns
   // children of its own.
   const notifier = new Notifier({ command: opts.queueNotifyCommand });
-  // What tells claude-usage a branch landed (spec 158). Inert without a
-  // URL, and never given a default one.
-  const mergeEvents = new MergeEventReporter({ url: opts.mergeEventUrl, fetch: opts.mergeEventFetch });
 
   const schedules = setupSchedules(opts, state, {
     machineryProjectDir: resolution.machineryProjectDir,
@@ -237,7 +227,6 @@ export function createServer(opts: ServerOptions) {
     mergeLock: schedules.mergeLock,
     gitRun,
     branchStatus,
-    mergeEvents,
     warmSpec: schedules.warmSpec,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     specsRoot: resolution.specsRoot,
@@ -407,7 +396,7 @@ export function createServer(opts: ServerOptions) {
   };
 
   const coreCtx: CoreRoutesContext = {
-    store, enricher, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir,
+    store, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir,
     readServingSha: () => state.servingSha,
   };
 

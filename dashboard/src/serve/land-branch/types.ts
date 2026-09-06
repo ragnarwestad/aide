@@ -6,7 +6,6 @@ import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
-import type { MergeEventReporter } from "../../integrations/merge-event.ts";
 import type { CodeLanding } from "../../project/discover.ts";
 import type { QueueRowView } from "../../render.ts";
 import type { createRootLock } from "../serve-helpers.ts";
@@ -25,7 +24,6 @@ export interface LandContext {
   mergeLock: ReturnType<typeof createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
-  mergeEvents: MergeEventReporter;
   warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
   machinerySpecsRoot: (project: string) => string | undefined;
   specsRoot: (dir: string) => Promise<string>;

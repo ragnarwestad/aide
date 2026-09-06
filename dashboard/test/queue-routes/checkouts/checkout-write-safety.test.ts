@@ -6,7 +6,6 @@ import {
   parseArgs,
   runnerArgv,
 } from "../../../src/serve/serve.ts";
-import { failFetch } from "../../helpers/queue-server.ts";
 import {
   TOKEN,
   setupQueueRoutesHarness,
@@ -102,7 +101,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const { projectsRoot, site, owned } = realProject();
     const originOfSecond = join(projectsRoot, "..", "aide.git");
     const server = createServer({
-      siteDir: site, port: 0, claudeUsageFetch: failFetch,
+      siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
       dashboardCheckoutRoot: owned,
@@ -131,7 +130,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const before = git(person, "status", "--porcelain=v1", "--branch");
     const recorded = recording();
     const server = createServer({
-      siteDir: site, port: 0, claudeUsageFetch: failFetch,
+      siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
       dashboardCheckoutRoot: owned, gitRun: recorded.run,

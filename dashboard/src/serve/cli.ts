@@ -7,7 +7,7 @@ export function runCli() {
   const argv = process.argv.slice(2);
   if (argv[0] !== "serve") {
     console.error(
-      "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
+      "usage: serve.ts serve --site DIR [--port N] [--bind ADDR]\n" +
         "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
         "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
         "                     [--runner-bin PATH] [--pdf-bin PATH] [--result-dir DIR]\n" +

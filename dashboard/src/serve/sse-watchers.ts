@@ -22,7 +22,7 @@ export interface SseWatchersContext {
  *  that has gone away throws on enqueue, and a broadcast that let
  *  that through would stop at the first dead page and leave every
  *  live one unaware — the same fail-open the rest of this surface
- *  keeps (`LiveEnricher`, `branch-status`). */
+ *  keeps (`branch-status`). */
 export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultController<Uint8Array>, text: string): void {
   try {
     c.enqueue(ctx.encoder.encode(text));

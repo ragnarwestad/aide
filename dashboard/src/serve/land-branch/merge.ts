@@ -210,30 +210,9 @@ export async function landBranch(
       if (result.ok) {
         ctx.branchStatus.invalidate(repo.root, branch);
         // spec 406: a discarded root never merged anything — nothing to
-        // report to a merge-events sink, and nothing to install. Both
-        // blocks below are `mergeBranchIntoDefault`'s own success
-        // reporting, which `deleteBranchOnly` never earns.
+        // install. The block below is `mergeBranchIntoDefault`'s own
+        // success handling, which `deleteBranchOnly` never earns.
         if (!result.discarded) {
-          // Say what just happened, to whoever is listening (spec 158).
-          // Once per repo whose merge SUCCEEDED — not once per landing,
-          // and not only for code roots: a spec-markdown merge is
-          // exactly the kind claude-usage cannot see today, so it is
-          // reported the same as any other. `report` never throws and
-          // never retries; a sink that is down costs this path one short
-          // timeout and nothing else.
-          //
-          // `specFolder` is read from the landing rather than the job:
-          // a create step's job still carries its provisional key here,
-          // and is only renamed once every repo is through the loop.
-          await ctx.mergeEvents.report({
-            project: job.project,
-            specFolder: what.landed?.specFolder ?? job.specFolder,
-            branch,
-            repoRoot: repo.root,
-            step: what.step,
-            jobId: job.id,
-            timestamp: new Date().toISOString(),
-          });
           // Merged is not deployed. For a tool that lives in
           // `~/.local/bin`, the code landing on the default branch
           // changes nothing on the machine until it is installed —
@@ -438,10 +417,9 @@ export async function landBranch(
     // landing rather than the five-second-old picture of the world
     // before it.
     //
-    // `specFolder` is read from the landing, not the job, for the same
-    // reason the merge-event report two lines above already does: a
-    // create step's job still carries its provisional key here, and is
-    // only renamed once every repo is through the loop. Without this
+    // `specFolder` is read from the landing, not the job: a create
+    // step's job still carries its provisional key here, and is only
+    // renamed once every repo is through the loop. Without this
     // substitution the warm silently no-ops for every create landing —
     // no directory exists yet under the provisional key.
     const landedFolder = what.landed?.specFolder ?? job.specFolder;

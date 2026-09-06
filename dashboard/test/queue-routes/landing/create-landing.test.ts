@@ -21,7 +21,6 @@ import {
   specHead,
   specControls,
   openQuery,
-  mergeEventSink,
   setupQueueRoutesHarness,
 } from "../fixtures.ts";
 
@@ -262,31 +261,6 @@ describe("landing a created spec (spec 93)", () => {
     expect(group).not.toContain("/merge");
     expect(group).not.toContain(">Merge</button>");
     expect(group).not.toContain("ready to merge");
-  });
-
-  // Spec 158, criterion 6. A create job's key is provisional until the
-  // run reports the folder it actually made, and the job record is only
-  // renamed AFTER every repo has been landed — so an event built from
-  // `job.specFolder` would name a spec nobody can look up. It reads the
-  // outcome the landing itself is about to write.
-  test("the merge event for a create landing names the renamed folder, not the provisional key", async () => {
-    const git = gitFor();
-    const sink = mergeEventSink();
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git, sink);
-    const job = await createJob(base);
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
-    await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
-
-    expect(sink.posted.length).toBe(1);
-    expect(sink.posted[0]).toMatchObject({
-      project: "aide",
-      specFolder: "94-a-new-spec",
-      branch: BRANCH,
-      repoRoot: SPECS_REPO,
-      step: "create",
-      jobId: job.id,
-    });
-    expect(sink.posted[0].specFolder).not.toBe(job.specFolder);
   });
 
   test("a create job that has not landed yet is still a row on the page", async () => {

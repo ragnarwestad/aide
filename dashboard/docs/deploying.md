@@ -161,7 +161,6 @@ All paths are relative to the serving host's own `$HOME`.
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`                | the allowlist's first-boot seed                                   |
 | `ROOT`           | unset                                | projects root there (omitted when unset) — see below              |
 | `BIND`           | unset                                | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
-| `CLAUDE_USAGE`   | unset                                | claude-usage URL (omitted when unset)                             |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `aide-dashboard-checkouts/<project>/code`; when those are two different copies, the list

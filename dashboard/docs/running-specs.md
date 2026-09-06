@@ -19,7 +19,6 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [Notifications](#notifications)
-- [Telling claude-usage a branch landed](#telling-claude-usage-a-branch-landed)
 - [Live runs](#live-runs)
 - [What a finished step publishes](#what-a-finished-step-publishes)
 
@@ -130,8 +129,7 @@ queue config (`--queue-config`), so a wrong number costs a config edit and a res
   ],
   "notifyCommand": [
     "/Users/<you>/aide-dashboard/notify-slack.sh"
-  ],
-  "mergeEventUrl": "http://localhost:8787/api/merge-event"
+  ]
 }
 ```
 
@@ -451,38 +449,6 @@ The line reads, for example:
 aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
 ```
 
-## Telling claude-usage a branch landed
-
-claude-usage builds its shipping-pipeline ledger out of transcripts: a merge reaches it as a `gh pr merge` inside a Bash
-tool call, and a review as the prompt `/aide-analyze`'s review step writes. The reviews already arrive with nothing
-configured. The merges never do — the dashboard merges in its own Bun process, so no session writes a
-transcript to read one out of, and a merge made by hand from a terminal is `git merge`
-rather than `gh pr merge`. The ledger therefore cannot answer the question it exists for, "was this merge reviewed?",
-about any of our work. So the dashboard says what it did.
-
-`mergeEventUrl` in the queue config is where it says it. Every repo a step successfully lands — `create`, `analyze` and
-`archive`, code roots and specs repos alike — sends one POST with a flat JSON body:
-
-```json
-{
-  "project": "aide",
-  "specFolder": "158-a-merge-is-an-event-claude-usage-can-see",
-  "branch": "aide/158-a-merge-is-an-event-claude-usage-can-see",
-  "repoRoot": "/Users/<you>/projects/aide-specs",
-  "step": "archive",
-  "jobId": "1f2e3d4c",
-  "timestamp": "2026-08-21T10:00:00.000Z"
-}
-```
-
-**Absent unless configured**, like `notifyCommand`: with no
-`mergeEventUrl` the dashboard makes no request at all. **And never fatal** —
-the merge already happened, so a sink that refuses or times out is written to the log beside it and nothing else. One
-request, bounded at 1.5 s, no retries.
-
-The receiving end is claude-usage's to settle: `pipeline_event` is keyed on a transcript uuid and a session id, and a
-merge reported by a machine has neither. Leave `mergeEventUrl` unset until that endpoint exists.
-
 ## Live runs
 
 A spec's row shows a live indicator — session id, and (see below) liveness and cost so far — while an `/aide-*`
@@ -523,11 +489,8 @@ else. A bookmark carrying `?token=` works on the HTTPS address, and a browser si
 once more, because the token cookie belongs to the origin it was set on.
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
-queued run per row, and interactive sessions are claude-usage's own page. The job page (and that route) merge the
-stored runs with claude-usage's `/api/live` (same host — but if claude-usage there binds one address only, pass it
-explicitly: `CLAUDE_USAGE=http://<address>:8787 make install-serve`; fetched lazily and cached 5 s): liveness state,
-subagent count and cost so far. claude-usage unreachable → rows render without enrichment and a notice; never an
-error. Runs are kept in memory (LRU 512) and mirrored to `~/aide-dashboard/aide-runs.json` so restarts keep them.
+queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
+mirrored to `~/aide-dashboard/aide-runs.json` so restarts keep them.
 
 ## What a finished step publishes
 
