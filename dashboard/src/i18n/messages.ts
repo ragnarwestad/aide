@@ -126,9 +126,9 @@ export const MESSAGES = {
     resolve: "Check the checkout on the serving host",
   },
   "landing.closeLandingFailed": {
-    en: "the spec was closed, but landing it failed. — Check the checkout on the serving host, " +
+    en: "the spec was closed, but the merge failed. — Check the checkout on the serving host, " +
       "then try running the step again.",
-    nb: "spesifikasjonen ble lukket, men landing av den feilet. — Sjekk det lokale repoet på serveren, " +
+    nb: "specen ble lukket, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
