@@ -52,7 +52,7 @@ import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import {
-  archivedLine, boardControl, checklist, closedLine, closeControl, pdfControl, reopenControl,
+  archivedLine, boardStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
   resetControl, resetCloseNote, trackingControl,
 } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
@@ -97,6 +97,9 @@ export function renderSpecPage(
     archivedLine(view) +
     closedLine(view) +
     trackingControl(view) +
+    // What a board asked for is doing, in words. Its button lives in
+    // the tab row below, which holds buttons only.
+    boardStatus(view) +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
 
@@ -105,13 +108,15 @@ export function renderSpecPage(
   // Update, so the control that is always there keeps the same spot: an
   // Update that slid left whenever a spec was archived would be a
   // button moving because something else appeared.
+  // Every "(?)" first, then every button: a mark between two buttons
+  // reads as belonging to the one before it, and the group's shape
+  // changed with whichever marks the spec's state happened to draw.
   const actions =
+    resetCloseNote(view) +
     (view.archived ? reopenControl(view) : "") +
     pdfControl(view) +
     resetControl(view) +
     closeControl(view) +
-    resetCloseNote(view) +
-    boardControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
     `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
@@ -153,6 +158,12 @@ export function renderSpecPage(
     panel,
     view.backHref ?? "/",
     `${view.project}:${view.specFolder}`,
+    // The spec page's content is FIELDS — the depends-on picker, the
+    // acceptance switch, the description editor — and they cap
+    // themselves narrower than `.doc`'s default. One right edge means
+    // taking theirs, or the tab row's own buttons end a hand's width
+    // to the right of everything they act on.
+    true,
   );
 
   return pageShell(

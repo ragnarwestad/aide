@@ -68,7 +68,11 @@ describe("spec 391: Cancel sits right after Save, disabled by default; Save carr
   for (const [tab, render] of cases) {
     test(`${tab}: Save has no disabled attribute; Cancel does, and follows Save`, () => {
       const html = render();
-      const factions = html.match(/<span class="factions">[\s\S]*?<\/span>/)?.[0] ?? "";
+      // The LAST actions row, not the first: the tracking form above the
+      // tabs has its own Save/Cancel pair now (spec 394's form), and
+      // this test is about the document form's.
+      const rows = html.match(/<span class="factions">[\s\S]*?<\/span>/g) ?? [];
+      const factions = rows[rows.length - 1] ?? "";
       expect([tab, factions]).not.toEqual([tab, ""]);
       const saveTag = factions.match(/<button[^>]*id="specform-save"[^>]*>/)?.[0] ?? "";
       const cancelTag = factions.match(/<button[^>]*id="specform-cancel"[^>]*>/)?.[0] ?? "";

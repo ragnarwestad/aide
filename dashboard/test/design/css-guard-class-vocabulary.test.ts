@@ -27,7 +27,12 @@ const COMPONENTS = [
   // the "still checking" pulse (2026-08-24): the bar itself, and the
   // visually-hidden word inside it that screen readers get instead.
   "checking", "sr",
-  "field", "wide",
+  // `fieldhead` is the label's own line when a field carries a "(?)":
+  // the name at one end, the mark at the other.
+  "field", "fieldhead", "fieldend", "wide",
+  // `formdoc`: a `.doc` whose content is fields, so it takes the
+  // fields' own narrower right edge.
+  "formdoc",
   "filters",
   // the WYSIWYG mount point (spec 292) and the raw textarea beside it —
   // the fallback CSS in css/field.css swaps which one is visible once

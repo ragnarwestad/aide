@@ -104,7 +104,13 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       html.indexOf("</table>"),
       html.indexOf('<span>Depends on</span>'),
     );
-    expect(betweenTableAndDepends).toBe('</table><span class="frow"><span class="field wide">');
+    // Nothing but those two wrappers stands between them. The label's
+    // own line carries a "(?)", and the head wrapper the field draws
+    // for that is markup, not order — the rule here is that no OTHER
+    // field or control sits in the gap.
+    expect(betweenTableAndDepends).toMatch(
+      /^<\/table><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+    );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
