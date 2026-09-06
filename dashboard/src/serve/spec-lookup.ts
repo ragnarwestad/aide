@@ -343,9 +343,15 @@ export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: 
   if (ids.length === 0 || !ctx.projectRoot) return [];
   const discovered = discoverProjects(ctx.projectRoot).find((p) => p.name === project);
   if (!discovered) return [];
+  // An archived dependency counts. It is dropped from what HOLDS a
+  // step back — an archived one holds nothing — but the spec still
+  // depends on it, and this is the answer to "what does this depend
+  // on". Filtered out here, a spec whose dependencies had all been
+  // archived answered "nothing", while the specs list one click away
+  // printed them.
   return ids.flatMap((id) => {
     const dep = resolveDependencyFolder(discovered, id);
-    return dep && !dep.archived ? [dep.folder] : [];
+    return dep ? [dep.folder] : [];
   });
 }
 
