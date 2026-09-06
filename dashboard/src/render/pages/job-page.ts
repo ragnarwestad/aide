@@ -497,5 +497,5 @@ export function renderJobDetailPage(
 
   // `/`, not this page's own address: the nav entry it belongs under is
   // the spec list, and that is where the list lives now.
-  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, { hideHeading: true });
+  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, { hideHeading: true, lang });
 }

@@ -20,6 +20,7 @@
 
 import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
+import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { PHASE_LINES, type QueuePageOptions, type QueueTarget, type SpecGroup } from "./queue-list.ts";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./queue-list/model-picker.ts";
@@ -58,6 +59,9 @@ export interface NewSpecPageOptions {
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
   backHref?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 // What a spec builds on (spec 110). One chip per active spec, newest
@@ -330,5 +334,6 @@ export function renderNewSpecPage(
     docTitle: "aide -board — new spec",
     script: opts.script,
     hideHeading: true,
+    lang: opts.lang,
   });
 }

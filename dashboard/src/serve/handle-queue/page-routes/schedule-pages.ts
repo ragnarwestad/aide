@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { resolveSchedule } from "../../../project/discover.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render.ts";
-import { queueClientScript } from "../../serve-helpers.ts";
+import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
 import { serveStatic } from "../../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -50,6 +50,7 @@ export async function schedulePages(
         };
       }),
     );
+    const langResult = languageChoice(url, req);
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
       projects,
       rows,
@@ -60,12 +61,16 @@ export async function schedulePages(
         sort: url.searchParams.get("sort") ?? undefined,
         dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
       },
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   if (path === "/schedule/new") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const langResult = languageChoice(url, req);
     const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
       projects: [...ctx.allowed].sort(),
       token: ctx.queueToken,
@@ -75,8 +80,11 @@ export async function schedulePages(
         name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const scheduleDeletePage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/delete$/);
@@ -87,14 +95,18 @@ export async function schedulePages(
     if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
     const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
     if (!entry) return new Response("not found", { status: 404 });
+    const langResult = languageChoice(url, req);
     const html = renderDeleteSchedulePage(ctx.nav(), new Date().toISOString(), {
       project,
       entryName: name,
       token: ctx.queueToken,
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
@@ -116,6 +128,7 @@ export async function schedulePages(
       job,
       outputHref: i === 0 && outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
     }));
+    const langResult = languageChoice(url, req);
     const html = renderScheduleDetailPage(ctx.nav(), new Date().toISOString(), {
       project,
       entry,
@@ -129,8 +142,11 @@ export async function schedulePages(
         name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   return null;

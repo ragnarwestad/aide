@@ -88,6 +88,18 @@ describe("Settings routes (spec 232)", () => {
     expect(analyzeRow).toContain('value="20"');
   });
 
+  // Spec 408, REQ-1/REQ-2/REQ-4: this route reads and remembers the
+  // language the same way `/` already does, and Settings draws no tab
+  // bar at all, regardless of language.
+  test("?lang=nb sets the cookie, renders a Norwegian frame and no tab bar", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/settings?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+    expect(html).not.toContain('<nav class="tabbar');
+  });
+
   // Spec 252, Criterion 3: Settings is reachable from every page's "…"
   // menu, so "← Back" tracks whichever one the reader opened it from —
   // read off the standard Referer header, never a bare `/`.
@@ -192,6 +204,18 @@ describe("Settings routes (spec 232)", () => {
       method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+// Spec 408, REQ-1/REQ-4: the Add-project page reads and remembers the
+// language the same way `/` already does.
+describe("GET /projects/new (spec 131)", () => {
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/projects/new?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
   });
 });
 

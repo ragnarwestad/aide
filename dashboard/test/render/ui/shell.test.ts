@@ -111,3 +111,19 @@ describe("pageShell language (spec 350)", () => {
     expect(html).toContain('href="/?lang=nb"');
   });
 });
+
+// Spec 408, REQ-2: Settings belongs to none of the tabs the bar offers,
+// so it draws no tab bar at all — everything else keeps drawing one.
+describe("pageShell hideTabBar (spec 408)", () => {
+  test("hideTabBar: true draws no <nav class=\"tabbar\">", () => {
+    const html = pageShell("Settings", ENTRIES, "/settings", "<p>body</p>", "2026-09-06T00:00:00Z", undefined, {
+      hideTabBar: true,
+    });
+    expect(html).not.toContain('<nav class="tabbar');
+  });
+
+  test("without it, the default case still draws the tab bar", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-06T00:00:00Z");
+    expect(html).toContain('<nav class="tabbar');
+  });
+});

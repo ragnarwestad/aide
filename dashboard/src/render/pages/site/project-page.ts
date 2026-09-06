@@ -286,5 +286,7 @@ export function renderProjectPage(
     : configSection(settings, p.name, readiness, opts);
 
   const body = tabbedBody("", tabBar(visibleTabs, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
-  return pageShell(p.name, nav, base, body, generatedAt, undefined, { script: opts.script, hideHeading: true });
+  return pageShell(p.name, nav, base, body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true, lang: opts.lang,
+  });
 }

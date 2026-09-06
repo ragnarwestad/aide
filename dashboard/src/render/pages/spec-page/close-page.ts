@@ -5,6 +5,7 @@
 // why this page, not a modal, is the right shape for Close.
 
 import { backLink, field, rowMessage, saveCancelActions, tokenField } from "../../ui/components.ts";
+import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
 
@@ -21,7 +22,7 @@ export function renderCloseSpecPage(
   specFolder: string,
   entries: NavEntry[],
   generatedAt: string,
-  opts: { token?: string; error?: string; script?: string } = {},
+  opts: { token?: string; error?: string; script?: string; lang?: Language } = {},
 ): string {
   const back = specPagePath(project, specFolder);
   const title = `Close ${specFolder}`;
@@ -39,5 +40,7 @@ export function renderCloseSpecPage(
     `<span class="frow">` +
     field("Reason", `<textarea name="reason" rows="4" required></textarea>`) +
     `</span></form>`;
-  return pageShell(title, entries, "/", body, generatedAt, undefined, { script: opts.script, hideHeading: true });
+  return pageShell(title, entries, "/", body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true, lang: opts.lang,
+  });
 }

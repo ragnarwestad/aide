@@ -1,6 +1,7 @@
 // The reset confirmation page.
 
 import { backLink, rowMessage, tokenField, typedConfirm } from "../../ui/components.ts";
+import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
 
@@ -9,7 +10,7 @@ export function renderResetSpecPage(
   specFolder: string,
   entries: NavEntry[],
   generatedAt: string,
-  opts: { token?: string; error?: string; script?: string } = {},
+  opts: { token?: string; error?: string; script?: string; lang?: Language } = {},
 ): string {
   const back = specPagePath(project, specFolder);
   const title = `Reset ${specFolder}`;
@@ -31,5 +32,7 @@ export function renderResetSpecPage(
       pending: "resetting…",
     }) +
     `</span></form>`;
-  return pageShell(title, entries, "/", body, generatedAt, undefined, { script: opts.script, hideHeading: true });
+  return pageShell(title, entries, "/", body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true, lang: opts.lang,
+  });
 }

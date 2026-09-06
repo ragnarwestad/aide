@@ -57,6 +57,9 @@ export function renderSite(_projects: ProjectView[], generatedAt: string): Page[
         // The query string comes along: a bookmark that carried the
         // token is how a reader arrives here with one.
         script: `location.replace('${PROJECTS_ROUTE}' + location.search);`,
+        // No request exists at generate time to read a language from
+        // (spec 408) — this page is static output, permanently English.
+        lang: "en",
       }),
     },
   ];
@@ -64,6 +67,8 @@ export function renderSite(_projects: ProjectView[], generatedAt: string): Page[
     path: ABOUT_PAGE,
     html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt, undefined, {
       buildStamp: generatedAt,
+      // Same reason as above: no request exists at generate time.
+      lang: "en",
     }),
   });
   // A page per project was written here until 2026-08-22. The server

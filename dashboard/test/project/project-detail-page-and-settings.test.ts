@@ -61,6 +61,17 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(html).not.toContain("Manifest failed to parse");
   });
 
+  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const res = await fetch(`${base}/projects/aide?lang=nb`, { headers: AUTH });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
+
   test("a project nobody has is 404, not an empty page", async () => {
     const root = projectsRoot({ aide: null });
     expect((await get(serve(root, settled(root, "aide")), "nosuch")).status).toBe(404);

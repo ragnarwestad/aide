@@ -35,6 +35,16 @@ describe("spec 406: the Close confirmation page (GET)", () => {
     expect(html).toContain('id="specform-cancel"');
   });
 
+  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/specs/aide/${folder}/close?lang=nb`, { headers: auth });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
+
   test("404 for an unknown spec", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/specs/aide/never-existed/close`, { headers: auth });

@@ -3,7 +3,7 @@
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
 import { renderResetSpecPage, specPagePath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, json, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
 
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -20,14 +20,16 @@ export async function runControlRoutes(
     const [, project, specFolder] = resetPage;
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref || ref.archived) return new Response("not found", { status: 404 });
-    return new Response(
-      renderResetSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
-        token: ctx.queueToken,
-        error: url.searchParams.get("error") ?? undefined,
-        script: await queueClientScript(),
-      }),
-      { headers: { "content-type": "text/html; charset=utf-8" } },
-    );
+    const langResult = languageChoice(url, req);
+    const html = renderResetSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
+      token: ctx.queueToken,
+      error: url.searchParams.get("error") ?? undefined,
+      script: await queueClientScript(),
+      lang: langResult.lang,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const resetPost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reset$/);

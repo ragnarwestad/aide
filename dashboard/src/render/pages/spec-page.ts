@@ -49,6 +49,7 @@
 
 import { helpPopover, rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
+import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import {
@@ -73,7 +74,7 @@ export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; now?: number; script?: string; scriptSrc?: string } = {},
+  opts: { tab?: string; step?: string; now?: number; script?: string; scriptSrc?: string; lang?: Language } = {},
 ): string {
   const now = opts.now ?? Date.now();
   // Description, whatever is running. The JOB page opens on the
@@ -173,6 +174,6 @@ export function renderSpecPage(
     body,
     generatedAt,
     RELOADING_TABS.includes(tab) ? 10 : undefined,
-    { script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true },
+    { script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, lang: opts.lang },
   );
 }

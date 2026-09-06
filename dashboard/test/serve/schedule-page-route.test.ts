@@ -167,6 +167,16 @@ describe("GET /schedule (spec 272)", () => {
     const html = await res.text();
     expect(html).toContain("No schedule entry matches &quot;ghost&quot;.");
   });
+
+  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const res = await fetch(`${base}/schedule?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
 });
 
 describe("GET /schedule/new (spec 278)", () => {
@@ -197,6 +207,15 @@ describe("GET /schedule/new (spec 278)", () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
     const res = await fetch(`${base}/schedule/aide/new`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(404);
+  });
+
+  // Spec 408, REQ-1/REQ-4.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const res = await fetch(`${base}/schedule/new?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
   });
 });
 
@@ -267,6 +286,16 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(backAt).toBeGreaterThan(0);
     expect(backAt).toBeLessThan(headingAt);
   });
+
+  // Spec 408, REQ-1/REQ-4.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const res = await fetch(`${base}/schedule/aide/nightly-report?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
 });
 
 describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
@@ -278,6 +307,19 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
     const html = await res.text();
     expect(html).toContain("nightly-report");
     expect(html).toContain(`data-confirm="nightly-report"`);
+  });
+
+  // Spec 408, REQ-1/REQ-4.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const res = await fetch(
+      `${base}/schedule/aide/nightly-report/delete?lang=nb`,
+      { headers: { "x-aide-token": TOKEN } },
+    );
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
   });
 
   test("an unknown entry in an allowed project is 404 (criterion 5)", async () => {

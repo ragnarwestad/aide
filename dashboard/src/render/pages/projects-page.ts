@@ -23,6 +23,7 @@ import {
   typedConfirm,
 } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
+import type { Language } from "../../i18n";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { nextFireTime } from "../../queue/schedule.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -134,6 +135,9 @@ export interface ProjectsPageOptions {
    *  needs no schedule of its own to stay current: `nextFireTime` is
    *  pure arithmetic, not a network question. */
   scheduleByProject?: Record<string, readonly ScheduleEntry[]>;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 /** What the row says. Spelled out here rather than at the call site so
@@ -233,6 +237,7 @@ export function renderProjectsPage(
     hideHeading: true,
     docTitle: "aide -board — from spec to merge",
     script: opts.script,
+    lang: opts.lang,
   });
 }
 
@@ -358,6 +363,7 @@ export function renderAddProjectPage(
     docTitle: "aide -board — add project",
     script: opts.script,
     hideHeading: true,
+    lang: opts.lang,
   });
 }
 
@@ -391,5 +397,6 @@ export function renderRemoveProjectPage(
     docTitle: `aide -board — remove ${name}`,
     script: opts.script,
     hideHeading: true,
+    lang: opts.lang,
   });
 }

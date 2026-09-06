@@ -20,6 +20,16 @@ describe("spec 231: Reset confirmation routes", () => {
     expect(html).toContain(`/api/queue/specs/aide/${folder}/reset`);
   });
 
+  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/specs/aide/${folder}/reset?lang=nb`, { headers: auth });
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
+
   test("missing or mismatched confirmation creates no job", async () => {
     const { base } = start({ queueToken: TOKEN });
     for (const confirm of ["", `${folder}-wrong`]) {

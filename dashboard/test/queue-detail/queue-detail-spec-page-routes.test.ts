@@ -141,6 +141,25 @@ describe("a Codex step's job page", () => {
   });
 });
 
+// --- spec 408: the job detail page threads and remembers the language -------
+//
+// `job-detail.ts` already resolved `languageChoice()` for spec 350's own
+// `lang` field, but never appended its `setCookie` to the response, and
+// never forwarded that `lang` into its own `pageShell` call — so the
+// page's own frame (the tab bar, the theme control) stayed English and
+// the choice was never written down from this route.
+
+describe("GET /specs/<id> remembers the reader's language (spec 408)", () => {
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start();
+    const id = await enqueue(base);
+    const res = await fetch(`${base}/specs/${id}?lang=nb`, auth);
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
+});
+
 // --- spec 150: a page for the SPEC, not for one of its runs ------------------
 //
 // `/specs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
@@ -221,6 +240,16 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect((await fetch(`${base}${PATH}`)).status).toBe(401);
     const { base: off } = start({ queueToken: undefined });
     expect((await fetch(`${off}${PATH}`)).status).toBe(503);
+  });
+
+  // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}${PATH}?lang=nb`, auth);
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
   });
 
   test("the spec's files are re-read on every request, never served from the 5 s scan", async () => {

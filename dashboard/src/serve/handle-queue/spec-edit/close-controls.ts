@@ -4,7 +4,7 @@
 // rather than folded into run-controls.ts, so that file stays the size
 // its own header comment already notes a 2026-09-04 split at.
 import { renderCloseSpecPage, specPagePath } from "../../../render.ts";
-import { bodyToObject, json, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { bodyToObject, json, languageChoice, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
 
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -21,14 +21,16 @@ export async function closeControlRoutes(
     const [, project, specFolder] = closePage;
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref || ref.archived) return new Response("not found", { status: 404 });
-    return new Response(
-      renderCloseSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
-        token: ctx.queueToken,
-        error: url.searchParams.get("error") ?? undefined,
-        script: await queueClientScript(),
-      }),
-      { headers: { "content-type": "text/html; charset=utf-8" } },
-    );
+    const langResult = languageChoice(url, req);
+    const html = renderCloseSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
+      token: ctx.queueToken,
+      error: url.searchParams.get("error") ?? undefined,
+      script: await queueClientScript(),
+      lang: langResult.lang,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const closePost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/);

@@ -5,6 +5,7 @@
 // never on a project's own page.
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
+import type { Language } from "../../i18n";
 import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { renderScheduleForm, type ScheduleFormOptions } from "./schedule-page/form.ts";
@@ -28,6 +29,9 @@ export interface SchedulePageOptions {
   filter?: ScheduleFilter;
   token?: string;
   script?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
@@ -39,6 +43,7 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
   return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, {
     script: opts.script,
     hideHeading: true,
+    lang: opts.lang,
   });
 }
 
@@ -55,6 +60,9 @@ export interface ScheduleDetailPageOptions {
   script?: string;
   error?: string;
   backHref?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 export function renderScheduleDetailPage(
@@ -78,6 +86,7 @@ export function renderScheduleDetailPage(
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {
     script: opts.script,
     hideHeading: true,
+    lang: opts.lang,
   });
 }
 
@@ -87,6 +96,9 @@ export interface DeleteSchedulePageOptions {
   token?: string;
   script?: string;
   error?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 export function renderDeleteSchedulePage(
@@ -110,7 +122,9 @@ export function renderDeleteSchedulePage(
     `<span class="frow">` +
     typedConfirm({ target: opts.entryName, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
     `</span></form>`;
-  return pageShell(title, nav, back, body, generatedAt, undefined, { script: opts.script, hideHeading: true });
+  return pageShell(title, nav, back, body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true, lang: opts.lang,
+  });
 }
 
 export interface NewSchedulePageOptions {
@@ -126,6 +140,9 @@ export interface NewSchedulePageOptions {
    *  takes, from the same helper in `serve.ts`. */
   modelChoices?: ScheduleFormOptions["modelChoices"];
   defaultModels?: ScheduleFormOptions["defaultModels"];
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
@@ -144,6 +161,6 @@ export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts
         `Add one on the Projects page first.</p>`) +
     `</main>`;
   return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true,
+    script: opts.script, hideHeading: true, lang: opts.lang,
   });
 }

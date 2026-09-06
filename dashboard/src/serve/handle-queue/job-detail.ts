@@ -24,6 +24,7 @@ export async function handleJobDetailRoute(
       return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });
     }
     if (api) return json({ generatedAt: new Date().toISOString(), job });
+    const langResult = languageChoice(url, req);
     const html = renderJobDetailPage(
       { ...(await ctx.jobDetailView(job)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/") },
       new Date().toISOString(),
@@ -31,10 +32,12 @@ export async function handleJobDetailRoute(
       {
         tab: url.searchParams.get("tab") ?? undefined,
         step: url.searchParams.get("step") ?? undefined,
-        lang: languageChoice(url, req).lang,
+        lang: langResult.lang,
       },
     );
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   return null;

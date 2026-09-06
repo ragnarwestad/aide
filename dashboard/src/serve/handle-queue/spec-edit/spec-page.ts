@@ -7,7 +7,7 @@ import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branc
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect } from "../../serve-helpers.ts";
 import { STATE_SPEC_FILE, stateRelPath } from "./shared.ts";
 
 import type { HandleQueueContext } from "../../handle-queue.ts";
@@ -34,6 +34,7 @@ export async function specPageRoutes(
     // that mismatch was spec 303's actual bug: a bare URL rendered the
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
+    const langResult = languageChoice(url, req);
     const html = renderSpecPage(
       {
         ...view,
@@ -58,9 +59,12 @@ export async function specPageRoutes(
           documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
           documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
           undefined,
+        lang: langResult.lang,
       },
     );
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const update = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/update$/);

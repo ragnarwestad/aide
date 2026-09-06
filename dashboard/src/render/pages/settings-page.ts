@@ -1,6 +1,7 @@
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { esc } from "../ui/html.ts";
 import { backLink } from "../ui/components.ts";
+import type { Language } from "../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
 
 export const SETTINGS_ROUTE = "/settings";
@@ -20,6 +21,9 @@ export interface SettingsPageOptions {
    *  `/`, today's exact hardcoded destination. Settings is reachable
    *  from every page's "…" menu, so this is genuinely unbounded. */
   backHref?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -71,6 +75,6 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     `<table><thead><tr><th>Step</th>${modelHeader}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="factions"><button class="btn primary" type="submit">Save</button></div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
   });
 }

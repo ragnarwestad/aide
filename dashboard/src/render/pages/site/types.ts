@@ -3,6 +3,7 @@
 import type { SpecRef } from "../../../project/discover.ts";
 import type { StatusInfo } from "../../../project/parse-status.ts";
 import type { ManifestResult, ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { Language } from "../../../i18n";
 
 export interface SpecView extends SpecRef {
   status: StatusInfo | null;
@@ -80,4 +81,7 @@ export interface ProjectPageOptions {
    *  tab held only in client state would snap back to the default on
    *  every reload. */
   tab?: string;
+  /** Spec 408. Absent means English — the same default `pageShell`'s
+   *  own `opts.lang` falls back to. */
+  lang?: Language;
 }

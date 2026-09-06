@@ -186,6 +186,7 @@ export async function specsPages(
 
   if (path === NEW_SPEC_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const langResult = languageChoice(url, req);
     const html = renderNewSpecPage(ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
       createProjects: [...ctx.allowed].sort(),
@@ -201,14 +202,18 @@ export async function specsPages(
       // Why the last submission was refused, carried back here by the
       // create route's own redirect.
       error: url.searchParams.get("error") ?? undefined,
+      lang: langResult.lang,
     });
-    const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     // The same one-time handover `/` and `/projects` do, for a reader
     // who arrived with the token in the address.
     if (url.searchParams.get("token") && ctx.queueToken) {
-      headers["set-cookie"] =
-        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
+      headers.append(
+        "set-cookie",
+        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+      );
     }
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 

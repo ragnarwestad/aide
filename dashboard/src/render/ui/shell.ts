@@ -164,11 +164,12 @@ function themeControl(lang: Language): string {
 // (REQ-3) and built the same way: a `<details class="menu">` trigger +
 // panel, so it gets the same outside-click/Escape close for free. It
 // deliberately ignores `currentPath` and always links to `/?lang=<code>`
-// — see `2-analysis.md`'s "Why the language link always targets `/`,
-// and not `currentPath`": that value is a hard-coded `"/"` on 4 of the 8
-// untouched pages, and even where it IS the real address, no route but
-// `/` reads `?lang=` at all, so a link built from it would silently do
-// nothing on 7 of 8 pages.
+// — landing on the Specs list in the chosen language is a known,
+// coherent result from any page, where following `currentPath` would
+// mean inventing a second "reader's actual address" concept distinct
+// from what that value already means to `tabBar` (which tab is current)
+// — see spec 408's `2-analysis.md`, "Why the language link still
+// always targets `/`, unchanged".
 function languageControl(lang: Language): string {
   const other: Language = lang === "nb" ? "en" : "nb";
   const label = (l: Language) => (l === "nb" ? "NO" : "EN");
@@ -319,11 +320,15 @@ export function pageShell(
     /** When this page is part of a static build: its generation time,
      *  shown labelled at the bottom of the About dialog. */
     buildStamp?: string;
-    /** Spec 350. Absent (never required) on every page but the Specs
-     *  list — the 8 untouched pages simply do not pass it, so `pageHeader`,
-     *  `tabBar` and `<html lang>` keep rendering exactly as they do today
-     *  (REQ-9), by construction rather than by discipline. */
+    /** Spec 350. Absent (never required) on every page — every call site
+     *  passes some real `lang` since spec 408 (REQ-1, guarded at runtime
+     *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
+     *  means "nothing chose otherwise" rather than an unwired page. */
     lang?: Language;
+    /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
+     *  offers, so it draws no tab bar at all. Absent (never required)
+     *  on every other page. */
+    hideTabBar?: boolean;
   } = {},
 ): string {
   const lang = opts.lang ?? "en";
@@ -360,7 +365,7 @@ ${PWA_LINKS}
 ${pageHeader(lang)}
 ${installBanner}
 ${aboutDialog(opts.buildStamp)}
-${tabBar(entries, currentPath, lang)}
+${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
 </main>${script}${scriptSrc}

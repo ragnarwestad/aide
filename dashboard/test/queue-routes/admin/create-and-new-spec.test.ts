@@ -422,6 +422,16 @@ describe("GET /new (spec 121)", () => {
     expect(html).toContain("No project on this machine");
   });
 
+  // Spec 408, REQ-1/REQ-4: this page reads and remembers the language
+  // the same way `/` already does.
+  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/new?lang=nb`, auth);
+    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
+    const html = await res.text();
+    expect(html).toContain('<html lang="nb">');
+  });
+
   test("a refusal carried back in the query string is shown on the page", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (

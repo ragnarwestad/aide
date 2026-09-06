@@ -100,4 +100,29 @@ describe("Settings page", () => {
     });
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
+
+  // Spec 408, REQ-2/REQ-6: Settings belongs to none of the tabs the bar
+  // offers, so it draws no tab bar at all, regardless of language.
+  test("draws no <nav class=\"tabbar\">, in English and Norwegian", () => {
+    for (const lang of ["en", "nb"] as const) {
+      const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+        modelChoices: [], defaultModels: { default: "sonnet" },
+        budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+        lang,
+      });
+      expect(html).not.toContain('<nav class="tabbar');
+    }
+  });
+
+  // Spec 408, REQ-1: the frame around Settings' own form is threaded the
+  // same `lang` every other page now takes.
+  test("lang: \"nb\" renders <html lang=\"nb\"> and a Norwegian header string", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: [], defaultModels: { default: "sonnet" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      lang: "nb",
+    });
+    expect(html).toContain('<html lang="nb">');
+    expect(html).toContain('aria-label="Tema"');
+  });
 });

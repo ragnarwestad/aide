@@ -11,7 +11,7 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../../render.ts";
-import { queueClientScript } from "../../serve-helpers.ts";
+import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
 export async function projectPages(
@@ -22,7 +22,8 @@ export async function projectPages(
 ): Promise<Response | null> {
   if (path === SETTINGS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    return new Response(renderSettingsPage(ctx.nav(), new Date().toISOString(), {
+    const langResult = languageChoice(url, req);
+    const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
@@ -34,7 +35,11 @@ export async function projectPages(
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
-    }), { headers: { "content-type": "text/html; charset=utf-8" } });
+      lang: langResult.lang,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   if (path === ADD_PROJECT_ROUTE) {
@@ -45,6 +50,7 @@ export async function projectPages(
     // Read fresh per request, the way /projects reads its own scan:
     // a checkout that appeared on the host a minute ago is offered.
     const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot);
+    const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
       script: await queueClientScript(),
@@ -77,8 +83,11 @@ export async function projectPages(
         ]),
       ),
       error: url.searchParams.get("error") ?? undefined,
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const removePage = path.match(/^\/projects\/([^/]+)\/remove$/);
@@ -90,12 +99,16 @@ export async function projectPages(
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
     }
+    const langResult = languageChoice(url, req);
     const html = renderRemoveProjectPage(name, ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
+      lang: langResult.lang,
     });
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   const settingsPage = path.match(/^\/projects\/([^/]+)\/settings$/);
@@ -164,6 +177,7 @@ export async function projectPages(
             return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
+    const langResult = languageChoice(url, req);
     const html = renderProjectPage(
       view,
       projectSettings(dir, readiness),
@@ -188,9 +202,12 @@ export async function projectPages(
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
         tab: url.searchParams.get("tab") ?? undefined,
+        lang: langResult.lang,
       },
     );
-    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
   }
 
   if (path === PROJECTS_ROUTE) {
@@ -264,6 +281,7 @@ export async function projectPages(
         }
       }),
     );
+    const langResult = languageChoice(url, req);
     const html = renderProjectsPage(
       projects,
       new Date().toISOString(),
@@ -283,16 +301,20 @@ export async function projectPages(
         // beside it, and rendered as text and nothing else.
         notice: url.searchParams.get("notice") ?? undefined,
         noticeOk: url.searchParams.get("noticeOk") === "1",
+        lang: langResult.lang,
       },
     );
-    const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     // The same one-time handover `/` does: projects.html passes the
     // address on with its query string, so a bookmarked token arrives
     // here.
     if (url.searchParams.get("token") && ctx.queueToken) {
-      headers["set-cookie"] =
-        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
+      headers.append(
+        "set-cookie",
+        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+      );
     }
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
