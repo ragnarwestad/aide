@@ -39,8 +39,13 @@
    list. Left at full width, the box goes on spanning the frame while
    the table inside it stops at `--speclist-width`, and the bar sits
    out at the window's edge with empty page between. */
+/* Plus the table's own border. The six column widths below sum to
+   exactly `--speclist-width`, and `table.list` draws a 1px border
+   around them — so a box capped at the bare number is one pixel
+   narrower than the table inside it, and a horizontal scrollbar
+   appeared for that one pixel. */
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  max-width: var(--speclist-width); padding-bottom: var(--sp-3); }
+  max-width: calc(var(--speclist-width) + 2px); padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }
 /* REQ-3 (spec 379): only the specs list stops stretching to the frame.
