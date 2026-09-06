@@ -2,6 +2,7 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
+import { startBoard } from "../../boards/lifecycle.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
@@ -23,6 +24,24 @@ export async function specPageRoutes(
   if (specPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = specPage;
+    // Spec 411: the held-for-Checks row's own link reaches `startBoard()`
+    // through this GET — a plain `target="_blank"` link can only ever
+    // issue one. The three-part capability check mirrors
+    // `spec-views/spec-page.ts`'s own (`boardCapable`) so the trigger
+    // never starts a board against the wrong checkout in a multi-repo
+    // project, or for a spec archived after the link was rendered.
+    // `startBoard()` carries its own branch+commit+alive dedup, so a
+    // repeat of this same URL — the reload every 10 seconds on the Steps
+    // tab it redirects to included — is a no-op read, not a second round.
+    if (url.searchParams.get("startBoard") === "1") {
+      const ref = ctx.specRef(project!, specFolder!);
+      const capable =
+        !ref?.archived &&
+        ctx.boards.roundAvailable(project!) &&
+        ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.boards.aideCheckout(project!));
+      if (capable) await startBoard(ctx.boards, project!, specFolder!);
+      return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+    }
     const view = await ctx.specPageView(
       project!,
       specFolder!,

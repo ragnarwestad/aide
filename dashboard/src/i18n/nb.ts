@@ -52,6 +52,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.testsRed": "testene er røde",
   "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
+  "list.testServer": "testserver",
+  "list.boardStartLink": "Klikk på lenken for å starte en testserver som kjører denne branchen",
   "list.pushError":
     "Et stegs push nådde ikke origin. — Hent grenen i det lokale repoet på serveren, " +
     "og push den på nytt fra en terminal.",

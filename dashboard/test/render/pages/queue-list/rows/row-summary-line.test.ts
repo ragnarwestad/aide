@@ -222,8 +222,12 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // Spec 291's own fix (2026-08-31): unticked Acceptance criteria share
   // the archiveHeldBack field a dependency-gated decline uses, but this
   // one is the spec's own ordinary next step, not something waiting on
-  // the outside — so the badge reads "ready", not "waiting", while the
-  // panel below still spells out why a fresh archive attempt refuses.
+  // the outside — so the badge reads "ready", not "waiting". Spec 411
+  // gives the panel below the same link-carrying shape the pull-request
+  // mark already has, which now supersedes the plain reason text
+  // (`cell-helpers.ts`'s `liveMarks()` — a row-marks.test.ts describe
+  // block pins the mark itself; this test keeps its own eye on the
+  // badge beside it).
   test("unticked Acceptance criteria read as ready, not as a decline", () => {
     const html = rows(
       [row({ specFolder: "101-b", steps: ["archive"], state: "done" })],
@@ -231,7 +235,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     );
     expect(chip(html)).toBe("ready");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
-      ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+      "Click the link to start a test server running this branch",
     );
   });
 

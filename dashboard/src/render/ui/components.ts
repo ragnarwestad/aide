@@ -251,7 +251,12 @@ export function rowMessage(
  *  a link lives inside a part's own sentence, so it survives being
  *  joined with another part's sentence on the same line, unlike `title`
  *  (notice.ts), which cannot be attributed once more than one part
- *  joins and is dropped instead. */
+ *  joins and is dropped instead.
+ *
+ *  Every link opens in a new tab (spec 411): what it points to — a pull
+ *  request, a board this row's own link just started — is somewhere
+ *  else, and a reader who follows one wants the row still open behind
+ *  it. */
 export function rowMessageParts(
   variant: MessageVariant,
   parts: { text: string; href?: string }[],
@@ -259,7 +264,9 @@ export function rowMessageParts(
 ): string {
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  const body = parts.map((p) => (p.href ? `<a href="${esc(p.href)}">${esc(p.text)}</a>` : esc(p.text))).join(" · ");
+  const body = parts
+    .map((p) => (p.href ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(p.text)}</a>` : esc(p.text)))
+    .join(" · ");
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
 }
 

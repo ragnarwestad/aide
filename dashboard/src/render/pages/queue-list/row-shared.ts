@@ -18,6 +18,13 @@ export const NO_DATE = (lang: Language): string => t(lang, "list.dateUnknown");
  *  on a branch, and a request describes it. */
 export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullRequest");
 
+/** The mark a LIVE row carries when its archive step is held back
+ *  specifically for unticked acceptance criteria (spec 411) — the same
+ *  fact `resting.ts` already reads to draw the "ready" badge for this
+ *  exact state, given the same sentence-plus-link shape `PULL_REQUEST`
+ *  already has. */
+export const TEST_SERVER = (lang: Language): string => t(lang, "list.testServer");
+
 /** The mark a LIVE row carries when a landing failed and no later step
  *  of the same job has resolved it (spec 327) — independent of
  *  `state`, which a later step's own start already overwrites. */

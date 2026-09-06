@@ -3,6 +3,7 @@
 // checklist, and the Reopen/Reset controls.
 
 import { helpPopover, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
+import { SPINNER } from "../../ui/components/icons.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
@@ -327,7 +328,7 @@ export function boardStatus(view: SpecPageView): string {
   if (!view.boardAction || !view.board) return "";
   if (view.board.status === "starting") {
     return (
-      `<p class="desc"><span class="muted">Starting a board for ${esc(view.board.branch)} @ ` +
+      `<p class="desc">${SPINNER}<span class="muted">Starting a board for ${esc(view.board.branch)} @ ` +
       `${esc(view.board.commit)} — this can take several minutes.</span></p>`
     );
   }

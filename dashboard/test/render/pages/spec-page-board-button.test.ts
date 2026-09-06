@@ -31,6 +31,15 @@ describe("the board: no Start button on the spec page", () => {
     expect(html).toContain("abc1234");
   });
 
+  // REQ-3 (spec 411): the "starting" paragraph carries the shared
+  // spinner, the same mark every other busy state on this dashboard
+  // already uses, until the page's own 10-second reload (RELOADING_TABS,
+  // the Steps tab) carries the reader to "running".
+  test("a board that is starting shows the shared spinner", () => {
+    const html = withBoard({ board: { status: "starting", branch: "aide/150-one-page", commit: "abc1234" } });
+    expect(html).toContain('class="spin"');
+  });
+
   test("a failed board says so, with the round's own error", () => {
     const html = withBoard({
       board: { status: "failed", branch: "aide/150-one-page", commit: "abc1234", error: "port already held" },

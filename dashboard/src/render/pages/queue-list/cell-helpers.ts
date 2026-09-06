@@ -15,8 +15,10 @@ import {
   type QueueRowView,
   type RestingState,
 } from "../../ui/job-state.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { specPagePath } from "../spec-page.ts";
 import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TESTS_RED } from "./row-shared.ts";
+import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -229,6 +231,12 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
  *  fact from a reader's chair. */
 const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitingOnReview");
 
+/** The sentence a LIVE row carries when its archive step is held back
+ *  specifically for unticked acceptance criteria (spec 411) — the same
+ *  shape `waitingOnReviewSentence` has, for a fact this dashboard
+ *  already knows how to act on (the round the checks are waiting on). */
+const boardStartLinkSentence = (lang: Language): string => t(lang, "list.boardStartLink");
+
 /** The sentence a LIVE row carries when a push never reached origin
  *  (spec 328, spec 335, spec 352). Fixed prose, not `pushError`'s own
  *  text: that text is git's raw stderr with its `hint:` lines flattened
@@ -265,12 +273,13 @@ interface LiveMark {
 
 /** Every mark a LIVE row's own fields carry right now, highest priority
  *  first. More than one can be true at once — `pushError`, `landingError`,
- *  `prError` and `prUrl` are independent booleans, set from different job
- *  records — and the order is the row's own: a push that never reached
- *  origin means nothing downstream can be trusted yet, so it outranks a
- *  landing failure, which itself means a completed step's merge never
- *  finished and so outranks the two review-related marks, which are
- *  about process, not correctness, and least urgent of the four. */
+ *  `prError`, the archive-held-for-Checks reason and `prUrl` are
+ *  independent, set from different job records or the phase list — and
+ *  the order is the row's own: a push that never reached origin means
+ *  nothing downstream can be trusted yet, so it outranks a landing
+ *  failure, which itself means a completed step's merge never finished
+ *  and so outranks the three review-related marks, which are about
+ *  process, not correctness, and least urgent of the group. */
 function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
@@ -287,6 +296,24 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     });
   }
   if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
+  // Spec 411: the same field `resting.ts` already reads to draw the
+  // "ready" badge for this exact state — a spec waiting on the round,
+  // not on a person deciding something. Two marks together, not one
+  // replacing the other: spec 382's REQ-4 already requires the row to
+  // name the Checks tab as where the hold clears, and spec 411's REQ-1
+  // requires the new sentence verbatim — the pair joins with " · " the
+  // same way any other two marks do (spec 339) rather than the newer
+  // one silently dropping the older fact.
+  const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) {
+    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReason });
+    marks.push({
+      variant: "waiting",
+      label: TEST_SERVER(lang),
+      sentence: boardStartLinkSentence(lang),
+      href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startBoard=1`,
+    });
+  }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
   }

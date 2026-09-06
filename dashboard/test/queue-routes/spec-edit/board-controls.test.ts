@@ -2,12 +2,32 @@
 // `run-controls.ts`'s own reset-route suite already tests against —
 // a real `createServer`, real fixture files, real HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-board-routes-");
+const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
+
+/** The job's own record, polled until `done` holds (the same idiom
+ *  `landing-window-and-repo-lock.test.ts` uses) — `branchUrls` only
+ *  reaches `ctx.queue.branchesFor()` once the step's result has landed
+ *  on the job. */
+async function settleDone(base: string, id: string): Promise<void> {
+  for (let n = 0; n < 100; n++) {
+    const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: auth })).json()) as {
+      job: { state: string };
+    };
+    if (body.job.state === "done") return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error("the job never settled");
+}
 
 const auth = { "x-aide-token": TOKEN };
 const folder = "81-queue-and-runner";
@@ -147,5 +167,125 @@ describe("spec 388: the board start/stop routes", () => {
         }
       }
     }
+  });
+});
+
+// Spec 411: the held-for-Checks row's own link reaches `startBoard()`
+// through a GET a person can actually click — `?startBoard=1` on the
+// spec page itself, not the POST route above, which a plain
+// `target="_blank"` link can never reach.
+describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
+  test("starts a board and 303s to the clean Steps-tab URL, once", async () => {
+    const spawnCalls: { cmd: string[] }[] = [];
+    const spawned: number[] = [];
+    const results = mkdtempSync(join(tmpdir(), "aide-411-board-trigger-"));
+    ownDirs.push(results);
+    // Every git call this harness's own job-and-landing pipeline makes
+    // succeeds trivially, except: `ls-remote --heads origin aide/<folder>`,
+    // which needs a real SHA back for `startBoard()`'s own `headCommit()`
+    // not to refuse "no such branch on origin"; and the merge itself,
+    // held open the same way `landing-window-and-repo-lock.test.ts` holds
+    // it (never released) — a landing that actually finished would merge
+    // this very branch into the default one and wipe `branchUrls` behind
+    // it (`land-branch/merge.ts`'s own "Landed" branch), and this test's
+    // whole point is a spec whose code branch is still open.
+    const gitRun = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
+        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+      }
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+        return new Promise(() => {
+          // Never resolves — held for the life of the test.
+        });
+      }
+      return { code: 0, stdout: "" };
+    };
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      boardsAvailable: true,
+      gitRun: gitRun as never,
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+      boardsSpawn: (cmd) => {
+        spawnCalls.push({ cmd });
+        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        proc.unref();
+        spawned.push(proc.pid);
+        return { pid: proc.pid };
+      },
+    });
+    // `ctx.boards.aideCheckout("aide")` resolves to this same path (no
+    // owned checkout exists in this fixture, so it falls back to the
+    // display checkout, `queueProjectRoot/aide`) — `branchesFor()` has
+    // to report a branch open on exactly this root for the GET route's
+    // capability check to pass.
+    const root = join(dir, "root", "aide");
+
+    // A real step, run straight through the fake runner binary, so its
+    // result lands on the job the same way a real `aide-run-spec` run
+    // would — `branchesFor()` reads `job.branchUrls`, set only once a
+    // step's own result has actually settled.
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+      })
+    ).json()) as { job: { id: string } };
+    Bun.write(
+      join(results, `${made.job.id}.json`),
+      JSON.stringify({
+        ok: true,
+        exitCode: 0,
+        costUsd: 0.1,
+        costMeasured: true,
+        terminalReason: "completed",
+        branch: `aide/${folder}`,
+        branchUrls: [{ root, url: "https://example.test/aide" }],
+        repos: [],
+      }),
+    );
+    await settleDone(base, made.job.id);
+
+    try {
+      const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(res.status).toBe(303);
+      expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
+      expect(spawnCalls).toHaveLength(1);
+
+      // A repeat GET of the same trigger reaches the same, still-alive
+      // entry (`startBoard()`'s own dedup) rather than spawning again.
+      const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(res2.status).toBe(303);
+      expect(spawnCalls).toHaveLength(1);
+    } finally {
+      for (const pid of spawned) {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // already gone, which is the outcome either way
+        }
+      }
+    }
+  });
+
+  test("the round being unavailable skips the call and still redirects cleanly", async () => {
+    const { base } = start({ queueToken: TOKEN, boardsAvailable: false });
+    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+      headers: auth,
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
   });
 });

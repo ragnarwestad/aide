@@ -10,8 +10,10 @@ import {
   renderQueueRows,
   type ArchivedSpecView,
   type QueueRowView,
+  type QueueTarget,
 } from "../../../../../src/render.ts";
 import { row } from "../../fixtures.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status.ts";
 
 // Split out of grouping.test.ts by theme.
 
@@ -145,6 +147,71 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   test("a row with neither is the row it has always been", () => {
     const html = open({});
     expect(html.toLowerCase()).not.toContain("pull request");
+  });
+
+  // REQ-5 (spec 411): every row-notice link opens in a new tab now, the
+  // pull-request link included.
+  test("REQ-5: the pull-request link opens in a new tab", () => {
+    const html = open({ prUrl: "https://github.test/aide/pull/7" });
+    const notice = noticeCellHtml(html, FOLDER);
+    expect(notice).toContain('href="https://github.test/aide/pull/7" target="_blank" rel="noopener"');
+  });
+});
+
+// --- spec 411: a spec held for Checks links to a board on its branch --------
+//
+// The machinery to run a board off a spec's own branch already exists;
+// nothing on the row offered it. Gives the held-for-Checks message the
+// same shape the pull-request mark already has: a sentence that carries
+// a link.
+describe("a spec held for Checks carries a link to a board on its branch (spec 411)", () => {
+  const FOLDER = "101-b";
+  const target = (extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder: FOLDER,
+    ...extra,
+  });
+  const heldForChecks = (targetExtra: Partial<QueueTarget> = {}) =>
+    renderQueueRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+      runnerAvailable: true,
+      targets: [target({ done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE }, ...targetExtra })],
+    });
+
+  // REQ-1: the exact sentence, carrying the link.
+  test("REQ-1: the sentence, with a link, is in the notice line", () => {
+    const notice = noticeCellHtml(heldForChecks(), FOLDER);
+    expect(notice).toContain("Click the link to start a test server running this branch");
+    expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startBoard=1"`);
+  });
+
+  // REQ-2: the link opens in a new tab and carries the start trigger.
+  test("REQ-2: the link opens in a new tab", () => {
+    const notice = noticeCellHtml(heldForChecks(), FOLDER);
+    expect(notice).toMatch(
+      new RegExp(`href="/specs/aide/${FOLDER}\\?tab=steps&amp;startBoard=1" target="_blank" rel="noopener"`),
+    );
+  });
+
+  // REQ-6: every other held-back reason carries no link.
+  test("REQ-6: a row held back for a different reason carries no link", () => {
+    const notice = noticeCellHtml(
+      renderQueueRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+        runnerAvailable: true,
+        targets: [target({ archiveHeldBack: { reason: "the Slack webhook" } })],
+      }),
+      FOLDER,
+    );
+    expect(notice).not.toContain("Click the link to start a test server");
+    expect(notice).not.toContain("startBoard=1");
+  });
+
+  // REQ-6: a row not held back at all carries no link either.
+  test("REQ-6: a row not held back at all carries no link", () => {
+    const notice = noticeCellHtml(
+      renderQueueRows([row({ specFolder: FOLDER, state: "done" })], { runnerAvailable: true, targets: [] }),
+      FOLDER,
+    );
+    expect(notice).not.toContain("startBoard=1");
   });
 });
 
