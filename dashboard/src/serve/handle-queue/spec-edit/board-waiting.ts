@@ -11,19 +11,43 @@
 // like, and it works with JavaScript switched off.
 
 import { esc } from "../../../render/ui/html.ts";
-import { specTabPath } from "../../../render.ts";
 
 const EVERY_SECONDS = 5;
 
-export function waitingForBoardPage(project: string, specFolder: string): Response {
-  const back = specTabPath(project, specFolder, "steps");
+/** One page, two states. Waiting refreshes onto the same URL until the
+ *  board is there; a board that failed to start says so and STOPS —
+ *  refreshing for ever in front of a reader who can do nothing about it
+ *  is worse than saying what happened and leaving the tab to them.
+ *
+ *  No way back to the spec on either: this tab was opened from the spec
+ *  page, which is still standing in the one behind it. */
+export function boardFailedPage(specFolder: string, why?: string): Response {
+  return htmlPage(
+    `Could not start a test server for "${esc(specFolder)}"`,
+    why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>",
+    { refresh: false },
+  );
+}
+
+export function waitingForBoardPage(_project: string, specFolder: string): Response {
+  return htmlPage(
+    `Starting a test server for "${esc(specFolder)}"`,
+    `<p>It runs this branch's own code, and takes a few minutes. This page
+        goes there by itself when it is up — leave it open.</p>`,
+    { refresh: true },
+  );
+}
+
+/** The frame both share: centred, self-contained, no navigation of its
+ *  own. A spinner only while something is actually coming. */
+function htmlPage(heading: string, body: string, o: { refresh: boolean }): Response {
   const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="${EVERY_SECONDS}">
-<title>aide -board · starting a test server</title>
+${o.refresh ? `<meta http-equiv="refresh" content="${EVERY_SECONDS}">` : ""}
+<title>aide -board · ${o.refresh ? "starting a test server" : "test server"}</title>
 <style>
   :root { color-scheme: light dark; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -31,7 +55,6 @@ export function waitingForBoardPage(project: string, specFolder: string): Respon
   .box { text-align: center; max-width: 30rem; padding: 2rem; }
   h1 { font-size: 1.1rem; margin: 0 0 .5rem; }
   p { margin: 0 0 .5rem; opacity: .75; }
-  a { color: inherit; }
   .spin { width: 28px; height: 28px; margin: 0 auto 1.25rem; border-radius: 50%;
     border: 3px solid currentColor; border-top-color: transparent; opacity: .5;
     animation: turn 1s linear infinite; }
@@ -41,11 +64,9 @@ export function waitingForBoardPage(project: string, specFolder: string): Respon
 </head>
 <body>
 <div class="box">
-  <div class="spin" role="img" aria-label="starting"></div>
-  <h1>Starting a test server for ${esc(specFolder)}</h1>
-  <p>It runs this branch's own code, and takes a few minutes. This page
-     goes there by itself when it is up — leave it open.</p>
-  <p><a href="${esc(back)}">Back to the spec</a></p>
+  ${o.refresh ? `<div class="spin" role="img" aria-label="starting"></div>` : ""}
+  <h1>${heading}</h1>
+  ${body}
 </div>
 </body>
 </html>
