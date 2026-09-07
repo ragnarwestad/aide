@@ -234,6 +234,26 @@ test("the list's scroll box ends where the table does", async () => {
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
+// Spec 415, REQ-1: the block used to sit flush against main's left inner
+// edge instead of centered within it — none of the assertions above pin
+// the absolute left offset, only the relative widths and right-edge
+// alignment, so a block centered by unequal amounts on each side would
+// still pass every one of them.
+test("spec 415 REQ-1: the controls/table block is centered inside main, not flush left", async () => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  const [wrap, frame] = await Promise.all([
+    page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
+    page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
+  ]);
+
+  const leftGap = wrap.x - frame.x;
+  const rightGap = frame.x + frame.width - (wrap.x + wrap.width);
+  expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
 // REQ-5: the desktop rule's exact `width: 19rem` (rows-and-forms.css)
 // applies to the same selector the phone layout's row uses — with no
 // override, a phone under 304px would carry a box wider than its own

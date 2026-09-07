@@ -272,7 +272,15 @@ export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"
 // would be worse than the removed AI filter's inert degradation ever
 // was — and the caption goes with it, since a column headed "AI" with
 // nothing under it reads as broken rather than as absent.
-export function phaseCaptionCells(opts: PickerOptions): string {
+// `includeListColumns` (spec 415): the Specs list's own 6-column table
+// needs these 4 blank cells to keep every row's cell count matching its
+// <colgroup> (row-shared.ts's LIST_COLUMNS). The New spec page's table
+// has no Progress/Created/Started/Cost concept at all — a spec that
+// does not exist yet has none of those facts — and no <colgroup>
+// either, so the same 4 cells there had nothing under them and nothing
+// sizing them, which is what read as a stray blank field beside the
+// picker.
+export function phaseCaptionCells(opts: PickerOptions, includeListColumns = true): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
@@ -291,8 +299,11 @@ export function phaseCaptionCells(opts: PickerOptions): string {
       : "") +
     `<span class="muted small" data-cap="model">Model</span>` +
     `<span class="muted small" data-cap="box">Select</span>` +
-    `</span></td><td></td><td data-col="created"></td><td data-col="started"></td>` +
-    `<td class="num" data-col="cost"></td>`
+    `</span></td>` +
+    (includeListColumns
+      ? `<td></td><td data-col="created"></td><td data-col="started"></td>` +
+        `<td class="num" data-col="cost"></td>`
+      : "")
   );
 }
 

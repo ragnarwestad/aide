@@ -194,7 +194,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
     dependsOn: [], analyzeStale: false, totalDurationSessionOnly: false,
   };
   const captionRow = (opts.modelChoices ?? []).length
-    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts)}</tr>`
+    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false)}</tr>`
     : "";
   const phaseRows = PHASE_LINES.map((step) => {
     // `create` MADE the spec these lines belong to and cannot be

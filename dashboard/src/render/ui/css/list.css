@@ -45,7 +45,8 @@
    narrower than the table inside it, and a horizontal scrollbar
    appeared for that one pixel. */
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  max-width: calc(var(--speclist-width) + 2px); padding-bottom: var(--sp-3); }
+  max-width: calc(var(--speclist-width) + 2px); width: 100%; box-sizing: border-box;
+  margin-inline: auto; padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }
 /* REQ-3 (spec 379): only the specs list stops stretching to the frame.
@@ -68,6 +69,15 @@ table.speclist { width: var(--speclist-width); table-layout: fixed; }
    reads as "Timeout is far to the right" rather than beside its
    neighbours. Auto layout sizes the table to its own columns instead. */
 table.settingstable { width: auto; }
+/* Spec 415: the New-spec page's own AI/Model table has the same
+   narrow-content-columns complaint as .settingstable just above, but it
+   shares plain table.list with the Specs list's phase rows (spec 342),
+   so it cannot take table.speclist's or table.settingstable's own
+   class without inheriting rules meant for a different table. Scoped
+   by the page's existing form id instead: no new class, so the closed
+   class vocabulary (css-guard-class-vocabulary.test.ts) and the exact
+   table-tag string match in new-spec-page.test.ts both stay untouched. */
+#new-spec-form table.list { width: auto; }
 /* Measured in a browser against the widest thing each column can draw,
    plus the cell's own padding (--sp-3 on each side): Spec is
    the first two together carry `.spec-name`'s 27rem box, which the
@@ -221,7 +231,15 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    even for the table. Scoped to `#jobrows` because `.specsearch` is
    shared with `/schedule` (filter-pill.css), which has no such
    ancestor and must render exactly as it does today. */
-#jobrows .specsearch { max-width: var(--speclist-width); }
+/* Centred the same way as .tablewrap just above, and for the same
+   reason page.css's own frame rule states (spec 325): a flex item with
+   auto cross-margins and no explicit width shrinks to its own content
+   instead of stretching — this row's content (the search field, the
+   state filter, New spec) is much narrower than --speclist-width, so
+   without width: 100% here it would shrink far below the table's own
+   width and drift apart from it (spec 381). */
+#jobrows .specsearch { max-width: var(--speclist-width); width: 100%; box-sizing: border-box;
+  margin-inline: auto; }
 /* The clear control (spec 226) sits IN the field, at its right edge —
    where every search box a reader has used before puts it. The wrapper
    is what the absolute position is measured from; it takes the field's

@@ -401,6 +401,35 @@ describe("spec 342: the phase table", () => {
     expect(box).toContain('form="new-spec-form"');
   });
 
+  // Spec 415, REQ-2: the caption row shares phaseCaptionCells() with the
+  // Specs list's own 6-column table, but this page's phase rows carry
+  // only 2 <td>s each and the table has no <colgroup> — the shared
+  // helper's 4 list-only cells had nothing under them and nothing
+  // sizing them, which read as a stray blank field beside the picker.
+  test("spec 415 REQ-2: the caption row and phase rows both have exactly 2 <td>s", () => {
+    const html = newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }] });
+    const captionRow = html.match(/<tr class="subrow" data-caption="1">.*?<\/tr>/)?.[0] ?? "";
+    expect(captionRow).not.toBe("");
+    expect(captionRow.match(/<td/g)?.length).toBe(2);
+    expect(captionRow).not.toContain('data-col="created"');
+    expect(captionRow).not.toContain('data-col="started"');
+    expect(captionRow).not.toContain('data-col="cost"');
+    expect(captionRow).not.toContain("<td></td>");
+
+    const analyzeRow = subRow(html, "analyze");
+    expect(analyzeRow.match(/<td/g)?.length).toBe(2);
+  });
+
+  // Spec 415, REQ-3: a stand-in for "the table no longer reserves space
+  // for columns that do not exist here" — the actual rendered width
+  // needs a real browser, covered by the e2e check instead.
+  test("spec 415 REQ-3: the table's HTML carries no list-only column markers", () => {
+    const html = table(newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }] }));
+    expect(html).not.toContain('data-col="created"');
+    expect(html).not.toContain('data-col="started"');
+    expect(html).not.toContain('data-col="cost"');
+  });
+
   // REQ-3: the two sit together, not separated by the phase table — a
   // "Depends on" field is only drawn at all when there is another spec
   // to build on, so this exercises that case rather than the bare page.

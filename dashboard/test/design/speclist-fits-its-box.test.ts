@@ -27,4 +27,29 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(wrap).toBe("calc(var(--speclist-width) + 2px)");
     expect(css).toMatch(/table\.list \{[^}]*border: 1px solid/);
   });
+
+  // Spec 415, REQ-1: a flex item inside #jobrows's column flex container
+  // stretches to the container's full cross width and is then clamped by
+  // its own max-width, but stays left-flush unless it also carries an
+  // explicit width plus auto cross-margins (page.css's own centering
+  // recipe, spec 325) to redistribute the leftover space.
+  test("#jobrows .tablewrap and #jobrows .specsearch both center themselves", () => {
+    const wrap = /#jobrows \.tablewrap \{[^}]*\}/.exec(css)![0]!;
+    expect(wrap).toMatch(/width: 100%/);
+    expect(wrap).toMatch(/box-sizing: border-box/);
+    expect(wrap).toMatch(/margin-inline: auto/);
+
+    const search = /#jobrows \.specsearch \{[^}]*\}/.exec(css)![0]!;
+    expect(search).toMatch(/width: 100%/);
+    expect(search).toMatch(/box-sizing: border-box/);
+    expect(search).toMatch(/margin-inline: auto/);
+  });
+
+  // Spec 415, REQ-3: the New-spec page's AI/Model table has the same
+  // narrow-content-columns complaint .settingstable already fixed
+  // (spec 409) — scoped by the page's own form id rather than a new
+  // class, since it shares plain table.list with the Specs list.
+  test("the New-spec page's phase table does not stretch to the page's full width", () => {
+    expect(css).toContain("#new-spec-form table.list { width: auto; }");
+  });
 });
