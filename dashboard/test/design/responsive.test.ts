@@ -221,6 +221,14 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // Free space at the end of the line is not a spacing: an auto margin
   // there put the width of whatever the status text left between the
   // status and the pair.
+  // 12px of table-cell padding, added outside the 5.3rem the cell is
+  // given (content-box), sat between the phase's name and the tick box.
+  test("the phase name's cell gives its right padding back", () => {
+    expect(NARROW).toContain(".phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; padding-right: 0; }");
+    // The left one stays — it is the indent under the spec's own name.
+    expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
+  });
+
   test("no rule is drawn under a phase line", () => {
     expect(NARROW).toContain("table.list tr.subrow { border-bottom: none; }");
     expect(NARROW).not.toContain("table.list tr.subrow { border-bottom: 1px");

@@ -233,7 +233,13 @@
      between every phase of an open spec. */
   table.list tr.subrow > td { border-bottom: none; }
   table.list tr.subrow { border-bottom: none; }
-  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
+  /* The cell's own right padding (12px, from `table.list td`) sat
+     between the phase's name and the tick box beside it, on top of the
+     row's flex gap. Nothing lines up against it — the width is the
+     5.3rem below, and the padding is added OUTSIDE it (content-box) —
+     so it is 12px of nothing. The left padding stays: it is what makes
+     the phase lines read as indented under the spec's own name. */
+  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; padding-right: 0; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
   /* AI and Model, always shown, right after the status. 7.5rem for the
