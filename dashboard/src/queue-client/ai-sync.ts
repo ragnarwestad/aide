@@ -137,3 +137,24 @@ export function syncAiToModel(model: HTMLSelectElement): void {
     if (option.value === tool) ai.value = tool;
   }
 }
+
+/** The compact picker's own box, kept saying what the line is ON (spec
+ *  179's pair, narrow screens). The two selects inside it are the
+ *  truth; this is the one line of text over them, and a pick that left
+ *  it stale would have the reader looking at "Claude/sonnet" over a
+ *  Codex model until the next redraw.
+ *
+ *  The AI's word comes off the option the server wrote it on
+ *  (`data-short`) — which word stands for which tool is a fact about
+ *  the page — and the model is the select's own value. */
+export function refreshAiModelBox(container: Element): void {
+  const box = container.querySelector(".aimodelnow");
+  const model = container.querySelector(MODEL_SELECTS) as HTMLSelectElement | null;
+  if (!box || !model) return;
+  const ai = container.querySelector("select[data-ai]") as HTMLSelectElement | null;
+  const short =
+    ai?.selectedOptions[0]?.dataset.short ?? model.selectedOptions[0]?.dataset.tool ?? "";
+  const text = short ? `${short}/${model.value}` : model.value;
+  box.textContent = text;
+  box.setAttribute("title", text);
+}

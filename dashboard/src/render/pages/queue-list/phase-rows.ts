@@ -6,9 +6,9 @@ import { badge, phaseChip, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { QUEUE_STEPS, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, lockedDuration, modelPicker, phaseCaptionCells } from "./model-picker.ts";
+import { aiPicker, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
@@ -280,8 +280,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
         // No effort control: the line names the AI and the model, and
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
-        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}` +
-        `${modelPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}</span>` +
+        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (spec 274/247/284's
       // fallback in `phasesFor`), even with no Cost line recorded? Used
@@ -333,4 +332,47 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
+}
+
+/** The AI and the model a phase line offers, in one place.
+ *
+ *  Two shapes out of one DOM. Wide, the two selects stand side by side
+ *  as they always have. Narrow, they do not fit — a 360px phone has
+ *  room for one of them, not two — so a box eight characters wide says
+ *  what the line is ON ("Claude/sonnet"), and a tap lays the two
+ *  selects over it. The stylesheet decides which; the selects
+ *  themselves are drawn once, with the same `name` and `form` they have
+ *  always had, so nothing about what a press posts changes.
+ *
+ *  No JavaScript opens it: the box is a `<label>` for a checkbox, the
+ *  same technique the phase fold used, and `menu-script.ts` closes it
+ *  on a click outside or Escape the way it already closes the "…" menu.
+ *  A locked line draws the box unpressable — its selects are a record,
+ *  not a choice. */
+function aiModel(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  step: string,
+  busy: boolean,
+  live: boolean,
+  used?: string,
+  recordedModel?: string,
+): string {
+  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel);
+  const model = modelPicker(g, opts, step, busy, live, used, recordedModel);
+  if (!model) return `<span class="aimodel">${ai}</span>`;
+  const on = phaseAiModel(g, opts, step, used, recordedModel);
+  const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
+  const locked = isArchivedRow(g) || (busy && !live);
+  const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
+  const button = locked
+    ? `<span class="aimodelnow" aria-disabled="true" title="${esc(busyReason(g))}">${esc(now)}</span>`
+    : `<input type="checkbox" class="aimodelopen" id="${esc(id)}">` +
+      `<label class="aimodelnow" for="${esc(id)}" title="${esc(now)}">${esc(now)}</label>`;
+  return (
+    `<span class="aimodel">${button}<span class="aimodelpanel">` +
+    (ai ? `<label class="aimodelfield"><span>AI</span>${ai}</label>` : "") +
+    `<label class="aimodelfield"><span>Model</span>${model}</label>` +
+    `</span></span>`
+  );
 }

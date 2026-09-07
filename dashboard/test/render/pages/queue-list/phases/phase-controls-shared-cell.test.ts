@@ -284,7 +284,10 @@ describe("spec 192: the phase line's controls share one cell", () => {
       "table.list tr.subrow .modelcell, table.list tr.subrow .modelcell > .row " +
         "{ display: contents; }",
     );
-    expect(narrow).toContain("table.list tr.subrow .aimodel { display: flex;");
+    // The pair is one box at this width (2026-09-07), with the two
+    // selects in a panel that lays over it — a 360px phone has room for
+    // one select, not two.
+    expect(narrow).toContain("table.list tr.subrow .aimodel { display: block;");
     // And the widths the two selects reserve on a desktop are given
     // back — min AND max, or the 50/50 split never happens.
     expect(narrow).toContain(

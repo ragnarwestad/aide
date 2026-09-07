@@ -321,6 +321,38 @@ export const TOOL_NAMES: Record<string, string> = {
   "fake-claude": "Fake-Claude",
 };
 
+/** The same tools, in the one word a narrow screen has room for. The
+ *  compact picker (`aiModelButton`) shows an AI and a model together in
+ *  a box eight characters wide — "Claude Code/sonnet" does not fit, and
+ *  the second word is not the one that tells the two tools apart. */
+export const SHORT_TOOL_NAMES: Record<string, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  "fake-claude": "Fake-Claude",
+};
+
+/** What one phase line is actually ON: the model, and the tool that
+ *  model belongs to. The same two answers `modelPicker` and `aiPicker`
+ *  work out for themselves, from the same helpers — read here so the
+ *  compact button can say them without a third copy of the reasoning. */
+export function phaseAiModel(
+  g: SpecGroup,
+  opts: PickerOptions,
+  step: string,
+  used?: string,
+  recordedModel?: string,
+): { model: string; tool: string } | undefined {
+  const models = opts.modelChoices ?? [];
+  if (!models.length) return undefined;
+  const archived = isArchivedRow(g);
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
+  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const model = archived
+    ? resolveRecordedModel(models, configured, recordedModel)
+    : resolveChosenModel(models, configured, used, pending);
+  return { model, tool: models.find((m) => m.name === model)?.tool ?? "claude" };
+}
+
 // The AI a phase will run on, beside the model it will run (spec 179).
 // One per phase line, in the column between the phase's name and its
 // model — where spec 169's set-all control stood, and spec 127's
@@ -414,6 +446,11 @@ export function aiPicker(
         (t) =>
           `<option value="${esc(t)}"` +
           ` data-default="${esc(defaultModelForTool(models, t, configured) ?? "")}"` +
+          // The word the compact button shows. Written here because
+          // which word stands for which tool is a fact about the page,
+          // the same way `TOOL_NAMES` itself is — the browser copies it
+          // when a pick changes the button's text.
+          ` data-short="${esc(SHORT_TOOL_NAMES[t] ?? t)}"` +
           `${t === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[t]!)}</option>`,
       )
       .join("") +

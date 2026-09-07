@@ -348,6 +348,17 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 8rem; m
    before this control existed. The mobile media query below is what
    gives the chevron a shape and the checkbox a job. */
 .phasefold { display: inline-flex; align-items: center; gap: var(--sp-1); }
+/* The AI/model pair (spec 179) is one control on a narrow screen and
+   two side by side here — one DOM either way, because the two selects
+   post what a press sends and drawing them twice would post them twice.
+   At this width the compact box is not drawn at all and its panel is
+   `display: contents`, so the selects sit in the row exactly as they
+   did before the box existed. Their captions are the ones the caption
+   line above the phases already draws. */
+.aimodel { position: relative; }
+.aimodelopen, .aimodelnow { display: none; }
+.aimodelpanel, .aimodelfield { display: contents; }
+.aimodelfield > span { display: none; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
    name. Quiet at rest, obvious on hover, and the shut state turns the

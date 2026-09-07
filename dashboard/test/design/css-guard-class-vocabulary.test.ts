@@ -161,9 +161,12 @@ const STRUCTURE = [
   // table share "list" without wanting any of that.
   "speclist",
   // the mobile fold on a phase line (design handoff, mobile-spec-row):
-  // the label, its hidden checkbox, the chevron, and the AI+model pair
-  // the checkbox shows and hides. Inert on desktop.
-  "phasefold", "foldphase", "foldchevron", "aimodel",
+  // the phase name's own wrapper, and the compact AI/model picker a
+  // narrow screen draws: its box, the checkbox that opens it, the panel
+  // it lays over the box, and one labelled field per select. All four
+  // are inert on a wide screen, where the two selects stand as they
+  // always have.
+  "phasefold", "aimodel", "aimodelopen", "aimodelnow", "aimodelpanel", "aimodelfield",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead
