@@ -214,8 +214,8 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // that control is gone — and nothing is a second copy: the same two
   // selects are drawn once, for both widths.
   test("the pair is one box on a narrow screen, and a panel over it", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 8rem; }");
-    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: 8rem;");
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 calc(8rem - 10px); }");
+    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: calc(8rem - 10px);");
     expect(NARROW).toContain("table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }");
     expect(NARROW).not.toContain("foldphase");
   });

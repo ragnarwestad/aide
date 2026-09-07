@@ -244,13 +244,13 @@
   table.list tr.subrow .modelcell > .row { display: contents; }
   /* One box instead of two selects: a 360px phone has room for one of
      them, not two. It says what the line is ON — "Claude/sonnet" — in
-     8rem, and a tap lays the two selects OVER it, each under its own
+     8rem less 10px, and a tap lays the two selects OVER it, under its own
      word. The panel is positioned on the box itself (top/left 0), so it
      covers what was tapped rather than pushing the line below it down.
      No auto margin anywhere: free space at the line's end would stand
      between the status and the box, as wide as the status text left. */
-  table.list tr.subrow .aimodel { display: block; flex: 0 0 8rem; }
-  table.list tr.subrow .aimodelnow { width: 8rem; box-sizing: border-box;
+  table.list tr.subrow .aimodel { display: block; flex: 0 0 calc(8rem - 10px); }
+  table.list tr.subrow .aimodelnow { width: calc(8rem - 10px); box-sizing: border-box;
     height: 28px; padding: 0 var(--sp-2); border: 1px solid var(--line-strong);
     border-radius: var(--r-s); background: var(--surface); color: var(--text);
     font: var(--fs-s)/var(--lh) var(--mono); display: flex; align-items: center;
