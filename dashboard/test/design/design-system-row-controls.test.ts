@@ -21,7 +21,7 @@ import { rows, target } from "./design-system-fixtures.ts";
 // left gutter and pushed every other column sideways; then a cell in
 // the spec column spanning the phase lines (2026-08-19). The left edge
 // belongs to the phase lines now.
-describe("the row's one action rides beside the state, not in a column of its own", () => {
+describe("the row's one action rides with the name, not in a column of its own", () => {
   test("the header declares no blank cell, at either end", async () => {
     const html = rows([], { targets: [target()] });
     const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
@@ -32,13 +32,15 @@ describe("the row's one action rides beside the state, not in a column of its ow
     expect(thead).toMatch(/<\/a><\/th><\/tr><\/thead>$/);
   });
 
-  test("the button is in the head row's State cell, and spans no rows", () => {
+  test("the button is in the head row's name cell, and spans no rows", () => {
     const html = rows([], { targets: [target()] });
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    // The SECOND cell: name, then state. The Progress column stood
-    // between them until the pips moved in beside the name (2026-08-22).
-    expect(cells[1]).toContain("</button>");
+    // The FIRST cell: the button sits at the end of the name box since
+    // 2026-09-07, where the pips were. It was the State cell (the
+    // second) from spec 157 until then.
+    expect(cells[0]).toContain("</button>");
+    expect(cells[1]).not.toContain("</button>");
     // The guard is about THIS button, not about the string: spec 165
     // gave the row's AI select a legitimate spanning cell of its own,
     // so a blanket ban would now fail for the wrong reason. What must

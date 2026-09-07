@@ -38,9 +38,11 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
   });
 
-  test("carries the pip strip beside its name, like every other row", async () => {
+  // The pips came off the list on 2026-09-07; what a row carries beside
+  // its name is the slot every other row has, holding its one action.
+  test("carries the same action slot beside its name as every other row", async () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(
-      '<span class="pipslot">',
+      '<span class="actionslot">',
     );
   });
 

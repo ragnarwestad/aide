@@ -206,16 +206,11 @@ describe("spec 210: a running implement says which third it is in", () => {
     );
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  /** The spec head row's pip strip — where the fill lives. The phase
-   *  lines below carry no pip of their own. */
-  const pipStrip = (html: string, specFolder: string) =>
-    html
-      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${specFolder}">[\\s\\S]*?</tr>`))?.[0]
-      .match(/<div class="pips">[\s\S]*?<\/div>/)?.[0] ?? "";
-  /** The one pip in that strip that is the running one. `data-third` on
-   *  any other pip would be the mark answering the wrong question. */
-  const nowPip = (html: string, specFolder: string) =>
-    pipStrip(html, specFolder).match(/<span class="pip now"[^>]*>/)?.[0] ?? "";
+/** The pips came off the specs list on 2026-09-07: what a running
+   *  third says in WORDS is on the phase line, and the pips themselves
+   *  — thirds included, from the same phase data — are drawn and tested
+   *  on the spec page's own Overview
+   *  (`spec-page-head-standing.test.ts`). */
 
   // Criterion 2. `green` means RED is behind it: one third of three, not
   // two. The natural-looking mapping is off by one and nothing in the
@@ -226,7 +221,6 @@ describe("spec 210: a running implement says which third it is in", () => {
       [target("210-green")],
     );
     expect(subRow(html, "implement")).toContain("running (green)");
-    expect(nowPip(html, "210-green")).toContain('data-third="1"');
   });
 
   // Criterion 3.
@@ -236,7 +230,6 @@ describe("spec 210: a running implement says which third it is in", () => {
       [target("210-ref")],
     );
     expect(subRow(html, "implement")).toContain("running (refactor)");
-    expect(nowPip(html, "210-ref")).toContain('data-third="2"');
   });
 
   // Criterion 4: zero thirds complete renders identically to "no report
@@ -248,7 +241,6 @@ describe("spec 210: a running implement says which third it is in", () => {
       [target("210-red")],
     );
     expect(subRow(html, "implement")).toContain("running (red)");
-    expect(nowPip(html, "210-red")).not.toContain("data-third");
   });
 
   // Criterion 6: the report never arrived. Nothing throws, and the row
@@ -260,7 +252,6 @@ describe("spec 210: a running implement says which third it is in", () => {
     );
     expect(subRow(html, "implement")).toContain("running");
     expect(subRow(html, "implement")).not.toContain("running (");
-    expect(nowPip(html, "210-silent")).not.toContain("data-third");
   });
 
   // Criterion 5: analyze has no phase reports and is out of scope, so
@@ -276,7 +267,6 @@ describe("spec 210: a running implement says which third it is in", () => {
     );
     expect(subRow(html, "analyze")).toContain("running");
     expect(subRow(html, "analyze")).not.toContain("running (");
-    expect(pipStrip(html, "210-analyze")).not.toContain("data-third");
   });
 
   // A job WAITING to start is in no TDD phase at all. Its own trap:
@@ -289,7 +279,6 @@ describe("spec 210: a running implement says which third it is in", () => {
     );
     expect(subRow(html, "implement")).toContain("queued");
     expect(subRow(html, "implement")).not.toContain("(green)");
-    expect(pipStrip(html, "210-waiting")).not.toContain("data-third");
   });
 
   // Criterion 7: the phase is over. A stale entry from the session it
@@ -302,7 +291,6 @@ describe("spec 210: a running implement says which third it is in", () => {
         [target("210-over")],
       );
       expect(subRow(html, "implement")).not.toContain("(refactor)");
-      expect(pipStrip(html, "210-over")).not.toContain("data-third");
     }
   });
 });

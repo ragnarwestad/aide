@@ -12,7 +12,7 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
-// --- spec 157: one action beside the state, and the phases hard left ---------
+// --- spec 157: one action per row, and the phases hard left -----------------
 //
 // The first column of a row has never settled. Spec 124 gave the
 // buttons a column of their own, which pushed the whole table sideways;
@@ -26,7 +26,7 @@ import {
 //
 // The button is named for the first TICKED phase, not for the state's
 // own suggestion, so a reader can see the two disagree before pressing.
-describe("spec 157: the row's one action sits in the State column", () => {
+describe("spec 157: the row draws one action, at the end of the name box", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -53,9 +53,13 @@ describe("spec 157: the row's one action sits in the State column", () => {
   const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
   const cells = (tr: string): string[] =>
     [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-  /** The State column: the head row's third cell, which is where spec
-   *  143 pinned it and where the action now joins the badge. */
+  /** The State column: the head row's second cell, which is where spec
+   *  143 pinned it. The badge is what it holds. */
   const state = (html: string) => cells(headRow(html))[1] ?? "";
+  /** The name cell, which is where the row's one control lives since
+   *  2026-09-07 — hard against the end of the name box, where the pips
+   *  were. */
+  const action = (html: string) => cells(headRow(html))[0] ?? "";
   /** What the row's one control SAYS. `<button>` for Run, and the
    *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
@@ -71,7 +75,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
     test(`the next unstarted phase names the button (${open ? "open" : "shut"}, criterion 1)`, () => {
       const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open });
       expect(state(html)).toContain(">ready<");
-      expect(labels(state(html))).toEqual(["Implement"]);
+      expect(labels(action(html))).toEqual(["Implement"]);
     });
   }
 
@@ -81,7 +85,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
     // row that has run something, so it agrees with the button beside
     // it rather than saying nothing.
     expect(state(html)).toContain(">ready<");
-    expect(labels(state(html))).toEqual(["Analyze"]);
+    expect(labels(action(html))).toEqual(["Analyze"]);
   });
 
   // Spec 176, criterion 5: the case a hardcoded "not started" got
@@ -94,7 +98,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
     expect(state(html)).toContain('class="badge b-ready"');
     expect(state(html)).toContain(">ready<");
     expect(state(html)).not.toContain("not started");
-    expect(labels(state(html))).toEqual(["Implement"]);
+    expect(labels(action(html))).toEqual(["Implement"]);
   });
 
   // Criterion 3 said a spec with nothing ticked draws no button. Since
@@ -105,7 +109,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   // rule beneath it: the button names what a press would run.
   test("a spec that has run everything is offered Archive (criterion 3)", () => {
     const html = rows([lead()], [target("157-one-action", { done: ALL })]);
-    expect(labels(state(html))).toEqual(["Archive"]);
+    expect(labels(action(html))).toEqual(["Archive"]);
   });
 
   // The label is the reader's own tick, not the state's suggestion, so
@@ -121,7 +125,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
     );
     expect(state(html)).toContain("archive held back");
-    expect(labels(state(html))).toEqual(["Implement"]);
+    expect(labels(action(html))).toEqual(["Implement"]);
   });
 
   // --- criteria 4, 5: Cancel names the step it would stop -------------------
@@ -133,13 +137,13 @@ describe("spec 157: the row's one action sits in the State column", () => {
         [target("157-one-action", { done: BUILT })],
         { open },
       );
-      expect(labels(state(html))).toEqual(["Cancel"]);
-      expect(state(html)).toContain('action="/api/queue/j1/cancel"');
-      expect(state(html)).not.toContain(">Resolve<");
+      expect(labels(action(html))).toEqual(["Cancel"]);
+      expect(action(html)).toContain('action="/api/queue/j1/cancel"');
+      expect(action(html)).not.toContain(">Resolve<");
       // No Run button. The run FORM may still be there on an open row
       // — it is the carrier the phase boxes name — but nothing submits
       // it while a job is in flight.
-      expect(state(html)).not.toMatch(/<button[^>]*form="rowrun/);
+      expect(action(html)).not.toMatch(/<button[^>]*form="rowrun/);
     });
   }
 
@@ -148,7 +152,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [lead({ steps: ["analyze", "implement"], stepIndex: 1, state: "queued" })],
       [target("157-one-action", { done: [] })],
     );
-    expect(labels(state(html))).toEqual(["Cancel"]);
+    expect(labels(action(html))).toEqual(["Cancel"]);
   });
 
   // --- criterion 8: a shut row's Run carries its phases as hidden fields ----
@@ -158,7 +162,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   // and the two read the same `preTicked()` set to say so.
   test("a shut row's run form carries the ticked phases as hidden inputs (criterion 8)", () => {
     const html = rows([]);
-    const posted = [...state(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
+    const posted = [...action(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
       (m) => m[1],
     );
     expect(posted).toEqual(["analyze", "implement", "archive"]);
@@ -169,7 +173,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   // and outvote a reader who unticked one (criterion 12).
   test("an open row's run form carries no steps of its own (criterion 12)", () => {
     const html = rows([], [target("157-one-action")], { open: true });
-    expect(state(html)).not.toContain('name="steps"');
+    expect(action(html)).not.toContain('name="steps"');
     expect(html).toContain('<input type="checkbox" name="steps" value="analyze"');
   });
 
@@ -242,8 +246,8 @@ describe("spec 157: the row's one action sits in the State column", () => {
         }),
       ],
     );
-    expect(labels(state(html))).toEqual(["Archive"]);
-    const posted = [...state(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
+    expect(labels(action(html))).toEqual(["Archive"]);
+    const posted = [...action(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
       (m) => m[1],
     );
     expect(posted).toEqual(["archive"]);
@@ -260,7 +264,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [],
       [target("161-cleared", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(labels(state(html))).toEqual(["Archive"]);
+    expect(labels(action(html))).toEqual(["Archive"]);
   });
 
   // Spec 191: the two halves of that same cell were worked out apart.
@@ -275,7 +279,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [target("191-agree", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
     expect(state(html)).toContain(">ready<");
-    expect(labels(state(html))).toEqual(["Archive"]);
+    expect(labels(action(html))).toEqual(["Archive"]);
   });
 
   // Spec 161's own scenario, asked of the BADGE this time: the
@@ -288,7 +292,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [target("191-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
     expect(state(html)).toContain(">ready<");
-    expect(labels(state(html))).toEqual(["Archive"]);
+    expect(labels(action(html))).toEqual(["Archive"]);
     expect(state(html)).not.toContain("nothing waiting on you");
   });
 

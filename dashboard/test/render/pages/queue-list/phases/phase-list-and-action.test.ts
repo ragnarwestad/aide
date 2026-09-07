@@ -81,14 +81,16 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       ),
     )?.[0] ?? "";
   /** Where a row's one button is: the State cell, the head row's
-   *  THIRD, open or shut alike (spec 157). It was a column of its own
-   *  at the front of the table in spec 124, which put every button in
-   *  the page's left gutter and pushed the whole table sideways; then
-   *  the spec column's own spanning cell (2026-08-19); and the
-   *  header's LAST cell for a shut row all along. */
+   *  FIRST since 2026-09-07: the pips came off the list and the button
+   *  took their place at the end of the name box. It was the State cell
+   *  beside the badge from spec 157; a column of its own at the front of
+   *  the table in spec 124, which put every button in the page's left
+   *  gutter and pushed the whole table sideways; then the spec column's
+   *  own spanning cell (2026-08-19); and the header's LAST cell for a
+   *  shut row all along. */
   const actionCell = (chunk: string): string => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    return cells(headRow)[1] ?? "";
+    return cells(headRow)[0] ?? "";
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];

@@ -47,20 +47,18 @@ describe("the space between two controls comes from their container", () => {
     expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
 
-  // The exact width sits on the two BOXES inside the cell, not on the
-  // row around them (spec 379's REQ-1/REQ-4, corrected 2026-09-04): one
-  // box holding the whole row's width put every shorter row's leftover
-  // behind the button, which is the gap the rule exists to remove. What
-  // the browser actually draws is measured in
-  // `test/e2e/specs-page-layout.test.ts`; this only keeps the two
-  // widths from quietly becoming floors again, which is what let the
-  // widest row on the page govern the column before.
-  test("the State cell's two boxes carry exact widths, and the row around them carries none", () => {
-    expect(CSS).toMatch(/\.badgeslot \{[^}]*[^-]width:\s*[\d.]+rem[^}]*\}/);
+  // The badge and the button shared one cell until 2026-09-07, and each
+  // carried an exact width so the button started at the same x on every
+  // row (spec 379's REQ-1/REQ-4). The button sits in the name box now
+  // and the badge has a column to itself, so the alignment is the
+  // TABLE's: only the button keeps a width, since nothing in the name
+  // box aligns it otherwise. What the browser draws is measured in
+  // `test/e2e/specs-page-layout.test.ts`; this keeps the one remaining
+  // width from quietly becoming a floor, which is what let the widest
+  // row on the page govern the column before.
+  test("the button carries an exact width, the badge takes its column's, and no row carries one", () => {
     expect(CSS).toMatch(/\.actionslot \{[^}]*[^-]width:\s*[\d.]+rem[^}]*\}/);
-    expect(CSS).toMatch(/table\.list tr\.spechead > td > \.row \{[^}]*flex-wrap:\s*nowrap[^}]*\}/);
-    expect(CSS.match(/table\.list tr\.spechead > td > \.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("width:");
-    // The shared rule keeps its own alignment and gains nothing.
+    expect(CSS).not.toMatch(/\.badgeslot \{[^}]*[^-]width:\s*[\d.]+rem[^}]*\}/);
     expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("width");
   });
 });

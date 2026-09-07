@@ -59,7 +59,12 @@ describe("spec 406, REQ-7: a closed spec's own row", () => {
       html.indexOf(`data-folder="${CLOSED_FOLDER}"`),
       html.indexOf(`data-folder="${CLOSED_FOLDER}"`) + 2000,
     );
-    expect(row.toLowerCase()).toContain("closed");
-    expect(row.toLowerCase()).not.toContain("archived");
+    // The WORDS the row shows, not its markup: `archive-date` and
+    // `archive-duration` are class names on the two cells at the end,
+    // and the row is short enough since 2026-09-07 for the slice to
+    // reach them.
+    const words = row.replace(/<[^>]*>/g, " ").toLowerCase();
+    expect(words).toContain("closed");
+    expect(words).not.toContain("archived");
   });
 });
