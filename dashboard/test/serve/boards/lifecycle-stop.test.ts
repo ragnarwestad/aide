@@ -38,6 +38,7 @@ function makeCtx(store: BoardStore): BoardsContext {
     makeWorkDir: () => "/tmp",
     reservedPorts: () => [],
     findFreePort: async () => 9000,
+    boardOnPort: async () => undefined,
   };
 }
 

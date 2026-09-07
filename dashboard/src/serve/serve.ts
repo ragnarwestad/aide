@@ -50,6 +50,8 @@ import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { BoardStore } from "./boards/store.ts";
 import { findFreePort, type BoardsContext } from "./boards/lifecycle.ts";
+import { recoverBoards } from "./boards/recover.ts";
+import { boardOnPort } from "./boards/port-owner.ts";
 
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts without a token is only
@@ -216,6 +218,11 @@ export function createServer(opts: ServerOptions) {
       ...boardStore.all().filter((e) => e.status !== "failed").map((e) => e.port),
     ],
     findFreePort,
+    // Reads the process table, so a board still running after a
+    // restart can be found again: what holds the port, and which
+    // directory it was started with. `--root <work>/root` is the round's
+    // own invocation, and the work directory is what identifies it.
+    boardOnPort: opts.boardsOnPort ?? boardOnPort,
   };
 
   const land = setupLand(state, {
@@ -418,6 +425,19 @@ export function createServer(opts: ServerOptions) {
     },
   });
   state.server = server;
+
+  // A deploy restarts this process, and the registry lives in memory:
+  // a test server started before it is still up, still holding its
+  // port and its branch. Asked here, once, so the next click on that
+  // spec's link goes to the board that exists rather than failing to
+  // start a second one on a branch git already has checked out.
+  void recoverBoards(boardsCtx, [...allowed])
+    .then((found) => {
+      for (const e of found) console.log(`boards: ${e.branch} is still running on :${e.port}`);
+    })
+    .catch(() => {
+      // Best effort: a dashboard that could not ask still serves.
+    });
 
   return {
     port: server.port,

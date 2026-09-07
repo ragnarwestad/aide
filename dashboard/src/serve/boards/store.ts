@@ -27,6 +27,10 @@ export interface BoardEntry {
    *  log once it has finished seeding and draining every fixture spec.
    *  Display-only; absent for most of the "starting" window. */
   pid?: number;
+  /** Set on an entry this server did not start but FOUND again after a
+   *  restart (`recover.ts`): its wrapper is gone, so `wrapperPid` is
+   *  the board's own process and the signal goes to it directly. */
+  recovered?: boolean;
   url?: string;
   workDir: string;
   logPath: string;
@@ -59,6 +63,7 @@ function parseBoards(raw: unknown): Record<string, BoardEntry> {
       port: v.port,
       wrapperPid: v.wrapperPid,
       pid: typeof v.pid === "number" ? v.pid : undefined,
+      recovered: v.recovered === true ? true : undefined,
       url: typeof v.url === "string" ? v.url : undefined,
       workDir: v.workDir,
       logPath: v.logPath,

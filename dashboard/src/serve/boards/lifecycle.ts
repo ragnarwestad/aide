@@ -38,6 +38,12 @@ export interface BoardsContext {
    *  (REQ-10) — reserved before probing for a free one. */
   reservedPorts: () => number[];
   findFreePort: (reserved: number[]) => Promise<number>;
+  /** What is listening on one of the pool's ports, if it is a test
+   *  server: its process, and the directory that process was given.
+   *  `recover.ts` asks this once per port after a restart; the real
+   *  implementation reads the process table, and a test injects an
+   *  answer. `undefined` for a free port, or one held by anything else. */
+  boardOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
 }
 
 /** `git ls-remote --heads origin <branch>`'s own SHA — never a local
@@ -201,7 +207,11 @@ export function stopBoard(ctx: BoardsContext, project: string, specFolder: strin
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
   try {
-    process.kill(-entry.wrapperPid, "SIGTERM");
+    // A recovered board (`recover.ts`) has no wrapper left to lead a
+    // group: the signal goes to the board's own process instead, which
+    // is what the round's own disowned watcher waits for before it
+    // removes the worktree.
+    process.kill(entry.recovered ? entry.wrapperPid : -entry.wrapperPid, "SIGTERM");
   } catch {
     // already gone
   }

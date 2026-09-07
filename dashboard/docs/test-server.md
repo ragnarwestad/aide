@@ -13,6 +13,7 @@ often the more convincing one.
 - [What happens when you click it](#what-happens-when-you-click-it)
 - [Checking on it afterwards](#checking-on-it-afterwards)
 - [Stopping it](#stopping-it)
+- [After the dashboard restarts](#after-the-dashboard-restarts)
 - [Which projects this works for](#which-projects-this-works-for)
 - [Under the hood](#under-the-hood)
 
@@ -51,6 +52,19 @@ has come up.
 A **Stop test server** button appears on the spec page once its test server is running. It also stops on
 its own, with nothing to press, the moment the spec it belongs to is actually archived — merged or
 discarded, there is no reason left to keep a preview of it running.
+
+## After the dashboard restarts
+
+Deploying new code restarts this dashboard, and what it knows about running test servers lives in
+memory. A test server started before the restart is still up — still on its port, still holding its
+branch checked out — so on start-up the dashboard asks the ports themselves: what is listening
+there, which directory that process was started with, and which branch the project's own worktree
+list says is checked out in it. What it finds goes back in the register, and the spec page shows it
+again.
+
+Without that, the next click on the spec's link tried to start a second test server on a branch git
+already had checked out, and refused: "it may already be checked out there, or in a leftover
+worktree".
 
 ## Which projects this works for
 

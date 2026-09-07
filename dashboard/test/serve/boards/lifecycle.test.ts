@@ -32,6 +32,7 @@ function makeCtx(overrides: Partial<BoardsContext> = {}): BoardsContext {
     now: () => "2026-09-05T00:00:00.000Z",
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-test-")),
     reservedPorts: () => [],
+    boardOnPort: async () => undefined,
     findFreePort: async (reserved) => {
       let port = 9000;
       while (reserved.includes(port)) port++;
