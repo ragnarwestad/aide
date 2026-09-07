@@ -77,13 +77,40 @@
      (min-width: auto), so a long spec name forced the whole row — and
      with it the table — wider than the viewport instead of letting the
      label's own ellipsis do its job. */
-  table.list tr.spechead > td:first-child { flex: 1 1 100%; min-width: 0; }
+  /* The first cell and the name box inside it are dissolved (2026-09-07,
+     the 360px round): the title has line 1 to itself, and the pips —
+     which live INSIDE the name box, where a desktop wants them — have
+     to reach line 2 to stand beside the button and the badge. A cell
+     cannot wrap around another cell's boundary and a child cannot
+     leave its parent's box, so both boxes go and their contents become
+     items of the row itself. The same technique the phase lines use for
+     `.modelcell`. */
+  table.list tr.spechead > td:first-child { display: contents; }
+  /* Line 1: the fold's own 24px, the row's 8px gap, and 8px more —
+     `100% - 32px` is the exact sum, and exact is what wraps, since one
+     fractional pixel in the row's own width is enough to put the title
+     under the chevron instead of beside it. */
+  table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }
+  /* Line 2, in the order asked for: the button, the pips, the state.
+     The badge and the button share one cell, so the cell is dissolved
+     too and the row orders all three itself. */
+  table.list tr.spechead > td:nth-child(2) { display: contents; }
+  table.list tr.spechead > td:nth-child(2) > .row { display: contents; }
+  /* The button leads line 2, and the cell padding that used to stand
+     to its left went with the cell (dissolved above). The 12px back is
+     the phase lines' own left padding: line 2 starts where the phase
+     names under it start. */
+  table.list tr.spechead .actionslot { order: 1; margin-left: var(--sp-3); }
+  table.list tr.spechead .pipslot { order: 2; }
+  table.list tr.spechead .badgeslot { order: 3; }
+  /* The spec's own summary line, under both. */
+  table.list tr.spechead .spec-title { order: 3; flex: 0 0 100%; }
   /* The header line starts further left than the phase lines under it
      (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
      the base cell padding (var(--sp-3)) put it flush with the minor
-     detail lines an open row shows. flush with the card's edge; the
-     subrows keep the full padding and so read as indented under it. */
-  table.list tr.spechead > td:first-child { padding-left: 0; }
+     detail lines an open row shows. The cell itself is dissolved above,
+     so the padding it used to carry is gone with it; the subrows keep
+     theirs and so read as indented under this line. */
 
   /* The open spec's faint ground, restated on the ROWS: the base rule
      paints the cells, and at this width the cells are flex items with
@@ -106,9 +133,7 @@
      wrap the cost off the line on a phone. The row's flex gap is the
      one spacing between them. */
   table.list tr.spechead > td:not(:first-child) { padding-left: 0; padding-right: 0; }
-  /* Except a sliver against the card's right edge, so the cost does
-     not sit flush on it. */
-  table.list tr.spechead > td:last-child { padding-right: var(--sp-2); }
+
   /* The 2px separator above a spec sits on the CELLS in the base rule,
      and here the cells wrap onto line 2 — each drawing its own border
      segment, which read as a stray grey line between the name and the
@@ -128,12 +153,6 @@
      side with the ordinary gap once space-between's old reserved space
      (REQ-4, spec 379) is gone. */
   table.list tr.spechead > td > .row { width: auto; justify-content: flex-start; }
-  /* .actionslot reserves 6.5rem (the widest label, "Implement") so the
-     button does not shift position between rows sharing a desktop
-     column. There is no such column on mobile — every row is its own
-     block — so a shorter label ("Archive") left that width standing
-     empty, which is what was still forcing Cost to wrap even after the
-     other two gaps were closed. */
   table.list tr.spechead .actionslot { width: auto; }
   /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
@@ -142,14 +161,25 @@
      background (2026-08-24). Sized for the longest label it can carry
      now that the resting texts are one word ("ready"/"done"):
      "implementing queued", 19 characters of fs-s plus dot and padding. */
-  table.list tr.spechead .badgeslot { width: 9rem; margin-left: var(--sp-2); }
+  /* The badge takes its own text's width here. The 9rem it reserved
+     was sized for the longest label there is ("implementing queued")
+     so that the button after it started at the same x on every row —
+     and there is no button after it any more: the order is button,
+     pips, state. Held anyway, a "ready" of five characters carried
+     144px of reserved width and wrapped the state onto a third line. */
+  table.list tr.spechead .badgeslot { width: auto; margin-left: 0; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
      the pips, the badge and the button all reading down one left edge,
      an auto margin left the last two figures alone out at the far side
      with the row's free space between. */
-  table.list tr.spechead [data-col="started"] { display: block; }
+  /* Time and Cost go the way Created already had (2026-09-07): the
+     phone's spec line is the title, then the pips, the button and the
+     state — a reader here is checking what is happening and pressing
+     the one control, and neither figure is part of either. */
+  table.list tr.spechead [data-col="started"] { display: none; }
+  table.list tr.spechead [data-col="cost"] { display: none; }
   /* Spec 317, REQ-8: dropped rather than reflowed onto this already-
      crowded line (fold, name, pips, badge, action, duration, cost) — a
      phone reader here is oriented to state and how long it took, not
@@ -179,7 +209,12 @@
      kept its own intrinsic width and wrapped a line early, leaving the
      space the auto-margin before the pips was not using empty instead
      of given to the name. */
-  .spec-name { gap: var(--sp-1); }
+  /* The name box itself is dissolved (see the head-row block above):
+     the fold, the title and the pips become items of the ROW, which is
+     what lets the title have line 1 and the pips reach line 2. The gap
+     between fold and title is the row's own from here on, so the
+     tighter one this rule used to set has nothing left to set it on. */
+  .spec-name { display: contents; }
   .spec-name > .fold { margin-right: 0; }
   /* A WIDTH, the same way the desktop's 27rem name box is a width and
      not a maximum: the pips start at the same x on every row only if

@@ -57,22 +57,41 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  test("the spec header keeps its date, on the same left edge as the rest", () => {
-    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
-    // The auto margin stood the two figures alone at the far side of the
-    // row once the name, the pips, the badge and the button all read
-    // down one left edge.
-    expect(NARROW).not.toContain('tr.spechead [data-col="started"] { display: block; margin-left: auto;');
+  // Time and Cost went the way Created already had (2026-09-07): the
+  // phone's spec line is the title, then the pips, the button and the
+  // state. A reader there is checking what is happening and pressing the
+  // one control; neither figure is part of either.
+  test("the spec header drops its time and its cost too", () => {
+    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: none; }');
+    expect(NARROW).toContain('table.list tr.spechead [data-col="cost"] { display: none; }');
   });
 
-  // The action button after the badge must start at the same x on every
-  // row, whatever the state's wording — so the badge reserves the width
-  // of its longest label ("implementing queued") instead of sizing to
-  // whichever word it happens to carry.
-  test("the spec header's badge SLOT reserves one width for every state", () => {
-    // The holder, never the pill: a min-width on the badge itself
-    // stretched its coloured background.
-    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ width: [\d.]+rem/);
+  // Line 1 is the title alone; line 2 is the pips, the button and the
+  // state, in that order. The pips live inside the name box — where a
+  // desktop wants them — so both the cell and the box are dissolved to
+  // let them reach the second line.
+  // The chevron and the title share line 1. The title's width is the
+  // row less the chevron, the gap AND a little slack: the exact sum
+  // wraps, because one fractional pixel in the row's width is enough to
+  // drop the title under the chevron.
+  test("the head row is two lines: the title, then the button, the pips and the state", () => {
+    expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
+    expect(NARROW).toContain(".spec-name { display: contents; }");
+    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
+    expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; margin-left: var\(--sp-3\); \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
+  });
+
+  // The badge reserved the width of its longest label ("implementing
+  // queued") so the button AFTER it started at the same x on every row.
+  // Nothing comes after it any more — the order is button, pips, state
+  // (2026-09-07) — and 144px held for a five-letter "ready" wrapped the
+  // state onto a line of its own.
+  test("the spec header's badge takes its own width", () => {
+    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ width: auto/);
+    // The holder, never the pill: a width on the badge itself stretches
+    // its coloured background.
     expect(NARROW).not.toMatch(/tr\.spechead \.badge \{/);
   });
 
