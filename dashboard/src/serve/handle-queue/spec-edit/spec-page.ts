@@ -2,7 +2,7 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { startBoard } from "../../boards/lifecycle.ts";
+import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
@@ -39,6 +39,18 @@ export async function specPageRoutes(
         !ref?.archived &&
         ctx.boards.roundAvailable(project!) &&
         ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.boards.aideCheckout(project!));
+      // A board already up is where the reader wanted to go: straight
+      // there, in the tab the link opened. REQ-3 asks for the board's
+      // own page, and this is the moment there is one to ask for.
+      const already = refreshBoardStatus(ctx.boards, project!, specFolder!);
+      if (already?.status === "running" && already.url) {
+        return Response.redirect(already.url, 303);
+      }
+      // Otherwise it has to be started, and that takes minutes. The
+      // Steps tab is where the wait is visible — it reloads on its own
+      // (`RELOADING_TABS`), and the banner above it says the board is
+      // starting and then names its address. A second click, once it is
+      // up, takes the branch above.
       if (capable) await startBoard(ctx.boards, project!, specFolder!);
       return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
     }
