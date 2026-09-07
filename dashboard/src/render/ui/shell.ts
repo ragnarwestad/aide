@@ -29,12 +29,15 @@ function lastInstallWarning(lang: Language): string | undefined {
     return undefined;
   }
   const lastBlock = text.split(/^--- .* ---$/m).pop() ?? "";
-  // Only the declared-tools step's own warnings (`[aide tools]`, written
-  // by core/scripts/_install-bin.sh). The installers also print ⚠️ for
-  // things a machine may legitimately not have — Codex, a browser MCP,
-  // a PATH line — and a banner that fired on any of those was on after
-  // every merge, which is the same as no banner.
-  return /⚠️\s+\[aide tools\]/.test(lastBlock)
+  // Two tagged warnings only: the declared-tools step's (`[aide tools]`,
+  // core/scripts/_install-bin.sh) and the serve job's (`[aide serve]`,
+  // deploy/install-after-merge.sh — the launchd job passing an option
+  // this build no longer accepts, which kills the board at its next
+  // restart). The installers also print ⚠️ for things a machine may
+  // legitimately not have — Codex, a browser MCP, a PATH line — and a
+  // banner that fired on any of those was on after every merge, which
+  // is the same as no banner.
+  return /⚠️\s+\[aide (tools|serve)\]/.test(lastBlock)
     ? t(lang, "shell.installWarning", { path })
     : undefined;
 }
