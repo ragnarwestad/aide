@@ -148,6 +148,21 @@ describe("finding a test server again", () => {
     expect([asked, store.get("aide", "415-x")?.status]).toEqual([0, "starting"]);
   });
 
+  // Nothing here has ever had a test server, so nothing is asked of
+  // git — a project without the round is most of them.
+  test("a project the round cannot run on is not asked about at all", async () => {
+    const asked: string[][] = [];
+    const ctx = makeCtx({ worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e") });
+    ctx.roundAvailable = () => false;
+    ctx.gitRun = async (_dir, args) => {
+      asked.push(args);
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+    expect(asked).toEqual([]);
+  });
+
   test("a checkout git cannot be asked about recovers nothing, and does not throw", async () => {
     const ctx = makeCtx({ worktrees: undefined, onPort: async () => ({ pid: 1, workDir: "/w" }) });
     expect(await recoverBoards(ctx, ["aide"])).toEqual([]);

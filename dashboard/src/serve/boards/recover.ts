@@ -85,6 +85,9 @@ function isRoundWorktree(wt: WorktreeLine): boolean {
 export async function recoverBoards(ctx: BoardsContext, projects: string[]): Promise<BoardEntry[]> {
   const known = new Map<string, { project: string } & WorktreeLine>();
   for (const project of projects) {
+    // A project the round cannot run on has never had a test server, so
+    // there is nothing to find and no reason to ask git anything.
+    if (!ctx.roundAvailable(project)) continue;
     const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
@@ -159,6 +162,7 @@ export async function sweepDeadBoards(
   const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));
   const removed: string[] = [];
   for (const project of projects) {
+    if (!ctx.roundAvailable(project)) continue;
     const root = ctx.aideCheckout(project);
     const listed = await ctx.gitRun(root, ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
