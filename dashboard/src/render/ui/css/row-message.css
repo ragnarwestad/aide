@@ -4,6 +4,9 @@
   padding: 6px 10px; border-radius: var(--r-s); font-size: var(--fs-s);
   border: 1px solid; margin: var(--sp-1) 0 0; }
 .rowmsg svg { width: 14px; height: 14px; flex: none; }
+/* A refusal that lands under a form needs air between it and the Save
+   it is answering: 4px read as part of the button row. */
+.trackingform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
 .rowmsg.failed { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 .rowmsg.waiting { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
 .rowmsg.info { background: var(--surface-2); border-color: var(--line); color: var(--muted); }

@@ -47,7 +47,9 @@
 // reset confirmation page). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
-import { helpPopover, rowMessage } from "../ui/components.ts";
+import { badge, helpPopover, rowMessage } from "../ui/components.ts";
+import { gerund } from "../ui/job-state/resting.ts";
+import { phasePips } from "./queue-list/cell-helpers.ts";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -147,6 +149,16 @@ export function renderSpecPage(
           // every tab, when this tab lost its old "Overview" name.
           : checklist(view, mark);
 
+  // Where the spec stands, on the line that names it: the four pips the
+  // specs list already draws, and — while a phase is running — what it
+  // is doing, in the reader's own language. The page said this only in
+  // the Logs tab, one click away, so a spec you had just started looked
+  // exactly like one that had never run.
+  const running = lead?.runningStep?.step;
+  const headTrailing =
+    (view.phases?.length ? phasePips(view.phases, view.done ?? []) : "") +
+    (running ? badge("running", gerund(opts.lang ?? "en", running)) : "");
+
   const body = tabbedBody(
     banner,
     tabBar(
@@ -165,6 +177,7 @@ export function renderSpecPage(
     // taking theirs, or the tab row's own buttons end a hand's width
     // to the right of everything they act on.
     true,
+    headTrailing,
   );
 
   return pageShell(
