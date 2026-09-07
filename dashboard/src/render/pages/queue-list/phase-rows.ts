@@ -2,7 +2,7 @@
 // has happened.
 
 import { PHASE_TAB, specTabPath } from "../spec-page.ts";
-import { ICON_CHEVRON, badge, phaseChip, stepLabel } from "../../ui/components.ts";
+import { badge, phaseChip, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
@@ -109,23 +109,13 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       const nameLink = href
         ? `<a href="${esc(href)}">${esc(stepLabel(p.step))}</a>`
         : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
-      // On mobile the AI/model selects are folded behind this control by
-      // default (design handoff, mobile-spec-row): reading the list to
-      // check status should not carry setup controls on every line. The
-      // checkbox is invisible outside the mobile media query, so desktop
-      // is unaffected — `.phasefold` is a plain inline wrapper there.
-      // Only `.aimodel`'s own visibility toggles on the checkbox
-      // (2026-08-24): `.modelcell` itself stays display:block on every
-      // subrow, open or shut, so the table's column layout never
-      // depends on which rows happen to be open — that inconsistency
-      // was the actual bug the first version of this control had.
-      // On a locked row too (spec 265): what this folds away is the
-      // `.aimodel` pair, and a locked line draws it now exactly as a
-      // live one does, so the chevron has the same thing to hide.
-      const name =
-        `<label class="phasefold">` +
-        `<input type="checkbox" class="foldphase">` +
-        `<span class="foldchevron">${ICON_CHEVRON}</span>${nameLink}</label>`;
+      // The phase's own name. It wore a fold control on mobile until
+      // 2026-09-07 — a chevron per phase line, whose only job was to
+      // hide the AI/model pair on a narrow screen. The pair fits beside
+      // the name at every width this list is drawn for (`narrow.css`
+      // states the floor), so there is nothing left to fold and no
+      // control to explain.
+      const name = `<span class="phasefold">${nameLink}</span>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.

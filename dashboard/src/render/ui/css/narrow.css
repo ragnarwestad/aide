@@ -1,4 +1,8 @@
 /* --- narrow: one screen, one place (spec 155) ------------------------- */
+/* The floor is 450px (2026-09-07). Phones narrower than that are not
+   drawn for, and saying so is what lets the widths below be generous
+   instead of defensive: 450 less the page's own padding leaves 418px,
+   and every fixed width in this block is chosen against that number. */
 /* Every rule the phone layout needs is in this one block, and each one
    repeats the selector of the desktop rule it overrides rather than
    writing a shorter one — the override wins by coming later, and a
@@ -172,14 +176,13 @@
   .spec-name > .fold { margin-right: 0; }
   /* A WIDTH, the same way the desktop's 27rem name box is a width and
      not a maximum: the pips start at the same x on every row only if
-     the box before them is the same size on every row. 11rem is what
-     fits beside them on the narrowest phone this is drawn for — 375px
-     less the page's own padding leaves 343, and the fold (28px) plus
-     the pips (101px) leave 214 for the name. A name longer than the box
-     wraps to a second line inside it and clamps there.
+     the box before them is the same size on every row. 17rem against
+     the 418px this block is drawn for — the fold (28px) and the pips
+     (101px) leave 289, and 17rem is 272 of it. A name longer than the
+     box wraps to a second line inside it and clamps there.
      Not a percentage: a share of the row is a different number of
      characters on every phone, and the name is set in mono. */
-  .spec-name > .label { flex: 0 0 11rem; min-width: 0; }
+  .spec-name > .label { flex: 0 0 17rem; min-width: 0; }
   /* The desktop's `margin-left: auto` is what makes every row's pips
      start at the same x, so they read as one column down the table.
      There is no column here — each row is its own block — and the
@@ -203,11 +206,12 @@
      tr.spechead above uses, where it holds up. Per-row state changes
      inside a flex container affect only that row.
 
-     Collapsed: [chevron name] [tick box] [status] on one line — the
-     name column fixed at 5.3rem ("implement", the longest) so the box
-     and status start at the same x on all four lines. Open: .aimodel
-     becomes a full-width item ordered last, so AI and Model drop to a
-     line of their own below, 50/50.
+     [name] [tick box] [status] [AI] [Model] on one line — the name
+     column fixed at 5.3rem ("implement", the longest) so the box and
+     status start at the same x on all four lines. The pair used to sit
+     behind a chevron per phase line; against the 418px floor it fits
+     beside the rest, and a control whose whole job was to hide two
+     fields that fit is a control to explain for nothing.
 
      display:contents on .modelcell and its .row lifts the box and
      .aimodel up to be flex items of the row itself; selectors like
@@ -221,18 +225,15 @@
   table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
-  table.list tr.subrow .phasefold { cursor: pointer; }
-  table.list tr.subrow .phasefold .foldchevron { display: inline-flex;
-    transform: rotate(-90deg); transition: transform 0.15s; }
-  table.list tr.subrow .phasefold .foldchevron svg { flex-shrink: 0; }
-  table.list tr.subrow:has(.foldphase:checked) .phasefold .foldchevron { transform: rotate(0deg); }
-  table.list tr.subrow .aimodel { display: none; }
-  table.list tr.subrow:has(.foldphase:checked) .aimodel {
-    display: flex; gap: var(--sp-2); flex: 1 1 100%; order: 10; }
-  /* max-width: none included: the desktop caps (8rem on the AI select,
-     100px on the model select) otherwise stop the two halves from
-     actually reaching 50% each. */
-  table.list tr.subrow:has(.foldphase:checked) .aimodel > * { flex: 1 1 0%; min-width: 0; max-width: none; }
+  /* AI and Model, always shown, at the line's own right: 6.5rem for the
+     AI ("Claude Code" is the longest name it carries) and 8rem for the
+     model ("claude-sonnet-4-6" is 17 characters of mono). Against the
+     418px floor: name 85, tick 18, status ~70, AI 104, model 128 and
+     the gaps — it fits, and a narrower window than the floor wraps the
+     pair onto a second line rather than scrolling. */
+  table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); margin-left: auto; }
+  table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 8rem; min-width: 0; max-width: none; }
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
@@ -247,11 +248,10 @@
      there is no second column inside the cell to line a caption up
      with, and a column that closes when its control is absent is
      better than a scrollbar. */
-  /* max-width: none on the model select too, or the 50/50 split above
-     never happens: this selector (attribute + element type) outweighs
-     the .aimodel > * rule, so the desktop 100px cap kept winning there
-     while the AI select — reset below at its own matching specificity —
-     grew freely. 90/10, not 50/50, until both caps fall together. */
+  /* The desktop's own caps on the two selects (8rem each, plus 100px on
+     the model) are set at this same specificity — attribute selector
+     plus element type — so they are undone here at it, or they win over
+     the widths above. */
   table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
   table.list tr.subrow .modelcell > .row > [data-cap],
   table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
