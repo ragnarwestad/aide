@@ -13,5 +13,8 @@
    told from running by hue alone, and the row that carries it also
    carries a .rowmsg.failed with its own mark. */
 .b-refused { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
-.b-done { background: var(--surface-2); color: var(--muted); }
+/* A border, like `.b-idle`'s: the ground is `--surface-2`, a shade off
+   the page's own, so without one the pill had no visible edge and the
+   word — "archived", "done" — read as plain text rather than a badge. */
+.b-done { background: var(--surface-2); color: var(--muted); border-color: var(--line); }
 

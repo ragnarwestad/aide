@@ -103,8 +103,13 @@
   table.list tr.spechead .actionslot { order: 1; margin-left: var(--sp-3); }
   table.list tr.spechead .pipslot { order: 2; }
   table.list tr.spechead .badgeslot { order: 3; }
-  /* The spec's own summary line, under both. */
-  table.list tr.spechead .spec-title { order: 3; flex: 0 0 100%; }
+  /* The spec's own summary line, under all three. `order: 3` — the
+     badge's own — put it BEFORE the badge: equal orders keep document
+     order, and this line is written in the first cell. Taking the whole
+     width, it then pushed the state onto a line of its own, which is
+     why a row with a summary wrapped and an archived one (which has
+     none) did not. */
+  table.list tr.spechead .spec-title { order: 4; flex: 0 0 100%; }
   /* The header line starts further left than the phase lines under it
      (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
      the base cell padding (var(--sp-3)) put it flush with the minor

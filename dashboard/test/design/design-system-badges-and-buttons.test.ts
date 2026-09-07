@@ -236,4 +236,12 @@ describe("the status badge carries no mark of its own", () => {
     const { CSS } = await import("../../src/render/ui/css.ts");
     expect(CSS).not.toContain(".badge .dot");
   });
+
+  // The settled pill is painted a shade off the page's own ground, so
+  // without an edge "archived" and "done" read as plain text.
+  test("the settled pills have an edge of their own", async () => {
+    const { CSS } = await import("../../src/render/ui/css.ts");
+    expect(CSS).toMatch(/\.b-done \{[^}]*border-color: var\(--line\)/);
+    expect(CSS).toMatch(/\.b-idle \{[^}]*border-color: var\(--line\)/);
+  });
 });
