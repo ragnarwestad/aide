@@ -7,6 +7,8 @@
 export const en = {
   "shell.theme": "Theme",
   "shell.language": "Language",
+  "shell.languageEnglish": "English",
+  "shell.languageNorwegian": "Norwegian",
   "shell.more": "More",
   "shell.settings": "Settings",
   "shell.about": "About",

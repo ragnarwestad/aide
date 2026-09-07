@@ -103,12 +103,15 @@ const DEPENDS_LIFT_SCRIPT = transpile("depends-lift.ts");
 // which means "the page you are on".
 const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]];
 
-// Each language's own flag and name, in that language — PaceUp's own
-// picker (`ViewControls.tsx`) draws every choice this way ("🇳🇴 Norsk",
-// "🇬🇧 English"), never a bare two-letter code (REQ-1, spec 409).
-const LANGUAGE_NAMES: Record<Language, { flag: string; name: string }> = {
-  en: { flag: "🇬🇧", name: "English" },
-  nb: { flag: "🇳🇴", name: "Norsk" },
+// Each language's own flag — PaceUp's own picker (`ViewControls.tsx`)
+// draws every choice as a flag plus a name, never a bare two-letter
+// code (REQ-1, spec 409). The name itself is translated into the
+// reader's selected language, not each language's own native name
+// (REQ-1..3, spec 413).
+const LANGUAGE_FLAGS: Record<Language, string> = { en: "🇬🇧", nb: "🇳🇴" };
+const LANGUAGE_NAME_KEYS: Record<Language, TranslationKey> = {
+  en: "shell.languageEnglish",
+  nb: "shell.languageNorwegian",
 };
 
 // Icons keyed by choice — the header control below draws no text label
@@ -163,10 +166,10 @@ function themeControl(lang: Language): string {
 // always targets `/`, unchanged".
 function languageControl(lang: Language): string {
   const other: Language = lang === "nb" ? "en" : "nb";
-  const choice = (l: Language) => `${LANGUAGE_NAMES[l].flag} ${LANGUAGE_NAMES[l].name}`;
+  const choice = (l: Language) => `${LANGUAGE_FLAGS[l]} ${t(lang, LANGUAGE_NAME_KEYS[l])}`;
   const langLabel = t(lang, "shell.language");
   return (
-    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_NAMES[lang].flag}</summary>` +
+    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_FLAGS[lang]}</summary>` +
     `<div class="menupanel">` +
     `<a href="/?lang=${lang}" aria-current="true">${choice(lang)}</a>` +
     `<a href="/?lang=${other}">${choice(other)}</a>` +
