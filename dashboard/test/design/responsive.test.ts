@@ -129,6 +129,35 @@ describe("Created folds away on the spec header at phone width", () => {
   });
 });
 
+// --- the pips belong to the NAME at phone width -----------------------------
+//
+// On the desktop the pips are pushed to the end of a fixed-width name
+// box, so every row's pips start at the same x and read as one column
+// down the table. There is no such column at phone width — each row is
+// its own block — and pushing them anyway put them against the right
+// edge while the state and the button started at the left edge of the
+// line below: "et kjempestort rom mellom de og pips".
+describe("the pips follow the name at phone width", () => {
+  test("the desktop still pushes them to the column's own x", () => {
+    expect(CSS).toContain(".pipslot { margin-left: auto;");
+  });
+
+  test("the narrow-width block takes that push away", () => {
+    expect(NARROW).toContain(".spec-name > .pipslot { margin-left: 0; }");
+  });
+
+  // The other half of the same gap: a label that claims every pixel of
+  // the row leaves the pips at the edge whatever the margin says.
+  test("the name takes what it needs, not the whole row", () => {
+    expect(NARROW).toContain(".spec-name > .label { flex: 0 1 auto; min-width: 0; }");
+    expect(NARROW).not.toContain(".spec-name > .label { flex: 1 1 0%");
+  });
+
+  test("the pips are inside the name box the rules select on", () => {
+    expect(rows()).toMatch(/<div class="spec-name">[\s\S]*?<span class="pipslot">/);
+  });
+});
+
 // --- criterion 3: the open row's phase lines stack --------------------------
 
 describe("the phase lines stop being pinned columns at phone width", () => {

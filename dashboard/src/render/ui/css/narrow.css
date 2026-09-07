@@ -170,12 +170,19 @@
      of given to the name. */
   .spec-name { gap: var(--sp-1); }
   .spec-name > .fold { margin-right: 0; }
-  /* One line, truncated with an ellipsis against the pips — same rule
-     the base (desktop) style already uses, restated here only for the
-     flex-basis: 0, not auto, is what actually gives the label the
-     row's free width instead of sizing to its own content first (the
-     bug behind the "half the row" width report). */
-  .spec-name > .label { flex: 1 1 0%; min-width: 0; }
+  /* The name takes what it needs and no more, so the pips follow it.
+     `flex-basis: 0` handed the label every pixel of the row, which put
+     the pips against the right edge — and with the state and the
+     button starting at the left edge of the line below, a short name
+     left a hand's width of nothing between the two. It still clamps to
+     two lines and an ellipsis when the name is long enough to need the
+     whole width. */
+  .spec-name > .label { flex: 0 1 auto; min-width: 0; }
+  /* The desktop's `margin-left: auto` is what makes every row's pips
+     start at the same x, so they read as one column down the table.
+     There is no column here — each row is its own block — and the
+     auto margin only pushed them away from the name they belong to. */
+  .spec-name > .pipslot { margin-left: 0; }
 
   /* No sortable column headings on mobile: "Spec/State/Started/Cost"
      headed a column layout that is gone at this width (Started and
