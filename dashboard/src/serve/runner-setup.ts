@@ -101,8 +101,20 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       // implicitly. An operator who has already pointed reporting at
       // another sink keeps it: the derived URL is a default, never an
       // override.
+      // `~/.local/bin` on PATH, always. aide's own scripts are installed
+      // there — `aide-create-spec`, `aide-archive-spec`, `aide-close-spec`
+      // — and a step's session calls them BY NAME, as its skill tells it
+      // to. This server runs under launchd, whose PATH carries neither
+      // that directory nor mise's shims, and a session that cannot find
+      // the script does not fail: it searches the disk for it, minutes
+      // at a time, and then does the job by hand or not at all.
+      // Prepended to whatever is there, never replacing it: an operator
+      // running the server from a shell keeps their own PATH.
+      const localBin = `${process.env.HOME ?? ""}/.local/bin`;
+      const path = process.env.PATH ?? "";
       const env: Record<string, string | undefined> = {
         ...process.env,
+        PATH: path.split(":").includes(localBin) ? path : `${localBin}:${path}`,
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
       };
       // Spec 272. Only a `schedule` step's own spawn gets this: the

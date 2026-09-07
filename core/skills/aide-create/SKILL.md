@@ -142,16 +142,21 @@ per entry:
 When the prompt states no such value, omit the `--depends-on` flag
 entirely. Never infer a dependency from the description.
 
-**Acceptance:** by default, pass `--acceptance-not-required` — a spec
-is created with acceptance ticking NOT required unless the person
-asking explicitly wants ticking to be required for this spec. When
-the dashboard's New-spec page or a job's own prompt states the
-instruction under "Record this spec's Tracking info with an explicit
-acceptance-not-required line" (Step 4), pass the flag. When creating a
-spec directly (no such instruction present, e.g. a bare `/aide-create`
-typed in a session), still pass the flag by default; omit it only when
-the person creating the spec has said they want acceptance ticking
-required.
+**Acceptance:** the prompt decides when it says so, and it says so both
+ways.
+
+- "Record this spec's Tracking info with an explicit
+  acceptance-not-required line (Step 4)" — pass the flag.
+- "Acceptance ticking IS required for this spec" — do NOT pass the
+  flag, and write no acceptance line into Tracking info.
+
+Neither stated (a bare `/aide-create` typed in a session): pass the flag
+by default, and omit it when the person creating the spec has said they
+want acceptance ticking required.
+
+The default is what the New-spec form's own unticked box used to be
+overruled by, so a spec whose author asked for the ticking was created
+without it. An instruction always outranks the default.
 
 **A collision you can see is a question to ask, not a dependency to
 guess.** Before creating the spec, check whether an open spec already

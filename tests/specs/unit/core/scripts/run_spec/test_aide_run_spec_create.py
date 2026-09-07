@@ -94,13 +94,27 @@ def test_create_states_the_acceptance_record_when_the_flag_is_given(runner, work
         "acceptance-not-required line (Step 4)." in prompt
     ), prompt
 
-def test_create_without_the_flag_says_nothing_about_acceptance(runner, workspace, fake_claude):
-    """Nothing chosen means no line — the same rule `depends_line` and
-    the switch above already follow."""
+def test_create_states_that_acceptance_is_required_when_the_flag_is_absent(runner, workspace, fake_claude):
+    """BOTH answers are stated, never one. `/aide-create`'s own Step 4
+    defaults to acceptance-not-required when it is told nothing, and the
+    New-spec form's unticked box means the opposite — so silence here
+    wrote "not required" onto a spec whose author had asked for the
+    ticking. A run that knows the answer says it."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, dry_run=True)
     assert rc == 0, out
-    assert "acceptance-not-required" not in out["prompt"], out["prompt"]
+    prompt = out["prompt"]
+    assert "Acceptance ticking IS required for this spec" in prompt, prompt
+    assert "do not pass --acceptance-not-required" in prompt, prompt
+    # And never the other instruction alongside it.
+    assert "Record this spec's Tracking info with an explicit" not in prompt, prompt
+
+
+def test_the_two_acceptance_answers_are_never_both_stated(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, acceptance_not_required=True, dry_run=True)
+    assert rc == 0, out
+    assert "Acceptance ticking IS required" not in out["prompt"], out["prompt"]
 
 def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
     """Read off the disk, never computed: the run diffs the specs root
