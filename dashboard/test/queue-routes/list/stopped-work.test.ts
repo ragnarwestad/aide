@@ -1,3 +1,4 @@
+import { repoOf } from "../landing/every-step-lands-fixtures.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -137,8 +138,8 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(mergesOf(git.calls).length).toBeGreaterThan(0);
-    expect(mergesOf(git.calls).every((c) => c.dir === SPECS_REPO)).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch to compare.
     expect(landed.branchUrls).toEqual([]);
     // It still stopped: landing the work does not make the step a success.
@@ -169,7 +170,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(mergesOf(git.calls, CREATE_BRANCH).length).toBeGreaterThan(0);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
   // Criterion 2. The description's third requirement, and the reason the

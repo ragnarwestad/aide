@@ -13,7 +13,7 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-import { SPEC, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir, runStep, settle, merges, result, stepWithResult } from "./every-step-lands-fixtures.ts";
+import { SPEC, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir, runStep, settle, merges, repoOf, result, stepWithResult } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -70,7 +70,7 @@ describe("every step lands its own work (spec 149)", () => {
 
       expect(landed.error).toBeFalsy();
       expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-      expect(git.calls.some((c) => c.dir === paths.specs && c.args[0] === "push")).toBe(true);
+      expect(git.calls.some((c) => repoOf(c.dir) === paths.specs && c.args[0] === "push")).toBe(true);
       // Landed, so the row stops advertising a branch at all.
       expect(landed.branchUrls).toEqual([]);
     },
@@ -221,7 +221,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(sentence(failed.landingError).startsWith("archive merge failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
-    expect(git.calls.some((c) => c.dir === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(existsSync(marker)).toBe(false);
     // Still in the active list, with its branch, exactly as it was.
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();

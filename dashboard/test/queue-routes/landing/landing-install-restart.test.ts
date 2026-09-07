@@ -12,7 +12,7 @@ import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 
-import { AUTH, createOwnDirs, gitFor, repos, installs, runStep, serverWith, settle, merges, stepWithResult } from "./every-step-lands-fixtures.ts";
+import { AUTH, createOwnDirs, gitFor, repos, installs, runStep, serverWith, settle, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -68,7 +68,7 @@ test.each(["analyze"])(
 
     expect(landed.error).toBeFalsy();
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-    expect(git.calls.some((c) => c.dir === paths.specs && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === paths.specs && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch at all.
     expect(landed.branchUrls).toEqual([]);
   },

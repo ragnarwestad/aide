@@ -4,6 +4,7 @@
 // used. Follows the shape archive-landing.test.ts's own suite already
 // tests against, reusing its fixtures.
 
+import { repoOf } from "./every-step-lands-fixtures.ts";
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -57,8 +58,8 @@ describe("spec 406: landing a close step", () => {
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(merges(git.calls).some((c) => c.dir === SPECS_REPO)).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
   test("the code root's branch is deleted, never merged", async () => {
@@ -70,14 +71,14 @@ describe("spec 406: landing a close step", () => {
 
     expect(landed.error).toBeFalsy();
     // No merge call ever touches the code root.
-    expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(false);
-    expect(git.calls.some((c) => c.dir === CODE_REPO)).toBe(true);
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === CODE_REPO)).toBe(false);
+    expect(git.calls.some((c) => repoOf(c.dir) === CODE_REPO)).toBe(true);
     // The delete happens directly — no switch/fetch/ff-only merge
     // sequence against the code root at all, only the origin-existence
     // check and the two deletes.
-    expect(git.calls.some((c) => c.dir === CODE_REPO && c.args.join(" ").startsWith("ls-remote"))).toBe(true);
-    expect(git.calls.some((c) => c.dir === CODE_REPO && c.args.join(" ") === "push -q origin --delete aide/81-queue-and-runner")).toBe(true);
-    expect(git.calls.some((c) => c.dir === CODE_REPO && c.args[0] === "branch" && c.args.includes("-D"))).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === CODE_REPO && c.args.join(" ").startsWith("ls-remote"))).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === CODE_REPO && c.args.join(" ") === "push -q origin --delete aide/81-queue-and-runner")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === CODE_REPO && c.args[0] === "branch" && c.args.includes("-D"))).toBe(true);
     // And it landed clean.
     expect(landed.branchUrls).toEqual([]);
   });

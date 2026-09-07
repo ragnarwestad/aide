@@ -435,7 +435,11 @@ export function parseCreateRequest(
   // Whether this run says acceptance ticking is not required (spec
   // 386) — the same whole-job checkbox `parseJobRequest` parses, so
   // the New-spec page and a spec row's Run form agree on the shape.
-  const acceptanceNotRequired = r.acceptanceNotRequired === "1" || r.acceptanceNotRequired === true;
+  // The form posts what it says: ticked means the ticking IS required.
+  // A checkbox sends nothing when it is clear, so absent is "not
+  // required" — the one asymmetry HTML forces, and the only place it
+  // has to be thought about.
+  const acceptanceRequired = r.acceptanceRequired === "1" || r.acceptanceRequired === true;
 
   return {
     ok: true,
@@ -458,7 +462,7 @@ export function parseCreateRequest(
       // Omitted entirely when nothing was chosen: "nothing chosen means
       // no line", all the way down.
       ...(dependsOn.length ? { createDependsOn: dependsOn } : {}),
-      ...(acceptanceNotRequired ? { acceptanceNotRequired: true } : {}),
+      ...(acceptanceRequired ? {} : { acceptanceNotRequired: true }),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

@@ -153,7 +153,12 @@ export async function trackingRoutes(
         back,
       );
     }
-    const acceptanceNotRequired = body.acceptanceNotRequired === "1" || body.acceptanceNotRequired === true;
+    // The box says what it means: ticked is required. Absent is a
+    // cleared box, which is "not required" — and `acceptanceEditable`
+    // above is what tells that apart from a LOCKED box, which submits
+    // nothing either.
+    const acceptanceRequired = body.acceptanceRequired === "1" || body.acceptanceRequired === true;
+    const acceptanceNotRequired = !acceptanceRequired;
     const withAccept = withAcceptanceLine(text, acceptanceNotRequired);
     if (withAccept === null) {
       return specsRedirect(

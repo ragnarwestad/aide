@@ -59,19 +59,18 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(store.get(landing.id)?.landing).toBe(true);
 
     const before = spawns.length;
-    // An UNRELATED job for a different spec: the case the create-only
-    // version of this rule left open.
+    // An UNRELATED job for a different spec starts straight away: the
+    // merge is made in a worktree of its own now, so there is nothing
+    // in the shared checkout for it to be caught by.
     enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     runner.tick();
-    expect(spawns.length).toBe(before);
+    expect(spawns.length).toBe(before + 1);
 
-    // ...and once the landing is over, the queue moves again on its own.
+    // The landing still finishes on its own, and clears its own flag.
     finish();
     await work;
     await Promise.resolve();
     expect(store.get(landing.id)?.landing).toBeUndefined();
-    runner.tick();
-    expect(spawns.length).toBe(before + 1);
   });
 
   // A step whose OWN work lands is not over when its process exits — the

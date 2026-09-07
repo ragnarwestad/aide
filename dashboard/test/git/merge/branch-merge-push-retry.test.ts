@@ -64,14 +64,14 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
     const sequence = argv(git.calls).filter(
-      (a) => a === "push -q origin master" || a.startsWith("reset") || (a.startsWith("merge -q") && a.includes("refs/remotes/")) || a.startsWith("pull -q --rebase"),
+      (a) => a === "push -q origin HEAD:refs/heads/master" || a.startsWith("reset") || (a.startsWith("merge -q") && a.includes("refs/remotes/")) || a.startsWith("pull -q --rebase"),
     );
     expect(sequence).toEqual([
       `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
-      "push -q origin master",
+      "push -q origin HEAD:refs/heads/master",
       "reset -q --hard origin/master",
       `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
-      "push -q origin master",
+      "push -q origin HEAD:refs/heads/master",
     ]);
   });
 
@@ -106,9 +106,14 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
     expect(sentence(result.error)).toContain("run the step again");
     expect(result.reason).toBeUndefined();
     const seq = argv(git.calls);
-    expect(seq.filter((a) => a === "push -q origin master")).toHaveLength(2);
+    expect(seq.filter((a) => a === "push -q origin HEAD:refs/heads/master")).toHaveLength(2);
     expect(seq.filter((a) => a === "reset -q --hard origin/master")).toHaveLength(2);
-    expect(seq[seq.length - 1]).toBe("reset -q --hard origin/master");
+    // The resets happen in the landing's own worktree, and the worktree
+    // is then removed — so "never left ahead" is stronger than it was:
+    // nothing of the attempt is left on disk at all. The last calls are
+    // that teardown.
+    expect(seq[seq.length - 1]).toBe("worktree prune");
+    expect(seq[seq.length - 2]).toContain("worktree remove --force");
   });
 });
 
@@ -173,7 +178,14 @@ describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict",
   test("REQ-7: never auto-resolved — no -X or --force ever reaches the branch", async () => {
     const git = fakeGit(CONFLICTING);
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
-    expect(argv(git.calls).some((a) => a.includes("-X") || a.includes("--force"))).toBe(false);
+    // Scoped to the commands that touch the BRANCH. The teardown's own
+    // `worktree remove --force` deletes a directory and resolves
+    // nothing — reading it as an auto-resolution would be reading the
+    // word, not the rule.
+    const touchingTheBranch = argv(git.calls).filter(
+      (a) => a.startsWith("merge") || a.startsWith("push") || a.startsWith("rebase"),
+    );
+    expect(touchingTheBranch.some((a) => a.includes("-X") || a.includes("--force"))).toBe(false);
   });
 });
 
@@ -201,7 +213,7 @@ describe("the bash and TypeScript retry bounds agree", () => {
 
 
 describe("a dirty test-run.json in the checkout never blocks the fast-forward", () => {
-  test("it is discarded before the pull, and nothing else is", async () => {
+  test("it is discarded before the checkout catches up, and nothing else is", async () => {
     // A gate's record left dirty in the dashboard's own specs checkout
     // failed 356's landing with "cannot fast-forward main" (2026-09-03);
     // the file is a record, not work, and is thrown away first.
@@ -215,9 +227,11 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     expect(result.ok).toBe(true);
     const seq = argv(git.calls);
     const discard = seq.indexOf("checkout -q -- :(top,glob)**/test-run.json");
-    const pull = seq.indexOf("merge -q --ff-only origin/master");
+    // The catch-up, not a pull: the merge itself happens in the
+    // landing's own worktree, where no such record can be lying about.
+    const catchUp = seq.indexOf("merge -q --ff-only origin/master");
     expect(discard).toBeGreaterThan(-1);
-    expect(pull).toBeGreaterThan(discard);
+    expect(catchUp).toBeGreaterThan(discard);
     expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
   });
 });
@@ -240,7 +254,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(result.detail).toContain(`${BRANCH} in ${ROOT}`);
     const seq = argv(git.calls);
     expect(seq).toContain("reset -q --hard origin/master");
-    expect(ran(git.calls, "push -q origin master")).toBe(false);
+    expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(false);
   });
 
   test("green pushes, and the gate ran after the merge and before the push", async () => {
@@ -254,7 +268,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(result.ok).toBe(true);
     expect(order).toEqual(["gate after 1 merges"]);
     const seq = argv(git.calls);
-    expect(seq.indexOf("push -q origin master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only refs/remotes/origin/aide/89-merge-from-the-dashboard"));
+    expect(seq.indexOf("push -q origin HEAD:refs/heads/master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only refs/remotes/origin/aide/89-merge-from-the-dashboard"));
     expect(ran(git.calls, "reset -q --hard")).toBe(false);
   });
 
@@ -262,7 +276,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
-    expect(ran(git.calls, "push -q origin master")).toBe(true);
+    expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
   });
 
   // Spec 402, REQ-4: an empty branch (an `analyze` step whose code
@@ -285,7 +299,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(true);
     expect(gates).toBe(0);
-    expect(ran(git.calls, "push -q origin master")).toBe(true);
+    expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
   });
 
   // Spec 402, REQ-5: a push rejected because base moved drops the local

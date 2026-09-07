@@ -69,13 +69,19 @@ export function trackingControl(view: SpecPageView): string {
   // `width: 18px; flex: none`. Wrapped around a label with words in it,
   // the words were squeezed into eighteen pixels, wrapped to three
   // lines, and the Save button beside them landed on top.
+  // Locked, it draws the box it always drew — disabled, and ticked or
+  // not according to what was actually decided. It used to draw the
+  // words alone, the same words either way, so a spec that DOES require
+  // its ticking was told it does not.
+  const required = !view.acceptanceNotRequired;
   const acceptance = acceptanceLocked
     ? `<span class="row" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
-      `<span>acceptance ticking not required</span></span>`
+      `<input type="checkbox" disabled${required ? " checked" : ""}>` +
+      `<span>acceptance ticking required</span></span>`
     : `<label class="row">` +
       `<input type="hidden" name="acceptanceEditable" value="1">` +
-      `<input type="checkbox" name="acceptanceNotRequired" value="1"${view.acceptanceNotRequired ? " checked" : ""}>` +
-      `<span>acceptance ticking not required</span></label>`;
+      `<input type="checkbox" name="acceptanceRequired" value="1"${required ? " checked" : ""}>` +
+      `<span>acceptance ticking required</span></label>`;
   // `.trackingform`, never `.specform`: the Checks tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO

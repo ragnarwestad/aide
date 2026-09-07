@@ -383,16 +383,20 @@ describe("spec 342: the phase table", () => {
 
   // REQ-2, REQ-3, REQ-5 (spec 394): the switch is paired with "Depends
   // on" rather than living inside the phase table, and starts CHECKED —
-  // UNCHECKED by default: a spec made without touching the switch
-  // requires its acceptance ticking. `analyze` decides once, from this,
-  // and locks the switch afterwards — so a spec that quietly skipped its
-  // acceptance table could only be put right by running the whole
-  // analysis again, a quarter of an hour and real money for one box.
-  test("spec 394: the acceptance-not-required switch is drawn beside Depends on, unchecked by default", () => {
+  // Said the POSITIVE way and CHECKED by default. It read "acceptance
+  // ticking not required", unticked, which meant "it IS required" — a
+  // double negative to unwind every time. And the default matters:
+  // `analyze` decides once, from this, and locks the switch afterwards,
+  // so a spec that quietly skipped its acceptance table could only be
+  // put right by running the whole analysis again — a quarter of an
+  // hour and real money for one box.
+  test("spec 394: the acceptance switch is drawn beside Depends on, checked by default", () => {
     const html = newPage();
-    const box = html.match(/<input type="checkbox"[^>]*name="acceptanceNotRequired"[^>]*>/)?.[0] ?? "";
+    const box = html.match(/<input type="checkbox"[^>]*name="acceptanceRequired"[^>]*>/)?.[0] ?? "";
     expect(box).not.toBe("");
-    expect(box).not.toContain("checked");
+    expect(box).toContain("checked");
+    expect(html).toContain("acceptance ticking required");
+    expect(html).not.toContain("acceptance ticking not required");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
   });
@@ -403,7 +407,7 @@ describe("spec 342: the phase table", () => {
   test("spec 394: Depends on and the acceptance switch are drawn adjacent, in one row", () => {
     const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
     const dependsIdx = html.indexOf("<span>Depends on</span>");
-    const acceptIdx = html.indexOf('name="acceptanceNotRequired"');
+    const acceptIdx = html.indexOf('name="acceptanceRequired"');
     expect(dependsIdx).toBeGreaterThan(-1);
     expect(acceptIdx).toBeGreaterThan(dependsIdx);
     const between = html.slice(dependsIdx, acceptIdx);

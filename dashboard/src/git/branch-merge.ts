@@ -90,6 +90,15 @@ const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): 
   ...(detail ? { detail } : {}),
 });
 
+/** Where a landing does its merging: a worktree of the repo it is
+ *  landing into, named for the branch so two landings in one repo never
+ *  share one. Beside the checkout rather than inside it — a directory
+ *  under the repo would show up as untracked in the very tree being
+ *  merged. */
+export function mergeWorktreePath(root: string, branch: string): string {
+  return `${root}.landing.${branch.replace(/[^A-Za-z0-9._-]/g, "-")}`;
+}
+
 /** git's own words when another process is holding the index. A run
  *  starting in the same second pulls the same checkout as a courtesy,
  *  and whoever gets there second sees this — not a divergence, just a
@@ -127,21 +136,25 @@ interface PushRetryResult {
 
 /** One push, with its own recovery (spec 359, REQ-1/REQ-2/REQ-3) — the
  *  landing's side of the same rule `aide-run-spec`'s `push_with_retry`
- *  follows. `root` is standing on `base` with the merge already made
- *  locally; the push failing means base moved on origin since step 3's
- *  pull. Unreachable origin is retried blind (REQ-2); a reachable
+ *  follows. `root` here is the landing's own worktree, whose HEAD is
+ *  DETACHED at the merge it just made — so the refspec is explicit.
+ *  `push origin <base>` would push the shared checkout's own local
+ *  branch of that name, which is the one thing on the machine that does
+ *  NOT have the merge in it. The push failing means base moved on
+ *  origin since the worktree was cut. Unreachable origin is retried blind (REQ-2); a reachable
  *  origin that still rejected the push means base moved under us, which
  *  `pull --rebase` can settle on its own (REQ-1) — unless the rebase
  *  itself conflicts, which is a person's call and never this
  *  function's (REQ-3). */
 async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
-  let pushed = await run(root, ["push", "-q", "origin", base]);
+  const refspec = `HEAD:refs/heads/${base}`;
+  let pushed = await run(root, ["push", "-q", "origin", refspec]);
   if (pushed.code === 0) return { ok: true };
   const reachable = await run(root, ["ls-remote", "origin"]);
   if (reachable.code !== 0) {
     for (const ms of PUSH_RETRY_WAITS_MS) {
       await wait(ms);
-      pushed = await run(root, ["push", "-q", "origin", base]);
+      pushed = await run(root, ["push", "-q", "origin", refspec]);
       if (pushed.code === 0) return { ok: true };
     }
     return { ok: false, error: `cannot reach origin — ${(pushed.stderr ?? "").trim().slice(-200)}` };
@@ -155,15 +168,6 @@ async function pushWithRetry(run: GitRunner, root: string, base: string, wait: W
   return { ok: false, moved: true, error: (pushed.stderr ?? "").trim().slice(-200) };
 }
 
-/** Whether `base` is ahead of origin only by commits origin already
- *  holds — the branch's own, and merges of them — which is what a
- *  landing that never finished leaves behind. */
-async function isLeftoverMerge(run: GitRunner, root: string, base: string): Promise<boolean> {
-  const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
-  if (ahead.code !== 0 || Number(ahead.stdout.trim()) === 0) return false;
-  const own = await run(root, ["rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin"]);
-  return own.code === 0 && own.stdout.trim() === "";
-}
 
 export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 
@@ -175,6 +179,11 @@ export async function mergeBranchIntoDefault(
   wait: Wait = sleep,
   gate?: LandingGate,
 ): Promise<RepoMergeResult> {
+  // Declared out here so the `finally` can clear it whichever way this
+  // returns: a refusal leaves a worktree behind exactly as readily as a
+  // success, and one left on disk blocks the next landing of the same
+  // branch — `worktree add` refuses a path that already exists.
+  let work = "";
   try {
     // The state of the working tree is not asked about at all (spec
     // 144). It was, and refused: whoever got to the checkout first left
@@ -208,53 +217,55 @@ export async function mergeBranchIntoDefault(
 
     // 2. Best effort, exactly as `isMerged()` does it: whatever the
     //    checkout already knows beats no answer at all.
-    // 3. Stand on the default branch, and bring it up to origin's. A
-    //    push from a base that is behind would be rejected anyway, and
-    //    a merge onto a stale base is a merge nobody reviewed.
-    const switched = await run(root, ["switch", "-q", base]);
-    if (switched.code !== 0) return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } });
-    const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
-    if (upstream.code === 0) {
-      // A test-run.json left dirty in this checkout (a gate's record that
-      // never got committed, seen once on 2026-09-03) blocks the
-      // fast-forward with "local changes would be overwritten". It is a
-      // record, not work: discard it rather than fail the landing on it.
-      await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
-      // The refspec is not decoration. A pull with none merges whatever
-      // FETCH_HEAD names, and FETCH_HEAD is one file per repository: two
-      // landings sharing a checkout leave several branches marked in it
-      // and the pull dies with "Cannot fast-forward to multiple
-      // branches", losing the landing. Naming origin and the base makes
-      // one merge candidate, whoever else is fetching alongside.
-      await run(root, ["fetch", "-q", "origin", base]);
-      let pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-      // Only for the lock, and only a couple of times. Retrying every
-      // pull failure would also delay the refusal a real divergence
-      // deserves — and that refusal is the one that must stay immediate.
-      for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
-        await wait(LOCK_WAIT_MS);
-        pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    // 3. The merge does NOT stand in the shared checkout any more. It
+    //    used to `git switch` there and hold it for the whole landing —
+    //    the fetch, the merge, and the project's own suite on the
+    //    result, five and a half minutes for this repo. That directory
+    //    is the one a starting run reads before it cuts its own
+    //    worktree, so the scheduler had to hold every job for the
+    //    project until the landing finished (spec 402's `runner.ts`
+    //    pause). The work happens in a throwaway worktree at
+    //    `origin/<base>` instead, and the shared checkout is only
+    //    fast-forwarded at the end, once, in well under a second.
+    //
+    //    `--detach` is what makes it possible: git refuses to check the
+    //    same branch out twice, and the shared checkout is already on
+    //    base. A detached worktree needs no local branch at all.
+    //
+    //    A worktree that cannot be made is a refusal, never a quiet
+    //    fall back to the shared checkout — falling back would put the
+    //    hazard right back without anybody being told.
+    await run(root, ["fetch", "-q", "origin", base]);
+
+    //    Before anything is merged: does the shared checkout's own base
+    //    hold commits origin does not? The landing works from
+    //    `origin/<base>` and would push right past them, and the
+    //    fast-forward at the end would then fail silently — somebody's
+    //    unpushed work, still on disk, no longer on the branch anybody
+    //    reads. It refused loudly before this moved into a worktree,
+    //    and it still does. Merge commits do not count: those are a
+    //    landing's own, left by one that pushed and died.
+    const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
+    if (ahead.code === 0 && Number(ahead.stdout.trim()) > 0) {
+      const own = await run(root, [
+        "rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin",
+      ]);
+      if (own.code === 0 && own.stdout.trim() !== "") {
+        return refuse(root, branch, { key: "landing.cannotFastForward", values: { base } });
       }
-      if (pulled.code !== 0 && (await isLeftoverMerge(run, root, base))) {
-        // A landing that never finished (killed mid-gate, a push that
-        // failed) leaves base ahead of origin by commits that are all on
-        // origin already — the branch's own, plus merges of them. Nothing
-        // is lost by dropping that, and keeping it refused every later
-        // landing in the root with the message below (366, 370 and 371
-        // behind 364, 2026-09-03).
-        await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
-        pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-      }
-      if (pulled.code !== 0) {
-        // Git's own words ride in `detail` (spec 352, REQ-5): the cause
-        // had to be guessed twice without them.
-        return refuse(
-          root,
-          branch,
-          { key: "landing.cannotFastForward", values: { base } },
-          (pulled.stderr ?? "").trim().slice(-300) || undefined,
-        );
-      }
+    }
+
+    work = mergeWorktreePath(root, branch);
+    await run(root, ["worktree", "remove", "--force", work]);
+    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`]);
+    if (added.code !== 0) {
+      await run(root, ["worktree", "prune"]);
+      return refuse(
+        root,
+        branch,
+        { key: "landing.cannotSwitch", values: { base } },
+        (added.stderr ?? "").trim() || undefined,
+      );
     }
 
     // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
@@ -279,25 +290,25 @@ export async function mergeBranchIntoDefault(
       // Spec 402, REQ-4: the tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
       // that does.
-      const preMergeHead = gate ? (await run(root, ["rev-parse", "HEAD"])).stdout.trim() : "";
-      await run(root, ["fetch", "--quiet", "origin", base, branch]);
+      const preMergeHead = gate ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
+      await run(work, ["fetch", "--quiet", "origin", base, branch]);
       // A merge that lost a lock race is retried like the pull is — it
       // used to be reported as a conflict, which it is not.
       let merged = false;
       let lastStderr = "";
       for (let n = 0; !merged && n <= LOCK_RETRIES; n++) {
         if (n > 0) await wait(LOCK_WAIT_MS);
-        const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
+        const ff = await run(work, ["merge", "-q", "--ff-only", ref]);
         if (ff.code === 0) {
           merged = true;
           break;
         }
-        const real = await run(root, ["merge", "-q", "--no-edit", ref]);
+        const real = await run(work, ["merge", "-q", "--no-edit", ref]);
         if (real.code === 0) {
           merged = true;
           break;
         }
-        await run(root, ["merge", "--abort"]);
+        await run(work, ["merge", "--abort"]);
         lastStderr = (real.stderr ?? "").trim();
         if (!GIT_LOCKED.test(lastStderr)) break;
       }
@@ -321,18 +332,21 @@ export async function mergeBranchIntoDefault(
         // Spec 402, REQ-4: an empty diff against the pre-merge tip means
         // this merge added nothing to `root` — there is nothing the
         // suite could fail for that this merge caused, so it never runs.
-        const changed = await run(root, ["diff", "--quiet", preMergeHead, "HEAD"]);
+        const changed = await run(work, ["diff", "--quiet", preMergeHead, "HEAD"]);
         if (changed.code !== 0) {
           // Spec 402, REQ-5: an identical resulting tree reuses the
           // verdict already reached for it within this same call, rather
           // than running the suite again.
-          const treeRes = await run(root, ["rev-parse", "HEAD^{tree}"]);
+          const treeRes = await run(work, ["rev-parse", "HEAD^{tree}"]);
           const tree = treeRes.code === 0 ? treeRes.stdout.trim() : "";
           const cached = tree ? gateVerdicts.get(tree) : undefined;
-          const verdict = cached ?? (await gate(root));
+          // The gate tests the MERGED tree, and that tree is in the
+          // landing's own worktree now — never the shared checkout,
+          // which no longer holds the merge at all.
+          const verdict = cached ?? (await gate(work));
           if (tree && !cached) gateVerdicts.set(tree, verdict);
           if (!verdict.ok) {
-            await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
             // No `(branch in root)` tail, unlike every refusal around it:
             // those name a checkout because that is where a person has to
             // go and do something by hand. Here the move is a step on the
@@ -361,7 +375,7 @@ export async function mergeBranchIntoDefault(
     for (let attempt = 0; ; attempt++) {
       const failed = await mergeAndGate();
       if (failed) return failed;
-      const pushResult = await pushWithRetry(run, root, base, wait);
+      const pushResult = await pushWithRetry(run, work, base, wait);
       if (pushResult.ok) break;
       if (!pushResult.moved) {
         return refuse(root, branch, {
@@ -369,8 +383,8 @@ export async function mergeBranchIntoDefault(
           values: { base, pushError: pushResult.error ?? "" },
         });
       }
-      await run(root, ["fetch", "--quiet", "origin", base]);
-      await run(root, ["reset", "-q", "--hard", `origin/${base}`]);
+      await run(work, ["fetch", "--quiet", "origin", base]);
+      await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
       if (attempt >= 1) {
         return refuse(
           root,
@@ -379,6 +393,41 @@ export async function mergeBranchIntoDefault(
           pushResult.error,
         );
       }
+    }
+
+    // 6b. The shared checkout catches up, and this is the only moment
+    //     it moves at all. It is already standing on base — no run ever
+    //     switches it, and nothing else here does now either — so a
+    //     fast-forward to what was just pushed is the whole update, and
+    //     it takes no longer than reading a ref. `installAfterMerge`
+    //     runs in this directory straight after and needs the merged
+    //     code here; a checkout left behind would install the old one.
+    //
+    //     Not fatal on failure. The merge is on origin, which is what
+    //     "landed" means; a checkout that could not fast-forward is a
+    //     local state the next landing's own pull settles.
+    await run(root, ["fetch", "-q", "origin", base]);
+    //     A gate's own record left dirty here — `test-run.json`, never
+    //     committed — blocks a fast-forward with "local changes would
+    //     be overwritten" (356's landing, 2026-09-03). It is a record,
+    //     not work: discarded rather than allowed to strand the
+    //     checkout. Nothing else is touched.
+    await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
+    //     Retried on a lost `index.lock` race, and only that: a run
+    //     starting in this same second fetches here too. Losing it
+    //     would leave the checkout behind, and `installAfterMerge` then
+    //     installs the code from before the merge — the one failure
+    //     this step exists to prevent.
+    let caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    for (let n = 0; caughtUp.code !== 0 && GIT_LOCKED.test(caughtUp.stderr ?? "") && n < LOCK_RETRIES; n++) {
+      await wait(LOCK_WAIT_MS);
+      caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    }
+    if (caughtUp.code !== 0) {
+      console.error(
+        `landing: ${root} could not fast-forward to origin/${base} after the merge reached origin — ` +
+          `${(caughtUp.stderr ?? "").trim().slice(-200)}`,
+      );
     }
 
     // 7. A merged branch left on origin is what made spec 92's
@@ -433,6 +482,16 @@ export async function mergeBranchIntoDefault(
       { key: "landing.gitCouldNotRun" },
       err instanceof Error ? err.message : String(err),
     );
+  } finally {
+    // Whichever way this returned. `--force` because the tree may hold
+    // a half-finished merge or the gate's own leftovers, and `prune`
+    // because a directory removed by anything else still leaves git's
+    // own administrative record of it behind — and that record is
+    // enough to make the next `worktree add` at the same path refuse.
+    if (work) {
+      await run(root, ["worktree", "remove", "--force", work]);
+      await run(root, ["worktree", "prune"]);
+    }
   }
 }
 

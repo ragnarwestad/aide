@@ -67,7 +67,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     // The real merge is the FALLBACK. Running it anyway would make a
     // merge commit nobody asked for on every clean case.
     expect(ran(git.calls, "merge -q --no-edit")).toBe(false);
-    expect(argv(git.calls)).toContain("push -q origin master");
+    expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
   });
 
   test("a base that has moved on gets a real merge, and that is pushed too", async () => {
@@ -128,7 +128,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result).toEqual({ root: ROOT, ok: true });
-    expect(argv(git.calls)).toContain("push -q origin master");
+    expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
     // The question is not asked at all — a status nobody acts on is a
     // git process per repo per press, for nothing.
     expect(ran(git.calls, "status")).toBe(false);
@@ -178,30 +178,53 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     expect(result.reason).toBe("conflict");
   });
 
-  test("a base that cannot be fast-forwarded is refused rather than merged over", async () => {
+  // The landing works from `origin/<base>` and pushes past whatever the
+  // shared checkout happens to hold — so a checkout carrying commits of
+  // its own, never pushed, is refused before anything is merged.
+  // Somebody's work, still on disk, would otherwise stop being on the
+  // branch anybody reads.
+  test("a base holding unpushed commits of its own is refused, and nothing is merged", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 1 },
-      switch: { code: 0 },
+      "rev-list --count": { code: 0, stdout: "1\n" },
+      "rev-list origin/master..master": { code: 0, stdout: "abc1234\n" },
       fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
     expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
-    // Spec 96, criterion 16: a real divergence says nothing about
-    // `index.lock`, so it is refused on the FIRST attempt. The retry
-    // added for the lock must not become a general "try every pull
-    // twice", which would double the wait before every honest refusal.
-    expect(argv(git.calls).filter((a) => a.startsWith("merge -q --ff-only origin/"))).toHaveLength(1);
+    // Refused BEFORE the worktree: nothing to clean up, and no cost.
+    expect(ran(git.calls, "worktree add")).toBe(false);
   });
 
-  test("a checkout that will not switch to the base is refused", async () => {
-    const git = fakeGit({ ...CLEAN_MASTER, fetch: { code: 0 }, switch: { code: 1 } });
+  // Merge commits alone are a landing's own leftovers, not work.
+  test("a base ahead only by merge commits goes on to land", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-list --count": { code: 0, stdout: "2\n" },
+      "rev-list origin/master..master": { code: 0, stdout: "" },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(ran(git.calls, "worktree add")).toBe(true);
+  });
+
+  test("a worktree the landing cannot make is refused, and nothing is merged", async () => {
+    // `worktree add` FIRST: the fake takes the first prefix that
+    // matches, and `CLEAN_MASTER`'s own `worktree` would answer for it.
+    const git = fakeGit({
+      "worktree add": { code: 1, stderr: "fatal: '/repos/aide.landing' already exists" },
+      ...CLEAN_MASTER,
+      fetch: { code: 0 },
+    });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain("master");
+    expect(result.detail).toContain("already exists");
     expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
   });
 
