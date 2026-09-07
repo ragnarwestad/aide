@@ -40,7 +40,11 @@
    is left over at the end. Both are `width`, not `min-width`: a floor
    still lets the widest row govern the column, which is what made the
    width move with whatever the board happened to be showing. */
-.badgeslot { display: inline-flex; align-items: center; gap: var(--sp-2); width: 9.5rem; }
+/* No width on the badge: it has a COLUMN of its own since the button
+   left the cell (2026-09-07), and a column is what aligns it. The
+   button keeps one — it sits inside the name box, which has no column
+   boundary to align it — sized for the widest label it can carry. */
+.badgeslot { display: inline-flex; align-items: center; gap: var(--sp-2); }
 .actionslot { display: inline-flex; justify-content: flex-start; width: 6.5rem; }
 /* No width of its own: the two boxes above are the width. */
 table.list tr.spechead > td > .row { flex-wrap: nowrap; }

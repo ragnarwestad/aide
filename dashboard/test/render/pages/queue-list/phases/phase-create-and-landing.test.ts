@@ -44,11 +44,9 @@ describe("spec 116: create is the first phase line", () => {
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const order = (html: string) => [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-  const pipFor = (html: string, label: string) =>
-    head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
-  /** Every pip's title, in order — the only way to prove one is ABSENT. */
-  const pipTitles = (html: string) =>
-    [...head(html).matchAll(/<span class="pip [a-z]+" title="([^"]+)"/g)].map((m) => m[1]);
+  /** The pips came off the specs list on 2026-09-07; each phase's own
+   *  state is read on its LINE here, and the pips are tested where they
+   *  still are, on the spec page's Overview. */
 
   // --- criterion 1: five lines, create first ---------------------------------
 
@@ -150,7 +148,11 @@ describe("spec 116: create is the first phase line", () => {
   // created, so the pip is past unless a create job is running right
   // now.
 
-  test("create is a past pip once the spec exists, with or without a create commit", () => {
+  // Read on the PHASE LINE since 2026-09-07: the pips came off the specs
+  // list, and the rule they showed — a spec that exists was created — is
+  // the phase line's own word. The pips still draw it from the same
+  // data on the spec page's Overview.
+  test("create reads done once the spec exists, with or without a create commit", () => {
     const withJob = rows(
       [createJob("116-landed")],
       [target("116-landed", { done: ["create", "analyze"] })],
@@ -158,18 +160,22 @@ describe("spec 116: create is the first phase line", () => {
     // The hand-written spec is the case `done` cannot answer: no create
     // commit, so `wordPhase`'s ordinary rule would call it "todo".
     const handMade = rows([], [target("116-hand-made", { done: ["analyze"] })]);
+    // The line's own box is what says it: ticked and disabled, with the
+    // reason on it. A hand-written spec has no create commit and no job,
+    // so its badge stays "not run yet" — the folder existing is the
+    // answer, and that is what the box carries.
     for (const html of [withJob, handMade]) {
-      expect(pipTitles(html)).toEqual(["create", "analyze", "implement", "archive"]);
-      expect(pipFor(html, "create")).toBe("past");
+      expect(subRow(html, "create")).toContain('checked disabled');
+      expect(subRow(html, "create")).toContain("already done, and not a step you can run");
     }
   });
 
-  test("create is the running pip while a create job is in flight", () => {
+  test("create reads running while a create job is in flight", () => {
     const html = rows(
       [createJob("116-landing", { state: "running" })],
       [target("116-landing")],
     );
-    expect(pipFor(html, "create")).toBe("now");
+    expect(subRow(html, "create")).toContain("b-running");
   });
 
   // --- criterion 6: history, not a control -----------------------------------
@@ -266,10 +272,12 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     )?.[0] ?? "";
   /** Where a row's one button is: the State cell — the head row's
    *  THIRD — since spec 157, open or shut alike. */
+  /** The head row's FIRST cell: the row's one button sits at the end of
+   *  the name box since 2026-09-07, where the pips were. */
   const actionCell = (chunk: string) => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[1] ?? "";
+    return cells[0] ?? "";
   };
 
   // Criterion 1: a create job whose result has just arrived
@@ -425,23 +433,9 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
 // so a three-step job waiting for its merge drew all three pips as
 // running at once: the row said three phases were live when none was.
 describe("a landing marks only the step being landed, not every finished step", () => {
-  const rows = (list: QueueRowView[], done: string[] = []) =>
-    renderQueueRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "375-landing-pips", done }],
-      },
-      Date.parse("2026-09-03T14:20:00Z"),
-    );
-  const pipKind = (html: string, label: string) =>
-    html.match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
-  // The phase LINE's own badge only exists once the row is OPEN (spec
-  // 103) — `rows()` above never opens one, since every existing test in
-  // this describe reads the compact header pip instead. The two badge
-  // assertions below are the first in this describe to read the
-  // phase LINE itself, so they open the row explicitly rather than
-  // widening `rows()` for every other test here.
+  // The compact header pips came off the list on 2026-09-07, so every
+  // assertion here reads the phase LINE's own badge — which only exists
+  // once the row is OPEN (spec 103), hence `openRows` below.
   const openRows = (list: QueueRowView[], done: string[] = []) =>
     renderQueueRows(
       list,
@@ -478,20 +472,20 @@ describe("a landing marks only the step being landed, not every finished step", 
   });
 
   test("the finished steps do not read running while the last one lands", () => {
-    const html = rows([chained]);
-    expect(pipKind(html, "analyze")).not.toBe("now");
-    expect(pipKind(html, "implement")).not.toBe("now");
+    const html = openRows([chained]);
+    expect(badgeLabel(html, "analyze")).not.toBe("running");
+    expect(badgeLabel(html, "implement")).not.toBe("running");
   });
 
-  test("the finished steps read past once the spec's own file names them", () => {
-    const html = rows([chained], ["create", "analyze", "implement"]);
-    expect(pipKind(html, "analyze")).toBe("past");
-    expect(pipKind(html, "implement")).toBe("past");
+  test("the finished steps read done once the spec's own file names them", () => {
+    const html = openRows([chained], ["create", "analyze", "implement"]);
+    expect(badgeLabel(html, "analyze")).toBe("done");
+    expect(badgeLabel(html, "implement")).toBe("done");
   });
 
   test("the step being landed still reads running", () => {
-    const html = rows([chained]);
-    expect(pipKind(html, "archive")).toBe("now");
+    const html = openRows([chained]);
+    expect(badgeLabel(html, "archive")).toBe("archiving");
   });
 
   // spec 395, REQ-2: the phase LINE's own badge, not only the row above

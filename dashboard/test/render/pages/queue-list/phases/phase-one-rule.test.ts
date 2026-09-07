@@ -53,31 +53,31 @@ describe("spec 108: one rule per phase", () => {
   /** The row's one panel (spec 143), which is where every sentence a
    *  phase used to write under its own badge is said instead (spec 195). */
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-  // The pips carry the phase's own reader-facing name as their title,
-  // which is how one is told from the next three.
-  const pipFor = (html: string, label: string) =>
-    head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
+  // The pips came off the list on 2026-09-07 — the button's own label
+  // says how far a linear workflow has come, and the phase LINES say
+  // each phase's own state in words. Every assertion that read a pip
+  // here reads that line's badge instead; the pips themselves are still
+  // drawn, and still tested, on the spec page's own Overview.
   // The two phases that CAN be true from the files, for a spec whose
   // only open question is archive.
   const BUILT = ["analyze", "implement"];
 
   test("a phase the files show done, with no job ever queued, reads done (criterion 1)", () => {
     const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
-    expect(pipFor(html, "analyze")).toBe("past");
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("not run yet");
     expect(analyze).not.toContain("last re-run");
   });
 
-  // Spec 168 gave `.pip.now` the only motion on the page, so what
-  // decides whether a spec HAS a `now` pip is now load-bearing twice
-  // over: draw one for a spec with nothing running and the closed row
-  // says a phase is alive when none is.
-  test("a spec with nothing running has no now pip at all", () => {
+  // The only motion on the page marks the one thing that is happening:
+  // it was the `now` pip until 2026-09-07 and is the running badge now
+  // (`badgepulse`). Draw it for a spec with nothing running and the
+  // closed row says a phase is alive when none is.
+  test("a spec with nothing running carries no running mark", () => {
     const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
-    expect(head(html)).toContain('class="pip ');
-    expect(head(html)).not.toContain('class="pip now"');
+    expect(head(html)).toContain("badgeslot");
+    expect(head(html)).not.toContain("b-running");
   });
 
   test("a cancelled re-run never overturns a finished analysis (criterion 2)", () => {
@@ -85,7 +85,6 @@ describe("spec 108: one rule per phase", () => {
       [row({ id: "recancelled", specFolder: "108-recancelled", steps: ["analyze"], state: "cancelled" })],
       [target("108-recancelled", { done: ["analyze"] })],
     );
-    expect(pipFor(html, "analyze")).toBe("past");
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
     // Spec 195: the qualifier is a sentence, and a sentence under a
@@ -101,7 +100,6 @@ describe("spec 108: one rule per phase", () => {
   // and cannot be wrong at the edges.
   test("with every phase but archive done the button is named for archive", () => {
     const html = rows([], [target("108-ready", { done: BUILT })]);
-    expect(pipFor(html, "archive")).toBe("todo");
     expect(subRow(html, "archive")).toContain("not run yet");
     expect(runLine(html)).not.toContain("Run again");
     expect(runLine(html)).toContain(">Archive</button>");
@@ -117,7 +115,6 @@ describe("spec 108: one rule per phase", () => {
         }),
       ],
     );
-    expect(pipFor(html, "archive")).toBe("todo");
     const archive = subRow(html, "archive");
     expect(archive).toContain("held back");
     // Spec 143: the REASON is the row's panel's, said once for the
@@ -152,7 +149,6 @@ describe("spec 108: one rule per phase", () => {
       [row({ id: "retry", specFolder: "108-retry", steps: ["archive"], state: "running" })],
       [target("108-retry", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
     );
-    expect(pipFor(html, "archive")).toBe("now");
     expect(subRow(html, "archive")).toContain("b-running");
   });
 
@@ -161,7 +157,6 @@ describe("spec 108: one rule per phase", () => {
       [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })],
       [target("108-lagging", { done: ["analyze"] })],
     );
-    expect(pipFor(html, "implement")).toBe("todo");
     const implement = subRow(html, "implement");
     expect(implement).not.toContain("b-done");
     // Never silently hidden — and never on the line either, since spec

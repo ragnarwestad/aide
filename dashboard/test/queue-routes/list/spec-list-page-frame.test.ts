@@ -228,9 +228,11 @@ describe("every row answers for itself", () => {
     expect(line).not.toContain("% done");
     expect(line).not.toContain("64%");
     expect(line).not.toContain("Phase 2: GREEN");
-    // What the row DOES still read off this same file: the steps behind
-    // it, as green pips. The percentage is gone; the file is still read.
-    expect(line).toContain('class="pips"');
+    // What the row DOES still read off this same file: which phase is
+    // the first one still ahead, as the button's own label. The pips
+    // said the same thing until 2026-09-07; the percentage is gone, and
+    // the file is still read.
+    expect(line).toMatch(/<button[^>]*class="btn primary"[^>]*>[A-Z][a-z]+<\/button>/);
     expect(html).not.toContain('id="targetdata"');
     expect(html).not.toContain('<select name="target"');
   });

@@ -57,14 +57,16 @@ describe("spec 109: an expanded row reveals its controls below the header line",
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the State cell — the head row's
-   *  THIRD — since spec 157, open or shut alike. It was the header's
-   *  last cell for a shut row and a spanning `stackcell` for an open
-   *  one, which is why this used to need the whole row group. */
+  /** Where a row's one button is: the NAME cell — the head row's
+   *  first — since 2026-09-07, when the pips came off the list and the
+   *  button took their place at the end of the name box. It sat in the
+   *  State cell beside the badge from spec 157 until then, and in the
+   *  header's last cell (shut) or a spanning `stackcell` (open) before
+   *  that, which is why this used to need the whole row group. */
   const actionCell = (chunk: string) => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[1] ?? "";
+    return cells[0] ?? "";
   };
 
   /** The two things a header row is ALLOWED to differ by, removed before

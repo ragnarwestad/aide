@@ -178,13 +178,13 @@ describe("the list is as wide as the screen at phone width", () => {
   });
 });
 
-describe("the pips follow the name at phone width", () => {
-  test("the desktop still pushes them to the column's own x", () => {
-    expect(CSS).toContain(".pipslot { margin-left: auto;");
+describe("the row's button, and the name beside it, at phone width", () => {
+  test("the desktop pushes the button to the name box's own end", () => {
+    expect(CSS).toContain(".spec-name > .actionslot { margin-left: auto;");
   });
 
-  test("the narrow-width block takes that push away", () => {
-    expect(NARROW).toContain(".spec-name > .pipslot { margin-left: 0; }");
+  test("the narrow-width block gives it the row's own indent instead", () => {
+    expect(NARROW).toContain("table.list tr.spechead .actionslot { order: 1; margin-left: var(--sp-3); }");
   });
 
   // The title's width is the head row's own rule (the row less the
@@ -197,8 +197,11 @@ describe("the pips follow the name at phone width", () => {
     expect((NARROW.match(/\.spec-name > \.label \{/g) ?? []).length).toBe(1);
   });
 
-  test("the pips are inside the name box the rules select on", () => {
-    expect(rows()).toMatch(/<div class="spec-name">[\s\S]*?<span class="pipslot">/);
+  // The pips came off the list on 2026-09-07; the button took their
+  // place inside the name box, and that is what these rules select on.
+  test("the button is inside the name box the rules select on", () => {
+    expect(rows()).toMatch(/<div class="spec-name">[\s\S]*?<span class="actionslot">/);
+    expect(rows()).not.toContain("pipslot");
   });
 });
 

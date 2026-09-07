@@ -163,8 +163,16 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(second).toContain("deadbee");
   });
 
-  const pipKind = (html: string, step: string): string =>
-    html.match(new RegExp(`<span class="pip ([a-z]+)"[^>]* title="${step}">`))?.[1] ?? "";
+  /** What the row says a phase's state is. The pips said it until
+   *  2026-09-07, when they came off the list; each phase's own LINE says
+   *  it in words for an open row, and the button's label says which
+   *  phase is the first one still ahead. Both come from the same
+   *  `done` this test is about. */
+  const phaseBadge = (html: string, step: string): string =>
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "")
+      .match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
+  const buttonLabel = (html: string): string =>
+    html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ?? "";
 
   // Spec 241, criterion 5: `targets()` deliberately excludes an archived
   // spec (spec 150), so `specPageView()`'s old `done: target?.done ?? []`
@@ -180,16 +188,13 @@ describe("no render path runs git or a network command (spec 208)", () => {
         "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
       },
     });
-    // The specs LIST's own row, not the spec page: spec 294 dropped the
-    // pip bar from the individual spec page entirely (its "Overview"
-    // became a pure Checks tab, no progress bar) — `phasePips()` /
-    // `head-row.ts` is the only render path left that still draws one,
-    // same markup `pipKind` already parses.
-    const html = await (await get(base, "/?state=archived")).text();
-    expect(pipKind(html, "create")).toBe("past");
-    expect(pipKind(html, "analyze")).toBe("past");
-    expect(pipKind(html, "implement")).toBe("past");
-    expect(pipKind(html, "archive")).toBe("past");
+    // The specs LIST's own row, opened so its phase lines are drawn:
+    // that is where each phase's own state is said since the pips came
+    // off the list, and it is read from the same `done`.
+    const html = await (await get(base, "/?state=archived&open=aide/77-old-thing")).text();
+    for (const step of ["create", "analyze", "implement", "archive"]) {
+      expect([step, phaseBadge(html, step)]).toEqual([step, "done"]);
+    }
   });
 
   // Spec 241, criterion 6: a regression guard for the branch above — a
@@ -200,7 +205,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   // ANY spec's Overview tab through a real route and inspected its pips —
   // so a broken conditional (e.g. an inverted `ref?.archived` check) would
   // otherwise pass unnoticed.
-  test("a live spec's Overview tab still reads its pips from its own git-verified history (criterion 6)", async () => {
+  test("a live spec's row still reads its phases from its own git-verified history (criterion 6)", async () => {
     const { base, dir } = harness.start({
       extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 40 },
       status: statusSaying(["create", "analyze", "implement", "archive"]),
@@ -211,13 +216,13 @@ describe("no render path runs git or a network command (spec 208)", () => {
     // Same list-route note as criterion 5 above.
     let html = "";
     for (let i = 0; i < 100; i++) {
-      html = await (await get(base, "/")).text();
-      if (pipKind(html, "analyze") === "past") break;
+      html = await (await get(base, "/?open=aide/81-queue-and-runner")).text();
+      if (phaseBadge(html, "analyze") === "done") break;
       await new Promise((r) => setTimeout(r, 50));
     }
-    expect(pipKind(html, "create")).toBe("past");
-    expect(pipKind(html, "analyze")).toBe("past");
-    expect(pipKind(html, "implement")).toBe("todo");
-    expect(pipKind(html, "archive")).toBe("todo");
+    expect(phaseBadge(html, "analyze")).toBe("done");
+    // And what the file CLAIMS is not what the row believes: implement
+    // has no git-verified run, so the button is still named for it.
+    expect(buttonLabel(html)).toBe("Implement");
   });
 });
