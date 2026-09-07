@@ -98,19 +98,6 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
-  /** Every repo a job for this project could reach: the code root
-   *  always, and the specs root beside it only when the project keeps
-   *  specs in a repo of their own (spec 402) — the same two paths
-   *  `land-branch/merge.ts`'s own `codeRoots` set already resolves a
-   *  landing's gate against. A project that keeps specs inside its own
-   *  code repo collapses to one root, so it never collides with
-   *  anything beyond itself. */
-  private repoRootsFor(project: string): string[] {
-    const code = this.o.projectDir(project);
-    const specs = this.o.specsRoot?.(project) ?? code;
-    return specs === code ? [code] : [code, specs];
-  }
-
   /** Fill every free slot, oldest queued job first.
    *
    *  `blocked` maps a job id to the folder of the dependency it is
@@ -138,30 +125,20 @@ export class Runner {
     const held = (this.heldThisPass = new Set<string>());
     const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
 
-    // A landing merges directly into the SHARED main checkout — the one
-    // every run switches and reads at its own start — and worktree
-    // isolation (spec 91) protects a run's work from other runs, not
-    // that checkout from a landing writing to it. Scoped to the repos a
-    // landing ACTUALLY occupies (spec 402): WHICH of a project's own
-    // repos a step reaches is unknown until `aide-run-spec` has resolved
-    // them, after it has started — but WHICH repos the project HAS is
-    // known now, from the same two resolvers the lock and the landing's
-    // own gate already use. A job whose repos are disjoint from every
-    // one of them reads nothing a landing anywhere else on the board is
-    // writing to.
-    const repoCache = new Map<string, string[]>();
-    const rootsFor = (project: string): string[] => {
-      const cached = repoCache.get(project);
-      if (cached) return cached;
-      const roots = this.repoRootsFor(project);
-      repoCache.set(project, roots);
-      return roots;
-    };
-    const landingRepos = new Set<string>();
-    for (const j of this.o.store.list()) {
-      if (j.landing) for (const root of rootsFor(j.project)) landingRepos.add(root);
-    }
-
+    // No job waits on a landing any more. A landing used to merge in the
+    // SHARED main checkout — `git switch`, then the project's whole
+    // suite on the result — and that is the directory a starting run
+    // reads before it cuts its own worktree, so every job for the
+    // project had to be held for the five and a half minutes it took
+    // (spec 402 narrowed that from the whole board to the repo; it could
+    // not narrow it further, because every job for a project touches
+    // both of its repos).
+    //
+    // The landing merges in a worktree of its own now
+    // (`mergeBranchIntoDefault`). The shared checkout is asked
+    // questions, and fast-forwarded once at the end in well under a
+    // second — nothing a run's own start can be caught by. So the hold
+    // that existed for it is gone, and the board runs its six at once.
     // Quick steps before slow ones, oldest first within each group
     // (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
@@ -173,17 +150,11 @@ export class Runner {
         return;
       }
       if (job.state !== "queued") continue;
-      // NOTHING starts while a job in the SAME repo is landing — the
-      // repos it MIGHT touch, since which ones this step will actually
-      // reach is only known once `aide-run-spec` has resolved them. Not
-      // exempted for the job whose OWN landing this is: its repos are
-      // always in `landingRepos` too, so it is left un-started all the
-      // same — only the redundant sentence is skipped, since its row
-      // already reads "landing <step>" through a different path.
-      if (landingRepos.size > 0 && rootsFor(job.project).some((root) => landingRepos.has(root))) {
-        if (!job.landing) hold(job, { key: "runner.landingPause" });
-        continue;
-      }
+      // A job whose OWN landing is in flight is still not restarted:
+      // its own next step waits for its merge, which is what `landing`
+      // means. That is one row's own ordering, not a pause on the
+      // board.
+      if (job.landing) continue;
       // Two jobs for the SAME spec are never both started: analyze and
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a

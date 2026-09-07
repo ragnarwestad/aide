@@ -33,7 +33,7 @@ describe("spec 394: the banner's combined tracking control", () => {
   // REQ-2: the acceptance switch sits in the same banner area.
   test("REQ-2: the acceptance switch is drawn in the banner, editable by default", () => {
     const html = page(view());
-    expect(html).toContain('name="acceptanceNotRequired"');
+    expect(html).toContain('name="acceptanceRequired"');
     expect(html).toContain('name="acceptanceEditable"');
   });
 
@@ -42,23 +42,30 @@ describe("spec 394: the banner's combined tracking control", () => {
   // resetControl already use.
   test("REQ-6: the switch is drawn disabled with a title once done includes analyze", () => {
     const html = page(view({ done: ["create", "analyze"] }));
-    expect(html).not.toContain('name="acceptanceNotRequired"');
+    expect(html).not.toContain('name="acceptanceRequired"');
     expect(html).toMatch(/aria-disabled="true" title="analyze has already decided/);
-    expect(html).toContain("acceptance ticking not required");
+    // Still a box, and still saying which way it went — it used to draw
+    // one sentence for both answers.
+    expect(html).toContain("acceptance ticking required");
+    expect(html).toMatch(/<input type="checkbox" disabled/);
   });
 
   // REQ-6's own criterion is testable both ways: nothing done yet draws
   // the live control.
   test("no analyze yet draws the live, editable switch", () => {
     const html = page(view({ done: [] }));
-    expect(html).toMatch(/<input type="checkbox" name="acceptanceNotRequired"/);
+    expect(html).toMatch(/<input type="checkbox" name="acceptanceRequired"/);
   });
 
+  // The switch asks the POSITIVE question, so a spec recorded as "not
+  // required" is the CLEARED one — the inversion lives in the view's
+  // own field, which mirrors the spec file's `**Acceptance:** not
+  // required` line, and nowhere else.
   test("the switch reflects the spec's own recorded choice", () => {
-    const checked = page(view({ acceptanceNotRequired: true }));
-    expect(checked).toMatch(/name="acceptanceNotRequired" value="1" checked/);
-    const unchecked = page(view({ acceptanceNotRequired: false }));
-    expect(unchecked).not.toMatch(/name="acceptanceNotRequired" value="1" checked/);
+    const notRequired = page(view({ acceptanceNotRequired: true }));
+    expect(notRequired).not.toMatch(/name="acceptanceRequired" value="1" checked/);
+    const required = page(view({ acceptanceNotRequired: false }));
+    expect(required).toMatch(/name="acceptanceRequired" value="1" checked/);
   });
 
   // REQ-7: an archived spec keeps the read-only shape it always had —

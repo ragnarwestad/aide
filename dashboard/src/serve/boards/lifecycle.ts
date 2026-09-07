@@ -52,19 +52,44 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
   return sha || undefined;
 }
 
-/** Bind port 0, read back what the OS gave, close it, and skip anything
- *  already reserved (REQ-10) — the same `port: 0` idiom every real
- *  server and test in this codebase already uses; there is no dedicated
- *  free-port utility to reuse. */
+/** The ports a test server may use. A board on a port nobody exposed is
+ *  reachable from the serving host and nowhere else — and the reader
+ *  who wants to look at a branch is usually not sitting at it. These
+ *  three are put behind `tailscale serve` once, by hand, so a board
+ *  that takes one is reachable the moment it is up.
+ *
+ *  Three, not more: each is a standing exposure on the tailnet, and a
+ *  reader is not looking at four branches at once. A fourth request
+ *  says so rather than starting a board nobody can open. */
+export const BOARD_PORTS = [8801, 8802, 8803] as const;
+
+/** The first port in the pool that nothing is using. `reserved` is what
+ *  this server and its other boards already hold (REQ-10); the probe is
+ *  for anything else on the machine that took one meanwhile.
+ *
+ *  It used to ask the OS for any free port at all — reachable on the
+ *  host, and nowhere else, since nothing exposes a port picked at
+ *  random. */
 export async function findFreePort(reserved: number[]): Promise<number> {
   const taken = new Set(reserved);
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const probe = Bun.serve({ port: 0, fetch: () => new Response("") });
-    const port = probe.port;
+  for (const port of BOARD_PORTS) {
+    if (taken.has(port)) continue;
+    let probe: { stop: (b: boolean) => void } | undefined;
+    try {
+      // `hostname` matters: a board listens on loopback, and
+      // `tailscale serve` has a listener of its own on the tailnet
+      // address for these very ports. Probing on every address would
+      // collide with that and report a free port as taken.
+      probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
+    } catch {
+      continue; // something else holds it
+    }
     probe.stop(true);
-    if (typeof port === "number" && !taken.has(port)) return port;
+    return port;
   }
-  throw new Error("could not find a free port for a board after 20 attempts");
+  throw new Error(
+    `every test-server port is in use (${BOARD_PORTS.join(", ")}) — stop a board before starting another`,
+  );
 }
 
 const LEFT_RUNNING_RE = /left running: pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;

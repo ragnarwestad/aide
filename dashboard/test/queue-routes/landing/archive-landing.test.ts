@@ -1,6 +1,7 @@
 // Split out of create-and-archive.test.ts by theme; its shared
 // machinery moved to archive-landing-fixtures.ts 2026-09-04.
 
+import { repoOf } from "./every-step-lands-fixtures.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -44,8 +45,8 @@ describe("landing an archived spec (spec 136)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(merges(git.calls).length).toBeGreaterThan(0);
-    expect(merges(git.calls).every((c) => c.dir === SPECS_REPO)).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(merges(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch to merge.
     expect(landed.branchUrls).toEqual([]);
   });
@@ -62,7 +63,7 @@ describe("landing an archived spec (spec 136)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(git.calls.some((c) => c.args.join(" ").startsWith("merge -q --no-edit"))).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     expect(git.calls.some((c) => c.args.join(" ") === "merge --abort")).toBe(false);
   });
 
@@ -81,7 +82,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(failed.landing).toBeFalsy();
     // Nothing half-merged is left behind, and the branch is still there
     // to press Merge (or resolve) against.
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(failed.branchUrls).toEqual([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     // The spec is still in the active list, exactly as it was.
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
@@ -135,9 +136,9 @@ describe("landing an archived spec (spec 136)", () => {
     expect(landed.error).toBeFalsy();
     expect(landed.errorReason).toBeFalsy();
     // The specs repo in the same landing still merges and pushes.
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // And nothing was merged in the repo whose branch is gone.
-    expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(false);
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === CODE_REPO)).toBe(false);
   });
 
   // The guard against over-fixing: "gone" is excluded from the report,
@@ -219,7 +220,7 @@ describe("landing an archived spec (spec 136)", () => {
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
   // Criterion 7. Merged is not deployed, and the manual route runs the
@@ -248,7 +249,7 @@ describe("landing an archived spec (spec 136)", () => {
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(git.calls.some((c) => c.dir === specsRepo && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === specsRepo && c.args[0] === "push")).toBe(true);
     expect(existsSync(marker)).toBe(false);
   });
 

@@ -61,6 +61,10 @@ function recordingGit(opts: { hold?: (args: string[]) => Promise<void> } = {}) {
         return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
       }
       if (line.startsWith("log --all")) return { code: 0, stdout: "Run /aide-analyze for 81-queue-and-runner (headless)\n" };
+      // A landing merges in a worktree of its own, so `worktree add` is
+      // on the happy path of every merge — unanswered it fails, and the
+      // landing refuses before it has done anything.
+      if (args[0] === "worktree") return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
     } finally {
       inFlight -= 1;

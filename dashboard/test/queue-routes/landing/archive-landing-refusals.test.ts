@@ -5,6 +5,7 @@
 // Split out of archive-landing.test.ts 2026-09-04 (777 lines); the
 // tests are unchanged and keep their names.
 
+import { repoOf } from "./every-step-lands-fixtures.ts";
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,8 +35,8 @@ describe("code lands before specs for archive (spec 280)", () => {
     expect(failed.errorReason).toBe("conflict");
     // The code root was attempted (and failed) — the specs root, which
     // carries the "completed" stamp, was never attempted at all.
-    expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(true);
-    expect(merges(git.calls).some((c) => c.dir === SPECS_REPO)).toBe(false);
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === CODE_REPO)).toBe(true);
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === SPECS_REPO)).toBe(false);
   });
 
   test("AC9: a successful code root is followed by the specs root, unaffected", async () => {
@@ -52,12 +53,12 @@ describe("code lands before specs for archive (spec 280)", () => {
 
     expect(landed.error).toBeFalsy();
     const merged = merges(git.calls);
-    const codeIndex = merged.findIndex((c) => c.dir === CODE_REPO);
-    const specsIndex = merged.findIndex((c) => c.dir === SPECS_REPO);
+    const codeIndex = merged.findIndex((c) => repoOf(c.dir) === CODE_REPO);
+    const specsIndex = merged.findIndex((c) => repoOf(c.dir) === SPECS_REPO);
     expect(codeIndex).toBeGreaterThanOrEqual(0);
     expect(specsIndex).toBeGreaterThan(codeIndex);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
-    expect(git.calls.some((c) => c.dir === CODE_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === CODE_REPO && c.args[0] === "push")).toBe(true);
     expect(landed.branchUrls).toEqual([]);
   });
 });
@@ -93,7 +94,7 @@ describe("a branch left behind after a successful merge (spec 319)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(landed.errorReason).toBeFalsy();
-    expect(git.calls.some((c) => c.dir === specsRoot && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === specsRoot && c.args[0] === "push")).toBe(true);
     expect(sentence(landed.branchDeleteError)).toContain(specsRoot);
     expect(sentence(landed.branchDeleteError)).toContain(BRANCH);
     expect(sentence(landed.branchDeleteError)).toContain("remote rejected: hook declined");

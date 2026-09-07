@@ -231,21 +231,26 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // Spec 386's original placement (a row inside `newSpecPhaseTable`) split
 // this pair across the phase table.
 //
-// UNCHECKED by default: a spec made without touching the switch requires
-// its acceptance ticking. The reverse default is expensive to be wrong
-// about — `analyze` decides once, from this, and locks the switch after,
-// so a spec that quietly skipped its acceptance table could only be put
-// right by running the whole analysis again.
+// Said the POSITIVE way, and checked by default. It read "acceptance
+// ticking not required", unticked, which meant "it IS required" — a
+// double negative to unwind every time. The field posts the same way it
+// reads, so nothing between here and the runner has to be read
+// backwards either.
+//
+// Checked by default because the wrong default is expensive: `analyze`
+// decides once, from this, and locks the switch after — so a spec that
+// quietly skipped its acceptance table could only be put right by
+// running the whole analysis again.
 function acceptanceField(formId: string): string {
   return phaseChip({
     dataAttr: "data-acceptance",
     value: "1",
-    label: "acceptance ticking not required",
-    name: "acceptanceNotRequired",
+    label: "acceptance ticking required",
+    name: "acceptanceRequired",
     form: formId,
-    checked: false,
+    checked: true,
     plain: true,
-    title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
+    title: "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. Cleared, the requirements stay written down and nothing is left to tick.",
   });
 }
 

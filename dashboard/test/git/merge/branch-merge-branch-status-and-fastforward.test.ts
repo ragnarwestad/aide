@@ -111,9 +111,8 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
   test("a base that cannot be fast-forwarded says so in full, and carries no reason", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 1 },
-      switch: { code: 0 },
+      "rev-list --count": { code: 0, stdout: "1\n" },
+      "rev-list origin/master..master": { code: 0, stdout: "abc1234\n" },
       fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
@@ -128,7 +127,11 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
   // origin already holds (the branch's own, and merges of them). That
   // used to refuse every later landing in the root as "cannot
   // fast-forward"; it is a leftover, and is dropped.
-  test("a base ahead of origin only by commits origin holds is reset, and the landing goes on", async () => {
+  // No reset any more, and nothing to recover from: the merge is made in
+  // a worktree cut fresh at `origin/<base>` every time, so a checkout
+  // left ahead by a landing that died cannot reach it. The landing goes
+  // on, and the checkout's own catch-up settles it at the end.
+  test("a base ahead of origin only by commits origin holds does not stop the landing", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
       "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
@@ -148,7 +151,8 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
     const seq = git.calls.map((c) => c.args.join(" "));
-    expect(seq.indexOf("reset -q --hard origin/master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only origin/master"));
+    expect(seq).toContain("push -q origin HEAD:refs/heads/master");
+    expect(seq.some((a) => a.startsWith("reset -q --hard"))).toBe(false);
   });
 
   test("a base ahead of origin by a commit of its own is still refused — that is somebody's work", async () => {

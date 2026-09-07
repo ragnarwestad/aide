@@ -57,6 +57,11 @@ export function fakeGit(answers: Record<string, Answer | Answer[]>) {
 export const CLEAN_MASTER = {
   "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
   "status --porcelain": { code: 0, stdout: "" },
+  // A landing merges in a worktree of its own, so `worktree add` is on
+  // the happy path of every merge — unanswered, it fails, and the whole
+  // landing refuses before it starts. `remove` and `prune` share the
+  // prefix and are best-effort either way.
+  worktree: { code: 0, stdout: "" },
 };
 
 /** A runner whose `ls-remote --heads` answer for a spec root moves

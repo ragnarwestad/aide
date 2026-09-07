@@ -25,23 +25,26 @@ const ACCEPT_LINE = "- **Acceptance:** not required";
 const track = (base: string, body: Record<string, string>) => post(base, body, TRACKING);
 
 describe("the acceptance switch on the spec page's tracking route", () => {
-  test("REQ-10: acceptanceEditable + acceptanceNotRequired writes the line", async () => {
+  // The box asks the POSITIVE question — "acceptance ticking required" —
+  // so a CLEARED box (nothing posted beyond the editable sentinel) is
+  // what writes the spec's `**Acceptance:** not required` line.
+  test("REQ-10: the box CLEARED writes the not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const res = await track(base, { acceptanceEditable: "1", acceptanceNotRequired: "1", baseSha: FILE_SHA });
+    const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(ACCEPT_LINE));
   });
 
-  test("REQ-10: acceptanceEditable alone (box left unchecked) removes an existing line", async () => {
+  test("REQ-10: the box TICKED removes an existing not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(ACCEPT_LINE),
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
+    const res = await track(base, { acceptanceEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
@@ -71,7 +74,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create", "analyze"]),
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const res = await track(base, { acceptanceEditable: "1", acceptanceNotRequired: "1", baseSha: FILE_SHA });
+    const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
     expect(location).toContain("analyze has already decided");
@@ -102,7 +105,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     });
     const res = await post(
       base,
-      { acceptanceEditable: "1", acceptanceNotRequired: "1", baseSha: FILE_SHA },
+      { acceptanceEditable: "1", baseSha: FILE_SHA },
       `/api/queue/specs/aide/${ARCHIVED}/tracking`,
     );
     expect(res.status).toBe(303);
@@ -129,7 +132,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       description: TRACKED(),
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const res = await post(base, { acceptanceEditable: "1", acceptanceNotRequired: "1", baseSha: FILE_SHA }, TRACKING, null);
+    const res = await post(base, { acceptanceEditable: "1", baseSha: FILE_SHA }, TRACKING, null);
     expect(res.status).toBe(401);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });

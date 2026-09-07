@@ -154,16 +154,44 @@ describe("several jobs at once", () => {
   // The whole queue stops while any job is landing, and every queued row
   // used to sit there with no reason at all — or with an older, wrong
   // one still on it.
-  test("a landing in flight is said on every queued row", () => {
+  // No job waits on a landing any anywhere any more. A landing used to
+  // merge in the shared main checkout — `git switch`, then the whole
+  // suite on the result — and that is the directory a starting run
+  // reads before it cuts its own worktree. The merge happens in a
+  // worktree of its own now, so there is nothing for a starting run to
+  // be caught by, and the board runs its six at once.
+  test("a job starts while another spec's merge is in flight", () => {
     const a = enqueue({ steps: ["analyze"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     store.update(a.id, { state: "done", landing: true });
     runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(b.id)?.error).toBeUndefined();
+  });
+
+  // Two more, and a merge holds neither: the point of the change is
+  // that the repository no longer decides anything.
+  test("a job in another project starts too, while the merge runs", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const c = enqueue({ project: "other-project", steps: ["analyze"] });
+    const runner = makeRunner({ maxConcurrent: 3, projectDir: (p) => join(dir, p) });
+    store.update(a.id, { state: "done", landing: true });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(c.id)?.state).toBe("running");
+  });
+
+  // The one ordering a landing still imposes is on its OWN row: the
+  // job's next step waits for its own merge, which is what `landing`
+  // means.
+  test("a landing job is not restarted while its own merge runs", () => {
+    const a = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    store.update(a.id, { state: "queued", landing: true });
+    runner.tick();
     expect(spawns.length).toBe(0);
-    const held = store.get(b.id)!;
-    expect(sentence(held.error)).toContain("a merge is still running");
-    expect(held.errorReason).toBe("held-back");
   });
 
   // Spec 402, REQ-3/REQ-6: the whole-board pause used to hold every
@@ -182,12 +210,10 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  // Spec 402, REQ-2/REQ-6: the decision is made from the RESOLVED path,
-  // never from `job.project` — so two different project names sharing
-  // one repository (a shared specs remote, in the description's own
-  // example) hold each other back exactly as two jobs in the same
-  // project already do.
-  test("a job waits for a merge in a repository it shares, even under a different project name", () => {
+  // Spec 402 held a job back when it SHARED a repository with a landing.
+  // That is gone too, and for the same reason: sharing a repository was
+  // only dangerous because the landing stood in its checkout.
+  test("a job sharing a repository with a merge starts anyway", () => {
     const sharedRoot = join(dir, "shared-repo");
     const a = enqueue({ steps: ["analyze"] });
     const b = enqueue({ project: "other-project", steps: ["analyze"] });
@@ -197,10 +223,7 @@ describe("several jobs at once", () => {
     });
     store.update(a.id, { state: "done", landing: true });
     runner.tick();
-    const held = store.get(b.id)!;
-    expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("a merge is still running");
-    expect(held.errorReason).toBe("held-back");
+    expect(store.get(b.id)?.state).toBe("running");
   });
 
   test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {

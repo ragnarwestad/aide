@@ -4,6 +4,7 @@
 //
 // Split out of archive-landing.test.ts 2026-09-04 (777 lines).
 
+import { repoOf } from "./every-step-lands-fixtures.ts";
 import { afterEach } from "bun:test";
 import { rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -69,9 +70,9 @@ export function gitFor({
     if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
     if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
+      return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
     }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
     if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
     if (a.startsWith("push -q origin --delete") && deleteFails.includes(dir)) {
       return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };

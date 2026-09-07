@@ -53,8 +53,9 @@ export function gitFor({
   const calls: { dir: string; args: string[] }[] = [];
   const open = new Set(openOn);
   const merged = (dir: string): { code: number; stdout: string } => {
-    if (conflicting.includes(dir)) return { code: 1, stdout: "" };
-    open.delete(dir);
+    const repo = repoOf(dir);
+    if (conflicting.includes(repo)) return { code: 1, stdout: "" };
+    open.delete(repo);
     return { code: 0, stdout: "" };
   };
   const run = async (dir: string, args: string[]) => {
@@ -66,7 +67,7 @@ export function gitFor({
     if (a.startsWith("ls-remote --heads origin refs/heads/aide/*")) {
       return {
         code: lsRemoteCode,
-        stdout: lsRemoteCode === 0 && open.has(dir) ? `a3f9c21\trefs/heads/${BRANCH}\n` : "",
+        stdout: lsRemoteCode === 0 && open.has(repoOf(dir)) ? `a3f9c21\trefs/heads/${BRANCH}\n` : "",
       };
     }
     if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
@@ -182,12 +183,22 @@ export async function settle(
   throw new Error("the job never settled");
 }
 
+/** The merges of a spec's branch, per REPO. A landing merges in a
+ *  worktree beside the checkout, so the call's own directory is
+ *  `<root>.landing.<branch>` — the repo it is about is what a test
+ *  means by `root`. */
+/** A landing merges in a worktree beside the checkout —
+ *  `<root>.landing.<branch>` (`mergeWorktreePath`) — so a call's own
+ *  directory is not the repo it is about. Everything a landing test
+ *  decides is per REPO, so the suffix comes off first. */
+export const repoOf = (dir: string): string => dir.replace(/\.landing\.[^/]*$/, "");
+
 export const merges = (calls: { dir: string; args: string[] }[], root?: string) =>
   calls.filter(
     (c) =>
       c.args[0] === "merge" &&
       c.args.includes(`refs/remotes/origin/${BRANCH}`) &&
-      (root === undefined || c.dir === root),
+      (root === undefined || c.dir.replace(/\.landing\.[^/]*$/, "") === root),
   );
 
 export const result = (over: Record<string, unknown> = {}) => ({

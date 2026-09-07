@@ -1,5 +1,6 @@
 // Split out of create-and-archive.test.ts by theme.
 
+import { repoOf } from "./every-step-lands-fixtures.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,9 +52,9 @@ function gitFor({
     if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
     if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
+      return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
     }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
     if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
     return { code: 0, stdout: "" };
   };
@@ -188,8 +189,8 @@ describe("landing a created spec (spec 93)", () => {
       (c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`),
     );
     expect(merges.length).toBeGreaterThan(0);
-    expect(merges.every((c) => c.dir === SPECS_REPO)).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(merges.every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
 
     const landedJob = await settle(base, job.id, () => true);
     expect(landedJob.error).toBeFalsy();
@@ -231,7 +232,7 @@ describe("landing a created spec (spec 93)", () => {
     expect(sentence(failed.error)).toContain(SPECS_REPO);
     expect(failed.landing).toBeFalsy();
     // Nothing half-merged is left for the next thing to trip over.
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
   });
 
   test("a landed spec is an ordinary row: analyze runnable, nothing left to merge", async () => {

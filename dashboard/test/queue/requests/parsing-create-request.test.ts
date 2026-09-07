@@ -325,29 +325,36 @@ describe("parseCreateRequest — steps (spec 342)", () => {
 
 // --- spec 386: a run may say acceptance ticking is not required ------------
 
-describe("parseCreateRequest — acceptanceNotRequired", () => {
+// The form asks the POSITIVE question — "acceptance ticking required",
+// ticked by default — so what it posts is `acceptanceRequired`. The job
+// keeps the spec file's own word (`**Acceptance:** not required`), which
+// is what the runner's flag writes, so this is where the one inversion
+// lives and the only place it has to be thought about.
+describe("parseCreateRequest — acceptanceRequired", () => {
   const allow = (project: string) => project === "aide";
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
-  test("REQ-1: posted as \"1\" or true is accepted", () => {
-    const r1 = parseCreateRequest({ ...CREATE, acceptanceNotRequired: "1" }, { allow, defaults: DEFAULTS });
-    expect(r1.ok && r1.job.acceptanceNotRequired).toBe(true);
-    const r2 = parseCreateRequest({ ...CREATE, acceptanceNotRequired: true }, { allow, defaults: DEFAULTS });
-    expect(r2.ok && r2.job.acceptanceNotRequired).toBe(true);
+  test("ticked — the ordinary case — leaves the job with no not-required field", () => {
+    const r1 = parseCreateRequest({ ...CREATE, acceptanceRequired: "1" }, { allow, defaults: DEFAULTS });
+    expect(r1.ok && r1.job.acceptanceNotRequired).toBeUndefined();
+    const r2 = parseCreateRequest({ ...CREATE, acceptanceRequired: true }, { allow, defaults: DEFAULTS });
+    expect(r2.ok && r2.job.acceptanceNotRequired).toBeUndefined();
   });
 
-  test("REQ-3: nothing chosen means no field at all — exactly today's behaviour", () => {
+  // A checkbox posts nothing when it is clear. That is the one
+  // asymmetry HTML forces, and it is what "not required" means here.
+  test("absent — a cleared box — asks for the not-required line", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
-    expect(r.ok && r.job.acceptanceNotRequired).toBeUndefined();
+    expect(r.ok && r.job.acceptanceNotRequired).toBe(true);
   });
 
   test.each([["0"], [false], [""]])(
-    "REQ-3: acceptanceNotRequired %p leaves the field absent",
+    "acceptanceRequired %p is a cleared box too",
     (value) => {
-      const r = parseCreateRequest({ ...CREATE, acceptanceNotRequired: value }, { allow, defaults: DEFAULTS });
+      const r = parseCreateRequest({ ...CREATE, acceptanceRequired: value }, { allow, defaults: DEFAULTS });
       expect(r.ok).toBe(true);
-      expect(r.ok && r.job.acceptanceNotRequired).toBeUndefined();
+      expect(r.ok && r.job.acceptanceNotRequired).toBe(true);
     },
   );
 });

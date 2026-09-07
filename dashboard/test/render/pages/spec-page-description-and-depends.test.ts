@@ -357,3 +357,41 @@ describe("the tracking form's Save/Cancel ride on the Depends on label line", ()
     expect(html).not.toContain('id="trackingform-save"');
   });
 });
+
+// The switch says what it means, and the locked one says which way it
+// actually went. It used to draw the words "acceptance ticking not
+// required" either way once `analyze` had locked it — so a spec that
+// DOES require its ticking was told, in plain words, that it does not.
+describe("the acceptance switch says what was decided", () => {
+  test("a spec that requires ticking draws a ticked box, in the positive words", () => {
+    const html = page(view({ acceptanceNotRequired: false }));
+    expect(html).toContain("acceptance ticking required");
+    expect(html).not.toContain("acceptance ticking not required");
+    expect(html).toMatch(/name="acceptanceRequired"[^>]*checked/);
+  });
+
+  test("a spec that does not draws the same box, cleared", () => {
+    const html = page(view({ acceptanceNotRequired: true }));
+    const box = html.match(/<input type="checkbox"[^>]*name="acceptanceRequired"[^>]*>/)?.[0] ?? "";
+    expect(box).not.toBe("");
+    expect(box).not.toContain("checked");
+  });
+
+  // Locked once analyze has decided — but still a box, and still ticked
+  // according to what it decided.
+  test("locked, it is disabled and still says which way it went", () => {
+    const required = page(view({ done: ["analyze"], acceptanceNotRequired: false }));
+    expect(required).toContain("acceptance ticking required");
+    expect(required).toMatch(/<input type="checkbox" disabled checked>/);
+    const not = page(view({ done: ["analyze"], acceptanceNotRequired: true }));
+    expect(not).toMatch(/<input type="checkbox" disabled>/);
+  });
+
+  // A locked box submits nothing, exactly as a cleared one does —
+  // `acceptanceEditable` is the hidden sentinel that tells them apart.
+  test("a locked switch posts no field of its own", () => {
+    const html = page(view({ done: ["analyze"], acceptanceNotRequired: false }));
+    expect(html).not.toContain('name="acceptanceRequired"');
+    expect(html).not.toContain('name="acceptanceEditable"');
+  });
+});
