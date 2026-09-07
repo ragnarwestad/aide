@@ -151,9 +151,12 @@ describe("the pips follow the name at phone width", () => {
   // whatever the margin says, and one sized to its own name moves them
   // row by row. A fixed share of the row does neither, and a name too
   // long for it wraps inside the box.
-  test("the name takes a fixed share of the row, so the pips line up", () => {
-    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 60%; min-width: 0; }");
+  test("the name box is a fixed width here too, so the pips line up", () => {
+    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 11rem; min-width: 0; }");
     expect(NARROW).not.toContain(".spec-name > .label { flex: 1 1 0%");
+    // Not a share of the row: the same percentage is a different number
+    // of characters on every phone, and the name is set in mono.
+    expect(NARROW).not.toMatch(/\.spec-name > \.label \{ flex: 0 0 \d+%/);
   });
 
   test("the pips are inside the name box the rules select on", () => {

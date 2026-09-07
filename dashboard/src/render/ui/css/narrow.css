@@ -170,15 +170,16 @@
      of given to the name. */
   .spec-name { gap: var(--sp-1); }
   .spec-name > .fold { margin-right: 0; }
-  /* A fixed share of the row, so the pips start at the same x on every
-     row here too — the desktop gets that from a 27rem name box, and a
-     rem number cannot do it across phone widths that run from 320 to
-     640px. 60% leaves the four pips their ~6rem and a margin on the
-     narrowest phone, and a name too long for it wraps to a second line
-     inside the box instead of shrinking the box (`flex-basis: 0` gave
-     the label every pixel of the row and put the pips against the
-     right edge; `auto` sized it to the name and moved them per row). */
-  .spec-name > .label { flex: 0 0 60%; min-width: 0; }
+  /* A WIDTH, the same way the desktop's 27rem name box is a width and
+     not a maximum: the pips start at the same x on every row only if
+     the box before them is the same size on every row. 11rem is what
+     fits beside them on the narrowest phone this is drawn for — 375px
+     less the page's own padding leaves 343, and the fold (28px) plus
+     the pips (101px) leave 214 for the name. A name longer than the box
+     wraps to a second line inside it and clamps there.
+     Not a percentage: a share of the row is a different number of
+     characters on every phone, and the name is set in mono. */
+  .spec-name > .label { flex: 0 0 11rem; min-width: 0; }
   /* The desktop's `margin-left: auto` is what makes every row's pips
      start at the same x, so they read as one column down the table.
      There is no column here — each row is its own block — and the
