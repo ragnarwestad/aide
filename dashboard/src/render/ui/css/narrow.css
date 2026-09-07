@@ -132,13 +132,13 @@
      now that the resting texts are one word ("ready"/"done"):
      "implementing queued", 19 characters of fs-s plus dot and padding. */
   table.list tr.spechead .badgeslot { width: 9rem; margin-left: var(--sp-2); }
-  /* Date and cost stand at the line's right edge, away from the action
-     button (asked for 2026-08-24). An auto margin only absorbs FREE
-     space, so it cannot wrap the cost by itself — what did that before
-     was the cell padding and the reserved widths, all since removed:
-     this margin was blamed and pulled in that round, and put back once
-     the real culprits were gone. */
-  table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }
+  /* Time and cost follow the button, on the same left edge as
+     everything else on this line. They stood at the line's RIGHT edge
+     until the pips came in beside the name (2026-09-07): with the name,
+     the pips, the badge and the button all reading down one left edge,
+     an auto margin left the last two figures alone out at the far side
+     with the row's free space between. */
+  table.list tr.spechead [data-col="started"] { display: block; }
   /* Spec 317, REQ-8: dropped rather than reflowed onto this already-
      crowded line (fold, name, pips, badge, action, duration, cost) — a
      phone reader here is oriented to state and how long it took, not

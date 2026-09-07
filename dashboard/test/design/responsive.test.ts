@@ -57,10 +57,12 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  test("the spec header keeps its date, pushed to the line's right edge", () => {
-    expect(NARROW).toContain(
-      'table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }',
-    );
+  test("the spec header keeps its date, on the same left edge as the rest", () => {
+    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
+    // The auto margin stood the two figures alone at the far side of the
+    // row once the name, the pips, the badge and the button all read
+    // down one left edge.
+    expect(NARROW).not.toContain('tr.spechead [data-col="started"] { display: block; margin-left: auto;');
   });
 
   // The action button after the badge must start at the same x on every
