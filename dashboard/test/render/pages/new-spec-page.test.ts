@@ -383,13 +383,16 @@ describe("spec 342: the phase table", () => {
 
   // REQ-2, REQ-3, REQ-5 (spec 394): the switch is paired with "Depends
   // on" rather than living inside the phase table, and starts CHECKED —
-  // a spec made without touching it is recorded as not requiring
-  // ticking, so an untouched form does not stop a later run for ticking.
-  test("spec 394: the acceptance-not-required switch is drawn beside Depends on, checked by default", () => {
+  // UNCHECKED by default: a spec made without touching the switch
+  // requires its acceptance ticking. `analyze` decides once, from this,
+  // and locks the switch afterwards — so a spec that quietly skipped its
+  // acceptance table could only be put right by running the whole
+  // analysis again, a quarter of an hour and real money for one box.
+  test("spec 394: the acceptance-not-required switch is drawn beside Depends on, unchecked by default", () => {
     const html = newPage();
     const box = html.match(/<input type="checkbox"[^>]*name="acceptanceNotRequired"[^>]*>/)?.[0] ?? "";
     expect(box).not.toBe("");
-    expect(box).toContain("checked");
+    expect(box).not.toContain("checked");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
   });

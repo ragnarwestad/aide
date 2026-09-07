@@ -229,9 +229,13 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // on" beside it rather than living inside the phase table's own rows —
 // neither is about one phase, both are about the spec as a whole.
 // Spec 386's original placement (a row inside `newSpecPhaseTable`) split
-// this pair across the phase table; REQ-9 also flips the default to
-// CHECKED, so a spec made without touching the switch is recorded as
-// not requiring ticking.
+// this pair across the phase table.
+//
+// UNCHECKED by default: a spec made without touching the switch requires
+// its acceptance ticking. The reverse default is expensive to be wrong
+// about — `analyze` decides once, from this, and locks the switch after,
+// so a spec that quietly skipped its acceptance table could only be put
+// right by running the whole analysis again.
 function acceptanceField(formId: string): string {
   return phaseChip({
     dataAttr: "data-acceptance",
@@ -239,7 +243,7 @@ function acceptanceField(formId: string): string {
     label: "acceptance ticking not required",
     name: "acceptanceNotRequired",
     form: formId,
-    checked: true,
+    checked: false,
     plain: true,
     title: "Skip the acceptance-criteria table this analyze writes — the requirements stay written down, nothing is left to tick before archive.",
   });

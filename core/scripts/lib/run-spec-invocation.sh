@@ -132,9 +132,21 @@ Use exactly this Depends-on value in Tracking info: $depends_on"
   # Spec 394: stated to the skill beside depends_line, for the same
   # reason — Step 4 is the step that actually writes the file, so the
   # instruction names it by number.
+  #
+  # BOTH answers are stated, never one. The skill's own Step 4 defaults
+  # to acceptance-not-required when it is told nothing, and the New-spec
+  # form's unticked box means the opposite — so silence here wrote
+  # "not required" onto a spec whose author had asked for the ticking.
+  # A run that knows the answer says it; nothing is left to a default
+  # on the other side of the contract.
   accept_line=""
-  [ "$acceptance_not_required" = "yes" ] && accept_line="
+  if [ "$acceptance_not_required" = "yes" ]; then
+    accept_line="
 Record this spec's Tracking info with an explicit acceptance-not-required line (Step 4)."
+  else
+    accept_line="
+Acceptance ticking IS required for this spec: do not pass --acceptance-not-required, and write no acceptance line into Tracking info (Step 4)."
+  fi
   prompt="/aide-create TODO-$title_slug $description
 
 Use exactly this title for the spec: $title$depends_line$accept_line
