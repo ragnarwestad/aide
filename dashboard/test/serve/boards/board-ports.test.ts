@@ -7,6 +7,10 @@
 import { describe, expect, test } from "bun:test";
 import { BOARD_PORTS, findFreePort } from "../../../src/serve/boards/lifecycle.ts";
 
+// Nothing is bound: a board actually running on this machine must not
+// decide what these tests say.
+const free = () => true;
+
 describe("a test server takes a port that is actually exposed", () => {
   test("the pool is a small, fixed set", () => {
     expect(BOARD_PORTS.length).toBe(3);
@@ -15,14 +19,14 @@ describe("a test server takes a port that is actually exposed", () => {
   });
 
   test("the first free port in the pool is taken, in order", async () => {
-    expect(await findFreePort([])).toBe(BOARD_PORTS[0]);
-    expect(await findFreePort([BOARD_PORTS[0]!])).toBe(BOARD_PORTS[1]);
-    expect(await findFreePort([BOARD_PORTS[0]!, BOARD_PORTS[1]!])).toBe(BOARD_PORTS[2]);
+    expect(await findFreePort([], free)).toBe(BOARD_PORTS[0]);
+    expect(await findFreePort([BOARD_PORTS[0]!], free)).toBe(BOARD_PORTS[1]);
+    expect(await findFreePort([BOARD_PORTS[0]!, BOARD_PORTS[1]!], free)).toBe(BOARD_PORTS[2]);
   });
 
   // Better than a board nobody can open: the reader is told to stop one.
   test("a full pool refuses, and names the ports", async () => {
-    await expect(findFreePort([...BOARD_PORTS])).rejects.toThrow(/every test-server port is in use/);
+    await expect(findFreePort([...BOARD_PORTS], free)).rejects.toThrow(/every test-server port is in use/);
   });
 
   // The port a random pick would have given is never exposed, so it is
@@ -32,7 +36,20 @@ describe("a test server takes a port that is actually exposed", () => {
       // `BOARD_PORTS` is a literal tuple, so its own `toContain` would
       // only accept one of its three members — this asks the question
       // of a plain array instead.
-      expect([...BOARD_PORTS] as number[]).toContain(await findFreePort(reserved));
+      expect([...BOARD_PORTS] as number[]).toContain(await findFreePort(reserved, free));
     }
+  });
+});
+
+// And the probe is asked, not assumed: a port something else already
+// holds is skipped, which is the whole reason the pool is probed at all.
+describe("a port in the pool that is already taken", () => {
+  test("is skipped, and the next free one is used", async () => {
+    const busy = new Set<number>([BOARD_PORTS[0]!]);
+    expect(await findFreePort([], (p) => !busy.has(p))).toBe(BOARD_PORTS[1]);
+  });
+
+  test("all three taken refuses, whoever is holding them", async () => {
+    await expect(findFreePort([], () => false)).rejects.toThrow(/every test-server port is in use/);
   });
 });

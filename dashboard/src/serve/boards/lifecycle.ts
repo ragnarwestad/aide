@@ -70,22 +70,30 @@ export const BOARD_PORTS = [8801, 8802, 8803] as const;
  *  It used to ask the OS for any free port at all — reachable on the
  *  host, and nowhere else, since nothing exposes a port picked at
  *  random. */
-export async function findFreePort(reserved: number[]): Promise<number> {
+/** Whether a port can be bound right now. Injectable so a test can ask
+ *  the question without binding anything — the real one binds, and a
+ *  board running on this machine would otherwise decide the test. */
+export type PortProbe = (port: number) => boolean;
+
+const bindable: PortProbe = (port) => {
+  try {
+    // `hostname` matters: a board listens on loopback, and
+    // `tailscale serve` has a listener of its own on the tailnet
+    // address for these very ports. Probing on every address would
+    // collide with that and report a free port as taken.
+    const probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
+    probe.stop(true);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number> {
   const taken = new Set(reserved);
   for (const port of BOARD_PORTS) {
     if (taken.has(port)) continue;
-    let probe: { stop: (b: boolean) => void } | undefined;
-    try {
-      // `hostname` matters: a board listens on loopback, and
-      // `tailscale serve` has a listener of its own on the tailnet
-      // address for these very ports. Probing on every address would
-      // collide with that and report a free port as taken.
-      probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
-    } catch {
-      continue; // something else holds it
-    }
-    probe.stop(true);
-    return port;
+    if (canBind(port)) return port;
   }
   throw new Error(
     `every test-server port is in use (${BOARD_PORTS.join(", ")}) — stop a board before starting another`,
