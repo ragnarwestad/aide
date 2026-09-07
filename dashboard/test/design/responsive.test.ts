@@ -78,7 +78,7 @@ describe("Started and Cost fold away at phone width", () => {
     expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
     expect(NARROW).toContain(".spec-name { display: contents; }");
     expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
-    expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; margin-left: var\(--sp-3\); \}/);
     expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
     expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
   });
