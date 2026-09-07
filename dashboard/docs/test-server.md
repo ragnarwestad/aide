@@ -66,6 +66,12 @@ Without that, the next click on the spec's link tried to start a second test ser
 already had checked out, and refused: "it may already be checked out there, or in a leftover
 worktree".
 
+A test server that did NOT survive the restart leaves the same obstacle behind. Its worktree is
+removed by a watcher the test run leaves running beside it — and a restart that takes the server
+takes the watcher with it, so the worktree stays registered and refuses that branch's next
+checkout. Start-up clears those too: a worktree the test run made, on a branch it made, that no
+live server answers for.
+
 ## Which projects this works for
 
 Only `aide` itself, today. Starting a test server means running that project's own dashboard code

@@ -65,7 +65,7 @@ const filesDisagreeSentence = (lang: Language): string => renderMessage(lang, { 
 const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
     ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
-    : `last re-run ${stateLabel(attempt)}`;
+    : `last re-run ${stateLabel(attempt, lang)}`;
 
 /** The one rule, applied by everything that words a phase.
  *
@@ -142,8 +142,8 @@ export function wordPhase(
         // leftover report as if it were live.
         label:
           attempt!.tddPhase && attempt!.state === "running"
-            ? `${stateLabel(attempt!)} (${attempt!.tddPhase})`
-            : stateLabel(attempt!),
+            ? `${stateLabel(attempt!, lang)} (${attempt!.tddPhase})`
+            : stateLabel(attempt!, lang),
       },
       qualifier: filesDisagree,
     };
@@ -210,6 +210,6 @@ export function wordPhase(
   }
   return {
     pip: running ? "now" : "todo",
-    badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt) },
+    badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt, lang) },
   };
 }

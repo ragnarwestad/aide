@@ -187,17 +187,14 @@ describe("the pips follow the name at phone width", () => {
     expect(NARROW).toContain(".spec-name > .pipslot { margin-left: 0; }");
   });
 
-  // The other half of the same gap, and the alignment with it: a label
-  // that claims every pixel of the row leaves the pips at the edge
-  // whatever the margin says, and one sized to its own name moves them
-  // row by row. A fixed share of the row does neither, and a name too
-  // long for it wraps inside the box.
-  test("the name box is a fixed width here too, so the pips line up", () => {
-    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 17rem; min-width: 0; }");
-    expect(NARROW).not.toContain(".spec-name > .label { flex: 1 1 0%");
-    // Not a share of the row: the same percentage is a different number
-    // of characters on every phone, and the name is set in mono.
-    expect(NARROW).not.toMatch(/\.spec-name > \.label \{ flex: 0 0 \d+%/);
+  // The title's width is the head row's own rule (the row less the
+  // chevron, the gap and a little slack) — it is the ONE rule for it.
+  // A second, fixed 17rem sat here from an earlier round, dead: the
+  // head-row rule is the more specific of the two and every .spec-name
+  // on this page is inside a head row.
+  test("one rule sets the title's width, and it is the head row's", () => {
+    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 calc(100% - 40px); }");
+    expect((NARROW.match(/\.spec-name > \.label \{/g) ?? []).length).toBe(1);
   });
 
   test("the pips are inside the name box the rules select on", () => {
@@ -307,7 +304,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // Stated in the file, so the next person changing a width here knows
   // which number the widths are chosen against.
   test("the block says which screen it is drawn for", () => {
-    expect(CSS).toContain("The floor is 450px");
+    expect(CSS).toContain("The narrowest screen this block is drawn for is 360px");
   });
 
   // 6.25rem of floor inside a screen that is 23rem wide. Held here, the

@@ -11,13 +11,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BoardStore } from "../../../src/serve/boards/store.ts";
 import { stopBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
-import { parseWorktrees, recoverBoards } from "../../../src/serve/boards/recover.ts";
+import { parseWorktrees, recoverBoards, sweepDeadBoards } from "../../../src/serve/boards/recover.ts";
 import { workDirOf } from "../../../src/serve/boards/port-owner.ts";
 
-/** A work directory shaped the way the round leaves one: the board's
- *  worktree beside the token it serves with. */
+/** A work directory shaped the way the round leaves one: `mktemp -d`'s
+ *  own `tmp.XXXX` name, the board's worktree inside it, and the token it
+ *  serves with beside that. The NAME is part of the shape — nothing is
+ *  removed unless it looks like this. */
 function roundWorkDir(token = "t0ken"): string {
-  const work = mkdtempSync(join(tmpdir(), "aide-board-recover-"));
+  const work = mkdtempSync(join(tmpdir(), "tmp."));
   mkdirSync(join(work, "checkout"), { recursive: true });
   writeFileSync(join(work, "token"), token);
   return work;
@@ -146,6 +148,21 @@ describe("finding a test server again", () => {
     expect([asked, store.get("aide", "415-x")?.status]).toEqual([0, "starting"]);
   });
 
+  // Nothing here has ever had a test server, so nothing is asked of
+  // git — a project without the round is most of them.
+  test("a project the round cannot run on is not asked about at all", async () => {
+    const asked: string[][] = [];
+    const ctx = makeCtx({ worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e") });
+    ctx.roundAvailable = () => false;
+    ctx.gitRun = async (_dir, args) => {
+      asked.push(args);
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+    expect(asked).toEqual([]);
+  });
+
   test("a checkout git cannot be asked about recovers nothing, and does not throw", async () => {
     const ctx = makeCtx({ worktrees: undefined, onPort: async () => ({ pid: 1, workDir: "/w" }) });
     expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
@@ -190,6 +207,54 @@ describe("stopping a board that was found again", () => {
 
   test("a board this server started still gets its whole group", () => {
     expect(stopWith(false)).toEqual([-238]);
+  });
+});
+
+// The round leaves a watcher that removes its worktree once the board
+// dies, and a restart that takes the board takes the watcher with it.
+// What is left is a registration that refuses the next checkout of that
+// branch — the next click on the spec's own link.
+describe("the worktrees of test servers that are gone", () => {
+  const removals = (calls: string[][]) => calls.filter((a) => a[0] === "worktree" && a[1] === "remove");
+
+  test("a round worktree nothing is listening for is removed", async () => {
+    const work = roundWorkDir();
+    const calls: string[][] = [];
+    const ctx = makeCtx({ worktrees: porcelain(work, "aide/415-x", "b67707e") });
+    const gitRun = ctx.gitRun;
+    ctx.gitRun = async (dir, args) => {
+      calls.push(args);
+      return gitRun(dir, args);
+    };
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([join(work, "checkout")]);
+    expect(removals(calls)).toHaveLength(1);
+    expect(calls.some((a) => a[0] === "worktree" && a[1] === "prune")).toBe(true);
+  });
+
+  // `recoverBoards` runs first and puts a live board in the registry;
+  // its own worktree is not a leftover.
+  test("the worktree of a board that IS running is left alone", async () => {
+    const work = roundWorkDir();
+    const store = new BoardStore();
+    const ctx = makeCtx({
+      store,
+      worktrees: porcelain(work, "aide/415-x", "b67707e"),
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
+    });
+    await recoverBoards(ctx, ["aide"]);
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+  });
+
+  // A run's own worktree lives at `~/aide-worktrees/<project>/<spec>/code`
+  // and is a job in progress, not a leftover.
+  test("nothing but a round's own worktree is touched", async () => {
+    const ctx = makeCtx({
+      worktrees:
+        `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
+        `worktree /Users/x/aide-worktrees/aide/415-x/code\nHEAD abc\nbranch refs/heads/aide/415-x\n\n` +
+        `worktree /var/folders/44/T/not-a-temp-name/checkout\nHEAD abc\nbranch refs/heads/aide/416-x\n`,
+    });
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
   });
 });
 

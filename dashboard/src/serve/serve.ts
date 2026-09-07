@@ -50,7 +50,7 @@ import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { BoardStore } from "./boards/store.ts";
 import { findFreePort, type BoardsContext } from "./boards/lifecycle.ts";
-import { recoverBoards } from "./boards/recover.ts";
+import { recoverBoards, sweepDeadBoards } from "./boards/recover.ts";
 import { boardOnPort } from "./boards/port-owner.ts";
 
 export function createServer(opts: ServerOptions) {
@@ -432,8 +432,15 @@ export function createServer(opts: ServerOptions) {
   // spec's link goes to the board that exists rather than failing to
   // start a second one on a branch git already has checked out.
   void recoverBoards(boardsCtx, [...allowed])
-    .then((found) => {
+    .then(async (found) => {
       for (const e of found) console.log(`boards: ${e.branch} is still running on :${e.port}`);
+      // And the other half: a test server that did NOT survive leaves
+      // its worktree registered, and that registration refuses the next
+      // checkout of its branch — which is the next click on that spec's
+      // own link.
+      for (const path of await sweepDeadBoards(boardsCtx, [...allowed])) {
+        console.log(`boards: removed the worktree of a test server that is gone — ${path}`);
+      }
     })
     .catch(() => {
       // Best effort: a dashboard that could not ask still serves.
