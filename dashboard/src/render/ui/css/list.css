@@ -152,8 +152,13 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    that end, so every row's button starts at the same x whatever its
    name is; `align-self: center` overrides `.spec-name`'s own
    `align-items: flex-start`, so it centres against a name that has
-   wrapped to two lines rather than sitting level with the first. */
-.spec-name > .actionslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
+   wrapped to two lines rather than sitting level with the first.
+   `flex: none` is what keeps the column straight: a long name fills the
+   box, and flex takes the shortfall out of every item that can give —
+   including this one, which then started a few pixels further left on
+   exactly the rows with the longest names. The name absorbs it alone. */
+.spec-name > .actionslot { margin-left: auto; padding-left: var(--sp-2); align-self: center;
+  flex: none; }
 /* Still drawn on the spec page's own Overview and the job page. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
