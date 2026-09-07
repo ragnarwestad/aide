@@ -203,6 +203,14 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).not.toContain("foldphase");
   });
 
+  // Free space at the end of the line is not a spacing: an auto margin
+  // there put the width of whatever the status text left between the
+  // status and the pair.
+  test("the pair follows the status, and is not pushed to the line's end", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }");
+    expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
+  });
+
   test("the two selects carry the widths the floor allows", () => {
     expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 6.5rem;');
     expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 8rem;');

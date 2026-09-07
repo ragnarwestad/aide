@@ -225,13 +225,16 @@
   table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
-  /* AI and Model, always shown, at the line's own right: 6.5rem for the
+  /* AI and Model, always shown, right after the status: 6.5rem for the
      AI ("Claude Code" is the longest name it carries) and 8rem for the
      model ("claude-sonnet-4-6" is 17 characters of mono). Against the
      418px floor: name 85, tick 18, status ~70, AI 104, model 128 and
      the gaps — it fits, and a narrower window than the floor wraps the
-     pair onto a second line rather than scrolling. */
-  table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); margin-left: auto; }
+     pair onto a second line rather than scrolling.
+     No auto margin: free space at the line's end would stand between
+     the status and the pair, and the width of that gap would be
+     whatever the status text happened to leave. */
+  table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }
   table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
   table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 8rem; min-width: 0; max-width: none; }
 
