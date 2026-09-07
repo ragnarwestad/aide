@@ -12,6 +12,30 @@
 
 import { esc } from "../../../render/ui/html.ts";
 
+/** The board's address as the READER can reach it. The round only ever
+ *  knows loopback — it started the board on this machine and says
+ *  `http://127.0.0.1:<port>/` — and sending a browser there sends it to
+ *  its OWN machine, which has nothing on that port. The host the reader
+ *  used to reach the dashboard is the one that works, and the port is
+ *  the board's own; `tailscale serve` puts the pool's ports behind that
+ *  same host.
+ *
+ *  Unparseable, or a request with no host: the round's own address, so
+ *  a reader sitting at the serving machine still gets there. */
+export function boardUrlFor(reader: Request, boardUrl: string): string {
+  try {
+    const board = new URL(boardUrl);
+    const host = reader.headers.get("host");
+    if (!host) return boardUrl;
+    const from = new URL(reader.url);
+    board.protocol = from.protocol;
+    board.hostname = host.split(":")[0]!;
+    return board.toString();
+  } catch {
+    return boardUrl;
+  }
+}
+
 const EVERY_SECONDS = 5;
 
 /** One page, two states. Waiting refreshes onto the same URL until the

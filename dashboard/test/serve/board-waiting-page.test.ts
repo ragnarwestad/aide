@@ -3,7 +3,7 @@
 // standing in the one behind it.
 
 import { describe, expect, test } from "bun:test";
-import { boardFailedPage, waitingForBoardPage } from "../../src/serve/handle-queue/spec-edit/board-waiting.ts";
+import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../../src/serve/handle-queue/spec-edit/board-waiting.ts";
 
 const body = (r: Response) => r.text();
 
@@ -49,5 +49,43 @@ describe("a test server that could not start", () => {
     const html = await body(boardFailedPage("415-x", "<script>alert(1)</script>"));
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+// The round only ever knows loopback: it started the board on this
+// machine and says `http://127.0.0.1:<port>/`. Sending a browser there
+// sends it to the reader's OWN machine, which has nothing on that port
+// — "the dashboard is on the tailnet, and this device cannot reach it".
+describe("the board's address, as the reader can reach it", () => {
+  const asking = (url: string, host: string) =>
+    new Request(url, { headers: { host } });
+
+  test("takes the host the reader used, and keeps the board's port", () => {
+    expect(
+      boardUrlFor(
+        asking("https://rw-macmini.ts.net/specs/aide/415-x", "rw-macmini.ts.net"),
+        "http://127.0.0.1:8801/?token=t0ken",
+      ),
+    ).toBe("https://rw-macmini.ts.net:8801/?token=t0ken");
+  });
+
+  test("the token rides along untouched", () => {
+    const out = boardUrlFor(
+      asking("https://host.ts.net/x", "host.ts.net"),
+      "http://127.0.0.1:8802/?token=abc%2Fdef",
+    );
+    expect(out).toContain("token=abc%2Fdef");
+    expect(out).toContain(":8802");
+  });
+
+  // A reader sitting at the serving machine still gets there.
+  test("a request with no host at all falls back to what the round said", () => {
+    const bare = new Request("http://127.0.0.1:8788/x");
+    bare.headers.delete("host");
+    expect(boardUrlFor(bare, "http://127.0.0.1:8801/?token=t")).toContain("8801");
+  });
+
+  test("an address the round did not phrase as a URL is passed through", () => {
+    expect(boardUrlFor(asking("https://h.ts.net/x", "h.ts.net"), "not a url")).toBe("not a url");
   });
 });

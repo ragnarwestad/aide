@@ -3,7 +3,7 @@
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
 import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
-import { boardFailedPage, waitingForBoardPage } from "./board-waiting.ts";
+import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "./board-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
@@ -51,7 +51,7 @@ export async function specPageRoutes(
       // running goes to it, failed says so, starting waits.
       const already = refreshBoardStatus(ctx.boards, project!, specFolder!);
       if (already?.status === "running" && already.url) {
-        return Response.redirect(already.url, 303);
+        return Response.redirect(boardUrlFor(req, already.url), 303);
       }
       // A round that died says so and stops. Refreshing for ever in
       // front of a reader who can do nothing about it is worse than
