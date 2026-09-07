@@ -3,19 +3,21 @@
 
 import { badge, type BadgeVariant } from "../components.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import type { QueueRowView } from "./types.ts";
 
 // A stopped job is NOT a failed one, and the two must never render as
 // the same string: with tight caps a cap-stop is a common, healthy
 // outcome, and a reader who cannot tell them apart ignores both.
-export function stateLabel(r: QueueRowView): string {
+export function stateLabel(r: QueueRowView, lang: Language = "en"): string {
   if (r.state === "stopped") {
-    if (r.stopReason === "timeout") return `stopped — ${Math.round(r.timeoutSec / 60)} min`;
-    if (r.stopReason === "provider-limit") return "stopped — provider limit";
-    if (r.stopReason === "job-cap") return "stopped — job cap";
-    if (r.stopReason === "tests-red") return "stopped — tests red";
-    return "stopped — budget";
+    if (r.stopReason === "timeout") {
+      return t(lang, "state.stoppedTimeout").replace("{minutes}", String(Math.round(r.timeoutSec / 60)));
+    }
+    if (r.stopReason === "provider-limit") return t(lang, "state.stoppedProviderLimit");
+    if (r.stopReason === "job-cap") return t(lang, "state.stoppedJobCap");
+    if (r.stopReason === "tests-red") return t(lang, "state.stoppedTestsRed");
+    return t(lang, "state.stoppedBudget");
   }
   return r.state;
 }
@@ -75,7 +77,7 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   return badge(
     BADGE_VARIANT[r.state],
-    stateLabel(r),
+    stateLabel(r, lang),
     r.state === "stopped" ? renderSentence(lang, r.error) : undefined,
   );
 }

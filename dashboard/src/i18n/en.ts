@@ -80,4 +80,12 @@ export const en = {
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",
   "list.stateHeldBack": "{step} held back",
+  // A stopped job is not a failed one, and the reason is the half that
+  // says which. These read on the row itself, so they are as short as
+  // the badge is wide.
+  "state.stoppedTimeout": "stopped — {minutes} min",
+  "state.stoppedProviderLimit": "stopped — provider limit",
+  "state.stoppedJobCap": "stopped — job cap",
+  "state.stoppedTestsRed": "stopped — tests red",
+  "state.stoppedBudget": "stopped — budget",
 } as const;

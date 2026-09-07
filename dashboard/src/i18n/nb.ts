@@ -81,4 +81,9 @@ export const nb: Record<TranslationKey, string> = {
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} av {total} i kø — venter på en ledig plass til å kjøre {step}",
   "list.stateHeldBack": "{step} holdt tilbake",
+  "state.stoppedTimeout": "stoppet — {minutes} min",
+  "state.stoppedProviderLimit": "stoppet — grense hos leverandøren",
+  "state.stoppedJobCap": "stoppet — jobbtak",
+  "state.stoppedTestsRed": "stoppet — røde tester",
+  "state.stoppedBudget": "stoppet — budsjett",
 };
