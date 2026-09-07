@@ -89,13 +89,14 @@
   /* Line 1, exactly: the fold's own 24px and the row's gap subtracted,
      so the title fills what is left and everything after it wraps. */
   table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 32px); }
-  /* Line 2, in the order asked for: the pips, the button, the state.
-     The badge and the button share one cell, so the two are ordered
-     inside it rather than by the row. */
-  table.list tr.spechead .pipslot { order: 1; }
-  table.list tr.spechead > td:nth-child(2) { order: 2; }
+  /* Line 2, in the order asked for: the button, the pips, the state.
+     The badge and the button share one cell, so the cell is dissolved
+     too and the row orders all three itself. */
+  table.list tr.spechead > td:nth-child(2) { display: contents; }
+  table.list tr.spechead > td:nth-child(2) > .row { display: contents; }
   table.list tr.spechead .actionslot { order: 1; }
-  table.list tr.spechead .badgeslot { order: 2; }
+  table.list tr.spechead .pipslot { order: 2; }
+  table.list tr.spechead .badgeslot { order: 3; }
   /* The spec's own summary line, under both. */
   table.list tr.spechead .spec-title { order: 3; flex: 0 0 100%; }
   /* The header line starts further left than the phase lines under it

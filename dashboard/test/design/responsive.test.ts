@@ -70,14 +70,13 @@ describe("Started and Cost fold away at phone width", () => {
   // state, in that order. The pips live inside the name box — where a
   // desktop wants them — so both the cell and the box are dissolved to
   // let them reach the second line.
-  test("the head row is two lines: the title, then the pips, the button and the state", () => {
+  test("the head row is two lines: the title, then the button, the pips and the state", () => {
     expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
     expect(NARROW).toContain(".spec-name { display: contents; }");
     expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 32px); }");
-    expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 1; \}/);
-    expect(NARROW).toMatch(/tr\.spechead > td:nth-child\(2\) \{ order: 2; \}/);
     expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; \}/);
-    expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 2; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
   });
 
   // The action button after the badge must start at the same x on every
