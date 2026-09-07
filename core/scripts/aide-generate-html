@@ -75,7 +75,7 @@ DISPLAY_NAME=$(get_display_name "$ISSUE_ID")
 OUTPUT_HTML="$DOCS_DIR/$ISSUE_ID.html"
 
 # Create temporary combined markdown file
-TEMP_MD="$(mktemp /tmp/combined-${ISSUE_ID}-XXXXXX.md)"
+TEMP_MD="$(mktemp "/tmp/combined-${ISSUE_ID}-XXXXXX.md")"
 
 # Cleanup function that always runs
 cleanup() {
@@ -129,7 +129,7 @@ sed -i '' 's/^```text$/```/g' "$TEMP_MD"
 sed -i '' 's/^   ```text$/   ```/g' "$TEMP_MD"
 
 # Convert markdown to HTML with Pandoc (automatically generates IDs on all headings)
-TEMP_HTML="$(mktemp /tmp/html-${ISSUE_ID}-XXXXXX.html)"
+TEMP_HTML="$(mktemp "/tmp/html-${ISSUE_ID}-XXXXXX.html")"
 
 # Pandoc automatically generates IDs based on heading text
 # --standalone=false: body HTML only (not a full document)

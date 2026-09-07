@@ -21,7 +21,7 @@ import type { QueueRowView } from "./types.ts";
 export function completedThirds(attempt: QueueRowView | undefined): 1 | 2 | undefined {
   // The state itself, never `inFlight`: that is queued OR running, and a
   // job waiting to start is in no TDD phase at all.
-  if (!attempt || attempt.state !== "running") return undefined;
+  if (attempt?.state !== "running") return undefined;
   const tddPhase = attempt.tddPhase;
   if (!tddPhase) return undefined;
   const behind = TDD_PHASES.indexOf(tddPhase);

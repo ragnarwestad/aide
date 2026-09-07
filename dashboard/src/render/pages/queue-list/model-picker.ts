@@ -138,7 +138,7 @@ export function modelPicker(
   // the server's own per-phase answer rather than applied wholesale.
   const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
-  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
   const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
@@ -383,7 +383,7 @@ export function aiPicker(
   // writes into.
   const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
-  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: the same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
   const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];

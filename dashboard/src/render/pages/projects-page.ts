@@ -287,7 +287,7 @@ export function renderAddProjectPage(
       // only the empty string, which the server still refuses when
       // nothing was picked either.
       `<input type="text" name="name" maxlength="64" ` +
-        `pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" ` +
+        `pattern="[A-Za-z0-9][A-Za-z0-9._-]*" ` +
         // Spec 140: a project's name IS its directory name, so a Name
         // typed beside a picked checkout settles nothing — the pick
         // wins. The field carries a real choice on the clone path

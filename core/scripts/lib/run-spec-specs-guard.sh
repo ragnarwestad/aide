@@ -38,7 +38,7 @@ EOF_PATHS
     # folder is untouched.
     while IFS= read -r foreign_path; do
       [ -z "$foreign_path" ] && continue
-      git -C "$specs_repo_wt" checkout -q -- "$foreign_path" 2>/dev/null || rm -rf "$specs_repo_wt/$foreign_path"
+      git -C "$specs_repo_wt" checkout -q -- "$foreign_path" 2>/dev/null || rm -rf "${specs_repo_wt:?}/${foreign_path:?}"
     done <<EOF_FOREIGN
 $foreign_paths
 EOF_FOREIGN

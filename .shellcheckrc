@@ -1,0 +1,19 @@
+# aide-run-spec is split across core/scripts/aide-run-spec and
+# core/scripts/lib/*.sh, sourced into one shared shell at runtime; a
+# variable set in one file and read in another is normal here, not a
+# bug, but shellcheck analyzes each file on its own and cannot see across
+# that split. SC2154 ("referenced but not assigned") would otherwise be
+# almost entirely false positives from this one repo-wide pattern.
+disable=SC2154
+
+# The lib files are sourced dynamically (a computed directory, not a
+# literal relative path shellcheck can follow) — nothing to gain from
+# the "not following" notice on every one of them.
+disable=SC1091
+
+# The other half of the same blind spot: a variable SET in one file and
+# read only in another (or later in the same file, past the point
+# shellcheck's own scoping tracks) reads as "unused" here. Checked by
+# hand against every hit this repo had when the config was written
+# (2026-09-05) — all were real cross-file uses, none were dead code.
+disable=SC2034

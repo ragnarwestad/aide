@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import { BoardStore, type BoardEntry } from "./store.ts";
+import type { BoardStore, BoardEntry } from "./store.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -130,7 +130,7 @@ export async function startBoard(
  *  own — the page already polls every ten seconds. */
 export function refreshBoardStatus(ctx: BoardsContext, project: string, specFolder: string): BoardEntry | undefined {
   const entry = ctx.store.get(project, specFolder);
-  if (!entry || entry.status !== "starting") return entry;
+  if (entry?.status !== "starting") return entry;
   if (!ctx.isAlive(entry.wrapperPid)) {
     const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
     ctx.store.set(project, specFolder, failed);

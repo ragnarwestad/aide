@@ -390,7 +390,7 @@ export function parseCreateRequest(
   // and never a step outside the workflow's own vocabulary. Omitted
   // entirely, an untouched form's `steps` is exactly `["create"]`,
   // identical to today's behaviour (REQ-3).
-  let extraSteps: WorkflowStep[] = [];
+  const extraSteps: WorkflowStep[] = [];
   if (r.steps !== undefined && r.steps !== null) {
     if (!Array.isArray(r.steps)) return { ok: false, error: "steps must be a list" };
     for (const s of r.steps) {
@@ -415,7 +415,7 @@ export function parseCreateRequest(
   // is a name `parseJobRequest` would accept too. An empty value keeps
   // meaning "the configuration decides": that is what an untouched
   // select posts, and what a form with no Model field at all leaves out.
-  let stepModels: Record<string, string> = {};
+  const stepModels: Record<string, string> = {};
   if (r.model !== undefined && r.model !== null && r.model !== "") {
     if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     // Only the steps this job runs. A name posted for a step it does

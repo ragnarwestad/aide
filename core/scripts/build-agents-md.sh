@@ -74,7 +74,7 @@ done
 
 LINES=$(wc -l < "$OUTPUT" | tr -d ' ')
 echo "✅ Built: core/AGENTS.md ($LINES lines)"
-echo "   Intro + $(echo $RULE_FILES | wc -w | tr -d ' ') rule files from core/rules/"
+echo "   Intro + $(echo "$RULE_FILES" | wc -w | tr -d ' ') rule files from core/rules/"
 
 # core/rules/spec-structure.md stays a Claude Code rule, scoped by its
 # `paths` frontmatter to the spec files it is about. Codex and Copilot

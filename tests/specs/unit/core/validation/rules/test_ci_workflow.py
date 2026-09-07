@@ -88,13 +88,13 @@ class TestCiWorkflow:
     """The workflow must run the gates .claude/CLAUDE.md documents."""
 
     def test_all_jobs_run_on_macos(self, workspace_root):
-        """Criterion 1: three jobs, every one of them on macOS.
+        """Criterion 1: five jobs, every one of them on macOS.
 
         BSD sed and bash 3.2 are what the shell scripts are written for; a
         Linux runner would go green while exercising different code.
         """
         jobs = _jobs(_workflow_text(workspace_root))
-        assert len(jobs) == 3, \
+        assert len(jobs) == 5, \
             f"Expected one job per gate, found {sorted(jobs)}"
         for name, body in jobs.items():
             runners = re.findall(r"^\s*runs-on:\s*(\S+)", body, re.MULTILINE)
@@ -128,6 +128,37 @@ class TestCiWorkflow:
         commands = "\n".join(_run_commands(jobs["markdownlint"]))
         assert "npx markdownlint-cli2 '**/*.md'" in commands, \
             "The markdownlint job never runs the documented command"
+
+    def test_shellcheck_job_runs_correct_command(self, workspace_root):
+        """Criterion 9: shellcheck runs over every bash script in
+        core/scripts, not just aide-run-spec and its lib/ files."""
+        jobs = _jobs(_workflow_text(workspace_root))
+        assert "shellcheck" in jobs, f"No 'shellcheck' job, found {sorted(jobs)}"
+        commands = "\n".join(_run_commands(jobs["shellcheck"]))
+        assert commands.strip().startswith("shellcheck "), \
+            "The shellcheck job never runs shellcheck"
+        for target in (
+            "core/scripts/aide-*",
+            "core/scripts/_*.sh",
+            "core/scripts/build-agents-md.sh",
+            "core/scripts/upgrade-ai-tools",
+            "core/scripts/validate-env",
+            "core/scripts/lib/*.sh",
+        ):
+            assert target in commands, \
+                f"The shellcheck job's command never names {target}"
+
+    def test_biome_job_runs_lint_only(self, workspace_root):
+        """Criterion 10: lint alone, not check/format — this codebase was
+        never run through biome's formatter, and a gate on its existing
+        line-wrapping would fail on style nobody asked about."""
+        jobs = _jobs(_workflow_text(workspace_root))
+        assert "biome" in jobs, f"No 'biome' job, found {sorted(jobs)}"
+        commands = "\n".join(_run_commands(jobs["biome"]))
+        assert "@biomejs/biome lint src/" in commands, \
+            "The biome job must run biome's lint command over dashboard/src"
+        assert "biome check" not in commands and "biome format" not in commands, \
+            "The biome job must not run check or format — lint only"
 
     def test_bun_version_matches_lockfile(self, workspace_root):
         """Criterion 5: the workflow's bun pin follows dashboard/bun.lock.

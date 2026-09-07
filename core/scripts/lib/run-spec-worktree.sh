@@ -240,7 +240,7 @@ update_branch_to_base() {
       # the specs repo itself — $specs_root/$specs_repo (:299-301,:309)
       # are already resolved globals by this point in the script.
       if [ "$root" = "$specs_repo" ]; then
-        rel="${specs_root#$specs_repo}"; rel="${rel#/}"
+        rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
         expected1="${rel:+$rel/}$spec_label/4-status.md"
         expected2="${rel:+$rel/}archive/$spec_label/4-status.md"
         conflicted="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null)"

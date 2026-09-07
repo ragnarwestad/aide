@@ -42,7 +42,7 @@ specs_root_excludes=()
 repoint_specs_path() {
   local rel new_specs cfg tmp_cfg
   if [ -n "$specs_wt" ]; then
-    rel="${specs_root#$specs_repo}"; rel="${rel#/}"
+    rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
     new_specs="$specs_wt"
     [ -n "$rel" ] && new_specs="$specs_wt/$rel"
     specs_root_wt="$new_specs"
@@ -69,7 +69,7 @@ repoint_specs_path() {
   # always has.
   case "$specs_root/" in
     "$project_root"/*)
-      rel="${specs_root#$project_root/}"
+      rel="${specs_root#"$project_root"/}"
       [ -n "$rel" ] && specs_root_wt="$project_wt/$rel"
       if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
         mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true

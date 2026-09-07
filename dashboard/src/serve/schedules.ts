@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { acceptanceStillOpen, parseStatus } from "../project/parse-status.ts";
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
-import { QueueStore } from "../queue/queue.ts";
+import type { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
 import type { QueueTarget } from "../render.ts";
 import { STATUS_SPEC_FILE } from "../render.ts";
@@ -401,7 +401,7 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
     const steps =
       branchAnswer?.stateSteps ??
-      (branchAnswer && branchAnswer.proseSteps.length ? branchAnswer.proseSteps : undefined) ??
+      (branchAnswer?.proseSteps.length ? branchAnswer.proseSteps : undefined) ??
       readSpecState(spec.dir)?.completedPhases ??
       proseSteps(spec.dir);
     if (!steps.includes("analyze")) blocked.add(job.id);

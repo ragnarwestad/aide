@@ -4,10 +4,10 @@
 // an explicit context object stands in for the locals these functions
 // used to read directly.
 
-import { SPEC_FILES, specFileText, SpecRef } from "../project/discover.ts";
-import { SpecFileView, QueueRowView, QueueTarget } from "../render.ts";
-import { QueueStore, Job } from "../queue/queue.ts";
-import { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
+import { SPEC_FILES, specFileText, type SpecRef } from "../project/discover.ts";
+import type { SpecFileView, QueueRowView, QueueTarget } from "../render.ts";
+import type { QueueStore, Job } from "../queue/queue.ts";
+import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
 import type { BoardsContext } from "./boards/lifecycle.ts";
 

@@ -129,7 +129,8 @@ add_readme() {
 add_section() {
   local file="$1"
   local title="$2"
-  local anchor_id=$(echo "$title" | tr '[:upper:]' '[:lower:]')  # description, analysis, etc.
+  local anchor_id  # description, analysis, etc.
+  anchor_id=$(echo "$title" | tr '[:upper:]' '[:lower:]')
 
   if [ -f "$DOCS_DIR/$file" ]; then
     echo -e "${GREEN}  ✅ $title${NC}"

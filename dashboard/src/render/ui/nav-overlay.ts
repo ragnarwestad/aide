@@ -39,7 +39,7 @@
   document.addEventListener("click", (event: Event) => {
     const e = event as MouseEvent;
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    if (timer !== null || (dialog && dialog.open)) return;
+    if (timer !== null || (dialog?.open)) return;
     const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
     if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
     const href = link.getAttribute("href") || "";
@@ -60,7 +60,7 @@
     const e = event as Event & { defaultPrevented: boolean };
     if (e.defaultPrevented) return;
     const form = e.target as { matches?: (selector: string) => boolean } | null;
-    if (!form?.matches?.(".specform") || timer !== null || (dialog && dialog.open)) return;
+    if (!form?.matches?.(".specform") || timer !== null || (dialog?.open)) return;
     openOverlay();
   });
 
@@ -70,6 +70,6 @@
       clearTimeout(timer);
       timer = null;
     }
-    if (dialog && dialog.open) dialog.close();
+    if (dialog?.open) dialog.close();
   });
 })();

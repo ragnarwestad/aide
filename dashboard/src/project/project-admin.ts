@@ -6,14 +6,14 @@
 // and remove-project.ts. Kept as a barrel at this path because thirteen
 // files import from it.
 
-export {
-  type ProjectStepName,
-  type ProjectStep,
-  type ReadinessCheckName,
-  type ReadinessCheck,
-  type ProjectReadiness,
-  type ProjectAdminResult,
-  type AddProjectRequest,
+export type {
+  ProjectStepName,
+  ProjectStep,
+  ReadinessCheckName,
+  ReadinessCheck,
+  ProjectReadiness,
+  ProjectAdminResult,
+  AddProjectRequest,
 } from "./project-admin/types.ts";
 
 export {

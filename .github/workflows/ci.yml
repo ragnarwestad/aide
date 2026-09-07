@@ -4,6 +4,12 @@ name: CI
 # instead of only when someone remembers them. The commands are the ones
 # that file documents, character for character — a workflow that ran
 # something subtly different would go green about a gate nobody has.
+# shellcheck and biome are two more, added later and not gates in the
+# same sense: neither fails the build on style alone (both are configured,
+# via .shellcheckrc and dashboard/biome.json, to stay quiet about the
+# things this codebase does on purpose — SC2154/SC2034 across the bash
+# scripts' shared-sourcing architecture, noNonNullAssertion and
+# useTemplate in the dashboard).
 on: [push, pull_request]
 
 # Three pushes to a branch in a minute cost one completed run, not three.
@@ -79,3 +85,27 @@ jobs:
       # config is read relative to the working directory. Unpinned, the
       # same exposure a person running this by hand already has.
       - run: npx markdownlint-cli2 '**/*.md'
+
+  shellcheck:
+    name: shellcheck
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # Preinstalled on the macOS runner image. .shellcheckrc at the repo
+      # root is picked up automatically — it silences SC2154/SC2034, both
+      # unreliable across this script's shared-sourcing architecture (see
+      # that file's own comments), not turned off project-wide.
+      - run: shellcheck core/scripts/aide-* core/scripts/_*.sh core/scripts/build-agents-md.sh core/scripts/upgrade-ai-tools core/scripts/validate-env core/scripts/lib/*.sh
+
+  biome:
+    name: biome (dashboard lint)
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # lint only, not format or organize-imports: this codebase was
+      # never run through biome's formatter, and a check that failed on
+      # every file's existing line-wrapping would be a gate on style
+      # nobody asked for, not on a real defect.
+      - run: cd dashboard && npx --yes @biomejs/biome lint src/

@@ -4,9 +4,9 @@
 // lines; every function is unchanged and keeps its name.
 import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover.ts";
 import { parseStatus } from "../../project/parse-status.ts";
-import { specPhaseOutcome, PhaseOutcome } from "../../project/parse-phase-outcome.ts";
-import { filterShowsArchived, PHASE_LINES, ArchivedSpecView } from "../../render.ts";
-import { SpecViewsContext } from "../spec-views.ts";
+import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
+import { filterShowsArchived, PHASE_LINES, type ArchivedSpecView } from "../../render.ts";
+import type { SpecViewsContext } from "../spec-views.ts";
 
 export function archivedAt(ctx: SpecViewsContext, dir: string): { date: string | null; checking: boolean } {
   const stamped = specArchivedDate(dir);

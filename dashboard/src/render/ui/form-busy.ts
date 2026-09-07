@@ -39,7 +39,7 @@
     // second time would put two spinners in it.
     if (event.defaultPrevented) return;
     const form = event.target as (HTMLFormElement & { dataset: Record<string, string> }) | null;
-    if (!form || !form.dataset) return;
+    if (!form?.dataset) return;
     // A second press while the first is still out. The page is about to
     // be replaced by the answer to the first, so the second is refused
     // rather than sent: the request behind these buttons commits and

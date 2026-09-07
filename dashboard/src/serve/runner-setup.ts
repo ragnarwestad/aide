@@ -14,7 +14,7 @@ import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir } from "../queue/schedule.ts";
-import { QueueStore, type Job, type WorkflowStep } from "../queue/queue.ts";
+import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover.ts";
