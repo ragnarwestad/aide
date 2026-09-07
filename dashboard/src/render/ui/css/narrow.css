@@ -1,8 +1,10 @@
 /* --- narrow: one screen, one place (spec 155) ------------------------- */
-/* The floor is 450px (2026-09-07). Phones narrower than that are not
-   drawn for, and saying so is what lets the widths below be generous
-   instead of defensive: 450 less the page's own padding leaves 418px,
-   and every fixed width in this block is chosen against that number. */
+/* The narrowest screen this block is drawn for is 360px (2026-09-07).
+   Every fixed width below is chosen against what is left of it inside
+   the page's own padding — 328px — and the widest line, a phase line,
+   comes to about 285 of them. The number is what the next person adding
+   a width here measures against; the breakpoint itself is the 40rem
+   below and does not follow it. */
 /* Every rule the phone layout needs is in this one block, and each one
    repeats the selector of the desktop rule it overrides rather than
    writing a shorter one — the override wins by coming later, and a
@@ -221,15 +223,6 @@
      tighter one this rule used to set has nothing left to set it on. */
   .spec-name { display: contents; }
   .spec-name > .fold { margin-right: 0; }
-  /* A WIDTH, the same way the desktop's 27rem name box is a width and
-     not a maximum: the pips start at the same x on every row only if
-     the box before them is the same size on every row. 17rem against
-     the 418px this block is drawn for — the fold (28px) and the pips
-     (101px) leave 289, and 17rem is 272 of it. A name longer than the
-     box wraps to a second line inside it and clamps there.
-     Not a percentage: a share of the row is a different number of
-     characters on every phone, and the name is set in mono. */
-  .spec-name > .label { flex: 0 0 17rem; min-width: 0; }
   /* The desktop's `margin-left: auto` is what makes every row's pips
      start at the same x, so they read as one column down the table.
      There is no column here — each row is its own block — and the
