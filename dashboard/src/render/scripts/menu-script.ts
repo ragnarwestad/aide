@@ -11,8 +11,22 @@
       if (d !== except) (d as HTMLDetailsElement).open = false;
     }
   };
+  // The compact AI/model picker on a phase line (a narrow screen only)
+  // is a checkbox and a label, not a <details> — a <details> that has to
+  // be OPEN at desktop width cannot be, since a closed one's content is
+  // not rendered at all. It closes the same way this menu does: a click
+  // anywhere outside the picker it belongs to, or Escape.
+  const closeBoxes = (target?: Element | null): void => {
+    for (const el of Array.from(document.querySelectorAll(".aimodelopen"))) {
+      const box = el as HTMLInputElement;
+      if (!box.checked) continue;
+      const mine = box.closest(".aimodel");
+      if (!target || !mine || !mine.contains(target)) box.checked = false;
+    }
+  };
   document.addEventListener("click", (e) => {
     const target = e.target as Element | null;
+    closeBoxes(target);
     // The About item opens the dialog in place; its href stays as the
     // no-JS fallback. Escape and the cross are the platform's own once
     // the box is modal — a click on the backdrop is not, so it is
@@ -31,6 +45,8 @@
     closeAll(target?.closest?.(DISCLOSURES) ?? null);
   });
   document.addEventListener("keydown", (e) => {
-    if ((e as KeyboardEvent).key === "Escape") closeAll();
+    if ((e as KeyboardEvent).key !== "Escape") return;
+    closeAll();
+    closeBoxes();
   });
 })();

@@ -24,7 +24,7 @@
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
-import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, syncAiToModel } from "./queue-client/ai-sync.ts";
+import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./queue-client/ai-sync.ts";
 import {
   bindProposals,
   bindTypedConfirm,
@@ -85,6 +85,12 @@ document.getElementById("jobrows")?.addEventListener("submit", submitAction as E
 // itself would last until the next one.
 document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
+  // The compact picker's box says what the line is on, and every branch
+  // below can change that. Queued rather than called here: `applyAiPick`
+  // writes the model select AFTER this listener's own branch runs, so
+  // reading the box's text now would be reading it one pick behind.
+  const picker = target?.closest?.(".aimodel") as Element | null;
+  if (picker) queueMicrotask(() => refreshAiModelBox(picker));
   // A tail box's tick is a press, not something to remember for the
   // next redraw (spec 160): it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather

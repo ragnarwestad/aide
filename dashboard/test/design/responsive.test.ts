@@ -208,14 +208,50 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     );
   });
 
-  // The pair sat behind a chevron on every phase line until 2026-09-07.
-  // The floor this block is drawn for is 450px, and against it the pair
-  // fits beside the name, the tick box and the status — so there is
-  // nothing left to fold, and no control to explain.
-  test("the AI/model pair is shown, not folded away", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex;");
-    expect(NARROW).not.toContain("table.list tr.subrow .aimodel { display: none; }");
+  // Two selects side by side need more width than a 360px phone has, so
+  // a narrow screen draws ONE box saying what the line is on and lays
+  // the pair over it when tapped. Nothing is hidden behind a chevron —
+  // that control is gone — and nothing is a second copy: the same two
+  // selects are drawn once, for both widths.
+  test("the pair is one box on a narrow screen, and a panel over it", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 8rem; }");
+    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: 8rem;");
+    expect(NARROW).toContain("table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }");
     expect(NARROW).not.toContain("foldphase");
+  });
+
+  // Over the box, not under it: the panel is placed on the box's own
+  // corner, so it covers what was tapped instead of pushing the phase
+  // lines below it down the page.
+  test("the panel lies on top of the box it opens from", () => {
+    expect(NARROW).toMatch(/\.aimodelpanel \{[^}]*position: absolute;[^}]*top: 0; left: 0;/);
+  });
+
+  test("each select in the panel is under a word of its own", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodelfield { display: flex; flex-direction: column;");
+    expect(NARROW).toContain("table.list tr.subrow .aimodelfield > span { display: block;");
+    const html = rows({ open: "aide/155-x" }, { modelChoices: [{ name: "opus", budgetUsd: 10 }] });
+    expect(html).toContain('<label class="aimodelfield"><span>AI</span>');
+    expect(html).toContain('<label class="aimodelfield"><span>Model</span>');
+  });
+
+  // The box says what THIS line is on, never a fixed word: the AI in
+  // one short word, and the model the select is actually set to.
+  test("the box names the line's own AI and model", () => {
+    const html = rows(
+      { open: "aide/155-x" },
+      { modelChoices: [{ name: "opus", budgetUsd: 10 }, { name: "codex-luna", budgetUsd: 5, tool: "codex" }] },
+    );
+    expect(html).toContain(">Claude/opus</label>");
+  });
+
+  // A wide screen draws the two selects exactly as it always has: the
+  // box is not drawn, and the panel is not a box.
+  test("the desktop draws no box and no panel", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toContain(".aimodelopen, .aimodelnow { display: none; }");
+    expect(desktop).toContain(".aimodelpanel, .aimodelfield { display: contents; }");
+    expect(desktop).toContain(".aimodelfield > span { display: none; }");
   });
 
   // Free space at the end of the line is not a spacing: an auto margin
@@ -234,17 +270,14 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).not.toContain("table.list tr.subrow { border-bottom: 1px");
   });
 
-  test("the pair follows the status, and is not pushed to the line's end", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }");
+  test("the box follows the status, and is not pushed to the line's end", () => {
     expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
   });
 
-  // The AI carries the longer word ("Claude Code", in the sans face);
-  // the model's names are short and set a size smaller in mono. The AI
-  // select is the wider of the two, not the narrower.
-  test("the two selects carry the widths the floor allows", () => {
-    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 7.5rem;');
-    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 6.5rem;');
+  // Inside the panel each select has the panel's own width, not a
+  // width of its own: the panel is the box that was sized.
+  test("the selects fill the panel", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodelpanel select { width: 100%;");
   });
 
   // Stated in the file, so the next person changing a width here knows
