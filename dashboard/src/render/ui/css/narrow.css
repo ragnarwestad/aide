@@ -86,9 +86,11 @@
      items of the row itself. The same technique the phase lines use for
      `.modelcell`. */
   table.list tr.spechead > td:first-child { display: contents; }
-  /* Line 1, exactly: the fold's own 24px and the row's gap subtracted,
-     so the title fills what is left and everything after it wraps. */
-  table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 32px); }
+  /* Line 1: the fold's own 24px, the row's 8px gap, and 8px more —
+     `100% - 32px` is the exact sum, and exact is what wraps, since one
+     fractional pixel in the row's own width is enough to put the title
+     under the chevron instead of beside it. */
+  table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }
   /* Line 2, in the order asked for: the button, the pips, the state.
      The badge and the button share one cell, so the cell is dissolved
      too and the row orders all three itself. */

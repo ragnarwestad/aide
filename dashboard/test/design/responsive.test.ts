@@ -70,10 +70,14 @@ describe("Started and Cost fold away at phone width", () => {
   // state, in that order. The pips live inside the name box — where a
   // desktop wants them — so both the cell and the box are dissolved to
   // let them reach the second line.
+  // The chevron and the title share line 1. The title's width is the
+  // row less the chevron, the gap AND a little slack: the exact sum
+  // wraps, because one fractional pixel in the row's width is enough to
+  // drop the title under the chevron.
   test("the head row is two lines: the title, then the button, the pips and the state", () => {
     expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
     expect(NARROW).toContain(".spec-name { display: contents; }");
-    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 32px); }");
+    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
     expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; \}/);
     expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
     expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
