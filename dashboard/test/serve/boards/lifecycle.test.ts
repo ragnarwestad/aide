@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { BoardStore } from "../../../src/serve/boards/store.ts";
 import { refreshBoardStatus, startBoard, type BoardsContext, type SpawnResult } from "../../../src/serve/boards/lifecycle.ts";
 
@@ -165,5 +165,51 @@ describe("refreshBoardStatus", () => {
     writeFileSync(started.entry.logPath, "== building local origins\n");
     const refreshed = refreshBoardStatus(ctx, "aide", "spec-1");
     expect(refreshed?.status).toBe("starting");
+  });
+});
+
+// The round leaves the board running and DETACHED, and its own wrapper
+// then exits — so a dead wrapper is what success looks like from here.
+// Asked the other way round, every board that came up was reported as
+// "could not start", with its own "left running: … http://…" line
+// quoted underneath as the reason.
+describe("a board whose wrapper has exited", () => {
+  const entryFor = (logPath: string) => ({
+    branch: "aide/spec-1",
+    commit: "abc123",
+    port: 8801,
+    wrapperPid: 4242,
+    workDir: dirname(logPath),
+    logPath,
+    status: "starting" as const,
+    startedAt: "2026-09-07T00:00:00.000Z",
+  });
+
+  test("is RUNNING when its log says it left one running", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-board-alive-"));
+    const logPath = join(dir, "board.log");
+    writeFileSync(
+      logPath,
+      "left running: pid 17721, http://127.0.0.1:8801/?token=t0ken — serving aide/spec-1 @ abc123\n",
+    );
+    const store = new BoardStore();
+    store.set("aide", "spec-1", entryFor(logPath));
+    // Nothing is alive: the wrapper is gone, which is the normal end.
+    const ctx = makeCtx({ store, isAlive: () => false });
+    const seen = refreshBoardStatus(ctx, "aide", "spec-1");
+    expect(seen?.status).toBe("running");
+    expect(seen?.url).toBe("http://127.0.0.1:8801/?token=t0ken");
+  });
+
+  test("is FAILED only when the log says nothing and the wrapper is gone", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-board-dead-"));
+    const logPath = join(dir, "board.log");
+    writeFileSync(logPath, "cannot check out aide/spec-1 in a worktree\n");
+    const store = new BoardStore();
+    store.set("aide", "spec-1", entryFor(logPath));
+    const ctx = makeCtx({ store, isAlive: () => false });
+    const seen = refreshBoardStatus(ctx, "aide", "spec-1");
+    expect(seen?.status).toBe("failed");
+    expect(seen?.error).toContain("cannot check out");
   });
 });
