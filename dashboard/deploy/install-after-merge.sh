@@ -48,3 +48,20 @@ if [ -x "$BUN" ]; then
     ( cd dashboard && "$BUN" run src/main.ts generate --root "$ROOT" --out "$SITE" >/dev/null 2>&1 ) || true
   fi
 fi
+
+# The launchd job's arguments are set once, when the service is
+# installed, and are not touched by a merge — so code that DROPS an
+# option leaves the service passing one the new binary refuses, and the
+# board dies at its next restart rather than at the merge that caused it.
+# Checked here, where both halves are on disk, and written to the log the
+# board reads its banner from.
+PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
+ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
+if [ -f "$PLIST" ] && [ -f "$ARGS_SRC" ]; then
+  {
+    grep -o -- '--[a-z][a-z-]*' "$PLIST" | sort -u | while read -r flag; do
+      grep -q -- "\"$flag\"" "$ARGS_SRC" || \
+        echo "⚠️ [aide serve] the launchd job passes $flag, which this build no longer accepts — the board will not start after a restart until it is removed from $PLIST"
+    done
+  } >> "$LOG" 2>&1
+fi
