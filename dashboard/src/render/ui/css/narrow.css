@@ -37,7 +37,14 @@
      so block costs them nothing. The three tab links up top get their
      7rem floor lifted for the same overall goal — three of them do
      not cross 360px otherwise. */
+  /* And the 63rem the table is given on a desktop goes with the table
+     layout: `display: block` alone left that width standing, so every
+     row was a thousand pixels long inside a 450px screen and the box
+     around them drew a horizontal scrollbar over content that had
+     nothing to the right of it. `width: auto` on a block is the
+     container's width. */
   table.speclist, table.speclist tbody { display: block; }
+  table.speclist { width: auto; }
   table.speclist tr:not(.spechead):not(.subrow) { display: block; }
   table.speclist tr:not(.spechead):not(.subrow) > td { display: block; }
   .tabbar .tab { min-width: 0; }
@@ -220,23 +227,35 @@
      than flexed. */
   table.list tr.subrow { display: flex; flex-wrap: wrap; align-items: center;
     gap: var(--sp-1) var(--sp-2); }
+  /* No rule under a phase line. The desktop draws none either — the
+     cells' own bottom border is off at every width — and the line drawn
+     on the ROW here was a phone-only addition that put a grey rule
+     between every phase of an open spec. */
   table.list tr.subrow > td { border-bottom: none; }
-  table.list tr.subrow { border-bottom: 1px solid var(--line); }
-  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
+  table.list tr.subrow { border-bottom: none; }
+  /* The cell's own right padding (12px, from `table.list td`) sat
+     between the phase's name and the tick box beside it, on top of the
+     row's flex gap. Nothing lines up against it — the width is the
+     5.3rem below, and the padding is added OUTSIDE it (content-box) —
+     so it is 12px of nothing. The left padding stays: it is what makes
+     the phase lines read as indented under the spec's own name. */
+  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; padding-right: 0; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
-  /* AI and Model, always shown, right after the status: 6.5rem for the
-     AI ("Claude Code" is the longest name it carries) and 8rem for the
-     model ("claude-sonnet-4-6" is 17 characters of mono). Against the
-     418px floor: name 85, tick 18, status ~70, AI 104, model 128 and
+  /* AI and Model, always shown, right after the status. 7.5rem for the
+     AI: "Claude Code" is 11 characters of the sans face plus the
+     select's own arrow and padding, and 6.5rem cut it off. 6.5rem for
+     the model, which is the narrower of the two — the names are short
+     ("sonnet", "codex-luna") and mono is set a size smaller. Against the
+     418px floor: name 85, tick 18, status ~70, AI 120, model 104 and
      the gaps — it fits, and a narrower window than the floor wraps the
      pair onto a second line rather than scrolling.
      No auto margin: free space at the line's end would stand between
      the status and the pair, and the width of that gap would be
      whatever the status text happened to leave. */
   table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }
-  table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
-  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 8rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 7.5rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such

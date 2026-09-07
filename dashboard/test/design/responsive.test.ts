@@ -139,6 +139,21 @@ describe("Created folds away on the spec header at phone width", () => {
 // its own block — and pushing them anyway put them against the right
 // edge while the state and the button started at the left edge of the
 // line below: "et kjempestort rom mellom de og pips".
+// The desktop gives the table a hard 63rem — the six column widths add
+// up to exactly that — and `display: block` at phone width does not
+// touch a width. Every row was 1008px long inside a 450px screen, with a
+// scrollbar over content that had nothing to the right of it.
+describe("the list is as wide as the screen at phone width", () => {
+  test("the desktop's 63rem is given back", () => {
+    expect(NARROW).toContain("table.speclist { width: auto; }");
+  });
+
+  test("the desktop rule it overrides is still there", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toContain("table.speclist { width: var(--speclist-width); table-layout: fixed; }");
+  });
+});
+
 describe("the pips follow the name at phone width", () => {
   test("the desktop still pushes them to the column's own x", () => {
     expect(CSS).toContain(".pipslot { margin-left: auto;");
@@ -206,14 +221,30 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // Free space at the end of the line is not a spacing: an auto margin
   // there put the width of whatever the status text left between the
   // status and the pair.
+  // 12px of table-cell padding, added outside the 5.3rem the cell is
+  // given (content-box), sat between the phase's name and the tick box.
+  test("the phase name's cell gives its right padding back", () => {
+    expect(NARROW).toContain(".phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; padding-right: 0; }");
+    // The left one stays — it is the indent under the spec's own name.
+    expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
+  });
+
+  test("no rule is drawn under a phase line", () => {
+    expect(NARROW).toContain("table.list tr.subrow { border-bottom: none; }");
+    expect(NARROW).not.toContain("table.list tr.subrow { border-bottom: 1px");
+  });
+
   test("the pair follows the status, and is not pushed to the line's end", () => {
     expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }");
     expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
   });
 
+  // The AI carries the longer word ("Claude Code", in the sans face);
+  // the model's names are short and set a size smaller in mono. The AI
+  // select is the wider of the two, not the narrower.
   test("the two selects carry the widths the floor allows", () => {
-    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 6.5rem;');
-    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 8rem;');
+    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 7.5rem;');
+    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 6.5rem;');
   });
 
   // Stated in the file, so the next person changing a width here knows
