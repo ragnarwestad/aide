@@ -12,7 +12,6 @@ import {
   archiveDateCell,
   costCell,
   createdCell,
-  phasePips,
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl, stateAction } from "./row-controls.ts";
@@ -137,9 +136,6 @@ export function specHeadRow(
   // it sits beside. It is said on the notice line instead, ranked among
   // this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
   // cell-helpers.ts).
-  // The whole workflow in six millimetres, on the line you are already
-  // reading — shared with the spec page's Overview tab since spec 239.
-  const progress = phasePips(g.phases, g.done);
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, from the same function, so
   // the badge and the button cannot name different phases (spec 191).
@@ -192,14 +188,17 @@ export function specHeadRow(
     // Two columns wide, like its heading: the second is the AI
     // column the phase lines below open up (spec 165), and this row
     // has nothing to say in it.
-    // The pips ride with the name, on the same line and after it: the
-    // column they had was empty on every phase line under this one, a
-    // hand's width of nothing all the way down the table, and they are
-    // narrow enough to sit beside a name that is already clamped
-    // (2026-08-22). A "N runs" count under them said less than they do
-    // and went in spec 165.
+    // The row's own button rides with the name, at the end of the name
+    // box — where the pips were until 2026-09-07. The workflow is
+    // LINEAR, so the button's label says how far the spec has come:
+    // "Implement" means create and analyze are behind it. The pips drew
+    // that same fact a second time, in the widest column on the row.
+    //
+    // The badge is left alone in the State cell by the same move, which
+    // is what lets the table align the two by column instead of by two
+    // hand-set widths inside one cell.
     `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened, lang)} ${spec}` +
-    `<span class="pipslot">${progress}</span></div>` +
+    `<span class="actionslot">${stateAction(g, opts, opened.has(groupKey(g.project, g.specFolder)))}</span></div>` +
     under +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
@@ -220,13 +219,7 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="row"><span class="badgeslot">${stateBadge}` +
-    `</span><span class="actionslot">${stateAction(
-      g,
-      opts,
-      opened.has(groupKey(g.project, g.specFolder)),
-    )}</span></span>` +
-    `</td>` +
+    `<td><span class="badgeslot">${stateBadge}</span></td>` +
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.

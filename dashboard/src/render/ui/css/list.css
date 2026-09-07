@@ -33,7 +33,7 @@
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
-  --speclist-width: 63rem; }
+  --speclist-width: 55rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -87,7 +87,7 @@ table.settingstable { width: auto; }
    then the date, the longest duration and the largest cost. */
 table.speclist > colgroup > col[data-col="spec"] { width: 8rem; }
 table.speclist > colgroup > col[data-col="phase"] { width: 21.5rem; }
-table.speclist > colgroup > col[data-col="state"] { width: 18rem; }
+table.speclist > colgroup > col[data-col="state"] { width: 10rem; }
 table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
 table.speclist > colgroup > col[data-col="started"] { width: 4.5rem; }
 table.speclist > colgroup > col[data-col="cost"] { width: 4.5rem; }
@@ -147,6 +147,14 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    text top-aligns with a second, wrapped line, but the pip block
    (now two rows tall, letters over pips) has no such second line to
    sit level with, so it centers against the name's own height instead. */
+/* The row's button, at the end of the fixed-width name box — where the
+   pips used to sit. `margin-left: auto` is what puts it hard against
+   that end, so every row's button starts at the same x whatever its
+   name is; `align-self: center` overrides `.spec-name`'s own
+   `align-items: flex-start`, so it centres against a name that has
+   wrapped to two lines rather than sitting level with the first. */
+.spec-name > .actionslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
+/* Still drawn on the spec page's own Overview and the job page. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
