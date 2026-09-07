@@ -146,10 +146,13 @@ describe("the pips follow the name at phone width", () => {
     expect(NARROW).toContain(".spec-name > .pipslot { margin-left: 0; }");
   });
 
-  // The other half of the same gap: a label that claims every pixel of
-  // the row leaves the pips at the edge whatever the margin says.
-  test("the name takes what it needs, not the whole row", () => {
-    expect(NARROW).toContain(".spec-name > .label { flex: 0 1 auto; min-width: 0; }");
+  // The other half of the same gap, and the alignment with it: a label
+  // that claims every pixel of the row leaves the pips at the edge
+  // whatever the margin says, and one sized to its own name moves them
+  // row by row. A fixed share of the row does neither, and a name too
+  // long for it wraps inside the box.
+  test("the name takes a fixed share of the row, so the pips line up", () => {
+    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 60%; min-width: 0; }");
     expect(NARROW).not.toContain(".spec-name > .label { flex: 1 1 0%");
   });
 
