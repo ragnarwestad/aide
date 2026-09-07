@@ -8,9 +8,9 @@ import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../../src/ser
 const body = (r: Response) => r.text();
 
 describe("waiting for a test server", () => {
-  test("names the spec in quotes, so it reads apart from the sentence", async () => {
+  test("names the spec in quotes, on its own line, so it reads apart from the sentence", async () => {
     const html = await body(waitingForBoardPage("aide", "415-specs-og-new-spec-side-layout"));
-    expect(html).toContain('Starting a test server for "415-specs-og-new-spec-side-layout"');
+    expect(html).toContain('Starting a test server for<br>"415-specs-og-new-spec-side-layout"');
   });
 
   test("comes back by itself, and says something is coming", async () => {
@@ -67,6 +67,26 @@ describe("the board's address, as the reader can reach it", () => {
         "http://127.0.0.1:8801/?token=t0ken",
       ),
     ).toBe("https://rw-macmini.ts.net:8801/?token=t0ken");
+  });
+
+  // `tailscale serve` terminates TLS and proxies plain HTTP to loopback:
+  // the request arriving here says `http:` while the reader is on
+  // `https:`. The pool's ports are TLS listeners too, so a redirect that
+  // kept `http:` sent the reader's browser to plain HTTP against a TLS
+  // port, and the answer was 400.
+  test("takes the scheme from x-forwarded-proto, not from the proxied request", () => {
+    const proxied = new Request("http://127.0.0.1:8788/specs/aide/415-x", {
+      headers: { host: "rw-macmini.ts.net", "x-forwarded-proto": "https" },
+    });
+    expect(boardUrlFor(proxied, "http://127.0.0.1:8801/?token=t0ken")).toBe(
+      "https://rw-macmini.ts.net:8801/?token=t0ken",
+    );
+  });
+
+  test("with no proxy in front, the request's own scheme still decides", () => {
+    expect(
+      boardUrlFor(asking("http://box.local:8788/x", "box.local:8788"), "http://127.0.0.1:8801/?token=t"),
+    ).toBe("http://box.local:8801/?token=t");
   });
 
   test("the token rides along untouched", () => {

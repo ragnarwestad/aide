@@ -20,6 +20,12 @@ import { esc } from "../../../render/ui/html.ts";
  *  the board's own; `tailscale serve` puts the pool's ports behind that
  *  same host.
  *
+ *  The SCHEME comes off `x-forwarded-proto` before the request's own
+ *  URL: `tailscale serve` terminates TLS and proxies plain HTTP to
+ *  loopback, so the request arriving here says `http:` while the reader
+ *  is on `https:` — and the pool's ports are TLS listeners too, which
+ *  answer a plain-HTTP request with 400.
+ *
  *  Unparseable, or a request with no host: the round's own address, so
  *  a reader sitting at the serving machine still gets there. */
 export function boardUrlFor(reader: Request, boardUrl: string): string {
@@ -27,8 +33,8 @@ export function boardUrlFor(reader: Request, boardUrl: string): string {
     const board = new URL(boardUrl);
     const host = reader.headers.get("host");
     if (!host) return boardUrl;
-    const from = new URL(reader.url);
-    board.protocol = from.protocol;
+    const forwarded = reader.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    board.protocol = forwarded ? `${forwarded}:` : new URL(reader.url).protocol;
     board.hostname = host.split(":")[0]!;
     return board.toString();
   } catch {
@@ -55,7 +61,9 @@ export function boardFailedPage(specFolder: string, why?: string): Response {
 
 export function waitingForBoardPage(_project: string, specFolder: string): Response {
   return htmlPage(
-    `Starting a test server for "${esc(specFolder)}"`,
+    // The folder name on its own line: it is long, and it reads apart
+    // from the sentence rather than wrapping somewhere inside it.
+    `Starting a test server for<br>"${esc(specFolder)}"`,
     `<p>It runs this branch's own code, and takes a few minutes. This page
         goes there by itself when it is up — leave it open.</p>`,
     { refresh: true },
