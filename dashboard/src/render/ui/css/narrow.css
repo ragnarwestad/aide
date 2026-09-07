@@ -213,9 +213,10 @@
      tr.spechead above uses, where it holds up. Per-row state changes
      inside a flex container affect only that row.
 
-     [name] [tick box] [status] [AI] [Model] on one line — the name
-     column fixed at 5.3rem ("implement", the longest) so the box and
-     status start at the same x on all four lines. The pair used to sit
+     [name] [tick box] [status] [AI/model box] on one line — the name
+     column fixed at 4.7rem so the box and status start at the same x on
+     all four lines. 4.7rem is 75px, and "implement" — the longest of
+     the four names — is about 55 of them. The pair used to sit
      behind a chevron per phase line; against the 418px floor it fits
      beside the rest, and a control whose whole job was to hide two
      fields that fit is a control to explain for nothing.
@@ -236,10 +237,10 @@
   /* The cell's own right padding (12px, from `table.list td`) sat
      between the phase's name and the tick box beside it, on top of the
      row's flex gap. Nothing lines up against it — the width is the
-     5.3rem below, and the padding is added OUTSIDE it (content-box) —
+     4.7rem below, and the padding is added OUTSIDE it (content-box) —
      so it is 12px of nothing. The left padding stays: it is what makes
      the phase lines read as indented under the spec's own name. */
-  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; padding-right: 0; }
+  table.list tr.subrow .phasecell { flex: 0 0 4.7rem; min-width: 4.7rem; padding-right: 0; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
   /* One box instead of two selects: a 360px phone has room for one of
