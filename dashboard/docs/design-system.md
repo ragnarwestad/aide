@@ -11,6 +11,7 @@ and the layout rules that keep them consistent.
 - [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)
 - [One busy flag, not a per-step lookup](#one-busy-flag-not-a-per-step-lookup)
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
+- [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
 - [Theme choice](#theme-choice)
 - [Header and tab bar, not a sidebar](#header-and-tab-bar-not-a-sidebar)
 
@@ -117,6 +118,22 @@ to find — should not grow that vocabulary for a class that carries no CSS rule
 (`Phase` / `Model` above the phase lines' pickers) is marked
 `data-caption="1"` for exactly this reason: every entry in the guard's allow-list is meant to declare tokens, and this
 one would declare nothing.
+
+## `form="<id>"` only wires submission, not event bubbling
+
+A control outside a `<form>`'s literal DOM tree can still submit with it via `form="settings-form"`,
+but that attribute governs submission alone — `input`/`change` events from that control never bubble
+to the form element, so a listener attached to the form (a dirty-tracking latch, an AI-picker sync)
+never sees them. Moving a field between "outside the form, wired by `form=`" and "a literal descendant"
+changes which of these two mechanisms applies, and the two are easy to conflate when only submission was
+checked. On the settings page, closing `</form>` early and relying on `form=` to keep the AI settings
+table attached would satisfy submission but break the table's own dirty-tracking, since that relies on
+literal containment.
+
+Where a field must ride inside the form for event bubbling but must never itself mark the form dirty
+(a display-only preference, not a saved field), exclude it from the shared listener with a
+`closest("[data-*]")` guard rather than moving it back outside the form — `spec-form-actions.ts`'s
+`bind()` and `queue-client.ts`'s AI-picker sync both do this already.
 
 ## Theme choice
 
