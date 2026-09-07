@@ -19,7 +19,7 @@
 (() => {
   document.addEventListener("change", (event: Event) => {
     const box = event.target as HTMLInputElement | null;
-    if (!box || box.name !== "dependsOn") return;
+    if (box?.name !== "dependsOn") return;
     const chip = box.closest("[data-project]");
     const field = chip?.closest(".field");
     if (!chip || !field) return;
