@@ -5,20 +5,13 @@ someone has to go through the Checks tab and tick each requirement off before it
 archived — the specs list offers that reviewer a link to start a test server: a real, running copy
 of the dashboard, built from that spec's own branch. Reviewing a requirement by reading the diff
 again is one way to check it; opening the actual thing and clicking through it is another, and
-often the more convincing one. Spec 388, extended by spec 393, 405, 411.
-
-The code's own names for this internally (`BoardStore`, `startBoard`, `boardStatus`) call it a
-"board" — avoided here on purpose. This project already uses "the board" as everyday shorthand for
-the dashboard itself, and a doc titled "Boards" about a per-spec preview server would be read as
-being about that instead. The user-facing text mostly agrees — the list row's own link says "test
-server" — except the spec page's running banner, which still says "Board:". That one line is a
-leftover of the internal name and worth fixing to match, not a second concept.
+often the more convincing one.
 
 ## Table of contents
 
 - [Where you find it](#where-you-find-it)
-- [What starting one does](#what-starting-one-does)
-- [starting → running → failed](#starting--running--failed)
+- [What happens when you click it](#what-happens-when-you-click-it)
+- [Checking on it afterwards](#checking-on-it-afterwards)
 - [Stopping it](#stopping-it)
 - [Which projects this works for](#which-projects-this-works-for)
 - [Under the hood](#under-the-hood)
@@ -29,37 +22,35 @@ leftover of the internal name and worth fixing to match, not a second concept.
 
 On the specs list, a spec waiting only on that requirements review gets a second note on its row,
 beside the "archive held back" one: **"Click the link to start a test server running this
-branch."** Click it, and it takes you to that spec's own Steps tab, where a real running instance
-is being built for you.
+branch."**
 
-Nothing else in the dashboard offers this today — there is no button for it on the spec page
-itself, and no other row shows the link. It exists specifically for this one moment: a spec whose
-code is done and only waiting on that review.
+## What happens when you click it
 
-## What starting one does
+The link opens in the same tab and holds it: building a test server is a real dashboard starting
+from scratch, which takes a few minutes, not seconds, so the page you land on says so and waits —
+"leave it open" — rather than sending you off to go find the address yourself later. It checks
+again every few seconds on its own; there is nothing to click or refresh by hand.
 
-The Steps tab shows a spinner while the server builds — this takes a couple of minutes, since it is
-a real dashboard starting from scratch, not a cached preview. Once it is up, the banner shows a
-link to the running server, along with the branch and commit it is running. **It is a real,
-separate dashboard instance, not the one you are looking at** — its own address, its own data,
-seeded with a small set of sample specs to click through rather than this project's real ones.
+The moment the server is up, that same tab is carried straight to it — you end up looking at the
+running dashboard itself, not at a page on this one. If it failed to start instead, the tab says so
+and stops there, with the reason it gave.
 
-Clicking the same link again — or the tab's own automatic reload while a server is still
-starting — does not start a second one. It always hands back whichever server is already running or
-building for that exact branch and commit.
+Clicking the link again for the same spec never starts a second server: whatever is already
+running, starting, or has failed for that exact branch and commit is what you get taken to or told
+about.
 
-## starting → running → failed
+## Checking on it afterwards
 
-- **starting** — the server is being built; the page keeps polling until it is either up or has
-  died.
-- **running** — a link to the address it is serving on, plus the branch and commit.
-- **failed** — the last line the process wrote before it stopped, as the reason.
+The spec's own page (its Overview) shows the same starting/running/failed state for as long as a
+test server exists for it, with the running one's address as a link — useful once you have closed
+the tab the server opened and want to get back to it, or check whether one that was still starting
+has come up.
 
 ## Stopping it
 
-A **Stop test server** button appears once it is running. It also stops on its own, with nothing to
-press, the moment the spec it belongs to is actually archived — merged or discarded, there is no
-reason left to keep a preview of it running.
+A **Stop board** button appears on the spec page once its test server is running. It also stops on
+its own, with nothing to press, the moment the spec it belongs to is actually archived — merged or
+discarded, there is no reason left to keep a preview of it running.
 
 ## Which projects this works for
 
@@ -67,7 +58,9 @@ Only `aide` itself, today. Starting a test server means running that project's o
 from a branch, which only makes sense for a project whose checkout — the one this dashboard's own
 automation works from — actually contains the dashboard's source. In practice that is aide alone,
 self-hosting; the dashboard checks for this rather than naming the project directly, so it would
-extend automatically to any other project in the same position.
+extend automatically to any other project in the same position. For a spec in a project this
+doesn't apply to, or one archived in the meantime, the link falls back to the spec's own Steps tab
+instead.
 
 ## Under the hood
 
@@ -76,14 +69,12 @@ it builds a fresh, throwaway copy of it from a given checkout, feeds it a small 
 end to end, and checks each one came out as expected. Starting a test server is that same script,
 told to leave the result running (`--keep`) instead of finishing and cleaning up — the same real
 dashboard a test run already proves works, just left up for a person to open instead of graded and
-torn down. `src/serve/boards/lifecycle.ts` is a thin wrapper around it, not a second
-implementation.
+torn down, implemented as a thin wrapper around it in `src/serve/boards/lifecycle.ts`.
 
 Two process ids are tracked for different reasons: one is this server's own handle on the spawned
 process, known immediately and what a stop signal reaches (the whole process group, so a server
 mid-build stops as cleanly as a fully running one); the other is read out of the running server's
 own log once it exists, and is shown for reference only.
 
-**Kept in memory, not on disk.** Nothing currently running survives a restart of this dashboard —
-there is no option yet to make it persist across one, though the code that tracks a running server
-is written so that could be added without changing how any of the above works.
+**Kept in memory, not on disk.** A restart of this dashboard loses track of every test server
+currently running.
