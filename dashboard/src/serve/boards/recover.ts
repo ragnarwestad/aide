@@ -61,6 +61,19 @@ function resolved(path: string): string {
   }
 }
 
+/** A worktree the round made: its own branch, checked out in a
+ *  `checkout` directory inside a `mktemp -d` one. Both halves are
+ *  checked before anything is removed — a run's own worktree
+ *  (`~/aide-worktrees/<project>/<spec>/code`) matches neither. */
+function isRoundWorktree(wt: WorktreeLine): boolean {
+  const dir = wt.path.split("/");
+  return (
+    wt.branch.startsWith("aide/") &&
+    dir[dir.length - 1] === "checkout" &&
+    (dir[dir.length - 2] ?? "").startsWith("tmp.")
+  );
+}
+
 /** Every test server still listening on the pool's ports, put back in
  *  the registry. Returns what it found, for the caller's own log line.
  *
@@ -75,10 +88,10 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
     const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
-      // The round's own shape, and nothing else: a branch it made, in a
-      // directory it made. A project with none of those has no test
-      // server running, and the ports are not worth asking about.
-      if (!wt.branch.startsWith("aide/") || !wt.path.endsWith("/checkout")) continue;
+      // The round's own shape, and nothing else. A project with none of
+      // those has no test server running, and the ports are not worth
+      // asking about.
+      if (!isRoundWorktree(wt)) continue;
       known.set(resolved(wt.path), { project, ...wt });
     }
   }
@@ -123,4 +136,40 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
     found.push(entry);
   }
   return found;
+}
+
+/** The worktrees left behind by test servers that are gone.
+ *
+ *  The round leaves a watcher that removes its worktree once the board
+ *  dies — but the watcher is the board's own sibling, and a restart
+ *  that takes the board takes the watcher with it. What is left is a
+ *  registration in `.git/worktrees/` that refuses the next checkout of
+ *  that branch: "it may already be checked out there, or in a leftover
+ *  worktree", which is what the next click on the spec's link met.
+ *
+ *  Run after `recoverBoards`, so a worktree whose board IS still up has
+ *  already been matched to a live port and is not in `keep`. A board
+ *  that is starting binds its port within seconds of making the
+ *  worktree, so the window where one exists with nothing listening is
+ *  that gap alone. */
+export async function sweepDeadBoards(
+  ctx: BoardsContext,
+  projects: string[],
+): Promise<string[]> {
+  const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));
+  const removed: string[] = [];
+  for (const project of projects) {
+    const root = ctx.aideCheckout(project);
+    const listed = await ctx.gitRun(root, ["worktree", "list", "--porcelain"]);
+    if (listed.code !== 0) continue;
+    for (const wt of parseWorktrees(listed.stdout)) {
+      if (!isRoundWorktree(wt) || live.has(resolved(wt.path))) continue;
+      const gone = await ctx.gitRun(root, ["worktree", "remove", "--force", wt.path]);
+      if (gone.code === 0) removed.push(wt.path);
+    }
+  }
+  if (removed.length) {
+    for (const project of projects) await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "prune"]);
+  }
+  return removed;
 }
