@@ -2,7 +2,7 @@
 // `run-controls.ts`'s own reset-route suite already tests against —
 // a real `createServer`, real fixture files, real HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -178,6 +178,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
   test("starts a board and 303s to the clean Steps-tab URL, once", async () => {
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
+    let boardLog = "";
     const results = mkdtempSync(join(tmpdir(), "aide-411-board-trigger-"));
     ownDirs.push(results);
     // Every git call this harness's own job-and-landing pipeline makes
@@ -210,8 +211,12 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
       queueResultDir: results,
-      boardsSpawn: (cmd) => {
+      boardsSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
+        // What a round that got its board up actually writes. Without
+        // it the board stays "starting" for ever, and the click that
+        // follows has no address to be sent to.
+        boardLog = logPath;
         const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
         proc.unref();
         spawned.push(proc.pid);
@@ -256,17 +261,55 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         headers: auth,
         redirect: "manual",
       });
-      expect(res.status).toBe(303);
-      expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
+      // REQ-4: the tab the reader opened WAITS here. It used to be sent
+      // back to the spec page to find the address for itself.
+      expect(res.status).toBe(200);
+      const waiting = await res.text();
+      expect(waiting).toContain("Starting a test server");
+      expect(waiting).toMatch(/http-equiv="refresh"/);
+      expect(waiting).toContain("spin");
       expect(spawnCalls).toHaveLength(1);
 
-      // A repeat GET of the same trigger reaches the same, still-alive
-      // entry (`startBoard()`'s own dedup) rather than spawning again.
+      // A repeat GET while it is still STARTING reaches the same,
+      // still-alive entry (`startBoard()`'s own dedup) rather than
+      // spawning again — and goes back to the tab where the wait is
+      // visible, because there is no address yet to go to.
       const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
         headers: auth,
         redirect: "manual",
       });
-      expect(res2.status).toBe(303);
+      // The reload the waiting page makes: still waiting, still no
+      // second round. This is the one that matters — the page reloads
+      // onto this URL every few seconds, so anything that starts a
+      // board here starts one every few seconds.
+      expect(res2.status).toBe(200);
+      expect(await res2.text()).toContain("Starting a test server");
+      expect(spawnCalls).toHaveLength(1);
+
+      // Ten more reloads, and still one round.
+      for (let i = 0; i < 10; i++) {
+        await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+          headers: auth,
+          redirect: "manual",
+        });
+      }
+      expect(spawnCalls).toHaveLength(1);
+
+      // REQ-3: once the round says the board is up, the click ends at
+      // the BOARD. It could not on the first one — a board takes
+      // minutes and has no address until it has started.
+      writeFileSync(
+        boardLog,
+        `left running: pid 4242, http://127.0.0.1:8801/?token=t0ken — serving aide/${folder} @ abc1234\n`,
+      );
+      const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(res3.status).toBe(303);
+      expect(res3.headers.get("location")).toBe("http://127.0.0.1:8801/?token=t0ken");
+      // And nothing was started for it: the redirect happens before
+      // `startBoard()` is reached at all.
       expect(spawnCalls).toHaveLength(1);
     } finally {
       for (const pid of spawned) {

@@ -26,7 +26,7 @@ describe("the board: no Start button on the spec page", () => {
 
   test("a board that is starting still says so, with its branch and commit", () => {
     const html = withBoard({ board: { status: "starting", branch: "aide/150-one-page", commit: "abc1234" } });
-    expect(html).toContain("Starting a board");
+    expect(html).toContain("Starting a test server");
     expect(html).toContain("aide/150-one-page");
     expect(html).toContain("abc1234");
   });
@@ -40,11 +40,11 @@ describe("the board: no Start button on the spec page", () => {
     expect(html).toContain('class="spin"');
   });
 
-  test("a failed board says so, with the round's own error", () => {
+  test("a failed board says so, with the test run's own error", () => {
     const html = withBoard({
       board: { status: "failed", branch: "aide/150-one-page", commit: "abc1234", error: "port already held" },
     });
-    expect(html).toContain("failed to start");
+    expect(html).toContain("could not be started");
     expect(html).toContain("port already held");
   });
 
@@ -61,13 +61,64 @@ describe("the board: no Start button on the spec page", () => {
       },
     });
     expect(html).toContain('href="http://127.0.0.1:9001/?token=t0ken"');
-    expect(html).toContain("the round's own fixture specs, not this project's");
+    expect(html).toContain("The specs shown are from the test suite, not the ones on the prod dashboard");
     expect(html).toContain(`action="${BOARD_STOP_ACTION}"`);
-    expect(html).toContain("Stop board");
+    expect(html).toContain("Stop test server");
+  });
+
+  // The words the specs list already uses for this same thing. "Board"
+  // is the name of the product this page is part of and "the round" is
+  // a word from the machinery that starts it; neither says anything to
+  // a reader.
+  test("it is a test server, on this page as in the list", () => {
+    const html = withBoard({
+      boardStopAction: BOARD_STOP_ACTION,
+      board: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/" },
+    });
+    expect(html).toContain("Test server:");
+    expect(html).not.toContain("Board:");
+    expect(html).not.toContain("the round");
+  });
+
+  // A loopback host, a port and a token: three things a reader does not
+  // read. The link says where it goes instead.
+  test("the link carries a name, not the address", () => {
+    const html = withBoard({
+      boardStopAction: BOARD_STOP_ACTION,
+      board: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/?token=t0ken" },
+    });
+    expect(html).toContain(">Open the test server</a>");
+    expect(html).not.toContain(">http://127.0.0.1:9001/?token=t0ken</a>");
+  });
+
+  // The round only ever knows loopback, and a reader on another device
+  // reaches nothing at 127.0.0.1 — "the dashboard is on the tailnet, and
+  // this device cannot reach it right now". This dashboard's own start
+  // route already builds the address the reader CAN reach, from the host
+  // they used, so the link goes through it.
+  test("the link goes through this dashboard, not straight to loopback", () => {
+    const html = withBoard({
+      boardOpenHref: "/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&startBoard=1",
+      boardStopAction: BOARD_STOP_ACTION,
+      board: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/?token=t0ken" },
+    });
+    expect(html).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;startBoard=1"');
+    expect(html).not.toContain("127.0.0.1:9001");
+  });
+
+  test("a full commit id is shortened where it is shown", () => {
+    const full = "b67707e9d48ac603caa47e3a4e32ff30fff6ae7d";
+    for (const status of ["starting", "running"] as const) {
+      const html = withBoard({
+        boardStopAction: BOARD_STOP_ACTION,
+        board: { status, branch: "aide/150-one-page", commit: full, url: "http://127.0.0.1:9001/" },
+      });
+      expect([status, html.includes("@ b67707e"), html.includes(full)]).toEqual([status, true, false]);
+    }
   });
 
   test("no boardAction at all draws nothing", () => {
-    expect(page(view())).not.toContain("Stop board");
+    expect(page(view())).not.toContain("Stop test server");
     expect(page(view())).not.toContain(BOARD_ACTION);
   });
 });
@@ -118,8 +169,8 @@ describe("the spec's actions stay on the tab row", () => {
       board: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/" },
     });
     const navIdx = html.indexOf('<nav class="tabbar subtabs">');
-    expect(html.indexOf("the round's own fixture specs")).toBeLessThan(navIdx);
-    expect(html.indexOf("Stop board")).toBeLessThan(navIdx);
+    expect(html.indexOf("The specs shown are from the test suite")).toBeLessThan(navIdx);
+    expect(html.indexOf("Stop test server")).toBeLessThan(navIdx);
     expect(trailing(html)).not.toContain("board");
   });
 });

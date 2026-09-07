@@ -74,6 +74,9 @@ describe("the round, against a port another board already holds", () => {
     try {
       const { stdout } = await runToExit(["--port", String(decoy.port), "--timeout", "5", "--keep"]);
       expect(stdout).not.toContain("left running");
+      // The same guarantee for the line the round prints the moment its
+      // own server answers: there is no server of ours here to announce.
+      expect(stdout).not.toContain("board up");
     } finally {
       decoy.stop();
     }

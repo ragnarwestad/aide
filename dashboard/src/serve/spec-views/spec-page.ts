@@ -268,6 +268,12 @@ export async function specPageView(
     closeUnavailableReason: busyReason,
     boardAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board` : undefined,
     boardStopAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
+    // The way IN to a running test server is this dashboard's own start
+    // link, not the address the round printed: that one is loopback,
+    // and a reader on another device reaches nothing at 127.0.0.1. The
+    // link's own route already builds the address the reader can reach
+    // — from the host THEY used — so the banner sends them through it.
+    boardOpenHref: boardCapable ? `${specPagePath(project, specFolder)}?tab=steps&startBoard=1` : undefined,
     boardUnavailableReason: boardCapable ? busyReason : undefined,
     board,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,

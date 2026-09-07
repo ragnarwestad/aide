@@ -210,6 +210,17 @@ done
 [ "$alive" = yes ] \
   || { echo "port $PORT is already held by another board — our own server (pid $SERVER) is not running; see $WORK/serve.log" >&2; exit 1; }
 
+# The board answers from here on, and its specs appear one by one as each
+# `create` below lands — so a reader waiting for it has something to look
+# at minutes before the round is finished. The dashboard reads this line
+# exactly as it reads the "left running" line at the end; the two say the
+# same thing at different times. Printed only for a board that is being
+# kept: a round that tears its own server down at the end has no address
+# worth handing anybody.
+if [ "$KEEP" = yes ] && [ -n "$BRANCH" ]; then
+  echo "board up: pid $SERVER, $BASE/?token=$TOKEN — serving $BRANCH @ $COMMIT"
+fi
+
 api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
 
 echo "== queue the specs, each through create"

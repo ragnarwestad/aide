@@ -38,6 +38,12 @@ export interface BoardsContext {
    *  (REQ-10) — reserved before probing for a free one. */
   reservedPorts: () => number[];
   findFreePort: (reserved: number[]) => Promise<number>;
+  /** What is listening on one of the pool's ports, if it is a test
+   *  server: its process, and the directory that process was given.
+   *  `recover.ts` asks this once per port after a restart; the real
+   *  implementation reads the process table, and a test injects an
+   *  answer. `undefined` for a free port, or one held by anything else. */
+  boardOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
 }
 
 /** `git ls-remote --heads origin <branch>`'s own SHA — never a local
@@ -70,29 +76,41 @@ export const BOARD_PORTS = [8801, 8802, 8803] as const;
  *  It used to ask the OS for any free port at all — reachable on the
  *  host, and nowhere else, since nothing exposes a port picked at
  *  random. */
-export async function findFreePort(reserved: number[]): Promise<number> {
+/** Whether a port can be bound right now. Injectable so a test can ask
+ *  the question without binding anything — the real one binds, and a
+ *  board running on this machine would otherwise decide the test. */
+export type PortProbe = (port: number) => boolean;
+
+const bindable: PortProbe = (port) => {
+  try {
+    // `hostname` matters: a board listens on loopback, and
+    // `tailscale serve` has a listener of its own on the tailnet
+    // address for these very ports. Probing on every address would
+    // collide with that and report a free port as taken.
+    const probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
+    probe.stop(true);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number> {
   const taken = new Set(reserved);
   for (const port of BOARD_PORTS) {
     if (taken.has(port)) continue;
-    let probe: { stop: (b: boolean) => void } | undefined;
-    try {
-      // `hostname` matters: a board listens on loopback, and
-      // `tailscale serve` has a listener of its own on the tailnet
-      // address for these very ports. Probing on every address would
-      // collide with that and report a free port as taken.
-      probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
-    } catch {
-      continue; // something else holds it
-    }
-    probe.stop(true);
-    return port;
+    if (canBind(port)) return port;
   }
   throw new Error(
     `every test-server port is in use (${BOARD_PORTS.join(", ")}) — stop a board before starting another`,
   );
 }
 
-const LEFT_RUNNING_RE = /left running: pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
+// Either of the round's two addresses-in-a-line. "board up" comes the
+// moment its server answers, minutes before "left running" closes the
+// round off — a reader gets in while the fixture specs are still being
+// created, and watches the list fill.
+const LEFT_RUNNING_RE = /(?:left running|board up): pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
 
 function tailLine(logPath: string): string {
   try {
@@ -156,19 +174,27 @@ export async function startBoard(
 export function refreshBoardStatus(ctx: BoardsContext, project: string, specFolder: string): BoardEntry | undefined {
   const entry = ctx.store.get(project, specFolder);
   if (entry?.status !== "starting") return entry;
-  if (!ctx.isAlive(entry.wrapperPid)) {
-    const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
-    ctx.store.set(project, specFolder, failed);
-    return failed;
-  }
+  // The LOG first, and the wrapper's own life second. The round leaves
+  // the board running and detached, and its wrapper then exits — so a
+  // dead wrapper is what SUCCESS looks like from here. Asked in the
+  // other order, every board that came up was reported as "could not
+  // start", with its own "left running: … http://…" line quoted
+  // underneath as the reason.
   let log: string;
   try {
     log = readFileSync(entry.logPath, "utf-8");
   } catch {
-    return entry;
+    log = "";
   }
   const m = LEFT_RUNNING_RE.exec(log);
-  if (!m) return entry;
+  if (!m) {
+    if (!ctx.isAlive(entry.wrapperPid)) {
+      const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
+      ctx.store.set(project, specFolder, failed);
+      return failed;
+    }
+    return entry;
+  }
   const running: BoardEntry = { ...entry, status: "running", pid: Number(m[1]), url: m[2] };
   ctx.store.set(project, specFolder, running);
   return running;
@@ -185,7 +211,11 @@ export function stopBoard(ctx: BoardsContext, project: string, specFolder: strin
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
   try {
-    process.kill(-entry.wrapperPid, "SIGTERM");
+    // A recovered board (`recover.ts`) has no wrapper left to lead a
+    // group: the signal goes to the board's own process instead, which
+    // is what the round's own disowned watcher waits for before it
+    // removes the worktree.
+    process.kill(entry.recovered ? entry.wrapperPid : -entry.wrapperPid, "SIGTERM");
   } catch {
     // already gone
   }

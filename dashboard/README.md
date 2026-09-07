@@ -75,5 +75,6 @@ publish.
 - [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back
 - [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
+- [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app

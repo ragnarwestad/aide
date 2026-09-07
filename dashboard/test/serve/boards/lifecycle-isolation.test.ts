@@ -48,6 +48,7 @@ function makeCtx(): BoardsContext {
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-work-")),
     reservedPorts: () => [],
     findFreePort: async () => 9000,
+    boardOnPort: async () => undefined,
   };
 }
 
@@ -68,6 +69,7 @@ describe("a board's start/stop round-trip", () => {
     expect(Object.keys(ctx).sort()).toEqual(
       [
         "aideCheckout",
+        "boardOnPort",
         "findFreePort",
         "gitRun",
         "isAlive",

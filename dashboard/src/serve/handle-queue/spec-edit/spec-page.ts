@@ -2,7 +2,8 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { startBoard } from "../../boards/lifecycle.ts";
+import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
+import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "./board-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
@@ -39,8 +40,35 @@ export async function specPageRoutes(
         !ref?.archived &&
         ctx.boards.roundAvailable(project!) &&
         ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.boards.aideCheckout(project!));
-      if (capable) await startBoard(ctx.boards, project!, specFolder!);
-      return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+      // A board already up is where the reader wanted to go: straight
+      // there, in the tab the link opened. REQ-3 asks for the board's
+      // own page, and this is the moment there is one to ask for.
+      // ONE attempt per spec, whatever happens next. The waiting page
+      // reloads onto this same URL, so anything that starts a board
+      // here starts one every few seconds — 1821 of them on
+      // 2026-09-07, each dying on a branch the first had already
+      // checked out. An entry of ANY kind means the attempt was made:
+      // running goes to it, failed says so, starting waits.
+      const already = refreshBoardStatus(ctx.boards, project!, specFolder!);
+      if (already?.status === "running" && already.url) {
+        return Response.redirect(boardUrlFor(req, already.url), 303);
+      }
+      // A round that died says so and stops. Refreshing for ever in
+      // front of a reader who can do nothing about it is worse than
+      // naming what happened and leaving the tab to them.
+      if (already?.status === "failed") {
+        return boardFailedPage(specFolder!, already.error);
+      }
+      // Otherwise it has to be started, and that takes minutes — so the
+      // tab the reader opened WAITS here rather than being sent back to
+      // the spec page to find the address themselves. It reloads onto
+      // this same URL, and the branch above carries it to the board the
+      // moment there is one. REQ-4.
+      if (!capable) {
+        return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+      }
+      if (!already) await startBoard(ctx.boards, project!, specFolder!);
+      return waitingForBoardPage(project!, specFolder!);
     }
     const view = await ctx.specPageView(
       project!,

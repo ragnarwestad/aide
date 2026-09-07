@@ -168,4 +168,9 @@ export interface ServerOptions {
   /** Polls whether a tracked board's own wrapper process is still alive
    *  (spec 388). A test seam, like `boardsSpawn`. */
   boardsIsAlive?: (pid: number) => boolean;
+  /** Asks what is listening on one of the test-server ports, so a board
+   *  still running is found again after a restart (`boards/recover.ts`).
+   *  A test seam, like `boardsSpawn`: the real one reads the process
+   *  table with `lsof` and `ps`. */
+  boardsOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
 }
