@@ -205,19 +205,52 @@ describe("Settings page wording and layout (spec 409)", () => {
     expect(html).toMatch(/<table class="settingstable">/);
   });
 
-  // REQ-2/REQ-3: Units now lives on /settings as a radio group, placed
-  // outside the settings <form> so a Units flip never marks Save/Cancel
-  // dirty (risk 4 in 3-solution.md).
-  test("REQ-2/REQ-3: a Units radio group is present, outside the settings form", () => {
+  // Spec 414, REQ-1/REQ-3: Units moved from after the form to a literal
+  // descendant of it, directly after Job cap and before the AI settings
+  // table — the radios' own markup (name/value/data-unit-choice/checked)
+  // is unchanged, only their position moved.
+  test("REQ-1: Units sits inside the form, directly after Job cap and before the AI settings table", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: [], defaultModels: { default: "sonnet" },
+      modelChoices: MODELS, defaultModels: { default: "sonnet" },
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toMatch(/<input type="radio" name="unit" value="usd" data-unit-choice="usd" checked>/);
     expect(html).toMatch(/<input type="radio" name="unit" value="tokens" data-unit-choice="tokens">/);
-    const formOpen = html.indexOf("<form");
-    const formClose = html.indexOf("</form>") + "</form>".length;
+    const jobCapIdx = html.indexOf('name="jobCapUsd"');
+    const unitsIdx = html.indexOf('<span class="lbl">Units</span>');
+    const tableIdx = html.indexOf('<table class="settingstable">');
+    expect(jobCapIdx).toBeGreaterThan(-1);
+    expect(unitsIdx).toBeGreaterThan(jobCapIdx);
+    expect(tableIdx).toBeGreaterThan(unitsIdx);
+  });
+
+  // Regression guard for the spec-409 assertion this replaces: that test
+  // asserted no radio appears between the form tags on purpose. REQ-1
+  // now requires the opposite.
+  test("REQ-1 (regression guard): a radio input now appears between the form's own tags", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: [], defaultModels: { default: "sonnet" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+    });
+    const formOpen = html.indexOf('<form id="settings-form"');
+    const formClose = html.indexOf("</form>", formOpen) + "</form>".length;
     const between = html.slice(formOpen, formClose);
-    expect(between).not.toContain('type="radio"');
+    expect(between).toContain('type="radio"');
+  });
+
+  // Spec 414, REQ-2: Budget per job and Job cap adopt the same .row/.lbl
+  // shape Units already used, so all three rows line up.
+  test("REQ-2: Budget per job, Job cap and Units are each a .row with a .lbl label", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: [], defaultModels: { default: "sonnet" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+    });
+    expect(html).toMatch(
+      /<p class="row"><label class="lbl" for="budgetUsd">Budget per job \(USD\)<\/label><input id="budgetUsd"[^>]*name="budgetUsd"[^>]*><\/p>/,
+    );
+    expect(html).toMatch(
+      /<p class="row"><label class="lbl" for="jobCapUsd">Job cap \(USD\)<\/label><input id="jobCapUsd"[^>]*name="jobCapUsd"[^>]*><\/p>/,
+    );
+    expect(html).toMatch(/<p class="row"><span class="lbl">Units<\/span>/);
   });
 });

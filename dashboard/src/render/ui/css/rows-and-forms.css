@@ -5,6 +5,12 @@
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* Budget per job, Job cap and Units (spec 414): three .row/.lbl rows on
+   one page whose labels are different lengths ("Budget per job (USD)",
+   "Job cap (USD)", "Units") — a fixed floor puts every row's control at
+   the same x. Scoped to .settingsform alone: other .row/.lbl users
+   (new-spec-page.ts's "Selected:" row) keep their own unscoped look. */
+.settingsform .row .lbl { min-width: 11rem; }
 /* The `/schedule` list's own New-job link (spec 278): `.specsearch` has
    no `details.intro` here to carry the right-aligning margin the way it
    does on the Specs list (`details.intro`, below) — a bare `.specsearch

@@ -71,16 +71,17 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     `</p>`;
   const body = `<main>${back}<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
-    `<p><label>Budget per job (USD) <input type="number" min="0.01" max="100" step="0.01" ` +
-    `name="budgetUsd" value="${opts.budgetUsd}"></label></p>` +
-    `<p><label>Job cap (USD) <input type="number" min="0.01" max="300" step="0.01" ` +
-    `name="jobCapUsd" value="${opts.jobCapUsd}"></label></p>` +
+    `<p class="row"><label class="lbl" for="budgetUsd">Budget per job (USD)</label><input id="budgetUsd" type="number" min="0.01" max="100" step="0.01" ` +
+    `name="budgetUsd" value="${opts.budgetUsd}"></p>` +
+    `<p class="row"><label class="lbl" for="jobCapUsd">Job cap (USD)</label><input id="jobCapUsd" type="number" min="0.01" max="300" step="0.01" ` +
+    `name="jobCapUsd" value="${opts.jobCapUsd}"></p>` +
+    unitsBlock +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="configactions">` +
     btn({ id: "settingsform-save", label: "Save", variant: "primary", pending: "saving…" }) +
     btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
-    `</div></form>${unitsBlock}</main>`;
+    `</div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
   });
