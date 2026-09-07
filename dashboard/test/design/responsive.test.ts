@@ -57,12 +57,27 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  test("the spec header keeps its date, on the same left edge as the rest", () => {
-    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
-    // The auto margin stood the two figures alone at the far side of the
-    // row once the name, the pips, the badge and the button all read
-    // down one left edge.
-    expect(NARROW).not.toContain('tr.spechead [data-col="started"] { display: block; margin-left: auto;');
+  // Time and Cost went the way Created already had (2026-09-07): the
+  // phone's spec line is the title, then the pips, the button and the
+  // state. A reader there is checking what is happening and pressing the
+  // one control; neither figure is part of either.
+  test("the spec header drops its time and its cost too", () => {
+    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: none; }');
+    expect(NARROW).toContain('table.list tr.spechead [data-col="cost"] { display: none; }');
+  });
+
+  // Line 1 is the title alone; line 2 is the pips, the button and the
+  // state, in that order. The pips live inside the name box — where a
+  // desktop wants them — so both the cell and the box are dissolved to
+  // let them reach the second line.
+  test("the head row is two lines: the title, then the pips, the button and the state", () => {
+    expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
+    expect(NARROW).toContain(".spec-name { display: contents; }");
+    expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 32px); }");
+    expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 1; \}/);
+    expect(NARROW).toMatch(/tr\.spechead > td:nth-child\(2\) \{ order: 2; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; \}/);
+    expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 2; \}/);
   });
 
   // The action button after the badge must start at the same x on every
