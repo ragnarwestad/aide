@@ -42,13 +42,13 @@ about.
 ## Checking on it afterwards
 
 The spec's own page (its Overview) shows the same starting/running/failed state for as long as a
-test server exists for it, with the running one's address as a link — useful once you have closed
+test server exists for it, with a link to the running one — useful once you have closed
 the tab the server opened and want to get back to it, or check whether one that was still starting
 has come up.
 
 ## Stopping it
 
-A **Stop board** button appears on the spec page once its test server is running. It also stops on
+A **Stop test server** button appears on the spec page once its test server is running. It also stops on
 its own, with nothing to press, the moment the spec it belongs to is actually archived — merged or
 discarded, there is no reason left to keep a preview of it running.
 

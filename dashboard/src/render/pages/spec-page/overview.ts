@@ -332,26 +332,36 @@ export function pdfControl(view: SpecPageView): string {
  *  row holds buttons only. */
 export function boardStatus(view: SpecPageView): string {
   if (!view.boardAction || !view.board) return "";
+  // "test server", the words the specs list already uses for this same
+  // thing, and never "board" or "round": one is the name of the product
+  // this page is part of, the other is a word from the machinery that
+  // starts it, and neither says anything to a reader.
+  const where = `${esc(view.board.branch)} @ ${esc(view.board.commit.slice(0, 7))}`;
   if (view.board.status === "starting") {
     return (
-      `<p class="desc">${SPINNER}<span class="muted">Starting a board for ${esc(view.board.branch)} @ ` +
-      `${esc(view.board.commit)} — this can take several minutes.</span></p>`
+      `<p class="desc">${SPINNER}<span class="muted">Starting a test server for ${where} — ` +
+      `this takes a few minutes.</span></p>`
     );
   }
   if (view.board.status === "failed") {
     return (
-      `<p class="desc"><span class="muted">The board failed to start` +
+      `<p class="desc"><span class="muted">The test server could not be started` +
       `${view.board.error ? `: ${esc(view.board.error)}` : ""}.</span></p>`
     );
   }
+  // The link carries a name, not the address itself: the address is a
+  // loopback host, a port and a token, and none of the three is a thing
+  // a reader reads.
   return (
-    `<p class="desc"><strong>Board:</strong> ` +
-    `<a href="${esc(view.board.url ?? "")}" target="_blank" rel="noopener">${esc(view.board.url ?? "")}</a> ` +
-    `<span class="muted">— serving ${esc(view.board.branch)} @ ${esc(view.board.commit)}. ` +
-    `These are the round's own fixture specs, not this project's.</span></p>` +
+    `<div class="row desc">` +
+    `<span><strong>Test server:</strong> ` +
+    `<a href="${esc(view.board.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
+    `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
+    `suite, not the ones on the prod dashboard.</span></span>` +
     `<form class="actionform" method="post" action="${esc(view.boardStopAction ?? "")}">` +
     tokenField(view.token) +
-    `<button class="btn" type="submit">Stop board</button></form>`
+    `<button class="btn" type="submit">Stop test server</button></form>` +
+    `</div>`
   );
 }
 

@@ -5,6 +5,13 @@
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* The spec banner's test-server line: a sentence and the button that
+   stops it, on one row. It has to be a div — a form is not phrasing
+   content, so a <p> holding one is closed by the browser before it —
+   and a div brings no margin of its own, where every paragraph beside
+   it in the banner brings one. This declares the space to the tab bar
+   below so the line keeps the banner's rhythm. */
+.row.desc { margin-bottom: var(--sp-4); }
 /* Budget per job, Job cap and Units (spec 414): three .row/.lbl rows on
    one page whose labels are different lengths ("Budget per job (USD)",
    "Job cap (USD)", "Units") — a fixed floor puts every row's control at
