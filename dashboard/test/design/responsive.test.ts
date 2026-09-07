@@ -139,6 +139,21 @@ describe("Created folds away on the spec header at phone width", () => {
 // its own block — and pushing them anyway put them against the right
 // edge while the state and the button started at the left edge of the
 // line below: "et kjempestort rom mellom de og pips".
+// The desktop gives the table a hard 63rem — the six column widths add
+// up to exactly that — and `display: block` at phone width does not
+// touch a width. Every row was 1008px long inside a 450px screen, with a
+// scrollbar over content that had nothing to the right of it.
+describe("the list is as wide as the screen at phone width", () => {
+  test("the desktop's 63rem is given back", () => {
+    expect(NARROW).toContain("table.speclist { width: auto; }");
+  });
+
+  test("the desktop rule it overrides is still there", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toContain("table.speclist { width: var(--speclist-width); table-layout: fixed; }");
+  });
+});
+
 describe("the pips follow the name at phone width", () => {
   test("the desktop still pushes them to the column's own x", () => {
     expect(CSS).toContain(".pipslot { margin-left: auto;");

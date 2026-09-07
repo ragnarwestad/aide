@@ -37,7 +37,14 @@
      so block costs them nothing. The three tab links up top get their
      7rem floor lifted for the same overall goal — three of them do
      not cross 360px otherwise. */
+  /* And the 63rem the table is given on a desktop goes with the table
+     layout: `display: block` alone left that width standing, so every
+     row was a thousand pixels long inside a 450px screen and the box
+     around them drew a horizontal scrollbar over content that had
+     nothing to the right of it. `width: auto` on a block is the
+     container's width. */
   table.speclist, table.speclist tbody { display: block; }
+  table.speclist { width: auto; }
   table.speclist tr:not(.spechead):not(.subrow) { display: block; }
   table.speclist tr:not(.spechead):not(.subrow) > td { display: block; }
   .tabbar .tab { min-width: 0; }
