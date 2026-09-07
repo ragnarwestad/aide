@@ -159,6 +159,22 @@ describe("refreshBoardStatus", () => {
     expect(refreshed?.error).toContain("cannot check out");
   });
 
+  // The round says the address twice: once the moment its server answers
+  // ("board up"), and once when the whole round is finished ("left
+  // running"). A reader waiting on the first gets in while the fixture
+  // specs are still being created, rather than after.
+  test("the 'board up' line is a running board too, minutes before the round ends", async () => {
+    const ctx = makeCtx();
+    await startBoard(ctx, "aide", "spec-1");
+    const entry = ctx.store.get("aide", "spec-1")!;
+    writeFileSync(
+      entry.logPath,
+      "== queue the specs\nboard up: pid 4242, http://127.0.0.1:9000/?token=t — serving aide/spec-1 @ abc123\n",
+    );
+    const running = refreshBoardStatus(ctx, "aide", "spec-1");
+    expect([running?.status, running?.url]).toEqual(["running", "http://127.0.0.1:9000/?token=t"]);
+  });
+
   test("still starting while the process is alive and no 'left running' line has appeared yet", async () => {
     const ctx = makeCtx();
     const started = await startBoard(ctx, "aide", "spec-1");

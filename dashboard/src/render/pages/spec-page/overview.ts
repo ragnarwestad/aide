@@ -355,7 +355,7 @@ export function boardStatus(view: SpecPageView): string {
   return (
     `<div class="row desc">` +
     `<span><strong>Test server:</strong> ` +
-    `<a href="${esc(view.board.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
+    `<a href="${esc(view.boardOpenHref ?? view.board.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
     `<form class="actionform" method="post" action="${esc(view.boardStopAction ?? "")}">` +

@@ -28,13 +28,13 @@ branch."**
 ## What happens when you click it
 
 The link opens in the same tab and holds it: building a test server is a real dashboard starting
-from scratch, which takes a few minutes, not seconds, so the page you land on says so and waits —
+from scratch, which takes a minute or two, not seconds, so the page you land on says so and waits —
 "leave it open" — rather than sending you off to go find the address yourself later. It checks
 again every few seconds on its own; there is nothing to click or refresh by hand.
 
-The moment the server is up, that same tab is carried straight to it — you end up looking at the
-running dashboard itself, not at a page on this one. If it failed to start instead, the tab says so
-and stops there, with the reason it gave.
+The moment the server answers, that same tab is carried straight to it — that is well before the
+test run has finished: the specs on it are created one by one, and you watch the list fill. If it
+failed to start instead, the tab says so and stops there, with the reason it gave.
 
 Clicking the link again for the same spec never starts a second server: whatever is already
 running, starting, or has failed for that exact branch and commit is what you get taken to or told

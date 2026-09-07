@@ -106,7 +106,11 @@ export async function findFreePort(reserved: number[], canBind: PortProbe = bind
   );
 }
 
-const LEFT_RUNNING_RE = /left running: pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
+// Either of the round's two addresses-in-a-line. "board up" comes the
+// moment its server answers, minutes before "left running" closes the
+// round off — a reader gets in while the fixture specs are still being
+// created, and watches the list fill.
+const LEFT_RUNNING_RE = /(?:left running|board up): pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
 
 function tailLine(logPath: string): string {
   try {

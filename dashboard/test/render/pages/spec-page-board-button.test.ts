@@ -91,6 +91,21 @@ describe("the board: no Start button on the spec page", () => {
     expect(html).not.toContain(">http://127.0.0.1:9001/?token=t0ken</a>");
   });
 
+  // The round only ever knows loopback, and a reader on another device
+  // reaches nothing at 127.0.0.1 — "the dashboard is on the tailnet, and
+  // this device cannot reach it right now". This dashboard's own start
+  // route already builds the address the reader CAN reach, from the host
+  // they used, so the link goes through it.
+  test("the link goes through this dashboard, not straight to loopback", () => {
+    const html = withBoard({
+      boardOpenHref: "/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&startBoard=1",
+      boardStopAction: BOARD_STOP_ACTION,
+      board: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/?token=t0ken" },
+    });
+    expect(html).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;startBoard=1"');
+    expect(html).not.toContain("127.0.0.1:9001");
+  });
+
   test("a full commit id is shortened where it is shown", () => {
     const full = "b67707e9d48ac603caa47e3a4e32ff30fff6ae7d";
     for (const status of ["starting", "running"] as const) {

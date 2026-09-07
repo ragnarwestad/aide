@@ -166,6 +166,11 @@ export interface SpecPageView {
   boardAction?: string;
   /** Where the "Stop board" form posts, once a board is up. */
   boardStopAction?: string;
+  /** Where the banner's own "Open the test server" link goes: this
+   *  dashboard's start route, which redirects to the board on the host
+   *  the reader actually used. The round's own address is loopback and
+   *  reaches nothing from another device. */
+  boardOpenHref?: string;
   /** Why the control is disabled while `boardAction` IS present — a
    *  transient reason (another job running, a landing in progress), the
    *  same disabled-with-reason shape `resetUnavailableReason` uses. */
