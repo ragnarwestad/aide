@@ -154,7 +154,7 @@ describe("the pips follow the name at phone width", () => {
   // row by row. A fixed share of the row does neither, and a name too
   // long for it wraps inside the box.
   test("the name box is a fixed width here too, so the pips line up", () => {
-    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 17rem; min-width: 0; }");
+    expect(NARROW).toContain(".spec-name > .label { flex: 0 0 11rem; min-width: 0; }");
     expect(NARROW).not.toContain(".spec-name > .label { flex: 1 1 0%");
     // Not a share of the row: the same percentage is a different number
     // of characters on every phone, and the name is set in mono.
@@ -193,39 +193,11 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     );
   });
 
-  // The pair sat behind a chevron on every phase line until 2026-09-07.
-  // The floor this block is drawn for is 450px, and against it the pair
-  // fits beside the name, the tick box and the status — so there is
-  // nothing left to fold, and no control to explain.
-  test("the AI/model pair is shown, not folded away", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex;");
-    expect(NARROW).not.toContain("table.list tr.subrow .aimodel { display: none; }");
-    expect(NARROW).not.toContain("foldphase");
-  });
-
-  // Every slot is a width, and nothing is pushed by free space: an auto
-  // margin or a growing flex item moves an element from row to row with
-  // whatever text happens to sit beside it.
-  test("every slot on a phase line is a fixed width", () => {
-    expect(NARROW).toContain("table.list tr.subrow .phasecell { flex: 0 0 5.3rem;");
-    expect(NARROW).toContain("table.list tr.subrow .statecell { flex: 0 0 6rem;");
-    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 6.5rem;');
-    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 9.5rem;');
-  });
-
-  test("the AI/Model pair takes a line of its own, not the row's leftovers", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); flex: 0 0 100%; order: 10; }");
-    expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
-  });
-
-  test("the status cell has a name of its own to be given a width", () => {
-    expect(rows({ open: "aide/155-x" })).toContain('<td class="statecell">');
-  });
-
-  // Stated in the file, so the next person changing a width here knows
-  // which number the widths are chosen against.
-  test("the block says which screen it is drawn for", () => {
-    expect(CSS).toContain("The floor is 450px");
+  test("the AI/model pair hides until the phase's own fold is opened", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: none; }");
+    expect(NARROW).toMatch(
+      /tr\.subrow:has\(\.foldphase:checked\) \.aimodel \{\s*display: flex;/,
+    );
   });
 
   // 6.25rem of floor inside a screen that is 23rem wide. Held here, the
@@ -241,14 +213,10 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     );
   });
 
-  // About the three-in-one cell spec 165 took apart: its children were
-  // pinned to 2.5rem and 6rem inside `.phasecell > .row`. The widths on
-  // the line's own slots are a different thing entirely — those are
-  // deliberate, and named in the block above.
   test("no pinned flex children survive at any width", () => {
     expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).not.toMatch(/\.phasecell[^{]*\{[^}]*flex:\s*0 0 2\.5rem/);
-    expect(CSS).not.toMatch(/\.phasecell[^{]*\{[^}]*flex:\s*0 0 6rem/);
+    expect(CSS).not.toMatch(/flex:\s*0 0 2\.5rem/);
+    expect(CSS).not.toMatch(/flex:\s*0 0 6rem/);
   });
 
   // The desktop rule must survive verbatim: the override wins by

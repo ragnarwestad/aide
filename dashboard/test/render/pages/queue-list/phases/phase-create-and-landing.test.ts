@@ -78,15 +78,15 @@ describe("spec 116: create is the first phase line", () => {
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
     // its own, so the emptiness is inside that cell.
-    // The name leads the first cell since spec 165 — in a plain wrapper
-    // since 2026-09-07, when the mobile fold control that used to be
-    // here went — and the box moved in beside the model. `create`'s box is ticked,
+    // The name leads the first cell since spec 165 — wrapped in the
+    // mobile fold control since 2026-08-24, which is inert on desktop —
+    // and the box moved in beside the model. `create`'s box is ticked,
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
       new RegExp(
-        `<td class="phasecell"><span class="phasefold">` +
-          `<a href="/specs/aide/116-hand-made\\?tab=description">create</a></span></td>`,
+        `<td class="phasecell"><label class="phasefold">[\\s\\S]*?` +
+          `<a href="/specs/aide/116-hand-made\\?tab=description">create</a></label></td>`,
       ),
     );
     expect(line).toContain(
@@ -99,7 +99,7 @@ describe("spec 116: create is the first phase line", () => {
     // how long it took, and a phase nobody ran took `0s`. A blank there
     // asks whether the line is broken.
     expect(line).toContain(
-      '<td class="statecell"><span class="badge b-done">done</span></td>' +
+      '<td><span class="badge b-done">done</span></td>' +
         '<td data-col="created"></td><td data-col="started"><span class="muted small">0s</span></td>' +
         '<td class="num" data-col="cost"></td>',
     );

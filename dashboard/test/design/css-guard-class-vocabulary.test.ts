@@ -163,7 +163,7 @@ const STRUCTURE = [
   // the mobile fold on a phase line (design handoff, mobile-spec-row):
   // the label, its hidden checkbox, the chevron, and the AI+model pair
   // the checkbox shows and hides. Inert on desktop.
-  "phasefold", "statecell", "aimodel",
+  "phasefold", "foldphase", "foldchevron", "aimodel",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead

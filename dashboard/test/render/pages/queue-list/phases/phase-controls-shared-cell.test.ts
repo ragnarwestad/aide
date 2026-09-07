@@ -91,19 +91,21 @@ describe("spec 192: the phase line's controls share one cell", () => {
     for (const step of ["create", "analyze", "implement", "archive"]) {
       const first = cells(subRow(html, step))[0] ?? "";
       // The name, and no CONTROL in front of it: no phase box, no
-      // placeholder span holding a column's place, no select — and
-      // since 2026-09-07 no fold control either, on any screen.
+      // placeholder span holding a column's place, no select. The
+      // mobile fold control (2026-08-24) is the one deliberate
+      // exception — its checkbox and chevron are invisible outside the
+      // phone media query, so on a desktop the cell still reads as the
+      // name alone.
       expect([step, first.includes("data-phase")]).toEqual([step, false]);
       expect([step, first.includes("<select")]).toEqual([step, false]);
-      expect([step, first.includes("<input")]).toEqual([step, false]);
-      expect([step, first.includes('class="phasefold"')]).toEqual([step, true]);
+      expect([step, first.includes('class="foldphase"')]).toEqual([step, true]);
       // The name is the whole of the visible text — a future
       // `STEP_LABELS` entry would reach a reader as a different word,
       // so the cell is checked for shape and not for the step's own
       // word.
       expect([
         step,
-        /<(a|span)[^>]*>[a-z-]+<\/(a|span)><\/span>$/.test(first),
+        /<(a|span)[^>]*>[a-z-]+<\/(a|span)><\/label>$/.test(first),
       ]).toEqual([step, true]);
       // And it is still a cell of its own: the merge is behind it, not
       // around it.
@@ -269,22 +271,21 @@ describe("spec 192: the phase line's controls share one cell", () => {
     }
   });
 
-  // --- criterion 5: the phase line at phone width ---------------------------
+  // --- criterion 5: a folded phase line at phone width ----------------------
 
-  test("at phone width the whole phase line is one flex row (criterion 5)", async () => {
+  test("at phone width the AI/model pair folds behind the phase's chevron (criterion 5)", async () => {
     const { CSS } = await import("../../../../../src/render/ui/css.ts");
     const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
     // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
-    // flex row at this width, with the cells dissolved
-    // (display:contents). The AI/model pair sat behind a fold control
-    // per line until 2026-09-07; against the 450px floor this block is
-    // drawn for it fits beside the name, so it is simply shown.
+    // flex row at this width — identical open or shut — with the cells
+    // dissolved (display:contents), and the AI/model pair hidden until
+    // the phase's own fold checkbox shows it.
     expect(narrow).toMatch(/table\.list tr\.subrow \{ display: flex;/);
     expect(narrow.replace(/\s+/g, " ")).toContain(
       "table.list tr.subrow .modelcell, table.list tr.subrow .modelcell > .row " +
         "{ display: contents; }",
     );
-    expect(narrow).toContain("table.list tr.subrow .aimodel { display: flex;");
+    expect(narrow).toContain("table.list tr.subrow .aimodel { display: none; }");
     // And the widths the two selects reserve on a desktop are given
     // back — min AND max, or the 50/50 split never happens.
     expect(narrow).toContain(

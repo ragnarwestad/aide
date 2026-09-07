@@ -348,6 +348,8 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 8rem; m
    before this control existed. The mobile media query below is what
    gives the chevron a shape and the checkbox a job. */
 .phasefold { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.phasefold .foldphase { display: none; }
+.phasefold .foldchevron { display: none; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
    name. Quiet at rest, obvious on hover, and the shut state turns the
