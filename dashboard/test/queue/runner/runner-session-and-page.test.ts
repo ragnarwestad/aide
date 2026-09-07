@@ -173,3 +173,37 @@ describe("what the page needs from a step", () => {
     ]);
   });
 });
+
+// One transcript per STEP, not per job. `StepResult.streamFile` is
+// recorded per step so a finished step stays readable after the next one
+// has started — but every step wrote the SAME file, so the next step
+// overwrote the transcript that pointer names. A three-step job kept
+// only its last step's log, and the one you want when a job took an
+// hour is implement's: always the one gone.
+describe("each step keeps its own transcript", () => {
+  test("two steps of one job are handed two different files, each naming its step", () => {
+    enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    runner.poll();
+    runner.tick();
+    expect(spawns).toHaveLength(2);
+    expect(spawns[0]!.streamFile).not.toBe(spawns[1]!.streamFile);
+    expect(spawns[0]!.streamFile).toContain("analyze");
+    expect(spawns[1]!.streamFile).toContain("implement");
+  });
+
+  // The job's own pointer still moves to the running step — that is what
+  // the live panel follows — so the per-step record is the only thing
+  // that keeps an earlier step readable.
+  test("the finished step's own result keeps pointing at its own file", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    runner.poll();
+    runner.tick();
+    const stored = store.get(job.id)!;
+    expect(stored.results?.[0]?.streamFile).toContain("analyze");
+    expect(stored.results?.[0]?.streamFile).not.toBe(stored.streamFile);
+  });
+});

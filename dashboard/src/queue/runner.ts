@@ -307,7 +307,16 @@ export class Runner {
     // One id per STEP, not per job: two steps of the same job are two
     // separate claude sessions, and reusing an id would make the live
     // panel follow the wrong one.
-    const streamFile = `${this.o.resultDir}/${job.id}.stream.jsonl`;
+    //
+    // The FILE is per step for the same reason. `StepResult.streamFile`
+    // is recorded per step so a finished step stays readable after the
+    // next one has started — but with one file per job, the next step
+    // overwrote the transcript that pointer names, and a three-step
+    // job kept only its last step's. The one you want when a job took
+    // an hour is implement's, and it was always the one gone.
+    // A job that ran before this keeps whatever path it recorded, so
+    // its own log still opens.
+    const streamFile = `${this.o.resultDir}/${job.id}.${step}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
     const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
