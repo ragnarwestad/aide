@@ -161,7 +161,13 @@
      background (2026-08-24). Sized for the longest label it can carry
      now that the resting texts are one word ("ready"/"done"):
      "implementing queued", 19 characters of fs-s plus dot and padding. */
-  table.list tr.spechead .badgeslot { width: 9rem; margin-left: 0; }
+  /* The badge takes its own text's width here. The 9rem it reserved
+     was sized for the longest label there is ("implementing queued")
+     so that the button after it started at the same x on every row —
+     and there is no button after it any more: the order is button,
+     pips, state. Held anyway, a "ready" of five characters carried
+     144px of reserved width and wrapped the state onto a third line. */
+  table.list tr.spechead .badgeslot { width: auto; margin-left: 0; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
