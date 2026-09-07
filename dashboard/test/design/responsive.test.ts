@@ -81,6 +81,11 @@ describe("Started and Cost fold away at phone width", () => {
     expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; margin-left: var\(--sp-3\); \}/);
     expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
     expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
+    // After all three, never beside them: equal orders keep document
+    // order, and this line is written in the FIRST cell — at the
+    // badge's own order it came before the badge and, taking the whole
+    // width, pushed it onto a line of its own.
+    expect(NARROW).toMatch(/tr\.spechead \.spec-title \{ order: 4; flex: 0 0 100%; \}/);
   });
 
   // The badge reserved the width of its longest label ("implementing
