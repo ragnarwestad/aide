@@ -206,6 +206,11 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // Free space at the end of the line is not a spacing: an auto margin
   // there put the width of whatever the status text left between the
   // status and the pair.
+  test("no rule is drawn under a phase line", () => {
+    expect(NARROW).toContain("table.list tr.subrow { border-bottom: none; }");
+    expect(NARROW).not.toContain("table.list tr.subrow { border-bottom: 1px");
+  });
+
   test("the pair follows the status, and is not pushed to the line's end", () => {
     expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }");
     expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);

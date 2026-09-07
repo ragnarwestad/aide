@@ -220,8 +220,12 @@
      than flexed. */
   table.list tr.subrow { display: flex; flex-wrap: wrap; align-items: center;
     gap: var(--sp-1) var(--sp-2); }
+  /* No rule under a phase line. The desktop draws none either — the
+     cells' own bottom border is off at every width — and the line drawn
+     on the ROW here was a phone-only addition that put a grey rule
+     between every phase of an open spec. */
   table.list tr.subrow > td { border-bottom: none; }
-  table.list tr.subrow { border-bottom: 1px solid var(--line); }
+  table.list tr.subrow { border-bottom: none; }
   table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
