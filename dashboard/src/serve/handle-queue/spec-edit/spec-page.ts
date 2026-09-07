@@ -43,6 +43,12 @@ export async function specPageRoutes(
       // A board already up is where the reader wanted to go: straight
       // there, in the tab the link opened. REQ-3 asks for the board's
       // own page, and this is the moment there is one to ask for.
+      // ONE attempt per spec, whatever happens next. The waiting page
+      // reloads onto this same URL, so anything that starts a board
+      // here starts one every few seconds — 1821 of them on
+      // 2026-09-07, each dying on a branch the first had already
+      // checked out. An entry of ANY kind means the attempt was made:
+      // running goes to it, failed says so, starting waits.
       const already = refreshBoardStatus(ctx.boards, project!, specFolder!);
       if (already?.status === "running" && already.url) {
         return Response.redirect(already.url, 303);
@@ -61,7 +67,7 @@ export async function specPageRoutes(
       if (!capable) {
         return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
       }
-      await startBoard(ctx.boards, project!, specFolder!);
+      if (!already) await startBoard(ctx.boards, project!, specFolder!);
       return waitingForBoardPage(project!, specFolder!);
     }
     const view = await ctx.specPageView(

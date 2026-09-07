@@ -279,9 +279,20 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         redirect: "manual",
       });
       // The reload the waiting page makes: still waiting, still no
-      // second round.
+      // second round. This is the one that matters — the page reloads
+      // onto this URL every few seconds, so anything that starts a
+      // board here starts one every few seconds.
       expect(res2.status).toBe(200);
       expect(await res2.text()).toContain("Starting a test server");
+      expect(spawnCalls).toHaveLength(1);
+
+      // Ten more reloads, and still one round.
+      for (let i = 0; i < 10; i++) {
+        await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+          headers: auth,
+          redirect: "manual",
+        });
+      }
       expect(spawnCalls).toHaveLength(1);
 
       // REQ-3: once the round says the board is up, the click ends at
