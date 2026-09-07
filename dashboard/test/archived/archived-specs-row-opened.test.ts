@@ -73,11 +73,15 @@ describe("an archived spec's row, opened", () => {
     expect(block).toContain('data-cap="ai"');
   });
 
-  test("shows the mobile fold checkbox on every archived phase line, same as a live one (criterion 4)", async () => {
+  // The fold control this used to check for is gone (2026-09-07): the
+  // AI/model pair fits beside the name at every width the list is drawn
+  // for. What matters here is unchanged — an archived line is built by
+  // the same renderer as a live one, and carries the same name wrapper.
+  test("wraps the phase's name the same way a live line does (criterion 4)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     for (const line of Object.values(lines)) {
-      expect(line).toContain('class="foldphase"');
-      expect(line).toContain('class="foldchevron"');
+      expect(line).toContain('class="phasefold"');
+      expect(line).not.toContain("foldphase");
     }
   });
 
