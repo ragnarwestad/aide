@@ -261,8 +261,13 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         headers: auth,
         redirect: "manual",
       });
-      expect(res.status).toBe(303);
-      expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
+      // REQ-4: the tab the reader opened WAITS here. It used to be sent
+      // back to the spec page to find the address for itself.
+      expect(res.status).toBe(200);
+      const waiting = await res.text();
+      expect(waiting).toContain("Starting a test server");
+      expect(waiting).toMatch(/http-equiv="refresh"/);
+      expect(waiting).toContain("spin");
       expect(spawnCalls).toHaveLength(1);
 
       // A repeat GET while it is still STARTING reaches the same,
@@ -273,8 +278,10 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         headers: auth,
         redirect: "manual",
       });
-      expect(res2.status).toBe(303);
-      expect(res2.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
+      // The reload the waiting page makes: still waiting, still no
+      // second round.
+      expect(res2.status).toBe(200);
+      expect(await res2.text()).toContain("Starting a test server");
       expect(spawnCalls).toHaveLength(1);
 
       // REQ-3: once the round says the board is up, the click ends at

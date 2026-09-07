@@ -3,6 +3,7 @@
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
 import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
+import { waitingForBoardPage } from "./board-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
@@ -46,13 +47,16 @@ export async function specPageRoutes(
       if (already?.status === "running" && already.url) {
         return Response.redirect(already.url, 303);
       }
-      // Otherwise it has to be started, and that takes minutes. The
-      // Steps tab is where the wait is visible — it reloads on its own
-      // (`RELOADING_TABS`), and the banner above it says the board is
-      // starting and then names its address. A second click, once it is
-      // up, takes the branch above.
-      if (capable) await startBoard(ctx.boards, project!, specFolder!);
-      return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+      // Otherwise it has to be started, and that takes minutes — so the
+      // tab the reader opened WAITS here rather than being sent back to
+      // the spec page to find the address themselves. It reloads onto
+      // this same URL, and the branch above carries it to the board the
+      // moment there is one. REQ-4.
+      if (!capable) {
+        return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
+      }
+      await startBoard(ctx.boards, project!, specFolder!);
+      return waitingForBoardPage(project!, specFolder!);
     }
     const view = await ctx.specPageView(
       project!,
