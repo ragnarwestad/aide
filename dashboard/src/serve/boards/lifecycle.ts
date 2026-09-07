@@ -164,19 +164,27 @@ export async function startBoard(
 export function refreshBoardStatus(ctx: BoardsContext, project: string, specFolder: string): BoardEntry | undefined {
   const entry = ctx.store.get(project, specFolder);
   if (entry?.status !== "starting") return entry;
-  if (!ctx.isAlive(entry.wrapperPid)) {
-    const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
-    ctx.store.set(project, specFolder, failed);
-    return failed;
-  }
+  // The LOG first, and the wrapper's own life second. The round leaves
+  // the board running and detached, and its wrapper then exits — so a
+  // dead wrapper is what SUCCESS looks like from here. Asked in the
+  // other order, every board that came up was reported as "could not
+  // start", with its own "left running: … http://…" line quoted
+  // underneath as the reason.
   let log: string;
   try {
     log = readFileSync(entry.logPath, "utf-8");
   } catch {
-    return entry;
+    log = "";
   }
   const m = LEFT_RUNNING_RE.exec(log);
-  if (!m) return entry;
+  if (!m) {
+    if (!ctx.isAlive(entry.wrapperPid)) {
+      const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
+      ctx.store.set(project, specFolder, failed);
+      return failed;
+    }
+    return entry;
+  }
   const running: BoardEntry = { ...entry, status: "running", pid: Number(m[1]), url: m[2] };
   ctx.store.set(project, specFolder, running);
   return running;
