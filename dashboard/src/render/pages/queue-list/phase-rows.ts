@@ -297,7 +297,11 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
+          // Its own class, so the phone layout can give the cell a
+          // width: every slot on a phase line is a fixed width there,
+          // and a cell with no name of its own cannot be given one
+          // without a selector that guesses at its position.
+          `<td class="statecell">${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           // Blank: a phase line has no creation date of its own to
           // draw — only alignment with the head row's real cell (spec
           // 317, LIST_COLUMNS).

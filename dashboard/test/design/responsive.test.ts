@@ -203,9 +203,23 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).not.toContain("foldphase");
   });
 
-  test("the two selects carry the widths the floor allows", () => {
+  // Every slot is a width, and nothing is pushed by free space: an auto
+  // margin or a growing flex item moves an element from row to row with
+  // whatever text happens to sit beside it.
+  test("every slot on a phase line is a fixed width", () => {
+    expect(NARROW).toContain("table.list tr.subrow .phasecell { flex: 0 0 5.3rem;");
+    expect(NARROW).toContain("table.list tr.subrow .statecell { flex: 0 0 6rem;");
     expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 6.5rem;');
-    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 8rem;');
+    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 9.5rem;');
+  });
+
+  test("the AI/Model pair takes a line of its own, not the row's leftovers", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); flex: 0 0 100%; order: 10; }");
+    expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
+  });
+
+  test("the status cell has a name of its own to be given a width", () => {
+    expect(rows({ open: "aide/155-x" })).toContain('<td class="statecell">');
   });
 
   // Stated in the file, so the next person changing a width here knows
@@ -227,10 +241,14 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     );
   });
 
+  // About the three-in-one cell spec 165 took apart: its children were
+  // pinned to 2.5rem and 6rem inside `.phasecell > .row`. The widths on
+  // the line's own slots are a different thing entirely — those are
+  // deliberate, and named in the block above.
   test("no pinned flex children survive at any width", () => {
     expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).not.toMatch(/flex:\s*0 0 2\.5rem/);
-    expect(CSS).not.toMatch(/flex:\s*0 0 6rem/);
+    expect(CSS).not.toMatch(/\.phasecell[^{]*\{[^}]*flex:\s*0 0 2\.5rem/);
+    expect(CSS).not.toMatch(/\.phasecell[^{]*\{[^}]*flex:\s*0 0 6rem/);
   });
 
   // The desktop rule must survive verbatim: the override wins by

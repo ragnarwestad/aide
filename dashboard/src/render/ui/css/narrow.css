@@ -225,15 +225,18 @@
   table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
-  /* AI and Model, always shown, at the line's own right: 6.5rem for the
-     AI ("Claude Code" is the longest name it carries) and 8rem for the
-     model ("claude-sonnet-4-6" is 17 characters of mono). Against the
-     418px floor: name 85, tick 18, status ~70, AI 104, model 128 and
-     the gaps — it fits, and a narrower window than the floor wraps the
-     pair onto a second line rather than scrolling. */
-  table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); margin-left: auto; }
+  /* Every slot on a phase line is a WIDTH, and the line takes the height
+     it needs rather than moving anything sideways: name 5.3rem, tick
+     box, status 6rem, and the AI/Model pair on a line of its own —
+     6.5rem for the AI ("Claude Code" is the longest name it carries)
+     and 9.5rem for the model ("claude-sonnet-4-6" is 17 characters of
+     mono). 85 + 18 + 96 on the first line and 104 + 152 on the second,
+     both well inside the 418px floor, and every one of them the same on
+     every line so the four phases read as a column. */
+  table.list tr.subrow .statecell { flex: 0 0 6rem; min-width: 0; }
+  table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); flex: 0 0 100%; order: 10; }
   table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
-  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 8rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 9.5rem; min-width: 0; max-width: none; }
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
