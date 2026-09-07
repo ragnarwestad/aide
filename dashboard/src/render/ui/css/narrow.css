@@ -225,18 +225,20 @@
   table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
-  /* AI and Model, always shown, right after the status: 6.5rem for the
-     AI ("Claude Code" is the longest name it carries) and 8rem for the
-     model ("claude-sonnet-4-6" is 17 characters of mono). Against the
-     418px floor: name 85, tick 18, status ~70, AI 104, model 128 and
+  /* AI and Model, always shown, right after the status. 7.5rem for the
+     AI: "Claude Code" is 11 characters of the sans face plus the
+     select's own arrow and padding, and 6.5rem cut it off. 6.5rem for
+     the model, which is the narrower of the two — the names are short
+     ("sonnet", "codex-luna") and mono is set a size smaller. Against the
+     418px floor: name 85, tick 18, status ~70, AI 120, model 104 and
      the gaps — it fits, and a narrower window than the floor wraps the
      pair onto a second line rather than scrolling.
      No auto margin: free space at the line's end would stand between
      the status and the pair, and the width of that gap would be
      whatever the status text happened to leave. */
   table.list tr.subrow .aimodel { display: flex; gap: var(--sp-2); }
-  table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
-  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 8rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[data-ai] { flex: 0 0 7.5rem; min-width: 0; max-width: none; }
+  table.list tr.subrow .aimodel select[name^="model."] { flex: 0 0 6.5rem; min-width: 0; max-width: none; }
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such

@@ -211,9 +211,12 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
   });
 
+  // The AI carries the longer word ("Claude Code", in the sans face);
+  // the model's names are short and set a size smaller in mono. The AI
+  // select is the wider of the two, not the narrower.
   test("the two selects carry the widths the floor allows", () => {
-    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 6.5rem;');
-    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 8rem;');
+    expect(NARROW).toContain('.aimodel select[data-ai] { flex: 0 0 7.5rem;');
+    expect(NARROW).toContain('.aimodel select[name^="model."] { flex: 0 0 6.5rem;');
   });
 
   // Stated in the file, so the next person changing a width here knows
