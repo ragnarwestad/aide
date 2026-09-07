@@ -11,7 +11,7 @@
 
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers.ts";
 import { resolveWorktreeLinks } from "../../project/discover/config.ts";
 
@@ -80,15 +80,22 @@ async function checkoutForGate(root: string): Promise<{ dir: string; remove: () 
     console.error(`queue: the landing's test gate could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
     return { dir: root, remove: async () => {} };
   }
-  const config = join(root, ".aide", "config");
-  if (existsSync(config)) {
+  // Where the gitignored directories actually live. `root` is a
+  // worktree of its own while a landing is merging, and `.venv` and
+  // `node_modules` are in the MAIN checkout — linked from `root` they
+  // linked nothing, and the project's own test command came back
+  // "No such file or directory". `.aide/config` is gitignored in this
+  // repo for the same reason and is read the same way.
+  const owner = await mainCheckoutOf(root);
+  const config = [join(root, ".aide", "config"), join(owner, ".aide", "config")].find((p) => existsSync(p));
+  if (config) {
     mkdirSync(join(dir, ".aide"), { recursive: true });
     copyFileSync(config, join(dir, ".aide", "config"));
   }
   for (const entry of resolveWorktreeLinks(root).links.split(/[\s,]+/).filter(Boolean)) {
-    const source = join(root, entry);
+    const source = [join(root, entry), join(owner, entry)].find((p) => existsSync(p));
     const target = join(dir, entry);
-    if (!existsSync(source) || existsSync(target)) continue;
+    if (!source || existsSync(target)) continue;
     try {
       mkdirSync(dirname(target), { recursive: true });
       symlinkSync(source, target);
@@ -104,6 +111,18 @@ async function checkoutForGate(root: string): Promise<{ dir: string; remove: () 
       rmSync(dir, { recursive: true, force: true });
     },
   };
+}
+
+/** The checkout that owns this repository's working files. For a
+ *  worktree, `git rev-parse --git-common-dir` names the main checkout's
+ *  own `.git`; for the main checkout it answers `.git` itself, and the
+ *  answer is `root` unchanged. */
+async function mainCheckoutOf(root: string): Promise<string> {
+  const common = await runScript(["git", "rev-parse", "--git-common-dir"], root, 30_000);
+  const out = common.stdout.trim();
+  if (common.code !== 0 || !out) return root;
+  const abs = isAbsolute(out) ? out : join(root, out);
+  return abs.endsWith("/.git") ? dirname(abs) : root;
 }
 
 async function runSuiteIn(

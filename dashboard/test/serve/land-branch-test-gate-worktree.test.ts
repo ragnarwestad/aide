@@ -92,6 +92,29 @@ describe("the landing's test gate", () => {
     expect(git(root, "worktree", "list").trim().split("\n")).toHaveLength(1);
   });
 
+  // A landing merges in a worktree of its own, and the gate runs there:
+  // `.venv`, `node_modules` and `.aide/config` are gitignored, so they
+  // exist ONLY in the main checkout. Linked from the worktree they
+  // linked nothing, and aide's own landing came back
+  // "bash: .venv/bin/pytest: No such file or directory" — a red suite
+  // that had nothing to do with the merge.
+  test("run from a worktree, it still finds the checkout's own gitignored files", async () => {
+    const root = project();
+    const landing = join(root, "..", `landing-${Date.now()}`);
+    dirs.push(landing);
+    git(root, "worktree", "add", "--detach", "-q", landing, "HEAD");
+    const record = join(root, "..", `gate-worktree-${Date.now()}.txt`);
+    dirs.push(record);
+    fakeScripts(record);
+
+    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" });
+    expect(verdict.ok).toBe(true);
+
+    const lines = readFileSync(record, "utf-8").trim().split("\n");
+    expect(lines[1]).toBe("deps=installed");
+    expect(lines[2]).toBe("config=AIDE_TEST_CMD=true");
+  });
+
   // What the row shows is one sentence: what happened, and the one move
   // that resolves it. The log's path, the caveat about a timing test
   // that lost to a busy host, and the test output are for whoever goes
