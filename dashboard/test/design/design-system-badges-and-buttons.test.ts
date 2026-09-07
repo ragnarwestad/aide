@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { row, rows, target } from "./design-system-fixtures.ts";
 import type { QueuePageOptions, QueueRowView } from "../../src/render.ts";
 import { wordPhase } from "../../src/render/ui/job-state/word-phase.ts";
+import { badge } from "../../src/render/ui/components.ts";
 import { restingChip, specStateChip } from "../../src/render/ui/job-state/resting.ts";
 
 // --- every state picks a badge -----------------------------------------------
@@ -214,5 +215,25 @@ describe("no Resolve control (spec 171)", () => {
 
   test("nothing on the page queues a resolve step", () => {
     expect(conflicted()).not.toMatch(/name="steps"\s+value="resolve"/);
+  });
+});
+
+// The badge is the word and its colour. A dot in front of it marked the
+// four live variants apart from the two settled ones until 2026-09-07;
+// the colour already says that, and the mark was one more thing in
+// front of the word on a row read on a phone.
+describe("the status badge carries no mark of its own", () => {
+  test("no dot in the markup, for any variant", () => {
+    for (const variant of ["idle", "running", "waiting", "ready", "refused", "done"] as const) {
+      expect([variant, badge(variant, variant)]).toEqual([
+        variant,
+        `<span class="badge b-${variant}">${variant}</span>`,
+      ]);
+    }
+  });
+
+  test("and no rule left to draw one", async () => {
+    const { CSS } = await import("../../src/render/ui/css.ts");
+    expect(CSS).not.toContain(".badge .dot");
   });
 });

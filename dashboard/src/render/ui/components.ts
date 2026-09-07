@@ -99,16 +99,13 @@ export function saveCancelActions(prefix = "specform"): string {
  *  the page has no word for. */
 export type BadgeVariant = "idle" | "running" | "waiting" | "ready" | "refused" | "done";
 
-/** Which of them are LIVE. The dot is itself semantic: a state
- *  something is still happening to carries one, a settled state does
- *  not. */
-const LIVE: BadgeVariant[] = ["running", "waiting", "ready", "refused"];
-
+/** The word and its colour, and nothing else. A dot marked the four
+ *  LIVE variants apart from the two settled ones until 2026-09-07 —
+ *  the colour already says it, and on a row read on a phone the mark
+ *  was one more thing in front of the word. */
 export function badge(variant: BadgeVariant, label: string, title?: string): string {
-  const dot = LIVE.includes(variant) ? `<span class="dot" aria-hidden="true"></span>` : "";
   return (
-    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>` +
-    `${dot}${esc(label)}</span>`
+    `<span class="badge b-${variant}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</span>`
   );
 }
 

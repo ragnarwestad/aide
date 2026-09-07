@@ -1,11 +1,10 @@
 /* --- status badge --------------------------------------------------- */
-/* State carries colour, but the word is always there too — and the dot
-   is itself semantic: a live state has one, a settled one does not. */
+/* State carries colour, and the word is always there too. A dot marked
+   the live states apart from the settled ones until 2026-09-07. */
 
-.badge { display: inline-flex; align-items: center; gap: 6px; height: 20px;
+.badge { display: inline-flex; align-items: center; height: 20px;
   padding: 0 var(--sp-2); border-radius: 999px; font-size: var(--fs-s);
   font-weight: 500; border: 1px solid transparent; white-space: nowrap; }
-.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .b-idle { background: transparent; color: var(--muted); border-color: var(--line); }
 .b-running { background: var(--accent-soft); color: var(--accent-strong); }
 .b-waiting { background: var(--warn-soft); color: var(--warn); }
