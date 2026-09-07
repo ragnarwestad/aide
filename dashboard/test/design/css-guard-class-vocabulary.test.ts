@@ -30,6 +30,8 @@ const COMPONENTS = [
   // `fieldhead` is the label's own line when a field carries a "(?)":
   // the name at one end, the mark at the other.
   "field", "fieldhead", "fieldend", "wide",
+  // `headend`: where a spec stands, at the far end of the line naming it.
+  "headend",
   // `formdoc`: a `.doc` whose content is fields, so it takes the
   // fields' own narrower right edge.
   "formdoc",

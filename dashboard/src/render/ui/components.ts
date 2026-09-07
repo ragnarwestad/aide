@@ -355,10 +355,15 @@ export function helpPopover(what: string, body: string): string {
  *  hand-written `<h1>` after `backLink()`, either of which left the
  *  title on a line of its own. Omitted, the markup is exactly what it
  *  was before `title` existed. */
-export function backLink(href: string, title?: string): string {
+export function backLink(href: string, title?: string, trailing = ""): string {
   const link = `<a class="backlink" href="${esc(href)}">← Back</a>`;
+  // `trailing` rides at the far end of the title's own line: on the spec
+  // page, where the spec STANDS — its four pips and, while a phase is
+  // running, what it is doing. The Logs tab said it, one click away,
+  // and the line naming the spec said nothing.
+  const end = trailing ? `<span class="headend">${trailing}</span>` : "";
   return title
-    ? `<div class="backhead">${link}<h1>${esc(title)}</h1></div>`
+    ? `<div class="backhead">${link}<h1>${esc(title)}</h1>${end}</div>`
     : `<p class="intro">${link}</p>`;
 }
 

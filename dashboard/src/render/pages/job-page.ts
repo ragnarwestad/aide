@@ -353,6 +353,8 @@ export function tabbedBody(
    *  theirs so the page has one right edge. A page of tables — this
    *  one, Projects — keeps the wider default. */
   formFields = false,
+  /** Drawn at the far end of the title's own line. */
+  headTrailing = "",
 ): string {
   // One wrapper, one right edge: the head line's buttons used to sit at
   // the frame's width while the open tab's text stopped well short of
@@ -363,7 +365,7 @@ export function tabbedBody(
     // in there is a class name it cannot check
     // (css-guard-class-vocabulary).
     (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
-    backLink(backHref, title) +
+    backLink(backHref, title, headTrailing) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +
