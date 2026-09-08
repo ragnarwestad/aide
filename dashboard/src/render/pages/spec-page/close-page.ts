@@ -34,7 +34,7 @@ export function renderCloseSpecPage(
       `${CLOSE_VS_RESET_SENTENCE} Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.`,
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue${back}/close" class="newspecform specform">` +
+    `<form method="post" action="/api/queue${back}/close" class="newspecform specform" data-overlay="closing…">` +
     tokenField(opts.token) +
     `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
     `<span class="frow">` +

@@ -27,6 +27,7 @@ import editorCss from "@toast-ui/editor/dist/toastui-editor.css" with { type: "t
 // would style nothing.
 import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" with { type: "text" };
 import Editor from "@toast-ui/editor";
+import { unescapeMarkdown } from "./spec-editor/unescape-markdown.ts";
 import type { ToMdConvertorMap } from "@toast-ui/editor";
 
 // REQ-4: the library exposes no constructor option for the mode
@@ -127,7 +128,10 @@ if (host && raw) {
   // still see this submit as untouched, or the Save button loses its
   // busy state.
   document.addEventListener("submit", (event) => {
-    if (event.target === raw.form) raw.value = instance.getMarkdown();
+    // `unescapeMarkdown` is what keeps a pasted `## Requirements` a
+    // heading rather than `\#\# Requirements` — see that file for why
+    // the editor writes it that way and why these files want it back.
+    if (event.target === raw.form) raw.value = unescapeMarkdown(instance.getMarkdown());
   });
 
   // spec-form-actions.ts's dirty latch listens for "input"/"change" on

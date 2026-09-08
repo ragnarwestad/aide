@@ -122,3 +122,11 @@ describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
     );
   });
 });
+
+describe("the Close page covers the page while the work runs", () => {
+  test("Close's form asks for the layer, and names what is happening", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="closing…"');
+  });
+});

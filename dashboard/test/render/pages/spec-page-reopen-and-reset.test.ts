@@ -173,3 +173,15 @@ describe("spec 231: the Reset control", () => {
     expect(html.match(new RegExp(`<h1>Reset ${view().specFolder}</h1>`, "g"))?.length ?? 0).toBe(1);
   });
 });
+
+// A press that deletes this spec's branches and starts it over ends with
+// the page gone. `data-overlay` is what asks the shell's covering layer
+// to say so — without it the button swaps its own word and leaves every
+// other control on the page live under the reader's cursor.
+describe("the confirmation pages cover the page while the work runs", () => {
+  test("Reset's form asks for the layer, and names what is happening", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const form = html.match(/<form[^>]*action="[^"]*\/reset"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="resetting…"');
+  });
+});

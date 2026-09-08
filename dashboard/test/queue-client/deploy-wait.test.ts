@@ -48,6 +48,9 @@ describe("submitDeploy (spec 385)", () => {
     const form = {
       action: "http://dash.test/api/queue/projects/aide/deploy",
       id: "",
+      // What the served form carries: the press reads it and covers the
+      // page, the same way Reset, Close and Remove project do.
+      dataset: { overlay: "deploying…" } as Record<string, string>,
       querySelector: (sel: string) => (sel === ".refused" ? refusedSpan : null),
       querySelectorAll: (sel: string) => (sel === "button" ? [button] : []),
       closest: () => null,
@@ -59,7 +62,15 @@ describe("submitDeploy (spec 385)", () => {
     const realFetch = globalThis.fetch;
     const realFormData = globalThis.FormData;
     const realLocation = (globalThis as { location?: unknown }).location;
+    const realDocument = (globalThis as { document?: unknown }).document;
     let reloaded = false;
+    // Every event the press raises at the document, in order: the
+    // covering layer lives in the shell's own head script, so this is
+    // the only side of the conversation reachable from here.
+    const raised: { type: string; detail?: string }[] = [];
+    (globalThis as unknown as { document: unknown }).document = {
+      dispatchEvent: (e: { type: string; detail?: string }) => raised.push({ type: e.type, detail: e.detail }),
+    };
     (globalThis as unknown as { FormData: unknown }).FormData = class {
       constructor(_form: unknown) {}
       forEach(): void {}
@@ -77,10 +88,12 @@ describe("submitDeploy (spec 385)", () => {
     });
     return {
       reloaded: () => reloaded,
+      raised: () => raised,
       restore: () => {
         globalThis.fetch = realFetch;
         globalThis.FormData = realFormData;
         (globalThis as { location?: unknown }).location = realLocation;
+        (globalThis as { document?: unknown }).document = realDocument;
       },
     };
   }
@@ -107,6 +120,39 @@ describe("submitDeploy (spec 385)", () => {
       await submitDeploy(form as unknown as HTMLFormElement, submitEvent());
       expect(refusedSpan.textContent).toContain("deployed — the dashboard is restarting");
       expect(stub.reloaded()).toBe(true);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  // A word swap on the button is what `postForm` gives a form outside a
+  // table row, and for a deploy that is too little: the service goes
+  // down under the page, and every control still showing is one the
+  // reader could press into a server that is not there.
+  test("the press covers the page at once, and says what is happening on the layer", async () => {
+    const { form } = fakeForm();
+    const stub = stubGlobals({ ok: true, restarting: true });
+    try {
+      await submitDeploy(form as unknown as HTMLFormElement, submitEvent());
+      const opens = stub.raised().filter((e) => e.type === "aide-overlay-open");
+      expect(opens.length).toBe(2);
+      // The press raises it off `data-overlay`; the restart note is the
+      // one thing a deploy says that the other three do not.
+      expect(opens[0]!.detail).toBe("deploying…");
+      expect(opens[1]!.detail).toContain("the dashboard is restarting");
+      expect(stub.raised().some((e) => e.type === "aide-overlay-close")).toBe(false);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  test("a refused deploy uncovers the page again, so the refusal can be read", async () => {
+    const { form, refusedSpan } = fakeForm();
+    const stub = stubGlobals({ ok: false, error: "no install command configured" });
+    try {
+      await submitDeploy(form as unknown as HTMLFormElement, submitEvent());
+      expect(refusedSpan.textContent).toContain("no install command configured");
+      expect(stub.raised().some((e) => e.type === "aide-overlay-close")).toBe(true);
     } finally {
       stub.restore();
     }

@@ -249,6 +249,10 @@ dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surfa
   box-shadow: var(--overlay-shadow); padding: var(--sp-5);
   display: grid; place-items: center; }
 dialog.pageoverlay::backdrop { background: var(--backdrop); }
+/* A navigation shows the spinner alone; a deploy waits long enough that
+   a bare spinner says too little, so it hands the layer a line of text. */
+dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
+  color: var(--muted); text-align: center; }
 
 /* How runs work: a small question mark at the right-hand end of the
    search field's own row (spec 261 moved it there from the filter

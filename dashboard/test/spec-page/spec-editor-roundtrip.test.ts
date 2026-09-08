@@ -25,6 +25,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { dirname, join } from "node:path";
 import { asFileText } from "../../src/git/specs-pull.ts";
+import { unescapeMarkdown } from "../../src/spec-editor/unescape-markdown.ts";
 
 const REAL_DESCRIPTION = `# Replace the spec-editing textarea with Toast UI Editor - Description
 
@@ -199,5 +200,55 @@ describe("the editor's markdown engine, configured for this repo's convention (R
     expect(out).toContain("1. Ordered one");
     expect(out).toContain("2. Ordered two");
     expect(out).toContain("- Nested bullet under ordered");
+  });
+});
+
+// What the editor does to markdown it is holding as literal TEXT rather
+// than as parsed markdown — a paste into the WYSIWYG surface, which is
+// how spec 417's own description lost its Requirements heading and its
+// REQ-n bullets to `\#\#` and `\-` (2026-09-08). The round-trips above
+// never reach it: everything they feed in is PARSED on the way in, so no
+// text node ever holds a `#` that has to survive.
+describe("markdown typed or pasted as plain text into the WYSIWYG surface", () => {
+  beforeAll(async () => {
+    const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
+    GlobalRegistrator.register();
+  });
+
+  afterAll(async () => {
+    const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
+    await GlobalRegistrator.unregister();
+  });
+
+  async function pasteInto(text: string): Promise<string> {
+    const Editor = (await import(toastUiEditorEntry)).default;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const editor = new Editor({
+      el: host,
+      height: "auto",
+      initialEditType: "wysiwyg",
+      previewStyle: "tab",
+      usageStatistics: false,
+      initialValue: "",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      customMarkdownRenderer: bulletThematicOverride() as any,
+    });
+    editor.insertText(text);
+    return editor.getMarkdown();
+  }
+
+  test("the library escapes it — this is the behaviour the save has to answer for", async () => {
+    const out = await pasteInto("## Requirements");
+    expect(out).toContain("\\#\\# Requirements");
+  });
+
+  test("what the Save posts is the markdown again, heading and bullets intact", async () => {
+    const out = await pasteInto('## Requirements\n- **REQ-1:** renamed to "State/Action".');
+    const posted = unescapeMarkdown(out);
+    expect(posted).toContain("## Requirements");
+    expect(posted).toContain("- **REQ-1:**");
+    expect(posted).toContain('renamed to "State/Action".');
+    expect(posted).not.toContain("\\");
   });
 });

@@ -141,6 +141,15 @@ describe("the Remove page", () => {
   const remove = (name: string, opts: Partial<ProjectsPageOptions> = {}) =>
     renderRemoveProjectPage(name, NAV, AT, opts);
 
+  // Removing a project ends with the page gone, the same as Reset,
+  // Close and Deploy: the form asks the shell's covering layer to say
+  // so, rather than the button swapping its own word under a page whose
+  // every other control stays live.
+  test("its form asks for the covering layer, and names what is happening", () => {
+    const form = remove("atlasaurus").match(/<form[^>]*class="[^"]*removeform[^"]*"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="removing…"');
+  });
+
   test("it says what removal does and does not do, before the question", () => {
     // The form and the copy above it — not the shell, whose stylesheet
     // contains ":disabled" selectors of its own and whose head scripts

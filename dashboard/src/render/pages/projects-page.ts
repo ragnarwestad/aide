@@ -400,7 +400,7 @@ export function renderRemoveProjectPage(
         `Its checkout and its specs stay on disk, untouched.`,
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform" data-overlay="removing…">` +
     tokenField(opts.token) +
     rowMessage("waiting", `Are you sure you want to remove ${name}? This cannot be undone.`, {
       tag: "p",

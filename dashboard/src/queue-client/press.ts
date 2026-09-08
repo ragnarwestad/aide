@@ -142,6 +142,10 @@ export async function postForm(
    *  holds them, and re-enabling those would offer a choice the server
    *  has already refused. */
   const before = controls.map((el) => [el, el.disabled] as const);
+  // Set only by the four forms whose press ends with this page gone;
+  // every other form here leaves it undefined and never touches the
+  // covering layer at all.
+  const cover = form.dataset?.overlay;
   press.inFlight += 1;
   press.pressGen += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
@@ -170,6 +174,18 @@ export async function postForm(
     // painted between the two, so the row is locked in the same beat
     // the click lands in either way.
     for (const el of controls) el.disabled = true;
+    // A form that says it takes the page away covers it instead. Reset,
+    // Close, Remove project and Deploy all end with the page gone — the
+    // spec's branches deleted, the folder moved, the project dropped,
+    // the service restarted underneath — and a word on a button that
+    // stays live under the reader's cursor says too little for that.
+    // `nav-overlay.ts` (the shell's own head script) draws the layer;
+    // this only asks for it, because that file is an IIFE with nothing
+    // to import.
+    if (cover) {
+      document.dispatchEvent(new CustomEvent("aide-overlay-open", { detail: cover }));
+      return;
+    }
     if (!primary) return;
     if (!row) {
       // The New-spec form: no row to shove, no boxes to lend. It keeps
@@ -206,6 +222,11 @@ export async function postForm(
       await onOk(answer);
       return;
     }
+    // Refused: nothing was taken away, the page stays, and a layer over
+    // a refusal the reader has to read is in the way. Asked for only by
+    // a form that raised one — every other press leaves the document
+    // alone, as it always has.
+    if (cover) document.dispatchEvent(new Event("aide-overlay-close"));
     await onRefused(refusalText(answer), answer?.spec);
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
