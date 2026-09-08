@@ -306,7 +306,9 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("nightly-report");
-    expect(html).toContain(`data-confirm="nightly-report"`);
+    // The question in a sentence since 2026-09-08, where the entry's
+    // name had to be typed back into a field before.
+    expect(html).toContain("Are you sure you want to delete nightly-report?");
   });
 
   // Spec 408, REQ-1/REQ-4.

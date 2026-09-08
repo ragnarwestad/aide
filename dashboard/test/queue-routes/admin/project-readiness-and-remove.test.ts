@@ -222,18 +222,20 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
   });
 
   // Criterion 8.
-  test("a confirmation that does not match is refused and changes nothing", async () => {
+  // The name had to be typed back until 2026-09-08 — the Remove page
+  // asks the question in a sentence now, and the press is the answer.
+  // A name that is not on the allowlist is still refused, which is what
+  // stands between a stray request and a removal.
+  test("a project that is not on the allowlist is refused and changes nothing", async () => {
     const { base } = start({ queueToken: TOKEN });
-    for (const confirm of ["", "Aide", "aide "]) {
-      const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ confirm }),
-      });
-      expect([confirm, res.status]).toEqual([confirm, 400]);
-      const body = (await res.json()) as StepBody;
-      expect(body.results[0]!.step).toBe("confirm");
-    }
+    const res = await fetch(`${base}/api/queue/projects/never-added/remove`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as StepBody;
+    expect(body.results.find((r) => r.step === "allowlist")!.ok).toBe(false);
     const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
     // The row still stands, its Remove link with it (the form itself
     // lives on the row's own confirm page since 2026-08-19).

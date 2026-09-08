@@ -417,32 +417,20 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
     expect(readSchedule(dir, "aide")).toEqual([]);
   });
 
-  test("a missing confirm refuses with 400 and leaves the manifest byte-for-byte unchanged (criterion 2)", async () => {
+  // Criterion 2 asked for the entry's name typed back. The page and the
+  // dialog ask the question in a sentence now (2026-09-08), so a press
+  // with an empty body IS the answer and the entry goes.
+  test("a press with no confirmation deletes the entry (criterion 2)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({}),
     });
-    expect(res.status).toBe(400);
-    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
-  });
-
-  test("a mismatched confirm refuses with 400 and leaves the manifest byte-for-byte unchanged (criterion 2)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "wrong-name" }),
-    });
-    expect(res.status).toBe(400);
-    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
+    expect(res.status).toBe(200);
+    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).not.toContain("nightly");
   });
 
   test("an unknown entry name in an allowed project refuses with 400 (criterion 5)", async () => {

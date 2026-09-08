@@ -395,42 +395,6 @@ export function resolveBackHref(
 
 // --- typed confirmation ----------------------------------------------------------
 
-/** The name typed back, before something leaves the dashboard.
- *
- *  There was no confirmation of any kind on this page before spec 112 —
- *  Cancel, the only destructive-looking control, fires on the click. A
- *  project leaving the allowlist is not a click's worth of deliberate,
- *  so the reader types the name.
- *
- *  The button is rendered ENABLED and the browser code turns it off
- *  until the input matches (`queue-client.ts`). That order is the whole
- *  point: every control on this page is a real form that works with
- *  script off, and a button rendered `disabled` could never be enabled
- *  again without script. What makes the confirmation a GATE rather than
- *  a hint is the server, which refuses anything but an exact match —
- *  with script on, the reader simply finds that out before pressing.
- *
- *  `data-confirm` rides on a bare `<span>`: a wrapper with a data
- *  attribute and no class leaves the closed component vocabulary
- *  (`css-token-guard.test.ts`) untouched. */
-export function typedConfirm(o: {
-  /** What has to be typed back — and what the browser compares against. */
-  target: string;
-  label: string;
-  button: string;
-  pending: string;
-}): string {
-  return (
-    `<span data-confirm="${esc(o.target)}">` +
-    field(
-      o.label,
-      `<input type="text" name="confirm" autocomplete="off" spellcheck="false" ` +
-        `required placeholder="${esc(o.target)}">`,
-    ) +
-    btn({ label: o.button, variant: "danger", pending: o.pending }) +
-    `</span>`
-  );
-}
 
 // --- progress pips -------------------------------------------------------------------
 
