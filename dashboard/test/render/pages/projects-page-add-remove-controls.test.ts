@@ -141,28 +141,29 @@ describe("the Remove page", () => {
   const remove = (name: string, opts: Partial<ProjectsPageOptions> = {}) =>
     renderRemoveProjectPage(name, NAV, AT, opts);
 
-  test("it says what removal does and does not do, before the confirmation field", () => {
+  test("it says what removal does and does not do, before the question", () => {
     // The form and the copy above it — not the shell, whose stylesheet
     // contains ":disabled" selectors of its own and whose head scripts
     // (spec 391's spec-form-actions.ts among them) read and write a
     // `.disabled` DOM property of their own.
     const html = remove("atlasaurus").split("<main>").pop()!;
-    const copy = html.slice(0, html.indexOf('name="confirm"'));
+    const copy = html.slice(0, html.indexOf("Are you sure"));
     expect(copy).toContain("allowlist");
     expect(copy.toLowerCase()).toContain("checkout");
     expect(copy.toLowerCase()).toContain("specs");
-    // The typed confirmation is a real gate: the name has to be typed
-    // back, the browser turns the button off until it matches
-    // (`data-confirm`), and the server refuses a mismatch either way.
-    // The button is rendered ENABLED on purpose — one the server
-    // disabled could never be enabled again with script off.
-    expect(html).toContain('data-confirm="atlasaurus"');
+    // The question, then the two answers (2026-09-08). It was a field
+    // the reader had to type the project's name back into until then —
+    // on a page whose own heading is that name.
+    expect(html).toContain("Are you sure you want to remove atlasaurus? This cannot be undone.");
     expect(html).toContain('action="/api/queue/projects/atlasaurus/remove"');
+    expect(html).not.toContain("data-confirm=");
+    expect(html).not.toContain('name="confirm"');
+    // Live from the moment it is drawn: there is no field on this form
+    // to change, so a button that waited for one would never enable.
     expect(html).not.toContain("disabled");
-    // Spec 252: the bottom Cancel beside Remove is gone — the top-left
-    // "← Back" is the one way out.
+    // "← Back" heads the page, and Cancel stands beside Remove.
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).not.toContain(">Cancel<");
+    expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
   });
 
   // Spec 296: "Remove <name>" sits beside ← Back, on one line.

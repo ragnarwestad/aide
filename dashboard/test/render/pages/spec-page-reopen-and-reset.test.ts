@@ -128,24 +128,39 @@ describe("spec 231: the Reset control", () => {
     expect(html).toContain('aria-disabled="true"');
   });
 
-  test("the confirmation explains every effect and requires the exact folder", () => {
+  // The page asks the question in a sentence and offers the two
+  // answers (2026-09-08). It made the reader type the folder name back
+  // into a field until then — on a page whose own heading is that name.
+  test("the confirmation explains every effect and asks in a sentence", () => {
     const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
     for (const text of [
       "0-README.md", "1-description.md", "analysis", "plan", "status",
       "local and remote", "earlier jobs and commits", "Project code", "default-branch history",
     ]) expect(html).toContain(text);
-    expect(html).toContain(`data-confirm="${view().specFolder}"`);
-    expect(html).toContain('name="confirm"');
+    expect(html).toContain(`Are you sure you want to reset ${view().specFolder}? This cannot be undone.`);
     expect(html).toContain('name="token" value="t0ken"');
+    // Nothing to type, and nothing that reads what was typed.
+    expect(html).not.toContain("data-confirm=");
+    expect(html).not.toContain('name="confirm"');
   });
 
-  // Spec 252, Criteria 7, 8: the bottom Cancel beside Reset is gone —
-  // the top-left "← Back" is the one way out, at the spec's own page,
-  // reached only from that page's Overview banner (no Referer needed).
-  test("no bottom Cancel beside Reset — Back is the one way out, to the spec's own page", () => {
+  // The press has to be live from the moment the page is drawn: there
+  // is no field on this form to change, so a button that waits for one
+  // would never enable.
+  test("Reset is a live danger button, and Cancel goes back to the spec", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const button = html.match(/<button[^>]*>Reset<\/button>/)?.[0] ?? "";
+    expect(button).toContain("danger");
+    expect(button).not.toContain("disabled");
+    expect(button).not.toContain('aria-disabled="true"');
+    expect(html).toContain(`<a class="btn" href="/specs/aide/${view().specFolder}">Cancel</a>`);
+  });
+
+  // Spec 252, Criteria 7, 8: "← Back" still heads the page, at the
+  // spec's own page, reached only from that page's Overview banner.
+  test("Back heads the page, to the spec's own page", () => {
     const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
     expect(html).toContain(`<a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>`);
-    expect(html).not.toContain(">Cancel<");
   });
 
   // Spec 296: "Reset <specFolder>" sits beside ← Back, on one line.
