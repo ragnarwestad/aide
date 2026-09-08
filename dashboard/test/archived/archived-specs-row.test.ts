@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
+  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
   UNSTAMPED, blockFor, described, gitDated, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
@@ -15,7 +15,7 @@ describe("an archived spec's row", () => {
   test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
-    expect(row).toContain(STAMPED_TIME_SPENT);
+    expect(row).toContain(STAMPED_TIME_SHOWN);
     expect(row).toContain("Reopen");
     expect(row).toContain('name="steps" value="reopen"');
   });
@@ -80,7 +80,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SPENT);
+    expect(body).toContain(STAMPED_TIME_SHOWN);
     // Once a duration exists, the archive date is dropped from this cell
     // entirely — it read as noise beside the figure that actually answers
     // "how long" (spec 257 made duration the lead figure; this drops the
@@ -146,7 +146,7 @@ describe("an archived spec's row", () => {
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SPENT);
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SHOWN);
   });
 
   // Spec 410, REQ-4 put a "part." mark on a duration read from the
@@ -199,7 +199,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SPENT);
+    expect(body).toContain(STAMPED_TIME_SHOWN);
   });
 
   // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even

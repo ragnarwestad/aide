@@ -47,10 +47,10 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
       h.visibility("visible");
       h.elapsed.push({ dataset: { elapsed: started }, textContent: "2m00s" });
       h.ticks.forEach((t) => t());
-      expect(h.elapsed[0]!.textContent).toBe("2m00s");
+      expect(h.elapsed[0]!.textContent).toBe("2m 00s");
       h.clock.at += 61_000;
       h.ticks.forEach((t) => t());
-      expect(h.elapsed[0]!.textContent).toBe("3m01s");
+      expect(h.elapsed[0]!.textContent).toBe("3m 01s");
     });
 
     // The requirement in full: nothing else on the page has changed —
@@ -62,7 +62,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
       const before = h.requests.length;
       h.clock.at += 30_000;
       h.ticks.forEach((t) => t());
-      expect(h.elapsed[0]!.textContent).toBe("2m30s");
+      expect(h.elapsed[0]!.textContent).toBe("2m 30s");
       expect(h.requests).toHaveLength(before);
       expect(h.live()!.listeners.changed).toBeDefined();
     });
@@ -76,7 +76,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
       h.elapsed.push({ dataset: { elapsed: started }, textContent: "" });
       h.clock.at += 120_000;
       h.ticks.forEach((t) => t());
-      expect(h.elapsed[0]!.textContent).toBe("4m00s");
+      expect(h.elapsed[0]!.textContent).toBe("4m 00s");
     });
 
     // The page words a duration in its own copy of the rule, because

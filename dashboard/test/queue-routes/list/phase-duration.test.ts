@@ -72,7 +72,7 @@ describe("a phase says how long it took", () => {
         results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
       }),
     ]);
-    expect(phaseCell(html, "analyze")).toContain("4m12s");
+    expect(phaseCell(html, "analyze")).toContain("4m 12s");
   });
 
   // The trap: a job that ran two steps has ONE `startedAt`, and the
@@ -90,8 +90,8 @@ describe("a phase says how long it took", () => {
         ],
       }),
     ]);
-    expect(phaseCell(html, "analyze")).toContain("10m00s");
-    expect(phaseCell(html, "implement")).toContain("30m00s");
+    expect(phaseCell(html, "analyze")).toContain("10m 00s");
+    expect(phaseCell(html, "implement")).toContain("30m 00s");
     // 40 minutes is the whole job — the answer a reach for
     // `finishedAt - startedAt` would have given.
     expect(phaseCell(html, "implement")).not.toContain("40m");
@@ -126,7 +126,7 @@ describe("a phase says how long it took", () => {
     ]);
     const cell = phaseCell(html, "implement");
     expect(cell).toContain('data-elapsed="2026-08-16T11:30:00Z"');
-    expect(cell).toContain("30m00s");
+    expect(cell).toContain("30m 00s");
   });
 
   test("a running FIRST step counts from the job's own start (criterion 4)", () => {
@@ -134,7 +134,7 @@ describe("a phase says how long it took", () => {
       job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T11:45:00Z" }),
     ]);
     expect(phaseCell(html, "analyze")).toContain('data-elapsed="2026-08-16T11:45:00Z"');
-    expect(phaseCell(html, "analyze")).toContain("15m00s");
+    expect(phaseCell(html, "analyze")).toContain("15m 00s");
   });
 
   // The work, not the calendar. These two jobs are three days apart and
@@ -164,11 +164,11 @@ describe("a phase says how long it took", () => {
     );
     // 5 + 10 + 5 minutes of work, on the lines that did it AND on the
     // header now — the same figure rather than two different ones.
-    expect(headCell(html, "aa-spec")).toContain("20m00s");
+    expect(headCell(html, "aa-spec")).toContain("20m 00s");
     expect(headCell(html, "aa-spec")).not.toContain("3 d ago");
-    expect(phaseCell(html, "analyze")).toContain("5m00s");
-    expect(phaseCell(html, "implement")).toContain("10m00s");
-    expect(phaseCell(html, "archive")).toContain("5m00s");
+    expect(phaseCell(html, "analyze")).toContain("5m 00s");
+    expect(phaseCell(html, "implement")).toContain("10m 00s");
+    expect(phaseCell(html, "archive")).toContain("5m 00s");
   });
 
   // Spec 281: the header cell answers "how long", not "when made" — a
@@ -185,7 +185,7 @@ describe("a phase says how long it took", () => {
       ],
       [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] })],
     );
-    expect(headCell(html, "aa-spec")).toContain("12m00s");
+    expect(headCell(html, "aa-spec")).toContain("12m 00s");
   });
 
   // REQ-2: a running phase's own elapsed-so-far now counts toward the
@@ -207,7 +207,7 @@ describe("a phase says how long it took", () => {
     );
     // Analyze's 10 minutes settled, plus implement's own elapsed time
     // from 09:10 to NOW (12:00): 2h50m. Total: 3h00m.
-    expect(headCell(html, "aa-spec")).toContain("3h00m");
+    expect(headCell(html, "aa-spec")).toContain("3h 00m");
     // The synthetic since = implement's start (09:10) minus the settled
     // 10 minutes = 09:00 — so `now - since` reproduces the same total.
     expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
@@ -228,7 +228,7 @@ describe("a phase says how long it took", () => {
     ]);
     const cell = phaseCell(html, "analyze");
     expect(cell).toContain('data-elapsed="2026-08-16T09:00:00Z"');
-    expect(cell).toContain("3h00m");
+    expect(cell).toContain("3h 00m");
   });
 
   test("a spec with no job ever run for it reads 0s", () => {
@@ -377,7 +377,7 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
       },
       Date.parse("2026-08-16T12:00:00Z"),
     );
-    expect(html).toContain("5m00s");
+    expect(html).toContain("5m 00s");
   });
 
   // REQ-3/REQ-5: the same phase timings, summed by each of the two

@@ -104,7 +104,11 @@ export const outcome = (opts: { model?: string; timeSpent?: string; cost?: strin
 /** What STAMPED's `2-analysis.md` records the analyze phase spent (spec
  *  247) — `durationLabel`'s own formatting of this is what the phase
  *  subrow's Time cell has to show. */
+/** What the phase file records — the writer's own `NNmNNs` shape. */
 export const STAMPED_TIME_SPENT = "5m32s";
+/** And what a row draws it as: the two parts stand apart since
+ *  2026-09-08, so a reader is not asked to break "5m32s" up first. */
+export const STAMPED_TIME_SHOWN = "5m 32s";
 export const STAMPED_COST = "$1.5000";
 /** `money()`'s own two-decimal rendering of `STAMPED_COST` — the text
  *  the cost cell actually shows, never the raw four-decimal figure the
