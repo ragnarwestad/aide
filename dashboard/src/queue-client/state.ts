@@ -76,3 +76,15 @@ export const chosenSteps = new Map<string, boolean>();
 
 export const checkboxKey = (el: HTMLInputElement): string =>
   `${el.getAttribute("form") ?? ""}|${el.name}|${el.value}`;
+
+/** Every hand-made tick that belonged to ONE row's own Run press,
+ *  dropped the instant that press has gone through (REQ-2, spec 419):
+ *  a choice made for one press must not go on deciding a later,
+ *  unrelated run of the same spec. Keyed the same way `checkboxKey`
+ *  builds a key, so the two can never drift apart. */
+export function clearChosenSteps(formId: string): void {
+  const prefix = `${formId}|`;
+  for (const key of chosenSteps.keys()) {
+    if (key.startsWith(prefix)) chosenSteps.delete(key);
+  }
+}

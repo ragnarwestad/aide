@@ -15,7 +15,7 @@
 import { ACTIONS, postForm } from "./press.ts";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
-import { NEW_SPEC_FORM } from "./state.ts";
+import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
 
 export async function submitAction(event: Event): Promise<void> {
   // A form that cancelled its own submit (an `onsubmit` that returned
@@ -27,6 +27,10 @@ export async function submitAction(event: Event): Promise<void> {
   await postForm(
     form,
     async () => {
+      // The press has gone through - the row's own hand-made ticks
+      // have done their job and must not go on deciding a later run
+      // (REQ-2, spec 419).
+      clearChosenSteps(form.id);
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();

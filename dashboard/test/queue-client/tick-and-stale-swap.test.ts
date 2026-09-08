@@ -7,6 +7,30 @@ import {
   OK_ACTION,
 } from "./fixtures.ts";
 
+// --- spec 419: a hand-made tick stops deciding once its own press has gone through ---
+//
+// spec 141 above made a hand-touched box survive a redraw — and never
+// let go of it again: nothing removed the override once the press it
+// was made for had gone through, so it kept overriding every LATER,
+// unrelated redraw of the same row too (a later run's own fresh ticks
+// never got through). REQ-2 asks for the override to expire the moment
+// its own press succeeds.
+describe("a hand-made tick stops deciding once its own press has gone through (spec 419)", () => {
+  const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
+
+  test("the box follows the server again after its own Run has succeeded and a later redraw happens", async () => {
+    const h = harness(() => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }), "rowrun");
+    h.changeStep(0, false); // analyze, which the server serves ticked
+    await h.submit();
+    // A later, unrelated redraw — a different job for the same spec
+    // finishing, with the server's own history back on top.
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+    expect(ticks(h)).toEqual([true, false, false]);
+  });
+});
+
 // --- spec 141: the phase boxes survive the swap too --------------------------
 //
 // The 2026-08-20 fix above covered the row's SELECTS. The boxes beside
