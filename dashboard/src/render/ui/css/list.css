@@ -128,6 +128,12 @@ table.list td { padding: 10px 0 10px var(--sp-3); border-bottom: 1px solid var(-
 /* Except against the table's own right edge, where the cost would
    otherwise sit flush on the border. */
 table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3); }
+/* The State column stands clear of the phase controls before it: 12px
+   more than the ordinary gap between two columns, on every row that
+   draws the column — the spec's own line, the caption line and each
+   phase line — so the boundary is one line down the table, not the
+   button's own margin. */
+table.list td[data-col="state"] { padding-left: var(--sp-5); }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read

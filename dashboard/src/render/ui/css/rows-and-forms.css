@@ -46,10 +46,6 @@
    boundary to align it — sized for the widest label it can carry. */
 .badgeslot { display: inline-flex; align-items: center; gap: var(--sp-2); }
 .actionslot { display: inline-flex; justify-content: flex-start; width: 6.5rem; }
-/* The button on the caption line, in the State column: 12px more than
-   the cell's own padding, so it does not sit on the heel of "Select" in
-   the cell before it. */
-table.list tr.subrow[data-caption="1"] .actionslot { margin-left: var(--sp-3); }
 /* No width of its own: the two boxes above are the width. */
 table.list tr.spechead > td > .row { flex-wrap: nowrap; }
 td form { margin: 0; display: inline-block; }

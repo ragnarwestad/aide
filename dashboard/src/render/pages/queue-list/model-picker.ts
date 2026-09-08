@@ -303,7 +303,7 @@ export function phaseCaptionCells(
     `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td>` +
     (includeListColumns
-      ? `<td>${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
+      ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
         `<td data-col="started"></td>` +
         `<td class="num" data-col="cost"></td><td data-col="created"></td>`
       : "")

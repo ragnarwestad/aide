@@ -219,7 +219,7 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="badgeslot">${stateBadge}</span></td>` +
+    `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.

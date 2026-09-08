@@ -99,7 +99,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
         `<td class="phasecell"></td><td class="modelcell"></td>` +
-        `<td><span class="actionslot">${action}</span></td>` +
+        `<td data-col="state"><span class="actionslot">${action}</span></td>` +
         `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
     });
   }
@@ -312,7 +312,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td>${phaseWordCell(word, stale, attemptCount)}</td>` +
+          `<td data-col="state">${phaseWordCell(word, stale, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
