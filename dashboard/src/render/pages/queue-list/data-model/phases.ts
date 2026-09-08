@@ -300,8 +300,12 @@ const heldBackFor = (step: string, t: QueueTarget | undefined): { heldBack?: { r
 const historyFor = (
   step: string,
   t: QueueTarget | undefined,
-): { history: { stopped?: string; fileDisagrees?: boolean } } => ({
-  history: { stopped: t?.stopped?.[step], fileDisagrees: t?.fileDisagrees?.includes(step) },
+): { history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean } } => ({
+  history: {
+    stopped: t?.stopped?.[step],
+    fileDisagrees: t?.fileDisagrees?.includes(step),
+    historyDone: t?.historyDone?.includes(step),
+  },
 });
 
 /** The three-line join `jobGroup` and `emptyGroup` each composed inline

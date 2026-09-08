@@ -414,6 +414,13 @@ export interface ResolvedWorkflowState {
   stopped: Record<string, string>;
   fileDisagrees: string[];
   fileSteps: string[];
+  /** The raw, unmerged git answer (`h.done`): which steps have a
+   *  completion commit ANYWHERE in the repo's refs, landed or not
+   *  (`git log --all`). Separate from `done` (which prefers the state
+   *  file when one exists) because it is exactly the signal that tells
+   *  "the work is on the branch" apart from "nothing was written"
+   *  (spec 418). */
+  historyDone: string[];
 }
 
 /** Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
@@ -438,5 +445,11 @@ export function resolveWorkflowState(
   // `history.done` only when there is no state file for this spec yet.
   const doneSource = answer.stateSteps ?? h.done;
   const done = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
-  return { done, stopped: h.stopped, fileDisagrees: stepsFileDisagreesOn(answer, h), fileSteps: answer.proseSteps };
+  return {
+    done,
+    stopped: h.stopped,
+    fileDisagrees: stepsFileDisagreesOn(answer, h),
+    fileSteps: answer.proseSteps,
+    historyDone: h.done,
+  };
 }

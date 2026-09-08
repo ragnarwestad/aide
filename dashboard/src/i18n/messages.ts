@@ -335,10 +335,15 @@ export const MESSAGES = {
     nb: "arkivert, men mergen feilet — grenen står fortsatt åpen. — Kjør arkivering på nytt.",
     resolve: "Re-run archive.",
   },
-  "wordPhase.lastRunDisagrees": {
-    en: "last run reported done, but the files disagree",
-    nb: "siste kjøring rapporterte ferdig, men filene stemmer ikke",
-    exempt: "a bookkeeping mismatch report, not an action the reader takes",
+  "wordPhase.lastRunDisagreesUnlanded": {
+    en: "last run reported done — its work is on the branch, and archiving merges it in",
+    nb: "siste kjøring rapporterte ferdig — arbeidet ligger på grenen, og arkivering merger det inn",
+    resolve: "archiving merges it in",
+  },
+  "wordPhase.lastRunDisagreesUnwritten": {
+    en: "last run reported done, but nothing reached the files — run it again",
+    nb: "siste kjøring rapporterte ferdig, men ingenting nådde filene — kjør det på nytt",
+    resolve: "run it again",
   },
 
   // --- the test gate's verdicts (land-branch/test-gate.ts) -----------------

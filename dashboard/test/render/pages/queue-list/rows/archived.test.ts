@@ -76,17 +76,19 @@ describe("an archived spec's non-create job is not a row either", () => {
   test("even when its project has no other live target", () => {
     const html = opened("129-x", ["aide/129-x"]);
     expect(html).not.toContain('data-folder="129-x"');
-    expect(html).not.toContain("last run reported done, but the files disagree");
+    expect(html).not.toContain("last run reported done");
   });
 
   // The other half of the same fixture: without the archive fact, the
-  // row is still there AND still says the files disagree. That is what
-  // the assertions above are pinned against — remove the archive entry
-  // and both of them fire.
+  // row is still there AND still says the files disagree — read, since
+  // spec 418, as "nothing reached the files" (no target here carries a
+  // `historyDone` commit signal for "analyze"). That is what the
+  // assertions above are pinned against — remove the archive entry and
+  // both of them fire.
   test("the same spec unarchived keeps its row, contradiction and all", () => {
     const html = opened("129-x", []);
     expect(html).toContain('data-folder="129-x"');
-    expect(html).toContain("last run reported done, but the files disagree");
+    expect(html).toContain("last run reported done, but nothing reached the files — run it again");
   });
 });
 
