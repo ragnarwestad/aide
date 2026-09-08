@@ -81,10 +81,26 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // and model selects a live one does now, so it heads them the same
   // way — the only reason this stays conditional at all is `aiPicker`'s
   // own rule, one tool configured is nothing to choose between.
+  // The row's one action, in the State column of the caption line
+  // (2026-09-08): the head line above is what the spec IS, and this line
+  // heads what it is set to do. Spec 157 put the button on the shut row
+  // deliberately; what this costs is a click, and what it buys is a
+  // head line that is only information.
+  const action = stateAction(g, opts, true);
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts),
+      cells: phaseCaptionCells(opts, true, action),
+    });
+  } else if (action) {
+    // No captions to head — one tool configured, nothing to choose
+    // between — and the press still needs a line of its own.
+    lines.push({
+      tag: `<tr class="subrow" data-caption="1">`,
+      cells:
+        `<td class="phasecell"></td><td class="modelcell"></td>` +
+        `<td><span class="actionslot">${action}</span></td>` +
+        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
     });
   }
   g.phases
@@ -332,23 +348,6 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
-  // The row's one action closes the open row (2026-09-08): the head line
-  // above is what the spec IS and the lines here are what it is set to
-  // do, so the press that acts on all of it belongs under them and not
-  // in the line that names the spec. A reader who never presses it
-  // without first reading these lines loses nothing; one who does now
-  // opens the row first.
-  const action = stateAction(g, opts, true);
-  if (action) {
-    lines.push({
-      tag: `<tr class="subrow" data-action="1">`,
-      cells:
-        `<td class="phasecell"></td>` +
-        `<td class="modelcell"><span class="actionslot">${action}</span></td>` +
-        `<td></td><td data-col="started"></td>` +
-        `<td class="num" data-col="cost"></td><td data-col="created"></td>`,
-    });
-  }
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
 

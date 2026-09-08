@@ -273,7 +273,16 @@ export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"
 // either, so the same 4 cells there had nothing under them and nothing
 // sizing them, which is what read as a stray blank field beside the
 // picker.
-export function phaseCaptionCells(opts: PickerOptions, includeListColumns = true): string {
+export function phaseCaptionCells(
+  opts: PickerOptions,
+  includeListColumns = true,
+  /** The row's one action, drawn in the State column of this line
+   *  (2026-09-08): the head line above says what the spec IS, and this
+   *  line heads what it is set to do — so the press that acts on all of
+   *  it sits at the end of the same line, under the State column it used
+   *  to stand in on the row above. */
+  action = "",
+): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
@@ -294,7 +303,8 @@ export function phaseCaptionCells(opts: PickerOptions, includeListColumns = true
     `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td>` +
     (includeListColumns
-      ? `<td></td><td data-col="started"></td>` +
+      ? `<td>${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
+        `<td data-col="started"></td>` +
         `<td class="num" data-col="cost"></td><td data-col="created"></td>`
       : "")
   );
