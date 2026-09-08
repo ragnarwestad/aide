@@ -200,6 +200,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
       attemptCount: outcome?.attempts,
+      fileResult: outcome?.result,
     };
   });
   const total = totalDurationOf(phases, now);

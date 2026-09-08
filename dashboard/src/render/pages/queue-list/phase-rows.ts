@@ -89,7 +89,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   g.phases
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult });
       // Spec 237: a phase line opens the tab that shows what the phase
       // MADE, on the spec page the reader is already on — the four
       // workflow steps each have one, and `PHASE_TAB` is where the

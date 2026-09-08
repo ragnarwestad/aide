@@ -284,6 +284,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       // here that has to be merged with the queue's own count rather
       // than only fall back to it.
       attemptCount: fileOutcome?.attempts,
+      fileResult: fileOutcome?.result,
     };
   });
 }

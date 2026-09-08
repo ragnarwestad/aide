@@ -37,7 +37,7 @@ import { LIST_COLUMNS } from "./row-shared.ts";
 function phaseDisagreement(g: SpecGroup): string | undefined {
   let earliest: { step: string; qualifier: string } | undefined;
   for (const p of g.phases) {
-    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], p.history);
+    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult });
     if (!word.qualifier) continue;
     if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step)}: ${word.qualifier}`;
     earliest ??= { step: p.step, qualifier: word.qualifier };
