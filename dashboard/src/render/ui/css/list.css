@@ -82,9 +82,9 @@ table.settingstable { width: auto; }
    plus the cell's own padding (--sp-3 on each side): Spec is
    the first two together carry `.spec-name`'s 27rem box, which the
    head row spans across, and separately the phase lines' own name and
-   their AI/model controls; State is
-   `.badgeslot` + the row's gap + `.actionslot` (rows-and-forms.css);
-   then the date, the longest duration and the largest cost. */
+   their AI/model controls; State is the widest badge it draws, with the
+   caption line's action centred under the same width; then the date,
+   the longest duration and the largest cost. */
 /* The Spec column carries one thing of its own: a phase line's name,
    the longest of which is "implement". 5.5rem is that word plus the
    cell's own left padding — the same 4.7rem the phone gives it. The
@@ -92,11 +92,12 @@ table.settingstable { width: auto; }
    name cell, which spans them both, is unchanged. */
 table.speclist > colgroup > col[data-col="spec"] { width: 5.5rem; }
 /* What a phase line actually puts here, measured in a browser with this
-   stylesheet: the AI/model pair (256px), the tick box (37) and the gap
-   and the cell's own left padding — 313px, so 20rem with a little over.
-   The column held 24 for as long as the slack was really the head row's:
-   its title and button span this column and Spec beside it, and they
-   keep whatever is left. 19rem is NOT enough — the model select wraps
+   stylesheet: the AI/model pair (256px), the tick box (40, the width it
+   shares with its "Select" caption) and the gap and the cell's own left
+   padding — 313px, so 20rem with a little over. The column held 24 for
+   as long as the slack was really the head row's: its title spans this
+   column and Spec beside it, and keeps whatever is left. 19rem is NOT
+   enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
 table.speclist > colgroup > col[data-col="phase"] { width: 20rem; }
 /* The badge alone since the button left this cell, and the badge is one
@@ -128,6 +129,29 @@ table.list td { padding: 10px 0 10px var(--sp-3); border-bottom: 1px solid var(-
 /* Except against the table's own right edge, where the cost would
    otherwise sit flush on the border. */
 table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3); }
+/* The State column stands clear of the phase controls before it: 12px
+   more than the ordinary gap between two columns, on every row that
+   draws the column — the spec's own line, the caption line and each
+   phase line — so the boundary is one line down the table, not the
+   button's own margin. */
+table.list td[data-col="state"] { padding-left: var(--sp-5); }
+/* The caption line's cell holds the row's one action and nothing else,
+   and it stands over the column rather than at the left edge of it: the
+   clearance above is paid on the right as well, so centring is centring
+   in the COLUMN and not in whatever is left after a one-sided pad. */
+table.list tr.subrow[data-caption="1"] td[data-col="state"] {
+  padding-right: var(--sp-5); text-align: center; }
+/* And the slot gives up the fixed width it holds a COLUMN still with:
+   6.5rem is wider than what the clearance leaves on either side, so a
+   slot that kept it had nothing left to centre in. Centred, the button
+   stays on the column's midline whatever its label says — which is the
+   same promise the fixed width makes on the row above. */
+table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
+/* A phase with nothing to say draws a dash where the others draw a
+   badge. The badge carries its own padding and the dash carries none,
+   so the dash alone sat on the column's left edge — four characters in
+   puts it under the words rather than in front of them. */
+table.list td[data-col="state"] [data-none] { margin-left: 4ch; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
@@ -175,18 +199,6 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    text top-aligns with a second, wrapped line, but the pip block
    (now two rows tall, letters over pips) has no such second line to
    sit level with, so it centers against the name's own height instead. */
-/* The row's button, at the end of the fixed-width name box — where the
-   pips used to sit. `margin-left: auto` is what puts it hard against
-   that end, so every row's button starts at the same x whatever its
-   name is; `align-self: center` overrides `.spec-name`'s own
-   `align-items: flex-start`, so it centres against a name that has
-   wrapped to two lines rather than sitting level with the first.
-   `flex: none` is what keeps the column straight: a long name fills the
-   box, and flex takes the shortfall out of every item that can give —
-   including this one, which then started a few pixels further left on
-   exactly the rows with the longest names. The name absorbs it alone. */
-.spec-name > .actionslot { margin-left: auto; padding-left: var(--sp-2); align-self: center;
-  flex: none; }
 /* Still drawn on the spec page's own Overview and the job page. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
@@ -382,6 +394,25 @@ table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem;
 table.list tr.subrow .modelcell > .row > [data-cap="ai"],
 table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
 table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 8rem; max-width: 8rem; }
+/* The two selects sit in ONE wrapper (`.aimodel`) with nothing between
+   them, so a caption line with the row's own 8px between every caption
+   put "Model" 8px right of the select it heads and "Select" 8px right
+   of the box. The caption line drops that gap and keeps the one the
+   phase line does have — the row gap between the wrapper and the box —
+   as a margin on the caption that stands over it. */
+table.list tr.subrow[data-caption="1"] .modelcell > .row { gap: 0; }
+table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { margin-left: var(--sp-2); }
+/* "Select" heads a box rather than a field, so the two are given the
+   same width and both centre what they hold: the tick then sits under
+   the middle of its own caption instead of at the left edge of a chip
+   that is wider than the checkbox in it. `gap: 0` because a phase
+   line's chip carries an empty label span — the gap to it pushed the
+   checkbox 3px off its own centre. */
+table.list tr.subrow .modelcell > .row > [data-cap="box"] {
+  min-width: 2.5rem; max-width: 2.5rem; text-align: center; }
+table.list tr.subrow .modelcell > .row > .phase[data-phase] {
+  box-sizing: border-box; min-width: 2.5rem; max-width: 2.5rem;
+  justify-content: center; gap: 0; }
 /* The mobile fold control (design handoff, mobile-spec-row): a plain
    inline wrapper on desktop, where the checkbox and chevron stay
    invisible and every phase line keeps reading exactly as it did

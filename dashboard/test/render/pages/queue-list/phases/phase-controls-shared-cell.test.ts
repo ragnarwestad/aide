@@ -243,9 +243,12 @@ describe("spec 192: the phase line's controls share one cell", () => {
       // A dash since 2026-09-08, the same one Created and Cost draw for
       // "nothing here": the queue has no job for this phase, and the
       // column says so in one character rather than a sentence.
+      // `data-none` is what the stylesheet indents it by, so it lands
+      // under the words the badges draw instead of on the column's
+      // left edge.
       expect([step, cells(subRow(html, step))[2]]).toEqual([
         step,
-        '<span class="muted small">–</span>',
+        '<span class="muted small" data-none>–</span>',
       ]);
     }
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);

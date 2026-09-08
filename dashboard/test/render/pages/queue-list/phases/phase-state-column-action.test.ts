@@ -26,7 +26,7 @@ import {
 //
 // The button is named for the first TICKED phase, not for the state's
 // own suggestion, so a reader can see the two disagree before pressing.
-describe("spec 157: the row draws one action, at the end of the name box", () => {
+describe("spec 157: the row draws one action, on its caption line", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -37,7 +37,10 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
     targets: QueueTarget[] = [target("157-one-action")],
     o: { open?: boolean } & Partial<QueuePageOptions> = {},
   ) => {
-    const { open = false, ...opts } = o;
+    // Open, because the action this describe is about is part of what
+    // the fold opens. The three tests that are about a SHUT row pass
+    // `open: false` for themselves.
+    const { open = true, ...opts } = o;
     return renderQueueRows(
       list,
       {
@@ -56,10 +59,14 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
   /** The State column: the head row's second cell, which is where spec
    *  143 pinned it. The badge is what it holds. */
   const state = (html: string) => cells(headRow(html))[1] ?? "";
-  /** The name cell, which is where the row's one control lives since
-   *  2026-09-07 — hard against the end of the name box, where the pips
-   *  were. */
-  const action = (html: string) => cells(headRow(html))[0] ?? "";
+  /** The caption line's State cell, which is where the row's one
+   *  control lives since 2026-09-08: the head line says what the spec
+   *  IS, and the line that heads what it is set to do carries the
+   *  press. A SHUT row has no caption line and therefore no action at
+   *  all — its own test is below. */
+  const captionLine = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const action = (html: string) => cells(captionLine(html))[2] ?? "";
   /** What the row's one control SAYS. `<button>` for Run, and the
    *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
@@ -71,13 +78,24 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
 
   // --- criteria 1, 2, 3: the button is named for what is ticked -------------
 
-  for (const open of [true, false]) {
-    test(`the next unstarted phase names the button (${open ? "open" : "shut"}, criterion 1)`, () => {
-      const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open });
-      expect(state(html)).toContain(">ready<");
-      expect(labels(action(html))).toEqual(["Implement"]);
-    });
-  }
+  test("the next unstarted phase names the button (criterion 1)", () => {
+    const html = rows([lead()], [target("157-one-action", { done: BUILT })]);
+    expect(state(html)).toContain(">ready<");
+    expect(labels(action(html))).toEqual(["Implement"]);
+  });
+
+  // What the fold now costs, said outright. The head line carries the
+  // spec's name, its state and its numbers and nothing to press; the
+  // press is one click in, on the line that heads what the spec is set
+  // to do. The state is still readable shut — only the action moved.
+  test("a shut row draws no action at all, and no form to carry one", () => {
+    const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: false });
+    expect(state(html)).toContain(">ready<");
+    // Off the table alone: the search field above it has a Search
+    // button, and that is not a row's action.
+    expect(html.slice(html.indexOf("<tbody"))).not.toContain("<button");
+    expect(html).not.toContain('class="rowrun"');
+  });
 
   test("a fresh spec's pre-ticked phase names the button (criterion 2)", () => {
     const html = rows([]);
@@ -130,22 +148,19 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
 
   // --- criteria 4, 5: Cancel names the step it would stop -------------------
 
-  for (const open of [true, false]) {
-    test(`a running spec offers Cancel by name (${open ? "open" : "shut"}, criteria 4, 5)`, () => {
-      const html = rows(
-        [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
-        [target("157-one-action", { done: BUILT })],
-        { open },
-      );
-      expect(labels(action(html))).toEqual(["Cancel"]);
-      expect(action(html)).toContain('action="/api/queue/j1/cancel"');
-      expect(action(html)).not.toContain(">Resolve<");
-      // No Run button. The run FORM may still be there on an open row
-      // — it is the carrier the phase boxes name — but nothing submits
-      // it while a job is in flight.
-      expect(action(html)).not.toMatch(/<button[^>]*form="rowrun/);
-    });
-  }
+  test("a running spec offers Cancel by name (criteria 4, 5)", () => {
+    const html = rows(
+      [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
+      [target("157-one-action", { done: BUILT })],
+    );
+    expect(labels(action(html))).toEqual(["Cancel"]);
+    expect(action(html)).toContain('action="/api/queue/j1/cancel"');
+    expect(action(html)).not.toContain(">Resolve<");
+    // No Run button. The run FORM is still there — it is the carrier
+    // the phase boxes name — but nothing submits it while a job is in
+    // flight.
+    expect(action(html)).not.toMatch(/<button[^>]*form="rowrun/);
+  });
 
   test("a queued implement cancels by the reader's own word", () => {
     const html = rows(
@@ -155,25 +170,17 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
     expect(labels(action(html))).toEqual(["Cancel"]);
   });
 
-  // --- criterion 8: a shut row's Run carries its phases as hidden fields ----
+  // --- criterion 12: the boxes are the only source of `steps` --------------
 
-  // Every phase the spec has left, in `QUEUE_STEPS` order (spec 200):
-  // a shut row's press runs what an open row's pre-ticked boxes would,
-  // and the two read the same `preTicked()` set to say so.
-  test("a shut row's run form carries the ticked phases as hidden inputs (criterion 8)", () => {
-    const html = rows([]);
-    const posted = [...action(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
-      (m) => m[1],
-    );
-    expect(posted).toEqual(["analyze", "implement", "archive"]);
-  });
-
-  // An OPEN row has real checkboxes, and they are the only source of
-  // `steps`: a hidden field beside them would post every phase twice
-  // and outvote a reader who unticked one (criterion 12).
-  test("an open row's run form carries no steps of its own (criterion 12)", () => {
-    const html = rows([], [target("157-one-action")], { open: true });
-    expect(action(html)).not.toContain('name="steps"');
+  // Criterion 8 gave a SHUT row's press its phases as hidden fields,
+  // because such a row draws no boxes to read them off. No row does
+  // now — the press only exists where the boxes do — so the hidden
+  // fields are gone from every row rather than from one kind of row,
+  // and the boxes are the reader's own: a hidden field beside them
+  // would post every phase twice and outvote a phase just unticked.
+  test("no run form carries steps of its own; the boxes do (criterion 12)", () => {
+    const html = rows([], [target("157-one-action")]);
+    expect(html).not.toContain('<input type="hidden" name="steps"');
     expect(html).toContain('<input type="checkbox" name="steps" value="analyze"');
   });
 
@@ -247,10 +254,12 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
       ],
     );
     expect(labels(action(html))).toEqual(["Archive"]);
-    const posted = [...action(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
-      (m) => m[1],
-    );
-    expect(posted).toEqual(["archive"]);
+    // And archive alone is what a press would run. Read off the boxes,
+    // which are what carries `steps` now.
+    const ticked = [...html.matchAll(
+      /<input type="checkbox" name="steps" value="([^"]+)" checked/g,
+    )].map((m) => m[1]);
+    expect(ticked).toEqual(["archive"]);
   });
 
   // ...and so is a spec whose archive left NO held-back note. Spec 161
@@ -316,10 +325,17 @@ describe("spec 161: the row's one action is primary", () => {
     specFolder,
     ...extra,
   });
+  // Open: the row's one control rides the caption line, which is part
+  // of what the fold opens (2026-09-08).
   const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets, projects: ["aide"] },
+      {
+        runnerAvailable: true,
+        targets,
+        projects: ["aide"],
+        filter: { open: openKeys(list, targets) },
+      },
       Date.parse("2026-08-21T12:00:00Z"),
     );
   /** Every button on a ROW, as its class attribute. Read off the table

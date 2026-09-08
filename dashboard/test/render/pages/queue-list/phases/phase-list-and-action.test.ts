@@ -80,17 +80,20 @@ describe("spec 124: one phase list, and one action beside the state", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the State cell, the head row's
-   *  FIRST since 2026-09-07: the pips came off the list and the button
-   *  took their place at the end of the name box. It was the State cell
-   *  beside the badge from spec 157; a column of its own at the front of
-   *  the table in spec 124, which put every button in the page's left
-   *  gutter and pushed the whole table sideways; then the spec column's
-   *  own spanning cell (2026-08-19); and the header's LAST cell for a
-   *  shut row all along. */
+  /** Where a row's one button is: the State cell of the CAPTION line
+   *  since 2026-09-08 — the head line says what the spec is, and the
+   *  line that heads what it is set to do carries the press. A shut row
+   *  has no caption line, and therefore no action at all.
+   *
+   *  It has moved four times before: a column of its own at the front
+   *  of the table (spec 124), which put every button in the page's left
+   *  gutter and pushed the whole table sideways; the spec column's own
+   *  spanning cell (2026-08-19); the head row's State cell beside the
+   *  badge (spec 157); and the end of the name box, where the pips had
+   *  been (2026-09-07). */
   const actionCell = (chunk: string): string => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    return cells(headRow)[0] ?? "";
+    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    return cells(caption)[2] ?? "";
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
@@ -393,35 +396,33 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     }
   });
 
-  test("a shut row offers the same one control an open one does (criterion 12)", () => {
-    // Until spec 157 a collapsed row offered the way out of a conflict
-    // and nothing else. It offers whatever the open row offers now —
-    // the same function draws both — minus the choosing.
+  // Criterion 12 was that the shut row and the open one drew the SAME
+  // one control. A shut row draws none at all since 2026-09-08: the
+  // action rides the caption line, which is part of what the fold
+  // opens. What is left of the criterion is that the fold is the only
+  // difference — the open row's control is the ordinary one, whatever
+  // state the row is in, and the shut row is information alone.
+  test("a shut row draws no control; the open one draws the ordinary Run", () => {
     const conflicted = [
       row({ id: "j1", specFolder: "124-stack", state: "done", errorReason: "conflict" }),
     ];
-    const shut = actionCell(group(rows(conflicted, [target("124-stack")], { filter: {} }), "124-stack"));
-    // Since spec 171 a conflict draws no control of its own: the shut
-    // row offers the same ordinary re-run the open one does.
-    expect(shut).not.toContain(">Resolve</button>");
-    expect(shut).toMatch(/<button[^>]*form="rowrun/);
-    expect(shut).not.toContain("/cancel");
-    // The choosing stays behind the fold: no boxes, no "also touches".
-    // The run form itself is there as the button's carrier — a shut row
-    // posts its phases as hidden fields, which is what the carrier is
-    // for; the boxes a reader would tick are what stays behind the fold.
-    expect(shut).not.toContain('type="checkbox"');
-    expect(shut).not.toContain('name="extraProjects"');
+    const shutGroup = group(rows(conflicted, [target("124-stack")], { filter: {} }), "124-stack");
+    expect(shutGroup).not.toContain("<button");
+    expect(shutGroup).not.toContain('class="rowrun"');
+    expect(shutGroup).not.toContain('type="checkbox"');
+
+    // Open, the same conflicted row: no control of its own since spec
+    // 171 — the ordinary re-run, and the boxes that say what it runs.
+    const open = actionCell(group(rows(conflicted, [target("124-stack")]), "124-stack"));
+    expect(open).not.toContain(">Resolve</button>");
+    expect(open).toMatch(/<button[^>]*form="rowrun/);
+    expect(open).not.toContain("/cancel");
+
     // A spec with every phase behind it still offers Archive: a row
-    // that exists is a spec that is not archived (2026-08-21). What
-    // criterion 12 is about is that the SHUT row and the OPEN one draw
-    // the same one control, and that holds.
+    // that exists is a spec that is not archived (2026-08-21).
     const done = ["analyze", "implement", "archive"];
-    const idle = actionCell(
-      group(rows([], [target("124-stack", { done })], { filter: {} }), "124-stack"),
-    );
+    const idle = actionCell(group(rows([], [target("124-stack", { done })]), "124-stack"));
     expect(idle).toContain(">Archive</button>");
-    expect(idle).not.toContain('type="checkbox"');
   });
 
   // The run form itself is a carrier now: the button that submits it

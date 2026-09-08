@@ -125,6 +125,15 @@ need_part() {
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
 for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-publish.sh; do need_part "$_part"; done
+# The step's own clock, started before anything it does (2026-09-08).
+# It began beside the AI session and therefore measured the session
+# alone: the checkout, the worktree, the branch, the archive pre-check
+# and the reading of what came back were all outside it, and the figure
+# the phase file stamped was a part of the step presented as the whole.
+# The one thing it cannot cover is the commit and push that carry the
+# stamp itself — a number cannot include the writing of its own file.
+step_started_at="$(date +%s)"
+
 # --- the vocabulary, the command line, and what they refuse ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-arguments.sh"

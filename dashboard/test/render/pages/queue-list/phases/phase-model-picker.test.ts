@@ -171,11 +171,15 @@ describe("spec 123: each phase line picks its own model", () => {
 
   // --- criterion 4 -----------------------------------------------------------
 
-  test("with no model configured there is no picker and no caption at all", () => {
+  test("with no model configured there is no picker and no caption words", () => {
     const html = rows([], [target("123-picks")], { modelChoices: undefined });
     expect(controlsLine(html, "123-picks")).not.toBe("");
     expect(html).not.toContain("<select");
-    expect(caption(html)).toBe("");
+    // The line itself is still drawn — it carries the row's one action
+    // since 2026-09-08 — but it heads nothing: no captions, because
+    // there is nothing to choose between.
+    expect(caption(html)).not.toContain(">Phase<");
+    expect(caption(html)).not.toContain(">Model<");
     expect(html).not.toContain(">Phase<");
   });
 

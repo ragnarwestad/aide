@@ -80,7 +80,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.stateQueued": "{step} i kø",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} av {total} i kø — venter på en ledig plass til å kjøre {step}",
-  "list.stateHeldBack": "{step} holdt tilbake",
+  "state.stopped": "stoppet",
   "state.stoppedTimeout": "stoppet — {minutes} min",
   "state.stoppedProviderLimit": "stoppet — grense hos leverandøren",
   "state.stoppedJobCap": "stoppet — jobbtak",

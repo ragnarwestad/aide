@@ -48,8 +48,9 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
     expect(restingChip("nb", {})).toContain("ferdig");
     // The badge says the STATE since 2026-09-08 — the same word every
     // other stop the system made gets — and the reason is the sentence
-    // on the row's own notice line, which is translated there.
-    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("stopped");
+    // on the row's own notice line. The word itself was hardcoded
+    // English until it took the key the held-back badge uses.
+    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("stoppet");
   });
 
   test("English is unchanged (REQ-5)", () => {
@@ -62,13 +63,28 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
 // a slot, so its badge must not carry the n/total wording meant for a job
 // that is.
 describe("specStateChip() on a held-back queued row (spec 396)", () => {
-  test("reads '<step> held back', with no n/total figure", () => {
+  // And it says the bare word (2026-09-08). It read "implementing held
+  // back" until then — the step is already named on the line, and the
+  // half a reader acts on is the reason, which the row's own notice
+  // line says in full underneath.
+  test("reads 'stopped', with no step and no n/total figure", () => {
     const html = specStateChip(
       row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
       "en",
     );
-    expect(html).toContain("implementing held back");
+    expect(html).toContain(">stopped<");
+    expect(html).not.toContain("implementing");
     expect(html).not.toMatch(/\d+\/\d+/);
+  });
+
+  // Norwegian too: the word was hardcoded English for the sibling state
+  // ("archive held back") until the two shared one key.
+  test("Norwegian says stoppet, not the English word", () => {
+    const html = specStateChip(
+      row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
+      "nb",
+    );
+    expect(html).toContain(">stoppet<");
   });
 
   test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {
@@ -82,7 +98,7 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
     const badgeHtml = specStateChip(heldRow, "en");
     const notice = specNotice(heldRow);
 
-    expect(badgeHtml).toContain("implementing held back");
+    expect(badgeHtml).toContain(">stopped<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
     expect(notice?.text.startsWith("held back:")).toBe(true);
   });

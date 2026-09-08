@@ -85,7 +85,11 @@ export const phaseWordCell = (
     // the FILES decide the word, and two failed runs leave them saying
     // nothing happened. The count rides on the dash then, the same way
     // it rides in the badge above.
-    : `<span class="muted small"${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
+    // `data-none` is what the stylesheet indents it by: a badge carries
+    // its own padding, so a bare dash left at the cell's edge sat four
+    // characters left of every word under it and read as stuck to the
+    // column's left edge.
+    : `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
       `–${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
   (aside ? ` ${aside}` : "");
 
@@ -142,17 +146,26 @@ export function phaseDurationCell(latest: QueueRowView | undefined, step: string
 // `unmeasured` marks a figure that includes a stand-in: a stopped step
 // is charged its whole budget because a SIGKILLed run prints no usage,
 // and a total that says nothing about it reads as money spent (spec
-// 152). The same "est." the job page's Steps table has shown per step
-// since spec 118.
+// 152).
+//
+// Said in the figure's own tooltip, not beside it (2026-09-08). The
+// word "est." stood next to the number until then, and the Cost column
+// is 4.5rem — "14.0M est." does not fit, so the mark wrapped onto a
+// line of its own and read as belonging to the column beside it. The
+// job page's Steps table has the width for it and keeps the word.
 export const costCell = (
   spentUsd: number,
   spentTokens: number | undefined,
   blank: string,
   unmeasured?: boolean,
-): string =>
-  spentUsd > 0 || (spentTokens ?? 0) > 0
-    ? usdOrTokens(spentUsd || undefined, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
-    : blank;
+): string => {
+  if (!(spentUsd > 0 || (spentTokens ?? 0) > 0)) return blank;
+  const figure = usdOrTokens(spentUsd || undefined, spentTokens);
+  return unmeasured
+    ? `<span title="an estimate: a step that was stopped is charged its whole budget, ` +
+      `because a run that is killed reports nothing about what it used">${figure}</span>`
+    : figure;
+};
 
 /** One pip per phase: green for a phase that has run, the accent for the
  *  one running now, grey for a phase still ahead. There is no failure
@@ -328,7 +341,18 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   // one silently dropping the older fact.
   const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) {
-    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReason });
+    // Unless the queue is already saying it. The runner holds a job for
+    // this exact reason with a message of its own, which the notice
+    // line draws above these marks — and that one is translated, where
+    // the file's note is a fixed English constant. Two sentences saying
+    // one thing, one of them in the wrong language, is what a reader
+    // got until 2026-09-08.
+    const queueSaysIt =
+      g.lead?.errorReason === "held-back" && g.lead.error && typeof g.lead.error === "object" &&
+      !Array.isArray(g.lead.error) && g.lead.error.key === "runner.acceptanceCriteriaUnticked";
+    if (!queueSaysIt) {
+      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReason });
+    }
     marks.push({
       variant: "waiting",
       label: TEST_SERVER(lang),

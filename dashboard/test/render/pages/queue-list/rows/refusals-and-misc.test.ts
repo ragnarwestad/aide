@@ -219,7 +219,12 @@ describe("an unmeasured cost is marked where it is totalled", () => {
   });
 
   // The row's own cell is a roll-up across every job the spec has had,
-  // which is the "41.13 USD for 149" figure the incident was about.
+  // which is the "41.13 USD for 149" figure the incident was about. On
+  // the list the mark is the figure's own tooltip, not a word beside
+  // it: the Cost column is 4.5rem, and the word wrapped onto a line of
+  // its own where it read as belonging to the column beside it
+  // (2026-09-08).
+  const listMarker = 'title="an estimate: a step that was stopped is charged its whole budget';
   const spentRow = (extra: Partial<QueueRowView>): QueueRowView =>
     row({ state: "done", ...extra });
 
@@ -239,7 +244,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
     expect(html).toContain("$41.13");
-    expect(html).toContain(marker);
+    expect(html).toContain(listMarker);
   });
 
   test("a spec whose every step was measured renders no marker", () => {
@@ -254,7 +259,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
     expect(html).toContain("$6.13");
-    expect(html).not.toContain(marker);
+    expect(html).not.toContain(listMarker);
   });
 
   // The phase lines answer for their OWN attempt, so the marker has to
@@ -277,8 +282,8 @@ describe("an unmeasured cost is marked where it is totalled", () => {
     );
     const implementLine = html.slice(html.indexOf('data-step="implement"'));
     const analyzeLine = html.slice(html.indexOf('data-step="analyze"'), html.indexOf('data-step="implement"'));
-    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).toContain(marker);
+    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).toContain(listMarker);
     expect(analyzeLine).toContain("$6.13");
-    expect(analyzeLine).not.toContain(marker);
+    expect(analyzeLine).not.toContain(listMarker);
   });
 });

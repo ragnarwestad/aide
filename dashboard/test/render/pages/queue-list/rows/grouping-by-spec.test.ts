@@ -120,16 +120,17 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(head).toContain("$2.00");
   });
 
-  test("the action sits once on the header, never on a phase line (criterion 12)", () => {
+  test("the action sits once on the caption line, never on a phase line (criterion 12)", () => {
     const html = rows([
       job("j1", "analyze", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
       job("j2", "implement", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    // Four phase lines plus the caption line the action rides.
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
     expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(1);
-    // Approve/cancel is the SPEC's one action and belongs on the header —
-    // as, since spec 94, does the form that runs the spec's phases. A
-    // phase line is read-only.
+    // Cancel is the SPEC's one action and belongs on the caption line —
+    // as does the form that runs the spec's phases. A phase line is
+    // read-only.
     for (const phase of ["create", "analyze", "implement", "archive"]) {
       expect(subRow(html, phase)).not.toContain("/cancel");
       expect(subRow(html, phase)).not.toContain("/approve");

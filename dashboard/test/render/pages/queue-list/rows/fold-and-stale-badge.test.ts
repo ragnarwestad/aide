@@ -48,7 +48,10 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     const html = rows([target("90-x")], { open: "aide/90-x" });
     const line = head(html, "90-x");
     expect(line).not.toBe("");
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    // Four phase lines plus the caption line that carries the row's one
+    // action (2026-09-08) — with no model configured it heads nothing,
+    // but the press still needs a line of its own.
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
     expect(line).toContain('aria-expanded="true"');
     // Its own control now SHUTS it: the encoded key is gone from its href.
     expect(line).not.toContain("open=aide%2F90-x");
@@ -68,7 +71,8 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
 
   test("opening one spec leaves the other shut (criterion 13)", () => {
     const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x" });
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    // One row's five: four phase lines and its caption line.
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
     for (const step of ["create", "analyze", "implement", "archive"]) {
       expect(html).toContain(`data-step="${step}"`);
     }

@@ -15,13 +15,14 @@ import { rows, target } from "./design-system-fixtures.ts";
 // The phase lines are columns (asked for 2026-08-19, "få det nå
 // alignet"): the name has a fixed width so every model select starts at
 // the same x, sharing it with the caption row's own first span.
-// The row's one action lives in the State column, after the badge whose
-// sentence it finishes (spec 157). It had a COLUMN of its own at the
-// front of the table in spec 124, which put every button in the page's
-// left gutter and pushed every other column sideways; then a cell in
-// the spec column spanning the phase lines (2026-08-19). The left edge
-// belongs to the phase lines now.
-describe("the row's one action rides with the name, not in a column of its own", () => {
+// The row's one action lives in the State column of the caption line
+// the fold opens (2026-09-08). It had a COLUMN of its own at the front
+// of the table in spec 124, which put every button in the page's left
+// gutter and pushed every other column sideways; then a cell in the
+// spec column spanning the phase lines (2026-08-19); then the head
+// row's State cell (spec 157) and the end of its name box
+// (2026-09-07). The left edge belongs to the phase lines now.
+describe("the row's one action rides the caption line, not a column of its own", () => {
   test("the header declares no blank cell, at either end", async () => {
     const html = rows([], { targets: [target()] });
     const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
@@ -32,14 +33,17 @@ describe("the row's one action rides with the name, not in a column of its own",
     expect(thead).toMatch(/<\/a><\/th><\/tr><\/thead>$/);
   });
 
-  test("the button is in the head row's name cell, and spans no rows", () => {
+  test("the button is on the caption line, and spans no rows", () => {
     const html = rows([], { targets: [target()] });
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    // The FIRST cell: the button sits at the end of the name box since
-    // 2026-09-07, where the pips were. It was the State cell (the
-    // second) from spec 157 until then.
-    expect(cells[0]).toContain("</button>");
+    // Nowhere on the head line: it says what the spec IS.
+    expect(head).not.toContain("<button");
+    // The caption line's THIRD cell — the State column, the same one
+    // the badge above it and the phase words below it are under.
+    const caption = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    expect(cells[2]).toContain("</button>");
+    expect(cells[0]).not.toContain("</button>");
     expect(cells[1]).not.toContain("</button>");
     // The guard is about THIS button, not about the string: spec 165
     // gave the row's AI select a legitimate spanning cell of its own,

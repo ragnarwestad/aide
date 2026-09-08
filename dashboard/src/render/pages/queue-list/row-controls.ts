@@ -16,7 +16,7 @@ import {
 } from "./data-model.ts";
 import { queueHref } from "./filter-bar.ts";
 import { filterFields } from "./row-shared.ts";
-import { actionLabel, preTicked, runFormId, specBusy } from "./row-state.ts";
+import { actionLabel, runFormId, specBusy } from "./row-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -128,15 +128,16 @@ function reopenForm(g: SpecGroup, opts: QueuePageOptions, lang: Language): strin
 // answers to "where do a row's buttons go" while there were still
 // several of them.
 //
-// The same function draws it open or shut. A collapsed row used to have
-// a narrower path of its own; what the two differ in now is one branch,
-// not two call sites.
+// Only an OPEN row draws it (2026-09-08): the action rides the caption
+// line, which is part of the detail the fold opens. A shut row is
+// information and nothing else, and the press to act on it is one click
+// further in.
 //
 // The Run form is a carrier and nothing else: it holds the hidden
 // fields, and the button that submits it and the boxes that fill it are
 // written outside its tags, reaching it by `form="…"` — the trick spec
 // 123 introduced for the model select.
-export function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): string {
+export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
   const lang = opts.lang ?? "en";
   // The third branch, and the first thing asked (spec 224). An archived
   // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
@@ -159,27 +160,18 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean)
   const label = busy ? undefined : actionLabel(g);
   // The form is a CARRIER: hidden fields only, hidden by CSS, with the
   // button and the phase boxes written outside its tags and reaching
-  // it by `form="…"`. So it is drawn wherever something names it — an
-  // open row's boxes and model selects always do, and a shut row's
-  // button does when there is one. Without it on a busy open row, the
-  // page's own script would lose the thread from a press back to the
-  // boxes it has to lock with it (`rowControls`, spec 151).
+  // it by `form="…"`. It carries no `steps` of its own: the row it
+  // belongs to is open, so its phase boxes are drawn, and a hidden
+  // field beside them would outvote a phase the reader just unticked.
+  // Always drawn, button or none — without it on a busy row the page's
+  // own script would lose the thread from a press back to the boxes it
+  // has to lock with it (`rowControls`, spec 151).
   const runForm =
-    open || label
-      ? `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
-        `${tokenField(opts.token)}${filterFields(opts.filter)}` +
-        `<input type="hidden" name="project" value="${esc(g.project)}">` +
-        `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-        // A SHUT row draws no phase boxes, so the phases a press would
-        // run have nothing to be read off at submit time: they travel
-        // as hidden fields instead. An open row must NOT have them — its
-        // boxes are the reader's own, and a hidden field beside them
-        // would outvote a phase just unticked.
-        (open || !label
-          ? ""
-          : [...preTicked(g)].map((s) => `<input type="hidden" name="steps" value="${esc(s)}">`).join("")) +
-        `</form>`
-      : "";
+    `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
+    `${tokenField(opts.token)}${filterFields(opts.filter)}` +
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `</form>`;
   const primary = (() => {
     if (busy) return actionForm(g.lead!, opts.token, opts.filter, lang);
     if (!label) return "";
