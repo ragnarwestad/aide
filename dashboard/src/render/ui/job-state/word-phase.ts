@@ -95,7 +95,16 @@ export function wordPhase(
    *  run for this phase gave for not finishing; `fileDisagrees` is
    *  `4-status.md` claiming something the history does not show, or the
    *  reverse. */
-  history: { stopped?: string; fileDisagrees?: boolean; fileResult?: "completed" | "stopped" } = {},
+  history: {
+    stopped?: string;
+    fileDisagrees?: boolean;
+    fileResult?: "completed" | "stopped";
+    /** Whether a completion commit for this phase exists anywhere in
+     *  git (spec 418) — what tells the two situations behind "last run
+     *  reported done, but the files disagree" apart: the work is on an
+     *  unlanded branch, or nothing was written at all. */
+    historyDone?: boolean;
+  } = {},
   lang: Language = "en",
 ): PhaseWord {
   const running = !!attempt && inFlight(attempt);
@@ -220,7 +229,9 @@ export function wordPhase(
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",
-      qualifier: renderMessage(lang, { key: "wordPhase.lastRunDisagrees" }),
+      qualifier: renderMessage(lang, {
+        key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
+      }),
     };
   }
   return {

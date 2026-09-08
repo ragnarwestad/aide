@@ -46,6 +46,11 @@ export interface QueueTarget {
   /** The steps the file and the history do not agree about — said on
    *  the phase line it is about, never once per phase. */
   fileDisagrees?: string[];
+  /** Which steps have a completion commit ANYWHERE in git (spec 418) —
+   *  the raw answer, before a state file's own claim can override it.
+   *  What tells "the work is on the branch, unlanded" apart from
+   *  "nothing was written" for `wordPhase.lastRunDisagrees*`. */
+  historyDone?: string[];
   /** Where the spec's folder is on this machine. Server-side only — it
    *  is what the freshness check runs git in, and an absolute path has
    *  no business on a page. */
@@ -312,7 +317,7 @@ export interface Phase {
   /** What this phase's own git history says beyond whether it happened
    *  (spec 154): why its last run did not finish, and whether
    *  `4-status.md` agrees that it ran at all. */
-  history: { stopped?: string; fileDisagrees?: boolean };
+  history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean };
   /** What this phase ran on, when it is a LOCKED phase's own record
    *  (spec 244) — from `ArchivedSpecView.models`, never set for a live
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read

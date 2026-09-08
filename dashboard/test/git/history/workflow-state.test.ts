@@ -204,6 +204,22 @@ describe("resolveWorkflowState", () => {
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.fileDisagrees).toEqual(["implement"]);
   });
+
+  // Spec 418: `historyDone` carries the RAW git answer (`h.done`), never
+  // the merged one — it is what a row's "last run reported done, but
+  // the files disagree" qualifier needs to tell "the work is on the
+  // branch, unlanded" (REQ-1) apart from "nothing was written" (REQ-2).
+  // Proven against the same fixture as the REQ-1/REQ-4 test above, where
+  // the state file's claim ("analyze" done) already outruns git's own
+  // ("create" only) — `done` still reads the merged answer, but
+  // `historyDone` must stay at git's raw one.
+  test("spec 418: historyDone carries the raw git answer, not the merged one", async () => {
+    const history = await warmedHistory(subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+    expect(resolved!.historyDone).toEqual(["create"]);
+  });
 });
 
 // --- what only real git can prove -------------------------------------------

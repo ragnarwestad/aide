@@ -157,18 +157,37 @@ describe("spec 108: one rule per phase", () => {
     expect(subRow(html, "archive")).toContain("b-running");
   });
 
-  test("a finished implement job is not done while the files disagree (criterion 8)", () => {
+  // Spec 418: the flat "the files disagree" sentence split into two,
+  // on the one signal that already tells them apart — whether a
+  // completion commit for the step exists anywhere in git
+  // (`historyDone`).
+  test("REQ-1: a finished implement job whose commit is on the branch says archiving merges it in (criterion 8)", () => {
     const html = rows(
       [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })],
-      [target("108-lagging", { done: ["analyze"] })],
+      [target("108-lagging", { done: ["analyze"], historyDone: ["implement"] })],
     );
     const implement = subRow(html, "implement");
     expect(implement).not.toContain("b-done");
     // Never silently hidden — and never on the line either, since spec
     // 195: the row's panel is where the sentence goes, named for the
     // phase it is about.
-    expect(implement).not.toContain("the files disagree");
-    expect(panel(html)).toContain("implement: last run reported done, but the files disagree");
+    expect(implement).not.toContain("its work is on the branch");
+    expect(panel(html)).toContain(
+      "implement: last run reported done — its work is on the branch, and archiving merges it in",
+    );
+  });
+
+  test("REQ-2: a finished implement job with no commit anywhere says run it again (criterion 8)", () => {
+    const html = rows(
+      [row({ id: "unwritten", specFolder: "108-unwritten", steps: ["implement"], state: "done" })],
+      [target("108-unwritten", { done: ["analyze"] })],
+    );
+    const implement = subRow(html, "implement");
+    expect(implement).not.toContain("b-done");
+    expect(implement).not.toContain("run it again");
+    expect(panel(html)).toContain(
+      "implement: last run reported done, but nothing reached the files — run it again",
+    );
   });
 
   // A graceful decline — `not-implemented-yet`, `acceptance-criteria-

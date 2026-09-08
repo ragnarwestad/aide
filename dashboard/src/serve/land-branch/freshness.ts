@@ -63,6 +63,7 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
       done: resolved.done,
       stopped: resolved.stopped,
       fileDisagrees: resolved.fileDisagrees,
+      historyDone: resolved.historyDone,
       // What the "Started" column holds (spec 199). Null when git
       // could not answer — a shallow clone, a folder moved without
       // `git mv` — and then the cell shows a dash rather than a
