@@ -13,11 +13,15 @@ afterEach(() => harness.cleanup());
 
 describe("an archived spec's row", () => {
   test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const html = await specsList(start().base, ARCHIVED_VIEW);
+    const row = rowFor(html, STAMPED);
     expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
     expect(row).toContain(STAMPED_TIME_SHOWN);
-    expect(row).toContain("Reopen");
-    expect(row).toContain('name="steps" value="reopen"');
+    // Reopen rides the caption line the fold opens, like every other
+    // row's one action (2026-09-08) — the head line is information.
+    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
+    expect(open).toContain("Reopen");
+    expect(open).toContain('name="steps" value="reopen"');
   });
 
   test("draws no model select, no tick box and no Run (criterion 3)", async () => {
@@ -38,24 +42,27 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
   });
 
-  // The pips came off the list on 2026-09-07; what a row carries beside
-  // its name is the slot every other row has, holding its one action.
-  test("carries the same action slot beside its name as every other row", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(
-      '<span class="actionslot">',
-    );
+  // The pips came off the list on 2026-09-07 and the action moved onto
+  // the caption line on 2026-09-08; what a locked row carries there is
+  // the slot every other row has, holding its one action.
+  test("carries the same action slot as every other row", async () => {
+    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
+    expect(open).toContain('<span class="actionslot">');
+    // And its head line carries no control at all, the same as every
+    // other shut row.
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).not.toContain("<button");
   });
 
   // Criterion 7. `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
-  test("offers no Analyze, Implement or Archive button, open or shut", async () => {
-    for (const query of [ARCHIVED_VIEW, `${ARCHIVED_VIEW}${opened(STAMPED)}`]) {
-      const block = blockFor(await specsList(start().base, query), STAMPED);
-      for (const label of ["Analyze", "Implement", "Archive"]) {
-        expect(block).not.toContain(`>${label}</button>`);
-      }
-      expect(block).toContain(">Reopen</button>");
+  test("offers no Analyze, Implement or Archive button — Reopen and nothing else", async () => {
+    const shut = blockFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    expect(shut).not.toContain("<button");
+    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
+    for (const label of ["Analyze", "Implement", "Archive"]) {
+      expect(open).not.toContain(`>${label}</button>`);
     }
+    expect(open).toContain(">Reopen</button>");
   });
 
   test("says what it is, in the column that says what every row is", async () => {

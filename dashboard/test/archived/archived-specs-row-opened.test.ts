@@ -152,7 +152,7 @@ describe("an archived spec's row, opened", () => {
     // never the "est." mark this cost was not flagged with.
     const cell = line.slice(line.indexOf('data-col="cost"'));
     expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
-    expect(line).not.toContain("est.");
+    expect(line).not.toContain("an estimate:");
   });
 
   // The three steps that recorded neither (spec 247, criteria 2, 5) —
@@ -172,11 +172,13 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  // Spec 247, criterion 4: the same "est." mark a live row's own
-  // unmeasured cost already carries, now on a locked phase's cost too.
-  // Its own fixture, so the plain-cost assertion above stays a
-  // single-value check rather than one cost doing double duty.
-  test("carries the est. mark for a cost recorded as unmeasured (spec 247, criterion 4)", async () => {
+  // Spec 247, criterion 4: the same mark a live row's own unmeasured
+  // cost already carries, now on a locked phase's cost too. It is the
+  // figure's own tooltip on this list since 2026-09-08 — the word
+  // beside it did not fit the 4.5rem column and wrapped. Its own
+  // fixture, so the plain-cost assertion above stays a single-value
+  // check rather than one cost doing double duty.
+  test("marks a cost recorded as unmeasured (spec 247, criterion 4)", async () => {
     const folder = "155-a-locked-unmeasured-cost";
     const { base } = start({}, {
       [folder]: {
@@ -187,7 +189,7 @@ describe("an archived spec's row, opened", () => {
     });
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
     const line = lines["analyze"]!;
-    expect(line).toContain("est.");
+    expect(line).toContain('title="an estimate: a step that was stopped is charged its whole budget');
     expect(line).toContain(STAMPED_COST_LABEL);
   });
 

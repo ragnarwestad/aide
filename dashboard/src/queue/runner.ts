@@ -174,6 +174,21 @@ export class Runner {
         hold(job, { key: "runner.archiveRunning" });
         continue;
       }
+      // And two `create` steps never run at once in the same project
+      // either. `create` picks the spec's number by reading the
+      // highest one on disk and adding one — so two of them started
+      // together both read the same highest number and both write it,
+      // and the project ends up with two different specs under one
+      // number (seen 2026-09-08: two specs numbered 416). Nothing about
+      // the number can fix that on its own; the runs have to be
+      // ordered, which is what this does.
+      if (
+        job.steps[job.stepIndex] === "create" &&
+        this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "create")
+      ) {
+        hold(job, { key: "runner.createRunning" });
+        continue;
+      }
       // Cheaper and more fundamental than the dependency question below —
       // checked first, and it needs no network call (spec 344).
       if (notAnalyzed?.has(job.id)) {

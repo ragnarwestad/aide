@@ -48,36 +48,34 @@ describe("spec 103: a collapsed row shows status only", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the NAME cell — the head row's
-   *  first — since 2026-09-07, when the pips came off the list and the
-   *  button took their place at the end of the name box. It sat in the
-   *  State cell beside the badge from spec 157 until then, and in the
-   *  header's last cell (shut) or a spanning `stackcell` (open) before
-   *  that, which is why this used to need the whole row group. */
+  /** Where a row's one button is: the State cell of the caption line,
+   *  which only an OPEN row draws (2026-09-08). It sat at the end of
+   *  the name box from 2026-09-07, in the head row's State cell beside
+   *  the badge from spec 157, and in the header's last cell (shut) or a
+   *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[0] ?? "";
+    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[2] ?? "";
   };
 
   const open = (folder: string) => ({ filter: { open: `aide/${folder}` } });
 
-  // Spec 157 gave the press itself back to the collapsed row — a
-  // reader should not have to open a row to start what its state line
-  // just named. What folding still takes away is everything that is
-  // about CHOOSING: the phase boxes, the model pickers, the other
-  // repos. One button, named for what it would run, and nothing else.
-  test("a collapsed row carries the press and none of the choosing (criterion 1)", () => {
+  // Spec 157 gave the press to the collapsed row, and 2026-09-08 gave
+  // it back: the action rides the caption line, which is part of what
+  // the fold opens. So the collapsed row is what this spec's own title
+  // says — status only, and no control of any kind.
+  test("a collapsed row carries no control at all (criterion 1)", () => {
     const line = head(rows([], [target("103-idle")]), "103-idle");
     expect(line).not.toBe("");
-    expect(line).toContain(">Analyze</button>");
+    expect(line).not.toContain("<button");
     expect(line).not.toContain('type="checkbox"');
     expect(line).not.toContain('name="model"');
     expect(line).not.toContain('name="extraProjects"');
     expect(line).not.toContain('class="more"');
   });
 
-  test("a collapsed row keeps its name, status, button, started and cost (criterion 1)", () => {
+  test("a collapsed row keeps its name, status, started and cost (criterion 1)", () => {
     const line = head(
       rows(
         [row({ id: "j1", specFolder: "103-idle", state: "done", spentUsd: 1.5,
@@ -95,10 +93,10 @@ describe("spec 103: a collapsed row shows status only", () => {
     // 2026-08-24; the button beside it is what names the next phase.
     expect(line).toContain('class="badge b-ready"');
     expect(line).toContain(">ready<");
-    // The pips stood here until 2026-09-07. What says how far the spec
-    // has come is the button's own label — the workflow is linear, so
-    // the phase it names is the first one still ahead.
-    expect(line).toContain(">Analyze</button>");
+    // The pips stood here until 2026-09-07 and the button until
+    // 2026-09-08. What the head line says now is the state, the time
+    // and the cost — the phase it would run next is one click in.
+    expect(line).not.toContain("<button");
     expect(line).not.toContain('class="pips"');
     expect(line).toContain("$1.50");
   });
@@ -119,13 +117,17 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(cell).not.toContain("Merge");
   });
 
-  // Spec 103 sent a reader to the open row to cancel; spec 157 brings
-  // the press back, because the State cell says "implementing" and the
-  // one thing to do about that is stop it.
-  test("a running collapsed row cancels the step it names (criterion 4)", () => {
+  // Spec 103 sent a reader to the open row to cancel; spec 157 brought
+  // the press back to the collapsed one, and 2026-09-08 sent it in
+  // again. The collapsed row says "implementing" and nothing else; the
+  // open row is where the one thing to do about that is offered.
+  test("a running row cancels the step it names, once opened (criterion 4)", () => {
+    const busy = [row({ id: "j1", specFolder: "103-busy", state: "running" })];
+    const shut = controlsLine(rows(busy, [target("103-busy")]), "103-busy");
+    expect(shut).not.toContain("<button");
+
     const cell = actionCell(
-      controlsLine(rows([row({ id: "j1", specFolder: "103-busy", state: "running" })], [target("103-busy")]),
-           "103-busy"),
+      controlsLine(rows(busy, [target("103-busy")], open("103-busy")), "103-busy"),
     );
     expect(cell).toContain('action="/api/queue/j1/cancel"');
     expect(cell).toContain(">Cancel</button>");
@@ -138,11 +140,15 @@ describe("spec 103: a collapsed row shows status only", () => {
   // to that very branch is the press the queue refuses — the collapsed
   // row offers it no more than the open one does. Cancel stays where
   // spec 103 put it: one click away, by opening the row.
-  test("a busy collapsed row with an unmerged branch offers no Merge either (spec 105)", () => {
+  test("a busy row with an unmerged branch offers no Merge either (spec 105)", () => {
     for (const state of ["queued", "running"] as const) {
       const cell = actionCell(
         controlsLine(
-          rows([row({ id: "j1", specFolder: "103-busy-branch", state })], [target("103-busy-branch")]),
+          rows(
+            [row({ id: "j1", specFolder: "103-busy-branch", state })],
+            [target("103-busy-branch")],
+            open("103-busy-branch"),
+          ),
           "103-busy-branch",
         ),
       );
@@ -161,11 +167,12 @@ describe("spec 103: a collapsed row shows status only", () => {
   // everything else is still waiting for. Criterion 4's empty cell
   // describes a state the list cannot hold — a spec whose archive
   // really finished has no row.
-  test("a collapsed row that has run everything still offers Archive (criterion 4)", () => {
+  test("a row that has run everything still offers Archive (criterion 4)", () => {
     const done = ["analyze", "implement", "archive"];
-    const cell = actionCell(controlsLine(rows([], [target("103-idle", { done })]), "103-idle"));
+    const cell = actionCell(
+      controlsLine(rows([], [target("103-idle", { done })], open("103-idle")), "103-idle"),
+    );
     expect(cell).toContain(">Archive</button>");
-    expect(cell).not.toContain('type="checkbox"');
   });
 
   test("with no open parameter at all, no row draws a phase line (criterion 7)", () => {
@@ -176,8 +183,10 @@ describe("spec 103: a collapsed row shows status only", () => {
       ],
       [target("103-a"), target("103-b"), target("103-c")],
     );
-    // Every row still offers its own one press (spec 157) — what none
-    // of them offers is a box to tick or a model to pick.
+    // And no row offers a press either: the action is on the caption
+    // line, and there are no subrows at all. Off the table alone — the
+    // search field above it has a Search button of its own.
+    expect(html.slice(html.indexOf("<tbody"))).not.toContain("<button");
     expect(html).not.toContain('<tr class="subrow');
     expect(html).not.toContain('type="checkbox"');
     expect(html).not.toContain('name="model.');
@@ -193,8 +202,8 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
     expect(line).toContain(">Analyze</button>");
-    // The button is in the header's State cell since spec 157; the
-    // boxes are on the phase lines below it.
+    // The button is in the caption line's State cell; the boxes are on
+    // the phase lines below it.
     expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Analyze</button>");
     expect(
       html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0],

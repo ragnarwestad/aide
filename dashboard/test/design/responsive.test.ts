@@ -74,12 +74,14 @@ describe("Started and Cost fold away at phone width", () => {
   // row less the chevron, the gap AND a little slack: the exact sum
   // wraps, because one fractional pixel in the row's width is enough to
   // drop the title under the chevron.
-  test("the head row is two lines: the title, then the button, the pips and the state", () => {
+  test("the head row is two lines: the title, then the state", () => {
     expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
     expect(NARROW).toContain(".spec-name { display: contents; }");
     expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
-    expect(NARROW).toMatch(/tr\.spechead \.actionslot \{ order: 1; margin-left: var\(--sp-3\); \}/);
-    expect(NARROW).toMatch(/tr\.spechead \.pipslot \{ order: 2; \}/);
+    // Orders 1 and 2 were the button's and the pips'. Both are off the
+    // head row now — the pips on 2026-09-07, the action on 2026-09-08 —
+    // and the badge keeps its own, so the title after it still lands on
+    // a line of its own.
     expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
     // After all three, never beside them: equal orders keep document
     // order, and this line is written in the FIRST cell — at the
@@ -178,13 +180,14 @@ describe("the list is as wide as the screen at phone width", () => {
   });
 });
 
-describe("the row's button, and the name beside it, at phone width", () => {
-  test("the desktop pushes the button to the name box's own end", () => {
-    expect(CSS).toContain(".spec-name > .actionslot { margin-left: auto;");
-  });
-
-  test("the narrow-width block gives it the row's own indent instead", () => {
-    expect(NARROW).toContain("table.list tr.spechead .actionslot { order: 1; margin-left: var(--sp-3); }");
+describe("the row's name at phone width", () => {
+  // The button stood at the end of the name box from 2026-09-07 to
+  // 2026-09-08, and each width had a rule for it. It rides the caption
+  // line the fold opens now, so a head row has no action to place —
+  // at any width — and both rules went with it.
+  test("no rule places an action in the head row, at either width", () => {
+    expect(CSS).not.toContain(".spec-name > .actionslot");
+    expect(NARROW).not.toContain("tr.spechead .actionslot");
   });
 
   // The title's width is the head row's own rule (the row less the
@@ -197,11 +200,12 @@ describe("the row's button, and the name beside it, at phone width", () => {
     expect((NARROW.match(/\.spec-name > \.label \{/g) ?? []).length).toBe(1);
   });
 
-  // The pips came off the list on 2026-09-07; the button took their
-  // place inside the name box, and that is what these rules select on.
-  test("the button is inside the name box the rules select on", () => {
-    expect(rows()).toMatch(/<div class="spec-name">[\s\S]*?<span class="actionslot">/);
+  // The pips came off the list on 2026-09-07 and nothing took their
+  // place: the name box holds the fold and the name, and that is what
+  // these rules select on.
+  test("the name box holds the name alone", () => {
     expect(rows()).not.toContain("pipslot");
+    expect(rows()).not.toContain("actionslot");
   });
 });
 

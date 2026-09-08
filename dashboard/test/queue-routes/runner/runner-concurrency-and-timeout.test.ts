@@ -390,7 +390,10 @@ describe("an over-charged cost survives the row mapping", () => {
     return mirror;
   }
 
-  const MARKER = '<span class="muted small">est.</span>';
+  // The figure's own tooltip since 2026-09-08: the word beside it did
+  // not fit the list's 4.5rem Cost column and wrapped onto a line of
+  // its own.
+  const MARKER = 'title="an estimate: a step that was stopped is charged its whole budget';
 
   test("the spec row marks a total it could not measure", async () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(false) });

@@ -121,23 +121,25 @@ describe("a spec's row runs its own phases", () => {
   // open a row to start the thing its own state line just named — and
   // what folding still hides is the CHOOSING, the phase boxes and the
   // model pickers on the lines beneath.
-  test("folding hides the phase boxes, never the press itself", () => {
+  test("folding hides the phase boxes and the press with them", () => {
     const shut = rows([], [target("94-never-run")], { filter: {} });
     expect(shut).not.toContain('<tr class="subrow');
     expect(shut).not.toContain('type="checkbox" name="steps"');
-    // The phases a press would run travel as hidden fields instead, so
-    // a shut row's button posts exactly what its label says.
-    expect(head(shut, "94-never-run")).toContain('method="post" action="/api/queue"');
-    expect(head(shut, "94-never-run")).toContain('<input type="hidden" name="steps" value="analyze">');
-    expect(head(shut, "94-never-run")).toContain(">Analyze</button>");
+    // And no press either since 2026-09-08: the action rides the
+    // caption line, which is part of what the fold opens. The hidden
+    // `steps` fields a shut row's button used to post went with it —
+    // the boxes are the only source of `steps` now.
+    expect(head(shut, "94-never-run")).not.toContain('method="post" action="/api/queue"');
+    expect(head(shut, "94-never-run")).not.toContain('<input type="hidden" name="steps"');
+    expect(head(shut, "94-never-run")).not.toContain("<button");
 
     const open = rows([], [target("94-never-run")], { filter: { open: "aide/94-never-run" } });
     const line = runLine(open, "94-never-run");
     expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('type="checkbox" name="steps" value="analyze"');
-    // The button is in the header row's State cell either way, beside
-    // the badge whose sentence it finishes (spec 157).
-    expect(head(open, "94-never-run")).toContain(">Analyze</button>");
+    // The button is in the caption line's State cell, under the column
+    // whose badge its label finishes.
+    expect(line).toContain(">Analyze</button>");
     // And an OPEN row's form carries no phases of its own: the boxes
     // are the reader's, and a hidden field would outvote them.
     expect(head(open, "94-never-run")).not.toContain('type="hidden" name="steps"');

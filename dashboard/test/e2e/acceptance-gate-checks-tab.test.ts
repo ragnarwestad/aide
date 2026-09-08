@@ -122,7 +122,13 @@ describe("the acceptance gate, on a page a person could click", () => {
     // save — the same short settle `specs-page-layout.test.ts`'s beforeAll
     // waits out after a git-history change lands.
     await new Promise((r) => setTimeout(r, 300));
-    await withTimeout(page.goto(`${base}/?token=${TOKEN}&live=0`), 10_000, "page.goto(/) again");
+    // Open: the row's one action rides the caption line the fold opens
+    // (2026-09-08), so a shut row has no button to press.
+    await withTimeout(
+      page.goto(`${base}/?token=${TOKEN}&live=0&open=aide%2F${FOLDER}`),
+      10_000,
+      "page.goto(/) again",
+    );
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     const noticeCount = await notice.count();
     const noticeText = noticeCount > 0 ? await notice.textContent() : "";

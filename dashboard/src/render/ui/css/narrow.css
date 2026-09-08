@@ -98,12 +98,9 @@
      too and the row orders all three itself. */
   table.list tr.spechead > td:nth-child(2) { display: contents; }
   table.list tr.spechead > td:nth-child(2) > .row { display: contents; }
-  /* The button leads line 2, and the cell padding that used to stand
-     to its left went with the cell (dissolved above). The 12px back is
-     the phase lines' own left padding: line 2 starts where the phase
-     names under it start. */
-  table.list tr.spechead .actionslot { order: 1; margin-left: var(--sp-3); }
-  table.list tr.spechead .pipslot { order: 2; }
+  /* The badge leads line 2. The button led it until 2026-09-08, when
+     the row's one action moved onto the caption line the fold opens —
+     a head row has none to order. */
   table.list tr.spechead .badgeslot { order: 3; }
   /* The spec's own summary line, under all three. `order: 3` — the
      badge's own — put it BEFORE the badge: equal orders keep document
@@ -160,7 +157,6 @@
      side with the ordinary gap once space-between's old reserved space
      (REQ-4, spec 379) is gone. */
   table.list tr.spechead > td > .row { width: auto; justify-content: flex-start; }
-  table.list tr.spechead .actionslot { width: auto; }
   /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
      end, in a different place on every row. On the holder, never the

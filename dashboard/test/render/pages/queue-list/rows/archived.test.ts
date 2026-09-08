@@ -279,11 +279,20 @@ describe("spec 221: archived specs on the spec list", () => {
   });
 
   test("an archived row draws no control the server would refuse", () => {
-    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: { state: "archived" } });
-    expect(html).toContain("Reopen");
-    expect(html).not.toContain("<select");
-    expect(html).not.toContain('type="checkbox"');
-    expect(html).not.toContain('class="rowrun"');
+    const shut = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: { state: "archived" } });
+    expect(shut).not.toContain("<select");
+    expect(shut).not.toContain('type="checkbox"');
+    expect(shut).not.toContain('class="rowrun"');
+    // A locked row's one action is Reopen, and it rides the caption
+    // line the fold opens like every other row's (2026-09-08). The Run
+    // form is still not there — Reopen carries its own.
+    const open = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      filter: { state: "archived", open: "aide/50-archived" },
+    });
+    expect(open).toContain("Reopen");
+    expect(open).not.toContain("<select");
+    expect(open).not.toContain('class="rowrun"');
   });
 
   test("and carries the not-landed mark when its branch is still open", () => {

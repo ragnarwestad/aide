@@ -4,7 +4,7 @@ import {
   type QueueRowView,
   type QueueTarget,
 } from "../../../../../src/render.ts";
-import { row } from "../../fixtures.ts";
+import { openKeys, row } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status.ts";
 
 // Split out of listing-and-units.test.ts by theme.
@@ -14,8 +14,16 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     specFolder,
     ...extra,
   });
+  // Open: several of these read the button that names the next phase,
+  // and since 2026-09-08 that button rides the caption line the fold
+  // opens. The head line this describe is about is drawn the same way
+  // either way.
   const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
-    renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
   // The sentence used to sit in the state cell, under the badge it
   // explained. Spec 174 removed it and the div it filled: the button
   // beside the badge names the phase it would run, so the sentence

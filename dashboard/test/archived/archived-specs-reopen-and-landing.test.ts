@@ -100,7 +100,13 @@ describe("an archived spec whose branch is still on origin", () => {
     const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain('class="rowrun"');
-    expect(row).toContain("Reopen");
+    // Reopen is on the caption line the fold opens, like every other
+    // row's one action (2026-09-08).
+    const openBlock = blockFor(
+      await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`),
+      STAMPED,
+    );
+    expect(openBlock).toContain("Reopen");
     // Spec 224: the same row means the same row OPEN too — the fold and
     // the phase lines under it, not a second shape wearing the mark.
     expect(row).toContain('class="fold');
@@ -173,7 +179,10 @@ describe("pressing Reopen", () => {
   });
 
   test("the row's form is the one that carries the mark", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
-    expect(row).toContain('name="fromList" value="1"');
+    const block = blockFor(
+      await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`),
+      STAMPED,
+    );
+    expect(block).toContain('name="fromList" value="1"');
   });
 });

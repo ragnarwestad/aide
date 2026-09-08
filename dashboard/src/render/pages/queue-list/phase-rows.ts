@@ -86,7 +86,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // heads what it is set to do. Spec 157 put the button on the shut row
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
-  const action = stateAction(g, opts, true);
+  const action = stateAction(g, opts);
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,

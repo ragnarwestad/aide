@@ -22,9 +22,9 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-") {
   return { harness, start };
 }
 
-/** One spec's header row, which since spec 94 is where its Run control
- *  lives — and the only line of the spec a collapsed row leaves in the
- *  page. */
+/** One spec's header row: what the spec IS, and the only line of it a
+ *  collapsed row leaves in the page. Its Run control moved onto the
+ *  caption line the fold opens (2026-09-08). */
 export const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
@@ -37,9 +37,9 @@ export const specPanel = (html: string, folder: string): string =>
 
 /** Everything an OPEN row draws: its header line and the phase lines
  *  under it. Since spec 124 the row's controls are split across the
- *  two — Run and the other buttons stand in the header's own first
- *  cell, each phase's checkbox on the phase's own line — so a test
- *  about "what the row offers" reads the whole group. */
+ *  two — the row's one action on the caption line, each phase's
+ *  checkbox on the phase's own line — so a test about "what the row
+ *  offers" reads the whole group. */
 export const specControls = (html: string, folder: string): string =>
   html.match(
     new RegExp(
