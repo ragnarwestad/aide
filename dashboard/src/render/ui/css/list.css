@@ -102,9 +102,18 @@ thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
   border-bottom: 1px solid var(--line); }
 table.list { background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); }
-table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); }
-table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
+/* The space between two columns is ONE cell's padding, not two
+   (2026-09-08): 12px on each side of every cell put 24px between every
+   pair, and neither half was meant as the gap. The left one is kept
+   because it is also the indent a phase line reads as — the right one
+   is dropped, and the last column's own edge is the table's padding
+   below. */
+table.list th { padding: var(--sp-2) 0 var(--sp-2) var(--sp-3); background: var(--surface-2); }
+table.list td { padding: 10px 0 10px var(--sp-3); border-bottom: 1px solid var(--line);
   vertical-align: middle; }
+/* Except against the table's own right edge, where the cost would
+   otherwise sit flush on the border. */
+table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3); }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
