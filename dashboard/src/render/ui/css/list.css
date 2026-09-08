@@ -85,8 +85,13 @@ table.settingstable { width: auto; }
    their AI/model controls; State is
    `.badgeslot` + the row's gap + `.actionslot` (rows-and-forms.css);
    then the date, the longest duration and the largest cost. */
-table.speclist > colgroup > col[data-col="spec"] { width: 8rem; }
-table.speclist > colgroup > col[data-col="phase"] { width: 21.5rem; }
+/* The Spec column carries one thing of its own: a phase line's name,
+   the longest of which is "implement". 5.5rem is that word plus the
+   cell's own left padding — the same 4.7rem the phone gives it. The
+   width the column gives up goes to Phase beside it, so the head row's
+   name cell, which spans them both, is unchanged. */
+table.speclist > colgroup > col[data-col="spec"] { width: 5.5rem; }
+table.speclist > colgroup > col[data-col="phase"] { width: 24rem; }
 table.speclist > colgroup > col[data-col="state"] { width: 11rem; }
 table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
 table.speclist > colgroup > col[data-col="started"] { width: 4.5rem; }
