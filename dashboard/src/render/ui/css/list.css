@@ -33,7 +33,7 @@
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
-  --speclist-width: 56rem; }
+  --speclist-width: 52rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -91,7 +91,14 @@ table.settingstable { width: auto; }
    width the column gives up goes to Phase beside it, so the head row's
    name cell, which spans them both, is unchanged. */
 table.speclist > colgroup > col[data-col="spec"] { width: 5.5rem; }
-table.speclist > colgroup > col[data-col="phase"] { width: 24rem; }
+/* What a phase line actually puts here, measured in a browser with this
+   stylesheet: the AI/model pair (256px), the tick box (37) and the gap
+   and the cell's own left padding — 313px, so 20rem with a little over.
+   The column held 24 for as long as the slack was really the head row's:
+   its title and button span this column and Spec beside it, and they
+   keep whatever is left. 19rem is NOT enough — the model select wraps
+   onto a second line, and the whole open row grows a line with it. */
+table.speclist > colgroup > col[data-col="phase"] { width: 20rem; }
 table.speclist > colgroup > col[data-col="state"] { width: 11rem; }
 table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
 table.speclist > colgroup > col[data-col="started"] { width: 4.5rem; }
