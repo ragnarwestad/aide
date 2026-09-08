@@ -48,7 +48,7 @@ export type { NavEntry } from "./render/ui/shell.ts";
 
 export { backLink, resolveBackHref } from "./render/ui/components.ts";
 
-export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
+export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
 export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
 
 // /schedule (spec 272): the aggregate page listing every allowed

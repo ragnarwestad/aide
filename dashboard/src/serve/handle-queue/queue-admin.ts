@@ -10,7 +10,7 @@ import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin.ts";
-import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_STEPS } from "../../render.ts";
+import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -60,10 +60,10 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
-    const unknown = Object.keys(table).find((step) => !(SETTINGS_STEPS as readonly string[]).includes(step));
+    const unknown = Object.keys(table).find((step) => !(SETTINGS_ROWS as readonly string[]).includes(step));
     if (unknown) return refuse(`unknown workflow step: ${unknown}`);
     const next: Record<string, string> = {};
-    for (const step of SETTINGS_STEPS) {
+    for (const step of SETTINGS_ROWS) {
       const value = table[step];
       if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
       if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
@@ -92,7 +92,7 @@ export async function handleQueueAdminRoutes(
     }
     const minutesTable = askedTimeout as Record<string, unknown>;
     const timeoutSec: Record<string, number> = {};
-    for (const step of SETTINGS_STEPS) {
+    for (const step of SETTINGS_ROWS) {
       // Minutes on this route (matching the form and the existing
       // render/job-state.ts:145 display convention) — converted to
       // seconds, the unit every reader of `queue.defaults.timeoutSec`

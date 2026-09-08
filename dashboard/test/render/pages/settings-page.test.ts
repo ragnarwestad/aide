@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { renderSettingsPage } from "../../../src/render.ts";
+import { renderSettingsPage, SETTINGS_STEPS } from "../../../src/render.ts";
+import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 
 const MODELS = [
   { name: "sonnet", budgetUsd: 3, tool: "claude" as const },
@@ -19,7 +20,7 @@ describe("Settings page", () => {
     expect(html).toContain('action="/api/queue/settings"');
     expect(html).toContain('name="budgetUsd"');
     expect(html).toContain('name="jobCapUsd"');
-    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"]) {
+    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
       expect(html).toContain(`name="timeoutSec.${step}"`);
     }
     expect(html).not.toContain('name="model.explore"');
@@ -32,7 +33,7 @@ describe("Settings page", () => {
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
 
-    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"]) {
+    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
       expect(html).toContain(`name="model.${step}"`);
       expect(html).toContain(`data-ai="model.${step}"`);
       expect(html).toContain(`name="timeoutSec.${step}"`);
@@ -49,6 +50,33 @@ describe("Settings page", () => {
     expect(html).toContain('name="jobCapUsd" value="10"');
     expect(html).toContain('action="/api/queue/settings"');
     expect(html).toContain('href="/"');
+  });
+
+  // Spec 420, REQ-2, criterion 3: the fallback every un-rowed lookup
+  // reads (`table[step] ?? table.default`) gets its own row too, so it
+  // is visible and editable rather than only reachable by hand-editing
+  // queue-config.json.
+  test("REQ-2: a Default row shows and edits the fallback AI, model and timeout", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet", implement: "codex-fast" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+    });
+    const row = html.match(/<tr[^>]*data-step="default"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(row).toContain('data-ai="model.default"');
+    expect(row).toContain('name="model.default"');
+    expect(row).toContain('name="timeoutSec.default"');
+    expect(row).toContain(">Default<");
+    expect(row).toContain('value="sonnet"');
+    // TIMEOUT_SEC.default is 1200s -> 20 minutes.
+    expect(row).toContain('name="timeoutSec.default" value="20"');
+  });
+
+  // Spec 420, REQ-3, criterion 5: the settings rows come FROM the
+  // canonical step list rather than a hand-picked copy of it, so a step
+  // this codebase adds to workflow-steps.json cannot end up without one.
+  test("REQ-3: SETTINGS_STEPS is WORKFLOW_STEPS", () => {
+    expect(SETTINGS_STEPS).toBe(WORKFLOW_STEPS);
   });
 
   // `pageShell()` is told `hideHeading: true`, and the page's own

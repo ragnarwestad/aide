@@ -3,9 +3,18 @@ import { esc } from "../ui/html.ts";
 import { backLink, btn } from "../ui/components.ts";
 import type { Language } from "../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
+import { WORKFLOW_STEPS } from "../../queue/steps.ts";
 
 export const SETTINGS_ROUTE = "/settings";
-export const SETTINGS_STEPS = ["explore", "create", "analyze", "implement", "archive", "close", "manifest", "reopen"] as const;
+// Every step the queue can run gets a row (spec 420) — derived from the
+// canonical list rather than hand-picked, so a step this codebase adds
+// to workflow-steps.json cannot end up without one.
+export const SETTINGS_STEPS = WORKFLOW_STEPS;
+// "default" is the fallback every un-rowed lookup already reads
+// (parse-request.ts's perStep, runner-argv.ts's resolveStepModel) — its
+// own row, not a workflow step, so it rides beside SETTINGS_STEPS
+// rather than inside it.
+export const SETTINGS_ROWS = [...SETTINGS_STEPS, "default"] as const;
 
 export interface SettingsPageOptions {
   modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[];
@@ -29,7 +38,10 @@ export interface SettingsPageOptions {
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   explore: "Explore", create: "Create", analyze: "Analyze", implement: "Implement",
   archive: "Archive", close: "Close", manifest: "Manifest", reopen: "Reopen",
+  reset: "Reset", schedule: "Schedule",
 };
+const rowLabel = (step: (typeof SETTINGS_ROWS)[number]): string =>
+  step === "default" ? "Default" : LABELS[step];
 
 // The only other place this codebase already displays a timeout
 // (render/job-state.ts:145) shows it in minutes, not seconds.
@@ -41,12 +53,12 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   // budgetUsd/jobCapUsd/timeoutSec are meaningful and already enforced
   // (runner.ts) even on a server with no modelChoices configured — only
   // the AI/model columns depend on a choice actually being offered.
-  const rows = SETTINGS_STEPS.map((step) => {
+  const rows = SETTINGS_ROWS.map((step) => {
     const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
-    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${LABELS[step]}" ` +
+    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${rowLabel(step)}" ` +
       `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
     if (!models.length) {
-      return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>${timeoutCell}</tr>`;
+      return `<tr data-step="${step}"><th scope="row">${rowLabel(step)}</th>${timeoutCell}</tr>`;
     }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
     const chosen = resolveChosenModel(models, configured, undefined);
@@ -57,9 +69,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       const preferred = defaultModelForTool(models, name, configured);
       return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
     }).join("");
-    return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>` +
-      `<td><select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
-      `<td><select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
+    return `<tr data-step="${step}"><th scope="row">${rowLabel(step)}</th>` +
+      `<td><select aria-label="AI for ${rowLabel(step)}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
+      `<td><select aria-label="Model for ${rowLabel(step)}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
       `${timeoutCell}</tr>`;
   }).join("");
   const message = opts.error ?? opts.notice ?? "";

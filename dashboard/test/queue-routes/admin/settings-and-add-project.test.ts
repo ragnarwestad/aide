@@ -5,6 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
+import { SETTINGS_ROWS } from "../../../src/render.ts";
 import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -58,7 +59,6 @@ const projectsIn = (file: string): string[] =>
   (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
 
 describe("Settings routes (spec 232)", () => {
-  const STEPS = ["explore", "create", "analyze", "implement", "archive", "close", "manifest", "reopen"];
   const DEFAULTS = {
     budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
     timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
@@ -66,8 +66,8 @@ describe("Settings routes (spec 232)", () => {
     modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
   };
   const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-  const validModel = Object.fromEntries(STEPS.map((step) => [step, "sonnet"]));
-  const validTimeoutSec = Object.fromEntries(STEPS.map((step) => [step, 30]));
+  const validModel = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"]));
+  const validTimeoutSec = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, 30]));
   const validBody = { model: validModel, budgetUsd: 5, jobCapUsd: 15, timeoutSec: validTimeoutSec };
 
   test("GET is guarded and renders the live defaults", async () => {
@@ -134,7 +134,7 @@ describe("Settings routes (spec 232)", () => {
       method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
     const first = (await accepted.json()) as { job: { model: Record<string, string> } };
-    const model = Object.fromEntries(STEPS.map((step) => [step, "codex-fast"]));
+    const model = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "codex-fast"]));
     const saved = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH, body: JSON.stringify({ model, budgetUsd: 6, jobCapUsd: 18, timeoutSec: validTimeoutSec }),
     });
@@ -167,13 +167,42 @@ describe("Settings routes (spec 232)", () => {
     expect(readFileSync(file, "utf-8")).not.toContain('"budgetUsd": 20');
   });
 
+  // REQ-2, criterion 4: a save that includes model.default and
+  // timeoutSec.default persists them like any other row's values.
+  test("a save with model.default and timeoutSec.default persists them", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const res = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" }, timeoutSec: { ...validTimeoutSec, default: 45 } }),
+    });
+    expect(res.status).toBe(200);
+    const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string>; timeoutSec: Record<string, number> };
+    expect(saved.model.default).toBe("codex-fast");
+    expect(saved.timeoutSec.default).toBe(45 * 60);
+  });
+
+  // REQ-4, criterion 7: a save whose model object is missing the
+  // "default" key is refused, and nothing on disk changes.
+  test("a save missing model.default is refused and changes nothing", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const modelWithoutDefault = Object.fromEntries(Object.entries(validModel).filter(([step]) => step !== "default"));
+    const res = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: modelWithoutDefault }),
+    });
+    expect(res.status).toBe(400);
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
+  });
+
   test("invalid input and missing config leave live defaults unchanged", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
     for (const model of [
       { analyze: "sonnet" },
-      { ...Object.fromEntries(STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
-      Object.fromEntries(STEPS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
+      { ...Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"])), extra: "sonnet" },
+      Object.fromEntries(SETTINGS_ROWS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
     ]) {
       const res = await fetch(`${base}/api/queue/settings`, {
         method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, model }),
