@@ -114,3 +114,53 @@ describe("spec 388, REQ-9: a branch that exists only on origin", () => {
     expect(stderr).toContain("no such branch: never-existed");
   });
 });
+
+// 2026-09-08: the fetch used to happen only when the local branch was
+// MISSING, so a second round for the same branch served whatever that
+// checkout happened to hold — an older tip, silently, while the
+// dashboard's own registry said it was serving origin's. Seen twice in
+// one evening: a board came up on the commit before the one just
+// pushed.
+describe("a branch the checkout already has, moved on since", () => {
+  test("is served at origin's tip, not at the older local one", async () => {
+    const originBare = tmp("aide-round-origin-");
+    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
+
+    const seed = tmp("aide-round-seed-");
+    git(seed, ["init", "-q", "-b", "main"]);
+    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
+    git(seed, ["add", "-A"]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
+    git(seed, ["remote", "add", "origin", originBare]);
+    git(seed, ["push", "-q", "origin", "main"]);
+    git(seed, ["checkout", "-q", "-b", "feature-x"]);
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// first\n");
+    git(seed, ["add", "-A"]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "first"]);
+    git(seed, ["push", "-q", "origin", "feature-x"]);
+
+    // The checkout the round runs from knows the branch at its FIRST tip.
+    const aide = tmp("aide-round-aide-");
+    git(tmpdir(), ["clone", "-q", originBare, aide]);
+    git(aide, ["branch", "-q", "feature-x", "origin/feature-x"]);
+    const older = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
+
+    // And then the branch moves on origin.
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// second\n");
+    git(seed, ["add", "-A"]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "second"]);
+    git(seed, ["push", "-q", "origin", "feature-x"]);
+    const newer = Bun.spawnSync({ cmd: ["git", "-C", seed, "rev-parse", "feature-x"] }).stdout.toString().trim();
+    expect(newer).not.toBe(older);
+
+    const decoy = decoyPort();
+    try {
+      await runToExit([aide, "--branch", "feature-x", "--port", String(decoy.port), "--timeout", "5"]);
+    } finally {
+      decoy.stop();
+    }
+    const served = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
+    expect(served).toBe(newer);
+  });
+});
