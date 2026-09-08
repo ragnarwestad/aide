@@ -101,6 +101,10 @@ const STRUCTURE = [
   // click until the new document arrives (spec 314): the same
   // `<dialog>` shape About and the confirm box are.
   "pageoverlay",
+  // The line that layer carries when the wait is long enough that a
+  // spinner alone says too little — a deploy, which takes the service
+  // down under the page. A navigation passes none and it stays hidden.
+  "overlaynote",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

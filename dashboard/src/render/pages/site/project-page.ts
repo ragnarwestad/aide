@@ -135,7 +135,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         : undefined;
 
   const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform" data-overlay="deploying…">` +
     tokenField(opts.token) +
     btn({
       label: "Deploy",

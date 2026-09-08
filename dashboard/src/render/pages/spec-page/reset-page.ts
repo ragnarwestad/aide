@@ -37,7 +37,7 @@ export function renderResetSpecPage(
     rowMessage("waiting", `Are you sure you want to reset ${specFolder}? This cannot be undone.`, {
       tag: "p",
     }) +
-    `<form method="post" action="/api/queue${back}/reset" class="newspecform">` +
+    `<form method="post" action="/api/queue${back}/reset" class="newspecform" data-overlay="resetting…">` +
     tokenField(opts.token) +
     // Cancel is a LINK wearing the button's look: it submits nothing,
     // and where it goes is the page the reader came from. Inside the

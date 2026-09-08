@@ -192,6 +192,11 @@ export function bindProposals(form: HTMLFormElement): void {
 export async function submitDeploy(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
+  // The covering layer is raised by the press itself, off this form's
+  // own `data-overlay` (press.ts) — the same way Reset, Close and Remove
+  // project ask for it. What is left here is the ONE thing a deploy has
+  // that they do not: a second, longer wait after the answer, which the
+  // layer has to say something else about.
   await postForm(
     form,
     async (answer) => {
@@ -211,12 +216,24 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
       }
       if (answer?.restarting) {
         formNote(form, "deployed — the dashboard is restarting; this page reloads when it is back");
+        // Said on the layer too: the note under the button is behind it.
+        overlay("deployed — the dashboard is restarting; this page reloads when it is back");
         await waitForServer();
       }
       location.reload();
     },
+    // A refusal uncovers the page on its way out of `postForm`, so this
+    // is the note alone.
     (why) => formNote(form, why),
   );
+}
+
+/** Ask `nav-overlay.ts` (the shell's head script) to say something else
+ *  on the layer already covering the page. By event because that file is
+ *  an IIFE with nothing to import — one covering layer for the whole
+ *  dashboard, not a second one here. */
+function overlay(note: string): void {
+  document.dispatchEvent(new CustomEvent("aide-overlay-open", { detail: note }));
 }
 
 /** Poll the current page until the server answers it again. Exported

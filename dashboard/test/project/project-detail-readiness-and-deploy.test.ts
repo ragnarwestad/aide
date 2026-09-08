@@ -527,6 +527,13 @@ describe("the nav does not name the projects", () => {
 // restart it triggers empties the answer and the reader's next page load
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
+  test("Deploy's form asks for the covering layer, like Reset and Close", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="deploying…"');
+  });
+
   test("no answer yet: the Deploy tab carries a refresh", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // Poll off, so the answer never arrives: the same state a page drawn

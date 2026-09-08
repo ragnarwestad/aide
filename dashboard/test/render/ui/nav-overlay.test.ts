@@ -40,11 +40,15 @@ function harness() {
   };
   let clickHandler: ((event: unknown) => void) | undefined;
   let submitHandler: ((event: unknown) => void) | undefined;
+  // Every other listener by name, so the two events the Deploy press
+  // raises can be fired at this document the way the browser fires them.
+  const others = new Map<string, (event: unknown) => void>();
   const document = {
     body,
     addEventListener: (type: string, fn: (event: unknown) => void) => {
       if (type === "click") clickHandler = fn;
-      if (type === "submit") submitHandler = fn;
+      else if (type === "submit") submitHandler = fn;
+      else others.set(type, fn);
     },
   };
   let pageshowHandler: ((event: unknown) => void) | undefined;
@@ -91,12 +95,15 @@ function harness() {
     matches: (sel: string) => sel === ".specform" && className === "specform",
   });
 
+  const emit = (type: string, detail?: string) => others.get(type)?.({ type, detail });
+
   return {
     click,
     link,
     pageshow,
     submit,
     form,
+    emit,
     isOpen: () => !!dialog?.open,
     wasInserted: () => insertedHTML !== null,
     insertedHTML: () => insertedHTML,
@@ -243,5 +250,46 @@ describe("a Save form's submit covers the page until the answer comes back (REQ-
     // exactly as a second click would. The click's own timer still
     // opens the overlay once it elapses (proven elsewhere in this file).
     expect(h.isOpen()).toBe(false);
+  });
+});
+
+// Deploy is not a navigation, so none of the above reaches it — but it
+// takes the page away just as thoroughly: the service restarts under it
+// and the page reloads when the server answers again. It asks for this
+// same layer by event, rather than a second one of its own.
+describe("the covering layer can be asked for by event, for work that is not a navigation", () => {
+  test("an aide-overlay-open event covers the page at once, with no delay to wait out", () => {
+    const h = harness();
+    h.emit("aide-overlay-open", "deploying…");
+    expect(h.isOpen()).toBe(true);
+  });
+
+  test("the layer has a place for the note a wait this long needs", () => {
+    const h = harness();
+    h.emit("aide-overlay-open", "deploying…");
+    expect(h.insertedHTML()).toContain('class="overlaynote"');
+    expect(h.insertedHTML()).toContain('class="spin"');
+  });
+
+  test("an aide-overlay-close event uncovers it again — a refused deploy leaves the page to be read", () => {
+    const h = harness();
+    h.emit("aide-overlay-open", "deploying…");
+    h.emit("aide-overlay-close");
+    expect(h.isOpen()).toBe(false);
+  });
+
+  test("closing one that was never opened does nothing", () => {
+    const h = harness();
+    h.emit("aide-overlay-close");
+    expect(h.isOpen()).toBe(false);
+  });
+
+  test("a link click already waiting out its delay is overtaken, not queued behind", async () => {
+    const h = harness();
+    h.click(h.link("/projects"));
+    h.emit("aide-overlay-open", "deploying…");
+    expect(h.isOpen()).toBe(true);
+    await new Promise((r) => setTimeout(r, DELAY_MS + 20));
+    expect(h.isOpen()).toBe(true);
   });
 });
