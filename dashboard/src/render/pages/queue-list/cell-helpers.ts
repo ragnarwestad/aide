@@ -54,6 +54,12 @@ export const phaseWordCell = (
    *  something else changed. The mark brings its own `<span>`, so it
    *  needs no wrapper of ours. */
   aside = "",
+  /** How many times this phase has been run, when it is more than once.
+   *  Inside the badge — "done (2)" — rather than beside it: two marks
+   *  for one fact read as two facts, and the pill is where the phase's
+   *  own state is said. The word is in the badge's title, since "(2)"
+   *  alone does not say what it counts. */
+  attempts = 0,
 ): string =>
   // `w.qualifier` is NOT drawn here, and there is nowhere in this cell
   // it could be (spec 195). It is a sentence, and spec 176's "beside
@@ -65,7 +71,18 @@ export const phaseWordCell = (
   // panel says it instead (`phaseDisagreement`/`specNoticeRow`), once
   // for the whole spec and named for the phase it is about, so a phase
   // line is one line in every state a phase can be in.
-  (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
+  (w.badge
+    ? badge(
+        w.badge.variant,
+        attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
+        attempts > 1 ? `${attempts} attempts` : undefined,
+      )
+    // A phase can have attempts behind it and still read "not run yet":
+    // the FILES decide the word, and two failed runs leave them saying
+    // nothing happened. The count rides on that text instead, the same
+    // way it rides in the badge above.
+    : `<span class="muted small"${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
+      `not run yet${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
   (aside ? ` ${aside}` : "");
 
 /** The spec header row's own time cell: what its phases have come to so

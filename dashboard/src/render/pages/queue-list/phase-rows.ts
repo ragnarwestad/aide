@@ -139,14 +139,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // earliest of them, or once the phase is archived and the queue
       // has nothing left for it at all.
       const attemptCount = Math.max(p.attempts.length, p.attemptCount ?? 0);
-      // The count alone where it is drawn, and the word in the title:
-      // "done (2)" beside a state word is short enough for the column
-      // it shares, and a reader who wonders what the 2 counts gets
-      // "2 attempts" on hover.
-      const tries =
-        attemptCount > 1
-          ? `<span class="muted small" title="${attemptCount} attempts">(${attemptCount})</span>`
-          : "";
+
       // Live although the row is busy (spec 160): a phase this run has
       // not reached, which the reader may add to it or drop from it as
       // the run goes.
@@ -302,7 +295,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
+          `<td>${phaseWordCell(word, stale, attemptCount)}</td>` +
           // Blank: a phase line has no creation date of its own to
           // draw — only alignment with the head row's real cell (spec
           // 317, LIST_COLUMNS).

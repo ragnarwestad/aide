@@ -220,11 +220,10 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const line = subRow(html, "analyze");
     expect(line).not.toContain("<div class=\"muted small\">");
-    // The note is still there, in the same flow as the badge — no
-    // block-level wrapper between the two. The count alone is what is
-    // drawn since 2026-09-08, with the word in its title: "done (2)"
-    // shares a column with the state, and 2 attempts is a hover away.
-    expect(line).toMatch(/<\/span>\s*<span class="muted small" title="2 attempts">\(2\)<\/span>/);
+    // The count is IN the badge since 2026-09-08 — "done (2)", with the
+    // word in the pill's own title. Two marks for one fact read as two
+    // facts, and the pill is where the phase's state is said.
+    expect(line).toMatch(/<span class="badge b-[a-z]+" title="2 attempts">[a-z]+ \(2\)<\/span>/);
   });
 
   // --- the gap the description asked to close --------------------------------

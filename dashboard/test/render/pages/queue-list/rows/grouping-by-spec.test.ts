@@ -73,7 +73,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
     expect(analyze).not.toContain('href="/specs/newer"');
     expect(analyze).not.toContain('href="/specs/older"');
-    expect(analyze).toContain("2 attempts");
+    // The count rides with the phase's own word since 2026-09-08 — in
+    // the badge when there is one, and on "not run yet" when the files
+    // say nothing happened, as here: two attempts, both failed, and the
+    // spec's own file still names none of them.
+    expect(analyze).toMatch(/title="2 attempts">not run yet \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
