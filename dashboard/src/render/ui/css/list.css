@@ -168,15 +168,14 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
-  /* 27rem since the pips joined this line and the Progress column went
-     with them (2026-08-22): the row is one column shorter, and 18rem
-     clamped a name to "194-archive-decides-on-th…" with the width
-     standing empty to the right of it.
-     A WIDTH, not a maximum (2026-08-23): a short name left the pips
-     sitting further left than a long one's, so they stepped in and out
-     down the column instead of forming one. The name still truncates
-     at the same place; what is fixed is where the line ends. */
-  width: 27rem; }
+  /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
+     2026-08-22, and that number was about the PIPS: they sat at the end
+     of this box, and a box that changed width with the name would have
+     stepped them in and out down the column. The pips are off the list
+     now, and what sits at the end is the button — whose column is the
+     cell's own edge, one fixed width to the right. The box holding a
+     width of its own only left 28px of nothing between the two. */
+  width: auto; }
 /* The second line lands flush with the first — it is the same box, not
    a hanging indent — because the box's own left edge already sits
    right after the fold control, exactly where the first line starts. */
