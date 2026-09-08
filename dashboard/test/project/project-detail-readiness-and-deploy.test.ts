@@ -520,3 +520,38 @@ describe("the nav does not name the projects", () => {
     expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects", "Schedule"]);
   });
 });
+
+// A page rendered before the background drift poll has answered says
+// "not checked yet" and, since nothing re-renders this page, keeps
+// saying it — which is exactly what a Deploy press produces, because the
+// restart it triggers empties the answer and the reader's next page load
+// beats the first poll back. The sentence has to correct itself.
+describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
+  test("no answer yet: the Deploy tab carries a refresh", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    // Poll off, so the answer never arrives: the same state a page drawn
+    // in the seconds after a restart is in.
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    expect(html).toContain("has not been checked yet");
+    expect(html).toContain('<meta http-equiv="refresh"');
+  });
+
+  test("no answer yet, but on Config: no refresh, because its forms would be cleared mid-edit", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
+    expect(html).not.toContain('<meta http-equiv="refresh"');
+  });
+
+  test("once the answer is there, the Deploy tab stops refreshing", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, behindBy(root, "aide", 0), 25);
+    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
+    expect(html).not.toContain('<meta http-equiv="refresh"');
+  });
+
+  test("a project with no install command has nothing to wait for, so no refresh", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    expect(html).not.toContain('<meta http-equiv="refresh"');
+  });
+});

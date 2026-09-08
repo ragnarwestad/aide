@@ -18,6 +18,14 @@ import type { ProjectPageOptions, ProjectView } from "./types.ts";
  *  endings (spec 258): the list's own `driftNote` in `projects-page.ts`
  *  appends " — deploy is a hand step", which would contradict the
  *  Deploy button this file draws right beside the same words. */
+/** How long a Deploy tab that has no origin answer yet waits before
+ *  asking for itself again. The answer is taken by a background poll,
+ *  not by this render, so the only page that can be wrong is one drawn
+ *  in the seconds before the first poll returns — a restart's own first
+ *  page load, every time. Long enough for a `git fetch` to finish,
+ *  short enough that nobody reads the stale sentence twice. */
+const AWAITING_DRIFT_REFRESH_SECONDS = 5;
+
 export const driftPrefix = (behind: number, checkedAt: number, now: number): string =>
   `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
   `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
@@ -260,8 +268,16 @@ export function renderProjectPage(
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
     : configSection(settings, p.name, readiness, opts);
 
+  // "Whether this checkout is behind origin has not been checked yet" is
+  // true when it is drawn and false a second or two later, and nothing
+  // re-renders this page — so it sat there until the reader changed tab.
+  // Ask for the page again, once the answer has had time to arrive, and
+  // only on the tab whose sentence goes stale: Config and Schedule carry
+  // forms a reload would clear from under someone mid-edit.
+  const awaitingDrift = tab === "deploy" && opts.drift?.checkedAt === null;
+
   const body = tabbedBody("", tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
-  return pageShell(p.name, nav, base, body, generatedAt, undefined, {
+  return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
     script: opts.script, hideHeading: true, lang: opts.lang,
   });
 }
