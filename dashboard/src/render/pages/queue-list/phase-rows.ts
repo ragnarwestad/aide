@@ -10,6 +10,7 @@ import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-mod
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
+import { stateAction } from "./row-controls.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
 // else. Shared by `create` (always) and by any other phase once
@@ -330,6 +331,24 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // on the spec page's own banner and is recorded on the spec itself,
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
+  //
+  // The row's one action closes the open row (2026-09-08): the head line
+  // above is what the spec IS and the lines here are what it is set to
+  // do, so the press that acts on all of it belongs under them and not
+  // in the line that names the spec. A reader who never presses it
+  // without first reading these lines loses nothing; one who does now
+  // opens the row first.
+  const action = stateAction(g, opts, true);
+  if (action) {
+    lines.push({
+      tag: `<tr class="subrow" data-action="1">`,
+      cells:
+        `<td class="phasecell"></td>` +
+        `<td class="modelcell"><span class="actionslot">${action}</span></td>` +
+        `<td></td><td data-col="started"></td>` +
+        `<td class="num" data-col="cost"></td><td data-col="created"></td>`,
+    });
+  }
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
 
