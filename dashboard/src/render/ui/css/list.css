@@ -134,6 +134,17 @@ table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3);
    phase line — so the boundary is one line down the table, not the
    button's own margin. */
 table.list td[data-col="state"] { padding-left: var(--sp-5); }
+/* The caption line's cell holds the row's one action and nothing else,
+   and it stands over the column rather than at the left edge of it: the
+   clearance above is paid on the right as well, so centring is centring
+   in the COLUMN and not in whatever is left after a one-sided pad. */
+table.list tr.subrow[data-caption="1"] td[data-col="state"] {
+  padding-right: var(--sp-5); text-align: center; }
+/* A phase with nothing to say draws a dash where the others draw a
+   badge. The badge carries its own padding and the dash carries none,
+   so the dash alone sat on the column's left edge — four characters in
+   puts it under the words rather than in front of them. */
+table.list td[data-col="state"] [data-none] { margin-left: 4ch; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read

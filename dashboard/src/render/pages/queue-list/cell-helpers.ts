@@ -85,7 +85,11 @@ export const phaseWordCell = (
     // the FILES decide the word, and two failed runs leave them saying
     // nothing happened. The count rides on the dash then, the same way
     // it rides in the badge above.
-    : `<span class="muted small"${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
+    // `data-none` is what the stylesheet indents it by: a badge carries
+    // its own padding, so a bare dash left at the cell's edge sat four
+    // characters left of every word under it and read as stuck to the
+    // column's left edge.
+    : `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
       `–${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
   (aside ? ` ${aside}` : "");
 

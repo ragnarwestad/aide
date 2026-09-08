@@ -94,4 +94,25 @@ describe("the specs table fits the box that scrolls it", () => {
       'table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { margin-left: var(--sp-2); }',
     );
   });
+
+  // The State column pays its clearance on one side only, so a cell
+  // that centres its content without paying it on the other centres in
+  // what is LEFT of the column rather than in the column. The action
+  // button is the one thing drawn that way.
+  test("the caption line's action is centred in the State column, not beside it", () => {
+    const cell =
+      /tr\.subrow\[data-caption="1"\] td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!;
+    expect(cell).toMatch(/text-align: center/);
+    const pad = /padding-left: var\(--(sp-\d)\)/.exec(
+      /table\.list td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!,
+    )![1]!;
+    expect(cell).toContain(`padding-right: var(--${pad})`);
+  });
+
+  // A badge carries its own padding and a bare dash carries none, so
+  // the two start at different places in the same column unless the
+  // dash is indented — which is what `data-none` is on it for.
+  test("the State column's dash is indented to where the badges' words start", () => {
+    expect(css).toContain('table.list td[data-col="state"] [data-none] { margin-left: 4ch; }');
+  });
 });
