@@ -18,4 +18,9 @@ describe("t()", () => {
     expect(t("en", "list.stateQueued", { step: "analyzing" })).toBe("analyzing queued");
     expect(t("nb", "list.stateQueued", { step: "analyserer" })).toBe("analyserer i kø");
   });
+
+  test("the state column header carries REQ-1/REQ-2's new name", () => {
+    expect(t("en", "list.colState")).toBe("State/Action");
+    expect(t("nb", "list.colState")).toBe("Tilstand/Aksjon");
+  });
 });

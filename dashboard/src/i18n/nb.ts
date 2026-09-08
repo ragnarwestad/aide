@@ -35,7 +35,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.search": "Søk",
   "list.newSpec": "Ny",
   "list.colSpec": "Spesifikasjon",
-  "list.colState": "Tilstand",
+  "list.colState": "Tilstand/Aksjon",
   "list.colCreated": "Opprettet",
   "list.colTime": "Tid",
   "list.colCost": "Kostnad",

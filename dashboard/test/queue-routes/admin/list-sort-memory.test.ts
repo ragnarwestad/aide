@@ -18,7 +18,7 @@ describe("the column the reader sorted by is remembered", () => {
     res.headers.getSetCookie().find((c) => c.startsWith(`aide_sort_${port}=`)) ?? "";
   /** Which column the rendered table says it is sorted by. */
   const sortedBy = (html: string): string =>
-    /<a class="sortlink on[^"]*"[^>]*>([A-Za-z]+)</.exec(html)?.[1] ?? "";
+    /<a class="sortlink on[^"]*"[^>]*>([A-Za-z/]+)</.exec(html)?.[1] ?? "";
 
   test("choosing one writes it down, and a bare / gets it back", async () => {
     const { base, server } = start({ queueToken: TOKEN });
@@ -46,7 +46,7 @@ describe("the column the reader sorted by is remembered", () => {
     const res = await fetch(`${base}/?sort=state`, {
       headers: { cookie: `aide_token_${server.port}=${TOKEN}; aide_sort_${server.port}=started|desc` },
     });
-    expect(sortedBy(await res.text())).toBe("State");
+    expect(sortedBy(await res.text())).toBe("State/Action");
     // And it becomes the new memory, so the next bare `/` agrees with
     // what the reader is looking at.
     expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);

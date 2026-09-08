@@ -36,7 +36,7 @@ export const en = {
   "list.search": "Search",
   "list.newSpec": "New",
   "list.colSpec": "Spec",
-  "list.colState": "State",
+  "list.colState": "State/Action",
   "list.colCreated": "Created",
   "list.colTime": "Time",
   "list.colCost": "Cost",

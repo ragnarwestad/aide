@@ -153,7 +153,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("Created comes after Time and Cost, on the header and the spec row (REQ-1)", () => {
     const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:00:00Z" })]);
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
-    const stateAt = thead.indexOf(">State<");
+    const stateAt = thead.indexOf(">State/Action<");
     const startedAt = thead.indexOf('data-col="started"');
     const costAt = thead.indexOf('data-col="cost"');
     const createdAt_ = thead.indexOf('data-col="created"');

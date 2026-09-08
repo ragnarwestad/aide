@@ -323,7 +323,7 @@ describe("the job list sorts and filters", () => {
     // the way its first click will sort: Time defaults to descending.
     expect(desc).toMatch(/<a class="sortlink"[^>]*>Time<svg/);
     // …and State to ascending, so its chevron is already turned.
-    expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State<svg/);
+    expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State\/Action<svg/);
   });
 
   test("a filter that matches nothing says so instead of showing a bare table", () => {
