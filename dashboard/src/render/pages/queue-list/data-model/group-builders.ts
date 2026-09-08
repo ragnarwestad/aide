@@ -33,7 +33,6 @@ function emptyGroup(t: QueueTarget, now: number): SpecGroup {
     phases,
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
-    totalDurationSessionOnly: total?.sessionOnly ?? false,
     ...fromTarget(t),
   };
 }
@@ -200,6 +199,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
       attemptCount: outcome?.attempts,
+      fileResult: outcome?.result,
     };
   });
   const total = totalDurationOf(phases, now);
@@ -231,7 +231,6 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     // session's own duration alone, presented as the whole phase's time.
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
-    totalDurationSessionOnly: total?.sessionOnly ?? false,
     phases,
     done: s.done,
     title: s.title,
@@ -304,7 +303,6 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: num
     // time.
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
-    totalDurationSessionOnly: total?.sessionOnly ?? false,
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.

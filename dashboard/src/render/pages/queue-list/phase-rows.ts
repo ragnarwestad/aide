@@ -89,7 +89,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   g.phases
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult });
       // Spec 237: a phase line opens the tab that shows what the phase
       // MADE, on the spec page the reader is already on — the four
       // workflow steps each have one, and `PHASE_TAB` is where the
@@ -139,8 +139,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // earliest of them, or once the phase is archived and the queue
       // has nothing left for it at all.
       const attemptCount = Math.max(p.attempts.length, p.attemptCount ?? 0);
-      const tries =
-        attemptCount > 1 ? `<span class="muted small">${attemptCount} attempts</span>` : "";
+
       // Live although the row is busy (spec 160): a phase this run has
       // not reached, which the reader may add to it or drop from it as
       // the run goes.
@@ -296,11 +295,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
-          // Blank: a phase line has no creation date of its own to
-          // draw — only alignment with the head row's real cell (spec
-          // 317, LIST_COLUMNS).
-          `<td data-col="created"></td>` +
+          `<td>${phaseWordCell(word, stale, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
@@ -308,7 +303,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // of its own. A live row with no queue-job attempt falls back
           // to the same file-stamped figure a locked row reads.
           `<td data-col="started">${
-            phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs, locked)
+            phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
           }</td>` +
           `<td class="num" data-col="cost">${
             locked
@@ -323,7 +318,11 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
                 : ranWithNoCost
                   ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured)
                   : ""
-          }</td>`,
+          }</td>` +
+          // Blank, and LAST since 2026-09-08: a phase line has no
+          // creation date of its own to draw, and the empty cell used
+          // to sit between the state and the two figures it does fill.
+          `<td data-col="created"></td>`,
       });
     });
   // Spec 386 drew the same switch as the New-spec page here, on a row

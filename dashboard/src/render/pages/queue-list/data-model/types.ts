@@ -344,6 +344,12 @@ export interface Phase {
    *  happened. `phase-rows.ts` takes the larger of this and
    *  `attempts.length`. */
   attemptCount?: number;
+  /** What the phase's own file says the last run came to — "completed"
+   *  or "stopped" (spec-structure's `Result:` bullet). Read ONLY where
+   *  the queue has no job for this phase and the git-verified history
+   *  names none either: it is the run's own claim about itself, not
+   *  proof the work landed, so it never outranks either of those. */
+  fileResult?: "completed" | "stopped";
 }
 
 export interface SpecGroup {
@@ -429,7 +435,6 @@ export interface SpecGroup {
    *  way for every row; only a LOCKED row's own render path draws a
    *  mark from it (`archiveDateCell`/`lockedDuration`), per REQ-4's own
    *  wording, which names an archived spec specifically. */
-  totalDurationSessionOnly: boolean;
   /** The pull request a `pr`-mode run opened for this spec's code branch
    *  (spec 220), off the most recently active job that reported one. A
    *  project whose code is reviewed archives with that branch still on

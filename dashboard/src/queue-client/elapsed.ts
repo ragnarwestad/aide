@@ -26,6 +26,8 @@ export function formatElapsed(ms: number): string {
   const secs = ms > 0 ? Math.max(1, Math.round(ms / 1000)) : 0;
   if (secs < 60) return `${secs}s`;
   const pad = (n: number): string => String(n).padStart(2, "0");
-  if (secs < 3600) return `${Math.floor(secs / 60)}m${pad(secs % 60)}s`;
-  return `${Math.floor(secs / 3600)}h${pad(Math.floor((secs % 3600) / 60))}m`;
+  // The space between the two parts is `durationLabel`'s own, kept in
+  // lock-step per this file's hand-pairing comment above.
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ${pad(secs % 60)}s`;
+  return `${Math.floor(secs / 3600)}h ${pad(Math.floor((secs % 3600) / 60))}m`;
 }

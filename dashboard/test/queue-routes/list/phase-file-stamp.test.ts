@@ -98,7 +98,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       ],
       [target({ done: ["create", "analyze"] })],
     );
-    expect(phaseCell(html, "create", "started")).toContain("3m00s");
+    expect(phaseCell(html, "create", "started")).toContain("3m 00s");
   });
 
   test("REQ-2-AC1: the header total includes the fallback create duration alongside a job-measured phase", () => {
@@ -113,7 +113,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       [target({ done: ["create", "analyze"] })],
     );
     // 3 minutes of create (the file) plus 5 minutes of analyze (the job).
-    expect(headCell(html)).toContain("8m00s");
+    expect(headCell(html)).toContain("8m 00s");
   });
 
   test("REQ-2-AC2: a spec with zero queue jobs at all still totals its stamped create duration", () => {
@@ -124,7 +124,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
   test("REQ-2-AC2: the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {
     stampCreate("3m00s");
     const html = page([], [target({ done: ["create"] })]);
-    expect(headCell(html)).toContain("3m00s");
+    expect(headCell(html)).toContain("3m 00s");
   });
 
   test("REQ-3-AC1: the create phase's Cost cell shows the unknown mark, never blank and never $0.00", () => {
@@ -192,8 +192,8 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       ],
       [target({ done: ["create"] })],
     );
-    expect(phaseCell(html, "create", "started")).toContain("10m00s");
-    expect(phaseCell(html, "create", "started")).not.toContain("3m00s");
-    expect(headCell(html)).toContain("10m00s");
+    expect(phaseCell(html, "create", "started")).toContain("10m 00s");
+    expect(phaseCell(html, "create", "started")).not.toContain("3m 00s");
+    expect(headCell(html)).toContain("10m 00s");
   });
 });

@@ -95,7 +95,7 @@ export function wordPhase(
    *  run for this phase gave for not finishing; `fileDisagrees` is
    *  `4-status.md` claiming something the history does not show, or the
    *  reverse. */
-  history: { stopped?: string; fileDisagrees?: boolean } = {},
+  history: { stopped?: string; fileDisagrees?: boolean; fileResult?: "completed" | "stopped" } = {},
   lang: Language = "en",
 ): PhaseWord {
   const running = !!attempt && inFlight(attempt);
@@ -201,7 +201,22 @@ export function wordPhase(
       qualifier: `stopped: ${stopSentence(history.stopped, lang)}`,
     };
   }
-  if (!attempt) return { pip: "todo", qualifier: filesDisagree };
+  // The queue has no job for this phase, and the git-verified history
+  // names none: the LAST place that knows anything is the phase's own
+  // file, which records what its run came to (`Result:`). Read here and
+  // nowhere else — it is the run's own claim about itself, never proof
+  // the work landed, so it can only speak where the two that are proof
+  // have nothing to say. Without it the cell drew a dash for a phase
+  // its own file says ran.
+  if (!attempt) {
+    if (history.fileResult === "completed") {
+      return { pip: "past", badge: { variant: "done", label: "done" }, qualifier: filesDisagree };
+    }
+    if (history.fileResult === "stopped") {
+      return { pip: "todo", badge: { variant: "waiting", label: "stopped" }, qualifier: filesDisagree };
+    }
+    return { pip: "todo", qualifier: filesDisagree };
+  }
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",

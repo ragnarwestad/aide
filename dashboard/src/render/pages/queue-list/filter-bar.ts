@@ -271,12 +271,11 @@ export function sortableHead(f: QueueFilter, lang: Language = "en"): string {
     // alone and this head row spans across it, so a width stated on
     // cells left it 0 wide with every row shut and 300-odd wide with one
     // open, moving every column to its right (2026-09-04).
-    `<colgroup>${["spec", "phase", "state", "created", "started", "cost"]
+    `<colgroup>${["spec", "phase", "state", "started", "cost", "created"]
       .map((c) => `<col data-col="${c}">`)
       .join("")}</colgroup>` +
     `<thead><tr>${th("spec", t(lang, "list.colSpec"), "", undefined, ' colspan="2" data-col="spec"')}` +
     `${th("state", t(lang, "list.colState"), "", undefined, ' data-col="state"')}` +
-    `${th("created", t(lang, "list.colCreated"), "", undefined, ' data-col="created"')}` +
     `${th("started", t(lang, "list.colTime"), "", undefined, ' data-col="started"')}` +
     `${th(
       "cost",
@@ -285,6 +284,11 @@ export function sortableHead(f: QueueFilter, lang: Language = "en"): string {
       `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
       ' data-col="cost"',
     )}` +
+    // Last since 2026-09-08: it is the one column a PHASE line has
+    // nothing to put in, and standing in the middle it left an empty
+    // cell between the state and the two figures every phase line does
+    // fill. Time and Cost now sit directly under their own kind.
+    `${th("created", t(lang, "list.colCreated"), "", undefined, ' data-col="created"')}` +
     `</tr></thead>`
   );
 }

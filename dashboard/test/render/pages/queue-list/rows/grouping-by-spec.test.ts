@@ -2,6 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { renderQueueRows, type QueueRowView } from "../../../../../src/render.ts";
 import { row, openKeys } from "../../fixtures.ts";
 
+/** What a phase that has not run draws in the State column: a dash,
+ *  the same one Created and Cost use for "nothing here" (2026-09-08).
+ *  It said "not run yet" in words until then. */
+const PHASE_NOT_RUN = "–";
+
 // --- spec 86: one row per spec, with its phases beneath ----------------------
 //
 // Split out of grouping.test.ts by theme.
@@ -46,7 +51,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "implement")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    expect(subRow(html, "archive")).toContain("not run yet");
+    expect(subRow(html, "archive")).toContain(PHASE_NOT_RUN);
   });
 
   test("a phase that never ran is drawn like any other, not half-lit", () => {
@@ -57,7 +62,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // which is the same fact without the ambiguity.
     const html = rows([job("j1", "analyze")]);
 
-    expect(subRow(html, "implement")).toContain("not run yet");
+    expect(subRow(html, "implement")).toContain(PHASE_NOT_RUN);
     expect(html).not.toContain("untried");
   });
 
@@ -73,7 +78,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
     expect(analyze).not.toContain('href="/specs/newer"');
     expect(analyze).not.toContain('href="/specs/older"');
-    expect(analyze).toContain("2 attempts");
+    // The count rides with the phase's own word since 2026-09-08 — in
+    // the badge when there is one, and on "not run yet" when the files
+    // say nothing happened, as here: two attempts, both failed, and the
+    // spec's own file still names none of them.
+    expect(analyze).toMatch(/title="2 attempts">– \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
@@ -191,7 +200,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
   test("a phase with no attempt at all is a link too", () => {
     const html = rows([job("j1", "analyze")]);
     const implement = subRow(html, "implement");
-    expect(implement).toContain("not run yet");
+    expect(implement).toContain(PHASE_NOT_RUN);
     expect(implement).toContain(`href="${GROUPED_HREF}?tab=status"`);
   });
 });

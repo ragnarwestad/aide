@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   ALL_VIEW, ARCHIVED_VIEW, LIVE, STAMPED, STAMPED_COST, STAMPED_COST_LABEL, STAMPED_MODEL,
-  STAMPED_NOT_RUN, STAMPED_STEPS, STAMPED_TIME_SPENT, TWO_TOOLS, blockFor, described, harness,
+  STAMPED_NOT_RUN, STAMPED_STEPS, STAMPED_TIME_SHOWN, TWO_TOOLS, blockFor, described, harness,
   modelChoicesWith, opened, outcome, phaseLines, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
@@ -35,7 +35,9 @@ describe("an archived spec's row, opened", () => {
     for (const step of STAMPED_STEPS) expect(lines[step]).toContain(">done<");
     for (const step of STAMPED_NOT_RUN) {
       expect(lines[step]).not.toContain(">done<");
-      expect(lines[step]).toContain("not run yet");
+      // A dash since 2026-09-08: the queue has no job for a phase an
+      // archived spec's own file does not name.
+      expect(lines[step]).toContain("–");
     }
   });
 
@@ -145,7 +147,7 @@ describe("an archived spec's row, opened", () => {
   test("shows the locked time and cost for a step that recorded them (spec 247, criteria 1, 3)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     const line = lines["analyze"]!;
-    expect(line).toContain(STAMPED_TIME_SPENT);
+    expect(line).toContain(STAMPED_TIME_SHOWN);
     // Dollar-formatted, through the same `costCell()` a live row uses —
     // never the "est." mark this cost was not flagged with.
     const cell = line.slice(line.indexOf('data-col="cost"'));

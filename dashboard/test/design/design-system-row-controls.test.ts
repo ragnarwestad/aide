@@ -61,12 +61,13 @@ describe("the spec column is capped, so the phases sit close", () => {
   test("the name, the summary and the repo marks all wrap at a measure", async () => {
     const { CSS } = await import("../../src/render/ui/css.ts");
     expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
-    // A WIDTH on the name line since 2026-08-23, not a maximum: a short
-    // name let the pips beside it sit further left than a long one's,
-    // so they stepped in and out down the column. Still a measure — the
-    // name still truncates — and what this test is for is that the
-    // column ends at one.
-    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: \d+rem/);
+    // The name box took the CELL's width on 2026-09-08. Its fixed 27rem
+    // was about the pips, which sat at its end and would have stepped in
+    // and out down the column if the box moved with the name; they are
+    // off the list now, and the button that replaced them aligns on the
+    // cell's own edge. What caps the measure is the column itself.
+    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: auto/);
+    expect(CSS).toMatch(/col\[data-col="spec"\] \{ width: [\d.]+rem; \}/);
   });
 });
 

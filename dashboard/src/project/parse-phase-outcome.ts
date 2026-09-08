@@ -32,6 +32,12 @@ export interface PhaseOutcome {
    *  attempt there has ever been, unlike every other field here, which
    *  speaks for the latest attempt only. */
   attempts?: number;
+  /** What the run said about itself, as one word: "completed", or
+   *  "stopped" for every `stopped (<reason>) — <message>` the writer
+   *  produces. The reason and the message are NOT kept — a row says the
+   *  state in one word and the sentence on its own notice line — and
+   *  this is the file's own claim, never proof the work landed. */
+  result?: "completed" | "stopped";
 }
 
 // The same four-file mapping `core/scripts/aide-run-spec`'s own
@@ -51,6 +57,10 @@ const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
 const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
 const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
 const ATTEMPTS_RE = /^- \*\*Attempts:\*\*[ \t]*(\d+)\s*$/m;
+/** `completed`, or `stopped (<reason>)` with an optional message after
+ *  an em dash — `core/scripts/lib/run-spec-outcome.sh` writes no third
+ *  shape. Only the first word is kept. */
+const RESULT_RE = /^- \*\*Result:\*\*[ \t]*(completed|stopped)\b/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -71,6 +81,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   }
   const tokens = section.match(TOKENS_RE);
   if (tokens) outcome.tokens = Number(tokens[1]);
+  const result = section.match(RESULT_RE)?.[1];
+  if (result === "completed" || result === "stopped") outcome.result = result;
   const attempts = section.match(ATTEMPTS_RE);
   if (attempts) outcome.attempts = Number(attempts[1]);
   return outcome;

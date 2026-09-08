@@ -7,6 +7,11 @@ import {
 } from "../../../../../src/render.ts";
 import { row, openKeys } from "../../fixtures.ts";
 
+/** What a phase that has not run draws in the State column: a dash,
+ *  the same one Created and Cost use for "nothing here" (2026-09-08).
+ *  It said "not run yet" in words until then. */
+const PHASE_NOT_RUN = "–";
+
 // Split out of grouping.test.ts by theme.
 
 // --- a job that ran several steps belongs on all of them ---------------------
@@ -131,7 +136,7 @@ describe("a multi-step job is shown on every step it ran", () => {
       row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
     ]);
     expect(subRow(html, "implement")).toContain(`href="${GROUPED_HREF}?tab=status"`);
-    expect(subRow(html, "analyze")).toContain("not run yet");
+    expect(subRow(html, "analyze")).toContain(PHASE_NOT_RUN);
   });
 });
 // --- spec 90: every spec is a row, and analyze starts from it ----------------
@@ -194,7 +199,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(heads(html)).toHaveLength(1);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    for (const phase of order) expect(subRow(html, phase!)).toContain("not run yet");
+    for (const phase of order) expect(subRow(html, phase!)).toContain(PHASE_NOT_RUN);
   });
 
   test("a never-run spec's own row runs analyze (criterion 2)", () => {

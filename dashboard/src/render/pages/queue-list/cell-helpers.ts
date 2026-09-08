@@ -54,6 +54,12 @@ export const phaseWordCell = (
    *  something else changed. The mark brings its own `<span>`, so it
    *  needs no wrapper of ours. */
   aside = "",
+  /** How many times this phase has been run, when it is more than once.
+   *  Inside the badge — "done (2)" — rather than beside it: two marks
+   *  for one fact read as two facts, and the pill is where the phase's
+   *  own state is said. The word is in the badge's title, since "(2)"
+   *  alone does not say what it counts. */
+  attempts = 0,
 ): string =>
   // `w.qualifier` is NOT drawn here, and there is nowhere in this cell
   // it could be (spec 195). It is a sentence, and spec 176's "beside
@@ -65,7 +71,22 @@ export const phaseWordCell = (
   // panel says it instead (`phaseDisagreement`/`specNoticeRow`), once
   // for the whole spec and named for the phase it is about, so a phase
   // line is one line in every state a phase can be in.
-  (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
+  (w.badge
+    ? badge(
+        w.badge.variant,
+        attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
+        attempts > 1 ? `${attempts} attempts` : undefined,
+      )
+    // A dash, the same one Created and Cost draw for "nothing here"
+    // (2026-09-08): the sentence "not run yet" said in words what an
+    // empty state cell says by being empty, in the column where every
+    // other row carries one word.
+    // A phase CAN have attempts behind it and still read as nothing:
+    // the FILES decide the word, and two failed runs leave them saying
+    // nothing happened. The count rides on the dash then, the same way
+    // it rides in the badge above.
+    : `<span class="muted small"${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
+      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
   (aside ? ` ${aside}` : "");
 
 /** The spec header row's own time cell: what its phases have come to so
@@ -186,33 +207,14 @@ export function phasePips(phases: Phase[], done: string[]): string {
   );
 }
 
-/** What an archived row's duration cells share (spec 410, REQ-4): a
- *  mark for a total that leaned on a phase's own file stamp rather than
- *  a queue-measured span for it, since that stamp is the AI session's
- *  own duration alone — no worktree, commit or push around it — and is
- *  not the phase's whole time the rest of this column means.
- *
- *  Archived-only by construction: `activeDurationCell` never calls
- *  this, and `lockedDuration` only passes a true flag when `locked`
- *  (`phase-rows.ts`) — REQ-4's own wording names an archived spec
- *  specifically, so a live row's own rare version of the same fallback
- *  (a phase no queue job ever ran) stays unmarked, as it is today. */
-const SESSION_ONLY_TITLE =
-  "the AI session's own time only — the queue has no external measurement of this phase to prefer";
-
-export const sessionOnlyMark = (show: boolean): string =>
-  show ? ` <span class="muted small" title="${esc(SESSION_ONLY_TITLE)}">part.</span>` : "";
 
 /** The Time column for a locked row: how long the work took, and never
  *  anything else. A date here is a different question wearing the
  *  column's clothes, and an empty cell asks whether anything ran — so a
  *  spec whose phases summed to nothing reads `0s`, the same as an active
  *  row's. */
-export function archiveDateCell(durationMs: number, sessionOnly: boolean): string {
-  return (
-    `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>` +
-    sessionOnlyMark(sessionOnly)
-  );
+export function archiveDateCell(durationMs: number): string {
+  return `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>`;
 }
 
 /** When the spec was MADE (spec 317, REQ-1/REQ-4). One call for either

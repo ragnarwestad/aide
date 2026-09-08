@@ -219,11 +219,11 @@ describe("spec 123: each phase line picks its own model", () => {
       [target("123-picks", { done: ["analyze"] })],
     );
     const line = subRow(html, "analyze");
-    expect(line).not.toMatch(/<div class="muted small">\s*<span class="muted small">2 attempts<\/span><\/div>/);
-    expect(line).not.toContain('<div class="muted small">2 attempts</div>');
-    // The note is still there, and now sits in the same flow as the
-    // badge — no block-level wrapper between the two.
-    expect(line).toMatch(/<\/span>\s*<span class="muted small">2 attempts<\/span>/);
+    expect(line).not.toContain("<div class=\"muted small\">");
+    // The count is IN the badge since 2026-09-08 — "done (2)", with the
+    // word in the pill's own title. Two marks for one fact read as two
+    // facts, and the pill is where the phase's state is said.
+    expect(line).toMatch(/<span class="badge b-[a-z]+" title="2 attempts">[a-z]+ \(2\)<\/span>/);
   });
 
   // --- the gap the description asked to close --------------------------------
@@ -327,7 +327,6 @@ describe("spec 342: formIdOverride replaces the derived form id", () => {
   const g: SpecGroup = {
     project: "", specFolder: "new", named: false, state: "not-started",
     spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
-    totalDurationSessionOnly: false,
   };
   const opts: PickerOptions = { modelChoices: models };
 

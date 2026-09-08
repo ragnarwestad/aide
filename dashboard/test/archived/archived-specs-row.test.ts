@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
+  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
   UNSTAMPED, blockFor, described, gitDated, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
@@ -15,7 +15,7 @@ describe("an archived spec's row", () => {
   test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
-    expect(row).toContain(STAMPED_TIME_SPENT);
+    expect(row).toContain(STAMPED_TIME_SHOWN);
     expect(row).toContain("Reopen");
     expect(row).toContain('name="steps" value="reopen"');
   });
@@ -80,7 +80,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SPENT);
+    expect(body).toContain(STAMPED_TIME_SHOWN);
     // Once a duration exists, the archive date is dropped from this cell
     // entirely — it read as noise beside the figure that actually answers
     // "how long" (spec 257 made duration the lead figure; this drops the
@@ -146,18 +146,20 @@ describe("an archived spec's row", () => {
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SPENT);
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SHOWN);
   });
 
-  // Spec 410, REQ-4: the queue has no memory of STAMPED's jobs at all —
-  // this harness never queues one — so the figure above is the phase
-  // file's own stamp, the AI session's own duration alone. The row says
-  // so, rather than presenting it as the phase's whole time.
-  test("marks a file-only duration as the AI session's own time, not the whole phase's (spec 410, REQ-4)", async () => {
+  // Spec 410, REQ-4 put a "part." mark on a duration read from the
+  // phase file's own stamp rather than measured by the queue. It is gone
+  // (2026-09-08): a reader has nothing to do with that distinction, and
+  // the answer is to record the whole time rather than to footnote the
+  // part that was recorded.
+  test("marks nothing on a file-only duration — the figure stands alone", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain("the AI session's own time only");
+    expect(body).not.toContain("part.");
+    expect(body).not.toContain("the AI session's own time only");
   });
 
   // Acceptance criterion 4: nothing recorded across every phase is the
@@ -197,7 +199,7 @@ describe("an archived spec's row", () => {
     const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain(STAMPED_TIME_SPENT);
+    expect(body).toContain(STAMPED_TIME_SHOWN);
   });
 
   // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even

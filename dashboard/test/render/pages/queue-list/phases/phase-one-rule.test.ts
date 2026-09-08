@@ -17,6 +17,11 @@ import {
 } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status.ts";
 
+/** What a phase that has not run draws in the State column: a dash,
+ *  the same one Created and Cost use for "nothing here" (2026-09-08).
+ *  It said "not run yet" in words until then. */
+const PHASE_NOT_RUN = "–";
+
 // --- spec 108: one rule for what a phase shows -------------------------------
 
 // The row for spec 81 said three things at once: pips and phase lines
@@ -66,7 +71,7 @@ describe("spec 108: one rule per phase", () => {
     const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
-    expect(analyze).not.toContain("not run yet");
+    expect(analyze).not.toContain(PHASE_NOT_RUN);
     expect(analyze).not.toContain("last re-run");
   });
 
@@ -100,7 +105,7 @@ describe("spec 108: one rule per phase", () => {
   // and cannot be wrong at the edges.
   test("with every phase but archive done the button is named for archive", () => {
     const html = rows([], [target("108-ready", { done: BUILT })]);
-    expect(subRow(html, "archive")).toContain("not run yet");
+    expect(subRow(html, "archive")).toContain(PHASE_NOT_RUN);
     expect(runLine(html)).not.toContain("Run again");
     expect(runLine(html)).toContain(">Archive</button>");
   });
@@ -141,7 +146,7 @@ describe("spec 108: one rule per phase", () => {
     );
     const archive = subRow(html, "archive");
     expect(archive).not.toContain("held back");
-    expect(archive).toContain("not run yet");
+    expect(archive).toContain(PHASE_NOT_RUN);
   });
 
   test("an archive run in flight outranks a stale held-back note (criterion 6)", () => {
