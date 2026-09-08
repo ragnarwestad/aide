@@ -94,7 +94,7 @@ for (const viewport of VIEWPORTS) {
     // bar and main column at three different widths.
     test("REQ-1: header, tab bar and main share one width", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+      await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
       const widths = await Promise.all(
         ["header", "body > nav.tabbar", "main"].map((sel) =>
           page.locator(sel).evaluate((el) => el.getBoundingClientRect().width),
@@ -108,7 +108,7 @@ for (const viewport of VIEWPORTS) {
     // that let the whole document grow past the viewport instead.
     test("REQ-2: the page itself does not scroll", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+      await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
       const { docHeight, winHeight } = await page.evaluate(() => ({
         docHeight: document.documentElement.scrollHeight,
         winHeight: window.innerHeight,
@@ -135,18 +135,21 @@ async function measureStateRow() {
     page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
     page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
     page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect()),
-    page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
+    // The row's one action rides the caption line the fold opens
+    // (2026-09-08); a head row carries none.
+    page.locator('tr.subrow[data-caption="1"] .actionslot').first()
+      .evaluate((el) => el.getBoundingClientRect()),
   ]);
   return { stateCol, table, frame, badgeslot, actionslot };
 }
 
 test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-button gap do not grow with the window", async () => {
   await page.setViewportSize({ width: 900, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 900px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 900px");
   const narrow = await measureStateRow();
 
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
   const wide = await measureStateRow();
 
   // REQ-2: the State column's own width is the same at both widths.
@@ -162,13 +165,17 @@ test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-b
   expect(wide.table.width).toBeLessThan(wide.frame.width);
 
   // REQ-4 asked that the button follow the badge by one ordinary gap.
-  // The two no longer share a cell (2026-09-08): the button sits at the
-  // end of the name box and the badge alone in its own column, so what
-  // holds them apart is the table, and what REQ-4 was guarding against —
-  // a window-dependent distance — is gone with the flex row it lived in.
-  // The button's own x is what must not move: it is the same at both
-  // widths, whatever the name beside it says.
-  expect(wide.actionslot.left).toBeCloseTo(narrow.actionslot.left, 0);
+  // The two no longer share a cell (2026-09-08): the badge is on the
+  // head line and the button on the caption line under it, both in the
+  // State column, so what holds them apart is the table and the
+  // window-dependent distance REQ-4 guarded against is gone with the
+  // flex row it lived in. What must not move is where the button sits
+  // INSIDE the table — the table itself is centred in the frame, so its
+  // own left edge moves with the window and an absolute x would too.
+  expect(wide.actionslot.left - wide.table.left).toBeCloseTo(
+    narrow.actionslot.left - narrow.table.left,
+    0,
+  );
 });
 
 // --- spec 381: the controls line above the list ends where the list
@@ -196,11 +203,11 @@ async function measureControlsAndTable() {
 
 test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, at more than one window width", async () => {
   await page.setViewportSize({ width: 1100, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1100px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1100px");
   const narrow = await measureControlsAndTable();
 
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
   const wide = await measureControlsAndTable();
 
   // Within 1px: `table.list`'s own 1px border plus `border-collapse`
@@ -226,7 +233,7 @@ test("spec 381 REQ-1/REQ-7: the controls line's right edge matches the table's, 
 // the bar to drift into.
 test("the list's scroll box ends where the table does", async () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
   const [wrap, table] = await Promise.all([
     page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
     page.locator("table.speclist").evaluate((el) => el.getBoundingClientRect()),
@@ -244,7 +251,7 @@ test("the list's scroll box ends where the table does", async () => {
 // still pass every one of them.
 test("spec 415 REQ-1: the controls/table block is centered inside main, not flush left", async () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at 1920px");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1920px");
   const [wrap, frame] = await Promise.all([
     page.locator("#jobrows .tablewrap").evaluate((el) => el.getBoundingClientRect()),
     page.locator("main").first().evaluate((el) => el.getBoundingClientRect()),
@@ -271,25 +278,30 @@ test("spec 415 REQ-1: the controls/table block is centered inside main, not flus
 // column. Two fixed boxes (`.badgeslot`, `.actionslot`) leave nothing
 // over: the cell is their sum, and what follows the button is the
 // cell's own padding and no more.
-test("spec 379 REQ-4: nothing but the cell's padding stands between the action and the next column", async () => {
+test("spec 379 REQ-4: the action stands on the State column's own midline", async () => {
   for (const width of [900, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto(/) at ${width}px`);
-    // The button sits at the end of the NAME cell since 2026-09-08,
-    // where the pips were: what follows it is that cell's own padding
-    // and no more, the same rule REQ-4 asked of the State cell.
+    await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, `page.goto(/) at ${width}px`);
+    // REQ-4 asked that nothing but the cell's padding stand between the
+    // action and the next column, when the button was hard against the
+    // end of its cell. It is centred in the State column since
+    // 2026-09-08, so the rule that says the same thing is symmetry: the
+    // gap on its right is the gap on its left, at every window width. A
+    // one-sided pad, or a stretched slot, breaks this and nothing else
+    // would catch it.
+    const slot = 'tr.subrow[data-caption="1"] .actionslot';
     const [cell, action] = await Promise.all([
-      page.locator("tr.spechead .actionslot").first().evaluate((el) => el.closest("td")!.getBoundingClientRect()),
-      page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
+      page.locator(slot).first().evaluate((el) => el.closest("td")!.getBoundingClientRect()),
+      page.locator(slot).first().evaluate((el) => el.getBoundingClientRect()),
     ]);
-    expect(cell.right - action.right).toBeLessThanOrEqual(13);
+    expect(cell.right - action.right).toBeCloseTo(action.left - cell.left, 0);
   }
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
 test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed width", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at phone width");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at phone width");
   // The badge's own holder, since the `.row` that held the pair is
   // dissolved at this width (2026-09-08): what REQ-5 is about is that
   // nothing on the phone's row carries a desktop width.
@@ -353,7 +365,7 @@ test("spec 379 REQ-1: the widest state badge fits the State column", async () =>
 // currently-true REQ-3 assertion and the one that starts mattering
 // again the moment this table's own width ever becomes constrained.
 test("REQ-3: a spec row's Created cell stays on one line", async () => {
-  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/)");
   // The row for the one spec `ran()` gave a real git-datable commit
   // (beforeAll) — every other row here reads the fixed "date unknown"
   // string, which cannot wrap regardless of the CSS rule this guards.

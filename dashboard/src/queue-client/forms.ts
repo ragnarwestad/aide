@@ -141,25 +141,6 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   );
 }
 
-// The typed confirmation, client side: the button is off until the name
-// is typed back exactly. The server refuses a mismatch either way —
-// this is the half that means nobody has to be refused to find out.
-//
-// The button is rendered ENABLED and turned off here, never the other
-// way round: a button the server rendered `disabled` could not be
-// enabled again with script off, and every control on this page is a
-// real form that works without it.
-export function bindTypedConfirm(form: HTMLFormElement): void {
-  const wrap = form.querySelector("[data-confirm]") as HTMLElement | null;
-  if (!wrap) return;
-  const target = wrap.getAttribute("data-confirm") ?? "";
-  const input = wrap.querySelector("input[name=confirm]") as HTMLInputElement | null;
-  const button = wrap.querySelector("button") as HTMLButtonElement | null;
-  if (!input || !button) return;
-  const sync = (): void => void (button.disabled = input.value !== target);
-  sync();
-  input.addEventListener("input", sync);
-}
 
 /** Spec 184: the Add form's two settings, proposed for whichever
  *  checkout is picked. The server works one proposal out per offered

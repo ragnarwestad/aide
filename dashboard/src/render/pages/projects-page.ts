@@ -20,7 +20,6 @@ import {
   messageSlot,
   rowMessage,
   tokenField,
-  typedConfirm,
 } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { codeLandingChoices } from "./site/settings-table.ts";
@@ -403,8 +402,12 @@ export function renderRemoveProjectPage(
     ) +
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform">` +
     tokenField(opts.token) +
-    `<span class="frow">` +
-    typedConfirm({ target: name, label: "Type the name to remove it", button: "Remove", pending: "removing…" }) +
+    rowMessage("waiting", `Are you sure you want to remove ${name}? This cannot be undone.`, {
+      tag: "p",
+    }) +
+    `<span class="factions">` +
+    btn({ label: "Remove", variant: "danger", pending: "removing…" }) +
+    `<a class="btn" href="/projects">Cancel</a>` +
     `</span>` +
     messageSlot("refused") +
     `</form>`;

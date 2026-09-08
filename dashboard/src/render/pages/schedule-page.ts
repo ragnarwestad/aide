@@ -6,7 +6,8 @@
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import type { Language } from "../../i18n";
-import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
+import { backLink, btn, rowMessage, tokenField } from "../ui/components.ts";
+import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { renderScheduleForm, type ScheduleFormOptions } from "./schedule-page/form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
@@ -119,8 +120,17 @@ export function renderDeleteSchedulePage(
     ) +
     `<form method="post" action="/api/queue${deleteSchedulePath(opts.project, opts.entryName)}" class="scheduledeleteform">` +
     tokenField(opts.token) +
-    `<span class="frow">` +
-    typedConfirm({ target: opts.entryName, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
+    // The question in a sentence and the two answers (2026-09-08); it
+    // was a field the reader had to type the name back into, on a page
+    // whose own heading is that name. Cancel is a LINK wearing the
+    // button's look — it submits nothing, and where it goes is the page
+    // the reader came from.
+    rowMessage("waiting", `Are you sure you want to delete ${opts.entryName}? This cannot be undone.`, {
+      tag: "p",
+    }) +
+    `<span class="factions">` +
+    btn({ label: "Delete", variant: "danger", pending: "deleting…" }) +
+    `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(title, nav, back, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, lang: opts.lang,

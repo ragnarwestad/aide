@@ -109,12 +109,17 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       expect(listed()).toContain('href="/schedule/aide/nightly-report/delete"');
     });
 
-    test("and opens that same confirmation over the list: a dialog asking for the typed name", () => {
+    // The dialog asked for the entry's name, typed back, until
+    // 2026-09-08: its own heading asks the question and the form beside
+    // the Delete button answers "no", so the press is the whole of
+    // "yes".
+    test("and opens that same confirmation over the list: a dialog with the two answers", () => {
       const html = listed();
       expect(html).toContain("<dialog class=\"confirmdialog\">");
       expect(html).toContain("data-delete-schedule");
       expect(html).toContain('action="/api/queue/schedule/aide/nightly-report/delete"');
-      expect(html).toContain('data-confirm="nightly-report"');
+      expect(html).toContain("Delete aide:nightly-report?");
+      expect(html).not.toContain('data-confirm="nightly-report"');
       expect(html).toContain('<form method="dialog">');
     });
   });
@@ -186,7 +191,10 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
 });
 
 describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
-  test("explains every effect, requires the exact name via typedConfirm, and styles the button as destructive", () => {
+  // It made the reader type the entry's name back into a field until
+  // 2026-09-08 — on a page whose own heading is that name. It asks the
+  // question in a sentence now, with the two answers under it.
+  test("explains every effect, asks in a sentence, and styles the button as destructive", () => {
     const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
       project: "aide",
       entryName: "nightly-report",
@@ -194,10 +202,12 @@ describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
     });
     expect(html).toContain("nightly-report");
     expect(html.toLowerCase()).toContain("run history");
-    expect(html).toContain(`data-confirm="nightly-report"`);
-    expect(html).toContain('name="confirm"');
+    expect(html).toContain("Are you sure you want to delete nightly-report? This cannot be undone.");
+    expect(html).not.toContain("data-confirm=");
+    expect(html).not.toContain('name="confirm"');
     expect(html).toContain('name="token" value="t0ken"');
     expect(html).toContain('class="btn danger"');
+    expect(html).toContain(">Cancel</a>");
   });
 
   test("posts to the delete route beside the entry's own path", () => {

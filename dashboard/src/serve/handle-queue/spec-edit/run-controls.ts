@@ -39,15 +39,20 @@ export async function runControlRoutes(
     const back = `${specPagePath(project!, specFolder!)}/reset`;
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
+    // Read and discarded: the body carries nothing this route acts on
+    // any more, but a malformed one is still a malformed request and is
+    // still answered as one.
     try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      if (sent.text) bodyToObject(sent.text, req.headers.get("content-type"));
     } catch {
       return json({ error: "malformed body" }, 400);
     }
     const refuseReset = (error: string): Response =>
       wantsJson ? json({ error }, 400) : specsRedirect({}, { error }, back);
-    if (body.confirm !== specFolder) return refuseReset(`type ${specFolder} exactly to confirm Reset`);
+    // No typed confirmation: the page asks the question in a sentence
+    // and the press is the answer (2026-09-08). What still stands
+    // between a stray request and a reset is every guard below — an
+    // archived spec, a merge in flight, a job still running.
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
     if (ref.archived) return refuseReset(`${specFolder} is archived — Reset is only for active specs`);

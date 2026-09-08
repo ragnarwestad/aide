@@ -113,10 +113,8 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const back = deleteSchedulePath(project, name);
-    if (body.confirm !== name) {
-      const error = `type ${name} exactly to confirm Delete`;
-      return wantsJson ? json({ error }, 400) : specsRedirect(body, { error }, back);
-    }
+    // No typed confirmation (2026-09-08): the page and the dialog both
+    // ask the question in a sentence, and the press is the answer.
     const codeRoot = ctx.machineryProjectDir(project);
     const result = await ctx.mergeLock.run(codeRoot, () => deleteScheduleEntry(scheduleGit(ctx), codeRoot, name));
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);

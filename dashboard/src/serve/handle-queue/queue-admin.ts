@@ -324,8 +324,7 @@ export async function handleQueueAdminRoutes(
     if (nameError) {
       return ctx.answerProjectChange("remove-project", name, [{ step: "name", ok: false, error: nameError }], raw, wantsJson);
     }
-    const asked = (raw ?? {}) as Record<string, unknown>;
-    const result = removeProject(ctx.allowed, { name, confirm: asked.confirm });
+    const result = removeProject(ctx.allowed, { name });
     const steps = [...result.steps];
     if (result.ok) {
       ctx.invalidateScan();

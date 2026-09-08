@@ -27,7 +27,6 @@
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./queue-client/ai-sync.ts";
 import {
   bindProposals,
-  bindTypedConfirm,
   formNote,
   submitAction,
   submitCreate,
@@ -50,7 +49,6 @@ import { checkboxKey, chosen, chosenSteps, selectKey } from "./queue-client/stat
 
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;
-  bindTypedConfirm(form);
   bindProposals(form);
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
@@ -211,15 +209,6 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     const model = target2?.closest?.(MODEL_SELECTS) as HTMLSelectElement | null;
     if (model) syncAiToModel(model);
   }) as EventListener);
-}
-// The Delete confirmation (spec 277): button-disable only, exactly
-// like `form.scheduleform` above — the form is a plain POST with no
-// submit override, so the server's own redirect does the rest. Since
-// 2026-08-31 the same form is also drawn once per row on `/schedule`,
-// inside the dialog the link below opens; the binding is the same one
-// and reaches both.
-for (const el of document.querySelectorAll("form.scheduledeleteform")) {
-  bindTypedConfirm(el as HTMLFormElement);
 }
 // Delete on a schedule row opens that row's own confirmation over the
 // list instead of navigating to it (2026-08-31). The link's `href` is

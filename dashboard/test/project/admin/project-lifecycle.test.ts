@@ -465,31 +465,23 @@ describe("where the project's specs live", () => {
   });
 });
 
-describe("removing a project is a typed confirmation and nothing else", () => {
-  // Criteria 7-8, at the level below HTTP: the mechanic itself.
-  test("the name typed back exactly is what takes it off the allowlist", () => {
+describe("removing a project touches the allowlist and nothing else", () => {
+  // Criteria 7-8, at the level below HTTP: the mechanic itself. The
+  // name had to be typed back here until 2026-09-08 — the page asks the
+  // question in a sentence now, and the press is the answer.
+  test("the press takes it off the allowlist, and touches nothing else", () => {
     const allowed = new Set(["aide", "atlasaurus"]);
-    const result = removeProject(allowed, { name: "atlasaurus", confirm: "atlasaurus" });
+    const result = removeProject(allowed, { name: "atlasaurus" });
     expect(result.ok).toBe(true);
     expect(result.steps.map((s) => s.step)).toEqual(["confirm", "allowlist"]);
     expect([...allowed]).toEqual(["aide"]);
   });
 
-  test.each([["Atlasaurus"], ["atlasaurus "], [""], ["aide"]])(
-    "%p is not the name, so nothing is removed",
-    (confirm) => {
-      const allowed = new Set(["aide", "atlasaurus"]);
-      const result = removeProject(allowed, { name: "atlasaurus", confirm });
-      expect(result.ok).toBe(false);
-      expect(result.steps[0]!.step).toBe("confirm");
-      expect([...allowed].sort()).toEqual(["aide", "atlasaurus"]);
-    },
-  );
-
-  test("a project that is not on the allowlist is refused, confirmation or not", () => {
+  test("a project that is not on the allowlist is refused", () => {
     const allowed = new Set(["aide"]);
-    const result = removeProject(allowed, { name: "never-added", confirm: "never-added" });
+    const result = removeProject(allowed, { name: "never-added" });
     expect(result.ok).toBe(false);
     expect(result.steps.find((s) => s.step === "allowlist")!.error).toContain("never-added");
+    expect([...allowed]).toEqual(["aide"]);
   });
 });

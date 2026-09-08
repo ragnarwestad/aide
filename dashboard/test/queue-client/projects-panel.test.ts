@@ -6,20 +6,14 @@ import {
 
 // --- spec 112: the Projects panel --------------------------------------------
 
-describe("Remove is gated on the name being typed back", () => {
-  test("the button is off until the input matches, and on again when it does", () => {
+describe("Remove", () => {
+  // The button was off until the project's name had been typed back
+  // into a field. The page asks the question in a sentence instead
+  // (2026-09-08), so the press is live from the moment it is drawn —
+  // and nothing in the browser turns it off.
+  test("the button is live from the moment the page loads", () => {
     const h = harness(() => ({ ok: true }));
-    // Off from the moment the page loads — the server renders it
-    // enabled, because a button it disabled could never be enabled
-    // again with script off.
-    expect(h.removeButton.disabled).toBe(true);
-    h.type("atlas");
-    expect(h.removeButton.disabled).toBe(true);
-    h.type("atlasaurus");
     expect(h.removeButton.disabled).toBe(false);
-    // And off again the moment the reader edits it back out.
-    h.type("atlasaurus ");
-    expect(h.removeButton.disabled).toBe(true);
   });
 
   test("a removal posts the confirmation and reloads the page it is on, keeping the view", async () => {

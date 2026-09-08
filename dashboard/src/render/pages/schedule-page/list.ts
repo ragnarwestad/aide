@@ -5,7 +5,7 @@
 // here, all three live on the detail page instead.
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField, typedConfirm } from "../../ui/components.ts";
+import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { deleteSchedulePath, newSchedulePath, schedulePagePath } from "./tabs.ts";
 
@@ -127,10 +127,9 @@ function row(r: SchedulePageRow, now: Date, token?: string): string {
 // About box in the header is done — Escape and Cancel close it, and
 // nothing is deleted by a stray click on a table row.
 //
-// What it asks for is the app's own confirmation gate, unchanged: the
-// entry's exact name, typed (`typedConfirm`), posted to the same route,
-// which refuses anything else. The dialog is a place to answer the
-// question, never a lighter question.
+// What it asks is the question itself, in the heading, with the two
+// answers under it — the same shape the entry's own Delete page uses.
+// It asked for the entry's exact name, typed back, until 2026-09-08.
 function deleteCell(r: SchedulePageRow, token?: string): string {
   const name = r.entry.name;
   const deleteUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(name)}/delete`;
@@ -144,7 +143,10 @@ function deleteCell(r: SchedulePageRow, token?: string): string {
     `Its own run history stays in the queue.</p>` +
     `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
     tokenField(token) +
-    typedConfirm({ target: name, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
+    // The dialog's own heading asks the question and the form beside
+    // this one answers "no": the press is the whole of "yes"
+    // (2026-09-08).
+    btn({ label: "Delete", variant: "danger", pending: "deleting…" }) +
     `</form>` +
     // The platform's own close: no script, and it works even where the
     // one that opened the box did not run.
