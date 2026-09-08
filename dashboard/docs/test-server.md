@@ -72,6 +72,14 @@ takes the watcher with it, so the worktree stays registered and refuses that bra
 checkout. Start-up clears those too: a worktree the test run made, on a branch it made, that no
 live server answers for.
 
+## Which commit it serves
+
+Whatever origin has for that branch, at the moment the test run starts. The checkout the run works
+from is fetched first and its own copy of the branch moved to origin's tip — so a second test
+server for the same branch never quietly serves the commit before the one you just pushed. The one
+exception is a branch already checked out in a worktree there, which means a test server is running
+on it: that one is left alone.
+
 ## Which projects this works for
 
 Only `aide` itself, today. Starting a test server means running that project's own dashboard code

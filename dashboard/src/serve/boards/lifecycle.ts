@@ -3,7 +3,7 @@
 // a terminal today — see 3-solution.md's own "Approach A" for why this
 // is a wrapper and not a second implementation of the round.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { BoardStore, BoardEntry } from "./store.ts";
@@ -210,6 +210,16 @@ export function refreshBoardStatus(ctx: BoardsContext, project: string, specFold
 export function stopBoard(ctx: BoardsContext, project: string, specFolder: string): void {
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
+  // The log this server made for the round goes with the board
+  // (2026-09-08). Nothing reads it once the entry is gone — the page
+  // shows what it said while the board was starting, and that is over —
+  // and a directory per start had piled up in the machine's temp.
+  try {
+    rmSync(entry.workDir, { recursive: true, force: true });
+  } catch {
+    // Best effort: a directory that will not go is not worth failing a
+    // stop over.
+  }
   try {
     // A recovered board (`recover.ts`) has no wrapper left to lead a
     // group: the signal goes to the board's own process instead, which

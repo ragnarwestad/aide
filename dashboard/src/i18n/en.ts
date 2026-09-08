@@ -79,7 +79,11 @@ export const en = {
   "list.stateQueued": "{step} queued",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",
-  "list.stateHeldBack": "{step} held back",
+  // The bare word, for every stop the SYSTEM made: the badge says the
+  // state and the row's own notice line says why, in full. It named the
+  // step as well ("archiving held back") until 2026-09-08 — the step is
+  // already on the line, and the reason is the half a reader acts on.
+  "state.stopped": "stopped",
   // A stopped job is not a failed one, and the reason is the half that
   // says which. These read on the row itself, so they are as short as
   // the badge is wide.

@@ -218,7 +218,11 @@ describe("every row answers for itself", () => {
         "- **Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
       ),
     );
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    // Open: the row's one action rides the caption line the fold opens
+    // (2026-09-08), and its label is what this reads off the file.
+    const html = await (
+      await fetch(`${base}/?open=aide%2F81-queue-and-runner`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     // Server-rendered on the row itself: there is no selection left to
     // answer, and no data block for a script to answer it from.
     const line = specHead(html, "81-queue-and-runner");
@@ -232,7 +236,9 @@ describe("every row answers for itself", () => {
     // the first one still ahead, as the button's own label. The pips
     // said the same thing until 2026-09-07; the percentage is gone, and
     // the file is still read.
-    expect(line).toMatch(/<button[^>]*class="btn primary"[^>]*>[A-Z][a-z]+<\/button>/);
+    expect(specControls(html, "81-queue-and-runner")).toMatch(
+      /<button[^>]*class="btn primary"[^>]*>[A-Z][a-z]+<\/button>/,
+    );
     expect(html).not.toContain('id="targetdata"');
     expect(html).not.toContain('<select name="target"');
   });

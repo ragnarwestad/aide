@@ -43,7 +43,14 @@ if [ -n "$phase_file" ]; then
       result_line="$result_line — $summary"
     fi
   fi
-  time_spent_display="$(printf '%dm%02ds' $(( duration / 60 )) $(( duration % 60 )))"
+  # The STEP's own span, not the AI session's (2026-09-08): the checkout,
+  # the worktree, the branch, the archive pre-check and the reading of
+  # what came back all belong to the time this phase took. Only the
+  # commit and push that carry this very line fall outside it — a number
+  # cannot include the writing of its own file.
+  step_duration=$(( $(date +%s) - ${step_started_at:-$(( $(date +%s) - duration ))} ))
+  [ "$step_duration" -lt "$duration" ] && step_duration="$duration"
+  time_spent_display="$(printf '%dm%02ds' $(( step_duration / 60 )) $(( step_duration % 60 )))"
   # This phase's own running count (spec 341): read the stamp's CURRENT
   # value before the block below replaces it, then add one for this run.
   # The queue's own job memory is bounded and drops the earliest attempts

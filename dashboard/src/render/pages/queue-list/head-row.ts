@@ -6,7 +6,7 @@ import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { ARCHIVED_STATE, CLOSED_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -14,7 +14,7 @@ import {
   createdCell,
   stateCell,
 } from "./cell-helpers.ts";
-import { foldControl, stateAction } from "./row-controls.ts";
+import { foldControl } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
@@ -198,7 +198,7 @@ export function specHeadRow(
     // is what lets the table align the two by column instead of by two
     // hand-set widths inside one cell.
     `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened, lang)} ${spec}` +
-    `<span class="actionslot">${stateAction(g, opts, opened.has(groupKey(g.project, g.specFolder)))}</span></div>` +
+    `</div>` +
     under +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
@@ -219,7 +219,7 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="badgeslot">${stateBadge}</span></td>` +
+    `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.

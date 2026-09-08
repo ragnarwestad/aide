@@ -144,6 +144,8 @@ if [ -n "$stream_file" ] && : > "$stream_file" 2>/dev/null; then
 fi
 printf '%s' "$prompt" > "$work_dir/prompt"
 
+# The AI session's own start, which the deadline below is measured from:
+# a timeout is about the session, not about the step around it.
 started_at="$(date +%s)"
 
 # --- the mechanical archive pre-check (spec 251) -----------------------------

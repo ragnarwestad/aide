@@ -102,7 +102,7 @@ describe("spec 116: create is the first phase line", () => {
     // how long it took, and a phase nobody ran took `0s`. A blank there
     // asks whether the line is broken.
     expect(line).toContain(
-      '<td><span class="badge b-done">done</span></td>' +
+      '<td data-col="state"><span class="badge b-done">done</span></td>' +
         '<td data-col="started"><span class="muted small">0s</span></td>' +
         '<td class="num" data-col="cost"></td><td data-col="created"></td>',
     );
@@ -254,6 +254,9 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     specFolder,
     ...extra,
   });
+  // Open: these read the row's one control, which rides the caption
+  // line the fold opens (2026-09-08). The head line they also read is
+  // drawn the same way either way.
   const rows = (
     list: QueueRowView[],
     targets: QueueTarget[] = [],
@@ -261,7 +264,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
   ) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets, ...opts },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
       Date.parse("2026-08-26T12:00:00Z"),
     );
   const head = (html: string, folder: string) =>
@@ -275,14 +278,15 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the State cell — the head row's
-   *  THIRD — since spec 157, open or shut alike. */
-  /** The head row's FIRST cell: the row's one button sits at the end of
-   *  the name box since 2026-09-07, where the pips were. */
+  /** Where a row's one button is: the State cell of the caption line,
+   *  which only an OPEN row draws (2026-09-08). It sat at the end of
+   *  the name box from 2026-09-07, in the head row's State cell beside
+   *  the badge from spec 157, and in the header's last cell (shut) or a
+   *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[0] ?? "";
+    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[2] ?? "";
   };
 
   // Criterion 1: a create job whose result has just arrived

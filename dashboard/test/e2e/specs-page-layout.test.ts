@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "
 import { chromium, type Browser, type Page } from "playwright";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 import { CSS } from "../../src/render/ui/css.ts";
-import { badge, btn } from "../../src/render/ui/components.ts";
+import { badge } from "../../src/render/ui/components.ts";
 import { t } from "../../src/i18n";
 
 setDefaultTimeout(20_000);
@@ -161,11 +161,14 @@ test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-b
   expect(wide.table.width).toBeCloseTo(narrow.table.width, 0);
   expect(wide.table.width).toBeLessThan(wide.frame.width);
 
-  // REQ-4: the button follows the badge by one ordinary gap (--sp-2,
-  // 8px) at both widths, not the window-dependent distance
-  // `justify-content: space-between` produces today.
-  expect(narrow.actionslot.left - narrow.badgeslot.right).toBeCloseTo(8, 0);
-  expect(wide.actionslot.left - wide.badgeslot.right).toBeCloseTo(8, 0);
+  // REQ-4 asked that the button follow the badge by one ordinary gap.
+  // The two no longer share a cell (2026-09-08): the button sits at the
+  // end of the name box and the badge alone in its own column, so what
+  // holds them apart is the table, and what REQ-4 was guarding against —
+  // a window-dependent distance — is gone with the flex row it lived in.
+  // The button's own x is what must not move: it is the same at both
+  // widths, whatever the name beside it says.
+  expect(wide.actionslot.left).toBeCloseTo(narrow.actionslot.left, 0);
 });
 
 // --- spec 381: the controls line above the list ends where the list
@@ -272,8 +275,11 @@ test("spec 379 REQ-4: nothing but the cell's padding stands between the action a
   for (const width of [900, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await withTimeout(page.goto(`${base}/?live=0`), 10_000, `page.goto(/) at ${width}px`);
+    // The button sits at the end of the NAME cell since 2026-09-08,
+    // where the pips were: what follows it is that cell's own padding
+    // and no more, the same rule REQ-4 asked of the State cell.
     const [cell, action] = await Promise.all([
-      page.locator("tr.spechead .row").first().evaluate((el) => el.parentElement!.getBoundingClientRect()),
+      page.locator("tr.spechead .actionslot").first().evaluate((el) => el.closest("td")!.getBoundingClientRect()),
       page.locator("tr.spechead .actionslot").first().evaluate((el) => el.getBoundingClientRect()),
     ]);
     expect(cell.right - action.right).toBeLessThanOrEqual(13);
@@ -284,7 +290,10 @@ test("spec 379 REQ-4: nothing but the cell's padding stands between the action a
 test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed width", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/) at phone width");
-  const row = await page.locator("tr.spechead .row").first().evaluate((el) => el.getBoundingClientRect());
+  // The badge's own holder, since the `.row` that held the pair is
+  // dissolved at this width (2026-09-08): what REQ-5 is about is that
+  // nothing on the phone's row carries a desktop width.
+  const row = await page.locator("tr.spechead .badgeslot").first().evaluate((el) => el.getBoundingClientRect());
   expect(row.width).toBeLessThan(280);
   // Every test after this one shares `page` and assumes a desktop
   // width (this file sets no viewport of its own outside `VIEWPORTS`'
@@ -303,56 +312,29 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
 // `page.setContent()`, not the live harness: the harness seeds real
 // specs on disk and has no way to put one in a transient
 // `queued`/`manifest` job state on demand (2-analysis.md's Test
-// coverage). Uses the app's own CSS bundle and the same `badge()`/
-// `btn()` markup functions the real row draws with, so the fixture
-// cannot drift from the real markup by hand-typing it.
-//
-// Goes red today for the same root cause as the test above: this
-// single-column fixture table still carries `table { width: 100%; }`
-// (list.css) with no viewport to size against but the browser's
-// default one, and `justify-content: space-between` (rows-and-forms.css)
-// still spreads the badge and the button across whatever that leftover
-// is — not the two controls' own combined content width, which is the
-// number this assertion is actually about.
-test("spec 379 REQ-1: the widest state badge and the widest button fit the State column", async () => {
-  // The widest of the sixty texts a spec row can draw, measured
-  // 2026-09-04: the Norwegian "archive held back". `manifest` used to
-  // stand here and cannot reach a row at all — the step runs when a
-  // project is added, never as a job with a row of its own.
-  const worstBadge = badge("idle", t("nb", "list.archiveHeldBackWord"));
-  const cancelButton = btn({ label: t("en", "list.cancel"), variant: "primary" });
+// coverage). Uses the app's own CSS bundle and the same `badge()`
+// markup function the real row draws with, so the fixture cannot drift
+// from the real markup by hand-typing it.
+test("spec 379 REQ-1: the widest state badge fits the State column", async () => {
+  // The badge and the button shared this cell until 2026-09-08, and the
+  // fixture built both. The button sits in the name box now, so what
+  // this measures is the badge alone against the column it has to
+  // itself: the widest of the sixty texts a spec row can draw, which is
+  // a phase line running for a second time in Norwegian.
+  const worstBadge = badge("waiting", `${t("nb", "list.stateQueued").replace("{step}", "implementerer")} (2)`);
   const html =
     `<!doctype html><html><head><style>${CSS}</style></head><body>` +
-    `<table class="list speclist"><thead><tr><th data-col="state"></th></tr></thead>` +
-    `<tbody><tr class="spechead"><td><span class="row">` +
-    `<span class="badgeslot">${worstBadge}</span>` +
-    `<span class="actionslot">${cancelButton}</span>` +
-    `</span></td></tr></tbody></table></body></html>`;
+    `<table class="list speclist"><colgroup><col data-col="state"></colgroup>` +
+    `<tbody><tr class="spechead"><td><span class="badgeslot">${worstBadge}</span></td></tr></tbody>` +
+    `</table></body></html>`;
   const fixturePage = await browser.newPage();
-  await withTimeout(fixturePage.setContent(html), 10_000, "fixturePage.setContent(worst-case row)");
-  const [badgeslot, actionslot] = await Promise.all([
+  await withTimeout(fixturePage.setContent(html), 10_000, "fixturePage.setContent(worst-case badge)");
+  const [badgeslot, cell] = await Promise.all([
     fixturePage.locator(".badgeslot").evaluate((el) => el.getBoundingClientRect()),
-    fixturePage.locator(".actionslot").evaluate((el) => el.getBoundingClientRect()),
+    fixturePage.locator("td").evaluate((el) => el.getBoundingClientRect()),
   ]);
-  const badgeFits = await fixturePage
-    .locator(".badgeslot .badge")
-    .evaluate((el) => el.scrollWidth <= (el.parentElement as HTMLElement).clientWidth);
   await fixturePage.close();
-  // The two boxes ARE the width: `.row` around them has none of its
-  // own any more, so measuring it in this bare fixture measures the
-  // fixture's own page. The badge is not clipped inside its box, and
-  // the two together are the State column's declared width less the
-  // cell's padding.
-  expect(badgeFits).toBe(true);
-  expect(badgeslot.width + 8 + actionslot.width).toBeLessThanOrEqual(264);
-  // On one line: the badge and the button's vertical MIDPOINTS match
-  // (not their tops — `.badge` is 20px tall, `.btn` 28px, and `.row`'s
-  // own `align-items: center` centres each on the line rather than
-  // top-aligning them), which two boxes stacked onto separate lines by
-  // a wrap could never produce.
-  const badgeMid = badgeslot.top + badgeslot.height / 2;
-  const actionMid = actionslot.top + actionslot.height / 2;
-  expect(badgeMid).toBeCloseTo(actionMid, 0);
+  expect(badgeslot.width).toBeLessThanOrEqual(cell.width);
 });
 
 // Guards spec 326: the Created column's bare yyyy-mm-dd date breaking at

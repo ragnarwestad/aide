@@ -44,6 +44,11 @@ export const MESSAGES = {
     nb: "holdt tilbake: en annen arkivering kjører i dette prosjektet — dette starter når den er merget",
     resolve: "it starts when that one has merged",
   },
+  "runner.createRunning": {
+    en: "held back: another spec is being created in this project — it starts when that one has its number",
+    nb: "holdt tilbake: en annen spec lages i dette prosjektet — denne starter når den har fått nummeret sitt",
+    resolve: "it starts when that one has its number",
+  },
   "runner.notAnalyzed": {
     en: "held back: not analyzed yet — run /aide-analyze first",
     nb: "holdt tilbake: ikke analysert ennå — kjør /aide-analyze først",

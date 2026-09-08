@@ -192,6 +192,42 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     );
   });
 
+  // The queue holds a job for this exact reason with a message of its
+  // own, and the notice line draws that above these marks. Both said it
+  // until 2026-09-08 — twice on one line, and the mark's half in
+  // English on a Norwegian board, because the file's note is a fixed
+  // constant where the runner's message is translated.
+  test("the file's note is not repeated when the queue is already saying it", () => {
+    const notice = noticeCellHtml(
+      renderQueueRows(
+        [
+          row({
+            specFolder: FOLDER,
+            steps: ["archive"],
+            state: "queued",
+            errorReason: "held-back",
+            error: { key: "runner.acceptanceCriteriaUnticked" },
+          }),
+        ],
+        {
+          runnerAvailable: true,
+          targets: [
+            target({
+              done: ["implement"],
+              archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+            }),
+          ],
+        },
+      ),
+      FOLDER,
+    );
+    // The queue's sentence, once.
+    expect(notice.match(/Acceptance criteria are not all ticked yet/g)).toHaveLength(1);
+    expect(notice).not.toContain("archive held back");
+    // And the link is untouched: it is a different fact.
+    expect(notice).toContain("Click the link to start a test server running this branch");
+  });
+
   // REQ-6: every other held-back reason carries no link.
   test("REQ-6: a row held back for a different reason carries no link", () => {
     const notice = noticeCellHtml(

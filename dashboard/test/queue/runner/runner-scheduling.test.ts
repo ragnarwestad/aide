@@ -105,6 +105,47 @@ describe("several jobs at once", () => {
     expect(sentence(held.error)).toContain("another archive is running in this project");
   });
 
+  // Two specs numbered 416 on 2026-09-08: two `create` steps started
+  // together, both read the same highest number off disk, and both
+  // added one to it. Nothing about the number can fix that — the runs
+  // have to be ordered.
+  test("two create steps never run at once in the same project", () => {
+    const a = enqueue({ steps: ["create"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(sentence(held.error)).toContain("another spec is being created in this project");
+  });
+
+  // And it waits for another CREATE alone: a create takes seconds, and
+  // holding one behind every other kind of step would be a queue that
+  // makes the board slower for a collision it cannot have.
+  test("a create waits only for another CREATE — an analyze beside it starts", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  // Two projects are two number series, so a create in each is two
+  // creates that cannot collide.
+  test("a create in another project is not held", () => {
+    const a = enqueue({ steps: ["create"] });
+    const b = enqueue({ project: "other-project", specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
   // The sentence on a queued row is the reason RIGHT NOW. It used to be
   // written once, by whichever gate happened to hold the job, and left
   // there: a row went on saying "another archive is running in this

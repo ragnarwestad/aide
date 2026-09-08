@@ -71,7 +71,7 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
   // row's own notice line, where the held-back reason already is in
   // full. "archive held back" said the phase as well, which the button
   // beside it already names.
-  if (resting.archiveHeldBack) return badge("waiting", "stopped");
+  if (resting.archiveHeldBack) return badge("waiting", t(lang, "state.stopped"));
   if (resting.readyPhase) return badge("ready", t(lang, "list.ready"));
   return badge("done", t(lang, "list.done"));
 }
@@ -113,9 +113,10 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     // Held back (spec 396): not competing for a slot, so no number
     // claims it is next in line for one — the row's own panel
     // (specNotice) already says the actual reason underneath.
-    if (r.errorReason === "held-back") {
-      return badge("waiting", t(lang, "list.stateHeldBack", { step: gerund(lang, step) }));
-    }
+    // The same word every other stop the system made gets: the step is
+    // already named on the line, and the reason — which is the half a
+    // reader acts on — is the sentence on the row's own notice line.
+    if (r.errorReason === "held-back") return badge("waiting", t(lang, "state.stopped"));
     const pos = r.queuePosition;
     return badge(
       "idle",

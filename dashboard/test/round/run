@@ -35,11 +35,21 @@ done
 # not exist. A branch pushed only to origin (never fetched into this
 # checkout) is not "does not exist" — spec 388, REQ-9 — so it is fetched
 # and tracked locally before the refusal is decided.
-if [ -n "$BRANCH" ] && ! git -C "$AIDE" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+#
+# ALWAYS fetched, and the local branch moved to what origin has
+# (2026-09-08). It used to fetch only when the local branch was missing,
+# so a second round for the same branch served whatever that checkout
+# happened to hold — an older tip, silently, while the dashboard's own
+# registry said it was serving origin's. `-f` is refused while the
+# branch is checked out in a worktree, and that is the one case where
+# the local copy is the right one: a board is already running on it.
+if [ -n "$BRANCH" ]; then
   git -C "$AIDE" fetch -q origin "$BRANCH" 2>/dev/null || true
   if git -C "$AIDE" show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
-    git -C "$AIDE" branch -q "$BRANCH" "origin/$BRANCH"
-  else
+    git -C "$AIDE" branch -q -f "$BRANCH" "origin/$BRANCH" 2>/dev/null ||
+      git -C "$AIDE" branch -q "$BRANCH" "origin/$BRANCH" 2>/dev/null || true
+  fi
+  if ! git -C "$AIDE" show-ref --verify --quiet "refs/heads/$BRANCH"; then
     echo "no such branch: $BRANCH in $AIDE or its origin" >&2
     exit 2
   fi
@@ -174,6 +184,12 @@ stop() {
       ( while kill -0 "$SERVER" 2>/dev/null; do sleep 2; done
         git -C "$AIDE" worktree remove --force "$WT" >/dev/null 2>&1 || true
         git -C "$AIDE" worktree prune >/dev/null 2>&1 || true
+        # And the board's own files with it (2026-09-08): the queue, the
+        # jobs, the log and the token are of no use once the server they
+        # belong to is gone, and a --keep'd round used to leave the whole
+        # directory behind — 1900 of them had piled up in the machine's
+        # temp by then.
+        rm -rf "$WORK"
       ) >/dev/null 2>&1 &
       disown 2>/dev/null || true
     else

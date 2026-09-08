@@ -10,6 +10,7 @@ import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-mod
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
+import { stateAction } from "./row-controls.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
 // else. Shared by `create` (always) and by any other phase once
@@ -80,10 +81,26 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // and model selects a live one does now, so it heads them the same
   // way — the only reason this stays conditional at all is `aiPicker`'s
   // own rule, one tool configured is nothing to choose between.
+  // The row's one action, in the State column of the caption line
+  // (2026-09-08): the head line above is what the spec IS, and this line
+  // heads what it is set to do. Spec 157 put the button on the shut row
+  // deliberately; what this costs is a click, and what it buys is a
+  // head line that is only information.
+  const action = stateAction(g, opts);
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts),
+      cells: phaseCaptionCells(opts, true, action),
+    });
+  } else if (action) {
+    // No captions to head — one tool configured, nothing to choose
+    // between — and the press still needs a line of its own.
+    lines.push({
+      tag: `<tr class="subrow" data-caption="1">`,
+      cells:
+        `<td class="phasecell"></td><td class="modelcell"></td>` +
+        `<td data-col="state"><span class="actionslot">${action}</span></td>` +
+        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
     });
   }
   g.phases
@@ -295,7 +312,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td>${phaseWordCell(word, stale, attemptCount)}</td>` +
+          `<td data-col="state">${phaseWordCell(word, stale, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
@@ -330,6 +347,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // on the spec page's own banner and is recorded on the spec itself,
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
+  //
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
 

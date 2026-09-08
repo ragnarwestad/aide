@@ -57,16 +57,15 @@ describe("spec 109: an expanded row reveals its controls below the header line",
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the NAME cell — the head row's
-   *  first — since 2026-09-07, when the pips came off the list and the
-   *  button took their place at the end of the name box. It sat in the
-   *  State cell beside the badge from spec 157 until then, and in the
-   *  header's last cell (shut) or a spanning `stackcell` (open) before
-   *  that, which is why this used to need the whole row group. */
+  /** Where a row's one button is: the State cell of the caption line,
+   *  which only an OPEN row draws (2026-09-08). It sat at the end of
+   *  the name box from 2026-09-07, in the head row's State cell beside
+   *  the badge from spec 157, and in the header's last cell (shut) or a
+   *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
-    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[0] ?? "";
+    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[2] ?? "";
   };
 
   /** The two things a header row is ALLOWED to differ by, removed before
