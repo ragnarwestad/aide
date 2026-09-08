@@ -52,4 +52,46 @@ describe("the specs table fits the box that scrolls it", () => {
   test("the New-spec page's phase table does not stretch to the page's full width", () => {
     expect(css).toContain("#new-spec-form table.list { width: auto; }");
   });
+
+  // The checkbox stands under the middle of the word "Select", not at
+  // the left edge of a chip wider than it. Three things have to agree
+  // for that, and each is undone by an innocent-looking edit elsewhere:
+  // the caption and the box are the same width, both centre what they
+  // hold, and the caption line's own spacing puts the two at the same
+  // x — the phase line keeps its two selects in one wrapper with no gap
+  // between them, so the caption line drops the gap and re-adds the one
+  // before the box as a margin.
+  test("the Select caption and the phase box are one column, centred", () => {
+    const cap = /\.row > \[data-cap="box"\] \{([^}]*min-width[^}]*)\}/.exec(css)![1]!;
+    const box = /\.row > \.phase\[data-phase\] \{([^}]*min-width[^}]*)\}/.exec(css)![1]!;
+
+    const width = (rule: string) => {
+      const min = /min-width: ([\d.]+)rem/.exec(rule)![1]!;
+      const max = /max-width: ([\d.]+)rem/.exec(rule)![1]!;
+      expect(min).toBe(max);
+      return rem(min);
+    };
+    expect(width(cap)).toBeCloseTo(width(box), 5);
+
+    // Centred inside that width: text for the caption, flex for the
+    // chip — and the chip measured from its border box, or its padding
+    // is added to the width and the two stop matching.
+    expect(cap).toMatch(/text-align: center/);
+    expect(box).toMatch(/justify-content: center/);
+    expect(box).toMatch(/box-sizing: border-box/);
+    // The chip's empty label span is a flex item too: a gap to it moves
+    // the checkbox off the centre it was just given.
+    expect(box).toMatch(/gap: 0/);
+
+    // And the same starting x. The caption line has one caption per
+    // control where the phase line has one wrapper for two of them, so
+    // it can only line up by dropping the row's gap and paying it back
+    // once, before the box.
+    expect(css).toContain(
+      'table.list tr.subrow[data-caption="1"] .modelcell > .row { gap: 0; }',
+    );
+    expect(css).toContain(
+      'table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { margin-left: var(--sp-2); }',
+    );
+  });
 });

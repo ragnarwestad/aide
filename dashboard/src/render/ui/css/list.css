@@ -388,6 +388,25 @@ table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem;
 table.list tr.subrow .modelcell > .row > [data-cap="ai"],
 table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
 table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 8rem; max-width: 8rem; }
+/* The two selects sit in ONE wrapper (`.aimodel`) with nothing between
+   them, so a caption line with the row's own 8px between every caption
+   put "Model" 8px right of the select it heads and "Select" 8px right
+   of the box. The caption line drops that gap and keeps the one the
+   phase line does have — the row gap between the wrapper and the box —
+   as a margin on the caption that stands over it. */
+table.list tr.subrow[data-caption="1"] .modelcell > .row { gap: 0; }
+table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { margin-left: var(--sp-2); }
+/* "Select" heads a box rather than a field, so the two are given the
+   same width and both centre what they hold: the tick then sits under
+   the middle of its own caption instead of at the left edge of a chip
+   that is wider than the checkbox in it. `gap: 0` because a phase
+   line's chip carries an empty label span — the gap to it pushed the
+   checkbox 3px off its own centre. */
+table.list tr.subrow .modelcell > .row > [data-cap="box"] {
+  min-width: 2.5rem; max-width: 2.5rem; text-align: center; }
+table.list tr.subrow .modelcell > .row > .phase[data-phase] {
+  box-sizing: border-box; min-width: 2.5rem; max-width: 2.5rem;
+  justify-content: center; gap: 0; }
 /* The mobile fold control (design handoff, mobile-spec-row): a plain
    inline wrapper on desktop, where the checkbox and chevron stay
    invisible and every phase line keeps reading exactly as it did

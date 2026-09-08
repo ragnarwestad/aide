@@ -321,6 +321,11 @@
   table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
   table.list tr.subrow .modelcell > .row > [data-cap],
   table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
+  /* And the box's own desktop width, set so the checkbox centres under
+     the "Select" caption. There is no caption row at this width to
+     centre under, and the floor would be one more thing holding the
+     line open. */
+  table.list tr.subrow .modelcell > .row > .phase[data-phase] { min-width: 0; max-width: none; }
 
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }
