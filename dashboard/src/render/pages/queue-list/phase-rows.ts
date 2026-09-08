@@ -296,10 +296,6 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           `<td class="phasecell">${name}</td>` +
           pickCell +
           `<td>${phaseWordCell(word, stale, attemptCount)}</td>` +
-          // Blank: a phase line has no creation date of its own to
-          // draw — only alignment with the head row's real cell (spec
-          // 317, LIST_COLUMNS).
-          `<td data-col="created"></td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
@@ -322,7 +318,11 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
                 : ranWithNoCost
                   ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured)
                   : ""
-          }</td>`,
+          }</td>` +
+          // Blank, and LAST since 2026-09-08: a phase line has no
+          // creation date of its own to draw, and the empty cell used
+          // to sit between the state and the two figures it does fill.
+          `<td data-col="created"></td>`,
       });
     });
   // Spec 386 drew the same switch as the New-spec page here, on a row

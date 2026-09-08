@@ -144,24 +144,27 @@ describe("spec 124: one phase list, and one action beside the state", () => {
 
   // --- spec 317: the Created column ------------------------------------------
 
-  test("Created sits between State and Time, on the header and the spec row (REQ-1)", () => {
+  // Last since 2026-09-08: it is the one column a PHASE line has nothing
+  // to put in, and in the middle it left an empty cell between the state
+  // and the two figures every phase line does fill.
+  test("Created comes after Time and Cost, on the header and the spec row (REQ-1)", () => {
     const html = rows([], [target("124-stack", { createdAt: "2026-08-12T09:00:00Z" })]);
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
-    // State ends the Spec/State pair, Time is `data-col="started"` — the
-    // Created header has to fall strictly between the two.
     const stateAt = thead.indexOf(">State<");
-    const createdAt_ = thead.indexOf('data-col="created"');
     const startedAt = thead.indexOf('data-col="started"');
+    const costAt = thead.indexOf('data-col="cost"');
+    const createdAt_ = thead.indexOf('data-col="created"');
     expect(stateAt).toBeGreaterThan(-1);
-    expect(createdAt_).toBeGreaterThan(stateAt);
-    expect(startedAt).toBeGreaterThan(createdAt_);
+    expect(startedAt).toBeGreaterThan(stateAt);
+    expect(costAt).toBeGreaterThan(startedAt);
+    expect(createdAt_).toBeGreaterThan(costAt);
 
     const spechead = head(html, "124-stack");
     const stateCellAt = spechead.indexOf("badgeslot");
-    const createdCellAt = spechead.indexOf('data-col="created"');
     const startedCellAt = spechead.indexOf('data-col="started"');
-    expect(createdCellAt).toBeGreaterThan(stateCellAt);
-    expect(startedCellAt).toBeGreaterThan(createdCellAt);
+    const createdCellAt = spechead.indexOf('data-col="created"');
+    expect(startedCellAt).toBeGreaterThan(stateCellAt);
+    expect(createdCellAt).toBeGreaterThan(startedCellAt);
   });
 
   // REQ-4: the same plain YYYY-MM-DD format `archiveDateCell` already
@@ -309,16 +312,18 @@ describe("spec 124: one phase list, and one action beside the state", () => {
 
   // --- criteria 6-12: the row's one action ----------------------------------
 
-  test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
+  test("the button rides with the name; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Five cells: name, state, created, started, cost. The Progress
-    // column went into the name cell with the pips (2026-08-22), the
-    // blank spare after Cost went on 2026-08-23 — the row ends on the
-    // money — and Created joined between state and started (spec 317).
+    // Five cells: name, state, started, cost, created. The Progress
+    // column went into the name cell with the pips (2026-08-22) and the
+    // blank spare after Cost went on 2026-08-23; Created joined between
+    // state and started (spec 317) and moved to the END on 2026-09-08,
+    // where the one column a phase line cannot fill stops standing
+    // between the state and the two it does.
     expect(cells(head(html, "124-stack"))).toHaveLength(5);
     expect(head(html, "124-stack")).toMatch(
-      /<td class="num" data-col="cost">[^<]*<\/td><\/tr>$/,
+      /<td class="created-date" data-col="created">[\s\S]*?<\/td><\/tr>$/,
     );
   });
 

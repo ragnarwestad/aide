@@ -301,8 +301,8 @@ export function phaseCaptionCells(opts: PickerOptions, includeListColumns = true
     `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td>` +
     (includeListColumns
-      ? `<td></td><td data-col="created"></td><td data-col="started"></td>` +
-        `<td class="num" data-col="cost"></td>`
+      ? `<td></td><td data-col="started"></td>` +
+        `<td class="num" data-col="cost"></td><td data-col="created"></td>`
       : "")
   );
 }
