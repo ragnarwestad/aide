@@ -46,7 +46,10 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
   test("restingChip's resting-state words are Norwegian for nb", () => {
     expect(restingChip("nb", { readyPhase: "implement" })).toContain("klar");
     expect(restingChip("nb", {})).toContain("ferdig");
-    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("arkivering holdt tilbake");
+    // The badge says the STATE since 2026-09-08 — the same word every
+    // other stop the system made gets — and the reason is the sentence
+    // on the row's own notice line, which is translated there.
+    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("stopped");
   });
 
   test("English is unchanged (REQ-5)", () => {

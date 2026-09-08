@@ -124,7 +124,7 @@ describe("spec 157: the row draws one action, at the end of the name box", () =>
       [lead({ steps: ["archive"] })],
       [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
     );
-    expect(state(html)).toContain("archive held back");
+    expect(state(html)).toContain("stopped");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
 

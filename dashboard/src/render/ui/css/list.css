@@ -33,7 +33,7 @@
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
-  --speclist-width: 52rem; }
+  --speclist-width: 50rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -99,7 +99,14 @@ table.speclist > colgroup > col[data-col="spec"] { width: 5.5rem; }
    keep whatever is left. 19rem is NOT enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
 table.speclist > colgroup > col[data-col="phase"] { width: 20rem; }
-table.speclist > colgroup > col[data-col="state"] { width: 11rem; }
+/* The badge alone since the button left this cell, and the badge is one
+   word: the widest a spec row can draw is "implementing" (97px) or its
+   Norwegian "implementerer" (102), measured in a browser with this
+   stylesheet. 9rem is that plus the cell's own padding and room for a
+   longer word than either. It held 11rem while the badge could read
+   "arkivering holdt tilbake" — which is the row's own notice line's
+   sentence now, not a state. */
+table.speclist > colgroup > col[data-col="state"] { width: 9rem; }
 table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
 table.speclist > colgroup > col[data-col="started"] { width: 4.5rem; }
 table.speclist > colgroup > col[data-col="cost"] { width: 4.5rem; }

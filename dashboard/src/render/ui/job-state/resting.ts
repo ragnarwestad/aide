@@ -66,7 +66,12 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
   // so it reads that way here too. The notice panel below still says
   // which of the two it is, in full.
   if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) return badge("ready", t(lang, "list.ready"));
-  if (resting.archiveHeldBack) return badge("waiting", t(lang, "list.archiveHeldBackWord"));
+  // The same word every other stop the SYSTEM made gets (2026-09-08):
+  // the badge says the state, and why it stopped is the sentence on the
+  // row's own notice line, where the held-back reason already is in
+  // full. "archive held back" said the phase as well, which the button
+  // beside it already names.
+  if (resting.archiveHeldBack) return badge("waiting", "stopped");
   if (resting.readyPhase) return badge("ready", t(lang, "list.ready"));
   return badge("done", t(lang, "list.done"));
 }

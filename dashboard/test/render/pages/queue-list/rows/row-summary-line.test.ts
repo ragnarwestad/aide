@@ -208,7 +208,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     );
     // Spec 143: the badge keeps the WORD — it is `nowrap`, and the
     // reason is a sentence — and the row's panel says the reason.
-    expect(chip(html)).toBe("archive held back");
+    expect(chip(html)).toBe("stopped");
     expect(chip(html)).not.toContain("nothing waiting on you");
     // Once, not twice: the badge says it, so the line below has nothing
     // left to add (spec 132).
