@@ -35,7 +35,9 @@ describe("an archived spec's row, opened", () => {
     for (const step of STAMPED_STEPS) expect(lines[step]).toContain(">done<");
     for (const step of STAMPED_NOT_RUN) {
       expect(lines[step]).not.toContain(">done<");
-      expect(lines[step]).toContain("not run yet");
+      // A dash since 2026-09-08: the queue has no job for a phase an
+      // archived spec's own file does not name.
+      expect(lines[step]).toContain("–");
     }
   });
 

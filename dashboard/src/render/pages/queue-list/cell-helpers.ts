@@ -77,12 +77,16 @@ export const phaseWordCell = (
         attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
         attempts > 1 ? `${attempts} attempts` : undefined,
       )
-    // A phase can have attempts behind it and still read "not run yet":
+    // A dash, the same one Created and Cost draw for "nothing here"
+    // (2026-09-08): the sentence "not run yet" said in words what an
+    // empty state cell says by being empty, in the column where every
+    // other row carries one word.
+    // A phase CAN have attempts behind it and still read as nothing:
     // the FILES decide the word, and two failed runs leave them saying
-    // nothing happened. The count rides on that text instead, the same
-    // way it rides in the badge above.
+    // nothing happened. The count rides on the dash then, the same way
+    // it rides in the badge above.
     : `<span class="muted small"${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
-      `not run yet${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
+      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`) +
   (aside ? ` ${aside}` : "");
 
 /** The spec header row's own time cell: what its phases have come to so

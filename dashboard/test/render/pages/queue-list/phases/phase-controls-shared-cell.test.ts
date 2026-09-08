@@ -240,9 +240,12 @@ describe("spec 192: the phase line's controls share one cell", () => {
       expect([step, cells(subRow(html, step)).length]).toEqual([step, 6]);
       // The third cell is the phase's own state now, not the empty one
       // the Progress column left behind.
+      // A dash since 2026-09-08, the same one Created and Cost draw for
+      // "nothing here": the queue has no job for this phase, and the
+      // column says so in one character rather than a sentence.
       expect([step, cells(subRow(html, step))[2]]).toEqual([
         step,
-        '<span class="muted small">not run yet</span>',
+        '<span class="muted small">–</span>',
       ]);
     }
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);

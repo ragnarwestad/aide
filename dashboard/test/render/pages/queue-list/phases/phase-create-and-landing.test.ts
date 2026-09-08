@@ -12,6 +12,11 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
+/** What a phase that has not run draws in the State column: a dash,
+ *  the same one Created and Cost use for "nothing here" (2026-09-08).
+ *  It said "not run yet" in words until then. */
+const PHASE_NOT_RUN = "–";
+
 describe("spec 116: create is the first phase line", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
@@ -71,7 +76,7 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).toContain("b-done");
     expect(line).not.toContain("<form");
     expect(line).not.toContain("<button");
-    expect(line).not.toContain("not run yet");
+    expect(line).not.toContain(PHASE_NOT_RUN);
     // No model note, no elapsed time, no cost — what a finished attempt
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
