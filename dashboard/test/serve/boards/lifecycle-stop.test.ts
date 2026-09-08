@@ -5,6 +5,9 @@
 // starting or not. `process.kill` is spied rather than real: this test
 // never signals an actual process.
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { BoardStore, type BoardEntry } from "../../../src/serve/boards/store.ts";
 import { stopBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
 
@@ -86,5 +89,27 @@ describe("stopBoard", () => {
     const store = new BoardStore();
     expect(() => stopBoard(makeCtx(store), "aide", "spec-1")).not.toThrow();
     expect(killed).toHaveLength(0);
+  });
+});
+
+// The log this server wrote for the round goes with the board
+// (2026-09-08). Nothing reads it once the entry is gone, and a directory
+// per start had piled up in the machine's temp — 1900 of them.
+describe("stopping a board takes its own files with it", () => {
+  test("the work directory is removed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-board-stop-"));
+    writeFileSync(join(dir, "board.log"), "== starting\n");
+    const store = new BoardStore();
+    store.set("aide", "spec-1", entry({ workDir: dir, logPath: join(dir, "board.log") }));
+    stopBoard(makeCtx(store), "aide", "spec-1");
+    expect(existsSync(dir)).toBe(false);
+  });
+
+  // A directory that will not go is not worth failing a stop over.
+  test("a work directory that is already gone stops the board anyway", () => {
+    const store = new BoardStore();
+    store.set("aide", "spec-1", entry({ workDir: "/tmp/aide-board-that-never-existed" }));
+    expect(() => stopBoard(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 });

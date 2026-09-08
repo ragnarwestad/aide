@@ -325,3 +325,63 @@ def test_a_run_continues_from_a_pre_existing_attempts_value(runner, workspace, f
     assert rc == 0, out
     text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
     assert bullet(text, "Attempts") == "6"
+
+
+def test_the_stamped_time_covers_the_step_not_the_ai_session_alone(
+    runner, workspace, fake_claude
+):
+    """The `Time spent:` bullet is the STEP's own span (2026-09-08).
+
+    It used to start beside the AI session, so the checkout, the
+    worktree, the branch, the archive pre-check and the reading of what
+    came back all fell outside the figure the phase file stamped — a
+    part of the step presented as the whole. The invariant that holds in
+    every run, fast or slow: the stamp is never SHORTER than the
+    session's own `durationSec`, which the run reports in its JSON.
+    """
+    made = "98-a-timed-spec"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + "sleep 1\n"
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'printf "%s\\n" "# Timed - Description" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
+        + f'> "$specs/{made}/1-description.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+                     model="claude-sonnet-5")
+    assert rc == 0, out
+    session_secs = out["durationSec"]
+    stamped = bullet(phase_file_text(workspace, f"{made}/1-description.md"), "Time spent")
+    minutes, seconds = re.match(r"(\d+)m(\d\d)s", stamped).groups()
+    step_secs = int(minutes) * 60 + int(seconds)
+    assert step_secs >= session_secs, (stamped, session_secs)
+    assert session_secs >= 1, session_secs
+
+
+def test_the_step_clock_starts_before_the_run_does_anything():
+    """And where the two clocks live, since a run's own seconds cannot
+    be asserted deterministically.
+
+    `step_started_at` is set before the first library is sourced — ahead
+    of the checkout, the worktree and the branch — and the outcome writer
+    computes `Time spent:` from it. `started_at`, beside the AI session,
+    stays what the TIMEOUT is measured from: a deadline is about the
+    session, not about the step around it.
+    """
+    scripts = pathlib.Path(__file__).resolve().parents[6] / "core" / "scripts"
+    runner_text = (scripts / "aide-run-spec").read_text()
+    # Before the first library that does any WORK: the checkout, the
+    # worktree and the branch all come after it, and the step's own time
+    # includes them.
+    clock_at = runner_text.index('step_started_at="$(date +%s)"')
+    for first_work in ("run-spec-checkouts.sh", "run-spec-worktree.sh", "run-spec-spec-paths.sh"):
+        assert clock_at < runner_text.index(f'source "$SCRIPT_DIR/lib/{first_work}"'), first_work
+
+    outcome = (scripts / "lib" / "run-spec-outcome.sh").read_text()
+    assert "step_started_at" in outcome
+    assert "time_spent_display" in outcome
+    session = (scripts / "lib" / "run-spec-spec-paths.sh").read_text()
+    assert 'deadline=$(( started_at +' in session
