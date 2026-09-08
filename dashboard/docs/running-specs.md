@@ -37,9 +37,9 @@ builds on, a title, a description, a phase table, and two actions — Create, wh
 `POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. The phase table has
 one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a model choice, drawn by
 the same pickers the spec row on the list uses. `create`'s tick is always checked and cannot be unchecked; the other
-three are unticked by default, so a form submitted without touching them queues the same single-step `create` job as
-before. Ticking further phases queues one job whose `steps` runs all of them in order, guarded, budgeted and timed
-exactly like any other.
+three are checked by default too, so a form submitted without touching them queues all four phases in order, guarded,
+budgeted and timed exactly like any other job. Unticking a box before pressing Create still works, and is how a
+`create`-only job is queued.
 
 It is a page rather than a disclosure folded into `/`: a primary button that unfolds the page under it reads oddly,
 and leaves no way out but pressing the same button again. Both actions work with no script at

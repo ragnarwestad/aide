@@ -324,16 +324,15 @@ describe("spec 342: the phase table", () => {
     expect(box).not.toContain("name=");
   });
 
-  // REQ-3, REQ-4: every other phase's tick posts `name="steps"` and is
-  // NOT checked by default, so an untouched form ticks nothing beyond
-  // `create`.
-  test("analyze/implement/archive ticks post name=\"steps\" with their own value, unticked by default", () => {
+  // REQ-1, REQ-2: every other phase's tick posts `name="steps"` and IS
+  // checked by default, so an untouched form queues all four phases.
+  test("analyze/implement/archive ticks post name=\"steps\" with their own value, checked by default", () => {
     const html = newPage();
     for (const step of ["analyze", "implement", "archive"]) {
       const line = subRow(html, step);
       const box = line.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
       expect(box).toContain('name="steps"');
-      expect(box).not.toContain("checked");
+      expect(box).toContain("checked");
     }
   });
 

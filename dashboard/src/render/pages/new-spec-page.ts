@@ -210,7 +210,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
         : stepLabel(step),
       name: locked ? "" : "steps",
       form: formId,
-      checked: locked,
+      checked: true,
       disabled: locked,
       plain: true,
     });
