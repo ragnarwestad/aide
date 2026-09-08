@@ -107,6 +107,12 @@ describe("the specs table fits the box that scrolls it", () => {
       /table\.list td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!,
     )![1]!;
     expect(cell).toContain(`padding-right: var(--${pad})`);
+    // And the slot inside it gives up its fixed width, which is wider
+    // than what the clearance leaves on either side: a slot that keeps
+    // it fills the cell and there is nothing left to centre.
+    expect(css).toContain(
+      'table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }',
+    );
   });
 
   // A badge carries its own padding and a bare dash carries none, so

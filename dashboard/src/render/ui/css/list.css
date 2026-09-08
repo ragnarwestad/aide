@@ -140,6 +140,12 @@ table.list td[data-col="state"] { padding-left: var(--sp-5); }
    in the COLUMN and not in whatever is left after a one-sided pad. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] {
   padding-right: var(--sp-5); text-align: center; }
+/* And the slot gives up the fixed width it holds a COLUMN still with:
+   6.5rem is wider than what the clearance leaves on either side, so a
+   slot that kept it had nothing left to centre in. Centred, the button
+   stays on the column's midline whatever its label says — which is the
+   same promise the fixed width makes on the row above. */
+table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
 /* A phase with nothing to say draws a dash where the others draw a
    badge. The badge carries its own padding and the dash carries none,
    so the dash alone sat on the column's left edge — four characters in
