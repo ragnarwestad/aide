@@ -327,7 +327,6 @@ describe("spec 342: formIdOverride replaces the derived form id", () => {
   const g: SpecGroup = {
     project: "", specFolder: "new", named: false, state: "not-started",
     spentUsd: 0, costUnmeasured: false, phases: [], done: [], dependsOn: [], analyzeStale: false,
-    totalDurationSessionOnly: false,
   };
   const opts: PickerOptions = { modelChoices: models };
 

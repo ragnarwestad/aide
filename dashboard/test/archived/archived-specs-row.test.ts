@@ -149,15 +149,17 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SPENT);
   });
 
-  // Spec 410, REQ-4: the queue has no memory of STAMPED's jobs at all —
-  // this harness never queues one — so the figure above is the phase
-  // file's own stamp, the AI session's own duration alone. The row says
-  // so, rather than presenting it as the phase's whole time.
-  test("marks a file-only duration as the AI session's own time, not the whole phase's (spec 410, REQ-4)", async () => {
+  // Spec 410, REQ-4 put a "part." mark on a duration read from the
+  // phase file's own stamp rather than measured by the queue. It is gone
+  // (2026-09-08): a reader has nothing to do with that distinction, and
+  // the answer is to record the whole time rather than to footnote the
+  // part that was recorded.
+  test("marks nothing on a file-only duration — the figure stands alone", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain("the AI session's own time only");
+    expect(body).not.toContain("part.");
+    expect(body).not.toContain("the AI session's own time only");
   });
 
   // Acceptance criterion 4: nothing recorded across every phase is the

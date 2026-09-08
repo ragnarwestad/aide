@@ -3,7 +3,6 @@ import { durationLabel } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { busyReason, runFormId } from "./cells.ts";
-import { sessionOnlyMark } from "./cell-helpers.ts";
 
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase
@@ -166,21 +165,15 @@ export function modelPicker(
   );
 }
 
-/** A locked phase's own record of what it spent in TIME (spec 247),
- *  beside `lockedModel` above and on the same terms: blank, not a dash,
- *  when the phase's own file names no `Time spent:` line — the same
- *  rule `archiveDateCell`'s duration mark already keeps. No class of its
- *  own: unlike Model, this column is plain, always-visible data, never
- *  hidden behind the `.foldphase` fold Model's own class exists to
- *  survive. */
-export function lockedDuration(ms: number | undefined, sessionOnly: boolean): string {
+/** A locked phase's own record of what it spent in TIME (spec 247), on
+ *  the same terms as its model: blank, not a dash, when the phase's own
+ *  file names no `Time spent:` line — the same rule `archiveDateCell`'s
+ *  duration mark already keeps. */
+export function lockedDuration(ms: number | undefined): string {
   // `0s` where nothing was recorded, never an empty cell: the column
   // answers "how long did this phase take", and a blank leaves the
   // reader asking whether it ran at all.
-  return (
-    `<span class="muted small">${esc(durationLabel(Math.max(0, ms ?? 0)))}</span>` +
-    sessionOnlyMark(sessionOnly && ms !== undefined && ms > 0)
-  );
+  return `<span class="muted small">${esc(durationLabel(Math.max(0, ms ?? 0)))}</span>`;
 }
 
 /** Every configured model, grouped by the CLI it starts (spec 169).

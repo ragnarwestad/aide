@@ -303,7 +303,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // of its own. A live row with no queue-job attempt falls back
           // to the same file-stamped figure a locked row reads.
           `<td data-col="started">${
-            phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs, locked)
+            phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
           }</td>` +
           `<td class="num" data-col="cost">${
             locked
