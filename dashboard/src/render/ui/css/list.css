@@ -134,24 +134,14 @@ table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3);
    draws the column — the spec's own line, the caption line and each
    phase line — so the boundary is one line down the table, not the
    button's own margin. */
-table.list td[data-col="state"] { padding-left: var(--sp-5); }
-/* The caption line's cell holds the row's one action and nothing else,
-   and it stands over the column rather than at the left edge of it: the
-   clearance above is paid on the right as well, so centring is centring
-   in the COLUMN and not in whatever is left after a one-sided pad. */
-table.list tr.subrow[data-caption="1"] td[data-col="state"] {
-  padding-right: var(--sp-5); text-align: center; }
+table.list td[data-col="state"] {
+  padding-left: var(--sp-5); padding-right: var(--sp-5); text-align: center; }
 /* And the slot gives up the fixed width it holds a COLUMN still with:
    6.5rem is wider than what the clearance leaves on either side, so a
    slot that kept it had nothing left to centre in. Centred, the button
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
-/* A phase with nothing to say draws a dash where the others draw a
-   badge. The badge carries its own padding and the dash carries none,
-   so the dash alone sat on the column's left edge — four characters in
-   puts it under the words rather than in front of them. */
-table.list td[data-col="state"] [data-none] { margin-left: 4ch; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
@@ -177,8 +167,8 @@ table.list th[data-col="cost"],
 table.list th[data-col="state"] { width: 0; white-space: nowrap; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
-.sortlink { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px;
-  margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
+.sortlink { display: flex; align-items: center; justify-content: space-between; width: 100%;
+  gap: 2px; padding: 2px 6px; margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
 .sortlink.on { color: var(--text); font-weight: 600; }
 .sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }

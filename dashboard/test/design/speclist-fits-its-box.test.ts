@@ -95,30 +95,38 @@ describe("the specs table fits the box that scrolls it", () => {
     );
   });
 
-  // The State column pays its clearance on one side only, so a cell
-  // that centres its content without paying it on the other centres in
-  // what is LEFT of the column rather than in the column. The action
-  // button is the one thing drawn that way.
-  test("the caption line's action is centred in the State column, not beside it", () => {
-    const cell =
-      /tr\.subrow\[data-caption="1"\] td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!;
+  // Every row type in the State column now centres in the same
+  // symmetric box: the state badge, the phase lines' dash and the
+  // caption line's action button all share the general rule instead of
+  // the caption line alone carrying its own centering override.
+  test("the State column centres every row type in the same symmetric box", () => {
+    const cell = /table\.list td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!;
     expect(cell).toMatch(/text-align: center/);
-    const pad = /padding-left: var\(--(sp-\d)\)/.exec(
-      /table\.list td\[data-col="state"\] \{([^}]*)\}/.exec(css)![1]!,
-    )![1]!;
-    expect(cell).toContain(`padding-right: var(--${pad})`);
-    // And the slot inside it gives up its fixed width, which is wider
-    // than what the clearance leaves on either side: a slot that keeps
-    // it fills the cell and there is nothing left to centre.
+    const left = /padding-left: var\(--(sp-\d)\)/.exec(cell)![1]!;
+    const right = /padding-right: var\(--(sp-\d)\)/.exec(cell)![1]!;
+    expect(right).toBe(left);
+    // And the slot inside the caption line still gives up its fixed
+    // width, which is wider than what the clearance leaves on either
+    // side: a slot that keeps it fills the cell and there is nothing
+    // left to centre.
     expect(css).toContain(
       'table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }',
     );
   });
 
-  // A badge carries its own padding and a bare dash carries none, so
-  // the two start at different places in the same column unless the
-  // dash is indented — which is what `data-none` is on it for.
-  test("the State column's dash is indented to where the badges' words start", () => {
-    expect(css).toContain('table.list td[data-col="state"] [data-none] { margin-left: 4ch; }');
+  // The dash used to need a manual left indent because it sat alone in
+  // a left-aligned column; now every element in the column centres, so
+  // the compensation is gone.
+  test("the State column's dash needs no manual indent", () => {
+    expect(css).not.toContain('table.list td[data-col="state"] [data-none] { margin-left: 4ch; }');
+  });
+
+  // A sortable header's chevron sits at the column's own right edge,
+  // clear of the label, instead of shrink-wrapping directly against it.
+  test("a sortable header's chevron sits at the column's right edge", () => {
+    const rule = /\.sortlink \{([^}]*)\}/.exec(css)![1]!;
+    expect(rule).toMatch(/display: flex/);
+    expect(rule).toMatch(/width: 100%/);
+    expect(rule).toMatch(/justify-content: space-between/);
   });
 });
