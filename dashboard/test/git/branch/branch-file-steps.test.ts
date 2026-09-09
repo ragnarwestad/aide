@@ -155,9 +155,23 @@ describe("BranchFileStepsChecker", () => {
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     checker.forget(DIR, FOLDER);
-    expect(checker.peekFileSteps(DIR, FOLDER)).toEqual({ steps: null, checkedAt: null });
     await checker.read(DIR, FOLDER, TARGET);
     expect(git.calls.length).toBeGreaterThan(before);
+  });
+
+  // The last answer STAYS until the re-read replaces it (425,
+  // 2026-09-09): dropped, the row answered from the default branch's
+  // copy meanwhile — the copy from before implement ran — and said the
+  // files disagree, right after a tick that changed nothing about which
+  // steps had run.
+  test("a forgotten spec keeps answering from its last read until the re-read lands", async () => {
+    const git = fake(branchFile(["analyze", "implement"]));
+    const checker = new BranchFileStepsChecker({ run: git.run, now: () => 0 });
+    await checker.read(DIR, FOLDER, TARGET);
+    checker.forget(DIR, FOLDER);
+    const peek = checker.peekFileSteps(DIR, FOLDER);
+    expect(peek.steps?.proseSteps).toEqual(["analyze", "implement"]);
+    expect(peek.checkedAt).toBe(0);
   });
 
   // The Risk analysis item 4 case this class itself can hit:
