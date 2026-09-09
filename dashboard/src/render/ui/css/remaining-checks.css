@@ -11,8 +11,16 @@
 .checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
   margin-top: var(--sp-2); }
 .checklist .checkphase:first-child { margin-top: 0; }
-.check { display: flex; align-items: baseline; gap: var(--sp-2); }
+.check { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 .check.done .checktask { color: var(--muted); text-decoration: line-through; }
+/* The run's own note on the row, under the criterion rather than beside
+   it: it is a sentence, not a label, and it must not squeeze the text
+   the reader is judging. Its own line, indented past the box so it
+   lines up with that text — and outside `.checktask`, so a done row's
+   strike-through does not run through the one thing on it that is still
+   worth reading. */
+.check .checknote { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
+  color: var(--muted); font-size: var(--fs-s); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
    for a row that is still open (spec 188). Fixed width so every row

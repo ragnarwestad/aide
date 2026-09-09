@@ -6,11 +6,8 @@ import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
 import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "./board-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
-import { lastCommitOf } from "../../../git/description-freshness.ts";
-import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render.ts";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect } from "../../serve-helpers.ts";
-import { STATE_SPEC_FILE, stateRelPath } from "./shared.ts";
 
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -163,6 +160,17 @@ export async function specPageRoutes(
     // breaks. Anything outside the four editable files is refused
     // before the body is read further.
     const file = typeof body.file === "string" ? body.file : EDITABLE_SPEC_FILE;
+    // `4-status.md` is a record, not a document to write: the tracking
+    // block is the run's own stamp and the phase tables are its log of
+    // what it did. The one thing in it a person decides — the
+    // acceptance checks — is the Checks tab's own route, which can now
+    // both put a check on and take one back off, so nothing is left
+    // here that a hand edit is the only way to do.
+    if (file === STATUS_SPEC_FILE) {
+      const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick on the Checks tab instead`;
+      logRefusal("save", `${project}/${specFolder}`, reason);
+      return specsRedirect({}, { error: reason }, specTabPath(project!, specFolder!, "status"));
+    }
     const tab = FILE_TABS[file];
     if (!tab) {
       return specsRedirect(
@@ -202,28 +210,9 @@ export async function specPageRoutes(
     // that is `spec-edit/tracking.ts`'s route now, for every tab.
     const text = body.text;
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-    // spec 355 (REQ-2): a document-tab Save of 4-status.md itself is as
-    // real a write to it as a skill's or the tick route's, and the
-    // state file has to stay in step with it too — landed through the
-    // same spawned aide-write-spec, in the same commit. Refuses rather
-    // than saving with a silently stale state file: the whole point of
-    // "only scripts write it" is that nothing else ever computes it.
-    let stateEdit: { relPath: string; text: string; baseSha: string | null } | null = null;
-    if (file === STATUS_SPEC_FILE) {
-      const derived = await runAideWriteSpec(specFolder!, file, text);
-      if (!derived.ok || !derived.stateJson) {
-        const reason = derived.error ?? "the state file could not be derived";
-        logRefusal("save", `${project}/${specFolder}`, reason);
-        return specsRedirect({}, { error: `${reason} — nothing was saved` }, back);
-      }
-      // Nothing edits this file directly, so there is no stale-page race
-      // to guard against — only the CURRENT sha, read fresh, so
-      // `saveSpecFiles`'s own row-level check (every edit's baseSha must
-      // match what is actually there) does not itself refuse a plain
-      // update to a file nothing on the page ever showed a baseSha for.
-      const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
-      stateEdit = { relPath: "", text: derived.stateJson, baseSha: currentState?.sha ?? null };
-    }
+    // The derived state file has no second writer here any more: the one
+    // file whose save had to keep `4-status.json` in step was
+    // `4-status.md`, and that save is refused above.
     // REQ-4: the same branch-aware choice the tick route already makes
     // for `4-status.md` — an open `aide/<folder>` branch is where an
     // active spec's real, already-committed progress lives, and a
@@ -238,10 +227,7 @@ export async function specPageRoutes(
             ctx.gitRun,
             branchTarget.root,
             branchTarget.branch,
-            [
-              { relPath: branchTarget.relPath, text },
-              ...(stateEdit ? [{ relPath: stateRelPath(branchTarget.relPath), text: stateEdit.text }] : []),
-            ],
+            [{ relPath: branchTarget.relPath, text }],
             baseSha,
             editMessage(specFolder!, file),
           ),
@@ -251,13 +237,7 @@ export async function specPageRoutes(
             ctx.gitRun,
             dir,
             (root) => ctx.branchStatus.defaultBranch(root),
-            [
-              { file, text, baseSha },
-              // Its own current sha, read fresh above — `null` here told
-              // saveSpecFiles the file had never been committed, and every
-              // Save refused once the backfill had committed one for each spec.
-              ...(stateEdit ? [{ file: STATE_SPEC_FILE, text: stateEdit.text, baseSha: stateEdit.baseSha }] : []),
-            ],
+            [{ file, text, baseSha }],
             { specLabel: specFolder!, message: editMessage(specFolder!, file) },
           ),
         );

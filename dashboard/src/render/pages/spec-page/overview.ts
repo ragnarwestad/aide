@@ -222,18 +222,37 @@ export function checklist(view: SpecPageView, mark = ""): string {
   // `Acceptance` section leaves its rows read-only rather than ticking
   // them against the wrong one.
   const phase = rows[0]!.phase;
-  const canTick = !view.archived && !activeJob && rows.some((r) => !r.done && r.phase === phase);
-  const tickable = (row: SpecCheckView): boolean => canTick && !row.done && row.phase === phase;
+  // Every acceptance row is a box, done ones included: a check can be
+  // made by mistake, and until it could be taken off here the only way
+  // back was to edit the table in `4-status.md` by hand. So the section
+  // is editable whenever the spec is — not only while something in it
+  // is still open.
+  const canTick = !view.archived && !activeJob;
+  const tickable = (row: SpecCheckView): boolean => canTick && row.phase === phase;
   const control = (row: SpecCheckView): string =>
     tickable(row)
       // The row's verbatim line is the value: the server finds the row
       // by it and refuses one that has moved, so a stale page can never
-      // flip the wrong line.
-      ? `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}"></label>`
+      // flip the wrong line. The hidden twin beside it is what says this
+      // row was on the page at all — the server decides only the rows
+      // the form drew, so an unchecked box reads as "taken off" rather
+      // than as a row nobody mentioned.
+      ? `<input type="hidden" name="row" value="${esc(row.line)}">` +
+        `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}"` +
+        `${row.done ? " checked" : ""}></label>`
       : `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`;
+  // The Notes cell, on its own line under the criterion. It is the one
+  // thing on the row a reader cannot work out from the criterion itself:
+  // what the run actually delivered against it, and any limit on that —
+  // "delivered for the no-retry case only" is the kind of caveat that
+  // decides whether the box should be ticked at all. Shown on a done row
+  // too, and not struck through with it: a caveat on something already
+  // accepted is still the record of what was accepted.
+  const note = (row: SpecCheckView): string =>
+    row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
   const item = (row: SpecCheckView): string =>
     `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
-    `<span class="checktask">${esc(row.task)}</span></li>`;
+    `<span class="checktask">${esc(row.task)}</span>${note(row)}</li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;

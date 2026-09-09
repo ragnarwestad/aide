@@ -100,7 +100,7 @@ describe("parseStatusChecks (spec 182)", () => {
   test("an open row written in words is a check, exactly as a symbol one is", () => {
     const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | Waiting | |"]));
     expect(checks).toEqual([
-      { phase: "Phase 1: RED", line: "| a task | Waiting | |", task: "a task", done: false },
+      { phase: "Phase 1: RED", line: "| a task | Waiting | |", task: "a task", done: false, note: "" },
     ]);
   });
 
@@ -162,7 +162,7 @@ describe("parseStatusChecks (spec 182)", () => {
       "",
     ].join("\n");
     const checks = parseStatusChecks(checklist);
-    expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false }]);
+    expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false, note: "" }]);
   });
 
   // Spec 285: `## Acceptance criteria` sections count the same as `##
@@ -179,7 +179,7 @@ describe("parseStatusChecks (spec 182)", () => {
     ].join("\n");
     const checks = parseStatusChecks(acceptance);
     expect(checks).toEqual([
-      { phase: "Acceptance criteria", line: "| REQ-1: does the thing | ⬜ | |", task: "REQ-1: does the thing", done: false },
+      { phase: "Acceptance criteria", line: "| REQ-1: does the thing | ⬜ | |", task: "REQ-1: does the thing", done: false, note: "" },
     ]);
   });
 });
@@ -286,5 +286,40 @@ describe("tickStatusLine (spec 182)", () => {
     const out = tickStatusLine(file, "Acceptance criteria", "| REQ-1: does the thing | ⬜ | |")!;
     expect(out).not.toBeNull();
     expect(out.split("\n")[6]).toBe("| REQ-1: does the thing | ✅ | |");
+  });
+});
+
+// The Notes cell is the one thing on an acceptance row a reader cannot
+// work out from the criterion itself: what the run delivered against it,
+// and any limit on that. Spec 340's own file carries the shape —
+// "Delivered for the no-retry case only" beside a ticked REQ — and it
+// was parsed and thrown away, so the Checks tab could never show it.
+describe("the Notes cell (spec 340's caveat, and every other row's)", () => {
+  const acceptance = (rows: string[]): string =>
+    ["## Acceptance criteria", "", "| Task | Status | Notes |", "|------|--------|-------|", ...rows, ""].join("\n");
+
+  test("a row's note is carried, verbatim", () => {
+    const line = "| REQ-3: the figure follows the same rule | ✅ | Delivered for the no-retry case only |";
+    const checks = parseStatusChecks(acceptance([line]));
+    expect(checks).toEqual([
+      {
+        phase: "Acceptance criteria",
+        line,
+        task: "REQ-3: the figure follows the same rule",
+        done: true,
+        note: "Delivered for the no-retry case only",
+      },
+    ]);
+  });
+
+  test("an empty Notes cell is an empty note, not a missing one", () => {
+    const checks = parseStatusChecks(acceptance(["| REQ-1: does the thing | ⬜ | |"]));
+    expect(checks[0]!.note).toBe("");
+  });
+
+  test("a note on a Phase row is carried too — the same table shape reads the same way", () => {
+    const line = "| Write the test | ✅ | One commit, both files included |";
+    const checks = parseStatusChecks(["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", line, ""].join("\n"));
+    expect(checks[0]!.note).toBe("One commit, both files included");
   });
 });

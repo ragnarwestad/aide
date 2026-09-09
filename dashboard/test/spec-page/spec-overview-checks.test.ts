@@ -78,13 +78,14 @@ describe("the checks on the Overview tab", () => {
       expect(html).not.toContain("<textarea");
     });
 
-    // "A check already made" — the first of the description's two
-    // exclusions. The row is still SHOWN, because a list that only ever
-    // shrinks says nothing about how far the spec got; it is not a box.
-    test("a row already done in the current phase is shown but is not a box", async () => {
+    // A check already made is a box too, and a ticked one. It used to be
+    // static text — which made a mis-click final, with `4-status.md` and
+    // a markdown table the only way back.
+    test("a row already done in the current phase is a ticked box, not static text", async () => {
       const html = await overview(startWithChecks(savable("/host")).base);
       expect(html).toContain("Run the full test suite");
-      expect(html.match(/name="tick"/g)!).toHaveLength(2);
+      expect(html.match(/name="tick"/g)!).toHaveLength(3);
+      expect(html).toContain(`value="${DONE_ROW}" checked>`);
     });
 
     // A Phase section the workflow has not reached carries the run's own
@@ -92,7 +93,7 @@ describe("the checks on the Overview tab", () => {
     test("an open row in a later phase is not on the page", async () => {
       const html = await overview(startWithChecks(savable("/host")).base);
       expect(html).not.toContain("Watch the first real run");
-      expect(html.match(/name="tick"/g)!).toHaveLength(2);
+      expect(html.match(/name="tick"/g)!).toHaveLength(3);
     });
 
     // Spec 190, criterion 1. With every open mark written in words the
@@ -104,13 +105,18 @@ describe("the checks on the Overview tab", () => {
       expect(html).toContain('name="tick"');
       expect(html).toContain("Manual check at 375px in a real browser");
       expect(html).toContain("Read the whole diff once");
-      expect(html.match(/name="tick"/g)!).toHaveLength(2);
+      expect(html.match(/name="tick"/g)!).toHaveLength(3);
     });
 
-    test("a spec whose every phase is done offers no boxes at all", async () => {
+    // Every row done is not a section with nothing to do: taking a check
+    // back off is the thing this page is now for as much as putting one
+    // on, and a spec whose boxes were all ticked by mistake had no way
+    // back at all.
+    test("a spec whose every row is done still offers its boxes, ticked", async () => {
       const done = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
       const html = await overview(startWithChecks(savable("/host"), done).base);
-      expect(html).not.toContain('name="tick"');
+      expect(html.match(/name="tick"/g)!).toHaveLength(1);
+      expect(html).toContain(`value="${DONE_ROW}" checked>`);
       expect(html).toContain("Run the full test suite");
     });
 

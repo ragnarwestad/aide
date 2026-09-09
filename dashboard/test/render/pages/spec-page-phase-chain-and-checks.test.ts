@@ -116,13 +116,14 @@ describe("the checks block (specs 182, 188, 212)", () => {
     );
   });
 
-  // "A check already made" — a done row is still SHOWN, because a list
-  // that only ever shrinks says nothing about how far the spec got —
-  // but it is not a box to press.
-  test("a done row is shown, marked done, and is not a box", () => {
+  // A check already made is a ticked box, not static text: it was made
+  // by a person and a person can have got it wrong, and the only way
+  // back used to be editing the markdown table in `4-status.md`.
+  test("a done row is a ticked box, and still reads as done", () => {
     const html = page(withChecks([DONE]), "checks");
     expect(html).toContain("Run the full test suite");
-    expect(section(html)).not.toContain('name="tick"');
+    expect(section(html)).toContain('name="tick"');
+    expect(section(html)).toContain(" checked>");
     expect(html).toContain("check done");
   });
 
@@ -201,14 +202,15 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(html).not.toContain("no acceptance criteria");
   });
 
-  // Nothing left to tick — every row done, or the current phase not
-  // named at all — leaves the rows on the page and the form off it.
-  test("nothing tickable, no form", () => {
+  // Every row done is not "nothing to do": the form stays, so a check
+  // can come back off. What still leaves the page with nothing to press
+  // is a section whose rows are none of the person's.
+  test("every row done keeps the form — that is what takes a check back off", () => {
     const html = page(view({ checks: { rows: [DONE], phase: PHASE, baseSha: "b7c40e2" } }), "checks");
     expect(html).toContain("Run the full test suite");
-    expect(section(html)).not.toContain("<form");
-    // And a spec whose only open rows are Phase rows: nothing here is
-    // the person's, so there is nothing to press.
+    expect(section(html)).toContain("<form");
+    // A spec whose only rows are Phase rows: nothing here is the
+    // person's, so there is nothing to press.
     expect(page(view({ checks: { rows: [LATER] } }), "checks")).not.toContain('name="tick"');
   });
 
@@ -243,5 +245,51 @@ describe("the checks block (specs 182, 188, 212)", () => {
     const html = page(view({ checks: { rows: [check()], phase: PHASE } }), "checks");
     expect(html).toContain('name="tick"');
     expect(html).not.toContain("undefined");
+  });
+});
+
+// A criterion says what was asked for; only the run knows what it
+// actually delivered against it. Spec 340 ticked REQ-3 with "Delivered
+// for the no-retry case only" beside it, and the page showed a plain
+// green tick — the caveat sat in the file and reached nobody.
+describe("the run's own note on an acceptance row", () => {
+  const PHASE = "Acceptance criteria";
+  const noted = (note: string, done = false): SpecCheckView => ({
+    phase: PHASE,
+    line: `| REQ-3: the figure follows the same rule | ${done ? "✅" : "⬜"} | ${note} |`,
+    task: "REQ-3: the figure follows the same rule",
+    done,
+    note,
+  });
+  // The checks SECTION, never the whole page: the shell carries this
+  // block's own CSS inline, so `.checknote` appears in the stylesheet
+  // whether or not a single row draws one.
+  const render = (rows: SpecCheckView[]): string => {
+    const html = page(view({ checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" } }), "checks");
+    return html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
+  };
+
+  test("it is on the page, beside the criterion it belongs to", () => {
+    const html = render([noted("Delivered for the no-retry case only")]);
+    expect(html).toContain('<span class="checknote">Delivered for the no-retry case only</span>');
+  });
+
+  test("a row with no note draws none — an empty line under every criterion says nothing", () => {
+    const html = render([noted("")]);
+    expect(html).not.toContain("checknote");
+  });
+
+  // The caveat is the record of what was accepted, so it survives the
+  // acceptance: a done row keeps it, outside the struck-through text.
+  test("a criterion already ticked keeps its note, outside the struck-through text", () => {
+    const html = render([noted("Delivered for the no-retry case only", true)]);
+    const item = html.match(/<li class="check done">[\s\S]*?<\/li>/)?.[0] ?? "";
+    expect(item).toContain('<span class="checknote">');
+    expect(item).not.toMatch(/<span class="checktask">[^<]*Delivered/);
+  });
+
+  test("a note is escaped, never rendered as markup", () => {
+    const html = render([noted("see <b>3-solution.md</b>")]);
+    expect(html).toContain("see &lt;b&gt;3-solution.md&lt;/b&gt;");
   });
 });

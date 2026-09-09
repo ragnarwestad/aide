@@ -49,9 +49,12 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
     const { run } = branchAwareGitRunner({ open: false, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
     const html = await overview(base);
-    // main's own content — done, no boxes — and never the branch's.
-    expect(html).not.toContain('name="tick"');
+    // main's own content, and never the branch's: main's one row is
+    // done, so the box that stands for it is a ticked one, and the
+    // branch's still-open row is nowhere.
     expect(html).toContain("Run the full test suite");
+    expect(html).toContain(`value="${DONE_ROW}" checked>`);
+    expect(html).not.toContain("Manual check at 375px in a real browser");
   });
 
   test("the tick form's baseSha is the branch's own file commit, not main's", async () => {
@@ -81,13 +84,14 @@ describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () =>
     const { run } = branchAwareGitRunner({ open: true, branchText: branchStatus });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
     const html = await overview(base);
-    // The Phase section's own open row is the run's record: no box, and
-    // not drawn here at all.
-    expect(html).not.toContain('name="tick"');
+    // The Phase section's own open row is the run's record: not drawn
+    // here at all, so no box stands for it.
     expect(html).not.toContain("Manual check at 375px in a real browser");
     // The Acceptance row is the one this page carries — already done
-    // here, so a plain mark rather than a box.
+    // here, so a box that is ticked, and the only box on the page.
     expect(html).toContain("Write the code");
+    expect(html.match(/name="tick"/g)!).toHaveLength(1);
+    expect(html).toContain(`value="${EARLIER_DONE_ROW}" checked>`);
   });
 });
 

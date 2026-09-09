@@ -7,7 +7,13 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
 import { specFileText } from "../../../project/discover.ts";
-import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../../project/parse-status.ts";
+import {
+  acceptanceCriteriaUnticked,
+  clearArchiveHeldBack,
+  parseStatusChecks,
+  tickStatusLine,
+  untickStatusLine,
+} from "../../../project/parse-status.ts";
 import { STATUS_SPEC_FILE, specTabPath } from "../../../render.ts";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers.ts";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
@@ -65,10 +71,20 @@ export async function checkRoutes(
     // `bodyToObject` wraps a lone value in an array for the New-spec
     // form's chip set, exactly as it does for `dependsOn`, so both
     // shapes are taken apart the same way.
+    // The boxes the reader left TICKED — the whole state of the section,
+    // not a list of additions. A browser posts only the checked boxes,
+    // so a row missing from this set is a row whose check was taken off,
+    // and every box clear is a legitimate press rather than an empty
+    // one. That is what makes a mis-click correctable here instead of by
+    // hand in `4-status.md`.
     const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
-    // Save pressed with every box clear. Nothing to say and nothing to
-    // commit — not a refusal either.
-    if (ticks.length === 0) return specsRedirect({}, undefined, back);
+    // Every row the form DREW, ticked or not, as its own hidden field.
+    // It is what scopes the press: only these rows are decided by it, so
+    // a request that carries none changes nothing rather than clearing
+    // the section, and a row a run added since the page was drawn is
+    // left alone instead of being answered for by a reader who never
+    // saw it.
+    const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
     // Boxes with no phase to read them against is a request that
     // never came from this form.
     if (typeof body.checksPhase !== "string") {
@@ -101,20 +117,47 @@ export async function checkRoutes(
       ? ((await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))
           ?.text ?? "")
       : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
-    for (const line of ticks) {
-      const next = tickStatusLine(ticked, body.checksPhase, line);
+    // What the file says now, so the press can be read as a state rather
+    // than as a list: a row the reader left ticked that is already done
+    // needs nothing, and a row that is done and no longer ticked is a
+    // check to take off. Read from the same text every write below goes
+    // on to change, so the two can never disagree about what was there.
+    const asRead = ticked;
+    const state = new Map(
+      parseStatusChecks(ticked)
+        .filter((row) => row.phase === body.checksPhase)
+        .map((row) => [row.line, row.done] as const),
+    );
+    const wanted = new Set(ticks);
+    for (const line of drawn) {
+      const done = state.get(line);
+      if (done === undefined) {
+        return specsRedirect(
+          {},
+          { error: "that check is not there to change any more — reload the page and look again" },
+          back,
+        );
+      }
+      if (wanted.has(line) === done) continue;
+      const next = done
+        ? untickStatusLine(ticked, body.checksPhase, line)
+        : tickStatusLine(ticked, body.checksPhase, line);
       // One row that is not there refuses the WHOLE press, the boxes
       // beside it included — never applied silently while one of them
       // is dropped.
       if (next === null) {
         return specsRedirect(
           {},
-          { error: "that check is not there to tick any more — reload the page and look again" },
+          { error: "that check is not there to change any more — reload the page and look again" },
           back,
         );
       }
       ticked = next;
     }
+    // A press that moved nothing: the reader opened the tab, pressed
+    // Save and changed their mind about nothing. Not a refusal, and not
+    // a commit either.
+    if (ticked === asRead) return specsRedirect({}, undefined, back);
     // Spec 190: the hold-back note goes with the last check it was
     // waiting on. A declined archive run writes `## Archive held
     // back` naming one open row and where to close it out; ticking
