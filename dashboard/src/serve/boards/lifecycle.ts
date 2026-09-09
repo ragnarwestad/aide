@@ -37,7 +37,7 @@ export interface BoardsContext {
   /** The served board's own port, and any other tracked board's port
    *  (REQ-10) — reserved before probing for a free one. */
   reservedPorts: () => number[];
-  findFreePort: (reserved: number[]) => Promise<number>;
+  findFreePort: (reserved: number[]) => Promise<number | undefined>;
   /** What is listening on one of the pool's ports, if it is a test
    *  server: its process, and the directory that process was given.
    *  `recover.ts` asks this once per port after a restart; the real
@@ -59,15 +59,16 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
 }
 
 /** The ports a test server may use. A board on a port nobody exposed is
- *  reachable from the serving host and nowhere else — and the reader
- *  who wants to look at a branch is usually not sitting at it. These
- *  three are put behind `tailscale serve` once, by hand, so a board
- *  that takes one is reachable the moment it is up.
+ *  reachable from the serving host and nowhere else — each port here is
+ *  put behind `tailscale serve` once, by hand, on the serving host
+ *  (`tailscale serve --bg --https <port> http://127.0.0.1:<port>`), so a
+ *  board that takes one is reachable the moment it is up.
  *
- *  Three, not more: each is a standing exposure on the tailnet, and a
- *  reader is not looking at four branches at once. A fourth request
- *  says so rather than starting a board nobody can open. */
-export const BOARD_PORTS = [8801, 8802, 8803] as const;
+ *  Six: room for more than the three branches a reader could look at
+ *  before, without needing a config surface — one more line here, and
+ *  the matching `tailscale serve` command run once by hand, is what a
+ *  different number costs. */
+export const BOARD_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
 
 /** The first port in the pool that nothing is using. `reserved` is what
  *  this server and its other boards already hold (REQ-10); the probe is
@@ -95,16 +96,13 @@ const bindable: PortProbe = (port) => {
   }
 };
 
-export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number> {
+export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number | undefined> {
   const taken = new Set(reserved);
   for (const port of BOARD_PORTS) {
     if (taken.has(port)) continue;
     if (canBind(port)) return port;
   }
-  throw new Error(
-    `every test-server port is in use (${BOARD_PORTS.join(", ")}) — ` +
-      `open Test servers (⋯ menu) and stop one before starting another`,
-  );
+  return undefined;
 }
 
 // Either of the round's two addresses-in-a-line. "board up" comes the
@@ -148,15 +146,18 @@ export async function startBoard(
     return { ok: true, entry: existing };
   }
 
-  // REQ-5: the one refusal in this function that used to escape its own
-  // `{ ok: false, error }` contract — every sibling refusal above
-  // returns cleanly, and a reader hitting this one got a bare 500 with
-  // no message and no way to the page that could fix it.
-  let port: number;
-  try {
-    port = await ctx.findFreePort(ctx.reservedPorts());
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  // REQ-2 (spec 428): the pool being full is a refusal like any other in
+  // this function — stating how many test servers are already running
+  // and what the limit is, rather than a bare port list.
+  const port = await ctx.findFreePort(ctx.reservedPorts());
+  if (port === undefined) {
+    const running = ctx.store.all().filter((e) => e.status !== "failed").length;
+    return {
+      ok: false,
+      error:
+        `${running} of ${BOARD_PORTS.length} test servers are already running — ` +
+        `open Test servers (⋯ menu) and stop one before starting another`,
+    };
   }
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");

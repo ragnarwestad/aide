@@ -185,7 +185,7 @@ export interface ServerOptions {
   boardsOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
   /** Whether one of the test-server ports can be bound right now. A
    *  test seam, like `boardsSpawn` — and the one that keeps this suite
-   *  off the machine's real ports: the default probe BINDS 8801-8803 to
+   *  off the machine's real ports: the default probe BINDS 8801-8806 to
    *  find out, so a test server left running on this host made two
    *  board tests fail, and with them every landing whose merge runs the
    *  suite (2026-09-09). `findFreePort` has carried the parameter for

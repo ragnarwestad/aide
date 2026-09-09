@@ -123,7 +123,7 @@ export function queueHarness(prefix: string): QueueHarness {
         // or a developer machine running `make serve-local`).
         restart: { registered: async () => false, fire: () => {} },
         landingGate: async () => ({ ok: true }),
-        // The default probe BINDS 8801-8803 to find out whether they are
+        // The default probe BINDS 8801-8806 to find out whether they are
         // free, so a test server left running on this machine — or a
         // developer's own `make serve-local` board — decided the board
         // tests, and with them every landing whose merge runs this suite

@@ -225,7 +225,7 @@ export function createServer(opts: ServerOptions) {
     ],
     // The probe is the seam, not the search: `boardsPortProbe` lets a
     // test answer "can this port be bound" without binding anything, so
-    // no test depends on which of 8801-8803 this machine happens to have
+    // no test depends on which of 8801-8806 this machine happens to have
     // free. Unset in production, where the real probe binds.
     findFreePort: (reserved: number[]) => findFreePort(reserved, opts.boardsPortProbe),
     // Reads the process table, so a board still running after a

@@ -7,7 +7,15 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { BoardStore } from "../../../src/serve/boards/store.ts";
-import { refreshBoardStatus, startBoard, type BoardsContext, type SpawnResult } from "../../../src/serve/boards/lifecycle.ts";
+import {
+  BOARD_PORTS,
+  findFreePort,
+  refreshBoardStatus,
+  startBoard,
+  type BoardsContext,
+  type SpawnResult,
+} from "../../../src/serve/boards/lifecycle.ts";
+import type { BoardEntry } from "../../../src/serve/boards/store.ts";
 
 let dir: string;
 let spawnCalls: { cmd: string[]; logPath: string }[];
@@ -39,6 +47,21 @@ function makeCtx(overrides: Partial<BoardsContext> = {}): BoardsContext {
       return port;
     },
     ...overrides,
+  };
+}
+
+/** A tracked, running board fixture — used to pin the exact running
+ *  count a pool-exhausted refusal states (REQ-2). */
+function runningEntry(port: number): BoardEntry {
+  return {
+    branch: `aide/board-${port}`,
+    commit: "abc123",
+    port,
+    wrapperPid: port,
+    workDir: dir,
+    logPath: join(dir, `board-${port}.log`),
+    status: "running",
+    startedAt: "2026-09-05T00:00:00.000Z",
   };
 }
 
@@ -132,22 +155,62 @@ describe("startBoard", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // REQ-5: `findFreePort` throws when every port in the pool is taken
-  // (`board-ports.test.ts` pins its own message) — this only proves
-  // `startBoard` catches that throw into its own `{ ok: false, error }`
-  // shape rather than letting it escape, the same shape every other
-  // refusal in this function already returns.
-  test("REQ-5: a ports-full refusal comes back as { ok: false, error }, never a throw", async () => {
+  // REQ-1: a fourth start succeeds once the pool holds more than three
+  // ports — proved through the REAL `findFreePort`, not a mock, with
+  // three ports already reserved.
+  test("REQ-1: a fourth start succeeds and takes the fourth pool port", async () => {
     const ctx = makeCtx({
-      findFreePort: async () => {
-        throw new Error("every test-server port is in use (8801, 8802, 8803) — open Test servers (⋯ menu) and stop one before starting another");
-      },
+      reservedPorts: () => [BOARD_PORTS[0]!, BOARD_PORTS[1]!, BOARD_PORTS[2]!],
+      findFreePort: (reserved) => findFreePort(reserved, () => true),
     });
     const result = await startBoard(ctx, "aide", "spec-1");
-    expect(result).toEqual({
-      ok: false,
-      error: "every test-server port is in use (8801, 8802, 8803) — open Test servers (⋯ menu) and stop one before starting another",
+    expect(result.ok).toBe(true);
+    expect(spawnCalls[0]!.cmd).toContain(String(BOARD_PORTS[3]));
+  });
+
+  // REQ-1: the pool still has a limit — all six ports reserved by six
+  // tracked, running boards refuses a seventh, proved end to end through
+  // `startBoard()`'s own real `findFreePort`, not a mocked one.
+  test("REQ-1: a seventh start is refused once all six ports are reserved", async () => {
+    const store = new BoardStore();
+    for (let i = 0; i < 6; i++) {
+      store.set("aide", `spec-${i}`, runningEntry(BOARD_PORTS[i]!));
+    }
+    const ctx = makeCtx({
+      store,
+      reservedPorts: () => [...BOARD_PORTS],
+      findFreePort: (reserved) => findFreePort(reserved, () => true),
     });
+    const result = await startBoard(ctx, "aide", "spec-6");
+    expect(result.ok).toBe(false);
+    expect(spawnCalls).toHaveLength(0);
+  });
+
+  // REQ-2: the refusal states the exact running count (6) and the
+  // pool's limit (6) — never a bare port list.
+  test("REQ-2: a pool-exhausted refusal names the running count and the limit", async () => {
+    const store = new BoardStore();
+    for (let i = 0; i < 6; i++) {
+      store.set("aide", `spec-${i}`, runningEntry(BOARD_PORTS[i]!));
+    }
+    const ctx = makeCtx({ store, findFreePort: async () => undefined });
+    const result = await startBoard(ctx, "aide", "spec-6");
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toContain("6");
+    expect(!result.ok && result.error).toContain(String(BOARD_PORTS.length));
+    expect(spawnCalls).toHaveLength(0);
+  });
+
+  // REQ-2: the pool can also be exhausted for a reason outside the
+  // registry (nothing tracked, yet every port is taken) — the refusal
+  // states the actual tracked count (0), never a false claim that the
+  // running count equals the limit.
+  test("REQ-2: a pool-exhausted refusal outside the registry states 0 running, not the limit", async () => {
+    const ctx = makeCtx({ findFreePort: async () => undefined });
+    const result = await startBoard(ctx, "aide", "spec-1");
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toContain("0");
+    expect(!result.ok && result.error).toContain(String(BOARD_PORTS.length));
     expect(spawnCalls).toHaveLength(0);
   });
 });
