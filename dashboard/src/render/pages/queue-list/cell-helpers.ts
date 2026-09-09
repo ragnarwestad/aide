@@ -16,6 +16,7 @@ import {
   type RestingState,
 } from "../../ui/job-state.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page.ts";
 import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
@@ -371,7 +372,7 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     // got until 2026-09-08.
     const queueSaysIt = queueHeldForChecks(g);
     if (!queueSaysIt) {
-      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReason });
+      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReasonText(lang, heldBackReason) });
     }
     marks.push({
       variant: "waiting",

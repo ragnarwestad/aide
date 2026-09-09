@@ -52,7 +52,9 @@ evidence that the phase happened:
 
 - `implement` counts only if the project's HEAD moved or its tree changed. Otherwise the step ends `no-progress` and
   the line is not extended.
-- `archive` counts only if the folder is under `archive/` afterwards. Otherwise `no-progress`.
+- `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
+  `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
+  as when the refusal came before the session; otherwise `no-progress`.
 - `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
   line that it did not run.
 
