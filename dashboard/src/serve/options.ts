@@ -155,6 +155,16 @@ export interface ServerOptions {
    *  durable across a restart, exactly as `pendingModelsPath` absent
    *  behaves for a pending model pick. */
   boardsPath?: string;
+  /** Set when THIS process is itself a test board (spec 424) — the
+   *  specFolder `dashboard/test/round/run` was told to serve. Threads
+   *  into the header's Prod/Test line and the self-stop route; absent
+   *  (an ordinary server) means both read as Prod. */
+  testBoardSpec?: string;
+  /** What the self-stop route calls once its response has been sent
+   *  (spec 424) — the real one is `() => process.exit(0)`. A test seam,
+   *  like `boardsSpawn`: no test should actually end the process
+   *  running it. */
+  selfStopExit?: () => void;
   /** Overrides the boot-time "is the round available on this host" check
    *  (REQ-1), the same test-seam shape `pdfToolAvailable` already is: no
    *  test should depend on a real checkout carrying

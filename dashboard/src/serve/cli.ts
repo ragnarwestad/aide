@@ -11,7 +11,7 @@ export function runCli() {
         "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
         "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
         "                     [--runner-bin PATH] [--pdf-bin PATH] [--result-dir DIR]\n" +
-        "                     [--queue-config FILE]",
+        "                     [--queue-config FILE] [--test-board SPEC]",
     );
     process.exit(2);
   }

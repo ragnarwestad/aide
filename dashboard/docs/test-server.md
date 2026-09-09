@@ -53,6 +53,12 @@ A **Stop test server** button appears on the spec page once its test server is r
 its own, with nothing to press, the moment the spec it belongs to is actually archived — merged or
 discarded, there is no reason left to keep a preview of it running.
 
+A test server can also stop itself, from its own header: every page there carries a line naming the
+machine, the spec and the branch it is running ("*machine* - Test - *spec* : *branch*"), with a **Stop**
+button right beside it. Pressing it works the same way as the prod-board button — the worktree, the log
+and the port are freed — without needing to go back to the prod board's spec page at all. The prod
+board's own header carries no such line beyond "*machine* - Prod", and no Stop button.
+
 ## After the dashboard restarts
 
 Deploying new code restarts this dashboard, and what it knows about running test servers lives in

@@ -8,6 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { buildProjectViews } from "./project/discover.ts";
 import { renderSite, type Page } from "./render.ts";
+import { setBoardInfo } from "./render/ui/board-info.ts";
 
 // Write every page and remove ONLY .html files not in the produced
 // page set — the local directory must mirror the site exactly (the
@@ -24,19 +25,29 @@ export function writeSite(pages: Page[], dir: string): void {
 
 export function main(argv: string[]): number {
   if (argv[0] !== "generate") {
-    console.error("usage: main.ts generate [--root DIR] [--out DIR]");
+    console.error("usage: main.ts generate [--root DIR] [--out DIR] [--test-board SPEC]");
     return 2;
   }
   let root = join(homedir(), "develop");
   let out = "out";
+  // Always called, including with `undefined` when the flag is absent —
+  // `board-info.ts`'s own rule, since `bun test` runs many `main()`
+  // calls in one process and a merge/leave-if-set read would let an
+  // earlier call's test-board value leak into a later, ordinary one.
+  let testBoardSpec: string | undefined;
   for (let i = 1; i < argv.length; i++) {
     if (argv[i] === "--root" && argv[i + 1]) root = argv[++i]!;
     else if (argv[i] === "--out" && argv[i + 1]) out = argv[++i]!;
+    // Spec 424: `test/round/run` generates a test board's own
+    // Projects/About pages through this same command, before it starts
+    // `serve.ts serve` — those two pages need to read "Test" too.
+    else if (argv[i] === "--test-board" && argv[i + 1]) testBoardSpec = argv[++i]!;
     else {
       console.error(`unknown argument: ${argv[i]}`);
       return 2;
     }
   }
+  setBoardInfo(testBoardSpec);
 
   // The same walk the served `/projects` page makes (spec 115): one
   // function, so the generated page and the served one can never

@@ -84,6 +84,10 @@ if [ -n "$BRANCH" ]; then
   SERVE_FROM="$WT"
   COMMIT="$(git -C "$SERVE_FROM" rev-parse --short HEAD 2>/dev/null)"
 fi
+# Spec 424: which spec this board serves, for the header's own Prod/Test
+# line and its self-stop route. Only set when $BRANCH is — the prod
+# launch path never passes --branch and never reaches this script.
+SPEC_FOLDER="${BRANCH#aide/}"
 
 CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"
 # `-b main`, never the machine's own `init.defaultBranch`: git makes
@@ -168,14 +172,15 @@ else
 fi
 
 echo "== starting the dashboard from $SERVE_FROM on :$PORT"
-( cd "$SERVE_FROM/dashboard" && "$BUN" run src/main.ts generate --root "$WORK/root" --out "$WORK/site" >/dev/null 2>&1 ) \
+( cd "$SERVE_FROM/dashboard" && "$BUN" run src/main.ts generate --root "$WORK/root" --out "$WORK/site" \
+    ${SPEC_FOLDER:+--test-board "$SPEC_FOLDER"} >/dev/null 2>&1 ) \
   || echo "(generate failed; serving without a generated site)"
 ( cd "$SERVE_FROM/dashboard" && exec "$BUN" run src/serve/serve.ts serve \
     --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" --site "$WORK/site" \
     --queue-config "$WORK/queue-config.json" --queue-mirror "$WORK/queue.json" \
     --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" --token-file "$WORK/token" \
     --dashboard-checkouts "$WORK/checkouts" --runner-bin "$SERVE_FROM/core/scripts/aide-run-spec" \
-    --queue-projects aide-test ) > "$WORK/serve.log" 2>&1 &
+    --queue-projects aide-test ${SPEC_FOLDER:+--test-board "$SPEC_FOLDER"} ) > "$WORK/serve.log" 2>&1 &
 SERVER=$!
 # Removed on exit unless told to keep the board up — same shape
 # test-instance's own stop()/trap already had.
