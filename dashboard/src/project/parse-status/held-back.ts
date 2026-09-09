@@ -76,24 +76,33 @@ export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
  *  that can answer: the open branch's (`FileStepsAnswer.acceptanceOpen`,
  *  where the Checks tab's tick lands) and the disk's own rows.
  *
- *  A tick only ever ADDS ticks, so a copy that says "all ticked" is
- *  never the stale one — the row is open only while every copy that has
- *  an answer still has an open row. Reading the branch alone said "held
- *  back" over a spec whose rows were ticked on disk moments earlier,
- *  because the branch answer is TTL-cached and the tick had landed on
- *  the default branch (337, 2026-09-04); reading disk alone was the same
- *  bug the other way round (364).
+ *  The branch answers for both when it has one: it is where the Checks
+ *  tab's write lands while a branch is open, so it is the newer of the
+ *  two by construction, and the disk copy stays as archive last left it
+ *  until this branch lands. Disk answers only when the branch has
+ *  nothing to say — no open branch, or no answer read yet.
  *
- *  A copy with NO acceptance rows answers nothing rather than "all
- *  ticked": a spec whose rows exist only on an unlanded analyze's
- *  branch must not have the disk's silence read as agreement. */
+ *  This used to demand that EVERY copy say open, on the reasoning that a
+ *  tick only ever ADDS ticks and so a copy reading "all ticked" could
+ *  never be the stale one. A check can be taken back off now, and that
+ *  reasoning went with it: an untick on the branch, against a disk copy
+ *  ticked before the branch existed, read as "all ticked" and let
+ *  archive start on a spec the reader had just reopened the question on.
+ *
+ *  What made the old rule necessary was a stale branch answer outliving
+ *  a tick that landed on the default branch (337, 2026-09-04). That is
+ *  the tick route's own `forgetBranchFileSteps` now: the cached answer
+ *  is dropped in the same request that writes the file, so preferring
+ *  the branch cannot serve one from before the write. */
 export function acceptanceStillOpen(
   branchOpen: boolean | undefined,
   diskRows: { done: boolean }[] | undefined,
 ): boolean {
-  const diskOpen = diskRows?.length ? diskRows.some((row) => !row.done) : undefined;
-  const answers = [branchOpen, diskOpen].filter((v): v is boolean => v !== undefined);
-  return answers.length > 0 && answers.every((open) => open);
+  if (branchOpen !== undefined) return branchOpen;
+  // A copy with NO acceptance rows answers nothing rather than "all
+  // ticked": a spec whose rows exist only on an unlanded analyze's
+  // branch must not have the disk's silence read as agreement.
+  return diskRows?.length ? diskRows.some((row) => !row.done) : false;
 }
 
 /** Whether a held-back reason still means anything, given which workflow

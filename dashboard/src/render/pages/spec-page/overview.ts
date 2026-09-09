@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { helpPopover, ICON_PDF, saveCancelActions, tokenField } from "../../ui/components.ts";
+import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from "../../ui/components.ts";
 import { SPINNER } from "../../ui/components/icons.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
@@ -197,6 +197,21 @@ const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 export function checklist(view: SpecPageView, mark = ""): string {
   const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
   if (rows.length === 0) {
+    // A section that is there and reads as nothing is not the same
+    // answer as no section at all, and it must not look like one: the
+    // archive gate reads this file too, and an unreadable table tells it
+    // there is nothing open on a spec nobody has judged. The file itself
+    // is the run's own record and cannot be edited here, so the way out
+    // is to run analyze again and let it write the table.
+    if (view.checks?.unreadable) {
+      return rowMessage(
+        "failed",
+        "This spec's Acceptance criteria are written in a table this page cannot read, " +
+          "so none of them can be ticked — and nothing is holding the spec back for them either. " +
+          "Run analyze again to have the table written afresh.",
+        { tag: "p" },
+      );
+    }
     return `<p class="muted">No acceptance criteria to tick.${mark ? ` ${mark}` : ""}</p>`;
   }
   const open = rows.filter((r) => !r.done).length;
