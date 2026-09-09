@@ -71,7 +71,11 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   closes the last row is what releases it. A chained analyze/implement/archive job waits here between implement
   and archive instead of ending with archive refused. Never triggered for a spec whose `analyze` ran with the
   "acceptance ticking not required" switch: its state file carries a one-line note instead of a row, and there is
-  no open row to hold the job back for.
+  no open row to hold the job back for. Never triggered either for a spec with no `implement` on its
+  `Workflow steps completed` line: `core/scripts/aide-archive-spec` refuses that with `not-implemented-yet` before it
+  looks at the acceptance section at all, so the step is left to start and end with the reason that is actually
+  true — "nothing is implemented yet — run implement first". Held here instead, the row asked a person to tick rows
+  for work nobody had done.
 - Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
   in flight. A cheaper job behind it may take the slot.
 - Moves a job to `stopped` (`stopReason: "job-cap"`) when its NEXT step's budget would exceed the job cap. The cap is
