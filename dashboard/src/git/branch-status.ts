@@ -404,6 +404,27 @@ export class BranchStatusChecker {
     return hit ? { open: hit.open, checkedAt: hit.at } : { open: null, checkedAt: null };
   }
 
+  /** Take one branch out of the cached OPEN set for `root` — the same
+   *  reasoning as `invalidate` below, for the other cache. A landing
+   *  that deleted the branch on origin has changed the answer this
+   *  process is holding, and until something asks git again every
+   *  reader of `peekOpenSpecBranches` reports the spec it just archived
+   *  as "its branch is still on origin — re-run archive". The landing's
+   *  own `fresh` re-check corrects it, but only once the whole merge
+   *  loop is over: between the specs root's merge and that call, the
+   *  scan already lists the folder as archived while this cache still
+   *  lists its branch, and the row says a landing that succeeded
+   *  failed (2026-09-09).
+   *
+   *  `checkedAt` is deliberately left where it was: origin has not been
+   *  asked again, and the archive row's own "checked N ago" label
+   *  speaks for the last question, not for this correction. */
+  forgetOpenSpecBranch(root: string, branch: string): void {
+    const hit = this.openCache.get(root);
+    if (!hit?.open?.delete(branch)) return;
+    this.openCache.set(root, { at: hit.at, open: hit.open });
+  }
+
   /** Drop one cached answer. A merge performed by this process changes
    *  the answer it just cached, and a reader who presses Merge and
    *  reloads must not be told "not merged" for the rest of the TTL. */

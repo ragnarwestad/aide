@@ -213,3 +213,59 @@ describe("BranchStatusChecker.openSpecBranches in-flight de-duplication", () => 
     expect(git.calls.length).toBe(2);
   });
 });
+
+// The landing deletes the branch on origin, and until something asks git
+// again this checker still holds the answer from before. Every reader of
+// `peekOpenSpecBranches` — the archived row above all — then reports the
+// spec that was just archived as "its branch is still on origin — re-run
+// archive". The landing's own `fresh` re-check corrects it, but not until
+// the whole merge loop is over; this closes the window at the delete
+// itself (2026-09-09).
+describe("BranchStatusChecker.forgetOpenSpecBranch", () => {
+  const LISTED_TWO =
+    "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n" +
+    "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
+
+  async function warm(): Promise<{ checker: BranchStatusChecker; calls: number }> {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_TWO } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    await checker.openSpecBranches("/repos/aide");
+    return { checker, calls: git.calls.length };
+  }
+
+  test("takes the branch out of the cached set, leaving the others", async () => {
+    const { checker } = await warm();
+    checker.forgetOpenSpecBranch("/repos/aide", "aide/191-one-answer");
+    const peek = checker.peekOpenSpecBranches("/repos/aide");
+    expect([...peek.open!]).toEqual(["aide/178-nobody-waits"]);
+  });
+
+  test("leaves checkedAt where it was: origin was not asked again", async () => {
+    const { checker } = await warm();
+    const before = checker.peekOpenSpecBranches("/repos/aide").checkedAt;
+    checker.forgetOpenSpecBranch("/repos/aide", "aide/191-one-answer");
+    expect(checker.peekOpenSpecBranches("/repos/aide").checkedAt).toBe(before);
+  });
+
+  test("asks git nothing", async () => {
+    const { checker, calls } = await warm();
+    checker.forgetOpenSpecBranch("/repos/aide", "aide/191-one-answer");
+    // `warm()` counted the one ls-remote; nothing may have been added.
+    expect(calls).toBe(1);
+  });
+
+  test("a root nobody has asked about is left unanswered, not turned into an empty set", () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_TWO } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    checker.forgetOpenSpecBranch("/repos/never-asked", "aide/191-one-answer");
+    // Still `null`, which every caller reads as "claim nothing" — an
+    // empty set here would report every archived spec as landed.
+    expect(checker.peekOpenSpecBranches("/repos/never-asked").open).toBeNull();
+  });
+
+  test("a branch that was not in the set changes nothing", async () => {
+    const { checker } = await warm();
+    checker.forgetOpenSpecBranch("/repos/aide", "aide/999-never-existed");
+    expect(checker.peekOpenSpecBranches("/repos/aide").open!.size).toBe(2);
+  });
+});
