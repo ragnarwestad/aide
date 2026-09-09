@@ -10,6 +10,9 @@ import { ROOT, RENDER_FILES } from "./css-guard-fixtures.ts";
  *  wants to look like has to be one of these. */
 const COMPONENTS = [
   "btn", "primary", "ok", "danger", "busy", "spin",
+  // A control that is its icon alone, no button frame: the spec page's
+  // PDF link, and the red PDF icon it carries (2026-09-09).
+  "iconlink", "icon-pdf",
   // Spec 208: what a control wears between the click and the answer,
   // for the two kinds of waiting a BUTTON's `busy` does not cover — an
   // in-page row swap, and a real navigation to another document.

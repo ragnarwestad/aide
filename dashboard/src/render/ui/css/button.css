@@ -50,3 +50,13 @@
   letter-spacing: 0.08em; color: var(--accent); text-decoration: none; }
 .backlink:hover { color: var(--accent-strong); text-decoration: none; }
 
+/* A control that is its icon alone — no button frame: the spec page's
+   PDF link. Same height as a .btn so it lines up in the actions row. */
+.iconlink { display: inline-flex; align-items: center; justify-content: center; padding: var(--sp-1);
+  border-radius: var(--radius); color: inherit; text-decoration: none; }
+.iconlink:hover { background: var(--surface-2); text-decoration: none; }
+.iconlink[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+/* The PDF icon is red in every theme: it is the mark a PDF is known by,
+   not a state colour, so it follows neither the text nor --danger. */
+.icon-pdf { color: var(--pdf); }
+

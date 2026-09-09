@@ -337,18 +337,20 @@ export function reopenControl(view: SpecPageView): string {
  *
  *  An icon alone, not the word "PDF" beside it (spec 391): it opens a
  *  document, so it reads as one — the same `aria-label` says what it
- *  does to a reader who cannot see the icon, on both branches. */
+ *  does to a reader who cannot see the icon, on both branches. And no
+ *  button frame around it (asked 2026-09-09): the red PDF icon is the
+ *  control, the way a file icon is. */
 export function pdfControl(view: SpecPageView): string {
   if (!view.pdfAction) return "";
   const what = "open this spec as a PDF in a new tab";
   if (view.pdfUnavailableReason) {
     return (
-      `<span class="btn" aria-disabled="true" aria-label="${esc(what)}" ` +
+      `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}" ` +
       `title="${esc(view.pdfUnavailableReason)}">${ICON_PDF}</span>`
     );
   }
   return (
-    `<a class="btn" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
+    `<a class="iconlink" href="${esc(view.pdfAction)}" target="_blank" rel="noopener" data-pdf ` +
     `aria-label="${esc(what)}" title="${esc(what)}">${ICON_PDF}</a>`
   );
 }
