@@ -4,6 +4,7 @@ import type { BadgeVariant, PipKind } from "../components.ts";
 import { renderMessage } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import type { Language } from "../../../i18n";
+import { t } from "../../../i18n";
 import { BADGE_VARIANT, currentStep, inFlight, stateLabel } from "./format.ts";
 import { gerund } from "./resting.ts";
 import type { QueueRowView } from "./types.ts";
@@ -65,7 +66,7 @@ const filesDisagreeSentence = (lang: Language): string => renderMessage(lang, { 
 const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
     ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
-    : `last re-run ${stateLabel(attempt, lang)}`;
+    : t(lang, "list.lastRerun").replace("{state}", stateLabel(attempt, lang));
 
 /** The one rule, applied by everything that words a phase.
  *
@@ -207,7 +208,7 @@ export function wordPhase(
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: "waiting", label: "stopped" },
-      qualifier: `stopped: ${stopSentence(history.stopped, lang)}`,
+      qualifier: `${t(lang, "state.stopped")}: ${stopSentence(history.stopped, lang)}`,
     };
   }
   // The queue has no job for this phase, and the git-verified history
@@ -229,6 +230,16 @@ export function wordPhase(
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",
+      // The step RAN — its own attempt says so, and the Time column
+      // beside this one draws that run's duration. A badge-less cell is
+      // a dash, and a dash means one thing on this page: no value,
+      // because nothing ran. So the word is the attempt's own.
+      //
+      // Amber, never the green a landed phase takes: the files do not
+      // agree with this run yet, whether its work is sitting on the
+      // branch or was never written at all, and the row's own message
+      // says which. Green here would read as "landed, nothing to do".
+      badge: { variant: "waiting", label: stateLabel(attempt, lang) },
       qualifier: renderMessage(lang, {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
       }),

@@ -159,15 +159,15 @@ describe("an archived spec's row, opened", () => {
   // `create` has a file but no Tracking-info outcome block, `implement`
   // and `archive` have no phase file at all in this fixture. Nobody
   // having recorded a figure is not the same as having asked and failed,
-  // so the cell stays empty, never a dash and never `0m00s`/`$0.00`.
+  // so the cost cell stays empty, never `$0.00`.
   test("draws no time or cost for a step that recorded neither (spec 247, criteria 2, 5)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     for (const step of ["create", ...STAMPED_NOT_RUN]) {
       const line = lines[step]!;
-      // Time always says something — `0s` for a step that recorded
+      // Time always says something — a dash for a step that recorded
       // nothing — while cost stays blank: "nothing spent" and "no
       // figure" are the same answer for money, not for time.
-      expect(line).toContain('<td data-col="started"><span class="muted small">0s</span></td>');
+      expect(line).toContain('<td data-col="started"><span class="muted small">–</span></td>');
       expect(line).toContain('<td class="num" data-col="cost"></td>');
     }
   });

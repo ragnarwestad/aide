@@ -68,7 +68,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.noPullRequestOpened":
     "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
     "Opprett en for hånd, i det lokale repoet på serveren.",
-  "list.archiveHeldBack": "arkivering holdt tilbake — {reason}",
+  "list.archiveHeldBack": "arkivering holdt tilbake: {reason}",
   "list.noSpecMatchesFilter": "Ingen spec matcher dette filteret.",
   "list.noSpecAtAll": "Ingen spec å vise — ingen prosjekt på denne maskinen har en å kjøre.",
   "list.noRunner":
@@ -80,6 +80,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.stateQueued": "{step} i kø",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} av {total} i kø — venter på en ledig plass til å kjøre {step}",
+  "list.lastRerun": "siste ny kjøring {state}",
   "state.stopped": "stoppet",
   "state.stoppedTimeout": "stoppet — {minutes} min",
   "state.stoppedProviderLimit": "stoppet — grense hos leverandøren",

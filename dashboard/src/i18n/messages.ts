@@ -331,9 +331,12 @@ export const MESSAGES = {
     exempt: "a bookkeeping mismatch report, not an action the reader takes",
   },
   "wordPhase.attemptQualifierUnlanded": {
-    en: "archived, but the merge failed — its branch is still open. — Re-run archive.",
-    nb: "arkivert, men mergen feilet — grenen står fortsatt åpen. — Kjør arkivering på nytt.",
-    resolve: "Re-run archive.",
+    // Read behind the phase's own name ("archive merge failed: …"), so
+    // the sentence opens with what happened rather than repeating the
+    // phase: "archive archived, but …" is the shape that gave.
+    en: "merge failed: the spec was archived, but its branch is still open — re-run archive.",
+    nb: "merge feilet: specen ble arkivert, men grenen står fortsatt åpen — kjør arkivering på nytt.",
+    resolve: "re-run archive.",
   },
   "wordPhase.lastRunDisagreesUnlanded": {
     en: "last run reported done — its work is on the branch, and archiving merges it in",

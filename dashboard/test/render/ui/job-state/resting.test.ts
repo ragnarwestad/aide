@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
 import { specNotice } from "../../../../src/render/ui/job-state/notice.ts";
+import { STEP_LABELS_NB, stepLabel } from "../../../../src/render/ui/components.ts";
 import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
 
 describe("GERUND_EN/GERUND_NB (spec 350)", () => {
@@ -15,6 +16,23 @@ describe("GERUND_EN/GERUND_NB (spec 350)", () => {
       expect(GERUND_EN[step], `GERUND_EN is missing "${step}"`).toBeDefined();
       expect(GERUND_NB[step], `GERUND_NB is missing "${step}"`).toBeDefined();
     }
+  });
+});
+
+// The same guard for the phase's NAME. English is the step's own id, so
+// there is nothing to keep in step there; Norwegian is a real table, and
+// a step added to WORKFLOW_STEPS without an entry would read as English
+// on a Norwegian board.
+describe("STEP_LABELS_NB", () => {
+  test("every WORKFLOW_STEPS member has a Norwegian name", () => {
+    for (const step of WORKFLOW_STEPS) {
+      expect(STEP_LABELS_NB[step], `STEP_LABELS_NB is missing "${step}"`).toBeDefined();
+    }
+  });
+
+  test("English falls back to the step's own id", () => {
+    expect(stepLabel("archive")).toBe("archive");
+    expect(stepLabel("archive", "nb")).toBe("arkivering");
   });
 });
 
@@ -100,6 +118,8 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
 
     expect(badgeHtml).toContain(">stopped<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
-    expect(notice?.text.startsWith("held back:")).toBe(true);
+    // `<phase> <what happened>: <the longer sentence>` — the phase and
+    // the state word as one phrase: "implement held back: …".
+    expect(notice?.text.startsWith("implement held back:")).toBe(true);
   });
 });

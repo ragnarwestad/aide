@@ -22,6 +22,12 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/pa
  *  It said "not run yet" in words until then. */
 const PHASE_NOT_RUN = "–";
 
+/** One phase line's State cell. The dash means "nothing here" in four
+ *  columns now — State, Created, Cost and Time — so a match over the
+ *  whole line no longer says which column drew it. */
+const stateCell = (line: string): string =>
+  line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
+
 // --- spec 108: one rule for what a phase shows -------------------------------
 
 // The row for spec 81 said three things at once: pips and phase lines
@@ -71,7 +77,7 @@ describe("spec 108: one rule per phase", () => {
     const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
-    expect(analyze).not.toContain(PHASE_NOT_RUN);
+    expect(stateCell(analyze)).not.toContain(PHASE_NOT_RUN);
     expect(analyze).not.toContain("last re-run");
   });
 
@@ -96,7 +102,7 @@ describe("spec 108: one rule per phase", () => {
     // badge makes one phase line taller than the ones beside it. The
     // row's panel says it instead — named for the phase it is about.
     expect(analyze).not.toContain("last re-run cancelled");
-    expect(panel(html)).toContain("analyze: last re-run cancelled");
+    expect(panel(html)).toContain("analyze last re-run cancelled");
   });
 
   // Criterion 3's "Run again" wording was retired 2026-08-19, and the
@@ -173,7 +179,7 @@ describe("spec 108: one rule per phase", () => {
     // phase it is about.
     expect(implement).not.toContain("its work is on the branch");
     expect(panel(html)).toContain(
-      "implement: last run reported done — its work is on the branch, and archiving merges it in",
+      "implement last run reported done — its work is on the branch, and archiving merges it in",
     );
   });
 
@@ -186,7 +192,7 @@ describe("spec 108: one rule per phase", () => {
     expect(implement).not.toContain("b-done");
     expect(implement).not.toContain("run it again");
     expect(panel(html)).toContain(
-      "implement: last run reported done, but nothing reached the files — run it again",
+      "implement last run reported done, but nothing reached the files — run it again",
     );
   });
 
@@ -287,5 +293,60 @@ describe("a dependency is named once, on the title line, and not in the state ce
     const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
 
     expect(rowHtml(html, "114-b")).toContain("depends on: 106");
+  });
+});
+
+// A dash means one thing on this page: no value, because nothing ran.
+// A phase whose own attempt reported done — its work on the branch, or
+// nothing written at all — HAS run, and the Time column beside it draws
+// that run's duration, so its State cell must not read as never run.
+describe("a phase that ran never draws the not-run dash", () => {
+  const TARGET: QueueTarget = { project: "aide", specFolder: "419-ran-but-unlanded" };
+  const render = (historyDone: boolean): string =>
+    renderQueueRows(
+      [
+        row({
+          id: "j1",
+          specFolder: "419-ran-but-unlanded",
+          steps: ["implement", "archive"],
+          stepIndex: 1,
+          state: "queued",
+          results: [
+            {
+              step: "implement",
+              ok: true,
+              costUsd: 0,
+              at: "2026-09-09T08:35:25.886Z",
+              startedAt: "2026-09-09T08:35:24.029Z",
+            },
+          ],
+        }),
+      ],
+      {
+        runnerAvailable: true,
+        targets: [{ ...TARGET, historyDone: historyDone ? ["implement"] : [] }],
+        filter: { open: openKeys([], [TARGET]) },
+      },
+      Date.parse("2026-09-09T09:00:00Z"),
+    );
+  const state = (html: string, step: string): string => {
+    const line = html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
+    return line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
+  };
+
+  // Amber both ways, never the green a landed phase takes: the files do
+  // not agree with this run yet, and the row's own message says which of
+  // the two it is.
+  test("its work on the branch: a word, amber, and no dash", () => {
+    const cell = state(render(true), "implement");
+    expect(cell).toContain("done");
+    expect(cell).toContain("b-waiting");
+    expect(cell).not.toContain(PHASE_NOT_RUN);
+  });
+
+  test("nothing written at all: the same, never a dash", () => {
+    const cell = state(render(false), "implement");
+    expect(cell).toContain("b-waiting");
+    expect(cell).not.toContain(PHASE_NOT_RUN);
   });
 });

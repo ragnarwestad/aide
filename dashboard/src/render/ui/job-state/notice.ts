@@ -1,10 +1,10 @@
 // The one long message a row has to say (spec 143).
 
-import type { MessageVariant } from "../components.ts";
+import { stepLabel, type MessageVariant } from "../components.ts";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
-import { inFlight } from "./format.ts";
+import { currentStep, inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The three held-back reasons that resolve on their own — the queue
@@ -136,7 +136,19 @@ export function specNotice(
   // sentence — never guessed from the text, which left every OTHER
   // waiting-shaped message still picking "waiting" or "failed" for itself.
   if (lead?.error) {
-    const text = renderSentence(lang, lead.error)!;
+    // `<phase> <what happened>: <the longer sentence>` — the shape the
+    // landing's own messages already have ("archive merge failed: …"),
+    // so a held-back job reads "archive held back: …" rather than
+    // leaving the reader to work out which of the four is not moving.
+    // The phase and the state word are ONE phrase, not two colons: the
+    // row beside it already says both, and repeating them apart is the
+    // panel saying the same thing twice. Only the held-back family —
+    // every other sentence here belongs to the row or to a press, not
+    // to one step.
+    const text =
+      lead.errorReason === "held-back"
+        ? `${stepLabel(currentStep(lead), lang)} ${renderSentence(lang, lead.error)!}`
+        : renderSentence(lang, lead.error)!;
     if (!said(text)) {
       // Three of the six held-back reasons resolve on their own —
       // nothing for the reader to act on — so they read as info, not
@@ -178,7 +190,7 @@ export function specNotice(
     // archive, and a disagreement competing with a held-back note is
     // archive's own by construction — so the phase name it arrived with
     // comes off rather than being written twice in one sentence.
-    const detail = disagreement.replace(/^archive: /, "");
+    const detail = disagreement.replace(/^archive /, "");
     return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { reason: archiveHeldBack })} · ${detail}` };
   }
   if (archiveHeldBack) return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { reason: archiveHeldBack }) };

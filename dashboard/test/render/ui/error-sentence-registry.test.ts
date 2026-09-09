@@ -133,7 +133,7 @@ const PHASE_1_PILOT: RegistryEntry[] = [
   {
     name: "attemptQualifier's unlanded case (word-phase.ts)",
     text: wordPhase(true, undefined, row({ state: "failed", errorReason: "unlanded" }), {}).qualifier ?? "",
-    resolve: "Re-run archive.",
+    resolve: "re-run archive.",
   },
 ];
 

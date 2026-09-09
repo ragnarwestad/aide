@@ -74,7 +74,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
       ],
       [target("195-both", { done: ["analyze"] })],
     );
-    expect(panel(html)).toContain("analyze: last re-run cancelled");
+    expect(panel(html)).toContain("analyze last re-run cancelled");
     expect(panel(html)).not.toContain("implement:");
     expect(subRow(html, "analyze")).not.toContain("last re-run cancelled");
     expect(subRow(html, "implement")).not.toContain("disagree");
