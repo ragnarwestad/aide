@@ -43,7 +43,7 @@ export const en = {
   "list.searchClearTitle": "Clear the search",
   "list.search": "Search",
   "list.newSpec": "New",
-  "list.colSpec": "Spec",
+  "list.colSpec": "Specification",
   "list.colState": "State/Action",
   "list.colCreated": "Created",
   "list.colTime": "Time",

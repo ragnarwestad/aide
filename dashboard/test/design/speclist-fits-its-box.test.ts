@@ -12,6 +12,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components.ts";
+import { en } from "../../src/i18n/en.ts";
+import { nb } from "../../src/i18n/nb.ts";
 import { PHASE_TAB } from "../../src/render/pages/spec-page/tabs.ts";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
@@ -200,5 +202,35 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(rule).toMatch(/display: flex/);
     expect(rule).toMatch(/width: 100%/);
     expect(rule).toMatch(/justify-content: space-between/);
+  });
+
+  // Time, Cost/Tokens and Created used to fall into two different
+  // defaults by accident — Time and Created left-aligned (the table's
+  // own default), Cost/Tokens right-aligned (`.num`) — and none of the
+  // three centred (REQ-1, spec 427). All three now state their own
+  // centring, scoped to their own `data-col`, so no other column's
+  // `.num` cell or `.sortlink` header is touched.
+  test("Time, Cost/Tokens and Created values are centred", () => {
+    for (const col of ["started", "cost", "created"]) {
+      const cell = new RegExp(`table\\.list td\\[data-col="${col}"\\][^{]*\\{([^}]*)\\}`).exec(css)![1]!;
+      expect(cell).toMatch(/text-align: center/);
+    }
+  });
+
+  test("Time, Cost/Tokens and Created headers centre their label and chevron together", () => {
+    for (const col of ["started", "cost", "created"]) {
+      const rule = new RegExp(
+        `table\\.list th\\[data-col="${col}"\\] \\.sortlink[^{]*\\{([^}]*)\\}`,
+      ).exec(css)![1]!;
+      expect(rule).toMatch(/justify-content: center/);
+    }
+  });
+
+  // REQ-2/REQ-3: the Spec column's header spells out the full word in
+  // both languages — English used to read the abbreviation "Spec",
+  // Norwegian already read "Spesifikasjon".
+  test("the Spec column header spells out the full word in both languages", () => {
+    expect(en["list.colSpec"]).toBe("Specification");
+    expect(nb["list.colSpec"]).toBe("Spesifikasjon");
   });
 });

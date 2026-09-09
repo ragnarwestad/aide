@@ -180,6 +180,12 @@ table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3);
    button's own margin. */
 table.list td[data-col="state"] {
   padding-left: var(--sp-5); padding-right: var(--sp-5); text-align: center; }
+/* Time, Cost/Tokens and Created (REQ-1, spec 427): one short value
+   under a one-word heading, all three centred instead of two left and
+   one right by accident of which default each fell into. */
+table.list td[data-col="started"],
+table.list td[data-col="cost"],
+table.list td[data-col="created"] { text-align: center; }
 /* And the slot gives up the fixed width it holds a COLUMN still with:
    6.5rem is wider than what the clearance leaves on either side, so a
    slot that kept it had nothing left to centre in. Centred, the button
@@ -213,6 +219,14 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    sorted column a chevron that the ascending state turns round. */
 .sortlink { display: flex; align-items: center; justify-content: space-between; width: 100%;
   gap: 2px; padding: 2px 6px; margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
+/* The column NAME itself, not only its chevron: on these three narrow,
+   single-word columns the label and the chevron sit together in the
+   middle of the header cell instead of the label at the near edge and
+   the chevron at the far one — the general .sortlink recipe every
+   other sortable column still uses. */
+table.list th[data-col="started"] .sortlink,
+table.list th[data-col="cost"] .sortlink,
+table.list th[data-col="created"] .sortlink { justify-content: center; }
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
 .sortlink.on { color: var(--text); font-weight: 600; }
 .sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
