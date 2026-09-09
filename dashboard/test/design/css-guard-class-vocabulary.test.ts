@@ -101,6 +101,9 @@ const STRUCTURE = [
   // click until the new document arrives (spec 314): the same
   // `<dialog>` shape About and the confirm box are.
   "pageoverlay",
+  // The implement run's own note on one acceptance row, under the
+  // criterion it belongs to.
+  "checknote",
   // The line that layer carries when the wait is long enough that a
   // spinner alone says too little — a deploy, which takes the service
   // down under the page. A navigation passes none and it stays hidden.

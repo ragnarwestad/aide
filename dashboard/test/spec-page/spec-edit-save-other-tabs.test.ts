@@ -23,10 +23,13 @@ afterEach(() => harness.cleanup());
 // --- REQ-1: a Save on Analysis, Solution and Status ------------------------
 
 describe("POST the Save action on the newly-editable tabs (REQ-1)", () => {
+  // Status is not among them any more: `4-status.md` is the run's own
+  // record, and its Save is refused (see the block at the end of this
+  // file). The two files a person corrects before implement reads them
+  // are the ones left.
   for (const [tab, file, tabPath] of [
     ["analysis", "2-analysis.md", ANALYSIS_TAB],
     ["solution", "3-solution.md", SOLUTION_TAB],
-    ["status", "4-status.md", STATUS_TAB],
   ] as const) {
     test(`${tab}: writes the file, commits it, pushes it and returns to the tab`, async () => {
       const { base, dir } = start(savable("/host"));
@@ -213,5 +216,24 @@ describe("a queued job gates a save on the newly-editable tabs too (REQ-6)", () 
     const location = decodeURIComponent(res.headers.get("location")!);
     expect(location).toContain("another job for this spec is still running");
     expect(readFileSync(specFilePath(dir, "3-solution.md"), "utf-8")).toContain("One must-fix.");
+  });
+});
+
+// `4-status.md` is a record, not a document to write: the tracking block
+// is the run's own stamp and the phase tables are its log of what it
+// did. The one thing in it a person decides — the acceptance checks —
+// is the Checks tab's, which now takes a check back off as well as
+// putting one on, so a hand edit is no longer the only way to undo one.
+describe("4-status.md is refused by the save route", () => {
+  test("nothing is written, and the refusal says where the checks live", async () => {
+    const { base, dir } = start(savable("/host"));
+    fillAnalysisAndSolution(dir);
+    const before = readFileSync(specFilePath(dir, "4-status.md"), "utf-8");
+    const res = await post(base, { text: "rewritten\n", baseSha: FILE_SHA, file: "4-status.md" });
+    expect(res.status).toBe(303);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location.startsWith(STATUS_TAB)).toBe(true);
+    expect(location).toContain("Checks tab");
+    expect(readFileSync(specFilePath(dir, "4-status.md"), "utf-8")).toBe(before);
   });
 });

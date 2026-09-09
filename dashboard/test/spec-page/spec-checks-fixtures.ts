@@ -124,13 +124,22 @@ export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status
 }
 
 /** The checks form's own body, and nothing else: the one shared phase
- *  every box on it belongs to, `4-status.md`'s own sha, and one
- *  `tick` per ticked box. There is no `text` field — the description
- *  is not in this request and cannot be written by it. */
-export const tick = (base: string, over: { ticks?: string[]; phase?: string; statusBaseSha?: string } = {}) => {
+ *  every box on it belongs to, `4-status.md`'s own sha, one `row` per
+ *  box the form drew, and one `tick` per box left ticked. There is no
+ *  `text` field — the description is not in this request and cannot be
+ *  written by it.
+ *
+ *  `rows` defaults to `ticks`, which is the press "tick exactly these,
+ *  touch nothing else". Pass it explicitly to say a row was on the page
+ *  and left CLEAR — that is what takes a check off. */
+export const tick = (
+  base: string,
+  over: { ticks?: string[]; rows?: string[]; phase?: string; statusBaseSha?: string } = {},
+) => {
   const body = new URLSearchParams([
     ...(over.phase === null ? [] : ([["checksPhase", over.phase ?? PHASE]] as [string, string][])),
     ["statusBaseSha", over.statusBaseSha ?? FILE_SHA],
+    ...(over.rows ?? over.ticks ?? []).map((line): [string, string] => ["row", line]),
     ...(over.ticks ?? []).map((line): [string, string] => ["tick", line]),
   ]);
   return fetch(`${base}${TICK}`, {

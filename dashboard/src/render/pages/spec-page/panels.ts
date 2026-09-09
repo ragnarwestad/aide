@@ -4,7 +4,7 @@
 import { field, tokenField, saveCancelActions } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page.ts";
-import { activeJob, EDITABLE_SPEC_FILE } from "./tabs.ts";
+import { activeJob, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
 /** The read-only shape every document tab falls back to: archived, a
@@ -84,6 +84,12 @@ export function documentPanel(view: SpecPageView, label: string, now: number, ma
   const found = view.files.find((f) => f.label === label);
   const file = found ?? { label, text: null };
   if (file.text === null) return specFilePanel(file, now, mark);
+  // `4-status.md` is a record, not a document to write: the tracking
+  // block is the run's own stamp and the phase tables are its log of
+  // what it did, so an edit here rewrites what happened. The one thing
+  // in the file that is a person's to decide — the acceptance checks —
+  // is the Checks tab's, which puts a check on and takes one back off.
+  if (label === STATUS_SPEC_FILE) return readOnlyDocument(file, now, mark);
   if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
   return editableDocumentForm(view, label, heading, file.text);

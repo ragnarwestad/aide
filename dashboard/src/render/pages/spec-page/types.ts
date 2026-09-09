@@ -12,6 +12,10 @@ export interface SpecCheckView {
   line: string;
   task: string;
   done: boolean;
+  /** The row's Notes cell — the implement run's own word on what was
+   *  delivered against this criterion. Absent, or empty, when the row
+   *  wrote none; the two say the same thing here. */
+  note?: string;
 }
 
 /** The spec's checks, on the Overview tab (specs 182, 188, 212).

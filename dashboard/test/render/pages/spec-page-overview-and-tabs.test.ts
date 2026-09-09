@@ -124,22 +124,32 @@ describe("spec 212: each document tab shows its own file and no other", () => {
     }
   });
 
-  // REQ-1: the three the analyze and implement steps write are editable
-  // too now — the same editor, Save and hidden `file`/`baseSha` fields
-  // the Description tab already has (spec 310). They are still known,
-  // accepted overwrite targets: a hand edit stands until the step that
-  // wrote the file next runs (2-analysis.md, Codebase analysis).
-  test("the three the steps write carry a textarea, a file field, and no separate Edit link", () => {
+  // REQ-1: the two the analyze step writes are editable too — the same
+  // editor, Save and hidden `file`/`baseSha` fields the Description tab
+  // already has (spec 310). They are known, accepted overwrite targets:
+  // a hand edit stands until the step that wrote the file next runs
+  // (2-analysis.md, Codebase analysis), and they are the two files
+  // implement reads, so a correction there is one that takes effect.
+  //
+  // `4-status.md` is not one of them: it is the run's own record, and
+  // the acceptance checks in it belong to the Checks tab.
+  test("the two the steps write carry a textarea, a file field, and no separate Edit link", () => {
     for (const [tab, file] of [
       ["analysis", "2-analysis.md"],
       ["solution", "3-solution.md"],
-      ["status", "4-status.md"],
     ] as const) {
       const html = page(view(), tab);
       expect([tab, html.includes("<textarea")]).toEqual([tab, true]);
       expect([tab, html.includes(`name="file" value="${file}"`)]).toEqual([tab, true]);
       expect([tab, html.includes("/edit")]).toEqual([tab, false]);
     }
+  });
+
+  test("the Status tab carries no textarea and no file field", () => {
+    const html = page(view(), "status");
+    expect(html).toContain("4-status.md");
+    expect(html).not.toContain("<textarea");
+    expect(html).not.toContain('name="file" value="4-status.md"');
   });
 
   // REQ-6: a spec with a job queued or running draws no Save form on

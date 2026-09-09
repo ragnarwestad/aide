@@ -14,7 +14,6 @@ import {
   CHECKS_TAB,
   ANALYSIS_TAB,
   SOLUTION_TAB,
-  STATUS_TAB,
   PAGE,
   FILE_SHA,
   auth,
@@ -137,17 +136,19 @@ describe("GET the edit page", () => {
     expect(asset.status).toBe(200);
   });
 
-  // REQ-1/REQ-4: Analysis, Solution and Status carry the same editable
+  // REQ-1/REQ-4: Analysis and Solution carry the same editable
   // mount/textarea pair Description's own form does (spec 310) — proven
   // by matching the exact markup shape
   // `spec-page-description-and-depends.test.ts` already pins for
   // Description, and the raw sibling keeps the `spec-editor-raw` class
   // so field.css's existing fallback CSS still pairs the two.
-  describe("the Analysis, Solution and Status tabs", () => {
+  //
+  // Status is not among them: `4-status.md` is the run's own record and
+  // its tab is read-only, so there is nothing to mount an editor over.
+  describe("the Analysis and Solution tabs", () => {
     for (const [tab, path, needle] of [
       ["analysis", ANALYSIS_TAB, "Seven files."],
       ["solution", SOLUTION_TAB, "One must-fix."],
-      ["status", STATUS_TAB, "Workflow steps completed"],
     ] as const) {
       test(`the ${tab} tab shows its WYSIWYG mount and the editor's script src on the first request`, async () => {
         const { base, dir } = start(savable("/host"));

@@ -86,11 +86,37 @@ describe("the checks on the Overview tab", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
-  test("a row that is already done is refused rather than committed again", async () => {
+  // A row that comes back ticked exactly as it went out is a row the
+  // reader did not touch. Nothing moved, so nothing is committed — and
+  // it is not a refusal either, since a press that leaves one box alone
+  // and clears another is one ordinary press.
+  test("a row left exactly as it was commits nothing, and is not an error", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
     const res = await tick(base, { ticks: [DONE_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+  });
+
+  // The whole point of the boxes being boxes: a check made by mistake
+  // comes back off here, not by editing the markdown table by hand.
+  test("a done row the reader left CLEAR goes back to ⬜, and is committed", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await tick(base, { ticks: [], rows: [DONE_ROW] });
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const after = readFileSync(statusPath(dir), "utf-8");
+    expect(after).not.toBe(STATUS);
+    expect(after).toContain(DONE_ROW.replace("✅", "⬜"));
+    expect(after).not.toContain(DONE_ROW);
+  });
+
+  // A row the form never drew is never answered for. Without this, a
+  // press from a page drawn before a run added a row would clear the
+  // new one on the reader's behalf.
+  test("a row the press did not carry is left exactly as it was", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await tick(base, { ticks: [OPEN_ROW], rows: [OPEN_ROW] });
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toContain(DONE_ROW);
   });
 
   test("a phase the file does not have is refused", async () => {
@@ -168,6 +194,27 @@ describe("the checks on the Overview tab", () => {
       body: new URLSearchParams({ phase: PHASE, line: OPEN_ROW, baseSha: FILE_SHA }).toString(),
     });
     expect(res.status).toBe(404);
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+  });
+});
+
+// `4-status.md` is a record, not a document to write: the tracking block
+// is the run's own stamp and the phase tables are its log of what it
+// did. The one thing in it a person decides is the acceptance checks,
+// and the Checks tab now both puts a check on and takes one back off —
+// so nothing is left that a hand edit was the only way to do.
+describe("4-status.md cannot be saved as a document", () => {
+  test("a Save of it is refused, and the file is untouched", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+      body: new URLSearchParams([["file", "4-status.md"], ["text", "# rewritten\n"], ["baseSha", FILE_SHA]]).toString(),
+    });
+    const where = decodeURIComponent(res.headers.get("location")!);
+    expect(where).toContain("error=");
+    expect(where).toContain("Checks tab");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 });

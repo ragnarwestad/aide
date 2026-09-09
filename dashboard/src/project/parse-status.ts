@@ -214,9 +214,21 @@ export interface StatusCheck {
   /** The Task cell, trimmed — what a reader is being asked about. */
   task: string;
   done: boolean;
+  /** The Notes cell, trimmed, and `""` when the row leaves it empty.
+   *  Written by the implement run, and the one thing on the row a
+   *  reader cannot work out from the criterion itself: what was
+   *  actually delivered against it, and any limit on that. Kept here
+   *  because the person who ticks the box needs it before they tick,
+   *  not after. */
+  note: string;
 }
 
 const DONE_MARK = "✅";
+/** What a row goes back to when a check is taken off it. The mark it
+ *  carried BEFORE it was ticked is gone by then — the tick overwrote it
+ *  — so this is the file's own plain "not started", the one every
+ *  template writes and every Notation table lists. */
+const OPEN_MARK = "⬜";
 
 /** A `## Phase`/`## Fase` heading, or the `## Checklist` heading a
  *  LOW-complexity spec's status file uses instead (spec 266) — matching
@@ -345,7 +357,13 @@ export function parseStatusChecks(content: string): StatusCheck[] {
   for (const section of phaseSections(lines)) {
     for (const i of dataRowIndices(lines, section)) {
       const cells = tableCells(lines[i]!)!;
-      checks.push({ phase: section.heading, line: lines[i]!, task: cells[0], done: isDoneMark(cells[1]) });
+      checks.push({
+        phase: section.heading,
+        line: lines[i]!,
+        task: cells[0],
+        done: isDoneMark(cells[1]),
+        note: cells[2],
+      });
     }
   }
   return checks;
@@ -366,15 +384,34 @@ export function parseStatusChecks(content: string): StatusCheck[] {
  *  Exactly one character moves. The cell keeps its padding, so a tick
  *  never reflows the table. */
 export function tickStatusLine(content: string, phase: string, line: string): string | null {
+  return setStatusLineMark(content, phase, line, true);
+}
+
+/** `content` with one row's mark put back to `⬜`, or `null` when that
+ *  row is not there to change — the exact mirror of `tickStatusLine`,
+ *  refusing a row that is not currently done the way that one refuses a
+ *  row that already is.
+ *
+ *  A check can be made by mistake, and until this existed the only way
+ *  back was to open `4-status.md` and edit the table by hand. */
+export function untickStatusLine(content: string, phase: string, line: string): string | null {
+  return setStatusLineMark(content, phase, line, false);
+}
+
+/** The one row-finding walk both directions share. `done` is what the
+ *  row is being moved TO; a row already there is refused, which is what
+ *  makes a stale page's press land on nothing rather than on the wrong
+ *  row. */
+function setStatusLineMark(content: string, phase: string, line: string, done: boolean): string | null {
   const lines = content.split("\n");
   const section = phaseSections(lines).find((s) => s.heading === phase.trim());
   if (!section) return null;
   for (const i of dataRowIndices(lines, section)) {
     if (lines[i] !== line) continue;
     const cells = tableCells(line);
-    if (!cells || isDoneMark(cells[1])) return null;
+    if (!cells || isDoneMark(cells[1]) === done) return null;
     const parts = line.split("|");
-    parts[2] = parts[2]!.replace(cells[1], DONE_MARK);
+    parts[2] = parts[2]!.replace(cells[1], done ? DONE_MARK : OPEN_MARK);
     lines[i] = parts.join("|");
     return lines.join("\n");
   }
