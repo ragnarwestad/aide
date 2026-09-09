@@ -46,6 +46,7 @@ act). `rowMessage()` alone turns a kind into a colour and an icon — never at t
 | Component       | Variants                                                               |
 |-----------------|------------------------------------------------------------------------|
 | `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small` |
+| `.iconlink`     | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`   |
 | `phaseChip()`   | `default`, `checked`, `done`, `off` (with the reason in `title`)       |
 | `rowMessage()`  | `info`, `waiting`, `failed`                                            |
