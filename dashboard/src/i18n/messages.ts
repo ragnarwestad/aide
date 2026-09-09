@@ -87,6 +87,20 @@ export const MESSAGES = {
     nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk Kjør igjen.",
     resolve: "Press Run again.",
   },
+  // The bash cross-check's own verdict on a step that reported success
+  // while changing nothing (core/scripts/lib/run-spec-status-line.sh),
+  // said in the board's words: the English sentence the script wrote is
+  // kept on the job as hover detail, never shown as the row's text.
+  "runner.noProgressImplement": {
+    en: "implement reported success but left no real progress — nothing changed in the project. — Press Run again.",
+    nb: "implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet. — Trykk Kjør igjen.",
+    resolve: "Press Run again.",
+  },
+  "runner.noProgressArchive": {
+    en: "archive reported success but left no real progress — the spec folder was never moved to archive/. — Press Run again.",
+    nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk Kjør igjen.",
+    resolve: "Press Run again.",
+  },
   "runner.serverRestarted": {
     en: "the server restarted while this step was running, and it left no result. — Press Run again.",
     nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk Kjør igjen.",
