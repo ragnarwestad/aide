@@ -5,7 +5,7 @@
 import { ICON_CHEVRON, btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import type { QueueRowView } from "../../ui/job-state.ts";
+import { currentStep, type QueueRowView } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import {
   FROM_LIST_FIELD,
@@ -173,6 +173,12 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `</form>`;
   const primary = (() => {
+    // Not while `create` is the step running. Every other step can be
+    // cancelled and run again from the spec it already made; `create`
+    // is what MAKES that spec, so a press there throws away the title
+    // and the description with nothing left on the board to run again
+    // from. The step's own timeout is what ends a create that hangs.
+    if (busy && currentStep(g.lead!) === "create") return "";
     if (busy) return actionForm(g.lead!, opts.token, opts.filter, lang);
     if (!label) return "";
     // Primary, like every row's one action (spec 161). It was

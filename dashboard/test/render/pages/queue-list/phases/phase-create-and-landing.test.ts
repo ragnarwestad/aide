@@ -300,8 +300,13 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
   // Criterion 1: a create job whose result has just arrived
   // (`state: "done"`) but whose `landBranch()` merge has not yet
   // resolved (`landing: true`) — the row must read busy, the same as a
-  // genuinely running job, and offer Cancel rather than Analyze.
-  test("a job done but still landing reads busy and offers Cancel, not Analyze (criterion 1)", () => {
+  // genuinely running job, and must not offer Analyze.
+  //
+  // It offered Cancel here until the whole `create` phase stopped
+  // offering one: the rule is the phase, merge included, so that a
+  // reader never has to work out which half of a create they are
+  // looking at before deciding whether a press is safe.
+  test("a job done but still landing reads busy and offers no press at all (criterion 1)", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "254-landing", steps: ["create"], stepIndex: 0, state: "done", landing: true })],
       [target("254-landing")],
@@ -315,8 +320,8 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     expect(line).toContain("creating");
     expect(line).not.toContain('class="badge b-ready"');
     const cell = actionCell(controlsLine(html, "254-landing"));
-    expect(cell).toContain(">Cancel</button>");
     expect(cell).not.toContain(">Analyze</button>");
+    expect(cell).not.toContain(">Cancel</button>");
   });
 
   // The shape that used to hide the landing completely: the job has
