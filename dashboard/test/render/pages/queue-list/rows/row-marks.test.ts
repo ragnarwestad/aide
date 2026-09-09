@@ -231,6 +231,57 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     expect(notice).toContain("Click the link to start a test server running this branch");
   });
 
+  // The two halves arrive apart: the queue holds the archive the moment
+  // it refuses, and `4-status.md`'s note — what the link is offered on —
+  // lands when the archive run writes it. A reader told to go and tick,
+  // with no way to see the thing being ticked, must at least be told one
+  // is coming.
+  test("the queue alone: no link yet, and the row says one is coming", () => {
+    const notice = noticeCellHtml(
+      renderQueueRows(
+        [
+          row({
+            specFolder: FOLDER,
+            steps: ["archive"],
+            state: "queued",
+            errorReason: "held-back",
+            error: { key: "runner.acceptanceCriteriaUnticked" },
+          }),
+        ],
+        { runnerAvailable: true, targets: [target({ done: ["implement"] })] },
+      ),
+      FOLDER,
+    );
+    expect(notice).not.toContain("Click the link to start a test server");
+    expect(notice).toContain("The link to start one appears once this spec's implement run is recorded as done");
+  });
+
+  // Ticking the last check starts the archive at once, and the note in
+  // `4-status.md` is not rewritten until that run gets far enough to
+  // write it. The run in flight is the newer fact: the reader must not
+  // be told to go and tick, beside a test server for the judging they
+  // have just finished.
+  test("the archive is running: the note and its link are gone at once", () => {
+    const notice = noticeCellHtml(
+      renderQueueRows(
+        [row({ specFolder: FOLDER, steps: ["archive"], state: "running" })],
+        {
+          runnerAvailable: true,
+          targets: [
+            target({
+              done: ["implement"],
+              archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+            }),
+          ],
+        },
+      ),
+      FOLDER,
+    );
+    expect(notice).not.toContain("Acceptance criteria are not all ticked yet");
+    expect(notice).not.toContain("Click the link to start a test server");
+    expect(notice).not.toContain("The link to start one appears once");
+  });
+
   // REQ-6: every other held-back reason carries no link.
   test("REQ-6: a row held back for a different reason carries no link", () => {
     const notice = noticeCellHtml(

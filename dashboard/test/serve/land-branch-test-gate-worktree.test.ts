@@ -134,15 +134,23 @@ describe("the landing's test gate", () => {
     expect(verdict.ok).toBe(false);
     expect(sentence(verdict.error)).toBe(
       "the project's tests are red on this merge, so nothing was pushed. " +
-        "The gate log names the failing test; archive lands the work once it passes.",
+        "The archive step's own log names the tests that failed; archive merges the work once they pass.",
     );
     // Nothing here knows that a second implement run would turn the
     // suite green: it starts from the same description and plan, and is
     // never told which test failed. The sentence says what is known.
     expect(sentence(verdict.error)).not.toContain("run implement again");
-    expect(sentence(verdict.error)).not.toContain(".log");
     expect(sentence(verdict.error)).not.toContain("quieter");
-    expect(verdict.detail).toContain(".log");
+    // No path to a file on the host, in the sentence or the detail: a
+    // message that names a log names one this dashboard shows, and the
+    // failing lines are right here in the detail the step's own row
+    // draws.
+    expect(sentence(verdict.error)).not.toContain(".log");
+    expect(verdict.detail).not.toContain(".log");
     expect(verdict.detail).toContain("quieter");
+    // The lines that name the failure, not the command that started the
+    // run: the recorder above printed one and bun's own banner the
+    // other, and a blind tail of the two streams caught the wrong end.
+    expect(verdict.detail).toContain("FAILED test_x");
   });
 });

@@ -57,6 +57,7 @@ export const en = {
   "list.waitingOnReview": "its code is waiting on a pull request — open it to review",
   "list.testServer": "test server",
   "list.boardStartLink": "Click the link to start a test server running this branch",
+  "list.boardStartComing": "The link to start one appears once this spec's implement run is recorded as done",
   "list.pushError":
     "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
     "then push it again from a terminal.",

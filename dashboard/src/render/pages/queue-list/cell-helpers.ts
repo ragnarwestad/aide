@@ -272,6 +272,15 @@ const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitin
  *  already knows how to act on (the round the checks are waiting on). */
 const boardStartLinkSentence = (lang: Language): string => t(lang, "list.boardStartLink");
 
+/** Is the QUEUE holding this spec's archive for unticked acceptance
+ *  criteria? The file's own note answers the same question a moment
+ *  later — the archive run writes it — so the two are read apart:
+ *  this one to avoid saying it twice, and to say the start link is
+ *  coming while only this half is true. */
+const queueHeldForChecks = (g: SpecGroup): boolean =>
+  g.lead?.errorReason === "held-back" && !!g.lead.error && typeof g.lead.error === "object" &&
+  !Array.isArray(g.lead.error) && g.lead.error.key === "runner.acceptanceCriteriaUnticked";
+
 /** The sentence a LIVE row carries when a push never reached origin
  *  (spec 328, spec 335, spec 352). Fixed prose, not `pushError`'s own
  *  text: that text is git's raw stderr with its `hint:` lines flattened
@@ -340,16 +349,27 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
   // same way any other two marks do (spec 339) rather than the newer
   // one silently dropping the older fact.
   const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
-  if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) {
+  // Not while the archive is running. The note lives in `4-status.md`
+  // and is only rewritten when that run gets far enough to write it, so
+  // a reader who ticks the last check — which starts the run at once —
+  // was still being told to go and tick, beside a link offering a test
+  // server for the judging they had just finished. The run in flight is
+  // the newer fact.
+  // RUNNING, never `inFlight`: a job held back for this very reason sits
+  // QUEUED, and `inFlight` counts that as in flight — which would blank
+  // the note in exactly the state it exists for. A landing counts, the
+  // merge being the tail of the same run.
+  const archiveRunning = !!g.phases
+    .find((p) => p.step === "archive")
+    ?.attempts.some((a) => a.state === "running" || !!a.landing);
+  if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !archiveRunning) {
     // Unless the queue is already saying it. The runner holds a job for
     // this exact reason with a message of its own, which the notice
     // line draws above these marks — and that one is translated, where
     // the file's note is a fixed English constant. Two sentences saying
     // one thing, one of them in the wrong language, is what a reader
     // got until 2026-09-08.
-    const queueSaysIt =
-      g.lead?.errorReason === "held-back" && g.lead.error && typeof g.lead.error === "object" &&
-      !Array.isArray(g.lead.error) && g.lead.error.key === "runner.acceptanceCriteriaUnticked";
+    const queueSaysIt = queueHeldForChecks(g);
     if (!queueSaysIt) {
       marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReason });
     }
@@ -359,6 +379,16 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
       sentence: boardStartLinkSentence(lang),
       href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startBoard=1`,
     });
+  } else if (queueHeldForChecks(g) && !archiveRunning) {
+    // The queue holds the job the moment it refuses to archive; the
+    // note the branch above reads — and with it the start link — needs
+    // `implement` in the git-verified done-set as well
+    // (`archiveHeldBackApplies`), and that set does not count a step
+    // whose work is still on its branch. So the link can be there on
+    // one render and gone on the next. A reader in that window was told
+    // to go and tick, with no way to see the thing being ticked and
+    // nothing saying one was coming. So it is said.
+    marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.boardStartComing") });
   }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });

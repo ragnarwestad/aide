@@ -38,6 +38,23 @@ describe("the banned-word list itself (REQ-5)", () => {
     for (const b of BANNED_WORDS) {
       expect(b.word).toBeTruthy();
       expect(b.insteadOf).toBeTruthy();
+      expect(b.pattern.test(b.word), `"${b.word}" does not match its own pattern`).toBe(true);
     }
+  });
+
+  // The words this list bans are the ones the reader was actually given.
+  // Kept as literals rather than derived from the entries, so a pattern
+  // narrowed by accident stops catching the sentence that put the word
+  // on the board in the first place.
+  test.each([
+    ["The gate log names the failing test", "gate"],
+    ["arkivering holdt tilbake i gaten", "gate"],
+  ])("%s is refused", (text, word) => {
+    expect(findBannedWord(text)?.word).toBe(word);
+  });
+
+  // And the everyday words that merely contain one.
+  test.each(["investigate the failure", "navigate to the tab", "delegate it"])("%s is allowed", (text) => {
+    expect(findBannedWord(text)).toBeUndefined();
   });
 });
