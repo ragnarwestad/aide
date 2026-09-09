@@ -6,6 +6,7 @@ import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from
 import { SPINNER } from "../../ui/components/icons.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
+import { t, type Language } from "../../../i18n";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
@@ -194,7 +195,7 @@ export function closedLine(view: SpecPageView): string {
  *  So there is one group, one form and one Save — never one per phase. */
 const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 
-export function checklist(view: SpecPageView, mark = ""): string {
+export function checklist(view: SpecPageView, lang: Language = "en", mark = ""): string {
   const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
   if (rows.length === 0) {
     // A section that is there and reads as nothing is not the same
@@ -280,7 +281,8 @@ export function checklist(view: SpecPageView, mark = ""): string {
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick
-    ? `<form class="specform" method="post" action="${esc(view.tickAction)}">` +
+    ? `<form class="specform" method="post" action="${esc(view.tickAction)}" ` +
+        `data-overlay="${t(lang, "shell.overlaySaving")}">` +
       tokenField(view.token) +
       `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
       // Empty rather than absent for a file git has never committed —

@@ -144,13 +144,13 @@ export function renderSpecPage(
           landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
         })
       : tab === "description"
-        ? descriptionPanel(view, now, mark)
+        ? descriptionPanel(view, now, opts.lang ?? "en", mark)
         : TAB_FILES[tab]
-          ? documentPanel(view, TAB_FILES[tab]!, now, mark)
+          ? documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark)
           // Checks: no file text at all, and no facts of its own — those
           // (archived, depends-on) moved into the banner, visible on
           // every tab, when this tab lost its old "Overview" name.
-          : checklist(view, mark);
+          : checklist(view, opts.lang ?? "en", mark);
 
   // Where the spec stands, on the line that names it: the four pips the
   // specs list already draws, and — while a phase is running — what it

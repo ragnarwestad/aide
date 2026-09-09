@@ -4,6 +4,7 @@
 import { field, tokenField, saveCancelActions } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page.ts";
+import { t, type Language } from "../../../i18n";
 import { activeJob, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
@@ -40,10 +41,12 @@ function editableDocumentForm(
   label: string,
   headingHtml: string,
   text: string,
+  lang: Language = "en",
   extra = "",
 ): string {
   return (
-    `<form method="post" action="${esc(view.saveAction)}" class="newspecform specform">` +
+    `<form method="post" action="${esc(view.saveAction)}" class="newspecform specform" ` +
+      `data-overlay="${t(lang, "shell.overlaySaving")}">` +
     tokenField(view.token) +
     // Which file this Save is about (REQ-2) — the allowlist the route
     // checks it against.
@@ -80,7 +83,9 @@ function editableDocumentForm(
  *  the read-only shape instead — the route refuses either anyway
  *  (spec-edit.ts), but a control that only ever gets refused is not a
  *  control to draw. */
-export function documentPanel(view: SpecPageView, label: string, now: number, mark = ""): string {
+export function documentPanel(
+  view: SpecPageView, label: string, now: number, lang: Language = "en", mark = "",
+): string {
   const found = view.files.find((f) => f.label === label);
   const file = found ?? { label, text: null };
   if (file.text === null) return specFilePanel(file, now, mark);
@@ -92,7 +97,7 @@ export function documentPanel(view: SpecPageView, label: string, now: number, ma
   if (label === STATUS_SPEC_FILE) return readOnlyDocument(file, now, mark);
   if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
-  return editableDocumentForm(view, label, heading, file.text);
+  return editableDocumentForm(view, label, heading, file.text, lang);
 }
 
 /** The Description tab (spec 162, moved onto this page by spec 212).
@@ -109,10 +114,10 @@ export function documentPanel(view: SpecPageView, label: string, now: number, ma
  *  would have written, committed and pushed underneath a run. The
  *  refusal itself is on the route — hiding a control is never the guard
  *  — but a box that only ever gets refused is not a box to draw. */
-export function descriptionPanel(view: SpecPageView, now: number, mark = ""): string {
+export function descriptionPanel(view: SpecPageView, now: number, lang: Language = "en", mark = ""): string {
   const file = view.files.find((f) => f.label === EDITABLE_SPEC_FILE);
-  if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, mark);
+  if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
   const heading =
     `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
-  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "");
+  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "", lang);
 }

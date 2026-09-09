@@ -17,6 +17,12 @@ export const nb: Record<TranslationKey, string> = {
   "shell.tabSpecs": "Spesifikasjoner",
   "shell.tabProjects": "Prosjekter",
   "shell.installWarning": "siste installasjon fant et problem — se {path}",
+  "shell.overlayDeploying": "deployer…",
+  "shell.overlayResetting": "nullstiller…",
+  "shell.overlayClosing": "lukker…",
+  "shell.overlayRemoving": "fjerner…",
+  "shell.overlaySaving": "lagrer…",
+  "shell.overlayLoading": "laster…",
 
   "list.statesLabel": "Tilstand",
   "list.state.all": "Alle",

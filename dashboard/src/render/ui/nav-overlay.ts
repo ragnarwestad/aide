@@ -77,7 +77,7 @@
     if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
     timer = setTimeout(() => {
       timer = null;
-      openOverlay();
+      openOverlay(document.body?.dataset?.overlayNote || "");
     }, DELAY_MS);
   });
 
@@ -90,9 +90,12 @@
   document.addEventListener("submit", (event: Event) => {
     const e = event as Event & { defaultPrevented: boolean };
     if (e.defaultPrevented) return;
-    const form = e.target as { matches?: (selector: string) => boolean } | null;
+    const form = e.target as {
+      matches?: (selector: string) => boolean;
+      dataset?: Record<string, string>;
+    } | null;
     if (!form?.matches?.(".specform") || timer !== null || (dialog?.open)) return;
-    openOverlay();
+    openOverlay(form.dataset?.overlay || "");
   });
 
   window.addEventListener("pageshow", (event: Event) => {

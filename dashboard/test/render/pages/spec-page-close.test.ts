@@ -129,4 +129,11 @@ describe("the Close page covers the page while the work runs", () => {
     const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="closing…"');
   });
+
+  // Spec 422, REQ-2: the same text, in the reader's own language.
+  test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken", lang: "nb" });
+    const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="lukker…"');
+  });
 });

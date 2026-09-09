@@ -534,6 +534,15 @@ describe("the Deploy tab asks for itself again while the origin answer is missin
     expect(form).toContain('data-overlay="deploying…"');
   });
 
+  // Spec 422, REQ-2: the same text, in the reader's own language.
+  test("in Norwegian (nb), the overlay text is the Norwegian one", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, settled(root, "aide"), 0);
+    const html = await (await fetch(`${base}/projects/aide?tab=deploy&lang=nb`, { headers: AUTH })).text();
+    const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="deployer…"');
+  });
+
   test("no answer yet: the Deploy tab carries a refresh", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // Poll off, so the answer never arrives: the same state a page drawn

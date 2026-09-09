@@ -24,6 +24,7 @@
 // a half-typed textarea and a half-ticked list.
 
 import { renderSpecPage, type JobDetailView, type SpecPageView } from "../../../src/render.ts";
+import type { Language } from "../../../src/i18n";
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
 export const GENERATED = "2026-08-21T10:05:00Z";
@@ -68,5 +69,5 @@ export const lead = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
   ...extra,
 });
 
-export const page = (v: SpecPageView = view(), tab?: string) =>
-  renderSpecPage(v, GENERATED, NAV, { tab, now: NOW });
+export const page = (v: SpecPageView = view(), tab?: string, lang?: Language) =>
+  renderSpecPage(v, GENERATED, NAV, { tab, now: NOW, lang });
