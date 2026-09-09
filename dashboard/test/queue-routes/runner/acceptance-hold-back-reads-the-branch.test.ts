@@ -227,3 +227,46 @@ describe("the queue's analyze gate", () => {
     expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(true);
   });
 });
+
+// `aide-archive-spec` asks whether implement has run BEFORE it looks at
+// the acceptance section, and refuses with `not-implemented-yet` when it
+// has not. Held here for an unticked row instead, such a spec sat queued
+// behind "tick the Acceptance criteria" — asking a person to sign off
+// work nobody has done, for a tick that cannot honestly be made (423,
+// 2026-09-09). The gate stands down, the step starts, and the script's
+// own pre-check ends the job with the reason that is actually true.
+describe("a spec whose implement has not run", () => {
+  /** The same spec, with implement taken off both copies of the line. */
+  function unimplemented(): { root: string; specDir: string } {
+    const made = projectsRoot();
+    writeFileSync(
+      join(made.specDir, "4-status.md"),
+      "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n\n" +
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: it works | ⬜ | |\n",
+    );
+    writeFileSync(
+      join(made.specDir, "4-status.json"),
+      JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
+        acceptanceCriteria: [{ task: "REQ-1: it works", done: false }], phaseCounts: {} }),
+    );
+    return made;
+  }
+
+  const noBranch = () => new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
+
+  test("is not held for its unticked row: the archive step starts and the script refuses it", () => {
+    const { root } = unimplemented();
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, noBranch())).has("job-1")).toBe(false);
+  });
+
+  test("a spec whose implement HAS run is still held for the same unticked row", () => {
+    const { root } = projectsRoot();
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, noBranch())).has("job-1")).toBe(true);
+  });
+
+  test("the branch copy answers whether implement ran: implement there brings the gate back", async () => {
+    const { root, specDir } = unimplemented();
+    const checker = await warmedChecker(specDir, false);
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, checker)).has("job-1")).toBe(true);
+  });
+});
