@@ -39,18 +39,16 @@
    list. Left at full width, the box goes on spanning the frame while
    the table inside it stops at `--speclist-width`, and the bar sits
    out at the window's edge with empty page between. */
-/* The BOX owns the width, and the table takes whatever the box has
-   (`table.speclist` below). Two numbers that had to agree on the pixel
-   is what kept bringing the horizontal scrollbar back: the box was
-   capped at the table's own rem width, and anything that ate a few
-   pixels inside it — the table's 1px border, and above all this box's
-   own VERTICAL scrollbar, which appears the moment the list is long
-   enough — left the table wider than the space it had. The bar came and
-   went with how many rows the list happened to have. Nothing here
-   states a width the table also states, so there is no longer a pair
-   that can fall out of step. */
+/* Plus the table's own border, and that `+ 2px` is not slack to be
+   tidied away — taking it out puts the horizontal scrollbar straight
+   back. `table-layout: fixed` means the table's used width is the SUM
+   of the column widths below whatever `width` says, and `border-collapse:
+   collapse` then draws the outer border's outer half beyond that sum,
+   which `box-sizing` does not reach. Measured in Chromium at 1600px:
+   936px of columns in a 936px box, 937px of table, one pixel of
+   scrollbar; with the two pixels back, 938 and 938 and no bar. */
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  max-width: var(--speclist-width); width: 100%; box-sizing: border-box;
+  max-width: calc(var(--speclist-width) + 2px); width: 100%; box-sizing: border-box;
   margin-inline: auto; padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }

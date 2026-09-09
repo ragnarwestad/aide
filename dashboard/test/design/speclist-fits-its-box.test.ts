@@ -51,12 +51,16 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(longest.length * 7.4).toBeLessThanOrEqual(room);
   });
 
-  // The box states the width, and it states it plainly — no arithmetic
-  // compensating for something inside it, which is what a `calc()` here
-  // has always been.
-  test("the scrolling box is the only place the width is stated", () => {
+  // And the box holds that sum PLUS the table's border. The two pixels
+  // look like slack and are not: `table-layout: fixed` makes the table's
+  // used width the sum of the columns whatever `width` says, and
+  // `border-collapse: collapse` draws the outer border's outer half
+  // beyond it, where `box-sizing` does not reach. Measured in Chromium:
+  // without them, one pixel of horizontal scrollbar (2026-09-09).
+  test("the scrolling box holds the column sum plus the table's border", () => {
     const wrap = /#jobrows \.tablewrap \{[^}]*max-width: ([^;]+);/.exec(css)![1]!.trim();
-    expect(wrap).toBe("var(--speclist-width)");
+    expect(wrap).toBe("calc(var(--speclist-width) + 2px)");
+    expect(css).toMatch(/table\.list \{[^}]*border: 1px solid/);
   });
 
   // And the table takes the box's width, border included. A rem width
