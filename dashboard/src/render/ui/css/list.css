@@ -102,21 +102,24 @@ table.settingstable { width: auto; }
    The width comes out of the list's own total rather than off a
    neighbouring column: the head row's name cell spans this column and
    Phase beside it, so it simply gets the room too. */
-/* AUTO, alone among the six: `table-layout: fixed` makes the table's
-   used width the SUM of the column widths, so six fixed widths make a
-   table that cannot shrink — and anything that takes a few pixels out
-   of the box it sits in (a classic, space-taking vertical scrollbar
-   above all, which is what a Mac draws when "Show scroll bars" is set
-   to Always) leaves the table wider than its room and the box scrolls
-   sideways. An auto column takes whatever the other five leave, so the
-   table is always exactly as wide as the box.
-   Which column: this one. Its content is a phase name and, on the head
-   row, the spec's own name — the one thing here that already clamps
-   (`.spec-name > .label`) rather than needing a width. The five fixed
-   widths below sum to 48.5rem, so at the list's full 58.5rem this
-   column draws 10rem, and gives up a few pixels of that when something
-   else in the box needs them. */
-table.speclist > colgroup > col[data-col="spec"] { width: auto; }
+/* The six widths are PERCENTAGES of the table, and the comments below
+   name the rem each one replaces — 10, 20, 9, 6.5, 6.5, 6.5 of the
+   list's own 58.5rem.
+   Rem here made a table that cannot shrink: `table-layout: fixed` sizes
+   the table to the SUM of the column widths, so anything taking a few
+   pixels out of the box (a classic, space-taking vertical scrollbar
+   above all, which is what a Mac draws with "Show scroll bars: Always")
+   left the table wider than its room and the box scrolled sideways.
+   `width: auto` on one column does NOT fix that: the five fixed columns
+   take the whole table between them and the auto one is squeezed to
+   nothing — measured at 7px, with the phase name lying across the
+   pickers beside it (2026-09-09).
+   Percentages scale with the table, and the table is 100% of its box.
+   So the columns keep these proportions at every width, and the table
+   is never wider than the box. Measured with the box 15px narrower:
+   no scrollbar, and every column 2px down. */
+/* 10rem: a phase line's name, "manifestoppdatering" longest of all. */
+table.speclist > colgroup > col[data-col="spec"] { width: 17.0940%; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left
@@ -125,7 +128,7 @@ table.speclist > colgroup > col[data-col="spec"] { width: auto; }
    column and Spec beside it, and keeps whatever is left. 19rem is NOT
    enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
-table.speclist > colgroup > col[data-col="phase"] { width: 20rem; }
+table.speclist > colgroup > col[data-col="phase"] { width: 34.1880%; }
 /* The badge alone since the button left this cell, and the badge is one
    word: the widest a spec row can draw is "implementing" (97px) or its
    Norwegian "implementerer" (102), measured in a browser with this
@@ -133,16 +136,16 @@ table.speclist > colgroup > col[data-col="phase"] { width: 20rem; }
    longer word than either. It held 11rem while the badge could read
    "arkivering holdt tilbake" — which is the row's own notice line's
    sentence now, not a state. */
-table.speclist > colgroup > col[data-col="state"] { width: 9rem; }
+table.speclist > colgroup > col[data-col="state"] { width: 15.3846%; }
 /* The three figure columns — Time, Cost/Tokens and Created — are one
    width, the widest of the three: they hold the same KIND of thing, a
    short value under a one-word heading, and 4.5rem left Time and Cost
    crowded against their own headings while Created beside them had
    room. Asked for 2026-09-09. Their width comes out of the list's own
    total, not off a neighbouring column. */
-table.speclist > colgroup > col[data-col="created"] { width: 6.5rem; }
-table.speclist > colgroup > col[data-col="started"] { width: 6.5rem; }
-table.speclist > colgroup > col[data-col="cost"] { width: 6.5rem; }
+table.speclist > colgroup > col[data-col="created"] { width: 11.1111%; }
+table.speclist > colgroup > col[data-col="started"] { width: 11.1111%; }
+table.speclist > colgroup > col[data-col="cost"] { width: 11.1111%; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
 thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
