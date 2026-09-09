@@ -124,8 +124,8 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
         : latest ? `/specs/${latest.id}`
         : undefined;
       const nameLink = href
-        ? `<a href="${esc(href)}">${esc(stepLabel(p.step))}</a>`
-        : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
+        ? `<a href="${esc(href)}">${esc(stepLabel(p.step, opts.lang))}</a>`
+        : `<span class="muted">${esc(stepLabel(p.step, opts.lang))}</span>`;
       // The phase's own name. It wore a fold control on mobile until
       // 2026-09-07 — a chevron per phase line, whose only job was to
       // hide the AI/model pair on a narrow screen. The pair fits beside

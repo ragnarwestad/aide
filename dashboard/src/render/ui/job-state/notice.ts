@@ -147,7 +147,7 @@ export function specNotice(
     // to one step.
     const text =
       lead.errorReason === "held-back"
-        ? `${stepLabel(currentStep(lead))} ${renderSentence(lang, lead.error)!}`
+        ? `${stepLabel(currentStep(lead), lang)} ${renderSentence(lang, lead.error)!}`
         : renderSentence(lang, lead.error)!;
     if (!said(text)) {
       // Three of the six held-back reasons resolve on their own —
