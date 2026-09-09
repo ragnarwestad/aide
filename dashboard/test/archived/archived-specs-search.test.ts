@@ -38,16 +38,19 @@ describe("the search field", () => {
   // match here can only come from the project itself joining the
   // haystack.
   test("matches a spec by its project name alone (spec 261)", async () => {
+    // The live spec first: git cannot date either, and an undated
+    // ARCHIVED spec sorts as the oldest (2026-09-09), the undated live
+    // one as the newest.
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer`))).toEqual([
-      OTHER,
       LIVE_OTHER,
+      OTHER,
     ]);
   });
 
   test("matches the project name with a trailing colon (spec 261)", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:`))).toEqual([
-      OTHER,
       LIVE_OTHER,
+      OTHER,
     ]);
   });
 

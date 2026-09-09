@@ -4,7 +4,7 @@
 
 import { IN_FLIGHT } from "../../../ui/job-state.ts";
 import { t, type Language, type TranslationKey } from "../../../../i18n";
-import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";
+import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, type QueueFilter, type SpecGroup } from "./types.ts";
 
 // "Problems" holds everything that did not simply finish — a cap-stop
 // and a crash are different, but both are things you go looking for on
@@ -208,7 +208,12 @@ export function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     // subtract to NaN, and a comparator returning NaN orders them by
     // nothing at all — the folder tie-break below never runs, because
     // NaN !== 0.
-    : sort === "created" ? (Date.parse(g.createdAt ?? "") || Number.MAX_SAFE_INTEGER)
+    //
+    // The other undated case is the opposite end (2026-09-09): an
+    // archived or closed spec git could not date was made before the
+    // board recorded creation dates at all — older than every dated
+    // row, so it sorts as the oldest, never as the newest.
+    : sort === "created" ? (Date.parse(g.createdAt ?? "") || (isFinishedGroup(g) ? 0 : Number.MAX_SAFE_INTEGER))
     : (g.totalDurationMs ?? 0);
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);

@@ -85,6 +85,7 @@ export const en = {
   "list.noRunner":
     "No runner is installed on this machine yet (slice 81b) — queued jobs stay queued, " +
     "and nothing here spends money.",
+  "list.createdNotRegistered": "not registered",
   "list.ready": "ready",
   "list.archiveHeldBackWord": "archive held back",
   "list.done": "done",

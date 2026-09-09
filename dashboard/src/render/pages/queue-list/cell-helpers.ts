@@ -241,9 +241,19 @@ export function archiveDateCell(durationMs: number): string {
  *  a failure it is about to recover from teaches the reader to distrust
  *  the column. "checking…" still stands while the question is out, since
  *  that one says an answer is coming. */
-export function createdCell(createdAt: string | undefined, checking: boolean): string {
+export function createdCell(
+  createdAt: string | undefined,
+  checking: boolean,
+  /** An archived or closed spec git could not date was made before the
+   *  board recorded creation dates — the oldest rows on the list, not
+   *  the newest. The dash stays for a live spec, whose date is on its
+   *  way (2026-09-09). */
+  finished = false,
+  lang: Language = "en",
+): string {
   if (createdAt) return esc(createdAt.slice(0, 10));
-  return checking ? CHECKING : "–";
+  if (checking) return CHECKING;
+  return finished ? t(lang, "list.createdNotRegistered") : "–";
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).
