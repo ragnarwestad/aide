@@ -64,6 +64,20 @@ function writeFakeBun(binPath: string, logPath: string): void {
   chmodSync(binPath, 0o755);
 }
 
+/** The served checkout's own argument parser, with or without the
+ *  `--test-board` flag — what `run` reads to decide whether the branch
+ *  can be handed it. */
+function writeParseArgs(checkout: string, knowsTestBoard: boolean): void {
+  const dir = join(checkout, "dashboard", "src", "serve", "serve-helpers");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "parse-args.ts"),
+    knowsTestBoard
+      ? `else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];\n`
+      : `else if (a === "--port" && v) opts.port = Number(argv[++i]);\n`,
+  );
+}
+
 async function runToExit(args: string[], env: Record<string, string>): Promise<{ code: number }> {
   const proc = Bun.spawn({
     cmd: ["/bin/bash", RUN, ...args],
@@ -90,6 +104,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     git(seed, ["push", "-q", "origin", "main"]);
     git(seed, ["checkout", "-q", "-b", "424-headeren-sier-hvilket-board"]);
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// board\n");
+    writeParseArgs(seed, true);
     git(seed, ["add", "-A"]);
     git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "board work"]);
     git(seed, ["push", "-q", "origin", "424-headeren-sier-hvilket-board"]);
@@ -118,6 +133,50 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(generateLine).toContain("--test-board 424-headeren-sier-hvilket-board");
       expect(serveLine).toContain("--test-board 424-headeren-sier-hvilket-board");
+    } finally {
+      decoy.stop();
+    }
+  });
+
+  // A branch cut before spec 424 landed: its serve.ts refuses an
+  // argument it does not know, so the round must not hand it one — the
+  // board then comes up without the header line and the Stop button
+  // rather than not at all (426, 2026-09-09).
+  test("a branch whose serve.ts does not know --test-board is not handed it", async () => {
+    const originBare = tmp("aide-round-origin-");
+    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
+    const seed = tmp("aide-round-seed-");
+    git(seed, ["init", "-q", "-b", "main"]);
+    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
+    git(seed, ["add", "-A"]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
+    git(seed, ["remote", "add", "origin", originBare]);
+    git(seed, ["push", "-q", "origin", "main"]);
+    git(seed, ["checkout", "-q", "-b", "426-older-branch"]);
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// older\n");
+    writeParseArgs(seed, false);
+    git(seed, ["add", "-A"]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "older work"]);
+    git(seed, ["push", "-q", "origin", "426-older-branch"]);
+    const aide = tmp("aide-round-aide-");
+    git(tmpdir(), ["clone", "-q", originBare, aide]);
+
+    const scratch = tmp("aide-round-fakebun-");
+    const logPath = join(scratch, "argv.log");
+    const binPath = join(scratch, "fake-bun");
+    writeFakeBun(binPath, logPath);
+
+    const decoy = decoyPort();
+    try {
+      await runToExit(
+        [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--keep", "--timeout", "5"],
+        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token" },
+      );
+      const lines = readFileSync(logPath, "utf-8").trim().split("\n");
+      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
+      expect(serveLine).toBeDefined();
+      for (const line of lines) expect(line).not.toContain("--test-board");
     } finally {
       decoy.stop();
     }
