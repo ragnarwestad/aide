@@ -347,6 +347,25 @@ function phaseSections(lines: string[]): { heading: string; from: number; to: nu
   return sections;
 }
 
+/** Whether the file has an `## Acceptance criteria` section that this
+ *  parser reads NO row out of.
+ *
+ *  Not the same as having no criteria. The section's table has one
+ *  shape — `| Task | Status | Notes |`, with `REQ-n: <text>` in the
+ *  first cell (`core/rules/spec-structure.md`) — and a run that writes
+ *  another one, `| REQ | Criterion | Accepted |` among them, puts the
+ *  criterion where the MARK belongs. `tableCells` then rejects every
+ *  row, the Checks tab draws an empty list, and the archive gate reads
+ *  "nothing open" from a spec nobody has judged. Silence is the whole
+ *  problem, so the difference is answered here rather than left to look
+ *  like a spec that simply has no criteria. */
+export function acceptanceSectionUnreadable(content: string): boolean {
+  const lines = content.split("\n");
+  const section = phaseSections(lines).find((s) => /^acceptance\b/i.test(s.heading));
+  if (!section) return false;
+  return dataRowIndices(lines, section).length === 0;
+}
+
 /** Every Tasks-table row of every phase section, in file order — done
  *  and not. The page shows both: the description asks for the whole
  *  list with the undone ones unmistakable, not for the undone ones

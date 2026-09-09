@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseStatusChecks, tickStatusLine } from "../../src/project/parse-status.ts";
+import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine } from "../../src/project/parse-status.ts";
 
 // --- spec 182: the rows a person can tick off from the page -----------------
 //
@@ -321,5 +321,38 @@ describe("the Notes cell (spec 340's caveat, and every other row's)", () => {
     const line = "| Write the test | ✅ | One commit, both files included |";
     const checks = parseStatusChecks(["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", line, ""].join("\n"));
     expect(checks[0]!.note).toBe("One commit, both files included");
+  });
+});
+
+// Spec 404 landed with `| REQ | Criterion | Accepted |` instead of the
+// `| Task | Status | Notes |` the rule gives. That puts the criterion
+// where the MARK belongs, so every row is rejected — the Checks tab drew
+// an empty list and the archive gate read "nothing open" from a spec
+// nobody had judged. The difference has to be answerable.
+describe("acceptanceSectionUnreadable", () => {
+  const section = (header: string, rows: string[]): string =>
+    ["# X - Status", "", "## Acceptance criteria", "", header, "|---|---|---|", ...rows, ""].join("\n");
+
+  test("the rule's own table reads, so it is not unreadable", () => {
+    const text = section("| Task | Status | Notes |", ["| REQ-1: does the thing | ⬜ | |"]);
+    expect(parseStatusChecks(text)).toHaveLength(1);
+    expect(acceptanceSectionUnreadable(text)).toBe(false);
+  });
+
+  test("spec 404's own shape reads as nothing, and says so", () => {
+    const text = section("| REQ | Criterion | Accepted |", [
+      "| REQ-1 | The specs a spec depends on are shown above the scrolling list | ☐ |",
+    ]);
+    expect(parseStatusChecks(text)).toHaveLength(0);
+    expect(acceptanceSectionUnreadable(text)).toBe(true);
+  });
+
+  test("a file with no Acceptance section at all is not unreadable — it simply has none", () => {
+    expect(acceptanceSectionUnreadable("# X - Status\n\n## Phase 1: RED\n")).toBe(false);
+  });
+
+  test("an Acceptance section with a sentence instead of a table reads as nothing", () => {
+    const text = "# X - Status\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n";
+    expect(acceptanceSectionUnreadable(text)).toBe(true);
   });
 });

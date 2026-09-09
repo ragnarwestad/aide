@@ -293,3 +293,25 @@ describe("the run's own note on an acceptance row", () => {
     expect(html).toContain("see &lt;b&gt;3-solution.md&lt;/b&gt;");
   });
 });
+
+// An Acceptance section the parser reads nothing out of is not the same
+// answer as no section at all, and the page must not give the same one:
+// the archive gate reads the same file, so an unreadable table means
+// nothing holds the spec back either.
+describe("an Acceptance table written in a shape this page cannot read", () => {
+  const render = (unreadable: boolean): string =>
+    page(view({ checks: { rows: [], phase: "Acceptance criteria", baseSha: "b7c40e2", unreadable } }), "checks");
+
+  test("it says the table cannot be read, and what to do about it", () => {
+    const html = render(true);
+    expect(html).toContain("cannot read");
+    expect(html).toContain("Run analyze again");
+    expect(html).not.toContain("No acceptance criteria to tick");
+  });
+
+  test("a spec that genuinely has none still says so plainly", () => {
+    const html = render(false);
+    expect(html).toContain("No acceptance criteria to tick");
+    expect(html).not.toContain("cannot read");
+  });
+});

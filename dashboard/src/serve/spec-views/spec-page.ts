@@ -5,7 +5,7 @@
 import {
   specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
 } from "../../project/discover.ts";
-import { parseStatus } from "../../project/parse-status.ts";
+import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status.ts";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render.ts";
 import type { BoardStatusView } from "../../render/pages/spec-page/types.ts";
 import { currentWorkRoundJobs, type Job } from "../../queue/queue.ts";
@@ -228,6 +228,7 @@ export async function specPageView(
       rows,
       phase: target.phase,
       baseSha: statusCommit?.sha,
+      unreadable: acceptanceSectionUnreadable(checksText),
     },
     // Ticked by what the LINE resolves to, not by what it says:
     // `resolve_dependency_folder` takes a bare number, and a

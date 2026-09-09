@@ -133,12 +133,23 @@ describe("the row's own archive held back", () => {
   });
 });
 
-// The other half of the same rule (337, 2026-09-04): the branch answer
-// is TTL-cached, and a tick that lands on the default branch leaves it
-// saying "still open" for the rest of that window. A tick only ever ADDS
-// ticks, so the copy that says "all ticked" is never the stale one —
-// whichever copy it is.
-describe("a stale branch answer over a spec ticked on disk", () => {
+// The branch answer is TTL-cached, and a tick that lands on the default
+// branch used to leave it saying "still open" for the rest of that
+// window (337, 2026-09-04). That was answered by letting the disk copy's
+// "all ticked" outvote it — safe only while a tick could ONLY ever be
+// added. A check can be taken back off now, and that rule let an untick
+// on the branch be outvoted by a disk copy ticked before the branch
+// existed, which is archive starting on a spec the reader had just
+// reopened the question on.
+//
+// So the branch answers for both when it has one, and 337 is answered
+// where it actually arises: the tick route drops the cached answer in
+// the same request that writes the file
+// (`forgetBranchFileSteps`, spec-edit/checks.ts), so no answer from
+// before a Save can be served after it. The case below is that stale
+// answer constructed by hand, which no route can now produce — and the
+// branch still decides.
+describe("a branch answer that predates a tick landed on disk", () => {
   /** The disk copy with its one acceptance row TICKED — the Save has
    *  landed there, while the cached branch answer predates it. */
   function tickedOnDisk(specDir: string): void {
@@ -149,18 +160,32 @@ describe("a stale branch answer over a spec ticked on disk", () => {
     );
   }
 
-  test("does not hold the queued archive", async () => {
+  test("the branch decides, so the queued archive waits", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
     tickedOnDisk(specDir);
-    expect(blockedForUntickedAcceptance(scheduleCtx(root, checker)).has("job-1")).toBe(false);
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, checker)).has("job-1")).toBe(true);
   });
 
-  test("does not put 'archive held back' on the row", async () => {
+  test("the row says archive is held back for the same reason", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
     tickedOnDisk(specDir);
     const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+  });
+
+  // The route's own answer to the same situation: the cached branch
+  // answer is dropped by the write, so the next read asks git rather
+  // than repeating what was true before the Save.
+  test("no branch answer at all: disk decides, and a ticked disk holds nothing", async () => {
+    const { root, specDir } = projectsRoot();
+    tickedOnDisk(specDir);
+    // An empty checker is what `forget` leaves behind: no answer, so the
+    // read falls through to disk.
+    const empty = new BranchFileStepsChecker({} as never);
+    expect(blockedForUntickedAcceptance(scheduleCtx(root, empty)).has("job-1")).toBe(false);
+    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
     expect(target?.archiveHeldBack).toBeUndefined();
   });
 });

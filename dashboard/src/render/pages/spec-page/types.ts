@@ -39,6 +39,11 @@ export interface SpecChecksView {
    *  `## Acceptance criteria` rows are ever tickable (see `checklist`). */
   phase?: string;
   baseSha?: string;
+  /** The file HAS an `## Acceptance criteria` section, and this parser
+   *  reads no row out of it — a table written in a shape the rule does
+   *  not give. Carried so the page can say that, instead of drawing the
+   *  same empty list a spec with no criteria at all draws. */
+  unreadable?: boolean;
 }
 
 export interface SpecPageView {

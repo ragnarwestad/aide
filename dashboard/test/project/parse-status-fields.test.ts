@@ -286,10 +286,16 @@ describe("archiveHeldBackApplies", () => {
   });
 });
 
-// A tick only ever ADDS ticks, so neither copy of the file is allowed
-// to outvote the other's "all ticked": reading the branch alone said
-// held back over a spec ticked on disk (337), and reading disk alone
-// said it over a spec ticked on its branch (364).
+// The branch answers for both when it has one: it is where the Checks
+// tab's write lands while a branch is open, so it is the newer of the
+// two by construction. Disk answers only when the branch has nothing to
+// say.
+//
+// This used to demand that BOTH copies say open, because a tick could
+// only ever add ticks and so "all ticked" could never be the stale
+// answer. A check can be taken back off now, and the old rule let an
+// untick on the branch be outvoted by a disk copy ticked before the
+// branch existed.
 describe("acceptanceStillOpen", () => {
   const open = [{ done: false }];
   const ticked = [{ done: true }];
@@ -298,12 +304,15 @@ describe("acceptanceStillOpen", () => {
     expect(acceptanceStillOpen(true, open)).toBe(true);
   });
 
-  test("ticked on the branch, still open on disk", () => {
+  test("ticked on the branch, still open on disk: the branch is where the tick landed", () => {
     expect(acceptanceStillOpen(false, open)).toBe(false);
   });
 
-  test("ticked on disk, still open on the branch's cached answer", () => {
-    expect(acceptanceStillOpen(true, ticked)).toBe(false);
+  // The case the untick opened up. Disk is main, ticked before this
+  // branch existed; the branch carries the check the reader has just
+  // taken back off, and it is the one that counts.
+  test("taken back off on the branch, still ticked on disk: the branch decides", () => {
+    expect(acceptanceStillOpen(true, ticked)).toBe(true);
   });
 
   test("no branch answer: disk decides", () => {
@@ -311,10 +320,10 @@ describe("acceptanceStillOpen", () => {
     expect(acceptanceStillOpen(undefined, ticked)).toBe(false);
   });
 
-  // A copy with no rows knows nothing — a spec whose acceptance rows
+  // Disk with no rows knows nothing — a spec whose acceptance rows
   // exist only on an unlanded analyze's branch must not have the disk's
   // silence read as agreement.
-  test("a copy with no rows at all answers nothing", () => {
+  test("disk with no rows at all answers nothing", () => {
     expect(acceptanceStillOpen(true, [])).toBe(true);
     expect(acceptanceStillOpen(true, undefined)).toBe(true);
     expect(acceptanceStillOpen(undefined, [])).toBe(false);
