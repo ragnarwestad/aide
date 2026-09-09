@@ -20,20 +20,18 @@ describe("the specs table fits the box that scrolls it", () => {
   // The stated width has to stay the sum of the columns: `table-layout:
   // fixed` sizes from it, and a number that drifts from the sum leaves
   // one column absorbing the difference.
-  test("five columns are fixed, the sixth takes what is left", () => {
-    const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)].map((m) => rem(m[1]!));
-    expect(fixed).toHaveLength(5);
-    expect(fixed.reduce((a, b) => a + b, 0)).toBeLessThan(stated);
-    // And the sixth is Spec, and it is auto. Six fixed widths make a
-    // table that cannot shrink: `table-layout: fixed` sizes the table to
-    // their SUM, so anything taking a few pixels out of the box — a
-    // classic, space-taking vertical scrollbar above all — leaves the
-    // table wider than its room. Measured in Chromium with the box 15px
-    // narrower: 937px of table in a 923px box, 14px of horizontal
-    // scrollbar; with this column auto, 923 and 923 and no bar
-    // (2026-09-09).
-    expect(css).toMatch(/col\[data-col="spec"\] \{ width: auto; \}/);
+  // The columns are percentages of the table, and the table is 100% of
+  // its box, so they scale with it and the table is never wider than its
+  // room. Rem widths made a table that cannot shrink — `table-layout:
+  // fixed` sizes the table to their SUM — and `auto` on one column made
+  // it worse: the five fixed ones took the whole table and the auto one
+  // was squeezed to 7px, with the phase name lying across the pickers
+  // beside it (2026-09-09).
+  test("the six columns are percentages, and they add up to the whole table", () => {
+    const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)%/g)].map((m) => rem(m[1]!));
+    expect(cols).toHaveLength(6);
+    expect(cols.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
   });
 
   // The Spec column carries a phase line's name and nothing else, and a
@@ -48,12 +46,11 @@ describe("the specs table fits the box that scrolls it", () => {
   // browser, whatever the exact metric turns out to be.
   test("the Spec column holds the longest phase name in either language", () => {
     const px = (rem: number) => rem * 16;
-    // What the auto column draws at the list's full width: everything
-    // the five fixed ones leave.
+    // What the Spec column draws at the list's full width: its share of
+    // `--speclist-width`.
     const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)]
-      .map((m) => rem(m[1]!)).reduce((a, b) => a + b, 0);
-    const spec = stated - fixed;
+    const share = rem(/col\[data-col="spec"\] \{ width: ([\d.]+)%/.exec(css)![1]!) / 100;
+    const spec = stated * share;
     // `th, td` pads on the right only, so that is what the name loses.
     const padding = rem(/--sp-3: (\d+)px/.exec(
       readFileSync(new URL("../../src/render/ui/css/tokens.css", import.meta.url), "utf8"),
