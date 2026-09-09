@@ -121,6 +121,29 @@ describe("the board: no Start button on the spec page", () => {
     expect(page(view())).not.toContain("Stop test server");
     expect(page(view())).not.toContain(BOARD_ACTION);
   });
+
+  // REQ-1 (spec 425): an archived spec's own board must stay visible —
+  // `boardAction` (whether a NEW board may be started) is absent, the
+  // same as a genuinely boardless spec, but `board`/`boardStopAction`
+  // are present because one is already tracked. The old guard read
+  // `!view.boardAction || !view.board`, which hid this exact case.
+  test("REQ-1: archived-but-tracked — no boardAction, board present, still renders the link and Stop form", () => {
+    const html = page(
+      view({
+        boardAction: undefined,
+        boardStopAction: BOARD_STOP_ACTION,
+        board: {
+          status: "running",
+          branch: "aide/150-one-page",
+          commit: "abc1234",
+          url: "http://127.0.0.1:9001/?token=t0ken",
+        },
+      }),
+    );
+    expect(html).toContain(">Open the test server</a>");
+    expect(html).toContain(`action="${BOARD_STOP_ACTION}"`);
+    expect(html).toContain("Stop test server");
+  });
 });
 
 // The tab row holds BUTTONS. A `<p>` among them is a block element in a

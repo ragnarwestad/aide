@@ -102,7 +102,8 @@ export async function findFreePort(reserved: number[], canBind: PortProbe = bind
     if (canBind(port)) return port;
   }
   throw new Error(
-    `every test-server port is in use (${BOARD_PORTS.join(", ")}) — stop a board before starting another`,
+    `every test-server port is in use (${BOARD_PORTS.join(", ")}) — ` +
+      `open Test servers (⋯ menu) and stop one before starting another`,
   );
 }
 
@@ -147,7 +148,16 @@ export async function startBoard(
     return { ok: true, entry: existing };
   }
 
-  const port = await ctx.findFreePort(ctx.reservedPorts());
+  // REQ-5: the one refusal in this function that used to escape its own
+  // `{ ok: false, error }` contract — every sibling refusal above
+  // returns cleanly, and a reader hitting this one got a bare 500 with
+  // no message and no way to the page that could fix it.
+  let port: number;
+  try {
+    port = await ctx.findFreePort(ctx.reservedPorts());
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");
   const proc = ctx.spawn(
@@ -173,6 +183,22 @@ export async function startBoard(
  *  own — the page already polls every ten seconds. */
 export function refreshBoardStatus(ctx: BoardsContext, project: string, specFolder: string): BoardEntry | undefined {
   const entry = ctx.store.get(project, specFolder);
+  // REQ-2: a "running" entry is never re-examined below this point — the
+  // early return just past this only ever revisits "starting". Once the
+  // round has reported a board up, nothing asked again whether its
+  // process was still there, so a board killed outside the Stop button
+  // (crashed, a reboot) stayed "running" in the registry forever.
+  // `entry.pid` is always set once `status` is "running" — both writers
+  // of that status (this function's own "left running"/"board up" match
+  // below, and `recover.ts`'s `recoverBoards`) set it in the same object
+  // literal as the status itself. The type keeps `pid` optional
+  // regardless (nothing enforces this invariant statically, only this
+  // comment) — the same trade-off `store.ts`'s own doc comment on `pid`
+  // already makes for the field itself.
+  if (entry?.status === "running" && !ctx.isAlive(entry.pid!)) {
+    stopBoard(ctx, project, specFolder);
+    return undefined;
+  }
   if (entry?.status !== "starting") return entry;
   // The LOG first, and the wrapper's own life second. The round leaves
   // the board running and detached, and its wrapper then exits — so a

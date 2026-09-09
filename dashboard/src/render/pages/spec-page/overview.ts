@@ -367,7 +367,13 @@ export function pdfControl(view: SpecPageView): string {
  *  Drawn in the banner, above the tabs: it is a sentence, and the tab
  *  row holds buttons only. */
 export function boardStatus(view: SpecPageView): string {
-  if (!view.boardAction || !view.board) return "";
+  // Spec 425, REQ-1: this used to also require `boardAction` (whether a
+  // NEW board may be started), which hid an already-running board's own
+  // link and Stop button the moment the spec was archived. `boardAction`
+  // is unrelated to whether THIS board exists — nothing on this page has
+  // ever drawn a Start button from it (see the comment above this
+  // function).
+  if (!view.board) return "";
   // "test server", the words the specs list already uses for this same
   // thing, and never "board" or "round": one is the name of the product
   // this page is part of, the other is a word from the machinery that

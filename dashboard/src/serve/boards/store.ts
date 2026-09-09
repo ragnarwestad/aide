@@ -97,6 +97,20 @@ export class BoardStore {
     return Object.values(this.entries);
   }
 
+  /** Every tracked board WITH the project/specFolder it belongs to
+   *  (REQ-3's board-wide overview) — `all()` alone drops that half of
+   *  the key. Splitting on the FIRST "/" is safe: `key()` above is the
+   *  only place that builds this string, and every project name is a
+   *  directory entry (never containing "/") additionally constrained to
+   *  letters/digits/dot/dash/underscore when added by hand
+   *  (`project-admin/manifest-io.ts`'s `NAME_RE`). */
+  listAll(): { project: string; specFolder: string; entry: BoardEntry }[] {
+    return Object.entries(this.entries).map(([key, entry]) => {
+      const slash = key.indexOf("/");
+      return { project: key.slice(0, slash), specFolder: key.slice(slash + 1), entry };
+    });
+  }
+
   set(project: string, specFolder: string, entry: BoardEntry): void {
     this.entries[this.key(project, specFolder)] = entry;
     this.persist();

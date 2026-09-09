@@ -131,6 +131,25 @@ describe("startBoard", () => {
     expect(result.ok).toBe(false);
     expect(spawnCalls).toHaveLength(0);
   });
+
+  // REQ-5: `findFreePort` throws when every port in the pool is taken
+  // (`board-ports.test.ts` pins its own message) — this only proves
+  // `startBoard` catches that throw into its own `{ ok: false, error }`
+  // shape rather than letting it escape, the same shape every other
+  // refusal in this function already returns.
+  test("REQ-5: a ports-full refusal comes back as { ok: false, error }, never a throw", async () => {
+    const ctx = makeCtx({
+      findFreePort: async () => {
+        throw new Error("every test-server port is in use (8801, 8802, 8803) — open Test servers (⋯ menu) and stop one before starting another");
+      },
+    });
+    const result = await startBoard(ctx, "aide", "spec-1");
+    expect(result).toEqual({
+      ok: false,
+      error: "every test-server port is in use (8801, 8802, 8803) — open Test servers (⋯ menu) and stop one before starting another",
+    });
+    expect(spawnCalls).toHaveLength(0);
+  });
 });
 
 describe("refreshBoardStatus", () => {
@@ -182,6 +201,45 @@ describe("refreshBoardStatus", () => {
     writeFileSync(started.entry.logPath, "== building local origins\n");
     const refreshed = refreshBoardStatus(ctx, "aide", "spec-1");
     expect(refreshed?.status).toBe("starting");
+  });
+
+  // REQ-2: a "running" entry whose own process has since died — nobody
+  // pressed Stop, the process is simply gone — is removed from the
+  // registry on the very read that discovers it, rather than staying
+  // "running" forever (the gap: today only the "starting" branch above
+  // ever re-examines an entry at all).
+  describe("a running entry that has gone quiet (REQ-2)", () => {
+    test("its process no longer alive: the entry is removed, and undefined is returned", async () => {
+      const ctx = makeCtx();
+      const started = await startBoard(ctx, "aide", "spec-1");
+      if (!started.ok) throw new Error("expected startBoard to succeed");
+      writeFileSync(
+        started.entry.logPath,
+        "left running: pid 9999, http://127.0.0.1:9000/?token=t — serving aide/spec-1 @ abc123\n",
+      );
+      alive.add(9999);
+      const running = refreshBoardStatus(ctx, "aide", "spec-1");
+      expect(running?.status).toBe("running");
+      alive.delete(9999);
+      const refreshed = refreshBoardStatus(ctx, "aide", "spec-1");
+      expect(refreshed).toBeUndefined();
+      expect(ctx.store.get("aide", "spec-1")).toBeUndefined();
+    });
+
+    test("its process still alive: the entry is returned unchanged", async () => {
+      const ctx = makeCtx();
+      const started = await startBoard(ctx, "aide", "spec-1");
+      if (!started.ok) throw new Error("expected startBoard to succeed");
+      writeFileSync(
+        started.entry.logPath,
+        "left running: pid 9999, http://127.0.0.1:9000/?token=t — serving aide/spec-1 @ abc123\n",
+      );
+      alive.add(9999);
+      refreshBoardStatus(ctx, "aide", "spec-1");
+      const refreshed = refreshBoardStatus(ctx, "aide", "spec-1");
+      expect(refreshed?.status).toBe("running");
+      expect(ctx.store.get("aide", "spec-1")).toBeDefined();
+    });
   });
 });
 

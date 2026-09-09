@@ -64,7 +64,10 @@ export async function specPageRoutes(
       if (!capable) {
         return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
       }
-      if (!already) await startBoard(ctx.boards, project!, specFolder!);
+      if (!already) {
+        const result = await startBoard(ctx.boards, project!, specFolder!);
+        if (!result.ok) return boardFailedPage(specFolder!, result.error);
+      }
       return waitingForBoardPage(project!, specFolder!);
     }
     const view = await ctx.specPageView(
