@@ -157,6 +157,24 @@ commit_already_on_origin() {
   [ -n "$remote_sha" ] && [ "$remote_sha" = "$sha" ]
 }
 
+# True when a root's recorded tip is already contained in that root's own
+# default branch — the branch put nothing on it, so there is nothing to
+# publish there and nothing to confirm.
+#
+# CONTAINMENT, not equality with the root's current HEAD. Several specs
+# run at once against one code checkout, so another spec's landing moves
+# that checkout's default branch while this run holds its worktree; a
+# root this run never touched must not start reading as unpushed work
+# because of it.
+tip_has_nothing_of_its_own() {
+  local root="$1" tip="$2" default_tip=""
+  [ -n "$tip" ] || return 0
+  default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
+  [ -n "$default_tip" ] || return 1
+  [ "$tip" = "$default_tip" ] && return 0
+  git -C "$root" merge-base --is-ancestor "$tip" "$default_tip" 2>/dev/null
+}
+
 # True when every root the step actually put content on has a LOCAL tip
 # that is exactly what origin's copy of $branch points at right now —
 # REQ-1/REQ-2 (spec 343), checked as the LAST git operation against each
@@ -176,10 +194,9 @@ commit_already_on_origin() {
 roots_confirmed_on_origin() {
   unpushed_roots=""
   [ "$push_mode" = "none" ] && return 0
-  local i=0 root default_tip
+  local i=0 root
   for root in "${roots[@]}"; do
-    default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
-    if [ "${head_after_per_root[$i]}" != "$default_tip" ] \
+    if ! tip_has_nothing_of_its_own "$root" "${head_after_per_root[$i]}" \
        && ! commit_already_on_origin "$root" "${head_after_per_root[$i]}"; then
       unpushed_roots="$unpushed_roots${unpushed_roots:+, }$root"
     fi

@@ -465,3 +465,52 @@ describe("a spec's row runs its own phases", () => {
     expect(html).not.toContain('name="extraProjects"');
   });
 });
+
+// The Select column and the two selects beside it answer the same
+// question — can this row still run this phase — and they used to
+// disagree: a done phase, and `create` on every row, drew a ticked and
+// disabled box next to an AI and a Model select the reader could still
+// change. Nothing came of the change, which is what made it worth
+// reporting: the picks are a record of what ran.
+describe("a phase whose box is locked has its AI and model locked too", () => {
+  const TOOLS: QueuePageOptions["modelChoices"] = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "gpt-5", budgetUsd: 3, tool: "codex" },
+  ];
+  const render = (done: string[]): string =>
+    renderQueueRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "413-locked-pickers", done }],
+        modelChoices: TOOLS,
+        filter: { open: openKeys([], [{ project: "aide", specFolder: "413-locked-pickers" }]) },
+      },
+      Date.parse("2026-09-09T12:00:00Z"),
+    );
+  const line = (html: string, step: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
+  const select = (html: string, attr: string, step: string) =>
+    html.match(new RegExp(`<select ${attr}="model\\.${step}"[^>]*>`))?.[0] ?? "";
+
+  test("a phase this row has run offers neither pick", () => {
+    const analyze = line(render(["analyze"]), "analyze");
+    expect(analyze).toContain("checked disabled");
+    expect(select(analyze, "name", "analyze")).toContain("disabled");
+    expect(select(analyze, "data-ai", "analyze")).toContain("disabled");
+  });
+
+  test("create is drawn the same way, on a row that has run nothing", () => {
+    const create = line(render([]), "create");
+    expect(create).toContain("checked disabled");
+    expect(select(create, "name", "create")).toContain("disabled");
+    expect(select(create, "data-ai", "create")).toContain("disabled");
+  });
+
+  test("a phase still ahead keeps both", () => {
+    const archive = line(render(["analyze"]), "archive");
+    expect(archive).not.toContain("disabled");
+    expect(select(archive, "name", "archive")).not.toContain("disabled");
+    expect(select(archive, "data-ai", "archive")).not.toContain("disabled");
+  });
+});

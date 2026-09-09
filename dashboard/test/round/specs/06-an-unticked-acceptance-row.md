@@ -6,6 +6,7 @@ tick it for itself.
 
 ## Solution
 
-Implement writes an Acceptance criteria section with one row nobody ticks.
-Archive must refuse with acceptance-criteria-unticked, and the branch
-stays where it is.
+Analyze writes an Acceptance criteria section with one row nobody ticks,
+so the row is on the default branch and the Checks tab can offer it while
+implement's own work is still on its branch. Archive must refuse with
+acceptance-criteria-unticked, and the branch stays where it is.
