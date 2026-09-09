@@ -131,8 +131,10 @@ describe("spec 103: a collapsed row shows status only", () => {
     );
     expect(cell).toContain('action="/api/queue/j1/cancel"');
     expect(cell).toContain(">Cancel</button>");
-    // And nothing else: one control, never two.
-    expect(cell.match(/<button/g)).toHaveLength(1);
+    // Three buttons now (spec 423): Cancel itself, plus the OK and
+    // dismiss buttons behind the confirmation it opens — still one
+    // control the row is offered, not two.
+    expect(cell.match(/<button/g)).toHaveLength(3);
   });
 
   // Spec 105, criterion 1b: the branch a previous job left behind does
@@ -154,8 +156,10 @@ describe("spec 103: a collapsed row shows status only", () => {
       );
       expect(cell).not.toContain("mergeform");
       expect(cell).not.toContain("/merge");
-      // Cancel and only Cancel, as on the open row.
-      expect(cell.match(/<button/g)).toHaveLength(1);
+      // Cancel and only Cancel, as on the open row — three buttons now
+      // (spec 423): Cancel itself, plus the confirmation's OK and
+      // dismiss.
+      expect(cell.match(/<button/g)).toHaveLength(3);
       expect(cell).toContain("/cancel");
     }
   });

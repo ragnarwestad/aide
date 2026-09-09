@@ -154,9 +154,10 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       );
       const cell = actionCell(controlsLine(html, "109-busy"));
       expect(cell).toContain('action="/api/queue/j1/cancel"');
-      // Exactly once on the page: the State cell is the one place a
-      // row's action is drawn now (spec 157).
-      expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(1);
+      // Twice on the page (spec 423): the State cell is still the one
+      // place a row's action is drawn, but the confirmation dialog's
+      // own confirm form shares that same route by design.
+      expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(2);
     });
   }
 

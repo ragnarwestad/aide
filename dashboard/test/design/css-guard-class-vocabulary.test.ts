@@ -61,6 +61,10 @@ const JS_HOOKS = [
   // spec 277: the Delete confirmation, a plain POST with no submit
   // override — queue-client.ts binds bindTypedConfirm to it only.
   "scheduledeleteform",
+  // spec 423: the queue list's own Cancel form, so the delegated
+  // listener that opens its confirmation dialog can find it without
+  // matching every `.actionform` on the page.
+  "cancelform",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks

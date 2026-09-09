@@ -153,7 +153,9 @@ describe("spec 157: the row draws one action, on its caption line", () => {
       [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
       [target("157-one-action", { done: BUILT })],
     );
-    expect(labels(action(html))).toEqual(["Cancel"]);
+    // Cancel, plus the OK and dismiss buttons behind the confirmation
+    // it opens (spec 423).
+    expect(labels(action(html))).toEqual(["Cancel", "OK", "Cancel"]);
     expect(action(html)).toContain('action="/api/queue/j1/cancel"');
     expect(action(html)).not.toContain(">Resolve<");
     // No Run button. The run FORM is still there — it is the carrier
@@ -167,7 +169,7 @@ describe("spec 157: the row draws one action, on its caption line", () => {
       [lead({ steps: ["analyze", "implement"], stepIndex: 1, state: "queued" })],
       [target("157-one-action", { done: [] })],
     );
-    expect(labels(action(html))).toEqual(["Cancel"]);
+    expect(labels(action(html))).toEqual(["Cancel", "OK", "Cancel"]);
   });
 
   // --- criterion 12: the boxes are the only source of `steps` --------------
@@ -359,7 +361,9 @@ describe("spec 161: the row's one action is primary", () => {
       [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
       [target("161-one-variant", { done: ["analyze"] })],
     );
-    expect(classes(html)).toEqual(["btn primary"]);
+    // Filled Cancel, plus the confirmation it opens (spec 423): a
+    // filled OK and a bare dismiss.
+    expect(classes(html)).toEqual(["btn primary", "btn primary", "btn"]);
     expect(html).not.toContain("danger");
   });
 

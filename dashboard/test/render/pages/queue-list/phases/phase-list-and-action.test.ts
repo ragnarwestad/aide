@@ -455,7 +455,9 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       ),
     );
     expect(cell).not.toMatch(/<button[^>]*form="rowrun/);
-    expect(cell.match(/<button/g)).toHaveLength(1);
+    // Three buttons now (spec 423): Cancel itself, plus the OK and
+    // dismiss buttons behind the confirmation it opens.
+    expect(cell.match(/<button/g)).toHaveLength(3);
     expect(cell).toContain(">Cancel</button>");
   });
 });

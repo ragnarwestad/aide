@@ -2,10 +2,11 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, tokenField } from "../../ui/components.ts";
+import { ICON_CHEVRON, btn, stepLabel, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state.ts";
+import { landingStep } from "../../ui/job-state/resting.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import {
   FROM_LIST_FIELD,
@@ -66,8 +67,13 @@ function actionForm(
   lang: Language,
 ): string {
   const hidden = tokenField(token) + filterFields(filter);
+  // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
+  // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
+  // wrong question on an ordinary row queued for its NEXT step with no
+  // landing in progress.
+  const step = stepLabel(r.landing ? landingStep(r) : currentStep(r), lang);
   return (
-    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
+    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform cancelform">${hidden}` +
     // Primary, like every row's one action (spec 161): `danger` was
     // supposed to set it apart, but in dark mode `--danger` and
     // `--accent` sit close enough in hue that an outlined Cancel and a
@@ -75,7 +81,21 @@ function actionForm(
     // cancelled run can be started again, so it was never what `danger`
     // is for.
     btn({ label: t(lang, "list.cancel"), pending: t(lang, "list.cancelling"), variant: "primary" }) +
-    `</form>`
+    `</form>` +
+    // A confirmation over the row (spec 423), the same `<dialog>` shape
+    // the schedule list's own Delete uses: the reader never leaves the
+    // row they are watching. `cancel-confirm.ts` opens it, from a
+    // delegated listener on `#jobrows` — the dialog's own inner form
+    // carries no second class, since that listener only ever matches
+    // the OUTER form's `cancelform` class.
+    `<dialog class="confirmdialog"><div class="confirmpanel">` +
+    `<h2>${esc(t(lang, "list.cancelConfirmTitle", { step }))}</h2>` +
+    `<p class="muted">${esc(t(lang, "list.cancelConfirmBody", { step }))}</p>` +
+    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
+    btn({ label: t(lang, "list.cancelConfirmOk"), variant: "primary", pending: t(lang, "list.cancelling") }) +
+    `</form>` +
+    `<form method="dialog"><button class="btn" type="submit">${esc(t(lang, "list.cancel"))}</button></form>` +
+    `</div></dialog>`
   );
 }
 

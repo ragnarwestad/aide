@@ -287,3 +287,124 @@ describe("a running create offers no Cancel", () => {
     expect(html).toContain("/api/queue/c2/cancel");
   });
 });
+
+// --- spec 423: a confirmation asks before Cancel takes effect --------------
+//
+// Cancel used to reach the server on one click. This covers the dialog
+// `actionForm()` now draws beside that click, and REQ-3's own rule: the
+// step it names is `landingStep(r)` only while `r.landing` is set,
+// `currentStep(r)` otherwise — never `landingStep(r)` unconditionally,
+// which names the step that already finished on a row merely queued for
+// its next one (Plan review, 3-solution.md).
+describe("spec 423: a confirmation asks before Cancel takes effect", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  const controlsLine = (html: string, folder: string) =>
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
+  // The actionslot — the row's own control and its dialog — sits in the
+  // CAPTION line's third cell (phasecell, modelcell, state), not in the
+  // header row (`data-caption="1"`, matching expanded-row-controls.test.ts's
+  // own extraction).
+  const actionCell = (chunk: string) => {
+    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...caption.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[2] ?? "";
+  };
+  const cellFor = (r: QueueRowView, folder = "423-busy", opts: Partial<QueuePageOptions> = {}) =>
+    actionCell(controlsLine(rows([r], [target(folder)], opts), folder));
+
+  test("a running row's dialog names the step and offers OK and Cancel (criteria 2, 3)", () => {
+    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
+    expect(cell).toContain('<dialog class="confirmdialog">');
+    expect(cell).toContain("<h2>Cancel implement?</h2>");
+    expect(cell).toContain('<p class="muted">');
+    // Both the outer form and the dialog's own confirm form post to the
+    // same route, by design (2-analysis.md, expanded-row-controls.test.ts).
+    expect(cell.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(2);
+    expect(cell).toContain(">OK</button>");
+    // The dismiss button reuses the row's own label, and structurally
+    // cannot post: `method="dialog"`, no `action` at all.
+    expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Cancel<\/button><\/form>/);
+  });
+
+  test("the dismiss button carries no action — it cannot reach the server (criterion 1)", () => {
+    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
+    const dismiss = cell.match(/<form method="dialog">[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(dismiss).not.toContain("action=");
+  });
+
+  test("a landing row names the step whose merge is running, not the one queued next (criterion 6a)", () => {
+    const cell = cellFor(
+      row({
+        id: "j1",
+        specFolder: "423-landing",
+        steps: ["analyze", "implement", "archive"],
+        stepIndex: 1,
+        state: "queued",
+        landing: true,
+      }),
+      "423-landing",
+    );
+    expect(cell).toContain("<h2>Cancel analyze?</h2>");
+  });
+
+  test("a spec merely queued for its next step names THAT step, not the one already landed (criterion 6b)", () => {
+    const cell = cellFor(
+      row({
+        id: "j1",
+        specFolder: "423-queued",
+        steps: ["analyze", "implement", "archive"],
+        stepIndex: 1,
+        state: "queued",
+        landing: false,
+      }),
+      "423-queued",
+    );
+    expect(cell).toContain("<h2>Cancel implement?</h2>");
+  });
+
+  test("in Norwegian, the dialog's title and both buttons are the Norwegian text (criterion 7)", () => {
+    const cell = cellFor(
+      row({ id: "j1", specFolder: "423-nb", steps: ["implement"], stepIndex: 0, state: "running" }),
+      "423-nb",
+      { lang: "nb" },
+    );
+    expect(cell).toContain("<h2>Avbryt implementering?</h2>");
+    expect(cell).toContain(">OK</button>");
+    expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Avbryt<\/button><\/form>/);
+  });
+
+  test("a running create still draws no dialog and no cancelform class (criterion 9)", () => {
+    const html = renderQueueRows(
+      [row({ id: "c1", specFolder: "423-create", steps: ["create"], stepIndex: 0, state: "running" })],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "423-create" }],
+        filter: { open: "aide/423-create" },
+      },
+    );
+    expect(html).not.toContain("confirmdialog");
+    expect(html).not.toContain("cancelform");
+  });
+});

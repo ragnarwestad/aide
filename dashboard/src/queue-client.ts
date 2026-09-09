@@ -25,6 +25,7 @@
 // form's own `change` listener is added, for instance).
 
 import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./queue-client/ai-sync.ts";
+import { interceptCancelSubmit } from "./queue-client/cancel-confirm.ts";
 import {
   bindProposals,
   formNote,
@@ -77,6 +78,10 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
+// Cancel's own confirmation (spec 423) is registered BEFORE
+// `submitAction`: its `preventDefault()` on the outer form has to reach
+// `submitAction`'s own `if (event.defaultPrevented) return;` guard.
+document.getElementById("jobrows")?.addEventListener("submit", interceptCancelSubmit as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control

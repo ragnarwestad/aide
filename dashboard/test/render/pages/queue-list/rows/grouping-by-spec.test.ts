@@ -127,7 +127,9 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     ]);
     // Four phase lines plus the caption line the action rides.
     expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
-    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(1);
+    // Twice (spec 423): the outer Cancel form and the confirmation
+    // dialog's own confirm form share the same route by design.
+    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(2);
     // Cancel is the SPEC's one action and belongs on the caption line —
     // as does the form that runs the spec's phases. A phase line is
     // read-only.
