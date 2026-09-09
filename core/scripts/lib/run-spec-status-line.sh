@@ -59,13 +59,42 @@ if [ -n "$status_file" ]; then
     # proves whether the mechanical stamp-and-move
     # (core/scripts/aide-archive-spec) actually ran in THIS worktree —
     # a claim not backed by that move must not land in 4-status.md.
+    #
+    # A folder that stayed put because `aide-archive-spec` REFUSED to
+    # move it is that refusal, not a step that made no progress: the
+    # same two gates the pre-session check answers on its own
+    # (run-spec-spec-paths.sh) are asked again here, read-only, in the
+    # script's own order — so a session that resolved a conflict and
+    # then reported "completed" over the script's "not all ticked"
+    # ends exactly as the pre-session refusal does (ok, held back),
+    # rather than as a red no-progress beside a held-back row.
     case "$status_file" in
       "$specs_root_wt/archive/"*) : ;;
       *)
-        terminal_reason="no-progress"
-        ok="false"
-        suffix=" (stopped: no-progress)"
-        error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step."
+        archive_refusal=""
+        if declare -f may_apply_spec_transition >/dev/null 2>&1 \
+           && ! may_apply_spec_transition "$status_file" "archive"; then
+          archive_refusal="not-implemented-yet"
+        elif declare -f read_spec_state >/dev/null 2>&1; then
+          read_spec_state "$status_file"
+          acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json" 2>/dev/null || echo 0)"
+          acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json" 2>/dev/null || echo 0)"
+          if [ "${acceptance_total:-0}" -gt 0 ] && [ "${acceptance_done:-0}" -lt "$acceptance_total" ]; then
+            archive_refusal="acceptance-criteria-unticked"
+          fi
+        fi
+        if [ -n "$archive_refusal" ]; then
+          echo "aide-run-spec: the session reported completed, but aide-archive-spec refused: $archive_refusal" >&2
+          terminal_reason="$archive_refusal"
+          ok="true"
+          suffix=""
+          error_msg=""
+        else
+          terminal_reason="no-progress"
+          ok="false"
+          suffix=" (stopped: no-progress)"
+          error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step."
+        fi
         ;;
     esac
   elif [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then
