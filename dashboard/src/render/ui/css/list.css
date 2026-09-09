@@ -33,7 +33,7 @@
    phone-safe here: REQ-4 wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
-  --speclist-width: 58.5rem; }
+  --speclist-width: 55.5rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -118,8 +118,17 @@ table.settingstable { width: auto; }
    So the columns keep these proportions at every width, and the table
    is never wider than the box. Measured with the box 15px narrower:
    no scrollbar, and every column 2px down. */
-/* 10rem: a phase line's name, "manifestoppdatering" longest of all. */
-table.speclist > colgroup > col[data-col="spec"] { width: 17.0940%; }
+/* 7rem. Measured in Chromium with this stylesheet, the four phase names
+   a spec actually shows are "oppretting" 66px, "analyse" 48, "arkivering"
+   62 and "implementering" 98 — so 98 plus the cell's own 12px of padding
+   is what the column has to hold, and every pixel beyond that is empty
+   space between the name and the AI/Model pickers in the cell beside it.
+   It was 10rem for a day, measured for "manifestoppdatering" (130px) —
+   a step almost no spec runs — and that put ~100px of nothing on every
+   ordinary line. A name longer than the column spills into the cell
+   beside it rather than widening the table, which percentages below
+   make impossible. */
+table.speclist > colgroup > col[data-col="spec"] { width: 12.6126%; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left
@@ -128,7 +137,7 @@ table.speclist > colgroup > col[data-col="spec"] { width: 17.0940%; }
    column and Spec beside it, and keeps whatever is left. 19rem is NOT
    enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
-table.speclist > colgroup > col[data-col="phase"] { width: 34.1880%; }
+table.speclist > colgroup > col[data-col="phase"] { width: 36.0360%; }
 /* The badge alone since the button left this cell, and the badge is one
    word: the widest a spec row can draw is "implementing" (97px) or its
    Norwegian "implementerer" (102), measured in a browser with this
@@ -136,16 +145,16 @@ table.speclist > colgroup > col[data-col="phase"] { width: 34.1880%; }
    longer word than either. It held 11rem while the badge could read
    "arkivering holdt tilbake" — which is the row's own notice line's
    sentence now, not a state. */
-table.speclist > colgroup > col[data-col="state"] { width: 15.3846%; }
+table.speclist > colgroup > col[data-col="state"] { width: 16.2162%; }
 /* The three figure columns — Time, Cost/Tokens and Created — are one
    width, the widest of the three: they hold the same KIND of thing, a
    short value under a one-word heading, and 4.5rem left Time and Cost
    crowded against their own headings while Created beside them had
    room. Asked for 2026-09-09. Their width comes out of the list's own
    total, not off a neighbouring column. */
-table.speclist > colgroup > col[data-col="created"] { width: 11.1111%; }
-table.speclist > colgroup > col[data-col="started"] { width: 11.1111%; }
-table.speclist > colgroup > col[data-col="cost"] { width: 11.1111%; }
+table.speclist > colgroup > col[data-col="created"] { width: 11.7117%; }
+table.speclist > colgroup > col[data-col="started"] { width: 11.7117%; }
+table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
 thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
