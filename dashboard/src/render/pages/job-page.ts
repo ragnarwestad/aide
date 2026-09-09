@@ -131,11 +131,49 @@ function labelled(rows: [string, string][]): string {
  *  folder exits just as successfully as one that moved it. So the one
  *  archive row reads the spec's own reason instead — the same words the
  *  list's row shows, from the same field. */
-function outcome(r: JobStepResultView, archiveHeldBack?: string): string {
+function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal): string {
   if (r.step === "archive" && r.ok && archiveHeldBack) {
     return `held back — ${esc(archiveHeldBack)}`;
   }
+  // The step's own process exited fine — that is all `ok` records — and
+  // the merge that followed it was refused. A cell reading "ok" there
+  // tells the reader the opposite of what the row on the specs list
+  // says, so this one says the same thing that one does.
+  if (landingRefused && r.step === landingRefused.step && r.ok) return esc(landingRefused.word);
   return r.ok ? "ok" : esc(r.terminalReason || "failed");
+}
+
+/** A step whose own run finished and whose MERGE was then refused: which
+ *  step it was, the short word for its Outcome cell, and what the
+ *  refusal said — the sentence and, when the project's tests are what
+ *  refused it, the lines naming the tests that failed.
+ *
+ *  Read off the job the page is already showing (`landingError` names
+ *  the step, `errorReason` says whether the tests were what stopped it),
+ *  so nothing new is plumbed through to reach it. */
+export interface LandingRefusal {
+  step: string;
+  word: string;
+  detail?: string;
+}
+
+export function landingRefusal(
+  job: { landingError?: unknown; errorReason?: string; errorDetail?: string },
+  lang: Language,
+): LandingRefusal | undefined {
+  const e = job.landingError;
+  if (!e || typeof e !== "object" || Array.isArray(e)) return undefined;
+  const step = (e as { values?: Record<string, unknown> }).values?.step;
+  if (typeof step !== "string" || !step) return undefined;
+  const sentence = renderSentence(lang, e as never) ?? "";
+  return {
+    step,
+    // "stopped" is the landing's own word for a merge the project's
+    // tests refused: the step ran and the merge was built, and what is
+    // missing is a green suite. Everything else is a failure.
+    word: job.errorReason === "tests-red" ? "merge stopped" : "merge failed",
+    detail: [sentence, job.errorDetail].filter(Boolean).join("\n") || undefined,
+  };
 }
 
 /** Which row a Steps tab has open, from the raw `step=` query value and
@@ -158,8 +196,14 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  for a run the runner refused before it started; every other note
  *  that function carried is already said elsewhere (`job.error` in the
  *  banner, `archiveHeldBack` in this same row's Outcome cell). */
-function stepLogPanel(logs: string[] | undefined, terminalReason: string): string {
-  if (logs && logs.length > 0) return `<pre class="specfile">${logs.join("\n")}</pre>`;
+function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusal?: string): string {
+  // The merge's own refusal first: it is the newest thing that happened
+  // to this step, and the transcript below it is of the run that
+  // succeeded. Without it the page showed four steps reading "ok" and
+  // no sign of the tests that refused the merge.
+  const merge = refusal ? `<pre class="specfile">${esc(refusal)}</pre>` : "";
+  if (logs && logs.length > 0) return `${merge}<pre class="specfile">${logs.join("\n")}</pre>`;
+  if (merge) return merge;
   if (terminalReason === "refused") {
     return (
       `<p class="muted">This step was refused before it started, so nothing ran and ` +
@@ -188,7 +232,13 @@ function stepLogPanel(logs: string[] | undefined, terminalReason: string): strin
 export function stepResults(
   results: JobStepResultView[],
   archiveHeldBack?: string,
-  opts: { tabHref?: string; openStep?: string; runningStep?: JobDetailView["runningStep"]; mark?: string } = {},
+  opts: {
+    tabHref?: string;
+    openStep?: string;
+    runningStep?: JobDetailView["runningStep"];
+    mark?: string;
+    landingRefused?: LandingRefusal;
+  } = {},
 ): string {
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
@@ -216,7 +266,7 @@ export function stepResults(
       const main =
         `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">Attempt ${r.attempt}</span> `}` +
         `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
-        `<td>${outcome(r, archiveHeldBack)}</td>` +
+        `<td>${outcome(r, archiveHeldBack, opts.landingRefused)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
         // zero would print — and there is no estimate to mark either,
@@ -227,7 +277,11 @@ export function stepResults(
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepLogPanel(r.logs, r.terminalReason)}</td></tr>`
+        ? `<tr class="steplog"><td colspan="6">${stepLogPanel(
+            r.logs,
+            r.terminalReason,
+            opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,
+          )}</td></tr>`
         : "";
       return main + log;
     })
@@ -484,6 +538,7 @@ export function renderJobDetailPage(
           tabHref,
           openStep: opts.step,
           runningStep: job.runningStep,
+          landingRefused: landingRefusal(job, lang),
         })
       : head;
 

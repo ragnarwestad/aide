@@ -1,8 +1,8 @@
-// The landing's test gate: the project's own suite, run once on the
+// The landing's own test run: the project's own suite, run once on the
 // merged result before it is pushed. Green pushes; red drops the local
 // merge, and the branch stays where implement left it.
 //
-// It was the archive step's gate before (core/scripts/aide-archive-spec,
+// The archive step ran it before (core/scripts/aide-archive-spec,
 // spec 329/361): every archive re-ran the whole suite against a main
 // that had moved since implement's own run, and with several jobs
 // landing at once the same suite ran three and four times an hour for
@@ -49,6 +49,29 @@ async function runScript(
  *  to a throwaway specs root: the archive no longer reads it, and a
  *  record left in the dashboard's own specs checkout blocked a landing
  *  once (2026-09-03). */
+/** The lines that name what failed, out of a whole suite's output.
+ *
+ *  A blind tail of the two streams gave the command line and the
+ *  runner's banner: `(fail)` and the `N fail` summary are written to one
+ *  stream and the invocation to the other, so whichever ends up last
+ *  decides what a 600-character tail catches — and it was never the
+ *  failure. Picked by what the line SAYS instead, from both streams, and
+ *  only then trimmed to a length a tooltip can hold.
+ *
+ *  The tail is kept as the fallback: a run that died before any test
+ *  reported still has to say something, and its last words are all
+ *  there are. */
+export function failingLines(stdout: string, stderr: string, budget = 600): string {
+  const lines = `${stdout}\n${stderr}`.split("\n");
+  const named = lines.filter((l) => /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)/.test(l.trim()) || /^\s*\d+ fail\b/.test(l));
+  const picked = named.length ? named : lines;
+  const out = picked.join("\n").trim();
+  // The END of the picked lines, not the start: a suite with many
+  // failures ends with the summary, and the summary is the line that
+  // says how many there were.
+  return out.length <= budget ? out : out.slice(-budget);
+}
+
 export async function runProjectSuiteBeforePush(
   root: string,
   job: { project: string; specFolder: string },
@@ -77,7 +100,7 @@ async function checkoutForGate(root: string): Promise<{ dir: string; remove: () 
   const added = await runScript(["git", "worktree", "add", "--detach", "--quiet", dir, "HEAD"], root, 60_000);
   if (added.code !== 0) {
     rmSync(dir, { recursive: true, force: true });
-    console.error(`queue: the landing's test gate could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
+    console.error(`queue: the landing's test run could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
     return { dir: root, remove: async () => {} };
   }
   // Where the gitignored directories actually live. `root` is a
@@ -158,7 +181,7 @@ async function runSuiteIn(
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
     const gate = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
-    // The run's own output, kept where the archive gate used to keep it,
+    // The run's own output, kept where the archive step used to keep it,
     // under the same header a reader already knows.
     const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
     try {
@@ -168,7 +191,11 @@ async function runSuiteIn(
       // A log that cannot be written must not turn a green suite red.
     }
     if (gate.timedOut) {
-      return { ok: false, error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the output is in ${log}` };
+      return {
+        ok: false,
+        error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the archive step's own log has what they managed to say`,
+        detail: failingLines(gate.stdout, gate.stderr),
+      };
     }
     if (gate.code !== 0) {
       return {
@@ -186,11 +213,10 @@ async function runSuiteIn(
         // passes — the row offers that one and no other.
         error:
           "the project's tests are red on this merge, so nothing was pushed. " +
-          "The gate log names the failing test; archive lands the work once it passes.",
+          "The archive step's own log names the tests that failed; archive merges the work once they pass.",
         detail: [
-          `The test output is in ${log}.`,
           "A timing test that lost to a busy host passes on a re-run: run the step again when the host is quieter.",
-          (gate.stderr + gate.stdout).trim().slice(-600),
+          failingLines(gate.stdout, gate.stderr),
         ]
           .filter(Boolean)
           .join("\n"),

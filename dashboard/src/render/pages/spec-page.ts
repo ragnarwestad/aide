@@ -53,7 +53,7 @@ import { phasePips } from "./queue-list/cell-helpers.ts";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
+import { landingRefusal, stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import {
   archivedLine, boardStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
   resetControl, resetCloseNote, trackingControl,
@@ -139,6 +139,9 @@ export function renderSpecPage(
           openStep: opts.step,
           runningStep: lead?.runningStep,
           mark,
+          // The same table, so the same answer: a step whose merge was
+          // refused must not read "ok" here either.
+          landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
         })
       : tab === "description"
         ? descriptionPanel(view, now, mark)
