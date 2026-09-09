@@ -11,6 +11,7 @@ export const en = {
   "shell.languageNorwegian": "Norwegian",
   "shell.more": "More",
   "shell.settings": "Settings",
+  "shell.testServers": "Test servers",
   "shell.about": "About",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",

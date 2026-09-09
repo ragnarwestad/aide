@@ -184,11 +184,22 @@ export async function specPageView(
   // with no implement step yet, or one already archived, has nothing
   // there. `roundAvailable` is a capability check on the checkout the
   // round would actually run FROM, never a hardcoded project name.
+  //
+  // This answers "may a NEW board be started" only — spec 425, REQ-1:
+  // it used to also gate whether an EXISTING board's own link and Stop
+  // button were shown, which hid them the moment a spec was archived
+  // even though its board kept running (the automatic stop only fires
+  // once an archive actually MERGES, and a held-back archive never
+  // does). "Does one already exist" is answered separately, right
+  // below, by asking the registry directly rather than folding that
+  // question into this one.
   const boardCapable =
     !ref?.archived &&
     ctx.boards.roundAvailable(project) &&
     ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.boards.aideCheckout(project));
-  const boardEntry = boardCapable ? refreshBoardStatus(ctx.boards, project, specFolder) : undefined;
+  const boardEntry = ctx.boards.store.get(project, specFolder)
+    ? refreshBoardStatus(ctx.boards, project, specFolder)
+    : undefined;
   const board: BoardStatusView | undefined = boardEntry && {
     status: boardEntry.status,
     branch: boardEntry.branch,
@@ -268,13 +279,13 @@ export async function specPageView(
     resetUnavailableReason: busyReason,
     closeUnavailableReason: busyReason,
     boardAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board` : undefined,
-    boardStopAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
+    boardStopAction: boardEntry ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
     // The way IN to a running test server is this dashboard's own start
     // link, not the address the round printed: that one is loopback,
     // and a reader on another device reaches nothing at 127.0.0.1. The
     // link's own route already builds the address the reader can reach
     // — from the host THEY used — so the banner sends them through it.
-    boardOpenHref: boardCapable ? `${specPagePath(project, specFolder)}?tab=steps&startBoard=1` : undefined,
+    boardOpenHref: boardEntry ? `${specPagePath(project, specFolder)}?tab=steps&startBoard=1` : undefined,
     boardUnavailableReason: boardCapable ? busyReason : undefined,
     board,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,

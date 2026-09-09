@@ -10,6 +10,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.languageNorwegian": "Norsk",
   "shell.more": "Mer",
   "shell.settings": "Innstillinger",
+  "shell.testServers": "Testservere",
   "shell.about": "Om",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",

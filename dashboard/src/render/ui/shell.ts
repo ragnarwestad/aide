@@ -275,8 +275,10 @@ function pageHeader(lang: Language): string {
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    // Units moved to Settings itself (spec 409); Settings, then About.
+    // Units moved to Settings itself (spec 409); Settings, then the
+    // board-wide test-server overview (spec 425), then About.
     `<div class="menupanel"><a href="/settings">${t(lang, "shell.settings")}</a>` +
+    `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></span></header>`
   );

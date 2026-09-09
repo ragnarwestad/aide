@@ -29,6 +29,13 @@ describe("a test server takes a port that is actually exposed", () => {
     await expect(findFreePort([...BOARD_PORTS], free)).rejects.toThrow(/every test-server port is in use/);
   });
 
+  // REQ-5: the refusal is a dead end unless it also says where to go —
+  // the "Test servers" overview is the one place a reader can actually
+  // stop one of the three.
+  test("REQ-5: the refusal points at the Test servers overview", async () => {
+    await expect(findFreePort([...BOARD_PORTS], free)).rejects.toThrow(/Test servers/);
+  });
+
   // The port a random pick would have given is never exposed, so it is
   // never chosen either.
   test("nothing outside the pool is ever returned", async () => {

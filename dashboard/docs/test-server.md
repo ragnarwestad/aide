@@ -49,9 +49,18 @@ has come up.
 
 ## Stopping it
 
-A **Stop test server** button appears on the spec page once its test server is running. It also stops on
-its own, with nothing to press, the moment the spec it belongs to is actually archived — merged or
-discarded, there is no reason left to keep a preview of it running.
+A **Stop test server** button appears on the spec page for as long as its test server is tracked —
+starting, running or failed — including on an already-archived spec: whether the archive is held back
+waiting on a requirements review, or genuinely never merges, the link and the button stay exactly where
+they were. It also stops on its own, with nothing to press, in two cases: the moment the spec it belongs
+to is actually archived (merged or discarded, there is no reason left to keep a preview of it running),
+or the moment the test server itself is no longer there to be reached — a crash, or a process someone
+killed outside this button — which the next load of either page notices and clears.
+
+Every test server on the machine, whichever spec started it, is also listed in one place: **Test
+servers**, in the "⋯" menu beside Settings. Each row names its project, its spec, its branch and its
+status, with its own Stop button — this is also where a full pool of three shows up, and where you go to
+free one.
 
 A test server can also stop itself, from its own header: every page there carries a line naming the
 machine, the spec and the branch it is running ("*machine* - Test - *spec* : *branch*"), with a **Stop**

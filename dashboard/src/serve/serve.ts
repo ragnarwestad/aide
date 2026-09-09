@@ -468,6 +468,12 @@ export function createServer(opts: ServerOptions) {
      *  the life of the process, and the directories it points at are
      *  removed underneath it. */
     specWatchCount: () => watch.specWatchers.size,
+    /** The board registry itself (spec 425) — here for the same reason
+     *  `specWatchCount` above is: a question a test needs answered (or,
+     *  here, a fixture needs to seed directly — an archived spec whose
+     *  board is already tracked, without spawning a real round to get
+     *  there) that nothing else exposes. */
+    boardsStore: () => boardStore,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.

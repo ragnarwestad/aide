@@ -184,6 +184,77 @@ describe("spec 388: the board start/stop routes", () => {
       }
     }
   });
+
+  // REQ-1 (spec 425): a board already tracked for a spec must keep its
+  // link and Stop form once that spec is archived, even though the
+  // archive never merged (the exact gap this spec's own description
+  // names — the automatic stop only fires when a merge actually lands).
+  // The spec is archived from the START (`archivedSpecs`, the ordinary
+  // fixture shape) and the board entry is seeded straight into the
+  // registry through `server.boardsStore()` — `BoardStore` knows
+  // nothing about which directory a spec's files live in, so a board
+  // tracked for an archived spec is exactly what a held-back archive
+  // leaves behind; nothing about getting there needs a real spawn, a
+  // real branch on origin, or the scan to catch up.
+  test("REQ-1: an archived spec's already-tracked board keeps its link and Stop form", async () => {
+    const archivedFolder = "82-archived";
+    const { base, server } = harness.start({
+      extra: { queueToken: TOKEN, boardsIsAlive: () => true },
+      archivedSpecs: { [archivedFolder]: {} },
+    });
+    server.boardsStore().set("aide", archivedFolder, {
+      branch: `aide/${archivedFolder}`,
+      commit: "abc1234deadbeef",
+      port: 8801,
+      wrapperPid: 1,
+      pid: 4242,
+      url: "http://127.0.0.1:8801/?token=t0ken",
+      workDir: "/tmp/aide-board-req1-test",
+      logPath: "/tmp/aide-board-req1-test/board.log",
+      status: "running",
+      startedAt: "2026-09-09T00:00:00.000Z",
+    });
+
+    const res = await fetch(`${base}/specs/aide/${archivedFolder}`, { headers: auth });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("has moved into");
+    expect(html).toContain(">Open the test server</a>");
+    expect(html).toContain("Stop test server");
+  });
+
+  // REQ-5: the ports-full case escapes `startBoard`'s own try/catch
+  // today (`lifecycle.ts` has none around `findFreePort`), so this route
+  // returns a bare 500 with no message. `boardsPortProbe: () => false`
+  // makes every port in the pool read as taken, without binding
+  // anything on this machine.
+  test("REQ-5: every test-server port already in use refuses with a message, not a 500", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      boardsAvailable: true,
+      boardsPortProbe: () => false,
+    });
+    const root = `${dir}/root/aide`;
+    Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
+    Bun.spawnSync({ cmd: ["git", "-C", root, "add", "-A"] });
+    Bun.spawnSync({
+      cmd: ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"],
+    });
+    Bun.spawnSync({ cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`] });
+    const bare = `${dir}/origin.git`;
+    Bun.spawnSync({ cmd: ["git", "init", "-q", "--bare", "-b", "main", bare] });
+    Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
+    Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
+
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+      method: "POST",
+      headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Test servers");
+  });
 });
 
 // Spec 411: the held-for-Checks row's own link reaches `startBoard()`
@@ -346,5 +417,75 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     });
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
+  });
+
+  // REQ-5: today this falls through to `waitingForBoardPage`, which
+  // polls forever with no message at all, since `startBoard()`'s result
+  // is discarded here. `boardFailedPage` is what it must show instead —
+  // the page already built for exactly this kind of failure. The GET
+  // route's own `capable` check needs a job whose result actually
+  // carries `branchUrls` (`branchesFor()`'s only source) — the same
+  // fake-runner scaffolding the sibling "starts a board and 303s" test
+  // above already builds, with `boardsPortProbe` the one thing changed.
+  test("REQ-5: every test-server port already in use shows boardFailedPage, not an endless wait", async () => {
+    const results = mkdtempSync(join(tmpdir(), "aide-411-board-ports-full-"));
+    ownDirs.push(results);
+    const gitRun = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
+        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+      }
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+        return new Promise(() => {
+          // Never resolves — held for the life of the test, the same
+          // as the sibling test above.
+        });
+      }
+      return { code: 0, stdout: "" };
+    };
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      boardsAvailable: true,
+      boardsPortProbe: () => false,
+      gitRun: gitRun as never,
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+    });
+    const root = join(dir, "root", "aide");
+
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+      })
+    ).json()) as { job: { id: string } };
+    Bun.write(
+      join(results, `${made.job.id}.json`),
+      JSON.stringify({
+        ok: true,
+        exitCode: 0,
+        costUsd: 0.1,
+        costMeasured: true,
+        terminalReason: "completed",
+        branch: `aide/${folder}`,
+        branchUrls: [{ root, url: "https://example.test/aide" }],
+        repos: [],
+      }),
+    );
+    await settleDone(base, made.job.id);
+
+    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+      headers: auth,
+      redirect: "manual",
+    });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain(`Could not start a test server for "${folder}"`);
+    expect(html).toContain("Test servers");
+    expect(html).not.toMatch(/http-equiv="refresh"/);
   });
 });

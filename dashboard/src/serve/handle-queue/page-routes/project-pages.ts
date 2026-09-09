@@ -10,7 +10,8 @@ import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignore
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
-import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../../render.ts";
+import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render.ts";
+import { refreshBoardStatus } from "../../boards/lifecycle.ts";
 import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -35,6 +36,40 @@ export async function projectPages(
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
+      lang: langResult.lang,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
+  }
+
+  if (path === TEST_SERVERS_ROUTE) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    // Refresh and filter in one pass: REQ-2's own dead-board check may
+    // remove an entry right here (a "running" board whose process has
+    // since died) — dropped from this page the same read that found it
+    // gone, rather than drawn once more before the next visit clears it.
+    const rows: TestServerRow[] = ctx.boards.store
+      .listAll()
+      .map(({ project, specFolder }) => ({
+        project,
+        specFolder,
+        entry: refreshBoardStatus(ctx.boards, project, specFolder),
+      }))
+      .filter((r) => r.entry !== undefined)
+      .map(({ project, specFolder, entry }) => ({
+        project,
+        specFolder,
+        specHref: specPagePath(project, specFolder),
+        branch: entry!.branch,
+        status: entry!.status,
+        url: entry!.url,
+        stopAction: `/api/queue${specPagePath(project, specFolder)}/board/stop`,
+      }));
+    const langResult = languageChoice(url, req);
+    const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
+      token: ctx.queueToken,
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
       lang: langResult.lang,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
