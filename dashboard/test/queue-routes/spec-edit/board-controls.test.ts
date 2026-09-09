@@ -254,6 +254,10 @@ describe("spec 388: the board start/stop routes", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("Test servers");
+    // REQ-2 (spec 428): the refusal also states the running count (0 —
+    // nothing is tracked in this fixture) and the pool's limit.
+    expect(body.error).toContain("0");
+    expect(body.error).toContain("6");
   });
 });
 

@@ -1,6 +1,6 @@
 // A board on a port nobody exposed is reachable from the serving host
 // and nowhere else — and the reader who wants to look at a branch is
-// usually not sitting at it. The pool is three ports put behind
+// usually not sitting at it. The pool is six ports put behind
 // `tailscale serve` once, by hand, so a board that takes one is
 // reachable the moment it is up.
 
@@ -13,37 +13,38 @@ const free = () => true;
 
 describe("a test server takes a port that is actually exposed", () => {
   test("the pool is a small, fixed set", () => {
-    expect(BOARD_PORTS.length).toBe(3);
+    expect(BOARD_PORTS.length).toBe(6);
     for (const p of BOARD_PORTS) expect(p).toBeGreaterThan(1024);
     expect(new Set(BOARD_PORTS).size).toBe(BOARD_PORTS.length);
   });
 
   test("the first free port in the pool is taken, in order", async () => {
-    expect(await findFreePort([], free)).toBe(BOARD_PORTS[0]);
-    expect(await findFreePort([BOARD_PORTS[0]!], free)).toBe(BOARD_PORTS[1]);
-    expect(await findFreePort([BOARD_PORTS[0]!, BOARD_PORTS[1]!], free)).toBe(BOARD_PORTS[2]);
+    const reserved: number[] = [];
+    for (const port of BOARD_PORTS) {
+      expect(await findFreePort(reserved, free)).toBe(port);
+      reserved.push(port);
+    }
   });
 
-  // Better than a board nobody can open: the reader is told to stop one.
-  test("a full pool refuses, and names the ports", async () => {
-    await expect(findFreePort([...BOARD_PORTS], free)).rejects.toThrow(/every test-server port is in use/);
-  });
-
-  // REQ-5: the refusal is a dead end unless it also says where to go —
-  // the "Test servers" overview is the one place a reader can actually
-  // stop one of the three.
-  test("REQ-5: the refusal points at the Test servers overview", async () => {
-    await expect(findFreePort([...BOARD_PORTS], free)).rejects.toThrow(/Test servers/);
+  // REQ-1/REQ-2: a full pool no longer throws — `startBoard()` turns
+  // an absent port into its own `{ ok: false, error }` refusal, stating
+  // how many test servers are running and what the limit is
+  // (`lifecycle.test.ts`); `findFreePort()` itself just reports "none
+  // free".
+  test("a full pool returns no port", async () => {
+    expect(await findFreePort([...BOARD_PORTS], free)).toBeUndefined();
   });
 
   // The port a random pick would have given is never exposed, so it is
   // never chosen either.
   test("nothing outside the pool is ever returned", async () => {
     for (const reserved of [[], [BOARD_PORTS[0]!], [BOARD_PORTS[0]!, BOARD_PORTS[2]!]]) {
+      const port = await findFreePort(reserved, free);
+      expect(port).toBeDefined();
       // `BOARD_PORTS` is a literal tuple, so its own `toContain` would
-      // only accept one of its three members — this asks the question
-      // of a plain array instead.
-      expect([...BOARD_PORTS] as number[]).toContain(await findFreePort(reserved, free));
+      // only accept one of its six members — this asks the question of
+      // a plain array instead.
+      expect([...BOARD_PORTS] as number[]).toContain(port!);
     }
   });
 });
@@ -56,8 +57,8 @@ describe("a port in the pool that is already taken", () => {
     expect(await findFreePort([], (p) => !busy.has(p))).toBe(BOARD_PORTS[1]);
   });
 
-  test("all three taken refuses, whoever is holding them", async () => {
-    await expect(findFreePort([], () => false)).rejects.toThrow(/every test-server port is in use/);
+  test("all taken returns no port, whoever is holding them", async () => {
+    expect(await findFreePort([], () => false)).toBeUndefined();
   });
 });
 
