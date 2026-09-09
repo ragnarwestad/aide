@@ -182,10 +182,13 @@ export function modelPicker(
  *  file names no `Time spent:` line — the same rule `archiveDateCell`'s
  *  duration mark already keeps. */
 export function lockedDuration(ms: number | undefined): string {
-  // `0s` where nothing was recorded, never an empty cell: the column
-  // answers "how long did this phase take", and a blank leaves the
-  // reader asking whether it ran at all.
-  return `<span class="muted small">${esc(durationLabel(Math.max(0, ms ?? 0)))}</span>`;
+  // A dash where nothing was recorded, never `0s` and never an empty
+  // cell: the column answers "how long did this phase take", a blank
+  // leaves the reader asking whether it ran at all, and `0s` claims a
+  // measurement nobody made. The same dash the Cost column beside it
+  // already draws for a figure it does not have.
+  const label = ms === undefined ? "–" : durationLabel(Math.max(0, ms));
+  return `<span class="muted small">${esc(label)}</span>`;
 }
 
 /** Every configured model, grouped by the CLI it starts (spec 169).

@@ -100,6 +100,8 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
 
     expect(badgeHtml).toContain(">stopped<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
-    expect(notice?.text.startsWith("held back:")).toBe(true);
+    // `<phase> <what happened>: <the longer sentence>` — the phase and
+    // the state word as one phrase: "implement held back: …".
+    expect(notice?.text.startsWith("implement held back:")).toBe(true);
   });
 });

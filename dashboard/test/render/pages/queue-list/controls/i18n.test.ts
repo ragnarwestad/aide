@@ -47,7 +47,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
     expect(html).not.toContain(">pull request<");
   });
 
-  test("a notice line: a held-back archive reads 'arkivering holdt tilbake — <reason>'", () => {
+  test("a notice line: a held-back archive reads 'arkivering holdt tilbake: <reason>'", () => {
     const html = renderQueueRows(
       [row({ id: "r3", specFolder: "3-x", steps: ["archive"], state: "done" })],
       {
@@ -57,7 +57,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
         lang: "nb",
       },
     );
-    expect(html).toContain("arkivering holdt tilbake — a real reason");
+    expect(html).toContain("arkivering holdt tilbake: a real reason");
     expect(html).not.toContain("archive held back —");
   });
 
@@ -65,5 +65,50 @@ describe("the Specs list in Norwegian (spec 350)", () => {
     const html = page({ lang: "nb" });
     expect(html).toContain("Ingen spec å vise");
     expect(html).not.toContain("No spec to show");
+  });
+});
+
+// The row's message panel says three things about one spec: the phase
+// whose own last run stopped, the job the scheduler is holding, and the
+// marks beside them. The first reached the page in English whatever the
+// language was — `phaseDisagreement` never took one — and it is the one
+// that already names its phase, which is what the held-back line beside
+// it now does too.
+describe("the row's message panel", () => {
+  const held = (): string =>
+    renderQueueRows(
+      [
+        row({
+          id: "h1",
+          specFolder: "9-held",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "queued",
+          error: { key: "runner.notAnalyzed" },
+          errorReason: "held-back",
+        }),
+      ],
+      { runnerAvailable: true, targets: [target("9-held")], lang: "nb" },
+    );
+
+  const stopped = (lang: "en" | "nb"): string =>
+    renderQueueRows([], {
+      runnerAvailable: true,
+      targets: [target("9-stopped", { done: ["analyze"], stopped: { archive: "not-implemented-yet" } })],
+      lang,
+    });
+
+  test("a phase whose last run stopped says so in Norwegian", () => {
+    const html = stopped("nb");
+    expect(html).toContain("ingenting er implementert ennå");
+    expect(html).not.toContain("nothing is implemented yet");
+  });
+
+  test("the same line in English is unchanged", () => {
+    expect(stopped("en")).toContain("archive stopped: nothing is implemented yet");
+  });
+
+  test("a held-back job names the phase that is waiting", () => {
+    expect(held()).toContain("implement holdt tilbake:");
   });
 });

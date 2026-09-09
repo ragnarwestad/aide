@@ -142,7 +142,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "create", "cost")).not.toContain("$0.00");
   });
 
-  test("REQ-3-AC2: a phase that has genuinely never run reads 0s, distinct from create's stamped figure", () => {
+  test("REQ-3-AC2: a phase that has genuinely never run reads a dash, distinct from create's stamped figure", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -153,7 +153,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       ],
       [target({ done: ["create", "analyze"] })],
     );
-    expect(phaseCell(html, "archive", "started")).toContain("0s");
+    expect(phaseCell(html, "archive", "started")).toContain("–");
     // Cost is the one that stays blank: nothing was spent, and unlike
     // time, "nothing spent" and "no figure" are the same answer there.
     expect(phaseCell(html, "archive", "cost")).toBe("");
