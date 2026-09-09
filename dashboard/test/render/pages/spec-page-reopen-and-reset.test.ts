@@ -68,8 +68,7 @@ describe("spec 198: the Reopen control", () => {
     const html = archived();
     expect(html).not.toContain("<strong>Archived</strong>");
     expect(html).toContain(
-      "The spec has moved into <code>archive/</code>, and the description and " +
-        "the checks cannot be edited until the spec is reopened",
+      "This spec has been archived, and cannot be edited until the spec is reopened",
     );
     // The About dialog in the shell calls the dashboard itself
     // read-only, so it is the old SENTENCE that must be gone.
@@ -117,8 +116,12 @@ describe("spec 231: the Reset control", () => {
     expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Update"));
   });
 
-  test("Reset is absent for an archived spec and unavailable while busy", () => {
-    expect(page(view({ archived: true, resetAction: "/reset-confirm" }))).not.toContain("/reset-confirm");
+  // Disabled, not hidden, on an archived spec (2026-09-09): a control
+  // that vanishes leaves the reader wondering where it went.
+  test("Reset is disabled for an archived spec, with the reason, and unavailable while busy", () => {
+    const archived = page(view({ archived: true, resetAction: "/reset-confirm" }));
+    expect(archived).not.toContain('href="/reset-confirm"');
+    expect(archived).toMatch(/<span class="btn" aria-disabled="true" title="an archived spec cannot be reset[^"]*">Reset<\/span>/);
     const html = page(view({ resetAction: "/reset-confirm", resetUnavailableReason: "a job is running" }));
     expect(html).toContain("Reset");
     expect(html).toContain("a job is running");
