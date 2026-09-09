@@ -223,7 +223,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(hint(html)).toBe("");
     expect(html.match(/the Slack webhook/g)).toHaveLength(1);
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
-      "archive held back — the Slack webhook",
+      "archive held back: the Slack webhook",
     );
   });
 
@@ -259,7 +259,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
       );
       expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
-        "archive held back — the Slack webhook",
+        "archive held back: the Slack webhook",
       );
       // Spec 174: and nothing under the badge at all any more.
       expect(hint(html)).toBe("");

@@ -126,7 +126,7 @@ describe("spec 118: every consumption figure carries both units", () => {
     // different blanks, and the one formatter must keep both.
     const line = html.match(/data-step="analyze"[\s\S]*?<\/tr>/)![0];
     expect(line).toContain('<td class="num" data-col="cost"></td>');
-    expect(line).not.toContain("–");
+    expect(line.match(/<td class="num" data-col="cost">.*?<\/td>/)![0]).not.toContain("–");
   });
 });
 

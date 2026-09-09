@@ -29,20 +29,22 @@ import { LIST_COLUMNS } from "./row-shared.ts";
  *  failure. Among phases with no real failure, the earliest with any
  *  qualifier still wins, exactly as before. It carries the phase's own
  *  name because a sentence moved out of the line it belonged to must
- *  say which line that was.
+ *  say which line that was — as one phrase with the state word that
+ *  follows it ("archive stopped: …"), never a second colon between the
+ *  two: the row beside this panel already says both.
  *
  *  `p.attempts[0]`, not the in-flight-first pick the pips use: this is
  *  a RELOCATION of what `phaseSubRows` computes for that same phase's
  *  badge, so it has to read the same attempt that function does. */
-function phaseDisagreement(g: SpecGroup): string | undefined {
+function phaseDisagreement(g: SpecGroup, lang: Language): string | undefined {
   let earliest: { step: string; qualifier: string } | undefined;
   for (const p of g.phases) {
-    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult });
+    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);
     if (!word.qualifier) continue;
-    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step)}: ${word.qualifier}`;
+    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step)} ${word.qualifier}`;
     earliest ??= { step: p.step, qualifier: word.qualifier };
   }
-  return earliest && `${stepLabel(earliest.step)}: ${earliest.qualifier}`;
+  return earliest && `${stepLabel(earliest.step)} ${earliest.qualifier}`;
 }
 
 export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: number, lang: Language): string {
@@ -50,7 +52,7 @@ export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: nu
     g.lead,
     g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
     refusal,
-    phaseDisagreement(g),
+    phaseDisagreement(g, lang),
     isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang),
     lang,
   );

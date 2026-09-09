@@ -97,17 +97,19 @@ describe("a phase says how long it took", () => {
     expect(phaseCell(html, "implement")).not.toContain("40m");
   });
 
-  // Every phase says how long it took, `0s` included — an empty cell
-  // asks the reader whether the phase ran at all, which the badge beside
-  // it already answers.
-  test("a phase nobody has run reads 0s, not an empty cell", () => {
+  // Every phase's Time cell says something — an empty cell asks the
+  // reader whether the phase ran at all, which the badge beside it
+  // already answers. A dash where no duration was recorded: `0s` claims
+  // a measurement nobody made.
+  test("a phase nobody has run reads a dash, not 0s and not an empty cell", () => {
     const html = page([
       job("a1", "aa-spec", {
         startedAt: "2026-08-16T09:00:00Z",
         results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
       }),
     ]);
-    expect(phaseCell(html, "archive")).toContain("0s");
+    expect(phaseCell(html, "archive")).toContain("–");
+    expect(phaseCell(html, "archive")).not.toContain("0s");
   });
 
   // A running phase carries the instant it began, so the browser can

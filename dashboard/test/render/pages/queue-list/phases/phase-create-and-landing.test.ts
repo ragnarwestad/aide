@@ -17,6 +17,12 @@ import {
  *  It said "not run yet" in words until then. */
 const PHASE_NOT_RUN = "–";
 
+/** One phase line's State cell. The dash means "nothing here" in four
+ *  columns now — State, Created, Cost and Time — so a match over the
+ *  whole line no longer says which column drew it. */
+const stateCell = (line: string): string =>
+  line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
+
 describe("spec 116: create is the first phase line", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
@@ -76,7 +82,7 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).toContain("b-done");
     expect(line).not.toContain("<form");
     expect(line).not.toContain("<button");
-    expect(line).not.toContain(PHASE_NOT_RUN);
+    expect(stateCell(line)).not.toContain(PHASE_NOT_RUN);
     // No model note, no elapsed time, no cost — what a finished attempt
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
@@ -98,12 +104,14 @@ describe("spec 116: create is the first phase line", () => {
         'aria-label="create — already done, and not a step you can run"> ' +
         "<span></span></label>",
     );
-    // The Time cell is the exception to the emptiness: every phase says
-    // how long it took, and a phase nobody ran took `0s`. A blank there
-    // asks whether the line is broken.
+    // The Time cell is the exception to the emptiness: it always says
+    // something, so a blank cannot read as a broken line. A dash where
+    // no duration was recorded, never `0s` — that claims a measurement
+    // nobody made — and the same dash the State, Created and Cost
+    // columns already draw for "nothing here".
     expect(line).toContain(
       '<td data-col="state"><span class="badge b-done">done</span></td>' +
-        '<td data-col="started"><span class="muted small">0s</span></td>' +
+        '<td data-col="started"><span class="muted small">–</span></td>' +
         '<td class="num" data-col="cost"></td><td data-col="created"></td>',
     );
   });
@@ -397,7 +405,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
       [target("278-repro", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "archive: archived, but the merge failed — its branch is still open. — Re-run archive.",
+      "archive merge failed: the spec was archived, but its branch is still open — re-run archive.",
     );
     expect(panel(html)).not.toContain("implement: last re-run failed");
     expect(panel(html)).not.toContain('"implement: last re-run failed"');
@@ -428,7 +436,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
       [target("278-repro2", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "archive: archived, but the merge failed — its branch is still open. — Re-run archive.",
+      "archive merge failed: the spec was archived, but its branch is still open — re-run archive.",
     );
     expect(panel(html)).not.toContain("implement:");
   });

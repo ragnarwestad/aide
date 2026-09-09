@@ -67,7 +67,7 @@ export const en = {
   "list.noPullRequestOpened":
     "its code is on a branch and no pull request was opened for it. — Open one by hand, " +
     "in the checkout on the serving host.",
-  "list.archiveHeldBack": "archive held back — {reason}",
+  "list.archiveHeldBack": "archive held back: {reason}",
   "list.noSpecMatchesFilter": "No spec matches this filter.",
   "list.noSpecAtAll": "No spec to show — no project on this machine has one to run.",
   "list.noRunner":
@@ -83,6 +83,7 @@ export const en = {
   // state and the row's own notice line says why, in full. It named the
   // step as well ("archiving held back") until 2026-09-08 — the step is
   // already on the line, and the reason is the half a reader acts on.
+  "list.lastRerun": "last re-run {state}",
   "state.stopped": "stopped",
   // A stopped job is not a failed one, and the reason is the half that
   // says which. These read on the row itself, so they are as short as

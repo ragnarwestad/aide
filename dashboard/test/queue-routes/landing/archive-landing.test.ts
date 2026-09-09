@@ -280,7 +280,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(landed.error).toBeFalsy();
 
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain("archive held back — the implementation was reverted");
+    expect(html).toContain("archive held back: the implementation was reverted");
   });
 
   // Criterion 5, as spec 149 leaves it. `analyze` lands itself now too,

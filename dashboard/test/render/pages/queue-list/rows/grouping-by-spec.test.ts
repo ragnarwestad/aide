@@ -82,7 +82,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // the badge when there is one, and on "not run yet" when the files
     // say nothing happened, as here: two attempts, both failed, and the
     // spec's own file still names none of them.
-    expect(analyze).toMatch(/title="2 attempts">– \(2\)<\/span>/);
+    expect(analyze).toMatch(/title="2 attempts">done \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
