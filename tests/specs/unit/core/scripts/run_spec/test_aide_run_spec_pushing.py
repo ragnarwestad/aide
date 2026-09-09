@@ -16,7 +16,7 @@ import subprocess
 import time
 import pytest
 from ..conftest import READ_SPECS, git, run
-from .run_spec_fakes import conflicting_race_claude, partially_committing_claude, project_only_claude, race_pushing_claude, self_committing_claude, self_pushing_claude, specs_only_claude, writing_claude
+from .run_spec_fakes import conflicting_race_claude, landing_beside_claude, partially_committing_claude, project_only_claude, race_pushing_claude, self_committing_claude, self_pushing_claude, specs_only_claude, writing_claude
 from .run_spec_invoking import create
 from .run_spec_origins import is_ancestor, run_with_gh
 from .run_spec_results import RESULT_OK
@@ -179,6 +179,28 @@ def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, works
     # Unchanged from the workspace fixture's own starting line (REQ-3) —
     # `implement` never lands, `analyze` stays exactly as it was.
     assert line == "- **Workflow steps completed:** analyze", line
+
+def test_a_root_the_step_never_touched_survives_a_landing_beside_it(
+    runner, workspace, fake_claude, origin
+):
+    """The dashboard runs several specs at once against one code
+    checkout, so another spec's landing moves the project root's default
+    branch while this run holds its worktree. This step put nothing on
+    that root — nothing to publish there and nothing to confirm — and the
+    moved default branch must not make it read as unpushed work."""
+    claude = landing_beside_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze", push="branch")
+    assert rc == 0, out
+    assert "another spec landed" in git(
+        workspace["project"], "log", "--oneline", "-3"
+    ), "the landing beside this run has to have happened"
+    assert git(origin["project"], "branch", "--list", "aide/81-queue-and-runner") == "", (
+        "a branch with nothing on it is not published, however far the "
+        "default branch has moved"
+    )
+    assert out["terminalReason"] == "completed", out.get("error")
+    assert out["ok"] is True, out.get("error")
+
 
 def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
     runner, workspace, fake_claude, rejecting_origin

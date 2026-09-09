@@ -104,6 +104,12 @@ export type PickerOptions = Pick<
   "modelChoices" | "defaultModels" | "pendingModels" | "pendingEffort"
 >;
 
+/** Why a phase that has already run will not take a pick. The same
+ *  sentence its own Select box gives as its accessible name: a phase
+ *  the row cannot run again is a record of what happened, and its AI
+ *  and model selects say so the same way its box does. */
+export const ALREADY_RUN_REASON = "already done, and not a step you can run";
+
 export function modelPicker(
   g: SpecGroup,
   opts: PickerOptions,
@@ -120,6 +126,9 @@ export function modelPicker(
    *  instead. Nothing else `g` feeds (`isArchivedRow`, the pending-model
    *  lookup, a live row's `data-post-to`) is touched by this. */
   formIdOverride?: string,
+  /** This phase cannot be run from this row again — its box is drawn
+   *  ticked and disabled, so this select is locked with it. */
+  alreadyRun = false,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
@@ -135,8 +144,11 @@ export function modelPicker(
   // 160. A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
-  const locked = archived || (busy && !live);
-  const why = locked ? busyReason(g) : "";
+  const locked = archived || (busy && !live) || alreadyRun;
+  // A lock the RUN put on says what the run is doing; a lock that is
+  // only "this phase cannot be run again" says that instead — the
+  // running job's own sentence would name a step this select is not on.
+  const why = !locked ? "" : busy || archived ? busyReason(g) : ALREADY_RUN_REASON;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
@@ -406,6 +418,8 @@ export function aiPicker(
   recordedModel?: string,
   /** Same override, same reason, as `modelPicker`'s own (spec 342). */
   formIdOverride?: string,
+  /** Same flag, same reason, as `modelPicker`'s own. */
+  alreadyRun = false,
 ): string {
   const models = opts.modelChoices ?? [];
   // `TOOL_NAMES`'s own key order, like the option groups in
@@ -427,8 +441,11 @@ export function aiPicker(
   // This one carries no `data-post-to`: it posts nothing itself, and a
   // pick made on it reaches the server through the model select it
   // writes into.
-  const locked = archived || (busy && !live);
-  const why = locked ? busyReason(g) : "";
+  const locked = archived || (busy && !live) || alreadyRun;
+  // A lock the RUN put on says what the run is doing; a lock that is
+  // only "this phase cannot be run again" says that instead — the
+  // running job's own sentence would name a step this select is not on.
+  const why = !locked ? "" : busy || archived ? busyReason(g) : ALREADY_RUN_REASON;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: the same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.

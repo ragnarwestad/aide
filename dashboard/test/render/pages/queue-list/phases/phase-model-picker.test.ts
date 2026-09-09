@@ -358,4 +358,32 @@ describe("spec 342: formIdOverride replaces the derived form id", () => {
       'form="rowrun-aide/81-queue-and-runner"',
     );
   });
+
+
+});
+
+// The point of the name is that a reader SEES it: a row running the
+// scripted stand-in must not read as a real Claude run. `TOOL_NAMES` has
+// carried "Fake-Claude" all along; what was missing was a rendered page
+// proving the word reaches one — the round's own config named no tool,
+// so its rows read as Claude Code over runs no Claude ever touched.
+describe("a row running the scripted stand-in says so", () => {
+  const TARGET: QueueTarget = { project: "aide", specFolder: "123-picks" };
+  const render = (modelChoices: QueuePageOptions["modelChoices"]): string =>
+    renderQueueRows(
+      [],
+      { runnerAvailable: true, targets: [TARGET], modelChoices, filter: { open: openKeys([], [TARGET]) } },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  test("the page names it Fake-Claude, not Claude Code", () => {
+    const html = render([{ name: "script", budgetUsd: 1, tool: "fake-claude" }]);
+    expect(html).toContain("Fake-Claude");
+    expect(html).not.toContain("Claude Code");
+  });
+
+  test("a choice that names no tool still reads as Claude Code", () => {
+    const html = render([{ name: "sonnet", budgetUsd: 3 }]);
+    expect(html).not.toContain("Fake-Claude");
+  });
 });

@@ -205,18 +205,18 @@ commit_and_push_roots() {
       head_is="${head_after_per_root[$i]}"
       amended_sha="${amend_source[$i]:-}"
       idx=$i
-      # The main checkout never leaves its default branch for the whole
-      # run (see the note above the EXIT trap at the bottom of this
-      # script) — its own current HEAD is therefore a cheap, always-local
-      # stand-in for "has this branch ever had anything beyond the
-      # default branch at all". A branch that has not is a branch with
+      # A branch with nothing beyond the root's own default branch has
       # nothing to publish, whether this is its first run or its fifth:
       # without this check, REQ-4's widened gate below would try to push
       # it too, since a brand new branch has no ref on origin yet to
       # compare against and so never reads as "already confirmed" either.
-      default_tip="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
+      # Asked as containment (`tip_has_nothing_of_its_own`), so the same
+      # sentence holds while another spec's landing moves that default
+      # branch — the confirmation in run-spec-worktree.sh asks it the
+      # same way, and the two disagreeing is what reported an untouched
+      # root as unpushed work.
       i=$(( i + 1 ))
-      [ "$head_is" = "$default_tip" ] && continue
+      tip_has_nothing_of_its_own "$root" "$head_is" && continue
       # REQ-4: a root this run did not move ($head_was = $head_is) is
       # STILL a candidate — but only when this run itself ended
       # `completed`. Widening this to "any root with unconfirmed content"

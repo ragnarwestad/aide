@@ -2,7 +2,7 @@ import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { esc } from "../ui/html.ts";
 import { backLink, btn } from "../ui/components.ts";
 import type { Language } from "../../i18n";
-import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
+import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "./queue-list.ts";
 import { WORKFLOW_STEPS } from "../../queue/steps.ts";
 
 export const SETTINGS_ROUTE = "/settings";
@@ -65,7 +65,11 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const tool = models.find((model) => model.name === chosen)?.tool ?? "claude";
     const tools = [...new Set(models.map((model) => model.tool ?? "claude"))];
     const ai = tools.map((name) => {
-      const label = name === "codex" ? "Codex" : "Claude Code";
+      // `TOOL_NAMES` is where a tool's own name lives. This line used to
+      // spell two of them out — `codex ? "Codex" : "Claude Code"` — so a
+      // third tool arrived on this page under Claude Code's name, which
+      // is exactly what Fake-Claude exists not to be mistaken for.
+      const label = TOOL_NAMES[name] ?? name;
       const preferred = defaultModelForTool(models, name, configured);
       return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
     }).join("");

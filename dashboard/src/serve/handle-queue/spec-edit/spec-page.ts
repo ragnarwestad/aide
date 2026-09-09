@@ -211,8 +211,8 @@ export async function specPageRoutes(
     const text = body.text;
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
     // The derived state file has no second writer here any more: the one
-    // file whose save had to keep `4-status.json` in step was
-    // `4-status.md`, and that save is refused above.
+    // file whose save had to keep it in step was `4-status.md`, and that
+    // save is refused above.
     // REQ-4: the same branch-aware choice the tick route already makes
     // for `4-status.md` — an open `aide/<folder>` branch is where an
     // active spec's real, already-committed progress lives, and a

@@ -232,11 +232,15 @@ describe("spec 169: one picker per phase", () => {
     expect(control).toContain('title="implement is running"');
   });
 
+  // Asked of `archive`, not of the first select on the page: `create` is
+  // drawn ticked and disabled on every row, and its own AI select is
+  // locked with it. What settling frees is a phase the row can still
+  // run.
   test("a settled row's AI selects are live again", () => {
     const html = rows([
       row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "done" }),
     ]);
-    expect(html.match(/<select[^>]*data-ai[^>]*>/)![0]).not.toContain("disabled");
+    expect(html.match(/<select[^>]*data-ai="model\.archive"[^>]*>/)![0]).not.toContain("disabled");
   });
 
   // --- spec 308: resolveChosenModel's new "pending" tier ---------------------

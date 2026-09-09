@@ -158,6 +158,14 @@ append_fact() {  # append_fact <text>
     && mv src/facts.ts.new src/facts.ts
 }
 
+# The section a real analyze writes into 4-status.md
+# (core/skills/aide-analyze/references/requirements-tracing.md, step 8),
+# so it lands on the default branch with analyze and the Checks tab can
+# offer the row while implement's own work is still on its branch.
+acceptance_section() {
+  printf '\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: a person has judged this | ⬜ | |\n'
+}
+
 write_test() {  # write_test <slug> <text expected>
   cat > "test/$1.test.ts" <<TEST
 import { expect, test } from "bun:test";
@@ -173,7 +181,9 @@ case "$step" in
   analyze)
     printf '# %s - Analysis\n\n## Summary\n\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\nComplexity: LOW.\n' "$slug" | write 2-analysis.md
     printf '# %s - Solution\n\n## Plan\n\n1. Write the failing test.\n2. Append the fact.\n' "$slug" | write 3-solution.md
-    status_file "⬜" "⬜" | write 4-status.md
+    { status_file "⬜" "⬜"
+      case "$slug" in an-unticked-acceptance-row) acceptance_section ;; esac
+    } | write 4-status.md
     ok "analyzed $folder"
     ;;
   implement)
@@ -187,9 +197,7 @@ case "$step" in
         fact="$(fact_for "$slug")"
         write_test "$slug" "$fact"
         append_fact "$fact"
-        { status_file "✅" "✅"
-          printf '\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: a person has judged this | ⬜ | |\n'
-        } | write 4-status.md
+        { status_file "✅" "✅"; acceptance_section; } | write 4-status.md
         ;;
       *)
         fact="$(fact_for "$slug")"

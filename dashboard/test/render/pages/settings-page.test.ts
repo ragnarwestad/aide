@@ -282,3 +282,31 @@ describe("Settings page wording and layout (spec 409)", () => {
     expect(html).toMatch(/<p class="row"><span class="lbl">Units<\/span>/);
   });
 });
+
+// The AI column had its own copy of the tool names — `codex ? "Codex" :
+// "Claude Code"` — so a third tool arrived on this page under Claude
+// Code's name. Fake-Claude exists precisely so a run it did is not
+// mistaken for a real Claude run, and this page is where a reader picks.
+describe("the AI column names the tool it is actually offering", () => {
+  const settings = (modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[]) =>
+    renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices,
+      defaultModels: { default: modelChoices[0]!.name },
+      budgetUsd: 3,
+      jobCapUsd: 10,
+      timeoutSec: TIMEOUT_SEC,
+    });
+
+  const aiSelect = (html: string): string =>
+    html.match(/<select aria-label="AI for Default"[\s\S]*?<\/select>/)?.[0] ?? "";
+
+  test("the scripted stand-in is offered as Fake-Claude, never as Claude Code", () => {
+    const ai = aiSelect(settings([{ name: "script", budgetUsd: 1, tool: "fake-claude" }]));
+    expect(ai).toContain(">Fake-Claude<");
+    expect(ai).not.toContain(">Claude Code<");
+  });
+
+  test("a choice that names no tool is still offered as Claude Code", () => {
+    expect(aiSelect(settings([{ name: "sonnet", budgetUsd: 3 }]))).toContain(">Claude Code<");
+  });
+});

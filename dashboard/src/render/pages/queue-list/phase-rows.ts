@@ -8,7 +8,7 @@ import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
+import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 
@@ -21,7 +21,7 @@ function finishedPhaseChip(step: string): string {
     dataAttr: "data-phase",
     value: step,
     label: "",
-    ariaLabel: `${stepLabel(step)} — already done, and not a step you can run`,
+    ariaLabel: `${stepLabel(step)} — ${ALREADY_RUN_REASON}`,
     // No name: nothing to post, whatever a browser decides to
     // do with a disabled field.
     name: "",
@@ -291,12 +291,19 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // picker's own options are keyed on — is everything after the
       // first word.
       const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
+      // The Select box's own answer, read once for the two selects beside
+      // it: a phase whose box is drawn ticked and disabled cannot be
+      // given an AI or a model either. `finished` covers a phase this
+      // row has run; a step outside `QUEUE_STEPS` — `create` above all —
+      // is drawn the same way and is locked for the same reason. The
+      // archived row and the busy one are the pickers' own, already.
+      const alreadyRun = finished || !QUEUE_STEPS.includes(p.step);
       const pickCell =
         `<td class="modelcell"><span class="row">` +
         // No effort control: the line names the AI and the model, and
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
-        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel) +
+        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (spec 274/247/284's
       // fallback in `phasesFor`), even with no Cost line recorded? Used
@@ -374,16 +381,17 @@ function aiModel(
   live: boolean,
   used?: string,
   recordedModel?: string,
+  alreadyRun = false,
 ): string {
-  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel);
-  const model = modelPicker(g, opts, step, busy, live, used, recordedModel);
+  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
+  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   if (!model) return `<span class="aimodel">${ai}</span>`;
   const on = phaseAiModel(g, opts, step, used, recordedModel);
   const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
-  const locked = isArchivedRow(g) || (busy && !live);
+  const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
   const button = locked
-    ? `<span class="aimodelnow" aria-disabled="true" title="${esc(busyReason(g))}">${esc(now)}</span>`
+    ? `<span class="aimodelnow" aria-disabled="true" title="${esc(busy || isArchivedRow(g) ? busyReason(g) : ALREADY_RUN_REASON)}">${esc(now)}</span>`
     : `<input type="checkbox" class="aimodelopen" id="${esc(id)}">` +
       `<label class="aimodelnow" for="${esc(id)}" title="${esc(now)}">${esc(now)}</label>`;
   return (

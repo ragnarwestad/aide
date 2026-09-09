@@ -56,6 +56,20 @@ def specs_only_claude(fake_claude, workspace):
     )
 
 
+def landing_beside_claude(fake_claude, workspace):
+    """An `analyze` step that writes the specs repo only, while another
+    spec's landing advances the PROJECT root's own default branch under
+    it. The dashboard runs several specs at once against one code
+    checkout, so this is the ordinary case, not a rare one."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f'git -C "{workspace["project"]}" commit -q --allow-empty -m "another spec landed"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
 def self_committing_claude(fake_claude, workspace):
     """A step that commits its own work before it finishes — the way
     /aide-archive does. The run's own commit loop then finds a clean
