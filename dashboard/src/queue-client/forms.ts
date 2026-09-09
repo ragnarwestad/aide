@@ -215,8 +215,11 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
         return;
       }
       if (answer?.restarting) {
-        formNote(form, "deployed — the dashboard is restarting; this page reloads when it is back");
-        // Said on the layer too: the note under the button is behind it.
+        // Said on the covering layer ALONE. It was written under the
+        // button as well, on the assumption that the layer hid it — it
+        // does not, and the slot it lands in is the one every refusal
+        // uses (`.refused`), so a deploy that had just succeeded read as
+        // an error beside the button that had succeeded (2026-09-09).
         overlay("deployed — the dashboard is restarting; this page reloads when it is back");
         await waitForServer();
       }

@@ -113,12 +113,17 @@ describe("submitDeploy (spec 385)", () => {
     }
   });
 
-  test("still shows the restarting note when restartWaiting is absent (REQ-5)", async () => {
+  // The restart says itself on the covering layer and nowhere else. It
+  // was written under the button too, until a deploy that had just
+  // succeeded read as an error beside the button that had succeeded
+  // (2026-09-09): `formNote` writes into `.refused`, the slot every
+  // refusal on the page uses, and the layer does not hide it.
+  test("says the restart on the layer alone, leaving the button's refusal slot empty", async () => {
     const { form, refusedSpan } = fakeForm();
     const stub = stubGlobals({ ok: true, restarting: true });
     try {
       await submitDeploy(form as unknown as HTMLFormElement, submitEvent());
-      expect(refusedSpan.textContent).toContain("deployed — the dashboard is restarting");
+      expect(refusedSpan.textContent).toBe("");
       expect(stub.reloaded()).toBe(true);
     } finally {
       stub.restore();
