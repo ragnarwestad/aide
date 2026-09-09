@@ -302,9 +302,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>` +
-        `<small class="muted small">Requirements will be drafted from this ` +
-        `text — a "## Requirements" section you write here is left as it ` +
-        `stands.</small>`,
+        `<small class="muted small">Acceptance criteria will be drafted from ` +
+        `this text — a "## Acceptance criteria" section you write here is ` +
+        `left as it stands.</small>`,
       { wide: true },
     ) +
     `<span class="factions">` +

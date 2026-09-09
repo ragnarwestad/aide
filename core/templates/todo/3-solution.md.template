@@ -133,11 +133,11 @@ works today — not which files change (those are listed under Scope).
 
 Each criterion is a testable given/when/then scenario. The RED phase
 writes at least one failing test per criterion. When 1-description.md
-lists REQ-n requirements, each criterion opens with the REQ-id it
-covers (`**REQ-1** — Given ...`); every REQ-id must be covered by at
+lists AC-n acceptance criteria, each criterion opens with the AC-id it
+covers (`**AC-1** — Given ...`); every AC-id must be covered by at
 least one criterion.
 
-1. **REQ-1** — **Given** [precondition] **when** [action] **then** [expected outcome]
+1. **AC-1** — **Given** [precondition] **when** [action] **then** [expected outcome]
 2. **Given** [precondition] **when** [action] **then** [expected outcome]
 
 ---

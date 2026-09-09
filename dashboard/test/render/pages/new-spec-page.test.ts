@@ -259,15 +259,16 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain("No project on this machine");
   });
 
-  // Spec 309: nothing on this page said requirements would be drafted
-  // from the text, or that a Requirements section written here is left
-  // alone — the only hint lived in a job log a headless run never shows.
-  test("the Description field carries a hint about drafted requirements", () => {
+  // Spec 309: nothing on this page said acceptance criteria would be
+  // drafted from the text, or that an Acceptance criteria section written
+  // here is left alone — the only hint lived in a job log a headless run
+  // never shows.
+  test("the Description field carries a hint about drafted acceptance criteria", () => {
     const html = newPage();
     expect(html).toContain(
-      '<small class="muted small">Requirements will be drafted from this ' +
-        'text — a "## Requirements" section you write here is left as it ' +
-        "stands.</small>",
+      '<small class="muted small">Acceptance criteria will be drafted from ' +
+        'this text — a "## Acceptance criteria" section you write here is ' +
+        'left as it stands.</small>',
     );
     const field = html.slice(
       html.indexOf('<textarea name="description"'),

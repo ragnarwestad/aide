@@ -35,7 +35,7 @@ questions, with file:line references into the spec:
    for that the plan never delivers?
 3. **Coherence** — do the analysis, the acceptance criteria and the
    plan agree? Is every criterion testable as written? Does the
-   behavior delta match what the steps actually do? Does every REQ-n
+   behavior delta match what the steps actually do? Does every AC-n
    id from 1-description.md (when present) appear in at least one
    acceptance criterion? A missing id is a must-fix.
 
