@@ -6,7 +6,7 @@ import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, isFinishedGroup, type SpecGroup } from "./data-model.ts";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -238,7 +238,7 @@ export function specHeadRow(
     // a phase has no creation date of its own, and this column standing
     // in the middle left an empty cell on every phase line between the
     // state and the numbers.
-    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false)}</td>` +
+    `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false, isFinishedGroup(g), lang)}</td>` +
     `</tr>`
   );
 }

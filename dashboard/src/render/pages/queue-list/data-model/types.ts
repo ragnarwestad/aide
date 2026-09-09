@@ -501,3 +501,10 @@ export interface SpecGroup {
 }
 
 export const groupKey = (project: string, specFolder: string): string => `${project}/${specFolder}`;
+
+/** Whether a group is a finished spec — archived or closed — the one
+ *  kind whose missing Created date means "made before the board kept
+ *  creation dates" rather than "date on its way". */
+export function isFinishedGroup(g: Pick<SpecGroup, "state">): boolean {
+  return g.state === "archived" || g.state === "archived-unlanded" || g.state === "closed";
+}

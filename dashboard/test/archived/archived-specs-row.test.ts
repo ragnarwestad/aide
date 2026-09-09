@@ -145,11 +145,14 @@ describe("an archived spec's row", () => {
   // A dash, not the words "date unknown": the cache is cold for a moment
   // after every restart, and a row that announces a failure it is about
   // to recover from teaches the reader to distrust the column.
-  test("a spec neither the stamp nor git can date reads as a dash", async () => {
+  // An ARCHIVED spec nothing can date was made before the board kept
+  // creation dates — it says so (2026-09-09); the dash is the live
+  // spec's, whose date is on its way.
+  test("a spec neither the stamp nor git can date reads as not registered", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     expect(row).not.toContain("date unknown");
     const cell = row.slice(row.indexOf('data-col="created"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("–");
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("not registered");
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
@@ -281,9 +284,9 @@ describe("an archived spec's row", () => {
   // A spec with nothing for the rename-aware lookup to find (no
   // 1-description.md history) is a real, honest "cannot date" — the
   // same dash convention every other undatable spec on this page shows.
-  test("shows the dash convention when the rename-aware lookup cannot date it (REQ-5)", async () => {
+  test("says not registered when the rename-aware lookup cannot date it (REQ-5)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     const createdCell = row.slice(row.indexOf('data-col="created"'));
-    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("–");
+    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("not registered");
   });
 });
