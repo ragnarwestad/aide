@@ -71,7 +71,11 @@ describe("the spec column is capped, so the phases sit close", () => {
     // off the list now, and the button that replaced them aligns on the
     // cell's own edge. What caps the measure is the column itself.
     expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: auto/);
-    expect(CSS).toMatch(/col\[data-col="spec"\] \{ width: [\d.]+rem; \}/);
+    // The column's own width is `auto` since 2026-09-09 — it is the one
+    // that gives up pixels so the table can shrink with its box — but it
+    // is still what caps the measure: the five fixed columns beside it
+    // leave it a width, rather than the text choosing one.
+    expect(CSS).toMatch(/col\[data-col="spec"\] \{ width: auto; \}/);
   });
 });
 
