@@ -102,7 +102,21 @@ table.settingstable { width: auto; }
    The width comes out of the list's own total rather than off a
    neighbouring column: the head row's name cell spans this column and
    Phase beside it, so it simply gets the room too. */
-table.speclist > colgroup > col[data-col="spec"] { width: 10rem; }
+/* AUTO, alone among the six: `table-layout: fixed` makes the table's
+   used width the SUM of the column widths, so six fixed widths make a
+   table that cannot shrink — and anything that takes a few pixels out
+   of the box it sits in (a classic, space-taking vertical scrollbar
+   above all, which is what a Mac draws when "Show scroll bars" is set
+   to Always) leaves the table wider than its room and the box scrolls
+   sideways. An auto column takes whatever the other five leave, so the
+   table is always exactly as wide as the box.
+   Which column: this one. Its content is a phase name and, on the head
+   row, the spec's own name — the one thing here that already clamps
+   (`.spec-name > .label`) rather than needing a width. The five fixed
+   widths below sum to 48.5rem, so at the list's full 58.5rem this
+   column draws 10rem, and gives up a few pixels of that when something
+   else in the box needs them. */
+table.speclist > colgroup > col[data-col="spec"] { width: auto; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left

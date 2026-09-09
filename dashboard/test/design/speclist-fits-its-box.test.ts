@@ -20,11 +20,20 @@ describe("the specs table fits the box that scrolls it", () => {
   // The stated width has to stay the sum of the columns: `table-layout:
   // fixed` sizes from it, and a number that drifts from the sum leaves
   // one column absorbing the difference.
-  test("--speclist-width is the sum of the six column widths", () => {
+  test("five columns are fixed, the sixth takes what is left", () => {
     const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)].map((m) => rem(m[1]!));
-    expect(cols).toHaveLength(6);
-    expect(cols.reduce((a, b) => a + b, 0)).toBeCloseTo(stated, 5);
+    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)].map((m) => rem(m[1]!));
+    expect(fixed).toHaveLength(5);
+    expect(fixed.reduce((a, b) => a + b, 0)).toBeLessThan(stated);
+    // And the sixth is Spec, and it is auto. Six fixed widths make a
+    // table that cannot shrink: `table-layout: fixed` sizes the table to
+    // their SUM, so anything taking a few pixels out of the box — a
+    // classic, space-taking vertical scrollbar above all — leaves the
+    // table wider than its room. Measured in Chromium with the box 15px
+    // narrower: 937px of table in a 923px box, 14px of horizontal
+    // scrollbar; with this column auto, 923 and 923 and no bar
+    // (2026-09-09).
+    expect(css).toMatch(/col\[data-col="spec"\] \{ width: auto; \}/);
   });
 
   // The Spec column carries a phase line's name and nothing else, and a
@@ -39,7 +48,12 @@ describe("the specs table fits the box that scrolls it", () => {
   // browser, whatever the exact metric turns out to be.
   test("the Spec column holds the longest phase name in either language", () => {
     const px = (rem: number) => rem * 16;
-    const spec = rem(/col\[data-col="spec"\] \{ width: ([\d.]+)rem/.exec(css)![1]!);
+    // What the auto column draws at the list's full width: everything
+    // the five fixed ones leave.
+    const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
+    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)]
+      .map((m) => rem(m[1]!)).reduce((a, b) => a + b, 0);
+    const spec = stated - fixed;
     // `th, td` pads on the right only, so that is what the name loses.
     const padding = rem(/--sp-3: (\d+)px/.exec(
       readFileSync(new URL("../../src/render/ui/css/tokens.css", import.meta.url), "utf8"),
