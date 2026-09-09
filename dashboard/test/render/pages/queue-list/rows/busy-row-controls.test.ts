@@ -233,3 +233,57 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   });
 
 });
+
+// Every other step can be cancelled and run again from the spec it
+// already made. `create` is what MAKES that spec: a press there throws
+// away the title and the description with nothing left on the board to
+// run again from, and the row that is left offers Analyze for a spec
+// that does not exist. So the row draws no Cancel while create runs —
+// the step's own timeout is what ends one that hangs.
+describe("a running create offers no Cancel", () => {
+  const creating = (state: QueueRowView["state"]): string =>
+    renderQueueRows(
+      [
+        row({
+          id: "c1",
+          specFolder: "new-abcd1234",
+          steps: ["create", "analyze", "implement", "archive"],
+          stepIndex: 0,
+          state,
+        }),
+      ],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "new-abcd1234" }],
+        filter: { open: "aide/new-abcd1234" },
+      },
+    );
+
+  for (const state of ["queued", "running"] as const) {
+    test(`${state}: no cancel form and no Cancel button`, () => {
+      const html = creating(state);
+      expect(html).not.toContain("/api/queue/c1/cancel");
+      expect(html).not.toContain(">Cancel</button>");
+    });
+  }
+
+  test("a later step of the same job still offers it", () => {
+    const html = renderQueueRows(
+      [
+        row({
+          id: "c2",
+          specFolder: "9-made",
+          steps: ["create", "analyze", "implement", "archive"],
+          stepIndex: 1,
+          state: "running",
+        }),
+      ],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "9-made" }],
+        filter: { open: "aide/9-made" },
+      },
+    );
+    expect(html).toContain("/api/queue/c2/cancel");
+  });
+});

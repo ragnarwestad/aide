@@ -22,6 +22,12 @@ export const BANNED_WORDS: BannedWord[] = [
   // "sammenslåing(en)" and the discontinuous "slå/slått ... sammen"
   // (0 or 1 word between, e.g. "slå sammen", "slå den sammen").
   { word: "sammenslå", insteadOf: "merge", pattern: /sammensl[åa]|slå(?:tt)?(?:\s+\w+)?\s+sammen/i },
+  // "gate" is a word from the machinery, and in Norwegian it is a
+  // street. The thing it named is the project's own tests, run on the
+  // merge — so a message says "the test log", "the tests", "the test
+  // run". Anchored to the whole word, so "investigate"/"navigate" and
+  // the Norwegian "gaten" as part of a longer word are untouched.
+  { word: "gate", insteadOf: "test / test log / test run", pattern: /\bgate(?:n|r|ne|s|d)?\b/i },
 ];
 
 export function findBannedWord(text: string): BannedWord | undefined {

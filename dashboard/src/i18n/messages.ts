@@ -1,6 +1,6 @@
 // Every message the board can show from the four producers REQ-1 names
 // (spec 380): the runner's hold-backs and caps, the landing's refusals,
-// the test gate's verdicts, and the refusals a tab answers a press
+// the landing's own test run, and the refusals a tab answers a press
 // with. One entry per key, English and Norwegian together, so this file
 // alone is the list REQ-5 asks for.
 //
@@ -181,10 +181,10 @@ export const MESSAGES = {
   "landing.archivedNotYetOnDefault": {
     en: "the archived spec is on {branch}, not on the default branch yet.",
     nb: "den arkiverte specen ligger på {branch}, ikke på hovedgrenen ennå.",
-    // The test gate already gave the one instruction that applies (run
+    // The test run already gave the one instruction that applies (run
     // implement again) moments earlier on the same row; a second,
     // different instruction here would contradict it (merge.ts:289-294).
-    exempt: "the test gate's own verdict already named the fix",
+    exempt: "the test run's own verdict already named the fix",
   },
   "landing.stillOnOriginRunArchiveAgain": {
     en: "{branch} is still on origin in {root} — the spec was archived, but its work has not merged. " +
@@ -257,10 +257,10 @@ export const MESSAGES = {
   "landing.testsRedOnMergeFallback": {
     en: "the project's tests are red on the merge into {base}",
     nb: "prosjektets tester er røde på mergen med {base}",
-    // The real message: `test-gate.ts`'s own verdict always carries its
+    // The real message: the landing's own test run always carries its
     // own resolution; this is only the fallback for the rare case it
     // returns none at all.
-    exempt: "a fallback for when the test gate's own verdict carries no message of its own",
+    exempt: "a fallback for when the test run's own verdict carries no message of its own",
   },
   // Which step's landing this was, in front of what went wrong. The
   // badge beside the row names the step the job is on NOW, which is not
@@ -349,7 +349,7 @@ export const MESSAGES = {
     resolve: "run it again",
   },
 
-  // --- the test gate's verdicts (land-branch/test-gate.ts) -----------------
+  // --- the landing's own test run and its verdicts -----------------------
 
   "testGate.cannotResolveCommand": {
     en: "the merge could not work out the test command in {root} — {resolverError}",
@@ -362,18 +362,20 @@ export const MESSAGES = {
     exempt: "an internal resolver failure with no separate action beyond investigating the resolver itself",
   },
   "testGate.timedOut": {
-    en: "the project's tests did not finish within {minutes} minutes on the merge — nothing was pushed; " +
-      "the output is in {log}",
+    en: "the project's tests did not finish within {minutes} minutes on the merge — nothing was " +
+      "pushed; the archive step's own log has what they managed to say. Run archive again when the " +
+      "host is quieter.",
     nb: "prosjektets tester ble ikke ferdig innen {minutes} minutter på mergen — ingenting ble " +
-      "pushet; resultatet ligger i {log}",
-    resolve: "the output is in",
+      "pushet; arkiveringsstegets egen logg har det de rakk å si. Kjør arkivering igjen når " +
+      "maskinen er roligere.",
+    resolve: "Run archive again",
   },
   "testGate.redSuite": {
-    en: "the project's tests are red on this merge, so nothing was pushed. The gate log names the " +
-      "failing test; archive merges the work once it passes.",
-    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet. Loggen fra sjekken " +
-      "navngir den feilende testen; arkivering merger arbeidet så snart den er grønn.",
-    resolve: "archive merges the work once it passes",
+    en: "the project's tests are red on this merge, so nothing was pushed. The archive step's own " +
+      "log names the tests that failed; archive merges the work once they pass.",
+    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet. Arkiveringsstegets " +
+      "egen logg navngir testene som feiler; arkivering merger arbeidet så snart de er grønne.",
+    resolve: "archive merges the work once they pass",
   },
 
   // --- a tab's refusal (queue/parse-request.ts, queue/store.ts) -----------

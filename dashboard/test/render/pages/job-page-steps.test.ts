@@ -252,3 +252,43 @@ describe("the stopped badge carries its error as a tooltip", () => {
     expect(html).not.toContain("title=");
   });
 });
+
+// The test run on the merge belongs to archiving, whatever file it lives
+// in. A reader who opened the Steps tab after a refused merge saw four
+// rows reading "ok" and no sign of the tests that refused it — the page
+// telling them the opposite of what the row on the specs list said.
+describe("a step whose merge was refused does not read ok", () => {
+  const REFUSED: JobDetailView = detail({
+    steps: ["create", "analyze", "implement", "archive"],
+    stepIndex: 3,
+    state: "stopped",
+    stopReason: "tests-red",
+    errorReason: "tests-red",
+    landingError: { key: "landing.stepStopped", values: { step: "archive" } },
+    errorDetail: "(fail) some suite > a test that failed [12ms]\n 1 fail",
+    results: [
+      { step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", at: "2026-09-09T09:00:00Z" },
+      { step: "archive", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", at: "2026-09-09T09:10:00Z" },
+    ],
+  });
+  const cellsFor = (html: string, step: string): string =>
+    html.match(new RegExp(`<tr><td>[^<]*(?:<[^>]+>)*${step}</td>.*?</tr>`))?.[0] ?? "";
+
+  test("the archive row says the merge stopped, and the others still say ok", () => {
+    const html = stepResults(REFUSED.results, undefined, {
+      landingRefused: { step: "archive", word: "merge stopped", detail: REFUSED.errorDetail },
+    });
+    expect(cellsFor(html, "archive")).toContain("merge stopped");
+    expect(cellsFor(html, "archive")).not.toContain(">ok<");
+    expect(cellsFor(html, "implement")).toContain("ok");
+  });
+
+  test("its open panel names the tests that failed", () => {
+    const html = stepResults(REFUSED.results, undefined, {
+      tabHref: "/specs/aide/1-x?tab=steps",
+      openStep: "1",
+      landingRefused: { step: "archive", word: "merge stopped", detail: "(fail) some suite > a test that failed" },
+    });
+    expect(html).toContain("(fail) some suite &gt; a test that failed");
+  });
+});
