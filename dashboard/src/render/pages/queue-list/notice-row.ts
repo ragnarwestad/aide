@@ -41,10 +41,10 @@ function phaseDisagreement(g: SpecGroup, lang: Language): string | undefined {
   for (const p of g.phases) {
     const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);
     if (!word.qualifier) continue;
-    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step)} ${word.qualifier}`;
+    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step, lang)} ${word.qualifier}`;
     earliest ??= { step: p.step, qualifier: word.qualifier };
   }
-  return earliest && `${stepLabel(earliest.step)} ${earliest.qualifier}`;
+  return earliest && `${stepLabel(earliest.step, lang)} ${earliest.qualifier}`;
 }
 
 export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: number, lang: Language): string {

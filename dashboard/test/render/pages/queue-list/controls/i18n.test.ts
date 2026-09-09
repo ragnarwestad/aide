@@ -88,7 +88,7 @@ describe("the row's message panel", () => {
           errorReason: "held-back",
         }),
       ],
-      { runnerAvailable: true, targets: [target("9-held")], lang: "nb" },
+      { runnerAvailable: true, targets: [target("9-held")], lang: "nb", filter: { open: "aide/9-held" } },
     );
 
   const stopped = (lang: "en" | "nb"): string =>
@@ -108,7 +108,15 @@ describe("the row's message panel", () => {
     expect(stopped("en")).toContain("archive stopped: nothing is implemented yet");
   });
 
-  test("a held-back job names the phase that is waiting", () => {
-    expect(held()).toContain("implement holdt tilbake:");
+  test("a held-back job names the phase that is waiting, in Norwegian", () => {
+    expect(held()).toContain("implementering holdt tilbake:");
+    expect(held()).not.toContain("implement holdt tilbake:");
+  });
+
+  test("the phase's own line names it in Norwegian too", () => {
+    const html = held();
+    const line = html.match(/<tr class="subrow[^"]*"[^>]*data-step="archive">.*?<\/tr>/)?.[0] ?? "";
+    expect(line).toContain(">arkivering<");
+    expect(line).not.toContain(">archive<");
   });
 });
