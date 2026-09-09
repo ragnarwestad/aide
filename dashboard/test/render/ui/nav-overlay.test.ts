@@ -19,8 +19,14 @@ const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transform
 const DELAY_MS = 150;
 
 function harness() {
-  let dialog: { open: boolean; showModal: () => void; close: () => void } | null = null;
+  let dialog: {
+    open: boolean;
+    showModal: () => void;
+    close: () => void;
+    querySelector: (sel: string) => { textContent: string; hidden: boolean } | null;
+  } | null = null;
   let insertedHTML: string | null = null;
+  const noteEl = { textContent: "", hidden: true };
   const body = {
     insertAdjacentHTML: (_pos: string, html: string) => {
       insertedHTML = html;
@@ -32,11 +38,13 @@ function harness() {
         close: () => {
           dialog!.open = false;
         },
+        querySelector: (sel: string) => (sel === ".overlaynote" ? noteEl : null),
       };
     },
     get lastElementChild() {
       return dialog;
     },
+    dataset: {} as Record<string, string>,
   };
   let clickHandler: ((event: unknown) => void) | undefined;
   let submitHandler: ((event: unknown) => void) | undefined;
@@ -91,8 +99,9 @@ function harness() {
       defaultPrevented: extra.defaultPrevented ?? false,
     });
 
-  const form = (className: string) => ({
+  const form = (className: string, overlay?: string) => ({
     matches: (sel: string) => sel === ".specform" && className === "specform",
+    dataset: { overlay } as Record<string, string | undefined>,
   });
 
   const emit = (type: string, detail?: string) => others.get(type)?.({ type, detail });
@@ -104,9 +113,12 @@ function harness() {
     submit,
     form,
     emit,
+    body,
     isOpen: () => !!dialog?.open,
     wasInserted: () => insertedHTML !== null,
     insertedHTML: () => insertedHTML,
+    noteText: () => noteEl.textContent,
+    noteHidden: () => noteEl.hidden,
   };
 }
 
@@ -217,6 +229,20 @@ describe("a link that leaves the page covers it until the new one arrives", () =
     await Bun.sleep(DELAY_MS + 10);
     expect(h.isOpen()).toBe(true);
   });
+
+  // Spec 422, REQ-1: a bare overlay reads as broken on a navigation that
+  // takes a moment — the page's own default note, rendered onto <body>
+  // once per request, is what a script that can neither import nor
+  // export otherwise has no way to reach.
+  test("a plain click shows the page's own default note, read off document.body.dataset (spec 422)", async () => {
+    const h = harness();
+    h.body.dataset.overlayNote = "loading…";
+    h.click(h.link("/other"));
+    await Bun.sleep(DELAY_MS + 10);
+    expect(h.isOpen()).toBe(true);
+    expect(h.noteText()).toBe("loading…");
+    expect(h.noteHidden()).toBe(false);
+  });
 });
 
 // Spec 391, REQ-8: a Save form's own submit covers the page the same
@@ -227,6 +253,17 @@ describe("a Save form's submit covers the page until the answer comes back (REQ-
     const h = harness();
     h.submit(h.form("specform"));
     expect(h.isOpen()).toBe(true);
+  });
+
+  // Spec 422, REQ-1/REQ-2: the submitted form's own data-overlay is what
+  // names the operation — the same pattern press.ts already reads a
+  // form's pending text off.
+  test("submitting form.specform shows the form's own data-overlay text (spec 422)", () => {
+    const h = harness();
+    h.submit(h.form("specform", "lagrer…"));
+    expect(h.isOpen()).toBe(true);
+    expect(h.noteText()).toBe("lagrer…");
+    expect(h.noteHidden()).toBe(false);
   });
 
   test("submitting a form without the specform class does nothing", () => {

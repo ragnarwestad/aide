@@ -23,7 +23,7 @@ import {
 } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { codeLandingChoices } from "./site/settings-table.ts";
-import type { Language } from "../../i18n";
+import { t, type Language } from "../../i18n";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { nextFireTime } from "../../queue/schedule.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -400,7 +400,8 @@ export function renderRemoveProjectPage(
         `Its checkout and its specs stay on disk, untouched.`,
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform" data-overlay="removing…">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform" ` +
+      `data-overlay="${t(opts.lang ?? "en", "shell.overlayRemoving")}">` +
     tokenField(opts.token) +
     rowMessage("waiting", `Are you sure you want to remove ${name}? This cannot be undone.`, {
       tag: "p",

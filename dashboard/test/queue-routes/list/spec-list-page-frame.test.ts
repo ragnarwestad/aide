@@ -316,7 +316,7 @@ describe("page code placement", () => {
     const theme = scriptAt(html, "data-theme-choice");
     expect(theme).toBeGreaterThan(-1);
     expect(theme).toBeLessThan(html.indexOf("</head>"));
-    expect(theme).toBeLessThan(html.indexOf("<body>"));
+    expect(theme).toBeLessThan(html.indexOf("<body"));
     expect(theme).toBeLessThan(html.indexOf('id="jobrows"'));
   });
 

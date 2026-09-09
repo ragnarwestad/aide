@@ -354,7 +354,7 @@ ${PWA_LINKS}
 <style>${CSS}</style>
 <script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
-<body>
+<body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
 ${pageHeader(lang)}
 ${installBanner}
 ${aboutDialog(opts.buildStamp)}

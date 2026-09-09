@@ -7,7 +7,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderJobDetailPage, renderSpecPage } from "../../../src/render.ts";
+import { renderJobDetailPage, renderSpecPage, type SpecCheckView } from "../../../src/render.ts";
 import { GENERATED, NAV, NOW, lead, page, view } from "./spec-page-fixtures.ts";
 
 // --- spec 212, criteria 1-3: one tab per document ---------------------------
@@ -310,5 +310,45 @@ describe("spec 242: every attempt's steps in one flat list", () => {
     for (const tab of ["checks", "description", "analysis", "solution", "status", "steps"]) {
       expect([tab, page(v, tab).includes('data-filter="attempt"')]).toEqual([tab, false]);
     }
+  });
+});
+
+// Spec 422, REQ-1/REQ-2: the document tabs' own Save form and the
+// Checks tab's tick form went through nav-overlay.ts's .specform submit
+// path with no data-overlay of their own — a bare spinner for the two
+// or three seconds a Save takes to commit and push. Localized the same
+// way the four confirmation pages already are.
+describe("the Save form and the Checks tick form ask for the covering layer, localized (spec 422)", () => {
+  const tickableCheck: SpecCheckView = {
+    phase: "Acceptance criteria",
+    line: "| A check | ⬜ | |",
+    task: "A check",
+    done: false,
+  };
+
+  test("the Description tab's Save form carries data-overlay=\"saving…\"", () => {
+    const html = page(view(), "description");
+    const form = html.match(/<form[^>]*class="[^"]*specform[^"]*"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="saving…"');
+  });
+
+  test("the Checks tab's tick form carries data-overlay=\"saving…\"", () => {
+    const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
+    const html = page(v, "checks");
+    const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="saving…"');
+  });
+
+  test("in Norwegian (nb), the Description tab's Save form carries the Norwegian text", () => {
+    const html = page(view(), "description", "nb");
+    const form = html.match(/<form[^>]*class="[^"]*specform[^"]*"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="lagrer…"');
+  });
+
+  test("in Norwegian (nb), the Checks tab's tick form carries the Norwegian text", () => {
+    const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
+    const html = page(v, "checks", "nb");
+    const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="lagrer…"');
   });
 });

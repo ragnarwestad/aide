@@ -5,7 +5,7 @@
 // why this page, not a modal, is the right shape for Close.
 
 import { backLink, field, rowMessage, saveCancelActions, tokenField } from "../../ui/components.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
 
@@ -34,7 +34,8 @@ export function renderCloseSpecPage(
       `${CLOSE_VS_RESET_SENTENCE} Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.`,
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue${back}/close" class="newspecform specform" data-overlay="closing…">` +
+    `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +
+      `data-overlay="${t(opts.lang ?? "en", "shell.overlayClosing")}">` +
     tokenField(opts.token) +
     `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
     `<span class="frow">` +

@@ -9,6 +9,7 @@ import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
@@ -135,7 +136,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         : undefined;
 
   const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform" data-overlay="deploying…">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform" ` +
+      `data-overlay="${t(opts.lang ?? "en", "shell.overlayDeploying")}">` +
     tokenField(opts.token) +
     btn({
       label: "Deploy",

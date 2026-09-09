@@ -2,7 +2,7 @@
 
 import { backLink, btn, rowMessage, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
 
@@ -37,7 +37,8 @@ export function renderResetSpecPage(
     rowMessage("waiting", `Are you sure you want to reset ${specFolder}? This cannot be undone.`, {
       tag: "p",
     }) +
-    `<form method="post" action="/api/queue${back}/reset" class="newspecform" data-overlay="resetting…">` +
+    `<form method="post" action="/api/queue${back}/reset" class="newspecform" ` +
+      `data-overlay="${t(opts.lang ?? "en", "shell.overlayResetting")}">` +
     tokenField(opts.token) +
     // Cancel is a LINK wearing the button's look: it submits nothing,
     // and where it goes is the page the reader came from. Inside the

@@ -106,7 +106,7 @@ describe("the header and the two tabs (spec 119)", () => {
       expect([path, m.includes('href="about.html"')]).toEqual([path, true]);
       expect([path, m.match(/href="\/settings"/g)?.length]).toEqual([path, 1]);
       const outside = html.replace(m, "");
-      const body = outside.slice(outside.indexOf("<body>"));
+      const body = outside.slice(outside.indexOf("<body"));
       expect([path, body.includes('href="about.html"')]).toEqual([path, false]);
       expect([path, body.includes('href="/settings"')]).toEqual([path, false]);
     }

@@ -184,4 +184,11 @@ describe("the confirmation pages cover the page while the work runs", () => {
     const form = html.match(/<form[^>]*action="[^"]*\/reset"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="resetting…"');
   });
+
+  // Spec 422, REQ-2: the same text, in the reader's own language.
+  test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken", lang: "nb" });
+    const form = html.match(/<form[^>]*action="[^"]*\/reset"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="nullstiller…"');
+  });
 });

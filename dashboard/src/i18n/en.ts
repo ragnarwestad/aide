@@ -18,6 +18,12 @@ export const en = {
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",
   "shell.installWarning": "aide's last install found a problem — see {path}",
+  "shell.overlayDeploying": "deploying…",
+  "shell.overlayResetting": "resetting…",
+  "shell.overlayClosing": "closing…",
+  "shell.overlayRemoving": "removing…",
+  "shell.overlaySaving": "saving…",
+  "shell.overlayLoading": "loading…",
 
   "list.statesLabel": "States",
   "list.state.all": "All",

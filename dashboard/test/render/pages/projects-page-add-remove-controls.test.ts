@@ -150,6 +150,12 @@ describe("the Remove page", () => {
     expect(form).toContain('data-overlay="removing…"');
   });
 
+  // Spec 422, REQ-2: the same text, in the reader's own language.
+  test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
+    const form = remove("atlasaurus", { lang: "nb" }).match(/<form[^>]*class="[^"]*removeform[^"]*"[^>]*>/)?.[0] ?? "";
+    expect(form).toContain('data-overlay="fjerner…"');
+  });
+
   test("it says what removal does and does not do, before the question", () => {
     // The form and the copy above it — not the shell, whose stylesheet
     // contains ":disabled" selectors of its own and whose head scripts
