@@ -207,6 +207,17 @@ describe("parseArgs (spec 412)", () => {
   test("--claude-usage is refused as an unknown argument, not silently accepted", () => {
     expect(() => parseArgs(["--claude-usage", "http://x"])).toThrow("unknown argument: --claude-usage");
   });
+
+  // Spec 424: which spec this process is a test board for.
+  test("--test-board sets testBoardSpec", () => {
+    expect(parseArgs(["--test-board", "424-headeren-sier-hvilket-board"]).testBoardSpec).toBe(
+      "424-headeren-sier-hvilket-board",
+    );
+  });
+
+  test("without --test-board, testBoardSpec is absent (an ordinary server)", () => {
+    expect(parseArgs([]).testBoardSpec).toBeUndefined();
+  });
 });
 
 describe("resolveDependencyFolder (spec 122)", () => {

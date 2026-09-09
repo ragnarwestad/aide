@@ -4,6 +4,7 @@
 // plain files.
 
 import { readFileSync } from "node:fs";
+import { hostname } from "node:os";
 import { join } from "node:path";
 
 import { CSS } from "./css.ts";
@@ -11,6 +12,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
+import { getBoardInfo } from "./board-info.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
 const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
@@ -228,9 +230,40 @@ function aboutDialog(buildStamp?: string): string {
   );
 }
 
+// Which board this page is served from, and — on a test board — the
+// Stop control beside it (spec 424, REQ-1..5). `getBoardInfo()` is
+// process-lifetime state, read directly here rather than threaded
+// through `pageShell()`'s 17 call sites, the same shape
+// `lastInstallWarning()` above already uses for `AIDE_INSTALL_LOG`.
+//
+// The machine name reads `AIDE_DASH_HOST` before `hostname()` for the
+// same reason `main.ts generate` needs to at build time: the two
+// STATICALLY generated pages (Projects, About) are typically built on
+// one machine and published to another (`Makefile`'s `make publish`),
+// and `renderSite()` calls this same function — so reading the real
+// `hostname()` here would stamp the wrong machine's name onto them
+// whenever the env var is not also set on the machine actually serving
+// them. Harmless when unset: `hostname()` is then this same machine's
+// own name anyway.
+function boardLine(lang: Language): string {
+  const board = getBoardInfo();
+  const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
+  if (!board) return `<span class="row muted small">${machine} - Prod</span>`;
+  return (
+    `<span class="row muted small">${machine} - Test - ${esc(board.specFolder)} : ${esc(board.branch)}` +
+    // No hidden token field (unlike `boardStatus()`'s own Stop form,
+    // `overview.ts`): the reader is already past `queueGuard` to see
+    // this page at all, which means the port-scoped cookie is already
+    // set, and this form posts to the SAME port.
+    `<form class="actionform" method="post" action="/api/self-stop">` +
+    `<button class="btn" type="submit">${t(lang, "shell.stopTestServer")}</button></form>` +
+    `</span>`
+  );
+}
+
 function pageHeader(lang: Language): string {
   return (
-    `<header>${WORDMARK}` +
+    `<header>${WORDMARK}${boardLine(lang)}` +
     // Theme and language sit beside the "…" trigger, both at the
     // header's right-hand end (spec 243, spec 350) — header-level
     // controls the reader reaches without opening the menu first, not

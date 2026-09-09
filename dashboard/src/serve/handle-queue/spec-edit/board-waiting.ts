@@ -70,6 +70,18 @@ export function waitingForBoardPage(_project: string, specFolder: string): Respo
   );
 }
 
+/** REQ-4 (spec 424): what the self-stop route hands back once it has
+ *  scheduled its own exit. A third state beside waiting/failed, in the
+ *  same frame — no refresh (nothing is coming back to poll for) and no
+ *  navigation of its own, the same as `boardFailedPage`. */
+export function stoppedPage(): Response {
+  return htmlPage(
+    "Test server stopped",
+    `<p>Its worktree, log and port are freed as this process ends.</p>`,
+    { refresh: false },
+  );
+}
+
 /** The frame both share: centred, self-contained, no navigation of its
  *  own. A spinner only while something is actually coming. */
 function htmlPage(heading: string, body: string, o: { refresh: boolean }): Response {

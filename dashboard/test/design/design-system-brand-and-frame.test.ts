@@ -7,7 +7,8 @@
 // menu and the two tabs follow the frame contract.
 //
 // Split out of design-system.test.ts by theme.
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { hostname } from "node:os";
 import {
   navEntries,
   renderJobDetailPage,
@@ -17,6 +18,7 @@ import {
   type ProjectView,
 } from "../../src/render.ts";
 import { ICON_LINKS, WORDMARK } from "../../src/render/ui/brand.ts";
+import { getBoardInfo, setBoardInfo } from "../../src/render/ui/board-info.ts";
 import { AT, detail } from "./design-system-fixtures.ts";
 
 // --- the brand ---------------------------------------------------------------
@@ -173,5 +175,75 @@ describe("the header and the two tabs (spec 119)", () => {
     for (const [path, html] of every) {
       expect([path, html.includes('class="layout"')]).toEqual([path, false]);
     }
+  });
+});
+
+// --- the board line and its Stop control (spec 424) --------------------------
+//
+// Which board a page is served from — a process-lifetime value read
+// directly by `pageHeader()` (`getBoardInfo()`), never threaded through
+// any of the call sites above. Covers both a statically generated page
+// (`renderSite`) and a dynamically served one (`renderQueuePage`),
+// since REQ-2 names "headeren" with no page excluded and a test board's
+// own Projects/About come from exactly the same `renderSite()` call a
+// dynamically served page's header does.
+
+describe("the board line and its Stop control (spec 424)", () => {
+  const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
+  const entries = navEntries();
+  const machine = process.env.AIDE_DASH_HOST ?? hostname();
+
+  afterEach(() => setBoardInfo(undefined));
+
+  function render(): string[] {
+    return [
+      ...renderSite([project], AT).map((p) => p.html),
+      renderQueuePage([], AT, entries, { runnerAvailable: true, targets: [] }),
+    ];
+  }
+
+  test("REQ-1: an ordinary server's header reads '<machine> - Prod'", () => {
+    setBoardInfo(undefined);
+    for (const html of render()) {
+      expect(html).toContain(`${machine} - Prod`);
+    }
+  });
+
+  test("REQ-5: an ordinary server draws no Stop form anywhere", () => {
+    setBoardInfo(undefined);
+    for (const html of render()) {
+      expect(html).not.toContain('action="/api/self-stop"');
+    }
+  });
+
+  test("REQ-2: a test board's header reads '<machine> - Test - <spec> : <branch>'", () => {
+    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    for (const html of render()) {
+      expect(html).toContain(
+        `${machine} - Test - 424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra : ` +
+          `aide/424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra`,
+      );
+    }
+  });
+
+  test("REQ-3: a test board's header carries a Stop form beside the line", () => {
+    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    for (const html of render()) {
+      expect(html).toContain('<form class="actionform" method="post" action="/api/self-stop">');
+    }
+  });
+
+  // Risk (3-solution.md): a module-level singleton must never leak a
+  // prior test's board across `createServer()`/render calls in the same
+  // `bun test` process.
+  test("no leakage: an ordinary render right after a test-board one shows no Stop form", () => {
+    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    render();
+    setBoardInfo(undefined);
+    for (const html of render()) {
+      expect(html).not.toContain('action="/api/self-stop"');
+      expect(html).toContain(`${machine} - Prod`);
+    }
+    expect(getBoardInfo()).toBeUndefined();
   });
 });

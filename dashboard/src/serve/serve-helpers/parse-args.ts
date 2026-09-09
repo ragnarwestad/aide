@@ -68,6 +68,9 @@ export function parseArgs(argv: string[]): ServerOptions {
     // The token is read from a FILE, never an argument: `ps` shows
     // arguments to every user on the machine.
     else if (a === "--token-file" && v) tokenFile = argv[++i];
+    // Spec 424: which spec/branch this process is a TEST board for —
+    // absent means an ordinary (prod) server.
+    else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
   }
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");

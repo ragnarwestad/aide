@@ -12,6 +12,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components.ts";
+import { PHASE_TAB } from "../../src/render/pages/spec-page/tabs.ts";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
 const rem = (v: string) => parseFloat(v);
@@ -20,49 +21,60 @@ describe("the specs table fits the box that scrolls it", () => {
   // The stated width has to stay the sum of the columns: `table-layout:
   // fixed` sizes from it, and a number that drifts from the sum leaves
   // one column absorbing the difference.
-  test("five columns are fixed, the sixth takes what is left", () => {
-    const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)].map((m) => rem(m[1]!));
-    expect(fixed).toHaveLength(5);
-    expect(fixed.reduce((a, b) => a + b, 0)).toBeLessThan(stated);
-    // And the sixth is Spec, and it is auto. Six fixed widths make a
-    // table that cannot shrink: `table-layout: fixed` sizes the table to
-    // their SUM, so anything taking a few pixels out of the box — a
-    // classic, space-taking vertical scrollbar above all — leaves the
-    // table wider than its room. Measured in Chromium with the box 15px
-    // narrower: 937px of table in a 923px box, 14px of horizontal
-    // scrollbar; with this column auto, 923 and 923 and no bar
-    // (2026-09-09).
-    expect(css).toMatch(/col\[data-col="spec"\] \{ width: auto; \}/);
+  // The columns are percentages of the table, and the table is 100% of
+  // its box, so they scale with it and the table is never wider than its
+  // room. Rem widths made a table that cannot shrink — `table-layout:
+  // fixed` sizes the table to their SUM — and `auto` on one column made
+  // it worse: the five fixed ones took the whole table and the auto one
+  // was squeezed to 7px, with the phase name lying across the pickers
+  // beside it (2026-09-09).
+  test("the six columns are percentages, and they add up to the whole table", () => {
+    const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)%/g)].map((m) => rem(m[1]!));
+    expect(cols).toHaveLength(6);
+    expect(cols.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
   });
 
-  // The Spec column carries a phase line's name and nothing else, and a
-  // name wider than the column spills into the cell beside it — which is
-  // what the Norwegian labels did to a column measured for "implement"
-  // (2026-09-09). Every label in both catalogues has to fit.
+  // The Spec column carries a phase line's name and nothing else, and
+  // every pixel it has beyond the longest of those names is empty space
+  // between the name and the AI/Model pickers in the cell beside it. It
+  // held 10rem for a day — measured for "manifestoppdatering", a step
+  // almost no spec runs — and put ~100px of nothing on every ordinary
+  // line (2026-09-09).
   //
-  // 7.4px per character at the list's own 13.5px sans (tokens.css,
-  // --fs-m), rounded up from what a UI sans averages for lowercase —
-  // an estimate, deliberately generous, and the point is the ALARM: a
-  // label long enough to fail this is a label worth looking at in a
-  // browser, whatever the exact metric turns out to be.
-  test("the Spec column holds the longest phase name in either language", () => {
-    const px = (rem: number) => rem * 16;
-    // What the auto column draws at the list's full width: everything
-    // the five fixed ones leave.
+  // So what has to fit is the FOUR steps a spec actually goes through,
+  // not every label in the catalogue; a rarer, longer one spills into
+  // the cell beside it, which percentages make possible without the
+  // table growing.
+  //
+  // The widths are MEASURED, not estimated from character counts — the
+  // labels differ too much per character for that ("tilbakestilling" is
+  // 15 characters and narrower than "implementering"'s 14). Taken in
+  // Chromium against this stylesheet at the list's own 13.5px sans. A
+  // label not in the table below fails the test by name: measure it the
+  // same way and add it, rather than guessing.
+  test("the Spec column holds the four workflow steps' names in either language", () => {
+    const px = (r: number) => r * 16;
     const stated = rem(/--speclist-width: ([\d.]+)rem/.exec(css)![1]!);
-    const fixed = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)rem/g)]
-      .map((m) => rem(m[1]!)).reduce((a, b) => a + b, 0);
-    const spec = stated - fixed;
+    const share = rem(/col\[data-col="spec"\] \{ width: ([\d.]+)%/.exec(css)![1]!) / 100;
     // `th, td` pads on the right only, so that is what the name loses.
     const padding = rem(/--sp-3: (\d+)px/.exec(
       readFileSync(new URL("../../src/render/ui/css/tokens.css", import.meta.url), "utf8"),
     )![1]!);
-    const room = px(spec) - padding;
+    const room = px(stated * share) - padding;
 
-    const labels = [...Object.values(STEP_LABELS), ...Object.values(STEP_LABELS_NB)];
-    const longest = labels.reduce((a, b) => (b.length > a.length ? b : a));
-    expect(longest.length * 7.4).toBeLessThanOrEqual(room);
+    // The four steps a spec goes through — `PHASE_TAB` is the list of
+    // them, the ones with a tab of their own on the spec page.
+    const MEASURED_PX: Record<string, number> = {
+      create: 40, analyze: 48, implement: 66, archive: 46,
+      oppretting: 66, analyse: 48, implementering: 98, arkivering: 62,
+    };
+    const shown = Object.keys(PHASE_TAB).flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
+      .filter((l): l is string => Boolean(l));
+    for (const label of shown) {
+      expect(`${label}: ${MEASURED_PX[label] ?? "not measured"}`).toBe(`${label}: ${MEASURED_PX[label]}`);
+      expect(MEASURED_PX[label]!).toBeLessThanOrEqual(room);
+    }
   });
 
   // And the box holds that sum PLUS the table's border. The two pixels
