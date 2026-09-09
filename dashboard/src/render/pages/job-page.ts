@@ -16,6 +16,7 @@ import { renderSentence } from "../../i18n/message.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "../ui/job-state.ts";
+import { heldBackReasonText } from "../ui/job-state/notice.ts";
 import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "../ui/components.ts";
 
 export interface JobStepResultView {
@@ -131,9 +132,9 @@ function labelled(rows: [string, string][]): string {
  *  folder exits just as successfully as one that moved it. So the one
  *  archive row reads the spec's own reason instead — the same words the
  *  list's row shows, from the same field. */
-function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal): string {
+function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal, lang: Language = "en"): string {
   if (r.step === "archive" && r.ok && archiveHeldBack) {
-    return `held back — ${esc(archiveHeldBack)}`;
+    return `held back — ${esc(heldBackReasonText(lang, archiveHeldBack))}`;
   }
   // The step's own process exited fine — that is all `ok` records — and
   // the merge that followed it was refused. A cell reading "ok" there
@@ -238,8 +239,10 @@ export function stepResults(
     runningStep?: JobDetailView["runningStep"];
     mark?: string;
     landingRefused?: LandingRefusal;
+    lang?: Language;
   } = {},
 ): string {
+  const lang: Language = opts.lang ?? "en";
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
@@ -266,7 +269,7 @@ export function stepResults(
       const main =
         `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">Attempt ${r.attempt}</span> `}` +
         `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
-        `<td>${outcome(r, archiveHeldBack, opts.landingRefused)}</td>` +
+        `<td>${outcome(r, archiveHeldBack, opts.landingRefused, lang)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
         // zero would print — and there is no estimate to mark either,
@@ -539,6 +542,7 @@ export function renderJobDetailPage(
           openStep: opts.step,
           runningStep: job.runningStep,
           landingRefused: landingRefusal(job, lang),
+          lang,
         })
       : head;
 

@@ -92,9 +92,10 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
     // Spec 342: the phase table has replaced Project's row's own
     // hand-rolled AI/Model pair (criterion 8, spec 228) as what sits
-    // between Project's row and Depends on. Spec 394 (REQ-3) then paired
-    // Depends on with the acceptance switch in one `.frow` of their
-    // own — the phase table's own rows are still not inside a `.frow`.
+    // between Project's row and Depends on. Spec 426 gave the acceptance
+    // switch its own `.frow`, between the phase table and Depends on's
+    // own `.frow` — the phase table's own rows are still not inside a
+    // `.frow`.
     const betweenProjectAndTable = html.slice(
       html.indexOf('<select name="project">'),
       html.indexOf('<table class="list">'),
@@ -104,12 +105,13 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       html.indexOf("</table>"),
       html.indexOf('<span>Depends on</span>'),
     );
-    // Nothing but those two wrappers stands between them. The label's
+    // Nothing but those three wrappers stands between them: the
+    // acceptance switch's own `.frow`, then Depends on's. The label's
     // own line carries a "(?)", and the head wrapper the field draws
     // for that is markup, not order — the rule here is that no OTHER
     // field or control sits in the gap.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -257,15 +259,16 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain("No project on this machine");
   });
 
-  // Spec 309: nothing on this page said requirements would be drafted
-  // from the text, or that a Requirements section written here is left
-  // alone — the only hint lived in a job log a headless run never shows.
-  test("the Description field carries a hint about drafted requirements", () => {
+  // Spec 309: nothing on this page said acceptance criteria would be
+  // drafted from the text, or that an Acceptance criteria section written
+  // here is left alone — the only hint lived in a job log a headless run
+  // never shows.
+  test("the Description field carries a hint about drafted acceptance criteria", () => {
     const html = newPage();
     expect(html).toContain(
-      '<small class="muted small">Requirements will be drafted from this ' +
-        'text — a "## Requirements" section you write here is left as it ' +
-        "stands.</small>",
+      '<small class="muted small">Acceptance criteria will be drafted from ' +
+        'this text — a "## Acceptance criteria" section you write here is ' +
+        'left as it stands.</small>',
     );
     const field = html.slice(
       html.indexOf('<textarea name="description"'),
@@ -388,7 +391,7 @@ describe("spec 342: the phase table", () => {
   // so a spec that quietly skipped its acceptance table could only be
   // put right by running the whole analysis again — a quarter of an
   // hour and real money for one box.
-  test("spec 394: the acceptance switch is drawn beside Depends on, checked by default", () => {
+  test("spec 394/426: the acceptance switch is checked by default", () => {
     const html = newPage();
     const box = html.match(/<input type="checkbox"[^>]*name="acceptanceRequired"[^>]*>/)?.[0] ?? "";
     expect(box).not.toBe("");
@@ -428,17 +431,25 @@ describe("spec 342: the phase table", () => {
     expect(html).not.toContain('data-col="cost"');
   });
 
-  // REQ-3: the two sit together, not separated by the phase table — a
-  // "Depends on" field is only drawn at all when there is another spec
-  // to build on, so this exercises that case rather than the bare page.
-  test("spec 394: Depends on and the acceptance switch are drawn adjacent, in one row", () => {
+  // REQ-1, REQ-2 (spec 426): the switch sits on its own line, above
+  // "Depends on" — a "Depends on" field is only drawn at all when there
+  // is another spec to build on, so this exercises that case rather than
+  // the bare page.
+  test("spec 426: the acceptance switch is drawn on its own line, above Depends on", () => {
     const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
-    const dependsIdx = html.indexOf("<span>Depends on</span>");
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
+    const dependsIdx = html.indexOf("<span>Depends on</span>");
+    expect(acceptIdx).toBeGreaterThan(-1);
     expect(dependsIdx).toBeGreaterThan(-1);
-    expect(acceptIdx).toBeGreaterThan(dependsIdx);
-    const between = html.slice(dependsIdx, acceptIdx);
-    // Nothing from the phase table's own rows sits between them.
+    expect(acceptIdx).toBeLessThan(dependsIdx);
+    // Each sits in its own `.frow`, not sharing one.
+    const acceptFrowStart = html.lastIndexOf('<span class="frow">', acceptIdx);
+    const dependsFrowStart = html.lastIndexOf('<span class="frow">', dependsIdx);
+    expect(acceptFrowStart).toBeGreaterThan(-1);
+    expect(dependsFrowStart).toBeGreaterThan(acceptFrowStart);
+    // Nothing from the phase table's own rows sits between the table
+    // and the acceptance row.
+    const between = html.slice(html.indexOf("</table>"), acceptIdx);
     expect(between).not.toContain("data-step=");
   });
 });

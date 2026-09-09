@@ -105,6 +105,59 @@ def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
     assert "never moved to archive" in out["error"], out
     assert recorded_line(workspace) == "create, analyze, implement"
 
+def _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude):
+    """The shape both refusal tests share: the pre-session check meets an
+    OPEN conflict (so the session is spawned), the session resolves it
+    and reports `completed` — while `aide-archive-spec`, asked by the
+    session, refused to move the folder."""
+    conflicting_branch(workspace)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'printf "resolved by the step\\n" > contested.txt\n'
+        "git add -A\n"
+        "git commit -q --no-edit\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    return run(runner, workspace, claude, command="archive")
+
+def test_an_archive_claim_over_unticked_acceptance_criteria_is_that_refusal(
+    runner, workspace, fake_claude
+):
+    """A folder that stayed put because the script REFUSED (an unticked
+    `## Acceptance criteria` row) is that refusal — ok, held back, the
+    same answer the pre-session check gives when no conflict is in the
+    way — never a red `no-progress` beside a held-back row (427,
+    2026-09-09)."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.write_text(
+        status_path.read_text()
+        + "\n## Acceptance criteria\n\n"
+        + "| Task | Status | Notes |\n|------|--------|-------|\n"
+        + "| REQ-1: does the thing | ⬜ | |\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    rc, out, _ = _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert "error" not in out or not out["error"], out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+def test_an_archive_claim_before_implement_is_not_implemented_yet(
+    runner, workspace, fake_claude
+):
+    """The other refusal the script answers on its own, asked in the
+    script's own order: no `implement` on the line is
+    `not-implemented-yet`, whatever the session claimed."""
+    status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
+    rc, out, _ = _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "not-implemented-yet", out
+    assert recorded_line(workspace) == "create, analyze"
+
 def test_a_genuine_archive_run_is_unaffected(runner, workspace, fake_claude):
     """AC4. The spec folder genuinely moves under `archive/` (the
     mechanical pre-check's own `archived` outcome, since `implement` is

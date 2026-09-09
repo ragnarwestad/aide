@@ -124,6 +124,34 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(spawns.length).toBe(before + 1);
   });
 
+  // The bash cross-check's `no-progress` verdict arrives as an English
+  // sentence of the script's own; the job keeps it as hover detail and
+  // shows the board's message for that step instead, so a Norwegian row
+  // is not the one place on the board that speaks English (427,
+  // 2026-09-09).
+  test("an archive that made no progress is stored as the board's own message, the script's sentence as detail", () => {
+    const bash =
+      "the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step.";
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "no-progress", error: bash }) });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id);
+    expect(after?.state).toBe("failed");
+    expect(after?.error).toEqual({ key: "runner.noProgressArchive" });
+    expect(after?.errorDetail).toBe(bash);
+    expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
+  });
+
+  test("any other failure keeps the sentence the script wrote", () => {
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.error).toBe("no");
+    expect(store.get(job.id)?.errorDetail).toBeUndefined();
+  });
+
   test("a step that failed is reported to the hook too, and lands nothing", () => {
     const seen: boolean[] = [];
     const job = enqueue({ steps: ["create"] });

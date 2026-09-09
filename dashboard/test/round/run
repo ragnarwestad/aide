@@ -88,6 +88,16 @@ fi
 # line and its self-stop route. Only set when $BRANCH is — the prod
 # launch path never passes --branch and never reaches this script.
 SPEC_FOLDER="${BRANCH#aide/}"
+# `--test-board` (spec 424) is an argument of the served checkout's OWN
+# `serve.ts`, and a branch cut before that spec landed does not know it
+# — handed the flag anyway, its serve refuses to start with "unknown
+# argument". So the flag goes only where the branch's argument parser
+# names it; an older branch gets the board it always got, without the
+# header line and the Stop button.
+TEST_BOARD_ARGS=()
+if [ -n "$SPEC_FOLDER" ] && grep -q -- '--test-board' "$SERVE_FROM/dashboard/src/serve/serve-helpers/parse-args.ts" 2>/dev/null; then
+  TEST_BOARD_ARGS=(--test-board "$SPEC_FOLDER")
+fi
 
 CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"
 # `-b main`, never the machine's own `init.defaultBranch`: git makes
@@ -173,14 +183,14 @@ fi
 
 echo "== starting the dashboard from $SERVE_FROM on :$PORT"
 ( cd "$SERVE_FROM/dashboard" && "$BUN" run src/main.ts generate --root "$WORK/root" --out "$WORK/site" \
-    ${SPEC_FOLDER:+--test-board "$SPEC_FOLDER"} >/dev/null 2>&1 ) \
+    ${TEST_BOARD_ARGS[@]+"${TEST_BOARD_ARGS[@]}"} >/dev/null 2>&1 ) \
   || echo "(generate failed; serving without a generated site)"
 ( cd "$SERVE_FROM/dashboard" && exec "$BUN" run src/serve/serve.ts serve \
     --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" --site "$WORK/site" \
     --queue-config "$WORK/queue-config.json" --queue-mirror "$WORK/queue.json" \
     --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" --token-file "$WORK/token" \
     --dashboard-checkouts "$WORK/checkouts" --runner-bin "$SERVE_FROM/core/scripts/aide-run-spec" \
-    --queue-projects aide-test ${SPEC_FOLDER:+--test-board "$SPEC_FOLDER"} ) > "$WORK/serve.log" 2>&1 &
+    --queue-projects aide-test ${TEST_BOARD_ARGS[@]+"${TEST_BOARD_ARGS[@]}"} ) > "$WORK/serve.log" 2>&1 &
 SERVER=$!
 # Removed on exit unless told to keep the board up — same shape
 # test-instance's own stop()/trap already had.

@@ -15,12 +15,14 @@ from .test_templates import structure_block
 
 @pytest.mark.validation
 class TestSolutionOwnsTheCriteria:
-    """3-solution.md owns acceptance criteria and the behavior delta.
+    """3-solution.md owns the testable acceptance criteria and the
+    behavior delta.
 
-    The strict separation says 1-description is ONLY the problem as
-    reported — criteria for done-ness are part of the solution. And the
-    solution must state what it changes in BEHAVIOR (adds/modifies/
-    removes), not just which files it touches.
+    The strict separation says 1-description carries at most the AC-n
+    SHALL-statement source list — the testable given/when/then scenarios
+    that verify each one are part of the solution. And the solution must
+    state what it changes in BEHAVIOR (adds/modifies/removes), not just
+    which files it touches.
     """
 
     @staticmethod
@@ -43,12 +45,17 @@ class TestSolutionOwnsTheCriteria:
             assert word in content, \
                 f"Acceptance criteria must be given/when/then scenarios ({word} missing)"
 
-    def test_description_template_has_no_acceptance_criteria(self, workspace_root):
+    def test_description_template_has_no_testable_given_when_then_criteria(self, workspace_root):
         content = self._template(workspace_root, "1-description.md.template")
-        assert "cceptance criteria" not in content, \
-            "1-description is ONLY the problem as reported — criteria live in 3-solution"
+        assert not any(line.startswith("## Acceptance criteria")
+                       for line in content.splitlines()), \
+            "1-description scaffolds no heading — its own optional Acceptance " \
+            "criteria section is authored from scratch, never a placeholder middle state"
+        assert "Given" not in content, \
+            "1-description's optional Acceptance criteria section holds AC-n SHALL " \
+            "statements only — testable given/when/then scenarios live in 3-solution"
 
-    def test_file_templates_put_criteria_in_solution(self, workspace_root):
+    def test_file_templates_put_testable_criteria_in_solution(self, workspace_root):
         path = (workspace_root / "core" / "skills" / "aide-create"
                 / "references" / "file-templates.md")
         if not path.exists():
@@ -59,8 +66,9 @@ class TestSolutionOwnsTheCriteria:
             sections[header] = chunk
         desc = next(v for k, v in sections.items() if k.startswith("1-description"))
         sol = next(v for k, v in sections.items() if k.startswith("3-solution"))
-        assert "cceptance criteria" not in desc, \
-            "file-templates.md must not put acceptance criteria in 1-description"
+        assert "Given" not in desc, \
+            "file-templates.md's 1-description.md section must not describe testable " \
+            "given/when/then scenarios — only 3-solution.md does"
         assert "cceptance criteria" in sol, \
             "file-templates.md must put acceptance criteria in 3-solution"
 
@@ -266,12 +274,12 @@ class TestRequirementsTracingIsDocumented:
         raise AssertionError(f"no '## {prefix}' section found")
 
     # Criterion 1
-    def test_rule_documents_the_req_format(self, workspace_root):
+    def test_rule_documents_the_ac_format(self, workspace_root):
         block = structure_block(self._rule(workspace_root), "1-description")
-        assert "## Requirements" in block, \
-            "1-description's structure example must show a Requirements section"
-        assert "REQ-" in block and "SHALL" in block, \
-            "the Requirements example must use REQ-n ids and SHALL statements"
+        assert "## Acceptance criteria" in block, \
+            "1-description's structure example must show an Acceptance criteria section"
+        assert "AC-" in block and "SHALL" in block, \
+            "the Acceptance criteria example must use AC-n ids and SHALL statements"
 
     def test_rule_key_points_state_additive_ids_and_jira_never_adds(self, workspace_root):
         content = self._rule(workspace_root)
@@ -287,34 +295,37 @@ class TestRequirementsTracingIsDocumented:
             "Key points must state JIRA mode never adds a Requirements section"
 
     # Criterion 2
-    def test_rule_separation_table_has_requirements_row(self, workspace_root):
+    def test_rule_separation_table_has_acceptance_criteria_row_for_description(self, workspace_root):
         table = self._section(self._rule(workspace_root), "Separation of content")
-        line = next((l for l in table.splitlines() if l.startswith("| Requirements")), None)
-        assert line, "the separation table must have a 'Requirements' row"
-        assert "1-description.md" in line, \
-            f"Requirements must be mapped to 1-description.md, not: {line}"
+        line = next(
+            (l for l in table.splitlines()
+             if l.startswith("| Acceptance criteria") and "1-description.md" in l),
+            None,
+        )
+        assert line, \
+            "the separation table must have an 'Acceptance criteria' row mapped to 1-description.md"
 
     # Criterion 3
     def test_description_template_adds_no_new_heading_or_placeholder(self, workspace_root):
         content = self._template(workspace_root, "1-description.md.template")
-        assert not any(line.startswith("## Requirements")
+        assert not any(line.startswith("## Acceptance criteria")
                        for line in content.splitlines()), \
-            "1-description template must not scaffold a Requirements heading — " \
+            "1-description template must not scaffold an Acceptance criteria heading — " \
             "the section is either written or absent, no placeholder middle state"
 
     # Criterion 4
-    def test_solution_template_documents_the_req_prefix(self, workspace_root):
+    def test_solution_template_documents_the_ac_prefix(self, workspace_root):
         content = self._template(workspace_root, "3-solution.md.template")
         section = content.split("## Acceptance criteria", 1)[1]
-        assert "REQ-" in section, \
-            "3-solution's Acceptance criteria intro/example must mention the REQ-id prefix"
+        assert "AC-" in section, \
+            "3-solution's Acceptance criteria intro/example must mention the AC-id prefix"
 
     # Criterion 5
     def test_create_step_4_asks_before_guessing_and_skips_jira(self, workspace_root):
         step = self._step(self._skill(workspace_root, "aide-create"), "Step 4:")
         lowered = step.lower()
-        assert "req-n" in lowered, \
-            "aide-create Step 4 must instruct formulating REQ-n statements"
+        assert "ac-n" in lowered, \
+            "aide-create Step 4 must instruct formulating AC-n statements"
         assert "ask" in lowered, \
             "aide-create Step 4 must ask for clarification when the description is too thin"
         assert "jira" in lowered and "skip" in lowered, \
@@ -330,10 +341,10 @@ class TestRequirementsTracingIsDocumented:
             "aide-create Step 6 must state reviewing/editing before analyze is the user's responsibility"
 
     # Criterion 7
-    def test_file_templates_documents_the_optional_requirements_bullet(self, workspace_root):
+    def test_file_templates_documents_the_optional_acceptance_criteria_bullet(self, workspace_root):
         section = self._section(self._file_templates(workspace_root), "1-description.md")
-        assert "REQ-" in section and "Requirements" in section, \
-            "file-templates.md's 1-description.md section must document the optional Requirements bullet"
+        assert "AC-" in section and "Acceptance criteria" in section, \
+            "file-templates.md's 1-description.md section must document the optional Acceptance criteria bullet"
 
     # Criterion 8
     def test_analyze_steps_point_at_the_reference_file_without_inline_mechanics(self, workspace_root):
@@ -357,15 +368,15 @@ class TestRequirementsTracingIsDocumented:
             "requirements-tracing.md's Step 7 must name the missing-id must-fix check"
 
     # Criterion 10
-    def test_plan_review_coherence_item_checks_req_coverage(self, workspace_root):
+    def test_plan_review_coherence_item_checks_ac_coverage(self, workspace_root):
         content = self._plan_review(workspace_root)
         coherence = content.split("**Coherence**", 1)[1]
         # Isolate the Coherence bullet from the next numbered reviewer/section.
         coherence = re.split(r"\n\d\.\s|\n## ", coherence, maxsplit=1)[0]
-        assert "REQ" in coherence, \
-            "plan-review.md's Coherence reviewer must ask about REQ-id coverage"
+        assert "AC" in coherence, \
+            "plan-review.md's Coherence reviewer must ask about AC-id coverage"
         assert "must-fix" in coherence.lower(), \
-            "a missing REQ-id must be named a must-fix"
+            "a missing AC-id must be named a must-fix"
 
     # Spec 313
     def test_acceptance_criteria_row_sources_from_description_not_solution(self, workspace_root):
@@ -381,7 +392,7 @@ class TestRequirementsTracingIsDocumented:
                 "from 3-solution.md — a person cannot judge a test scenario"
 
     # Spec 313
-    def test_acceptance_criteria_is_one_row_per_req_id_ascending(self, workspace_root):
+    def test_acceptance_criteria_is_one_row_per_ac_id_ascending(self, workspace_root):
         rule = self._rule(workspace_root)
         rule_section = rule[rule.index("#### Acceptance criteria (optional)"):]
         rule_section = rule_section[:rule_section.index("\n---", rule_section.index("archive-spec"))]
@@ -394,17 +405,17 @@ class TestRequirementsTracingIsDocumented:
             (tracing_section, "requirements-tracing.md"),
         ):
             lowered = section.lower()
-            assert "one row per" in lowered and "req-n" in lowered, \
-                f"{label}'s Acceptance criteria section must state one row per REQ-n id"
+            assert "one row per" in lowered and "ac-n" in lowered, \
+                f"{label}'s Acceptance criteria section must state one row per AC-n id"
             assert "ascending" in lowered, \
                 f"{label}'s Acceptance criteria section must state ascending id order"
 
         skill = self._skill(workspace_root, "aide-analyze")
         assert "REQ-tagged criterion" not in skill, \
             "aide-analyze/SKILL.md's Step 8 pointer must no longer say " \
-            "'REQ-tagged criterion' — it names one row per REQ-n id instead"
-        assert "REQ-n id" in skill, \
-            "aide-analyze/SKILL.md's Step 8 pointer must say 'REQ-n id'"
+            "'REQ-tagged criterion' — it names one row per AC-n id instead"
+        assert "AC-n id" in skill, \
+            "aide-analyze/SKILL.md's Step 8 pointer must say 'AC-n id'"
 
     # Spec 386
     def test_requirements_tracing_documents_the_run_level_switch(self, workspace_root):
