@@ -209,6 +209,12 @@ export async function landBranch(
       if (!result.ok) result = pickRefusal(first, result);
       if (result.ok) {
         ctx.branchStatus.invalidate(repo.root, branch);
+        // The open-branch cache is the other half of the same
+        // correction, and it is what the archived row reads. Only when
+        // the delete actually succeeded: a branch still on origin
+        // because its delete failed IS open, and spec 319's own
+        // sentence for that case is written from `deleteErrors` below.
+        if (!result.branchDeleteError) ctx.branchStatus.forgetOpenSpecBranch(repo.root, branch);
         // spec 406: a discarded root never merged anything — nothing to
         // install. The block below is `mergeBranchIntoDefault`'s own
         // success handling, which `deleteBranchOnly` never earns.
