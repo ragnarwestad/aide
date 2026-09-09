@@ -382,31 +382,38 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // spec), never something parking here could fix — the same rule
     // blockedDependencies already keeps for an unknown dependency id.
     if (!spec) continue;
-    // spec 355 (REQ-3): the state file, not a fresh parse of the prose
-    // beside it — the same gate `core/scripts/aide-run-spec`'s own
-    // may-implement-start check reads, now off the one shared source.
-    // The state file when the spec has one, its own prose when it has
-    // not: a spec analyzed before spec 355 landed carries no state
-    // file, and reading that as "nothing has run" held every
-    // such implement back as not analyzed (2026-09-02). The runner's own
-    // gate (spec 344) still refuses a spec that truly has not been
-    // analyzed, whichever source said so here.
-    // The BRANCH copy first, as the acceptance gate below reads it: a
-    // chained job's analyze is on `aide/<folder>` the moment the step
-    // ends, and its landing can fail (main moved under it) without the
-    // analysis being any less done — implement runs from that branch.
-    // Read off disk alone, such a job sat queued behind "held back: not
-    // analyzed yet" with the real reason only in landingError
-    // (2026-09-03).
-    const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
-    const steps =
-      branchAnswer?.stateSteps ??
-      (branchAnswer?.proseSteps.length ? branchAnswer.proseSteps : undefined) ??
-      readSpecState(spec.dir)?.completedPhases ??
-      proseSteps(spec.dir);
-    if (!steps.includes("analyze")) blocked.add(job.id);
+    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze")) blocked.add(job.id);
   }
   return blocked;
+}
+
+/** Which workflow steps this spec has actually completed.
+ *
+ *  spec 355 (REQ-3): the state file, not a fresh parse of the prose
+ *  beside it — the same gate `core/scripts/aide-run-spec`'s own
+ *  may-implement-start check reads, now off the one shared source.
+ *  The state file when the spec has one, its own prose when it has
+ *  not: a spec analyzed before spec 355 landed carries no state
+ *  file, and reading that as "nothing has run" held every
+ *  such implement back as not analyzed (2026-09-02). The runner's own
+ *  gate (spec 344) still refuses a spec that truly has not been
+ *  analyzed, whichever source said so here.
+ *
+ *  The BRANCH copy first, as the acceptance gate reads it: a
+ *  chained job's analyze is on `aide/<folder>` the moment the step
+ *  ends, and its landing can fail (main moved under it) without the
+ *  analysis being any less done — implement runs from that branch.
+ *  Read off disk alone, such a job sat queued behind "held back: not
+ *  analyzed yet" with the real reason only in landingError
+ *  (2026-09-03). */
+function completedSteps(ctx: ScheduleContext, dir: string, folder: string): string[] {
+  const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(dir, folder).steps;
+  return (
+    branchAnswer?.stateSteps ??
+    (branchAnswer?.proseSteps.length ? branchAnswer.proseSteps : undefined) ??
+    readSpecState(dir)?.completedPhases ??
+    proseSteps(dir)
+  );
 }
 
 /** `blockedForMissingAnalyze`'s sibling for `archive`: every queued job
@@ -431,6 +438,17 @@ export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> 
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;
+    // A spec that never reached `implement` is not waiting for a tick,
+    // whatever its rows say: `core/scripts/aide-archive-spec` refuses it
+    // with `not-implemented-yet` before it ever looks at the acceptance
+    // section, and that refusal is the reason the reader needs. Held
+    // here instead, the row read "tick the Acceptance criteria" — asking
+    // a person to sign off work nobody has done, on a job that would
+    // then sit queued for a tick that cannot honestly be made (423,
+    // 2026-09-09). Let it start: the script answers as its own
+    // pre-check, before any model is spawned, and the job ends with
+    // "nothing is implemented yet — run implement first" on the row.
+    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("implement")) continue;
     // The branch copy first, as the row and the Checks tab read it —
     // a tick on a spec with an open branch is written there, and the
     // disk copy stays unticked until archive lands.
