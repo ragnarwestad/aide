@@ -524,7 +524,10 @@ export class Runner {
       const result = this.o.store.transition(job.id, "step-failed", {
         ...base,
         finishedAt: this.o.now(),
-        error: outcome.error ?? outcome.terminalReason,
+        error: noProgressMessage(step, outcome) ?? outcome.error ?? outcome.terminalReason,
+        // The script's own English sentence survives as hover detail
+        // where the board's message replaced it as the text.
+        errorDetail: noProgressMessage(step, outcome) && typeof outcome.error === "string" ? outcome.error : undefined,
         // A conflict found HERE — at step start, by the runner — has to
         // reach the job the same way a landing's conflict does, so the
         // failure is stored as what it IS rather than as an unexplained
@@ -552,4 +555,15 @@ export class Runner {
     // to weigh, and the next step is simply queued.
     this.o.store.transition(job.id, "step-succeeded", { ...base, stepIndex: nextIndex });
   }
+}
+
+/** The bash cross-check's `no-progress` verdict (run-spec-status-line.sh),
+ *  as the board's own message for the step it was about — so the row
+ *  reads it in the reader's language rather than in the script's
+ *  English. Every other failure keeps the sentence the script wrote. */
+function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason !== "no-progress") return undefined;
+  if (step === "archive") return { key: "runner.noProgressArchive" };
+  if (step === "implement") return { key: "runner.noProgressImplement" };
+  return undefined;
 }

@@ -11,6 +11,7 @@ export const en = {
   "shell.languageNorwegian": "Norwegian",
   "shell.more": "More",
   "shell.settings": "Settings",
+  "shell.testServers": "Test servers",
   "shell.about": "About",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
@@ -24,6 +25,7 @@ export const en = {
   "shell.overlayRemoving": "removing…",
   "shell.overlaySaving": "saving…",
   "shell.overlayLoading": "loading…",
+  "shell.stopTestServer": "Stop",
 
   "list.statesLabel": "States",
   "list.state.all": "All",

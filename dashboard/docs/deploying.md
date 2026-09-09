@@ -177,6 +177,12 @@ Publishing the generated site to that host is separate:
 page's identity lives, next to the route table above: renaming which generated page is the front page means updating
 this guard too, not just the route strings.
 
+Any value that a statically generated page needs to show for the SERVING host — not the machine
+`make publish` happens to run on — reads `AIDE_DASH_HOST` first and falls back to `hostname()`, the
+same way the header's own machine name does (`dashboard/src/render/ui/shell.ts`'s `boardLine()`).
+Reading `hostname()` alone at generate time silently stamps the wrong machine's name whenever
+publishing runs from somewhere other than the serving host.
+
 ## Saying it once instead of every time
 
 Copy `.env.deploy.example` to `.env.deploy` and fill in your own machines. The Makefile includes it, so

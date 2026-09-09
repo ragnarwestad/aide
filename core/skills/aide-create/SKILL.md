@@ -86,27 +86,27 @@ Examples:
 ### Step 4: Create the directory and 5 files
 
 **TODO mode, before composing the description below:** if the incoming
-description already contains a `## Requirements` section whose lines
-already match `^- \*\*REQ-\d+:\*\*` (spec-structure rule §
+description already contains a `## Acceptance criteria` section whose
+lines already match `^- \*\*AC-\d+:\*\*` (spec-structure rule §
 1-description), pass it through into `--description` exactly as
 given — do not reformulate it, renumber it, or append a second
-Requirements section. Only a description with no such matching section
-reaches the step below.
+Acceptance criteria section. Only a description with no such matching
+section reaches the step below.
 
 Otherwise, attempt to formulate the user's loose description as a
-`## Requirements` section with `REQ-n` SHALL statements (format:
+`## Acceptance criteria` section with `AC-n` SHALL statements (format:
 spec-structure rule § 1-description) — every line exactly
-`- **REQ-n:** ...`, bold included. If the description is too thin for
+`- **AC-n:** ...`, bold included. If the description is too thin for
 confident SHALL statements, ask the user for the necessary
-clarifications now, before creating the spec — never write a
-Requirements section you had to guess at. JIRA mode: skip this
+clarifications now, before creating the spec — never write an
+Acceptance criteria section you had to guess at. JIRA mode: skip this
 entirely — the Problem text is external and verbatim, and formalizing
 someone else's issue puts words in their mouth.
 
-`aide-create-spec` refuses when a Requirements-looking line does not
-match the bold format exactly. If it refuses for that reason, fix the
-offending line's formatting and call it again — never work around the
-refusal by dropping the line instead.
+`aide-create-spec` refuses when an Acceptance-criteria-looking line does
+not match the bold format exactly. If it refuses for that reason, fix
+the offending line's formatting and call it again — never work around
+the refusal by dropping the line instead.
 
 Call the script — never the Write tool — so file creation stays on a
 Bash-only path (this is what lets a Write/Edit permission rule be
@@ -247,11 +247,11 @@ no `Model (create)` line is written — an absence, never a guess.
 
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text
-(Problem, or any Requirements section) in the chat; the file list below
-is the whole summary. When a Requirements section was written, say so
-explicitly and note that reading it through — and editing it, in the
-dashboard or directly in the repo — is the user's responsibility before
-`/aide-analyze` runs.
+(Problem, or any Acceptance criteria section) in the chat; the file list
+below is the whole summary. When an Acceptance criteria section was
+written, say so explicitly and note that reading it through — and
+editing it, in the dashboard or directly in the repo — is the user's
+responsibility before `/aide-analyze` runs.
 
 ```text
 Task created: 55-clean-up-console-log

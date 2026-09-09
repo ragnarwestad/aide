@@ -46,6 +46,7 @@ act). `rowMessage()` alone turns a kind into a colour and an icon — never at t
 | Component       | Variants                                                               |
 |-----------------|------------------------------------------------------------------------|
 | `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small` |
+| `.iconlink`     | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`   |
 | `phaseChip()`   | `default`, `checked`, `done`, `off` (with the reason in `title`)       |
 | `rowMessage()`  | `info`, `waiting`, `failed`                                            |
@@ -159,8 +160,14 @@ script by first occurrence will silently grab the wrong one; find each by a subs
 ## Header and tab bar, not a sidebar
 
 Every page's `<body>` is `header + nav.tabs + main`. `shell.ts` builds `pageHeader()`
-(the wordmark, then a "..." menu) and `tabBar()`
+(the wordmark, a line naming the machine and which board it is, then a "..." menu) and `tabBar()`
 (Specs/Projects); there is no sidebar, and no reserved column standing empty for one.
+
+The board line reads "*machine* - Prod" on the prod board, and "*machine* - Test - *spec* : *branch*"
+plus a Stop button on a test server — `board-info.ts` holds which one this process is, set once at boot
+from the CLI flag it was started with (`--test-board`), and read directly by `pageHeader()` rather than
+threaded through every page renderer, the same way `lastInstallWarning()` already reads
+`AIDE_INSTALL_LOG` directly.
 
 The "..." menu is a `<details>`/`<summary>` disclosure, the same pattern
 `.more`, `.newspec` and `.intro` use — not a JS-driven popover. That keeps `queue-routes.test.ts`'s "no page

@@ -53,8 +53,8 @@ Examples:
   project manifest gives deployment, logging and dependency context
   the analysis should use (refresh it with `/aide-manifest`)
 - Identify: What should change? What is the scope? Migration or single fix?
-- If `1-description.md` has a `## Requirements` section, extract its
-  `REQ-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
+- If `1-description.md` has a `## Acceptance criteria` section, extract
+  its `AC-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
 
 **This skill never modifies anything outside the spec's own four
 documents** — not application source, not test files, nothing in the
@@ -123,8 +123,8 @@ Sections already filled in per Step 4 are left untouched.
 Nothing that judges the solution goes here — complexity, estimate and risk
 analysis belong to 3-solution.md (spec structure § Separation of content).
 
-When REQ-n ids exist, see `references/requirements-tracing.md` for how
-findings are prefixed with the REQ-id(s) they support.
+When AC-n ids exist, see `references/requirements-tracing.md` for how
+findings are prefixed with the AC-id(s) they support.
 
 ### Step 6: Create the implementation plan (3-solution.md)
 
@@ -146,8 +146,8 @@ consequence, probability and mitigation.
 
 **Acceptance criteria:** testable given/when/then scenarios. Each criterion
 must be verifiable by a test — if you cannot phrase the test, the criterion
-is too vague. When REQ-n ids exist, see `references/requirements-tracing.md`
-for how each criterion opens with the REQ-id it covers.
+is too vague. When AC-n ids exist, see `references/requirements-tracing.md`
+for how each criterion opens with the AC-id it covers.
 
 **Name the test command the Scope's file list actually resolves to.** Run
 that list through the project's `testScopes` (the tools-and-scripts skill,
@@ -174,7 +174,7 @@ consolidation, and what gets written where).
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.
 
-When REQ-n ids exist, see `references/requirements-tracing.md` for the
+When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
 
 ### Step 8: Update 4-status.md
@@ -187,9 +187,9 @@ Write/Edit). Follow the spec structure § 4-status.
 
 Sections already filled in per Step 4 are left untouched.
 
-When REQ-n ids exist, see `references/requirements-tracing.md` Step 8
+When AC-n ids exist, see `references/requirements-tracing.md` Step 8
 for the `## Acceptance criteria` section this file gains — one row per
-REQ-n id, unticked, for the person the spec is for to judge and tick,
+AC-n id, unticked, for the person the spec is for to judge and tick,
 never for this skill or `/aide-implement` to tick themselves.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own

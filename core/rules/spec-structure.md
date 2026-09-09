@@ -90,10 +90,10 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 ---
 
-## Requirements (optional)
+## Acceptance criteria (optional)
 
-- **REQ-1:** The system SHALL ...
-- **REQ-2:** The system SHALL ...
+- **AC-1:** The system SHALL ...
+- **AC-2:** The system SHALL ...
 
 ```
 
@@ -103,7 +103,10 @@ written or read by a model. `aide-archive-spec`'s move step already
 - The Description section is editable for manual additional information
 - The Problem section is copied verbatim (do not rewrite)
 - No code examples (they belong in 3-solution.md)
-- No acceptance criteria (they are part of the solution — 3-solution.md)
+- Acceptance criteria here are the SHALL-statement source requirements
+  (AC-n); the testable given/when/then scenarios that verify each one
+  are part of the solution — 3-solution.md's own Acceptance criteria
+  section
 - No scope or estimate (they are commitments about the solution — 3-solution.md)
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
@@ -122,24 +125,24 @@ written or read by a model. `aide-archive-spec`'s move step already
   stays `queued`, starts itself once the dependency merges, and is
   cancellable. Run by hand, it still refuses immediately — there is no
   scheduler there to park it against
-- Requirements is OPTIONAL: a flat bullet list, id in bold
-  (`**REQ-n:**`), one SHALL sentence per id — no table, no nested
+- Acceptance criteria is OPTIONAL: a flat bullet list, id in bold
+  (`**AC-n:**`), one SHALL sentence per id — no table, no nested
   lists, so both the definition and any reference stay grep-able with a
   plain regex
-- REQ-n ids are additive only: once written, never renumbered or
+- AC-n ids are additive only: once written, never renumbered or
   reused, even if later dropped — same philosophy as 4-status.md's
   `Workflow steps completed` line
-- JIRA mode never adds a Requirements section — the Problem text is
-  external and verbatim. TODO mode authors it from scratch alongside
-  the Problem text (see the aide-create skill)
-- A description already carrying a matching `## Requirements` section
-  is passed through unchanged — no rewriting, no second section
-  appended. Only a description with no such section gets one authored
-  from scratch. `aide-create-spec` refuses to create a spec whose
-  description contains a `REQ-n:` bullet that does not match the bold
-  format exactly
-- `/aide-analyze` never retrofits a Requirements section into an
-  existing `1-description.md` on its own initiative — only original
+- JIRA mode never adds an Acceptance criteria section — the Problem
+  text is external and verbatim. TODO mode authors it from scratch
+  alongside the Problem text (see the aide-create skill)
+- A description already carrying a matching `## Acceptance criteria`
+  section is passed through unchanged — no rewriting, no second
+  section appended. Only a description with no such section gets one
+  authored from scratch. `aide-create-spec` refuses to create a spec
+  whose description contains an `AC-n:` bullet that does not match the
+  bold format exactly
+- `/aide-analyze` never retrofits an Acceptance criteria section into
+  an existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one
 
 ---
@@ -484,10 +487,10 @@ lines in their `4-status.md` — left exactly as they are, not migrated.
 
 #### Acceptance criteria (optional)
 
-When `1-description.md` has a `## Requirements` section, `/aide-analyze`
-adds one more section to `4-status.md`, after the last implementation
-phase and before `## Notation`, with exactly one row per `REQ-n` id
-from `1-description.md`, in ascending id order, carrying that
+When `1-description.md` has a `## Acceptance criteria` section,
+`/aide-analyze` adds one more section to `4-status.md`, after the last
+implementation phase and before `## Notation`, with exactly one row per
+`AC-n` id from `1-description.md`, in ascending id order, carrying that
 requirement's own SHALL text — never a scenario from `3-solution.md`'s
 Acceptance criteria, which a person cannot judge and which can repeat
 one id across several scenarios:
@@ -497,12 +500,12 @@ one id across several scenarios:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| REQ-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
-| REQ-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
-No Requirements section: `4-status.md` looks exactly as it does today —
-no such section, no change to archiving.
+No Acceptance criteria section: `4-status.md` looks exactly as it does
+today — no such section, no change to archiving.
 
 **These rows start unticked, and no skill ever ticks one.** Unlike the
 RED/GREEN/REFACTOR rows above, an acceptance-criteria row names a
@@ -524,7 +527,7 @@ archives exactly as it did before this section existed.
 | Content                 | Location         |
 |-------------------------|------------------|
 | Problem description     | 1-description.md |
-| Requirements (REQ-n, optional) | 1-description.md |
+| Acceptance criteria — source (AC-n, optional) | 1-description.md |
 | Metadata                | 1-description.md |
 | Mapping/findings        | 2-analysis.md    |
 | Scope (files, estimate) | 3-solution.md    |
@@ -532,12 +535,12 @@ archives exactly as it did before this section existed.
 | Risk analysis           | 3-solution.md    |
 | Approaches              | 3-solution.md    |
 | Behavior delta          | 3-solution.md    |
-| Acceptance criteria     | 3-solution.md    |
+| Acceptance criteria — testable scenarios | 3-solution.md |
 | Before/after examples   | 3-solution.md    |
 | Implementation plan     | 3-solution.md    |
 | Testing strategy        | 3-solution.md    |
 | Progress                | 4-status.md      |
-| Acceptance-criteria check rows (REQ-tagged, optional) | 4-status.md |
+| Acceptance criteria — tick checklist (AC-tagged, optional) | 4-status.md |
 
 ---
 

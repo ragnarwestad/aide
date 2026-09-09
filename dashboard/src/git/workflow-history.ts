@@ -338,7 +338,7 @@ export class BranchFileStepsChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; steps: FileStepsAnswer | null }>();
+  private readonly cache = new Map<string, { at: number; steps: FileStepsAnswer | null; stale?: boolean }>();
 
   constructor(opts: BranchFileStepsOptions) {
     this.run = opts.run;
@@ -353,7 +353,7 @@ export class BranchFileStepsChecker {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.steps;
+    if (hit && !hit.stale && at - hit.at < this.ttlMs) return hit.steps;
 
     let steps: FileStepsAnswer | null = null;
     if (target) {
@@ -396,7 +396,15 @@ export class BranchFileStepsChecker {
    *  of the TTL after a Save that ticked the last row (337,
    *  2026-09-04). */
   forget(dir: string, specFolder: string): void {
-    this.cache.delete(JSON.stringify([dir, specFolder]));
+    // Marked due for a fresh read, NOT dropped: the row keeps answering
+    // from it until `read` has replaced it. Dropped, the row fell back
+    // to the default branch's copy of the file for as long as the
+    // re-read took, and that copy still says what it said before
+    // implement ran — so a tick on the Checks tab made the row announce
+    // that the files disagree (425, 2026-09-09).
+    const key = JSON.stringify([dir, specFolder]);
+    const hit = this.cache.get(key);
+    if (hit) this.cache.set(key, { ...hit, stale: true });
   }
 
   /** No git spawn, ever — what `withFreshness` calls. `steps: null`

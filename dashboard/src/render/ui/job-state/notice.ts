@@ -4,6 +4,7 @@ import { stepLabel, type MessageVariant } from "../components.ts";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
 import { currentStep, inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -185,15 +186,27 @@ export function specNotice(
   // The same amber the badge takes, and for the same reason: a held-back
   // archive is a common, healthy outcome — notice, not alarm. A
   // disagreement takes the same amber for the same reason.
-  if (archiveHeldBack && disagreement) {
+  const heldBackReason = archiveHeldBack === undefined ? undefined : heldBackReasonText(lang, archiveHeldBack);
+  if (heldBackReason && disagreement) {
     // Both true at once, and both said. The prefix below already names
     // archive, and a disagreement competing with a held-back note is
     // archive's own by construction — so the phase name it arrived with
     // comes off rather than being written twice in one sentence.
     const detail = disagreement.replace(/^archive /, "");
-    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { reason: archiveHeldBack })} · ${detail}` };
+    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { reason: heldBackReason })} · ${detail}` };
   }
-  if (archiveHeldBack) return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { reason: archiveHeldBack }) };
+  if (heldBackReason) return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { reason: heldBackReason }) };
   if (disagreement) return { variant: "waiting", text: disagreement };
   return undefined;
+}
+
+/** A held-back reason in the reader's language. The acceptance-criteria
+ *  reason is the one that is not a sentence an archive run wrote but a
+ *  fixed marker (`ACCEPTANCE_CRITERIA_UNTICKED_NOTE`) the board derives
+ *  from the file itself — so it is the one that has a catalogue entry to
+ *  render from. Every other reason is shown as written. */
+export function heldBackReasonText(lang: Language, reason: string): string {
+  return reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE
+    ? renderSentence(lang, { key: "wordPhase.stopAcceptanceCriteriaUnticked" })!
+    : reason;
 }

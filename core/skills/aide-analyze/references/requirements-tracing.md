@@ -1,30 +1,30 @@
-# Requirements tracing: REQ-n through the analysis
+# Acceptance criteria tracing: AC-n through the analysis
 
-When 1-description.md has a `## Requirements` section, /aide-analyze
-threads its REQ-n ids through the rest of the spec. No section present:
+When 1-description.md has a `## Acceptance criteria` section, /aide-analyze
+threads its AC-n ids through the rest of the spec. No section present:
 every step below is unchanged from today's plain-text behavior.
 
 ## Step 1 (read the description)
 
-Extract every REQ-n id (matched by `^- \*\*REQ-\d+:\*\*`). Keep the
+Extract every AC-n id (matched by `^- \*\*AC-\d+:\*\*`). Keep the
 list for Steps 5-7.
 
 ## Step 5 (2-analysis.md)
 
-Prefix a finding with the REQ-id(s) it supports:
-`REQ-n → file:line — <reasoning>`. A finding tied to no particular
+Prefix a finding with the AC-id(s) it supports:
+`AC-n → file:line — <reasoning>`. A finding tied to no particular
 requirement stays unprefixed free text, exactly as today.
 
 ## Step 6 (3-solution.md, Acceptance criteria)
 
-Each criterion opens with the REQ-id it covers:
-`1. **REQ-1** — Given ... when ... then ...`. Several criteria may
+Each criterion opens with the AC-id it covers:
+`1. **AC-1** — Given ... when ... then ...`. Several criteria may
 share one id; every id from Step 1 must be covered by at least one.
-No Requirements section: criteria stay in today's plain form.
+No Acceptance criteria section: criteria stay in today's plain form.
 
 ## Step 7 (Review the plan)
 
-New must-fix check, folded into the Coherence reviewer: every REQ-id
+New must-fix check, folded into the Coherence reviewer: every AC-id
 from Step 1 must appear in at least one Acceptance criterion. A missing
 id is a must-fix. A plain-text check the reviewing session performs
 itself, reading the two files — no dashboard, no pytest.
@@ -33,7 +33,7 @@ itself, reading the two files — no dashboard, no pytest.
 
 Add a `## Acceptance criteria` section to `4-status.md`, placed after
 the last implementation phase (e.g. `## Phase 4: REFACTOR`) and before
-`## Notation`, with exactly one row per REQ-n id from `1-description.md`,
+`## Notation`, with exactly one row per AC-n id from `1-description.md`,
 in ascending id order, starting unticked:
 
 ```markdown
@@ -41,14 +41,14 @@ in ascending id order, starting unticked:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| REQ-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
-| REQ-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
 These rows are for the person the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
 tick (spec 285). `aide-archive-spec` refuses to archive while any of
-them is still unticked. No Requirements section: `4-status.md` is
+them is still unticked. No Acceptance criteria section: `4-status.md` is
 written exactly as it is today, with no such section.
 
 The run itself may say ticking is not required (spec 386): when the

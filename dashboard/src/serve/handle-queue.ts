@@ -46,6 +46,7 @@ import { handleSpecEditRoutes } from "./handle-queue/spec-edit.ts";
 import { handleSpecPdfRoute } from "./handle-queue/spec-pdf.ts";
 import { handleScheduleAdminRoutes } from "./handle-queue/schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./handle-queue/job-detail.ts";
+import { selfStopRoute } from "./handle-queue/self-stop.ts";
 
 /** Everything `handleQueue` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`
@@ -128,12 +129,18 @@ export interface HandleQueueContext {
    *  (spec 388) need to reach the round without a second copy of its
    *  own worktree/checkout logic. */
   boards: BoardsContext;
+  /** What the self-stop route (spec 424) calls once its response has
+   *  been sent — the real one is `() => process.exit(0)`, wired once in
+   *  `serve.ts`. A test seam, like `boards.spawn`: no test should
+   *  actually end the process running it. */
+  selfStopExit: () => void;
 }
 
 export async function handleQueue(ctx: HandleQueueContext, req: Request, url: URL, path: string): Promise<Response> {
   const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
 
   return (
+    selfStopRoute(ctx, req, path) ??
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??

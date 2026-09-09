@@ -52,6 +52,7 @@ import { BoardStore } from "./boards/store.ts";
 import { findFreePort, type BoardsContext } from "./boards/lifecycle.ts";
 import { recoverBoards, sweepDeadBoards } from "./boards/recover.ts";
 import { boardOnPort } from "./boards/port-owner.ts";
+import { setBoardInfo } from "../render/ui/board-info.ts";
 
 export function createServer(opts: ServerOptions) {
   // Spec 363: a header this process trusts without a token is only
@@ -72,6 +73,11 @@ export function createServer(opts: ServerOptions) {
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
   const nav = () => opts.navEntries ?? navFromSite(opts.siteDir);
   const state = createServerState();
+  // Spec 424: always set, including `undefined` — `board-info.ts`'s own
+  // rule, since `bun test` runs many `createServer()` calls in one
+  // process and a merge/leave-if-set read would let an earlier test's
+  // board leak into a later, ordinary-server test.
+  setBoardInfo(opts.testBoardSpec);
   const allowed = new Set(opts.queueProjects ?? []);
 
   // Spec 358: `Bun.which` is synchronous, unlike `servingSha`'s check
@@ -404,6 +410,10 @@ export function createServer(opts: ServerOptions) {
     pdfGeneratorBin,
     pdfToolAvailable,
     boards: boardsCtx,
+    // Spec 424: never a bare `process.exit()` in the route itself — a
+    // test posting to `/api/self-stop` must not end the `bun test`
+    // runner it is running inside.
+    selfStopExit: opts.selfStopExit ?? (() => process.exit(0)),
   };
 
   const coreCtx: CoreRoutesContext = {
@@ -458,6 +468,12 @@ export function createServer(opts: ServerOptions) {
      *  the life of the process, and the directories it points at are
      *  removed underneath it. */
     specWatchCount: () => watch.specWatchers.size,
+    /** The board registry itself (spec 425) — here for the same reason
+     *  `specWatchCount` above is: a question a test needs answered (or,
+     *  here, a fixture needs to seed directly — an archived spec whose
+     *  board is already tracked, without spawning a real round to get
+     *  there) that nothing else exposes. */
+    boardsStore: () => boardStore,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.

@@ -24,7 +24,7 @@ describe("spec 358: the PDF button", () => {
   // REQ-1, REQ-2
   test("it is a plain link carrying an icon, opening in a new tab — not a form", () => {
     const html = withPdf();
-    const match = new RegExp(`<a class="btn" href="${PDF_ACTION}"[^>]*>([\\s\\S]*?)</a>`).exec(html);
+    const match = new RegExp(`<a class="iconlink" href="${PDF_ACTION}"[^>]*>([\\s\\S]*?)</a>`).exec(html);
     expect(match).not.toBeNull();
     expect(match![0]).toContain('target="_blank"');
     expect(match![0]).toContain('rel="noopener"');
@@ -37,7 +37,7 @@ describe("spec 358: the PDF button", () => {
   // an aria-label saying what it does, for a reader who cannot see it.
   test("carries no visible 'PDF' text, only the icon and an aria-label naming what it does", () => {
     const html = withPdf();
-    const match = new RegExp(`<a class="btn" href="${PDF_ACTION}"[^>]*>([\\s\\S]*?)</a>`).exec(html);
+    const match = new RegExp(`<a class="iconlink" href="${PDF_ACTION}"[^>]*>([\\s\\S]*?)</a>`).exec(html);
     expect(match).not.toBeNull();
     expect(match![0]).toContain(ARIA_LABEL);
     expect(match![1]!.trim()).not.toContain("PDF");
@@ -61,7 +61,7 @@ describe("spec 358: the PDF button", () => {
     expect(html).toContain("md-to-pdf is not installed on this host");
     expect(html).not.toContain(`href="${PDF_ACTION}"`);
     expect(html).toContain(ARIA_LABEL);
-    const span = html.match(/<span class="btn" aria-disabled="true"[\s\S]*?<\/span>/)?.[0] ?? "";
+    const span = html.match(/<span class="iconlink" aria-disabled="true"[\s\S]*?<\/span>/)?.[0] ?? "";
     expect(span).not.toContain("PDF<");
   });
 

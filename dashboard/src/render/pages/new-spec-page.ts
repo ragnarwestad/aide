@@ -225,11 +225,13 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
 }
 
-// Spec 394 (REQ-2, REQ-3): the acceptance switch, paired with "Depends
-// on" beside it rather than living inside the phase table's own rows —
-// neither is about one phase, both are about the spec as a whole.
-// Spec 386's original placement (a row inside `newSpecPhaseTable`) split
-// this pair across the phase table.
+// Spec 394 (REQ-2): the acceptance switch, drawn separately from the
+// phase table's own rows — neither is about one phase, both are about
+// the spec as a whole. Spec 386's original placement (a row inside
+// `newSpecPhaseTable`) split this pair across the phase table. Spec 426
+// gave the switch its own line, above "Depends on" — spec 394's REQ-3
+// had put it beside that field instead, in one row, which pushed the
+// chip up against "Depends on"'s own "(?)" popover.
 //
 // Said the POSITIVE way, and checked by default. It read "acceptance
 // ticking not required", unticked, which meant "it IS required" — a
@@ -262,12 +264,12 @@ function acceptanceField(formId: string): string {
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
-  // Four lines, read top to bottom: Project on its own, the phase table
-  // beneath it, Depends on paired with the acceptance switch (spec 394,
-  // REQ-3) on a line of their own, Title on the next, then Description
-  // with Create and Cancel at its right-hand side. Each `.frow` is a
-  // full-width row inside the same wrapping flex the Add form shares,
-  // so the shared `.newspecform` look is untouched.
+  // Five lines, read top to bottom: Project on its own, the phase table
+  // beneath it, the acceptance switch on a line of its own, Depends on
+  // below it, Title next, then Description with Create and Cancel at its
+  // right-hand side. Each `.frow` is a full-width row inside the same
+  // wrapping flex the Add form shares, so the shared `.newspecform` look
+  // is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
     tokenField(opts.token) +
@@ -280,12 +282,14 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     ) +
     `</span>` +
     newSpecPhaseTable(opts, formId) +
-    // Spec 394 (REQ-3): the two whole-spec facts drawn adjacent to each
-    // other, in one row — never split across the phase table the way
-    // spec 386 originally left the switch.
+    // Spec 426: its own line, above "Depends on" — pairing it beside that
+    // field in one row (spec 394, REQ-3) put the chip up against that
+    // field's own "(?)" popover.
+    `<span class="frow">` +
+    acceptanceField(formId) +
+    `</span>` +
     `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
-    acceptanceField(formId) +
     `</span>` +
     field(
       "Title",
@@ -298,9 +302,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>` +
-        `<small class="muted small">Requirements will be drafted from this ` +
-        `text — a "## Requirements" section you write here is left as it ` +
-        `stands.</small>`,
+        `<small class="muted small">Acceptance criteria will be drafted from ` +
+        `this text — a "## Acceptance criteria" section you write here is ` +
+        `left as it stands.</small>`,
       { wide: true },
     ) +
     `<span class="factions">` +

@@ -51,6 +51,11 @@ export { backLink, resolveBackHref } from "./render/ui/components.ts";
 export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
 export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
 
+// /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
+// across every project, in one place.
+export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./render/pages/test-servers-page.ts";
+export type { TestServerRow, TestServersPageOptions } from "./render/pages/test-servers-page.ts";
+
 // /schedule (spec 272): the aggregate page listing every allowed
 // project's `schedule:` entries.
 export {

@@ -10,6 +10,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.languageNorwegian": "Norsk",
   "shell.more": "Mer",
   "shell.settings": "Innstillinger",
+  "shell.testServers": "Testservere",
   "shell.about": "Om",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",
@@ -23,6 +24,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.overlayRemoving": "fjerner…",
   "shell.overlaySaving": "lagrer…",
   "shell.overlayLoading": "laster…",
+  "shell.stopTestServer": "Stopp",
 
   "list.statesLabel": "Tilstand",
   "list.state.all": "Alle",
