@@ -176,7 +176,10 @@ describe("the list is as wide as the screen at phone width", () => {
 
   test("the desktop rule it overrides is still there", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toContain("table.speclist { width: var(--speclist-width); table-layout: fixed; }");
+    // The desktop width is the BOX's since 2026-09-09 (list.css,
+    // `#jobrows .tablewrap`) — the table takes 100% of it, which is what
+    // `width: auto` above gives back at phone width just the same.
+    expect(desktop).toContain("table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }");
   });
 });
 
