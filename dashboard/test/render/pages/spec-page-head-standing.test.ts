@@ -22,12 +22,15 @@ const head = (html: string) => {
 };
 
 describe("the spec's own line says where it stands", () => {
-  test("the four pips ride at the end of the title line", () => {
-    const html = page(view({ phases: PHASES as never, done: ["create", "analyze"] }));
+  // The phase pips used to ride here; the PDF link does now
+  // (2026-09-09), at the far right of the line, and the pips are gone.
+  test("the PDF link rides at the end of the title line, and no pips do", () => {
+    const html = page(view({ phases: PHASES as never, done: ["create", "analyze"], pdfAction: "/specs/aide/x/pdf" }));
     const line = head(html);
     expect(line).toContain('class="headend"');
-    expect(line).toContain('title="create"');
-    expect(line).toContain('title="archive"');
+    expect(line).toContain('href="/specs/aide/x/pdf"');
+    expect(line).not.toContain('title="create"');
+    expect(line).not.toContain('class="pips');
   });
 
   test("a running phase says what it is doing, in the reader's language", () => {

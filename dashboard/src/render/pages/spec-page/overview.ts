@@ -132,8 +132,8 @@ export function archivedLine(view: SpecPageView): string {
   // closedLine, below, is what draws for it instead.
   if (!view.archived || view.closed) return "";
   return (
-    `<p class="desc"><span class="muted">The spec has moved into <code>archive/</code>, ` +
-    `and the description and the checks cannot be edited until the spec is reopened</span></p>`
+    `<p class="desc"><span class="muted">This spec has been archived, ` +
+    `and cannot be edited until the spec is reopened</span></p>`
   );
 }
 
@@ -410,9 +410,13 @@ export function boardStatus(view: SpecPageView): string {
 }
 
 export function resetControl(view: SpecPageView): string {
-  if (!view.resetAction || view.archived) return "";
-  if (view.resetUnavailableReason) {
-    return `<span class="btn" aria-disabled="true" title="${esc(view.resetUnavailableReason)}">Reset</span>`;
+  if (!view.resetAction) return "";
+  // Shown disabled rather than hidden on an archived spec (2026-09-09):
+  // a control that vanishes leaves the reader wondering where it went;
+  // one that is greyed out says it exists and why it cannot be pressed.
+  const why = view.archived ? "an archived spec cannot be reset — reopen it first" : view.resetUnavailableReason;
+  if (why) {
+    return `<span class="btn" aria-disabled="true" title="${esc(why)}">Reset</span>`;
   }
   return `<a class="btn" href="${esc(view.resetAction)}" title="start this active spec again from its description">Reset</a>`;
 }

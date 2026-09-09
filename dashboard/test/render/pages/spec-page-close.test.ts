@@ -71,7 +71,7 @@ describe("spec 406, REQ-7: a closed spec reads as closed, never as archived", ()
     expect(html).toContain("This spec was closed");
     expect(html).toContain("2026-09-05");
     expect(html).toContain("this idea does not hold");
-    expect(html).not.toContain("moved into <code>archive/</code>");
+    expect(html).not.toContain("This spec has been archived");
     // Scoped to the banner's own read-only line, not the whole page:
     // the shell's unrelated chrome (CSS class names, the About dialog,
     // a document tab's own generic help text) legitimately says
@@ -82,7 +82,7 @@ describe("spec 406, REQ-7: a closed spec reads as closed, never as archived", ()
 
   test("a plainly archived spec (not closed) still reads the old way", () => {
     const html = page(view({ archived: true, closed: false }));
-    expect(html).toContain("The spec has moved into <code>archive/</code>");
+    expect(html).toContain("This spec has been archived");
     expect(html).not.toContain("This spec was closed");
   });
 

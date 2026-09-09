@@ -9,16 +9,20 @@ const PDF_ACTION = "/specs/aide/150-one-page-shows-the-whole-spec/pdf";
 describe("spec 358: the PDF button", () => {
   const withPdf = (extra: Partial<SpecPageView> = {}) => page(view({ pdfAction: PDF_ACTION, ...extra }));
 
+  // The end of the title line, where the PDF link lives (2026-09-09) —
+  // not the actions row beside the tabs, where it used to sit between
+  // Reset and Update.
+  const titleLineEnd = (html: string): string =>
+    /<div class="backhead">[\s\S]*?<span class="headend">([\s\S]*?)<\/span><\/div>/.exec(html)?.[1] ?? "";
   const actionsGroup = (html: string): string =>
     /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
 
   const ARIA_LABEL = 'aria-label="open this spec as a PDF in a new tab"';
 
-  // REQ-1a
-  test("an active spec offers the PDF button immediately before Reset", () => {
-    const group = actionsGroup(withPdf({ resetAction: "/reset-confirm" }));
-    expect(group).toContain(`href="${PDF_ACTION}"`);
-    expect(group.indexOf(`href="${PDF_ACTION}"`)).toBeLessThan(group.indexOf(">Reset<"));
+  test("it sits at the end of the title line, not in the actions row", () => {
+    const html = withPdf({ resetAction: "/reset-confirm" });
+    expect(titleLineEnd(html)).toContain(`href="${PDF_ACTION}"`);
+    expect(actionsGroup(html)).not.toContain(`href="${PDF_ACTION}"`);
   });
 
   // REQ-1, REQ-2
@@ -44,12 +48,9 @@ describe("spec 358: the PDF button", () => {
     expect(match![1]).toContain("<svg");
   });
 
-  // REQ-1b: Reset renders nothing on an archived spec, so "before Reset"
-  // resolves to right after Reopen and before Update there.
-  test("an archived spec offers it right after Reopen and before Update", () => {
-    const group = actionsGroup(withPdf({ archived: true, token: "t0ken" }));
-    expect(group.indexOf(">Reopen<")).toBeLessThan(group.indexOf(`href="${PDF_ACTION}"`));
-    expect(group.indexOf(`href="${PDF_ACTION}"`)).toBeLessThan(group.indexOf(">Update<"));
+  test("an archived spec has it on the title line too", () => {
+    const html = withPdf({ archived: true, token: "t0ken" });
+    expect(titleLineEnd(html)).toContain(`href="${PDF_ACTION}"`);
   });
 
   // REQ-7, REQ-9b: disabled with the reason present, never absent.

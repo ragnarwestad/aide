@@ -218,7 +218,7 @@ describe("spec 388: the board start/stop routes", () => {
     const res = await fetch(`${base}/specs/aide/${archivedFolder}`, { headers: auth });
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("has moved into");
+    expect(html).toContain("This spec has been archived");
     expect(html).toContain(">Open the test server</a>");
     expect(html).toContain("Stop test server");
   });

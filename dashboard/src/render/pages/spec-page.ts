@@ -49,7 +49,6 @@
 
 import { badge, helpPopover, rowMessage } from "../ui/components.ts";
 import { gerund } from "../ui/job-state/resting.ts";
-import { phasePips } from "./queue-list/cell-helpers.ts";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -117,7 +116,6 @@ export function renderSpecPage(
   const actions =
     resetCloseNote(view) +
     (view.archived ? reopenControl(view) : "") +
-    pdfControl(view) +
     resetControl(view) +
     closeControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
@@ -158,9 +156,13 @@ export function renderSpecPage(
   // the Logs tab, one click away, so a spec you had just started looked
   // exactly like one that had never run.
   const running = lead?.runningStep?.step;
+  // The end of the title line (2026-09-09): what is running, and the
+  // PDF link at the far right — the phase pips that stood there said
+  // nothing the tabs below do not, and the PDF is not an action on the
+  // spec the way Reset, Close and Update are.
   const headTrailing =
-    (view.phases?.length ? phasePips(view.phases, view.done ?? []) : "") +
-    (running ? badge("running", gerund(opts.lang ?? "en", running)) : "");
+    (running ? badge("running", gerund(opts.lang ?? "en", running)) : "") +
+    pdfControl(view);
 
   const body = tabbedBody(
     banner,
