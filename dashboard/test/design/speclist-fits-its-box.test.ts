@@ -1,10 +1,17 @@
-// The specs list drew a horizontal scrollbar that scrolled one pixel.
-// The six column widths sum to exactly `--speclist-width`, and
-// `table.list` draws a 1px border around them — so a box capped at the
-// bare number is narrower than the table inside it.
+// The specs list keeps growing a horizontal scrollbar, and every time
+// for the same shape: the box and the table each stated a width, and
+// the two had to agree on the pixel. The table's own 1px border was the
+// first pixel to break it; the box's VERTICAL scrollbar — which appears
+// the moment the list is long enough — was the next, and that one comes
+// and goes with how many rows the list has.
+//
+// So only the BOX states a width now, and the table takes what the box
+// has. The tests below pin that there is no second number to fall out
+// of step with the first.
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components.ts";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
 const rem = (v: string) => parseFloat(v);
@@ -20,12 +27,47 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(cols.reduce((a, b) => a + b, 0)).toBeCloseTo(stated, 5);
   });
 
-  // And the box has to hold the table's border on top of that sum, or
-  // the browser draws a scrollbar for the difference.
-  test("the scrolling box is the table's width plus its border", () => {
+  // The Spec column carries a phase line's name and nothing else, and a
+  // name wider than the column spills into the cell beside it — which is
+  // what the Norwegian labels did to a column measured for "implement"
+  // (2026-09-09). Every label in both catalogues has to fit.
+  //
+  // 7.4px per character at the list's own 13.5px sans (tokens.css,
+  // --fs-m), rounded up from what a UI sans averages for lowercase —
+  // an estimate, deliberately generous, and the point is the ALARM: a
+  // label long enough to fail this is a label worth looking at in a
+  // browser, whatever the exact metric turns out to be.
+  test("the Spec column holds the longest phase name in either language", () => {
+    const px = (rem: number) => rem * 16;
+    const spec = rem(/col\[data-col="spec"\] \{ width: ([\d.]+)rem/.exec(css)![1]!);
+    // `th, td` pads on the right only, so that is what the name loses.
+    const padding = rem(/--sp-3: (\d+)px/.exec(
+      readFileSync(new URL("../../src/render/ui/css/tokens.css", import.meta.url), "utf8"),
+    )![1]!);
+    const room = px(spec) - padding;
+
+    const labels = [...Object.values(STEP_LABELS), ...Object.values(STEP_LABELS_NB)];
+    const longest = labels.reduce((a, b) => (b.length > a.length ? b : a));
+    expect(longest.length * 7.4).toBeLessThanOrEqual(room);
+  });
+
+  // The box states the width, and it states it plainly — no arithmetic
+  // compensating for something inside it, which is what a `calc()` here
+  // has always been.
+  test("the scrolling box is the only place the width is stated", () => {
     const wrap = /#jobrows \.tablewrap \{[^}]*max-width: ([^;]+);/.exec(css)![1]!.trim();
-    expect(wrap).toBe("calc(var(--speclist-width) + 2px)");
-    expect(css).toMatch(/table\.list \{[^}]*border: 1px solid/);
+    expect(wrap).toBe("var(--speclist-width)");
+  });
+
+  // And the table takes the box's width, border included. A rem width
+  // of its own — `--speclist-width`, or anything derived from it — is
+  // the second number this whole file exists to keep out.
+  test("the table takes the box's width rather than stating one", () => {
+    const rule = /table\.speclist \{([^}]*)\}/.exec(css)![1]!;
+    expect(rule).toMatch(/width: 100%/);
+    expect(rule).toMatch(/box-sizing: border-box/);
+    expect(rule).toMatch(/table-layout: fixed/);
+    expect(rule).not.toMatch(/rem|--speclist-width|calc\(/);
   });
 
   // Spec 415, REQ-1: a flex item inside #jobrows's column flex container

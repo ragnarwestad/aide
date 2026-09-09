@@ -217,7 +217,11 @@ export function createServer(opts: ServerOptions) {
       state.server?.port ?? opts.port,
       ...boardStore.all().filter((e) => e.status !== "failed").map((e) => e.port),
     ],
-    findFreePort,
+    // The probe is the seam, not the search: `boardsPortProbe` lets a
+    // test answer "can this port be bound" without binding anything, so
+    // no test depends on which of 8801-8803 this machine happens to have
+    // free. Unset in production, where the real probe binds.
+    findFreePort: (reserved: number[]) => findFreePort(reserved, opts.boardsPortProbe),
     // Reads the process table, so a board still running after a
     // restart can be found again: what holds the port, and which
     // directory it was started with. `--root <work>/root` is the round's

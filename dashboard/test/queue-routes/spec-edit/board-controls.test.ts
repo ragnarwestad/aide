@@ -102,9 +102,22 @@ describe("spec 388: the board start/stop routes", () => {
     // own.
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
+    // Which ports the search asked about, and the answer it got. The
+    // port search is the harness's to answer, not this machine's
+    // (`boardsPortProbe`, queue-server.ts): its default says the pool is
+    // free, and `probed` below pins that the option is what decides. The
+    // day that seam stops being wired, this test goes back to BINDING
+    // 8801-8803 — which is what let one leftover test server on the host
+    // fail it, and with it every landing whose merge runs this suite
+    // (2026-09-09).
+    const probed: number[] = [];
     const { base, dir } = start({
       queueToken: TOKEN,
       boardsAvailable: true,
+      boardsPortProbe: (port: number) => {
+        probed.push(port);
+        return true;
+      },
       boardsSpawn: (cmd) => {
         spawnCalls.push({ cmd });
         const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
@@ -141,6 +154,9 @@ describe("spec 388: the board start/stop routes", () => {
       expect(started.board.wrapperPid).toBe(spawned[0]);
       expect(spawnCalls).toHaveLength(1);
       expect(spawnCalls[0]!.cmd).toContain(`aide/${folder}`);
+      // The injected probe decided the port, so nothing was bound on
+      // this machine to find one.
+      expect(probed).toContain(8801);
 
       const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/board/stop`, {
         method: "POST",
