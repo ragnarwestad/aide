@@ -233,6 +233,7 @@ export function createServer(opts: ServerOptions) {
     // directory it was started with. `--root <work>/root` is the round's
     // own invocation, and the work directory is what identifies it.
     boardOnPort: opts.boardsOnPort ?? boardOnPort,
+    log: (line) => console.log(line),
   };
 
   const land = setupLand(state, {
