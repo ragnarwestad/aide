@@ -123,11 +123,15 @@ export function specHeadRow(
       // The tooltip is the IDENTIFIER — project and folder — which is
       // what a reader copies into a command or another page.
       `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      `${project}${esc(specName)}</a>`
+      // The name in a span of its own beside the project (2026-09-10):
+      // the label is a flex row, so a name that wraps hangs under
+      // itself — every line starting where the number does — rather
+      // than running back under the project on its second line.
+      `${project}<span class="specname">${esc(specName)}</span></a>`
     // No `title` attribute here: the whole name is already on the line,
     // and a tooltip repeating it would put the spec's title on the page
     // twice (`row-links-and-branches.test.ts`).
-    : `<span class="label">${project}${esc(specName)}</span>`;
+    : `<span class="label">${project}<span class="specname">${esc(specName)}</span></span>`;
   // A pull request open for this row's branch is a fact about the work,
   // not a second state the spec is IN (REQ-1, spec 403 — reversing spec
   // 339's own REQ-1, which put it here): it is true for the whole window
