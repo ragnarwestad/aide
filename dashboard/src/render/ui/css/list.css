@@ -474,7 +474,11 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    `display: contents`, so the selects sit in the row exactly as they
    did before the box existed. Their captions are the ones the caption
    line above the phases already draws. */
-.aimodel { position: relative; }
+/* One line, always (2026-09-10): as an inline span the pair wrapped —
+   Model under AI — the moment the cell was narrower than the two
+   selects, with the row's own `flex-wrap: nowrap` unable to reach
+   inside it. */
+.aimodel { position: relative; display: flex; flex-wrap: nowrap; }
 .aimodelopen, .aimodelnow { display: none; }
 .aimodelpanel, .aimodelfield { display: contents; }
 .aimodelfield > span { display: none; }
