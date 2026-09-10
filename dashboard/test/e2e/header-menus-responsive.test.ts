@@ -8,7 +8,7 @@
 // no nested <details>) avoids this by construction; this spec is what
 // would actually catch a regression back into the nested shape, in a
 // real browser, at a real viewport width.
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 
@@ -56,7 +56,7 @@ test("AC-1: at desktop width, theme, language and unit each stand as their own h
   await page.setViewportSize(DESKTOP);
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
   for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
-    await expect(page.locator(selector)).toBeVisible();
+    expect(await page.locator(selector).isVisible()).toBe(true);
   }
 });
 
@@ -64,7 +64,7 @@ test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden
   await page.setViewportSize(PHONE);
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
   for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
-    await expect(page.locator(selector)).toBeHidden();
+    expect(await page.locator(selector).isHidden()).toBe(true);
   }
 });
 
@@ -73,9 +73,12 @@ test("AC-2 criterion 4: opening the … menu at phone width reveals all three ch
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
   await page.locator("header > span.row > details.menu > summary").click();
   const morerows = page.locator("header .menu .morerows");
-  await expect(morerows.locator("[data-theme-choice]").first()).toBeVisible();
-  await expect(morerows.locator('a[href^="/?lang="]').first()).toBeVisible();
-  await expect(morerows.locator("[data-unit-choice]").first()).toBeVisible();
+  // `href*="lang="` rather than `href^="/?lang="` (spec 435): the
+  // language links now carry `currentUrl` (here `/?live=0`) ahead of
+  // `lang=`, not a bare `/?lang=` prefix.
+  expect(await morerows.locator("[data-theme-choice]").first().isVisible()).toBe(true);
+  expect(await morerows.locator('a[href*="lang="]').first().isVisible()).toBe(true);
+  expect(await morerows.locator("[data-unit-choice]").first().isVisible()).toBe(true);
 });
 
 // The nested-<details> hazard itself: a click on a flat mobile row must
@@ -87,11 +90,11 @@ test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu 
   const trigger = page.locator("header > span.row > details.menu > summary");
   await trigger.click();
   const menu = page.locator("header > span.row > details.menu");
-  await expect(menu).toHaveJSProperty("open", true);
+  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 
   const darkButton = page.locator('header .menu .morerows [data-theme-choice="dark"]');
   await darkButton.click();
 
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(menu).toHaveJSProperty("open", true);
+  expect(await page.locator("html").getAttribute("data-theme")).toBe("dark");
+  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 });
