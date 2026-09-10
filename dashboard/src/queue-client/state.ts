@@ -61,9 +61,11 @@ export const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("
  *  above left out — and they are the half a press actually runs.
  *  Reported 2026-08-20: tick implement and archive, wait six seconds,
  *  press Run, and the job started whatever the SERVER had ticked. The
- *  server re-derives the ticks from the spec's own history on every
- *  render (`preTicked`), so a swap does not leave them alone; it
- *  overwrites them.
+ *  server redraws the boxes fresh on every render — from a recorded
+ *  choice when one is on record, from the spec's own history otherwise
+ *  (`chosenSteps()`, `row-state.ts`, spec 439) — so a swap does not
+ *  leave an UNSUBMITTED hand tick alone; it overwrites it with whatever
+ *  it last recorded.
  *
  *  Keyed on THREE parts, where a select needs two: every box on a row
  *  shares the one name `steps`, and only its value says which phase it

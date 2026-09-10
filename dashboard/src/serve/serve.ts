@@ -151,6 +151,7 @@ export function createServer(opts: ServerOptions) {
     mirrorPath: opts.queueMirrorPath,
     pendingModelsPath: opts.pendingModelsPath,
     pendingEffortPath: opts.pendingEffortPath,
+    pendingStepsPath: opts.pendingStepsPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
     allowCreateProject: (project) => allowed.has(project),

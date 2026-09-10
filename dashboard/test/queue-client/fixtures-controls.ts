@@ -207,9 +207,10 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
     // own with itself — otherwise the delegated listener would file
     // it in the map the model selects use.
     closest: (sel: string): unknown => (sel.includes('name="steps"') ? self : null),
-    /** What the SERVER drew: `preTicked` re-derives the ticks from
-     *  the row's own history on every render, so a swap puts them
-     *  back exactly as they were before the reader touched them. */
+    /** What the SERVER drew: `chosenSteps()` redraws the ticks fresh
+     *  on every render — from a recorded choice or, absent one, the
+     *  row's own history (spec 439) — so a swap puts them back exactly
+     *  as they were before the reader touched them. */
     redraw: () => void (self.checked = served),
   };
   return self;
