@@ -177,17 +177,17 @@ describe("renderJobDetailPage", () => {
     expect(html).toContain("Nothing has been captured from this step");
   });
 
-  test("the page is self-contained and carries the shared nav", () => {
+  test("the page is self-contained, and draws no site-level tab bar", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
     // The two the manifest needs, and nothing else — see the same
     // assertion under "self-contained (criterion 5)" for why.
     expect(external(html)).toEqual(["/manifest.webmanifest", "/apple-touch-icon.png"]);
-    // The job page belongs to the spec list at `/`, and says so twice
-    // over: the wordmark goes home, and the Specs tab is the current
-    // one (spec 119 — `job-page.ts` passes `currentPath = "/"`).
+    // Spec 437: the job page is a subpage now — the wordmark still goes
+    // home, but the site's own tab bar (which used to mark Specs
+    // current here too, spec 119) is gone; ← Back is the only way off.
     expect(html).toContain('<a class="brand" href="/">');
-    expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
+    expect(html).not.toContain('<nav class="tabbar">');
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -259,12 +259,10 @@ describe("the job page is split into tabs", () => {
 
   test("the open tab is marked, and it is the only one", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
-    // The page proper, without the site's own tab bar above it — spec
-    // 119 put a second marked tab there, and Specs is legitimately
-    // current on a job page.
-    const page = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
-    expect(page.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(page).toMatch(/aria-current="page"[^>]*>Logs/);
+    // Spec 437 removed the site's own tab bar from this page — there is
+    // no second marked tab left to strip before counting.
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
   });
 
   // While a step is running, what it is DOING is what you opened the

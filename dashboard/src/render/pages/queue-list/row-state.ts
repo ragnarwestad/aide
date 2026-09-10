@@ -75,11 +75,11 @@ export function nextPhase(done: readonly string[]): string | undefined {
   return QUEUE_STEPS.find((s) => !remaining.has(s));
 }
 
-// What a press would run, if nothing else is ticked: EVERY phase the
-// spec has not had (spec 200). A press takes the spec as far as it can
-// go, and unticking a box is how a reader says to stop somewhere. It
-// depends on how far the spec has got, and on nothing about which
-// phase is asking.
+// What a press would run, if the reader had never touched a box: EVERY
+// phase the spec has not had (spec 200). A press takes the spec as far
+// as it can go, and unticking a box is how a reader says to stop
+// somewhere. It depends on how far the spec has got, and on nothing
+// about which phase is asking.
 //
 // `done` is what the spec's own git history PROVES (spec 154): the
 // runner commits every step it finishes, and only such a commit puts a
@@ -103,19 +103,41 @@ export function nextPhase(done: readonly string[]): string | undefined {
 // `QUEUE_STEPS` in order with the same archive rule — which is what
 // keeps the button and the badge naming the same phase (spec 191).
 //
-// It used to live inside the strip of chips the controls line drew
+// Renamed from `preTicked()` (spec 439): this is no longer the only
+// answer to "what is ticked" — it is `chosenSteps()`'s own fallback now,
+// for a spec that has never had a create or a Run recorded under that
+// fix. It used to live inside the strip of chips the controls line drew
 // (`stepBoxes`, retired with that line in spec 124). The boxes are on
 // the phase lines now and each asks this the same question, so the
 // rule is read once per row and consulted per phase.
-export function preTicked(g: SpecGroup): Set<string> {
+function defaultTicked(g: SpecGroup): Set<string> {
   const remaining = new Set(g.done);
   remaining.delete("archive");
   return new Set(QUEUE_STEPS.filter((s) => !remaining.has(s)));
 }
 
-// What the row's one button SAYS, built from the same set the boxes are
-// ticked from (spec 157). Two things follow from naming it after the
-// ticked phases rather than after the state's own suggestion:
+// What the row's boxes are ticked FROM (spec 439): a phase choice
+// recorded at create time, or at the reader's own later Run —
+// `opts.pendingSteps`, keyed `project/specFolder` the same way
+// `pendingModels`/`pendingEffort` already are — when one is on record,
+// and `defaultTicked()` above only as the fallback for a spec that has
+// never had either kind of submission recorded under this fix.
+//
+// Before spec 439 there was only `preTicked()`, a pure function of git
+// history with no way for a reader's own choice to survive past the job
+// that made it: the create-time ticks a fresh spec was given, or the
+// ticks left on a row after a later Run, were both gone the moment the
+// page next redrew (1-description.md's own bug report). This is what
+// closes that gap.
+export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): Set<string> {
+  const recorded = opts.pendingSteps?.[groupKey(g.project, g.specFolder)];
+  return recorded ? new Set(recorded) : defaultTicked(g);
+}
+
+// What the row's one button SAYS, and whether a press on it would do
+// anything (spec 439 added the second half). Two things follow from
+// naming it after the CHOSEN phases rather than after the state's own
+// suggestion:
 //
 // A reader can see the two disagree before pressing. The State column
 // says what the spec's files make of it — "ready for analyze" — and the
@@ -127,20 +149,34 @@ export function preTicked(g: SpecGroup): Set<string> {
 // so the button's own word is the only thing that says what it would
 // do.
 //
-// `preTicked()` ticks every phase the spec has left since spec 200, so
-// the button names the first of them and not the whole of what a press
-// does — deliberately, and the boxes right there on the row say the
-// rest. Nothing ticked names nothing: no button is drawn at all,
-// because a disabled one invites a press that cannot do anything.
-export function actionLabel(g: SpecGroup): string | undefined {
-  const ticked = [...preTicked(g)];
-  if (ticked.length === 0) return undefined;
-  // The FIRST ticked phase, and nothing after it. A "+ 1" suffix said
-  // how many more a press would run and was taken out on 2026-08-21:
-  // a button label is a name, not a summary, and the phases themselves
-  // are one click away on the row the press acts on.
-  const first = stepLabel(ticked[0]!);
-  return `${first[0]!.toUpperCase()}${first.slice(1)}`;
+// Before spec 439 this was `actionLabel()`, returning a label or
+// `undefined` with no room for a third state — "named, but not ticked".
+// Because `defaultTicked()`'s own archive-floor rule never came back
+// empty, "nothing ticked" was unreachable for an ordinary row and the
+// button read "Archive", always active, the moment analyze and
+// implement were both done — whatever the reader had actually ticked
+// (AC-5's own bug). `active` is what lets the button stay named without
+// claiming a press would do something it would not.
+export function actionState(
+  g: SpecGroup,
+  opts: { pendingSteps?: Record<string, string[]> },
+): { label: string; active: boolean } | undefined {
+  const next = nextPhase(g.done); // unchanged: still the archive-floor rule, still "which phase is next"
+  if (!next) return undefined;
+  const chosen = chosenSteps(g, opts);
+  // From `next` onward, never before it: a phase already done is never
+  // what a press would run, whatever a stale recorded choice still
+  // names (3-solution.md's own Risk analysis — a chosen-but-not-yet-run
+  // phase that later finishes is simply never looked at again).
+  const remaining = QUEUE_STEPS.slice(QUEUE_STEPS.indexOf(next));
+  const firstTicked = remaining.find((s) => chosen.has(s));
+  // AC-4: a later ticked phase is named ahead of an earlier unticked
+  // one. AC-3: with nothing ticked at all, `next` itself is named,
+  // disabled — a press that cannot do anything is still named for what
+  // it would take to make it do something, rather than hidden.
+  const shown = firstTicked ?? next;
+  const word = stepLabel(shown);
+  return { label: `${word[0]!.toUpperCase()}${word.slice(1)}`, active: !!firstTicked };
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake

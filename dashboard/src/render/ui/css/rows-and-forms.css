@@ -153,19 +153,37 @@ td form { margin: 0; display: inline-block; }
   min-width: 13rem; padding: var(--sp-1); background: var(--surface);
   border: 1px solid var(--line-strong); border-radius: var(--r);
   box-shadow: var(--overlay-shadow); }
-.menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
-.menupanel > a { color: var(--text); }
-.menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
+/* The "…" menu's own flat mobile copy (spec 436): the same rows as a
+   control's own standalone panel, repeated one level deeper (inside
+   .morerows) so they reach phone width without a second, nested
+   <details> — see menu-script.ts's closeAll() hazard. Every rule below
+   extends its selector list to also match .menu .morerows > *, so the
+   two locations style identically; hidden by default here, shown only
+   inside narrow.css's breakpoint. */
+.menupanel > *, .menu .morerows > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
+.menupanel > a, .menu .morerows > a { color: var(--text); }
+.menupanel > a:hover, .menu .morerows > a:hover { background: var(--surface-2); text-decoration: none; }
 /* Theme's own rows (spec 243): a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
    nothing about being a <button> instead of an <a> should read as a
    lesser row in the same menu. The icon and its label share the row
    the way every other icon-plus-word control on this site does. */
-.menupanel > button { display: flex; align-items: center; gap: var(--sp-2);
+.menupanel > button, .menu .morerows > button { display: flex; align-items: center; gap: var(--sp-2);
   width: 100%; text-align: left; background: none; border: 0; color: var(--text);
   font: var(--fs-m)/1 var(--sans); cursor: pointer; }
-.menupanel > button:hover { background: var(--surface-2); }
-.menupanel > button[aria-current] { font-weight: 600; }
+.menupanel > button:hover, .menu .morerows > button:hover { background: var(--surface-2); }
+.menupanel > button[aria-current], .menu .morerows > button[aria-current] { font-weight: 600; }
+/* Unit's own rows (spec 436): a <label> wrapping a radio, the shape
+   Settings' own Units block already used — this shape has never
+   rendered inside a .menupanel before, so there is no prior rule to
+   break. Styled to match the button/a rows beside it. */
+.menupanel > label, .menu .morerows > label { display: flex; align-items: center; gap: var(--sp-2);
+  padding: 6px 10px; border-radius: var(--r-s); cursor: pointer; color: var(--text);
+  font: var(--fs-m)/1 var(--sans); }
+.menupanel > label:hover, .menu .morerows > label:hover { background: var(--surface-2); }
+/* Desktop default: the mobile-only copy stays out of the way entirely
+   — narrow.css reveals it at phone width. */
+.menu .morerows { display: none; }
 
 /* The state dropdown's own rows (spec 289): a round, radio-STYLED glyph
    beside each option, matching the control's underlying semantics —

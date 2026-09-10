@@ -125,9 +125,20 @@ describe("spec 157: the row draws one action, on its caption line", () => {
   // reachable only where the row is busy or conflicted, both of which
   // draw a control of their own. What survives of the criterion is the
   // rule beneath it: the button names what a press would run.
-  test("a spec that has run everything is offered Archive (criterion 3)", () => {
-    const html = rows([lead()], [target("157-one-action", { done: ALL })]);
+  //
+  // Spec 439 narrows what "ticked" means here: the bare `done: ALL` this
+  // test used to rely on is no longer enough on its own to make the
+  // button ACTIVE — that default is now only the fallback for a spec
+  // with no recorded choice at all (its own test lives under spec 439
+  // below). An explicit record, the kind a real create or Run leaves
+  // behind, is what a listed spec offering Archive, active, actually
+  // means now.
+  test("a spec whose recorded choice ticks archive is offered it, active (criterion 3, spec 439)", () => {
+    const html = rows([lead()], [target("157-one-action", { done: ALL })], {
+      pendingSteps: { "aide/157-one-action": ["archive"] },
+    });
     expect(labels(action(html))).toEqual(["Archive"]);
+    expect(action(html)).toMatch(/<button type="submit"/);
   });
 
   // The label is the reader's own tick, not the state's suggestion, so
@@ -307,6 +318,105 @@ describe("spec 157: the row draws one action, on its caption line", () => {
     expect(state(html)).not.toContain("nothing waiting on you");
   });
 
+});
+
+// --- spec 439: a recorded phase choice survives the render (AC-1 - AC-5) ----
+//
+// `preTicked()` read git history alone and recomputed itself fresh on
+// every render, so a choice made on New spec — or left on a row's own
+// boxes after a later Run — was gone the moment the page next drew
+// (AC-1). The action button had no room for "named, but not ticked"
+// either: once analyze and implement were both done it read "Archive",
+// always active, whatever the reader had actually ticked (AC-5).
+// `opts.pendingSteps` is this fix's persisted answer to the first
+// problem — the render layer's own read of the same table
+// `pendingModels`/`pendingEffort` already keep — and `actionState()`'s
+// `active` flag is its answer to the second.
+describe("spec 439: a recorded phase choice survives the render (AC-1 - AC-5)", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (targets: QueueTarget[], o: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets,
+        projects: ["aide"],
+        filter: { open: openKeys([], targets) },
+        ...o,
+      },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+  const cells = (tr: string): string[] =>
+    [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+  const captionLine = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const action = (html: string) => cells(captionLine(html))[2] ?? "";
+  const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+  const ticked = (html: string): string[] =>
+    [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map((m) => m[1]!);
+
+  test("a create-time choice with phases unticked survives the render, not every remaining phase re-ticked (AC-1)", () => {
+    const html = rows([target("439-create")], {
+      pendingSteps: { "aide/439-create": ["analyze"] },
+    });
+    // Every remaining phase (analyze, implement, archive) is what the
+    // old, history-only derivation would tick — the recorded choice
+    // says only analyze was asked for.
+    expect(ticked(html)).toEqual(["analyze"]);
+  });
+
+  test("the button always names a not-yet-run phase, never one already done (AC-2)", () => {
+    const html = rows([target("439-next", { done: ["analyze"] })], {
+      pendingSteps: { "aide/439-next": ["implement"] },
+    });
+    expect(labels(action(html))).toEqual(["Implement"]);
+  });
+
+  test("the first not-yet-run phase, ticked, makes the button active (AC-3)", () => {
+    const html = rows([target("439-active")], {
+      pendingSteps: { "aide/439-active": ["analyze"] },
+    });
+    expect(action(html)).toMatch(/<button type="submit"/);
+    expect(labels(action(html))).toEqual(["Analyze"]);
+  });
+
+  test("the first not-yet-run phase, unticked, makes the button disabled but still named (AC-3)", () => {
+    const html = rows([target("439-disabled")], {
+      pendingSteps: { "aide/439-disabled": [] },
+    });
+    expect(action(html)).toMatch(/<button type="submit"[^>]*disabled/);
+    expect(labels(action(html))).toEqual(["Analyze"]);
+  });
+
+  test("a later ticked phase is named and active, ahead of an earlier unticked one (AC-4)", () => {
+    const html = rows([target("439-later")], {
+      pendingSteps: { "aide/439-later": ["archive"] },
+    });
+    expect(action(html)).toMatch(/<button type="submit"/);
+    expect(labels(action(html))).toEqual(["Archive"]);
+  });
+
+  test("nothing ticked never shows Archive active, even with only archive left (AC-5)", () => {
+    const html = rows([target("439-archive-disabled", { done: ["analyze", "implement"] })], {
+      pendingSteps: { "aide/439-archive-disabled": [] },
+    });
+    expect(action(html)).toMatch(/<button type="submit"[^>]*disabled/);
+    expect(labels(action(html))).toEqual(["Archive"]);
+  });
+
+  // The one explicitly-accepted gap (3-solution.md's Risk analysis): a
+  // spec that predates this fix and has had no create or Run recorded
+  // under it falls back to the old, history-only derivation — unchanged
+  // until its own next interaction.
+  test("a spec with no recorded choice at all keeps today's default: Archive active with nothing ticked", () => {
+    const html = rows([target("439-fallback", { done: ["analyze", "implement"] })]);
+    expect(action(html)).toMatch(/<button type="submit"/);
+    expect(labels(action(html))).toEqual(["Archive"]);
+  });
 });
 
 // --- spec 161: a row's one action is primary, whichever it is ----------------

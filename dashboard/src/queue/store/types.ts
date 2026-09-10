@@ -19,6 +19,14 @@ export type PendingModelResult = { ok: true } | { ok: false; error: string };
  *  364) — same shape, same reason. */
 export type PendingEffortResult = { ok: true } | { ok: false; error: string };
 
+/** The sibling of `PendingModelResult`/`PendingEffortResult`, for
+ *  `setPendingSteps()` (spec 439) — same shape. Unlike the other two,
+ *  `setPendingSteps()` never refuses: it filters what it is given
+ *  against `PHASE_STEPS` rather than reporting an unknown entry, so this
+ *  is always `{ ok: true }` in practice — kept as its own type anyway,
+ *  the same as its two siblings, rather than a bare `void`. */
+export type PendingStepsResult = { ok: true } | { ok: false; error: string };
+
 /** What `QueueStore.transition()` answers with (spec 354, REQ-3): the
  *  updated job on a hit, or the state and event the table refused —
  *  never a bare `undefined`, so a refusal cannot be mistaken for
@@ -38,6 +46,11 @@ export interface QueueOptions {
    *  before any job exists (spec 364) — the `pending-effort.json`
    *  sibling of the queue mirror. */
   pendingEffortPath?: string;
+  /** Where a phase choice recorded at create time, or at a later Run,
+   *  survives to (spec 439) — the `pending-steps.json` sibling of the
+   *  queue mirror. Absent means the table is in-memory only, the same
+   *  as `pendingModelsPath` absent. */
+  pendingStepsPath?: string;
   cap?: number;
   /** Which projects may have a spec CREATED in them (spec 93). Absent
    *  means none: creating is off unless the server says otherwise, like

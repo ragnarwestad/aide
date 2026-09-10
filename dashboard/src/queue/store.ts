@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname } from "node:path";
 import {
   EFFORT_LEVELS,
+  PHASE_STEPS,
   TRANSITIONS,
   UNFINISHED,
   WORKFLOW_STEPS,
@@ -19,11 +20,19 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
 import type { Sentence } from "../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "./types.ts";
 import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
-import { parsePendingEffort, parsePendingModels, parseStoredJob, persistPendingEffort, persistPendingModels } from "./persist.ts";
+import {
+  parsePendingEffort,
+  parsePendingModels,
+  parsePendingSteps,
+  parseStoredJob,
+  persistPendingEffort,
+  persistPendingModels,
+  persistPendingSteps,
+} from "./persist.ts";
 import { gerund, landingStepIndex } from "../render/ui/job-state/resting.ts";
 
 
-import type { PendingEffortResult, PendingModelResult, QueueOptions, TransitionResult } from "./store/types.ts";
+import type { PendingEffortResult, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./store/types.ts";
 
 export class QueueStore {
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
@@ -31,6 +40,7 @@ export class QueueStore {
   private readonly mirrorPath?: string;
   private readonly pendingModelsPath?: string;
   private readonly pendingEffortPath?: string;
+  private readonly pendingStepsPath?: string;
   readonly defaults: QueueDefaults;
   /** A model picked for a phase before any job exists (spec 308), keyed
    *  by `project/specFolder` and then by step — the same shape
@@ -41,6 +51,13 @@ export class QueueStore {
   /** The sibling of `pendingModels`, for an effort level (spec 364).
    *  Only `setPendingEffort()` is allowed to write it. */
   readonly pendingEffort: Record<string, Record<string, string>> = {};
+  /** The phase choice a reader made — at create time, or at a later Run
+   *  — recorded so it outlives the one job that made it (spec 439): the
+   *  same `project/specFolder` key as `pendingModels`/`pendingEffort`,
+   *  one level shallower (a list of steps, not a per-step value). Only
+   *  `setPendingSteps()` is allowed to write it; the render layer reads
+   *  it straight off, the way it already reads its two siblings. */
+  readonly pendingSteps: Record<string, string[]> = {};
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
@@ -50,6 +67,7 @@ export class QueueStore {
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
     this.pendingEffortPath = opts.pendingEffortPath;
+    this.pendingStepsPath = opts.pendingStepsPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
@@ -60,6 +78,7 @@ export class QueueStore {
     this.load();
     this.loadPendingModels();
     this.loadPendingEffort();
+    this.loadPendingSteps();
   }
 
   /** An unfinished job for the same spec that already covers one of
@@ -92,7 +111,20 @@ export class QueueStore {
       defaults: this.defaults,
     });
     if (!parsed.ok) return parsed;
-    return this.insert(parsed);
+    const result = this.insert(parsed);
+    // Spec 439: the New-spec form's own phase table is the first place a
+    // reader's choice is made, and it has to survive past this one job
+    // — `create` itself is always in `steps` and is never a phase a box
+    // could tick, so it is stripped before the choice is recorded. Only
+    // on a successful insert: a refused create names no spec for the
+    // choice to be filed under. `recordPendingSteps()`, not the public
+    // `setPendingSteps()`: `insert()` just above already announced this
+    // whole operation once, and calling the public setter here would
+    // announce it a second time for one request.
+    if (result.ok) {
+      this.recordPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
+    }
+    return result;
   }
 
   /** A job for the same spec whose last step is still landing (spec
@@ -394,6 +426,37 @@ export class QueueStore {
     return { ok: true };
   }
 
+  /** The write `setPendingSteps()` and `enqueueCreate()`'s own hook
+   *  share, without either one's own `changed()` call: `enqueueCreate()`
+   *  folds this into the ONE insert-and-seed operation a create request
+   *  is, and `insert()` has already announced that (spec 189's own
+   *  one-fire-per-write rule, pinned by
+   *  `test/queue/store/store-core-fields.test.ts` — a second, unwanted
+   *  fire here is what a naive `this.setPendingSteps(...)` call inside
+   *  `enqueueCreate()` produced before this split). */
+  private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): void {
+    const wanted = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
+    this.pendingSteps[`${project}/${specFolder}`] = wanted;
+    this.persistPendingStepsTable();
+  }
+
+  /** Record which phases a reader chose, before or between jobs (spec
+   *  439) — the sibling of `setPendingModel()`/`setPendingEffort()`
+   *  above, filtered against `PHASE_STEPS` rather than `WORKFLOW_STEPS`:
+   *  `reset`/`close` and every other internal-only step are real
+   *  members of `WORKFLOW_STEPS` but never a phase a row's own checkbox
+   *  could have ticked, and must never be recorded as if one had been.
+   *  Unlike its two siblings this never refuses — an unknown entry is
+   *  dropped rather than reported, the same direction `parsePendingSteps`
+   *  already fails in — and the whole list REPLACES what was recorded
+   *  before, including down to empty: "nothing ticked" is itself the
+   *  choice AC-5 needs to tell apart from "no choice on record at all". */
+  setPendingSteps(project: string, specFolder: string, steps: readonly string[]): PendingStepsResult {
+    this.recordPendingSteps(project, specFolder, steps);
+    this.changed();
+    return { ok: true };
+  }
+
   update(id: string, patch: Partial<Job>): Job | undefined {
     const job = this.jobs.get(id);
     if (!job) return undefined;
@@ -479,7 +542,23 @@ export class QueueStore {
     if (!this.pendingEffortPath) return;
     persistPendingEffort(this.pendingEffortPath, this.pendingEffort);
   }
+
+  private loadPendingSteps(): void {
+    if (!this.pendingStepsPath || !existsSync(this.pendingStepsPath)) return;
+    try {
+      const raw = JSON.parse(readFileSync(this.pendingStepsPath, "utf-8")) as unknown;
+      const parsed = parsePendingSteps(raw);
+      if (parsed) Object.assign(this.pendingSteps, parsed);
+    } catch {
+      // a corrupt file is not worth crashing over — start empty
+    }
+  }
+
+  private persistPendingStepsTable(): void {
+    if (!this.pendingStepsPath) return;
+    persistPendingSteps(this.pendingStepsPath, this.pendingSteps);
+  }
 }
 
 // What used to live here too, in parts beside this file.
-export type { PendingModelResult, PendingEffortResult, TransitionResult, QueueOptions } from "./store/types.ts";
+export type { PendingModelResult, PendingEffortResult, PendingStepsResult, TransitionResult, QueueOptions } from "./store/types.ts";

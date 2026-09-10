@@ -387,4 +387,10 @@
   /* REQ-8, spec 338: the desktop-only extra margin above must not reach
      phone width — the row already runs `nowrap` on a tight budget here. */
   .menu.state { margin-left: 0; }
+
+  /* Spec 436: theme, language and unit each stand as their own header
+     trigger on desktop; at phone width they hide, and the "…" menu's
+     own flat morerows copy (rows-and-forms.css) takes over instead. */
+  .menu.theme, .menu.lang, .menu.unit { display: none; }
+  .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }

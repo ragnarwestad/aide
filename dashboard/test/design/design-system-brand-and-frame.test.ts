@@ -115,13 +115,16 @@ describe("the header and the two tabs (spec 119)", () => {
   });
 
   // Spec 243: Theme moved out of the menu into the header itself — a
-  // control the reader reaches without opening anything first.
-  test("the theme buttons live in the header, outside the menu", () => {
+  // control the reader reaches without opening anything first. Spec 436
+  // reverses the second half: the same choice buttons also repeat, flat,
+  // inside the "…" menu's own morerows block, reachable at phone width
+  // where the standalone header trigger is hidden.
+  test("the theme buttons live in the header, and repeat flat inside the menu for mobile", () => {
     for (const [path, html] of every) {
       const head = html.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? "";
       const m = menu(html);
       expect([path, head.includes("data-theme-choice")]).toEqual([path, true]);
-      expect([path, m.includes("data-theme-choice")]).toEqual([path, false]);
+      expect([path, m.includes("data-theme-choice")]).toEqual([path, true]);
     }
   });
 
@@ -130,6 +133,9 @@ describe("the header and the two tabs (spec 119)", () => {
   // took the tab back off; three again from spec 272 (Schedule).
   test("three tabs, Specs, Projects and Schedule, between the header and the page's own h1", () => {
     for (const [path, html] of every) {
+      // Spec 437: the job detail page is a subpage now and draws no
+      // site-level tab bar — checked separately below.
+      if (path === "/specs/job-1") continue;
       const bar = tabs(html);
       expect([path, [...bar.matchAll(/<a[^>]*>([^<]*)<\/a>/g)].map((m) => m[1])]).toEqual([
         path,
@@ -150,11 +156,12 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  test("Specs is current on the spec list and on a job detail page", () => {
-    for (const html of [served["/"], served["/specs/job-1"]]) {
-      expect(tab(html, "Specs")).toContain('aria-current="page"');
-      expect(tab(html, "Projects")).not.toContain("aria-current");
-    }
+  // Spec 437 reverses spec 119's own premise here: the job detail page
+  // is a subpage now, drawing no site-level nav to mark current at all.
+  test("Specs is current on the spec list; the job detail page carries no site-level nav", () => {
+    expect(tab(served["/"], "Specs")).toContain('aria-current="page"');
+    expect(tab(served["/"], "Projects")).not.toContain("aria-current");
+    expect(served["/specs/job-1"]).not.toContain('<nav class="tabbar">');
   });
 
   // A project's own generated page went on 2026-08-22 — the server

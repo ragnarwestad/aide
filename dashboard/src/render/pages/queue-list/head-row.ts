@@ -142,8 +142,10 @@ export function specHeadRow(
   // this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
   // cell-helpers.ts).
   // The earliest phase the spec's own files say has not happened — the
-  // same one `preTicked` ticks a box for, from the same function, so
-  // the badge and the button cannot name different phases (spec 191).
+  // same one `chosenSteps`/`actionState` name a box or a button for
+  // (spec 439's rename of `preTicked`/`actionLabel`), from the same
+  // `nextPhase()` call below, so the badge and the button cannot name
+  // different phases (spec 191).
   // Worded for a reader here through `stepLabel`, so a phase added to
   // `STEP_LABELS` later reaches this sentence too.
   // NOT on a locked row (spec 224). `nextPhase` deletes `archive` from

@@ -32,12 +32,20 @@ the queue would refuse any of them anyway (see
 answers "already running on this spec". The box says why on hover ("analyze is running"), in the same words the state
 chip uses.
 
-What is pre-ticked is every phase the spec has not had: a press takes the spec as far as it can go, and
-unticking a box is how a reader says to stop somewhere. The button names the FIRST of the ticked phases and not the
-whole list — a label is a name, not a summary, and the boxes are on the row that the press acts on. A phase already done
-is left unticked; ticking it anyway is a rerun, and no rule stands in the way. `archive` is the exception the rule
-needs: a spec still on this list is by definition not archived, so it counts as outstanding however the history reads,
-and the pre-ticked set is therefore never empty.
+What is ticked is a recorded CHOICE, not a fresh guess on every render: the phases posted from New spec at create
+time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more recently. That
+choice sticks until the reader changes it themselves, by re-ticking the row's own boxes and pressing Run again. A spec
+that has never had either — a create or a Run — recorded under it falls back to ticking every phase it has not had, the
+same default it always had; a fresh spec, or one whose only recorded choice is empty, starts from there. A phase
+already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way.
+
+The button names the FIRST of the ticked phases and not the whole list — a label is a name, not a summary, and the
+boxes are on the row that the press acts on. When that phase is not ticked — and no later phase is either — the button
+still names it, but sits disabled: a press that could not do anything is named rather than hidden, so the row still
+says what it is waiting on. `archive` is the exception the FALLBACK'S rule needs, not the recorded choice's: a spec
+still on this list is by definition not archived, so the fallback counts it as outstanding however the history reads —
+but a recorded choice that ticks nothing at all is honoured exactly as given, which is what keeps a finished-looking
+spec from offering an active Archive nobody asked for.
 
 **Which phases a spec has HAD is read off one line, and nothing else:**
 `- **Workflow steps completed:** create, analyze` in the Tracking info of its `4-status.md`. Each step
@@ -64,8 +72,8 @@ waiting on you". The bare words
 nothing about which step is waiting, while both facts are known.
 
 There is no second line telling a reader to press the button beside it. The row's
-button stands next to the badge and NAMES the phase it would run. The page says what IS; the controls say what can be
-done.
+button stands next to the badge and NAMES the phase it would run — active when that phase is ticked, disabled and
+still named when it is not. The page says what IS; the controls say what can be done.
 The pips answer their own narrower question beside it.
 
 The State column carries only the spec's own state — the running/resting word, and nothing beside it. A push that

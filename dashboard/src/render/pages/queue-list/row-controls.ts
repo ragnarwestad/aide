@@ -17,7 +17,7 @@ import {
 } from "./data-model.ts";
 import { queueHref } from "./filter-bar.ts";
 import { filterFields } from "./row-shared.ts";
-import { actionLabel, runFormId, specBusy } from "./row-state.ts";
+import { actionState, runFormId, specBusy } from "./row-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -162,9 +162,10 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
   // The third branch, and the first thing asked (spec 224). An archived
   // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
   // lets past — so there is no Run form to carry and no phase to name:
-  // the branches below would name one, because `preTicked` answers
-  // "what would run next" for a spec whose workflow is over by ticking
-  // `archive` alone.
+  // the branches below would name one, because `chosenSteps`/`actionState`
+  // answer "what would run next" for a spec whose workflow is over by
+  // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
+  // own fallback for a spec with no recorded choice).
   if (isArchivedRow(g)) return reopenForm(g, opts, lang);
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
@@ -175,9 +176,10 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
   // own text — which names the branch — and the row offers what every
   // other failed step's row offers, an ordinary re-run.
   //
-  // What a press would run, and therefore what the button says. There
-  // is none while a job is in flight: Cancel is the row's control then.
-  const label = busy ? undefined : actionLabel(g);
+  // What a press would run, and therefore what the button says — and,
+  // since spec 439, whether it would do anything at all. There is none
+  // while a job is in flight: Cancel is the row's control then.
+  const action = busy ? undefined : actionState(g, opts);
   // The form is a CARRIER: hidden fields only, hidden by CSS, with the
   // button and the phase boxes written outside its tags and reaching
   // it by `form="…"`. It carries no `steps` of its own: the row it
@@ -200,7 +202,7 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
     // from. The step's own timeout is what ends a create that hangs.
     if (busy && currentStep(g.lead!) === "create") return "";
     if (busy) return actionForm(g.lead!, opts.token, opts.filter, lang);
-    if (!label) return "";
+    if (!action) return "";
     // Primary, like every row's one action (spec 161). It was
     // secondary until then, on the argument that a column of primary
     // buttons says nothing about which row to look at — but a row
@@ -211,7 +213,20 @@ export function stateAction(g: SpecGroup, opts: QueuePageOptions): string {
     // Built by hand rather than through `btn()`: it needs `form="…"`,
     // an attribute that helper's signature does not carry — the same
     // reason `modelPicker` builds its own `<select>`.
-    return `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…">${esc(label)}</button>`;
+    //
+    // One button, whichever way `active` reads (spec 439) — never a
+    // second element for the disabled case. It still carries `form="…"`
+    // disabled or not: that is what lets `relabelRunButton()`
+    // (`queue-client/row-swap.ts`) find and re-enable it the instant the
+    // reader ticks the phase it names, without waiting for a redraw —
+    // and `type="submit"` throughout is what makes that re-enabling
+    // actually able to submit, rather than a live control a script can
+    // turn on but never press.
+    return (
+      `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…"` +
+      (action.active ? "" : ` disabled title="${esc(action.label)} is not ticked"`) +
+      `>${esc(action.label)}</button>`
+    );
   })();
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and

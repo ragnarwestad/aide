@@ -9,6 +9,7 @@ export const en = {
   "shell.language": "Language",
   "shell.languageEnglish": "English",
   "shell.languageNorwegian": "Norwegian",
+  "shell.unit": "Units",
   "shell.more": "More",
   "shell.settings": "Settings",
   "shell.testServers": "Test servers",

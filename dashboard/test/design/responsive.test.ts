@@ -613,6 +613,28 @@ describe("the States trigger sits further from the (?) popover than the row's ow
 // the spec page's Description tab (spec 174). One rule on `.phases`
 // therefore reaches both without a second copy.
 
+// --- spec 436: theme/language/unit collapse into the … menu at phone width -
+
+describe("header menus collapse into the … menu at phone width (spec 436)", () => {
+  test("AC-2 criterion 3: the narrow-width block hides the three standalone triggers", () => {
+    expect(NARROW).toContain(".menu.theme, .menu.lang, .menu.unit { display: none; }");
+  });
+
+  test("AC-2 criterion 4: the narrow-width block reveals the morerows block", () => {
+    expect(NARROW).toContain(".menu .morerows { display: flex; flex-direction: column; gap: 2px; }");
+  });
+
+  test("the desktop CSS keeps morerows hidden by default", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toContain(".menu .morerows { display: none; }");
+  });
+
+  test("the desktop CSS styles label rows the same as the button/link rows beside them", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toMatch(/\.menupanel > label, \.menu \.morerows > label \{/);
+  });
+});
+
 describe("the Depends on field caps its height and scrolls its own overflow", () => {
   test(".phases is capped to about four lines of chips and scrolls (REQ-1, REQ-2)", () => {
     const rule = /\.phases \{([^}]*)\}/.exec(CSS)?.[1] ?? "";

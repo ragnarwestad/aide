@@ -26,7 +26,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`, { headers: AUTH });
     const html = await res.text();
     expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
-    expect(html).toContain('<a class="btn" href="/projects/aide%20%26%20co">Cancel</a>');
+    expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide%20%26%20co">Cancel</a>');
     expect(html).toContain(">Save<");
   });
 
@@ -289,7 +289,7 @@ describe("editing the unified settings table (spec 255)", () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
-    expect(html).toContain('<a class="btn" href="/projects/aide">Cancel</a>');
+    expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide">Cancel</a>');
   });
 
   // Spec 301: the button row holds two buttons at all times, right-aligned
@@ -308,7 +308,7 @@ describe("editing the unified settings table (spec 255)", () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
     const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
-    expect(html).toMatch(/<div class="configactions">.*Save.*<a class="btn" href="\/projects\/aide">Cancel<\/a><\/div>/s);
+    expect(html).toMatch(/<div class="configactions">.*Save.*<a class="btn" data-discard-changes href="\/projects\/aide">Cancel<\/a><\/div>/s);
   });
 
   test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode (criterion 5)", async () => {

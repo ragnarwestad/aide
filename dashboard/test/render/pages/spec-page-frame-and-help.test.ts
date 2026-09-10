@@ -18,11 +18,13 @@ import { GENERATED, NAV, NOW, lead, page, view } from "./spec-page-fixtures.ts";
 // Description the front page instead) carries no file text at all.
 
 describe("the spec page is a page of this site like any other", () => {
-  test("it is self-contained and carries the shared nav, with Specs current", () => {
+  // Spec 437: the spec page is a subpage — it draws no site-level tab
+  // bar, so ← Back is the only way off it.
+  test("it is self-contained, and draws no site-level tab bar", () => {
     const html = page();
     expect(html).not.toContain("<script src");
     expect(html).toContain('<a class="brand" href="/">');
-    expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
+    expect(html).not.toContain('<nav class="tabbar">');
   });
 
   test("a tab name nobody offers falls back to the Description tab instead of a blank page", () => {
@@ -35,11 +37,12 @@ describe("the spec page is a page of this site like any other", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Description/);
   });
 
-  test("the open tab is marked, and it is the only one on the page proper", () => {
+  // Spec 437 removed the site-level tab bar this test used to strip
+  // out before counting — nothing left to strip.
+  test("the open tab is marked, and it is the only one on the page", () => {
     const html = page(view(), "steps");
-    const body = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
-    expect(body.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(body).toMatch(/aria-current="page"[^>]*>Logs/);
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
   });
 
   // Real tabs, not chips with a caption beside them (2026-08-23): the

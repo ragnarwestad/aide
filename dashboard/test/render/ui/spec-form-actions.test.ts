@@ -72,25 +72,20 @@ function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTe
 }
 
 /** A Settings-shaped form (spec 409): one text-ish field, plus the same
- *  Save/Cancel pair, under the third registered prefix. Spec 414 adds
- *  the Units radios as a literal descendant, the same shape
- *  settings-page.ts now renders, to prove the two dirty-latch guards
- *  scoped to `[data-unit-choice]`. */
-function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement; unitRadio: HTMLInputElement } {
+ *  Save/Cancel pair, under the third registered prefix. Units left this
+ *  form entirely (spec 436) — it renders in the header now, never as a
+ *  descendant of `.settingsform` — so there is no longer a field here
+ *  that must NOT become dirty-tracked. */
+function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
   document.body.innerHTML =
     `<form id="settings-form" class="settingsform" method="post">` +
     `<input type="number" name="budgetUsd" value="3">` +
-    `<p class="row"><span class="lbl">Units</span>` +
-    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
-    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>` +
-    `</p>` +
     `<button id="settingsform-save" type="submit">Save</button>` +
     `<button id="settingsform-cancel" type="button" disabled>Cancel</button>` +
     `</form>`;
   return {
     form: document.querySelector("form.settingsform") as HTMLFormElement,
     input: document.querySelector('input[name="budgetUsd"]') as HTMLInputElement,
-    unitRadio: document.querySelector('input[data-unit-choice="tokens"]') as HTMLInputElement,
   };
 }
 
@@ -260,46 +255,6 @@ describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
 
     cancel.dispatchEvent(new Event("click", { bubbles: true }));
     expect(input.value).toBe("3");
-    expect(save.disabled).toBe(true);
-    expect(cancel.disabled).toBe(true);
-  });
-});
-
-// Spec 414: Units becomes a literal descendant of the settings form for
-// layout alone — a page-wide display preference (unit-script.ts,
-// localStorage), not a field this form saves, so it must keep the
-// guarantee spec 409 gave it by DOM position, now via the two
-// `closest("[data-unit-choice]")` guards in bind().
-describe("spec 414: Units rides inside settingsform without becoming dirty-tracked", () => {
-  test("flipping the Units radio never enables Save/Cancel", () => {
-    const { unitRadio } = settingsForm();
-    mount();
-    const save = document.getElementById("settingsform-save") as HTMLButtonElement;
-    const cancel = document.getElementById("settingsform-cancel") as HTMLButtonElement;
-
-    unitRadio.checked = true;
-    unitRadio.dispatchEvent(new Event("change", { bubbles: true }));
-
-    expect(save.disabled).toBe(true);
-    expect(cancel.disabled).toBe(true);
-  });
-
-  test("Cancel restores a tracked field but leaves a flipped Units radio exactly as the user set it", () => {
-    const { input, unitRadio } = settingsForm();
-    mount();
-    const save = document.getElementById("settingsform-save") as HTMLButtonElement;
-    const cancel = document.getElementById("settingsform-cancel") as HTMLButtonElement;
-
-    input.value = "8";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    unitRadio.checked = true;
-    unitRadio.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(save.disabled).toBe(false);
-
-    cancel.dispatchEvent(new Event("click", { bubbles: true }));
-
-    expect(input.value).toBe("3");
-    expect(unitRadio.checked).toBe(true);
     expect(save.disabled).toBe(true);
     expect(cancel.disabled).toBe(true);
   });

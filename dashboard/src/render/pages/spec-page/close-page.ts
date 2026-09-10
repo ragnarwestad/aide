@@ -42,6 +42,6 @@ export function renderCloseSpecPage(
     field("Reason", `<textarea name="reason" rows="4" required></textarea>`) +
     `</span></form>`;
   return pageShell(title, entries, "/", body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

@@ -41,8 +41,7 @@
 
     const fields = (): (HTMLInputElement | HTMLTextAreaElement)[] =>
       Array.from(form.elements).filter(
-        (el): el is HTMLInputElement | HTMLTextAreaElement =>
-          "name" in el && !!(el as HTMLInputElement).name && !(el as Element).closest("[data-unit-choice]"),
+        (el): el is HTMLInputElement | HTMLTextAreaElement => "name" in el && !!(el as HTMLInputElement).name,
       );
     // Taken once, at load — used only if Cancel is actually pressed
     // (the restore below), never for the dirty check, which is the
@@ -57,18 +56,8 @@
       save.disabled = !dirty;
       cancel.disabled = !dirty;
     };
-    // Units (spec 414) rides inside this form for layout alone — a
-    // page-wide display preference (unit-script.ts, localStorage), not a
-    // field this form saves, so a flip must never enable Save/Cancel or
-    // be touched by Cancel's restore, the same guarantee spec 409 gave
-    // it by DOM position.
-    const isUnitChoice = (event: Event): boolean =>
-      !!(event.target as Element | null)?.closest?.("[data-unit-choice]");
-    const markDirty = (event: Event): void => {
-      if (!isUnitChoice(event)) setDirty(true);
-    };
-    form.addEventListener("input", markDirty);
-    form.addEventListener("change", markDirty);
+    form.addEventListener("input", () => setDirty(true));
+    form.addEventListener("change", () => setDirty(true));
     setDirty(false);
 
     cancel.addEventListener("click", () => {

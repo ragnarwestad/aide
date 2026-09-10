@@ -9,7 +9,7 @@ import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
-import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
+import { busyReason, chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
 
@@ -63,7 +63,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // and consulted per phase — the same shape `busy` itself already had.
   // Which step is being worked was a fourth until spec 168, read by
   // nothing but the spinner that used to sit on that phase's box.
-  const ticked = preTicked(g);
+  const ticked = chosenSteps(g, opts);
   const why = busy ? busyReason(g) : "";
   // Spec 160: the phases this run can still be given or relieved of.
   // The server worked it out from the job as it stands — the row does
@@ -221,10 +221,10 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
             // Reopen carries it as a hidden field of its own.
             name: "",
             // What HAPPENED, not what a press would run next (spec 224).
-            // `preTicked` answers the second question — and for a spec
-            // whose workflow is over it always answers `{archive}`
-            // alone, which would tick the one step this row did not have
-            // and leave the ones it did unticked.
+            // `chosenSteps` answers the second question — and for a spec
+            // whose workflow is over, with no recorded choice, it falls
+            // back to `{archive}` alone, which would tick the one step
+            // this row did not have and leave the ones it did unticked.
             checked: g.done.includes(p.step),
             disabled: true,
             // Inert, not padlocked — the same reason spec 145 gives for
