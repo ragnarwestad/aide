@@ -131,6 +131,17 @@ export async function handleJobActionRoutes(
     }
 
     const result = ctx.queue.enqueue(raw);
+    // Spec 439: the row's own Run form is the one HTTP route a reader's
+    // phase-checkbox tick actually reaches after create, so it is the
+    // ordinary-run counterpart to `enqueueCreate()`'s own seeding
+    // (`store.ts`) — only on a SUCCESSFUL enqueue, and only here: `reset`
+    // (`run-controls.ts`), `close` (`close-controls.ts`) and the
+    // scheduler each call `ctx.queue.enqueue()` too, with synthetic step
+    // lists that carry no reader's own tick, and must never overwrite a
+    // recorded choice with one.
+    if (result.ok) {
+      ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
+    }
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two
       // `parseJobRequest` already requires, so this adds no trust

@@ -85,8 +85,9 @@ stateDiagram-v2
 reports the folder that appeared as `specFolder`, and the dashboard lands the branch and renames the job to it. A
 spec exists once its folder is on the specs repo's default branch — that is what puts a row on the list.
 
-**`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row pre-ticks every phase the
-spec has not had, so a fresh spec's Run queues analyze, implement and archive as one job. The runner queues each following step the moment the one
+**`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row's boxes follow whatever was
+posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
+create queues analyze, implement and archive as one job. The runner queues each following step the moment the one
 before it completes, and starts it once that step's landing has settled. Until then, that step's own phase line and
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
@@ -153,8 +154,11 @@ runner decides on its own.
 - **Reset** does the same for an active spec whose current round must not count, keeping the description, the commits
   and the earlier job history.
 
-A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs, and the row pre-ticks
-every phase.
+A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs. Neither move touches
+a phase choice recorded earlier under this spec (`pending-steps.json`) — the row's boxes still follow it, exactly as
+they did before the round was discarded, since reopening or resetting is not the reader changing that choice
+themselves. A spec with no such choice on record falls back to every phase it has not had, same as anywhere else on
+the list.
 
 ## Closing: a different terminal move from archive
 
