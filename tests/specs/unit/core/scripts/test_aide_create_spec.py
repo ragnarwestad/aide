@@ -160,6 +160,31 @@ def test_refuses_when_the_folder_already_exists(script, specs_root):
     assert [p.name for p in contents] == ["marker.txt"]
 
 
+# A number a caller hands in must lie above every number already there
+# (2026-09-10): the
+# create session numbered a spec 100 by sorting the archive alphabetically
+# (where "99-…" is the highest), and 100 was already an archived spec's.
+def test_refuses_a_number_that_is_already_taken(script, specs_root):
+    (specs_root / "archive").mkdir()
+    (specs_root / "archive" / "99-old").mkdir()
+    (specs_root / "archive" / "431-newest").mkdir()
+    rc, out, _ = run(script, specs_root, "100", "a-thing", "A thing", "Problem: X.")
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert "already taken" in out["error"] and "432" in out["error"]
+    assert not (specs_root / "100-a-thing").exists()
+
+
+def test_accepts_a_number_above_every_existing_one(script, specs_root):
+    (specs_root / "archive").mkdir()
+    (specs_root / "archive" / "99-old").mkdir()
+    (specs_root / "archive" / "431-newest").mkdir()
+    rc, out, _ = run(script, specs_root, "432", "a-thing", "A thing", "Problem: X.")
+    assert rc == 0, out
+    assert out["specFolder"] == "432-a-thing"
+
+
 # `--number` is deliberately absent from this list: it is optional now,
 # and its own tests below cover what the script picks when it is left
 # out.
