@@ -25,3 +25,10 @@
    word — "archived", "done" — read as plain text rather than a badge. */
 .b-done { background: var(--surface-2); color: var(--muted); border-color: var(--line); }
 
+/* Every badge in the State column takes one width — 7.5rem, room for
+   the widest ordinary word ("implementerer") — so the column reads as
+   a column of equal chips rather than of words of different lengths
+   (2026-09-10). A text wider than that still grows: min-width, not
+   width. */
+table.list td[data-col="state"] .badge { min-width: 7.5rem; box-sizing: border-box; justify-content: center; }
+
