@@ -62,6 +62,7 @@ export async function schedulePages(
         dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
       },
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -81,6 +82,7 @@ export async function schedulePages(
       })),
       defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -103,6 +105,7 @@ export async function schedulePages(
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -143,6 +146,7 @@ export async function schedulePages(
       })),
       defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

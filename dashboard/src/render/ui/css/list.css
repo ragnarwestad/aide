@@ -178,8 +178,13 @@ table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3);
    draws the column — the spec's own line, the caption line and each
    phase line — so the boundary is one line down the table, not the
    button's own margin. */
+/* 12px a side since 2026-09-10, not 24: the badges took one width
+   (7.5rem, status-badge.css), and 24px a side left a 96px content box
+   for a 120px badge, which then overhung to the right of the button
+   above it. 12px a side is exactly the badge's width, centred by the
+   cell itself on every row, holder or not. */
 table.list td[data-col="state"] {
-  padding-left: var(--sp-5); padding-right: var(--sp-5); text-align: center; }
+  padding-left: var(--sp-3); padding-right: var(--sp-3); text-align: center; }
 /* Time, Cost/Tokens and Created (REQ-1, spec 427): one short value
    under a one-word heading, all three centred instead of two left and
    one right by accident of which default each fell into. */
@@ -273,10 +278,13 @@ table.speclist thead th { position: relative; }
      cell's own edge, one fixed width to the right. The box holding a
      width of its own only left 28px of nothing between the two. */
   width: auto; }
-/* The second line lands flush with the first — it is the same box, not
-   a hanging indent — because the box's own left edge already sits
-   right after the fold control, exactly where the first line starts. */
-.spec-name > .label { overflow: hidden;
+/* The label is a row of two: the project ("aide:") and the name. The
+   name wraps inside its own span, so its second line starts where its
+   first does — right after the project — instead of running back under
+   "aide:" (asked for 2026-09-10). The two-line clamp sits on the name. */
+.spec-name > .label { display: flex; align-items: flex-start; min-width: 0; }
+.spec-name > .label > .muted { flex: 0 0 auto; }
+.spec-name > .label > .specname { overflow: hidden;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2;
   min-width: 0; }

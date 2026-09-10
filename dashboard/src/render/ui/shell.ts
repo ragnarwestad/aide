@@ -167,31 +167,41 @@ function themeControl(lang: Language): string {
   );
 }
 
-// The language choice links, shared (spec 436) the same way
-// themeChoiceRows() is. Deliberately ignores `currentPath` and always
-// links to `/?lang=<code>` — landing on the Specs list in the chosen
-// language is a known, coherent result from any page, where following
-// `currentPath` would mean inventing a second "reader's actual address"
-// concept distinct from what that value already means to `tabBar`
-// (which tab is current) — see spec 408's `2-analysis.md`, "Why the
-// language link still always targets `/`, unchanged".
-function languageChoiceLinks(lang: Language): string {
+// The header-level language switch (spec 350), beside the theme control
+// (REQ-3) and built the same way: a `<details class="menu">` trigger +
+// panel, so it gets the same outside-click/Escape close for free. Each
+// link targets the CALLER's own current address — `pageShell`'s
+// `currentUrl` opt — with only `lang` swapped, so switching language
+// keeps the reader on the page, tab, sort and filter they were already
+// on. Absent `currentUrl` (the two build-time pages in `site.ts`, which
+// have no request to read one from) falls back to `/`.
+function languageHref(currentUrl: string, target: Language): string {
+  const [path, search = ""] = currentUrl.split("?");
+  const kept = search.split("&").filter((pair) => pair && !pair.startsWith("lang="));
+  kept.push(`lang=${target}`);
+  return esc(`${path}?${kept.join("&")}`);
+}
+
+// The language choice links, shared (spec 436) by languageControl()'s own
+// standalone panel (desktop) and the "…" menu's flat mobile copy — the
+// same markup either way, each targeting `currentUrl` with only `lang`
+// swapped (spec 435), so switching language keeps the reader on the
+// page, tab, sort and filter they were already on, wherever the link is
+// reached from.
+function languageChoiceLinks(lang: Language, currentUrl: string): string {
   const other: Language = lang === "nb" ? "en" : "nb";
   const choice = (l: Language) => `${LANGUAGE_FLAGS[l]} ${t(lang, LANGUAGE_NAME_KEYS[l])}`;
   return (
-    `<a href="/?lang=${lang}" aria-current="true">${choice(lang)}</a>` +
-    `<a href="/?lang=${other}">${choice(other)}</a>`
+    `<a href="${languageHref(currentUrl, lang)}" aria-current="true">${choice(lang)}</a>` +
+    `<a href="${languageHref(currentUrl, other)}">${choice(other)}</a>`
   );
 }
 
-// The header-level language switch (spec 350), beside the theme control
-// (REQ-3) and built the same way: a `<details class="menu">` trigger +
-// panel, so it gets the same outside-click/Escape close for free.
-function languageControl(lang: Language): string {
+function languageControl(lang: Language, currentUrl: string): string {
   const langLabel = t(lang, "shell.language");
   return (
     `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_FLAGS[lang]}</summary>` +
-    `<div class="menupanel">${languageChoiceLinks(lang)}</div></details>`
+    `<div class="menupanel">${languageChoiceLinks(lang, currentUrl)}</div></details>`
   );
 }
 
@@ -306,7 +316,7 @@ function boardLine(lang: Language): string {
   );
 }
 
-function pageHeader(lang: Language): string {
+function pageHeader(lang: Language, currentUrl: string): string {
   // Theme, language and unit repeat here flat, with no second `<details>`
   // wrapper (spec 436): the "…" menu's own `closeAll()` behaviour
   // (menu-script.ts) closes every open `details.menu`/`details.intro`
@@ -315,14 +325,14 @@ function pageHeader(lang: Language): string {
   // opening. narrow.css hides the three standalone triggers and reveals
   // this block only at phone width.
   const mobileRows =
-    `<div class="morerows">${themeChoiceRows(lang)}${languageChoiceLinks(lang)}${unitChoiceRows()}</div>`;
+    `<div class="morerows">${themeChoiceRows(lang)}${languageChoiceLinks(lang, currentUrl)}${unitChoiceRows()}</div>`;
   return (
     `<header>${WORDMARK}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
     // header's right-hand end (spec 243, spec 350, spec 436) —
     // header-level controls the reader reaches without opening the menu
     // first, not one more item behind it.
-    `<span class="row">${themeControl(lang)}${languageControl(lang)}${unitControl(lang)}` +
+    `<span class="row">${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
@@ -407,6 +417,12 @@ export function pageShell(
      *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
      *  means "nothing chose otherwise" rather than an unwired page. */
     lang?: Language;
+    /** The exact request address (path + query, `lang` included) the
+     *  reader is ON right now — what the language links point at, `lang`
+     *  swapped. Absent means `/`: the two build-time pages in `site.ts`
+     *  have no request to read one from, and always link home exactly as
+     *  every page already did before this field existed. */
+    currentUrl?: string;
     /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
      *  offers, so it draws no tab bar at all. Absent (never required)
      *  on every other page. */
@@ -414,6 +430,7 @@ export function pageShell(
   } = {},
 ): string {
   const lang = opts.lang ?? "en";
+  const currentUrl = opts.currentUrl ?? "/";
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
   // filling in. The spec list therefore refreshes its table from
@@ -444,7 +461,7 @@ ${PWA_LINKS}
 <script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
-${pageHeader(lang)}
+${pageHeader(lang, currentUrl)}
 ${installBanner}
 ${aboutDialog(opts.buildStamp)}
 ${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}

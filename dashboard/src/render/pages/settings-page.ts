@@ -33,6 +33,9 @@ export interface SettingsPageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -94,6 +97,6 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
     `</div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }
