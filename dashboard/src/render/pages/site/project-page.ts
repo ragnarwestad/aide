@@ -282,6 +282,6 @@ export function renderProjectPage(
 
   const body = tabbedBody("", tabBar(PROJECT_TABS, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
   return pageShell(p.name, nav, base, body, generatedAt, awaitingDrift ? AWAITING_DRIFT_REFRESH_SECONDS : undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
   });
 }

@@ -143,3 +143,17 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
     expect(html).toContain("omstarten venter på disse jobbene: aide:070-example");
   });
 });
+
+describe("renderProjectPage: no site-level tab bar (spec 437)", () => {
+  test('draws no <nav class="tabbar">', () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-08-31T00:00:00Z",
+      NAV,
+      { worktreeLinkCandidates: [], editing: false },
+    );
+    expect(html).not.toContain('<nav class="tabbar">');
+  });
+});

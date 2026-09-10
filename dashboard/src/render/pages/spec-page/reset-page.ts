@@ -49,6 +49,6 @@ export function renderResetSpecPage(
     `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(title, entries, "/", body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
   });
 }

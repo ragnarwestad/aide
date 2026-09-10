@@ -284,6 +284,11 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       html.indexOf('action="/api/queue/create"'),
     );
   });
+
+  // Spec 437, AC-1/AC-2: New spec is a subpage.
+  test("draws no site-level tab bar", () => {
+    expect(newPage()).not.toContain('<nav class="tabbar">');
+  });
 });
 
 // --- spec 342: the New spec page can run the whole workflow from the start ---

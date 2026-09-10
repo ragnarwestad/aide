@@ -192,6 +192,6 @@ export function renderSpecPage(
     body,
     generatedAt,
     RELOADING_TABS.includes(tab) ? 10 : undefined,
-    { script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, lang: opts.lang },
+    { script: opts.script, scriptSrc: opts.scriptSrc, hideHeading: true, hideTabBar: true, lang: opts.lang },
   );
 }
