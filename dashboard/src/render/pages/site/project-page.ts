@@ -116,8 +116,10 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
         (serving ? ", and restarts the service." : ".")
       : stale
         ? opts.restartWaiting?.length
-          ? `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)} — ` +
-            `the restart is waiting for running jobs: ${opts.restartWaiting.join(", ")}.`
+          ? t(opts.lang ?? "en", "project.deployRestartWaiting", {
+              sha: serving!.sha.slice(0, 7),
+              jobs: opts.restartWaiting.join(", "),
+            })
           : `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
             `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
         : serving
