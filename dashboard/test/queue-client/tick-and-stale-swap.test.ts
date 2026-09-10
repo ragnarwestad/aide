@@ -66,12 +66,33 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     h.changeStep(0, false); // analyze off — archive is first now
     expect(h.runButton.textContent).toBe("Archive");
 
-    h.changeStep(2, false); // and off — nothing ticked at all
-    expect(h.runButton.hidden).toBe(true);
+    // Nothing ticked at all (spec 439): the button stays on the row,
+    // named for the earliest not-yet-run phase, but disabled — the same
+    // "named, but not ticked" state `actionState()` draws server-side,
+    // kept in step here rather than hidden the way it used to be.
+    h.changeStep(2, false);
+    expect(h.runButton.hidden).toBe(false);
+    expect(h.runButton.disabled).toBe(true);
+    expect(h.runButton.textContent).toBe("Analyze");
 
     h.changeStep(1, true); // implement alone
     expect(h.runButton.hidden).toBe(false);
+    expect(h.runButton.disabled).toBe(false);
     expect(h.runButton.textContent).toBe("Implement");
+  });
+
+  // spec 439: the disabled-but-named case, so the in-session client
+  // script and the server's own next render never disagree about the
+  // same row — the server draws exactly this state for a spec whose
+  // recorded choice ticks nothing (`actionState()`, `active: false`).
+  test("a box unticked back to nothing disables the button rather than hiding it (spec 439)", () => {
+    const h = harness(() => ({ ok: true }));
+    h.changeStep(0, false); // analyze off — the only one served ticked
+    expect(h.runButton.hidden).toBe(false);
+    expect(h.runButton.disabled).toBe(true);
+    // Named for the earliest not-yet-run phase, the same one `nextPhase`
+    // would name server-side — not left showing whatever it said before.
+    expect(h.runButton.textContent).toBe("Analyze");
   });
 
   test("a box the reader ticked is still ticked after the swap", async () => {

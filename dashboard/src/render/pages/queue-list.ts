@@ -140,6 +140,13 @@ export interface QueuePageOptions {
    *  step runs at is a configuration answer rather than a per-row pick
    *  (`phase-rows.ts`, "No effort control"). */
   pendingEffort?: Record<string, Record<string, string>>;
+  /** Which phases a reader chose — at create time, or at a later Run —
+   *  keyed by `project/specFolder` (spec 439): what `chosenSteps()` and
+   *  `actionState()` read the row's ticks and its action button from,
+   *  falling back to the row's own git history only for a spec with no
+   *  entry here at all. Absent or missing an entry behaves exactly as
+   *  before this existed. */
+  pendingSteps?: Record<string, string[]>;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */

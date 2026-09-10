@@ -8,22 +8,29 @@ import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
  *
- *  The server names the button from `preTicked`, which is its own
- *  suggestion (`queue-list.ts`). That is right for the row as drawn and
+ *  The server names the button from `actionState()` (`row-state.ts`,
+ *  spec 439), its own suggestion. That is right for the row as drawn and
  *  wrong the instant a reader ticks something else: on 2026-08-21 a spec
  *  whose analyze was suggested, with only `archive` ticked by hand, went
  *  on offering "Analyze". The press was correct — an open row posts its
  *  boxes and no hidden steps — but the row said one thing and did
  *  another, which is the whole thing naming the button was for.
  *
- *  The display name comes off the box's own `aria-label`, which the
+ *  The display name comes off a box's own `aria-label`, which the
  *  server already sets to the phase's reader-facing name, so the
  *  step-label table is not spelled a second time in the browser.
  *
- *  Nothing ticked hides the button, as the server's own render does: a
- *  press that can do nothing must not be offered. Without this file the
- *  label simply stays as rendered, which is the same honest fallback
- *  every other thing here degrades to. */
+ *  Nothing ticked no longer hides the button (spec 439): it disables it
+ *  instead, named for the EARLIEST box on the row — which, since the
+ *  boxes drawn here are exactly the not-yet-run phases in workflow
+ *  order, is the same phase `nextPhase()` would name server-side. That
+ *  is the "named, but not ticked" state `actionState()`'s own `active:
+ *  false` draws on the next full render; this keeps the two from
+ *  disagreeing in between. The button is hidden only when the row has no
+ *  boxes to read at all (an archived or a busy row's Run control never
+ *  reaches this file in the first place). Without this file the label
+ *  simply stays as rendered, which is the same honest fallback every
+ *  other thing here degrades to. */
 export function relabelRunButton(body: Element, formId: string): void {
   // Quoted, so only a quote or a backslash could break out — and a form
   // id is `rowrun-<project>/<folder>`, both of which the route's own
@@ -43,12 +50,20 @@ export function relabelRunButton(body: Element, formId: string): void {
   // the other is as reliable as the id both already carry.
   const boxes = Array.from(body.querySelectorAll(`input[name="steps"]${selector}`)) as HTMLInputElement[];
   const first = boxes.find((b) => b.checked);
-  if (!first) {
+  // No box ticked: named for the earliest one instead of hiding the
+  // button (spec 439) — `boxes[0]` because the boxes on a row are drawn
+  // in workflow order and only for a phase that has not run yet, so the
+  // first of them IS the phase a press would need ticked to do
+  // anything. No boxes at all is the one case this file still hides
+  // for: nothing here says what the button should be named.
+  const shown = first ?? boxes[0];
+  if (!shown) {
     button.hidden = true;
     return;
   }
   button.hidden = false;
-  const name = first.getAttribute("aria-label") ?? first.value;
+  button.disabled = !first;
+  const name = shown.getAttribute("aria-label") ?? shown.value;
   button.textContent = `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
 }
 

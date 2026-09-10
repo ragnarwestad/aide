@@ -207,6 +207,38 @@ export function persistPendingEffort(file: string, table: Record<string, Record<
   }
 }
 
+/** A phase choice recorded before or between jobs (spec 439) — the
+ *  sibling of `parsePendingModels`/`parsePendingEffort` above, one level
+ *  shallower: a list of steps rather than a per-step value, as it is
+ *  written in `pending-steps.json`: `{ "<project>/<specFolder>":
+ *  ["<step>", ...] }`. `null` for anything malformed, the same
+ *  fail-closed rule every other parser here follows. An empty list for a
+ *  key is kept, not dropped: it is the recorded answer "nothing was
+ *  ticked", a real choice and not the same thing as no entry at all. */
+export function parsePendingSteps(raw: unknown): Record<string, string[]> | null {
+  if (!raw || typeof raw !== "object") return null;
+  const out: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue;
+    out[key] = value.filter((s): s is string => typeof s === "string");
+  }
+  return out;
+}
+
+/** Write the whole table back, tmp-then-renamed like every other file
+ *  this store writes — the same shape as `persistPendingModels`. */
+export function persistPendingSteps(file: string, table: Record<string, string[]>): string | null {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.tmp`;
+    writeFileSync(tmp, JSON.stringify(table, null, 2));
+    renameSync(tmp, file);
+    return null;
+  } catch (err) {
+    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 export interface QueueSettingsUpdate {
   model: Record<string, string>;
   budgetUsd: number;

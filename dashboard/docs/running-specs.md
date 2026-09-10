@@ -39,7 +39,10 @@ one row per phase — create, analyze, implement, archive — each with a tick, 
 the same pickers the spec row on the list uses. `create`'s tick is always checked and cannot be unchecked; the other
 three are checked by default too, so a form submitted without touching them queues all four phases in order, guarded,
 budgeted and timed exactly like any other job. Unticking a box before pressing Create still works, and is how a
-`create`-only job is queued.
+`create`-only job is queued. Whatever was ticked here is recorded against the spec this job makes, and is what the
+row's own phase boxes on the list show once the spec has a row — not re-derived from scratch on the next render, and
+not lost the moment this one job finishes. It sticks until the reader re-ticks the row itself and presses Run, which
+records that choice in its place.
 
 It is a page rather than a disclosure folded into `/`: a primary button that unfolds the page under it reads oddly,
 and leaves no way out but pressing the same button again. Both actions work with no script at

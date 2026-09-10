@@ -41,10 +41,11 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  // `preTicked` answers "what would a press run next", which for a
-  // finished spec is always `{archive}` alone — so routed through it a
-  // locked row would tick the one step it did not have and leave the two
-  // it did unticked. No press is offered, so the box says what happened.
+  // `chosenSteps` answers "what would a press run next", which for a
+  // finished spec with no recorded choice falls back to `{archive}`
+  // alone — so routed through it a locked row would tick the one step
+  // it did not have and leave the two it did unticked. No press is
+  // offered, so the box says what happened.
   test("each box is ticked by what happened, not by what a press would run", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     for (const step of STAMPED_STEPS) expect(lines[step]).toContain(" checked");

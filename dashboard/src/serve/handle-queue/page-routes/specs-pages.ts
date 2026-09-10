@@ -86,6 +86,10 @@ export async function specsPages(
       pendingModels: ctx.queue.pendingModels,
       // The sibling of pendingModels, for an effort level (spec 364).
       pendingEffort: ctx.queue.pendingEffort,
+      // Which phases a reader chose — at create time, or at a later Run
+      // — recorded so a fresh render shows that choice instead of
+      // re-deriving one from history alone (spec 439).
+      pendingSteps: ctx.queue.pendingSteps,
       error: url.searchParams.get("error") ?? undefined,
       // Which row the refusal belongs to. It rides in the query
       // string with the reason itself, so it survives the
