@@ -181,6 +181,20 @@ $description
 AC_CHECK_EOF
 
 if [ -n "$number" ]; then
+  # A number handed in must lie above every number already there — a
+  # spec number is never reused, and a caller
+  # that counted wrong — a session that sorted the archive's folder
+  # names alphabetically and read "99-…" as the highest, then asked for
+  # 100, which an archived spec already had (2026-09-10) — must be
+  # refused, not obeyed. Skipped only where the helper is missing, so a
+  # bare copy of the script still creates what it is asked to.
+  if declare -f aide_next_spec_number >/dev/null 2>&1; then
+    expected="$(aide_next_spec_number "$specs_root")"
+    highest="$(( 10#$expected - 1 ))"
+    if [ "$((10#$number))" -le "$highest" ]; then
+      refuse "spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
+    fi
+  fi
   folder="${number}-${slug}"
   dest="$specs_root/$folder"
   [ -d "$dest" ] && refuse "spec folder already exists: $dest"

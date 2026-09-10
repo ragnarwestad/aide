@@ -74,7 +74,9 @@ Examples:
   and a number must never be reused
 - Next number = highest + 1 (or 01 if none exist), leading zero: `01`, `02`, ...
 - Helper: `aide_next_spec_number <specs-root>` in `_aide-spec-lib.sh`
-  does exactly this
+  does exactly this — use it, and never sort folder names as text:
+  `ls | sort` puts `99-…` above `431-…`, and `aide-create-spec` refuses
+  a number that is not above every number already there
 
 ### Step 3: Generate a slug from the title
 
