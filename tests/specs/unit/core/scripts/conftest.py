@@ -218,7 +218,7 @@ def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
         "--timeout-sec": "30",
         "--permission-mode": "acceptEdits",
         "--result-file": str(ws["project"].parent / "result.json"),
-        # Never $HOME/aide-worktrees in a test: a suite that writes there
+        # Never $HOME/aide-dashboard/worktrees in a test: a suite that writes there
         # would fight the machine's own runs.
         "--worktree-base": str(ws["wtbase"]),
     }

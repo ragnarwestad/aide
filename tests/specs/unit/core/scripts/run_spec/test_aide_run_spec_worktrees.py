@@ -228,6 +228,16 @@ def test_a_second_run_for_the_same_spec_starts_from_a_clean_slate(
     assert out2["terminalReason"] == "completed", out2
     assert "cannot create" not in stdout2
 
+def test_the_default_worktree_base_is_nested_under_aide_dashboard(run_spec_source):
+    """The board's own worktrees used to be a bare sibling of `$HOME`,
+    `aide-worktrees`, while everything else it owns already lived under
+    `~/aide-dashboard/` (spec 430). No test runs a spec with
+    `--worktree-base` unset — every workspace fixture passes it explicitly,
+    on purpose (see conftest.py's own comment on that default) — so this
+    pins the fallback by reading the source text instead."""
+    assert 'worktree_base="$HOME/aide-dashboard/worktrees"' in run_spec_source
+
+
 def test_a_branch_carrying_work_survives_a_run_that_adds_nothing_to_it(
     runner, workspace, fake_claude
 ):

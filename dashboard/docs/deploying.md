@@ -9,6 +9,7 @@ move it to another host or run the whole thing on one machine.
 - [Signing in from a proxy's own header](#signing-in-from-a-proxys-own-header)
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
+- [Moving the board's own directories](#moving-the-boards-own-directories)
 - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
 - [On one machine](#on-one-machine)
 - [Known gaps](#known-gaps)
@@ -117,7 +118,7 @@ installs deps, renders a launchd plist and starts the job. No plist is committed
 `~/Library/Logs/aide-dashboard/serve.log` on that host.
 
 **The repo it clones there is the dashboard's OWN checkout —
-`~/aide-dashboard-checkouts/aide/code` — not a checkout a person edits.** That is the directory a code landing merges
+`~/aide-dashboard/checkouts/aide/code` — not a checkout a person edits.** That is the directory a code landing merges
 into and runs
 `AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
 no rule for a safe moment held up. It logs that the served page runs older code than main, and the person restarts
@@ -153,7 +154,7 @@ All paths are relative to the serving host's own `$HOME`.
 | `MINI`           | — required                           | the ssh target                                                    |
 | `PORT`           | `8788`                               | port to serve on, behind the proxy                                |
 | `TS_PORT`        | `443`                                | port tailscale serve terminates TLS on                            |
-| `MINI_REPO`      | `aide-dashboard-checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
+| `MINI_REPO`      | `aide-dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
 | `MINI_SRC`       | `$(MINI_REPO)/dashboard`             | the directory bun runs in, and what the plist points at           |
 | `REMOTE_STATE`   | `aide-dashboard`                     | site, mirrors, queue state                                        |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`        | bun on that host                                                  |
@@ -163,12 +164,75 @@ All paths are relative to the serving host's own `$HOME`.
 | `BIND`           | unset                                | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
-`ROOT` and lands their work in `aide-dashboard-checkouts/<project>/code`; when those are two different copies, the list
+`ROOT` and lands their work in `aide-dashboard/checkouts/<project>/code`; when those are two different copies, the list
 lags the landings until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host
-`ROOT` is `aide-dashboard-projects/`, holding one symlink per project to `aide-dashboard-checkouts/<project>/code` — the
+`ROOT` is `aide-dashboard/projects/`, holding one symlink per project to `aide-dashboard/checkouts/<project>/code` — the
 one copy the dashboard both reads and writes. A project with no checkout of its own (a scratch project) links to
 wherever it lives. Each linked checkout keeps its own `.aide/config`, written by the dashboard when it clones the
 project.
+
+## Moving the board's own directories
+
+The board's own checkouts, projects root and worktrees used to be three
+siblings of `$HOME` with three different names — `aide-dashboard-checkouts`,
+`aide-dashboard-projects`, `aide-worktrees` — while everything else it
+owns (`site`, `jobs`, `pdf-cache`, `schedule-output`, the JSON mirrors)
+already lived under `~/aide-dashboard/`. Since spec 430 the three join
+it, as `~/aide-dashboard/checkouts/`, `~/aide-dashboard/projects/` and
+`~/aide-dashboard/worktrees/`. Moving an already-running installation
+onto the new layout is a one-time, per-host operation — nothing in a
+code deploy does it for you, the same way nothing ever created
+`aide-dashboard-projects`'s symlinks for you.
+
+**Do this with the service stopped, not merely with the queue empty.**
+Checking that nothing is `running` or `queued` on the dashboard's own
+page says nothing about a job someone starts in the next five minutes.
+`ssh <host> 'launchctl bootout gui/$(id -u)/com.aide-dashboard.serve'`
+stops the process that could start one, for the whole duration of the
+move.
+
+**Move the directories before you deploy the new code, never after.**
+`install-serve` decides whether to `git clone` or `git -C ... pull` by
+whether `MINI_REPO` already has a `.git` in it. Deploy the code first and
+the new default (`aide-dashboard/checkouts/aide/code`) is empty, so
+`install-serve` clones fresh there instead of continuing the checkout
+still sitting at the old name — briefly doubling the disk cost and
+serving from a clone with no local history. Move first, and
+`install-serve` finds the same checkout, `.git` and all, right where the
+new default now looks for it.
+
+    ssh <host> '
+      set -e
+      mv aide-dashboard-checkouts aide-dashboard/checkouts
+      mv aide-dashboard-projects aide-dashboard/projects
+      mv aide-worktrees aide-dashboard/worktrees 2>/dev/null || mkdir -p aide-dashboard/worktrees
+    '
+
+`aide-worktrees` is ordinarily empty between runs — `aide-run-spec`
+removes its own worktree when a run ends (`run-spec-checkouts.sh`'s
+`remove_worktrees` trap) — so the `mv` above is allowed to find nothing
+there; the fallback `mkdir -p` covers a host where the directory was
+never created at all.
+
+Update `.env.deploy` on this machine to match — `ROOT=aide-dashboard/projects`,
+and drop any `MINI_REPO` override, since the new default already names
+the moved checkout. Then run the ordinary upgrade:
+
+    MINI=<host> make -C dashboard deploy-serve
+
+which re-clones-or-pulls (a pull, now that the checkout moved with its
+`.git` intact), rewrites the plist with the new `--root`, and restarts
+the job — exactly the path every other upgrade already takes.
+
+**A job started anyway, mid-move, does not corrupt anything — it leaves
+a stray, mostly-empty directory behind at whichever old name the code it
+is running still points at.** `ensureDashboardCheckout` treats a missing
+checkout as a first use and clones a fresh one; `run-spec-checkouts.sh`
+treats a missing worktree base as new and `mkdir -p`s it. Neither one
+errors, and neither one touches the data already moved — but that run's
+own checkout or worktree now lives in a directory this procedure is
+about to leave behind, so treat it as failed and re-queue it once the
+move is finished, and remove the stray directory by hand.
 
 Publishing the generated site to that host is separate:
 `AIDE_DASH_HOST=<host> make publish`. Before rsyncing (with `--delete`),

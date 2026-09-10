@@ -21,7 +21,7 @@ should read this file by hand.
   pushed as its own confirmed step, so it never lands while that push
   cannot be confirmed against origin (spec 343).
 - It works in `git worktree` checkouts under
-  `$HOME/aide-worktrees/<project>/<spec>/`. The result's `repos[].root` is
+  `$HOME/aide-dashboard/worktrees/<project>/<spec>/`. The result's `repos[].root` is
   the MAIN checkout; `repos[].worktree` is the throwaway one.
 - Gitignored paths reach a worktree only through `worktreeLinks:` in the
   committed manifest; `.aide/config`'s `AIDE_WORKTREE_LINKS` is the

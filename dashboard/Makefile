@@ -97,7 +97,7 @@ serve-local: generate
 # `dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide")` in
 # dashboard/src/dashboard-checkout.ts — kept in sync by
 # test/install-serve-paths.test.ts.
-MINI_REPO ?= aide-dashboard-checkouts/aide/code
+MINI_REPO ?= aide-dashboard/checkouts/aide/code
 MINI_SRC ?= $(MINI_REPO)/dashboard
 REMOTE_STATE ?= aide-dashboard
 # bun via the mise shim: bare `bun` is not on launchd's PATH.

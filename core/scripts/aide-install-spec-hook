@@ -4,7 +4,7 @@
 # The hook is written into the repository's COMMON git dir
 # (`git rev-parse --git-common-dir`), not the `.git/hooks` of one
 # particular worktree — `aide-run-spec` gives every run its own
-# `git worktree` under $HOME/aide-worktrees/, and git shares `hooks/`
+# `git worktree` under $HOME/aide-dashboard/worktrees/, and git shares `hooks/`
 # across every worktree of one repository
 # (`.claude/rules/development.md`, "Hooks are shared across worktrees
 # of one repository"). Installing once into the main checkout therefore

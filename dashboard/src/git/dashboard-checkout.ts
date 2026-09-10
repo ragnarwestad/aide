@@ -37,7 +37,7 @@ import { configValue, resolveWorktreeLinks } from "../project/discover.ts";
 /** Where the dashboard keeps its own clones when nothing says otherwise.
  *  Beside `aide-dashboard/`, not inside the projects root: a directory
  *  under the projects root would be DISCOVERED as a project. */
-export const DEFAULT_DASHBOARD_CHECKOUT_ROOT = join(homedir(), "aide-dashboard-checkouts");
+export const DEFAULT_DASHBOARD_CHECKOUT_ROOT = join(homedir(), "aide-dashboard", "checkouts");
 
 /** The two roots a project's machinery works in. `specsRepo` is the
  *  repository `specs` sits in — the same one when the specs live in the

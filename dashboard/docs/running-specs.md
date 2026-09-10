@@ -364,7 +364,7 @@ pushes from the same tree, while a person edits it meanwhile. The per-repo lock 
 itself; nothing serializes it against a person's own git client, and nothing can.
 
 So the dashboard keeps clones of its own, under
-`~/aide-dashboard-checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
+`~/aide-dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
 project, never one per run;
 `--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the person's
 checkout's own `origin`, and reused ever after. Everything that MUTATES goes there: `aide-run-spec
@@ -408,7 +408,7 @@ repos that actually changed (`branchUrls` in the result; `branchUrl` keeps the s
 movement is the test, not `changedFiles`** — that field counts only what the run's own commit loop found uncommitted,
 and a step that commits its own work (archive does) leaves it at `0` with real commits on the branch.
 
-**It branches them in `git worktree` checkouts of its own**, under `$HOME/aide-worktrees/<project>/<spec>/`. The real
+**It branches them in `git worktree` checkouts of its own**, under `$HOME/aide-dashboard/worktrees/<project>/<spec>/`. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a person can use the
 checkout meanwhile. Two consequences worth knowing before changing anything here:

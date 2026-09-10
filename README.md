@@ -184,7 +184,7 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
               --budget-usd 3 --timeout-sec 1200 \
               --permission-mode acceptEdits \
               --result-file /tmp/step.json [--push none|branch|pr] [--pull]
-              [--worktree-base ~/aide-worktrees]
+              [--worktree-base ~/aide-dashboard/worktrees]
 ```
 
 It refuses to start when the spec folder does not exist or when a
@@ -198,7 +198,7 @@ write in BOTH roots — the project and the specs repo — and writes one
 JSON line to stdout and to `--result-file`.
 
 **Every run works in `git worktree` checkouts of its own**, one per repo
-it touches, under `$HOME/aide-worktrees/<project>/<spec>/`
+it touches, under `$HOME/aide-dashboard/worktrees/<project>/<spec>/`
 (`--worktree-base` relocates them; a base inside any of the repos is
 refused). The real checkouts are only ever put back **onto** their
 default branch and fast-forwarded — never switched to a spec branch — so

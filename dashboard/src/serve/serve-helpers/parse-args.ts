@@ -62,7 +62,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--pdf-bin" && v) opts.pdfGeneratorBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
     // Where the dashboard keeps the clones it works in (spec 205).
-    // `~/aide-dashboard-checkouts` unless a host wants them elsewhere.
+    // `~/aide-dashboard/checkouts` unless a host wants them elsewhere.
     else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
     // The token is read from a FILE, never an argument: `ps` shows

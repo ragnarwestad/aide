@@ -52,10 +52,10 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      projectDir: "/home/dev/aide-dashboard/checkouts/aide/code",
       push: "branch",
     });
-    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard-checkouts/aide/code");
+    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard/checkouts/aide/code");
   });
 
   // Spec 364, REQ-3/REQ-4: `--effort` appears only when the job actually
@@ -68,7 +68,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      projectDir: "/home/dev/aide-dashboard/checkouts/aide/code",
       push: "branch",
     });
     expect(argv[argv.indexOf("--effort") + 1]).toBe("high");
@@ -79,7 +79,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     } as unknown as Parameters<typeof runnerArgv>[0];
     const bare = runnerArgv(untouched, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      projectDir: "/home/dev/aide-dashboard/checkouts/aide/code",
       push: "branch",
     });
     expect(bare).not.toContain("--effort");

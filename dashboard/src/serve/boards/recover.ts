@@ -64,7 +64,7 @@ function resolved(path: string): string {
 /** A worktree the round made: its own branch, checked out in a
  *  `checkout` directory inside a `mktemp -d` one. Both halves are
  *  checked before anything is removed — a run's own worktree
- *  (`~/aide-worktrees/<project>/<spec>/code`) matches neither. */
+ *  (`~/aide-dashboard/worktrees/<project>/<spec>/code`) matches neither. */
 function isRoundWorktree(wt: WorktreeLine): boolean {
   const dir = wt.path.split("/");
   return (

@@ -6,7 +6,7 @@
 // running yesterday's code from a path that no longer receives commits.
 //
 // Since spec 223 that repo is the MACHINERY's checkout, not a person's:
-// a landing merges and installs in `~/aide-dashboard-checkouts/aide/code`
+// a landing merges and installs in `~/aide-dashboard/checkouts/aide/code`
 // (spec 205) and then restarts the launchd job, so the job has to be
 // executing from that same directory or it reloads the old code.
 //
@@ -41,21 +41,21 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
   const recipe = dryRun("install-serve", "MINI=example-host");
 
   test("clone-or-pull targets the repo root, one level above the source", () => {
-    expect(recipe).toContain("git -C aide-dashboard-checkouts/aide/code pull");
+    expect(recipe).toContain("git -C aide-dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("git clone -q");
-    expect(recipe).toContain("aide-dashboard-checkouts/aide/code;");
+    expect(recipe).toContain("aide-dashboard/checkouts/aide/code;");
   });
 
   test("bun install runs in the dashboard subdirectory of that checkout", () => {
-    expect(recipe).toContain("cd aide-dashboard-checkouts/aide/code/dashboard &&");
+    expect(recipe).toContain("cd aide-dashboard/checkouts/aide/code/dashboard &&");
   });
 
   test("the rendered plist points at the nested source", () => {
     expect(recipe).toContain(
-      '--script "$home/aide-dashboard-checkouts/aide/code/dashboard/src/serve/serve.ts"',
+      '--script "$home/aide-dashboard/checkouts/aide/code/dashboard/src/serve/serve.ts"',
     );
     expect(recipe).toContain(
-      '--working-directory "$home/aide-dashboard-checkouts/aide/code/dashboard"',
+      '--working-directory "$home/aide-dashboard/checkouts/aide/code/dashboard"',
     );
   });
 
@@ -82,7 +82,7 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
   // agree.
   test("the Makefile's checkout path is the one dashboard-checkout.ts resolves", () => {
     const fromCode = relative(homedir(), dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide"));
-    expect(fromCode).toBe("aide-dashboard-checkouts/aide/code");
+    expect(fromCode).toBe("aide-dashboard/checkouts/aide/code");
     expect(recipe).toContain(`git -C ${fromCode} pull`);
     expect(recipe).toContain(`--working-directory "$home/${fromCode}/dashboard"`);
   });
@@ -127,6 +127,6 @@ describe("serve-local still runs from the checkout it is invoked in", () => {
     expect(recipe).not.toContain("git -C ");
     expect(recipe).not.toContain("render-plist.ts");
     expect(recipe).not.toContain("launchctl");
-    expect(recipe).not.toContain("aide-dashboard-checkouts");
+    expect(recipe).not.toContain("aide-dashboard/checkouts");
   });
 });

@@ -56,7 +56,7 @@ export interface ServerOptions {
   queueProjectRoot?: string;
   /** Where the dashboard keeps the clones it works in (spec 205). One
    *  per project, made the first time it is needed. Defaults to
-   *  `~/aide-dashboard-checkouts`; named here so a test can put them
+   *  `~/aide-dashboard/checkouts`; named here so a test can put them
    *  somewhere it owns. */
   dashboardCheckoutRoot?: string;
   queueResultDir?: string;

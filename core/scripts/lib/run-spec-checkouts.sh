@@ -5,7 +5,7 @@
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
 # --- where this run's checkouts go -------------------------------------------
-[ -n "$worktree_base" ] || worktree_base="$HOME/aide-worktrees"
+[ -n "$worktree_base" ] || worktree_base="$HOME/aide-dashboard/worktrees"
 case "$worktree_base" in /*) ;; *) worktree_base="$PWD/$worktree_base" ;; esac
 refuse_base_inside_a_root() {
   local candidate="$1" root

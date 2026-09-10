@@ -90,7 +90,7 @@ describe("renderJobDetailPage", () => {
   // removed it outright: it existed for the one moment a step runs and
   // answered `State not-live · Subagents – · Cost so far – · Session
   // decc8861`, because claude-usage does not recognise a session run in
-  // a worktree under `~/aide-worktrees/` — which is where every run has
+  // a worktree under `~/aide-dashboard/worktrees/` — which is where every run has
   // worked since spec 91. Its absence is asserted in its own block
   // further down ("Live right now is gone").
 

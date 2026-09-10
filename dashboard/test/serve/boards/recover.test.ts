@@ -245,13 +245,13 @@ describe("the worktrees of test servers that are gone", () => {
     expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
   });
 
-  // A run's own worktree lives at `~/aide-worktrees/<project>/<spec>/code`
+  // A run's own worktree lives at `~/aide-dashboard/worktrees/<project>/<spec>/code`
   // and is a job in progress, not a leftover.
   test("nothing but a round's own worktree is touched", async () => {
     const ctx = makeCtx({
       worktrees:
         `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
-        `worktree /Users/x/aide-worktrees/aide/415-x/code\nHEAD abc\nbranch refs/heads/aide/415-x\n\n` +
+        `worktree /Users/x/aide-dashboard/worktrees/aide/415-x/code\nHEAD abc\nbranch refs/heads/aide/415-x\n\n` +
         `worktree /var/folders/44/T/not-a-temp-name/checkout\nHEAD abc\nbranch refs/heads/aide/416-x\n`,
     });
     expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
@@ -271,7 +271,7 @@ describe("which process on a port is a test server", () => {
   });
 
   test("this dashboard's own --root is not one", () => {
-    expect(workDirOf("bun run serve.ts serve --root /Users/x/aide-dashboard-projects --bind 127.0.0.1")).toBeUndefined();
+    expect(workDirOf("bun run serve.ts serve --root /Users/x/aide-dashboard/projects --bind 127.0.0.1")).toBeUndefined();
   });
 
   test("a --root at the very end of the line is still read", () => {

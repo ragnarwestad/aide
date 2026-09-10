@@ -506,7 +506,7 @@ export function renderJobDetailPage(
   // the one moment a step is running and answered `State not-live ·
   // Subagents – · Cost so far – · Session decc8861` for spec 149's
   // implement step: claude-usage does not recognise a session run in a
-  // worktree under `~/aide-worktrees/`, which is where every run has
+  // worktree under `~/aide-dashboard/worktrees/`, which is where every run has
   // worked since spec 91.
   const head =
     labelled([
