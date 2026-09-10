@@ -44,6 +44,13 @@ export interface BoardsContext {
    *  implementation reads the process table, and a test injects an
    *  answer. `undefined` for a free port, or one held by anything else. */
   boardOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  /** The board's own log line — what a start spawned, and why one did
+   *  not come up. Four presses of the start link left four empty work
+   *  directories and no trace of what happened (2026-09-09), and the
+   *  page's own "could not start" said only what the LAST attempt's
+   *  round log had said. Optional so a test context need not supply
+   *  one; the server passes `console.log`. */
+  log?: (line: string) => void;
 }
 
 /** `git ls-remote --heads origin <branch>`'s own SHA — never a local
@@ -161,10 +168,16 @@ export async function startBoard(
   }
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");
-  const proc = ctx.spawn(
-    [ctx.roundScript(project), aideCheckout, "--branch", branch, "--port", String(port), "--keep"],
-    logPath,
-  );
+  const cmd = [ctx.roundScript(project), aideCheckout, "--branch", branch, "--port", String(port), "--keep"];
+  let proc: SpawnResult;
+  try {
+    proc = ctx.spawn(cmd, logPath);
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e);
+    ctx.log?.(`boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`);
+    return { ok: false, error: `could not start the round: ${why}` };
+  }
+  ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
   const entry: BoardEntry = {
     branch,
     commit,
@@ -218,6 +231,7 @@ export function refreshBoardStatus(ctx: BoardsContext, project: string, specFold
     if (!ctx.isAlive(entry.wrapperPid)) {
       const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
       ctx.store.set(project, specFolder, failed);
+      ctx.log?.(`boards: ${entry.branch} did not come up on :${entry.port} — ${failed.error} (log ${entry.logPath})`);
       return failed;
     }
     return entry;
