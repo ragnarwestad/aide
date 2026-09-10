@@ -26,6 +26,7 @@ export async function runControlRoutes(
       error: url.searchParams.get("error") ?? undefined,
       script: await queueClientScript(),
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

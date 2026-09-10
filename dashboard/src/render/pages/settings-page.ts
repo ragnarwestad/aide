@@ -33,6 +33,9 @@ export interface SettingsPageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -81,17 +84,12 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const message = opts.error ?? opts.notice ?? "";
   const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
-  const unitsBlock = `<p class="row"><span class="lbl">Units</span>` +
-    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
-    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>` +
-    `</p>`;
   const body = `<main>${back}<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<p class="row"><label class="lbl" for="budgetUsd">Budget per job (USD)</label><input id="budgetUsd" type="number" min="0.01" max="100" step="0.01" ` +
     `name="budgetUsd" value="${opts.budgetUsd}"></p>` +
     `<p class="row"><label class="lbl" for="jobCapUsd">Job cap (USD)</label><input id="jobCapUsd" type="number" min="0.01" max="300" step="0.01" ` +
     `name="jobCapUsd" value="${opts.jobCapUsd}"></p>` +
-    unitsBlock +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="configactions">` +
@@ -99,6 +97,6 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
     `</div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

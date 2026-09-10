@@ -91,7 +91,10 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
   const themeMenu = (html: string) => html.match(/<details class="menu theme">[\s\S]*?<\/details>/)![0];
 
-  test("every page offers Dark, Light and Auto, in the header's own popup, outside the … menu", () => {
+  // Spec 436 reverses the last half of this: the choices repeat, flat,
+  // inside the "…" menu's own morerows block, for a reader at phone
+  // width where the standalone .menu.theme trigger is hidden.
+  test("every page offers Dark, Light and Auto in the header's own popup, and again flat inside the … menu", () => {
     for (const page of site) {
       const m = menu(page.html);
       const t = themeMenu(page.html);
@@ -99,7 +102,7 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
         ...t.matchAll(/data-theme-choice="([^"]+)"[^>]*>[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<\/button>/g),
       ].map((x) => [x[1], x[2]]);
       expect(choices).toEqual([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]]);
-      expect(m).not.toContain("data-theme-choice");
+      expect(m).toContain("data-theme-choice");
     }
   });
 
@@ -109,13 +112,16 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
     expect(h).not.toMatch(/<a[^>]*data-theme-choice/);
   });
 
+  // Spec 436: the same rows repeat, flat, inside the "…" menu's own
+  // morerows block for mobile — Auto is marked there too, so the header
+  // carries two copies of the same "chosen" mark, not one.
   test("Auto is marked as chosen, because the server cannot know better", () => {
     for (const page of site) {
       const h = header(page.html);
       const marked = [...h.matchAll(/data-theme-choice="([^"]+)"[^>]*aria-current=/g)].map(
         (x) => x[1],
       );
-      expect(marked).toEqual(["auto"]);
+      expect(marked).toEqual(["auto", "auto"]);
       // `aria-current`, never `class="current"`: that class means "the
       // page you are on", and the theme control is not a page.
       expect(h).not.toMatch(/<button[^>]*class="current"/);

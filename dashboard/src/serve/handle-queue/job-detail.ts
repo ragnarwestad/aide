@@ -33,6 +33,7 @@ export async function handleJobDetailRoute(
         tab: url.searchParams.get("tab") ?? undefined,
         step: url.searchParams.get("step") ?? undefined,
         lang: langResult.lang,
+        currentUrl: langResult.currentUrl,
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });

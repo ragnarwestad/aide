@@ -115,13 +115,16 @@ describe("the header and the two tabs (spec 119)", () => {
   });
 
   // Spec 243: Theme moved out of the menu into the header itself — a
-  // control the reader reaches without opening anything first.
-  test("the theme buttons live in the header, outside the menu", () => {
+  // control the reader reaches without opening anything first. Spec 436
+  // reverses the second half: the same choice buttons also repeat, flat,
+  // inside the "…" menu's own morerows block, reachable at phone width
+  // where the standalone header trigger is hidden.
+  test("the theme buttons live in the header, and repeat flat inside the menu for mobile", () => {
     for (const [path, html] of every) {
       const head = html.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? "";
       const m = menu(html);
       expect([path, head.includes("data-theme-choice")]).toEqual([path, true]);
-      expect([path, m.includes("data-theme-choice")]).toEqual([path, false]);
+      expect([path, m.includes("data-theme-choice")]).toEqual([path, true]);
     }
   });
 

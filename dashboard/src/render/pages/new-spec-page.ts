@@ -62,6 +62,9 @@ export interface NewSpecPageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 // What a spec builds on (spec 110). One chip per active spec, newest
@@ -369,5 +372,6 @@ export function renderNewSpecPage(
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,
+    currentUrl: opts.currentUrl,
   });
 }

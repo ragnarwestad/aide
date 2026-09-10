@@ -64,6 +64,7 @@ export async function specsPages(
       archived: archivedKeys,
       closed: closedKeys,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
       archivedSpecs,
       script: await queueClientScript(),
       // Only what the config granted a budget to is offerable: a
@@ -207,6 +208,7 @@ export async function specsPages(
       // create route's own redirect.
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     // The same one-time handover `/` and `/projects` do, for a reader

@@ -33,6 +33,9 @@ export interface TestServersPageOptions {
   token?: string;
   backHref?: string;
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 // REQ-4's own text is unconditional ("Hver testserver... skal ha en
@@ -75,6 +78,6 @@ export function renderTestServersPage(
       `<th>Project</th><th>Spec</th><th>Branch</th><th>Status</th><th>Address</th><th></th>` +
       `</tr></thead><tbody>${rows.map((r) => row(r, opts.token)).join("")}</tbody></table></main>`;
   return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
-    hideHeading: true, hideTabBar: true, lang: opts.lang,
+    hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

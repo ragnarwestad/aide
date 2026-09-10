@@ -103,7 +103,20 @@ describe("pageShell language (spec 350)", () => {
     expect(html).not.toContain('aria-label="Theme"');
   });
 
-  test("the language control's own link is always /?lang=..., regardless of currentPath", () => {
+  // Spec 435: the link now targets the CALLER's own current address
+  // (`opts.currentUrl`), with only `lang` swapped, so switching
+  // language keeps the reader on the page, tab, sort and filter they
+  // were already on — reversing spec 408's "always /?lang=..." choice.
+  test("the language control's link targets currentUrl with lang swapped", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+      lang: "nb",
+      currentUrl: "/specs/aide/435-x?tab=solution",
+    });
+    expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=en"');
+    expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=nb" aria-current="true"');
+  });
+
+  test("no currentUrl falls back to /?lang=..., the same as every caller had before this field existed", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
       lang: "nb",
     });
@@ -139,6 +152,37 @@ describe("pageShell language (spec 350)", () => {
     expect(lang).toContain('href="/?lang=nb">🇳🇴 Norwegian</a>');
     expect(lang).not.toMatch(/>NO</);
     expect(lang).not.toMatch(/>EN</);
+  });
+});
+
+// Spec 436: theme, language and unit all reach the header directly on
+// desktop, and all three repeat, flat, inside the "…" menu for mobile.
+describe("pageShell header controls (spec 436)", () => {
+  test("AC-1: theme, language and unit each stand as their own trigger in the header row", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const row = html.match(/<span class="row">[\s\S]*?<details class="menu"><summary/)![0];
+    expect(row).toContain('<details class="menu theme">');
+    expect(row).toContain('<details class="menu lang">');
+    expect(row).toContain('<details class="menu unit">');
+  });
+
+  test("AC-1: the unit control's own panel offers $ and Tokens as two radio choices", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const unit = html.match(/<details class="menu unit">[\s\S]*?<\/details>/)![0];
+    expect(unit).toContain('<input type="radio" name="unit" value="usd" data-unit-choice="usd" checked>');
+    expect(unit).toContain('<input type="radio" name="unit" value="tokens" data-unit-choice="tokens">');
+  });
+
+  test("AC-2: the \"…\" menu's panel carries a morerows block with the theme, language and unit choices", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const menu = html.match(/<details class="menu"><summary[\s\S]*?<\/details>/)![0];
+    const morerows = menu.match(/<div class="morerows">([\s\S]*?)<\/div>/)?.[1] ?? "";
+    expect(morerows).toContain('data-theme-choice="dark"');
+    expect(morerows).toContain('href="/?lang=en"');
+    expect(morerows).toContain('data-unit-choice="usd"');
+    expect(menu).toContain('href="/settings"');
+    expect(menu).toContain('href="/test-servers"');
+    expect(menu).toContain("data-about");
   });
 });
 
