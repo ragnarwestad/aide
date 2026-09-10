@@ -256,6 +256,24 @@ function acceptanceField(formId: string): string {
   });
 }
 
+// Spec 433 (AC-4/AC-5): whether create spends an AI session at all.
+// Checked by default, like acceptanceField above and for the same
+// reason — unticking it is a deliberate action, never a default a reader
+// stumbles into. Ticked, create runs exactly as it always has: the only
+// path left to an AI session anywhere inside create.
+function aiFormulateAcceptanceField(formId: string): string {
+  return phaseChip({
+    dataAttr: "data-ai-formulate",
+    value: "1",
+    label: "let AI formulate acceptance criteria",
+    name: "aiFormulateAcceptance",
+    form: formId,
+    checked: true,
+    plain: true,
+    title: "Ticked, create runs a short AI session that drafts the acceptance criteria from this description. Cleared, create writes the spec directly from what is typed here — no AI session, done in seconds.",
+  });
+}
+
 // The fields needed to make the spec: which project, its phase table,
 // what it builds on, its title and its description.
 //
@@ -289,6 +307,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     acceptanceField(formId) +
     `</span>` +
     `<span class="frow">` +
+    aiFormulateAcceptanceField(formId) +
+    `</span>` +
+    `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
     `</span>` +
     field(
@@ -302,9 +323,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>` +
-        `<small class="muted small">Acceptance criteria will be drafted from ` +
-        `this text — a "## Acceptance criteria" section you write here is ` +
-        `left as it stands.</small>`,
+        `<small class="muted small">Ticked above, acceptance criteria will be drafted from ` +
+        `this text; cleared, the description is used exactly as written — a ` +
+        `"## Acceptance criteria" section you write here is left as it stands either way.</small>`,
       { wide: true },
     ) +
     `<span class="factions">` +

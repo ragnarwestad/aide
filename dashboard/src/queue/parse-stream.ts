@@ -69,8 +69,12 @@ export interface SummarizeOptions {
   //
   // `fake-claude` writes Claude Code's own event shape, so it is read
   // with the same parser and named here only so a caller can pass the
-  // job's tool through without narrowing it first.
-  tool?: "claude" | "codex" | "fake-claude";
+  // job's tool through without narrowing it first. `none` (spec 433) is
+  // a no-AI create's own value — it never actually reaches this parser,
+  // since a step that ran no AI writes no transcript to summarize, but
+  // the caller's own `tool` reads off the same widened field and has to
+  // type-check regardless.
+  tool?: "claude" | "codex" | "fake-claude" | "none";
 }
 
 /** Every line of the stream that parses, as an object. Shared by both

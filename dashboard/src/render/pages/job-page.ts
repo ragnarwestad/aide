@@ -25,8 +25,9 @@ export interface JobStepResultView {
   costUsd: number;
   /** Which CLI ran this step (spec 125). Absent means claude — every
    *  result written before the second tool existed says nothing here,
-   *  and claude is what ran it. */
-  tool?: "claude" | "codex" | "fake-claude";
+   *  and claude is what ran it. `none` is a `create` step that skipped
+   *  the AI session entirely (spec 433). */
+  tool?: "claude" | "codex" | "fake-claude" | "none";
   /** This step's token total, absent when the run did not measure one
    *  (spec 118). A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
@@ -81,8 +82,12 @@ export interface SpecFileView {
 
 export interface JobDetailView extends QueueRowView {
   /** Which CLI is running (or last ran) this job's current step. Absent
-   *  means claude. */
-  tool?: "claude" | "codex" | "fake-claude";
+   *  means claude. `none` is a finished `create` step that skipped the
+   *  AI session entirely (spec 433) — never a step actually IN FLIGHT,
+   *  since a running step's tool always names a real CLI (`runningStep`
+   *  is resolved from the config's own model choice, which has no "none"
+   *  entry). */
+  tool?: "claude" | "codex" | "fake-claude" | "none";
   /** The spec's H1. */
   title?: string;
   finishedAt?: string;
@@ -136,6 +141,10 @@ function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?
   if (r.step === "archive" && r.ok && archiveHeldBack) {
     return `held back — ${esc(heldBackReasonText(lang, archiveHeldBack))}`;
   }
+  // Spec 433: a create step that skipped the AI session reads distinctly
+  // from an AI-run one, so a reader can tell which of the two paths
+  // create took.
+  if (r.step === "create" && r.ok && r.tool === "none") return "created (no AI)";
   // The step's own process exited fine — that is all `ok` records — and
   // the merge that followed it was refused. A cell reading "ok" there
   // tells the reader the opposite of what the row on the specs list

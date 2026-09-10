@@ -84,6 +84,9 @@ Examples:
 - Transliterate non-ASCII letters to their ASCII equivalents
 - Remove special characters and double hyphens
 - Result: `NN-slug` (e.g. `65-clean-up-console-log`)
+- The deterministic no-AI create path uses `aide_slug_from_title` in
+  `_aide-spec-lib.sh` for exactly this rule — read it there if this
+  description and that function ever need to be checked against each other.
 
 ### Step 4: Create the directory and 5 files
 

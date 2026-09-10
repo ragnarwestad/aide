@@ -233,7 +233,7 @@ export function specHeadRow(
     (locked
       ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
       : `<td data-col="started">${activeDurationCell(g)}</td>`) +
-    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
+    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured, g.done.length > 0)}</td>` +
     // Last, after the two figures a phase line also fills (2026-09-08):
     // a phase has no creation date of its own, and this column standing
     // in the middle left an empty cell on every phase line between the

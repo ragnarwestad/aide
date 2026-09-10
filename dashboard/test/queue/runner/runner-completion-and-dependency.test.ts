@@ -43,6 +43,32 @@ describe("spec 93: the completion hook and the landing window", () => {
     ]);
   });
 
+  // Spec 433: a no-AI create's result carries tool: "none" (aide-run-spec's
+  // own JSON), which must survive into StepResult rather than being
+  // silently narrowed to "claude" — the gap plan review found in the
+  // two-way ternary this replaced.
+  test("a result carrying tool: \"none\" keeps it, rather than defaulting to claude", () => {
+    const job = enqueue({ steps: ["create"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "none" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tool).toBe("none");
+  });
+
+  test("a result naming codex still keeps it, and one naming nothing still reads claude", () => {
+    const codexJob = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const codexRunner = makeRunner({ readResult: () => outcome({ tool: "codex" }) });
+    codexRunner.tick();
+    codexRunner.poll();
+    expect(store.get(codexJob.id)?.results[0]?.tool).toBe("codex");
+
+    const bareJob = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const bareRunner = makeRunner({ readResult: () => outcome() });
+    bareRunner.tick();
+    bareRunner.poll();
+    expect(store.get(bareJob.id)?.results[0]?.tool).toBe("claude");
+  });
+
   test("a hook whose work outlives the call holds back EVERY other job, not just another create", async () => {
     let finish!: () => void;
     const work = new Promise<void>((resolve) => {

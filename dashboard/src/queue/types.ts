@@ -29,8 +29,10 @@ export interface StepResult {
    *  absent as claude rather than as unknown. `fake-claude` is the
    *  scripted stand-in: Claude Code's command line and event format,
    *  answered by a script, so a row that ran it never reads as a real
-   *  Claude run. */
-  tool?: "claude" | "codex" | "fake-claude";
+   *  Claude run. `none` is a `create` step that skipped the AI session
+   *  entirely (spec 433) — the deterministic path, never a step this
+   *  dashboard actually spawned a CLI for. */
+  tool?: "claude" | "codex" | "fake-claude" | "none";
   /** Absent when the run could not measure it — an old result file, or
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
@@ -125,6 +127,13 @@ export interface Job {
    *  is still the provisional key. */
   createTitle?: string;
   createDescription?: string;
+  /** Whether a `create` job's own invocation should skip the AI session
+   *  entirely (spec 433): the New-spec form's "let AI formulate
+   *  acceptance criteria" box, inverted the same way `acceptanceNotRequired`
+   *  inverts its own checkbox — absent means the box was left ticked, and
+   *  every job created before this field existed behaves exactly as it
+   *  always has. Meaningful only for `create`. */
+  createNoAiFormulate?: boolean;
   /** Specs this one builds on, named by folder — the create form's
    *  equivalent of the `Depends on:` line spec 92 gave a reader and no
    *  writer but a person at a shell. Validated against the SAME

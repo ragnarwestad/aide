@@ -329,18 +329,32 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           `<td data-col="started">${
             phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
           }</td>` +
+          // `p.cost !== undefined` (spec 433), not `ranWithNoCost`: a
+          // phase can have run (a stamped Time spent) with NO Cost: line
+          // at all — REQ-3-AC1's own case, still an explicit "–", since
+          // "ran" and "a real $0 was recorded" are different claims.
+          // `ranWithNoCost` still decides the BLANK text (a phase that
+          // ran at all reads "–", not empty); `p.cost !== undefined`
+          // alone decides whether the figure itself is trusted as a
+          // settled $0.
           `<td class="num" data-col="cost">${
             locked
-              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.costUnmeasured)
+              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.costUnmeasured, p.cost !== undefined)
               : latest
-                ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results))
+                ? costCell(
+                    latest.spentUsd,
+                    latest.spentTokens,
+                    "",
+                    anyCostUnmeasured(latest.results),
+                    latest.state === "done",
+                  )
                 // No queue job for this phase, but its own file carries
-                // a stamped record: it ran, and its cost is genuinely
-                // unknown rather than unattempted — an explicit "–"
-                // (REQ-3), never a blank indistinguishable from "not
-                // run", never an invented $0.
+                // a stamped record: it ran, and — when the file's own
+                // Cost: line is present — its cost is genuinely $0
+                // rather than unattempted, never a blank indistinguishable
+                // from "not run".
                 : ranWithNoCost
-                  ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured)
+                  ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured, p.cost !== undefined)
                   : ""
           }</td>` +
           // Blank, and LAST since 2026-09-08: a phase line has no

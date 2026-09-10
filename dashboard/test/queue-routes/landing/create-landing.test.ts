@@ -200,6 +200,22 @@ describe("landing a created spec (spec 93)", () => {
   // The landing races the runs that pull the same checkout: 111 and 112
   // were both stranded by a first-try index.lock loss. A transient
   // failure is retried; only a merge that keeps failing is reported.
+  // Spec 433: a no-AI create's result carries tool: "none" and costUsd 0
+  // — nothing about landing is keyed on how the step ran, only on
+  // outcome.ok, so this must land exactly as an AI-run create does.
+  test("a create result with tool: \"none\" still lands through landNewSpec", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
+    const job = await createJob(base);
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({ ...CREATE_RESULT, tool: "none", costUsd: 0 }),
+    );
+    const landedJob = await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+    expect(landedJob.error).toBeFalsy();
+    expect(landedJob.landing).toBeFalsy();
+  });
+
   test("a landing that fails once and then succeeds lands on the retry", async () => {
     let failures = 1;
     const inner = gitFor();

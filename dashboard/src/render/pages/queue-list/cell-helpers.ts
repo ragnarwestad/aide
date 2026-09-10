@@ -154,14 +154,30 @@ export function phaseDurationCell(latest: QueueRowView | undefined, step: string
 // is 4.5rem — "14.0M est." does not fit, so the mark wrapped onto a
 // line of its own and read as belonging to the column beside it. The
 // job page's Steps table has the width for it and keeps the word.
+// `settled` (spec 433): this figure is a real answer, not merely
+// unrecorded — a finished step whose own record genuinely says $0, which
+// reads exactly like "nothing here yet" without it. Opt-in and
+// default-false, so every existing caller that omits it keeps today's
+// behaviour byte-for-byte.
 export const costCell = (
   spentUsd: number,
   spentTokens: number | undefined,
   blank: string,
   unmeasured?: boolean,
+  settled?: boolean,
 ): string => {
-  if (!(spentUsd > 0 || (spentTokens ?? 0) > 0)) return blank;
-  const figure = usdOrTokens(spentUsd || undefined, spentTokens);
+  if (!(spentUsd > 0 || (spentTokens ?? 0) > 0 || settled)) return blank;
+  // `spentUsd || undefined` used to be enough: the guard above already
+  // means spentUsd > 0 or spentTokens > 0, so a 0 here only ever meant
+  // "nothing to say in dollars, read the tokens instead" (a Codex-only
+  // spend, spec 260). `settled` adds a case that must print as $0.00
+  // rather than fall through to that same undefined — but only when
+  // there is no token figure either: a settled Codex step still owes
+  // spec 260's guarantee, tokens over an invented $0.00.
+  const figure = usdOrTokens(
+    spentUsd > 0 ? spentUsd : settled && !((spentTokens ?? 0) > 0) ? 0 : undefined,
+    spentTokens,
+  );
   return unmeasured
     ? `<span title="an estimate: a step that was stopped is charged its whole budget, ` +
       `because a run that is killed reports nothing about what it used">${figure}</span>`

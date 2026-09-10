@@ -358,3 +358,40 @@ describe("parseCreateRequest — acceptanceRequired", () => {
     },
   );
 });
+
+// --- spec 433: a run may say create should skip the AI session entirely ----
+
+// The form asks the POSITIVE question — "let AI formulate acceptance
+// criteria", ticked by default — so what it posts is
+// `aiFormulateAcceptance`. The job keeps the inverse, `createNoAiFormulate`,
+// mirroring `acceptanceRequired`/`acceptanceNotRequired` exactly: absent
+// means the box was left ticked, and every job created before this field
+// existed behaves exactly as it always has.
+describe("parseCreateRequest — aiFormulateAcceptance", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test("ticked — the ordinary case — leaves the job with no no-AI field", () => {
+    const r1 = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: "1" }, { allow, defaults: DEFAULTS });
+    expect(r1.ok && r1.job.createNoAiFormulate).toBeUndefined();
+    const r2 = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: true }, { allow, defaults: DEFAULTS });
+    expect(r2.ok && r2.job.createNoAiFormulate).toBeUndefined();
+  });
+
+  // A checkbox posts nothing when it is clear. That is the one
+  // asymmetry HTML forces, and it is what "no AI session" means here.
+  test("absent — a cleared box — asks for the no-AI create", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.createNoAiFormulate).toBe(true);
+  });
+
+  test.each([["0"], [false], [""]])(
+    "aiFormulateAcceptance %p is a cleared box too",
+    (value) => {
+      const r = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: value }, { allow, defaults: DEFAULTS });
+      expect(r.ok).toBe(true);
+      expect(r.ok && r.job.createNoAiFormulate).toBe(true);
+    },
+  );
+});
