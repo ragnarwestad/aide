@@ -197,6 +197,9 @@ table.list td[data-col="created"] { text-align: center; }
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
+/* The caption line's copy of the spec's state is phone-only
+   (narrow.css): on a desktop the head row's badge is a column away. */
+table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: none; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read

@@ -76,7 +76,10 @@ const JS_HOOKS = [
 const STRUCTURE = [
   // the frame — "menu" and "menupanel" are the "…" disclosure in the
   // header and the box it opens (spec 119, which removed "layout").
-  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot", "current", "lbl",
+  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot",
+  // The spec's own state drawn again inside the caption line's action
+  // slot, for a phone (2026-09-10).
+  "headstate", "current", "lbl",
   // where the pips sit on a spec's name line, since the Progress
   // column went and they moved in beside the name (2026-08-22)
   "pipslot",

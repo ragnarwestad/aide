@@ -1,3 +1,4 @@
+import type { Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
 
@@ -150,11 +151,6 @@ export function specHeadRow(
   // still on the active list, and wrong for one whose folder has already
   // moved: it resolves to "archive" for every archived spec there is,
   // and `restingChip` would draw "ready" beside a spec that is finished.
-  const nextStep = locked ? undefined : nextPhase(g.done);
-  const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
-  // The other thing the State column is built from: the archive that
-  // declined to move.
-  const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   // What the State column says for a locked row, drawn directly rather
   // than through `stateCell`/`restingChip`: those two answer "what is
   // happening, and what can happen next", and for this row the answer to
@@ -164,19 +160,7 @@ export function specHeadRow(
   // spec 406, REQ-7: a closed row's badge word is CLOSED_STATE
   // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
   // badge already followed for "archived", now told apart by `g.state`.
-  const stateBadge = locked
-    ? badge("done", g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE)
-    : g.lead
-      ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
-      // A spec with no job in the queue's memory reads the same way
-      // (spec 176). It used to say "not started", which describes
-      // the same kind of situation — nothing running, and here is
-      // what could — while saying nothing useful, and could
-      // contradict the button beside it: a spec whose analyze ran
-      // long enough ago that its job record has aged out still has
-      // its commits, so `readyPhase` is "implement" and the badge
-      // read "not started".
-      : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
+  const stateBadge = headStateBadge(g, lang);
   // What goes under the name. A locked row draws nothing here (spec
   // 257) — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -245,4 +229,25 @@ export function specHeadRow(
     `<td class="created-date" data-col="created">${createdCell(g.createdAt, g.createdAtChecking ?? false, isFinishedGroup(g), lang)}</td>` +
     `</tr>`
   );
+}
+
+/** The spec's own state badge — what the head row draws in the State
+ *  column. Shared with the caption line under an open row
+ *  (phase-rows.ts), which draws it again on a phone: there the head
+ *  row's badge sits under the name, and the copy stands over the
+ *  phases' states so the column reads down (2026-09-10).
+ *  A locked row is over — the bare word, always (REQ-1, spec 339); a
+ *  closed row's word is CLOSED_STATE, never ARCHIVED_STATE (spec 406).
+ *  A spec with no job in the queue's memory reads through `restingChip`
+ *  (spec 176). */
+export function headStateBadge(g: SpecGroup, lang: Language): string {
+  const locked = isArchivedRow(g);
+  const nextStep = locked ? undefined : nextPhase(g.done);
+  const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
+  const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  return locked
+    ? badge("done", g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE)
+    : g.lead
+      ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
+      : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
 }

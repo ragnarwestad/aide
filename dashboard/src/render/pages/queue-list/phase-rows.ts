@@ -11,6 +11,7 @@ import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, preTicked, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
+import { headStateBadge } from "./head-row.ts";
 
 // Ticked and locked: the box answers "has this phase run", nothing
 // else. Shared by `create` (always) and by any other phase once
@@ -87,10 +88,17 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
   const action = stateAction(g, opts);
+  // The spec's own state, drawn again on the caption line for a phone
+  // (2026-09-10), inside the action slot so the row keeps its six cells:
+  // hidden on a desktop, where the head row's badge is a column away; on
+  // a phone the head row's badge sits under the name, and this copy
+  // stands over the phases' states, with the action button at the
+  // line's left — narrow.css lays the slot out.
+  const headState = `<span class="headstate">${headStateBadge(g, opts.lang ?? "en")}</span>`;
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action),
+      cells: phaseCaptionCells(opts, true, action + headState),
     });
   } else if (action) {
     // No captions to head — one tool configured, nothing to choose
@@ -100,7 +108,8 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       cells:
         `<td class="phasecell"></td><td class="modelcell"></td>` +
         `<td data-col="state"><span class="actionslot">${action}</span></td>` +
-        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
+        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>` +
+        headState,
     });
   }
   g.phases

@@ -21,3 +21,12 @@ describe("the State column's badges share one width", () => {
     expect(cell).toMatch(/text-align: center/);
   });
 });
+
+describe("on a phone the badges are their own width again", () => {
+  test("narrow.css takes the min-width off inside its media block", () => {
+    const narrow = readFileSync(new URL("../../src/render/ui/css/narrow.css", import.meta.url), "utf8");
+    const block = narrow.slice(narrow.indexOf("@media (max-width: 40rem) {"));
+    expect(block).toContain('table.list td[data-col="state"] .badge { min-width: 0; }');
+    expect(block).toContain('table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }');
+  });
+});

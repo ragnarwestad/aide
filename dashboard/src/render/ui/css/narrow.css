@@ -171,6 +171,15 @@
      pips, state. Held anyway, a "ready" of five characters carried
      144px of reserved width and wrapped the state onto a third line. */
   table.list tr.spechead .badgeslot { width: auto; margin-left: 0; }
+  /* The desktop's one-width badges (7.5rem, status-badge.css) do not
+     fit a phone line: every badge wrapped onto a line of its own and
+     pushed the button off the row (2026-09-10). Each badge is its own
+     word's width here, as it was. */
+  table.list td[data-col="state"] .badge { min-width: 0; }
+  /* No side padding on a phone: a phase line is name, box, tick and
+     state on ONE line down to 360px, and 24px a side was what tipped
+     the state onto a second line under 410px. */
+  table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
@@ -300,7 +309,41 @@
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
      row on mobile at all. */
-  table.list tr.subrow[data-caption="1"] { display: none; }
+  /* The caption line is drawn here too (asked for 2026-09-10), as a
+     flex line like the phase lines under it, each caption over its own
+     column in THIS layout's order — name, AI/model box, tick, state —
+     and the row's action button where the state stands. The AI and
+     Model captions are one box on a phone, so one caption heads it. */
+  table.list tr.subrow[data-caption="1"] { display: flex; }
+  /* Two lines: first the action button at the far left and the spec's
+     own state starting where the phases' state column starts (the name,
+     the box, the tick and three gaps), then the captions. The state
+     cell takes the whole first line, which is what puts the captions on
+     the second. */
+  table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
+  table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
+    grid-template-columns: calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2)) 1fr;
+    align-items: center; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
+  /* The slot holds an empty form (the button points at it by id), the
+     button, and the state copy: the button in the first column at its
+     own width, the state in the second, the form out of the grid. */
+  table.list tr.subrow[data-caption="1"] .actionslot > .rowrun { display: none; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .btn { grid-column: 1; grid-row: 1; justify-self: start; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
+  /* An open row's own badge under the name comes off: the caption line
+     now carries it, over the phases' states, and one state twice on one
+     screen is one too many. A shut row keeps it under the name. */
+  table.list tr.spechead:has(.fold[aria-expanded="true"]) .badgeslot { display: none; }
+  table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] {
+    flex: none; width: calc(8rem - 10px); min-width: 0; max-width: none; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"]::after { content: "/Model"; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { display: none; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
+    flex: none; width: 2.5rem; min-width: 0; max-width: none; margin-left: 0; text-align: center; }
 
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the
