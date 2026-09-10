@@ -157,11 +157,21 @@ describe("the runner invocation", () => {
   // before this spec, so the child inherited everything implicitly;
   // dropping the spread would take PATH away from `claude` and `git`
   // and break every headless step — worse than the silence it fixes.
+  //
+  // The server's own PATH reaches the runner whole; `~/.local/bin` is
+  // put in front of it when it is not on it already (runner-setup.ts).
+  // Asserting exact equality held only in a shell that already had it
+  // on PATH — under the landing's own test run, started from launchd,
+  // it is not, and the test went red on a merge that never touched
+  // this (432, 2026-09-10).
   test("and the rest of the environment still reaches it", async () => {
     await withRunUrlEnv(null, async () => {
       const { env } = await envHandedToTheRunner("aide-queue-run-url-inherit-");
+      const own = process.env.PATH ?? "";
+      const localBin = `${process.env.HOME ?? ""}/.local/bin`;
       expect(env.path.length).toBeGreaterThan(0);
-      expect(env.path).toBe(process.env.PATH ?? "");
+      expect(env.path.endsWith(own)).toBe(true);
+      expect(env.path).toBe(own.split(":").includes(localBin) ? own : `${localBin}:${own}`);
     });
   });
 

@@ -196,12 +196,24 @@ describe("the specs table fits the box that scrolls it", () => {
   });
 
   // A sortable header's chevron sits at the column's own right edge,
-  // clear of the label, instead of shrink-wrapping directly against it.
+  // clear of the label, instead of shrink-wrapping directly against it
+  // (spec 432): the chevron is positioned against the <th> itself, not
+  // against .sortlink, so its own padding cannot carry the chevron past
+  // the column's true edge.
   test("a sortable header's chevron sits at the column's right edge", () => {
+    const th = /table\.speclist thead th \{([^}]*)\}/.exec(css)![1]!;
+    expect(th).toMatch(/position: relative/);
     const rule = /\.sortlink \{([^}]*)\}/.exec(css)![1]!;
     expect(rule).toMatch(/display: flex/);
     expect(rule).toMatch(/width: 100%/);
-    expect(rule).toMatch(/justify-content: space-between/);
+    expect(rule).toMatch(/box-sizing: border-box/);
+    expect(rule).toMatch(/justify-content: center/);
+    const svg = /\.sortlink svg \{([^}]*)\}/.exec(css)![1]!;
+    expect(svg).toMatch(/position: absolute/);
+    expect(svg).toMatch(/right: /);
+    expect(svg).toMatch(/transform: translateY\(-50%\)/);
+    const ascSvg = /\.sortlink\.asc svg \{([^}]*)\}/.exec(css)![1]!;
+    expect(ascSvg).toMatch(/transform: translateY\(-50%\) rotate\(180deg\)/);
   });
 
   // Time, Cost/Tokens and Created used to fall into two different
@@ -217,13 +229,28 @@ describe("the specs table fits the box that scrolls it", () => {
     }
   });
 
-  test("Time, Cost/Tokens and Created headers centre their label and chevron together", () => {
-    for (const col of ["started", "cost", "created"]) {
-      const rule = new RegExp(
-        `table\\.list th\\[data-col="${col}"\\] \\.sortlink[^{]*\\{([^}]*)\\}`,
-      ).exec(css)![1]!;
-      expect(rule).toMatch(/justify-content: center/);
+  // Every sortable column shares one .sortlink rule (spec 432): no
+  // column keeps a data-col-scoped override of its own any more.
+  test("no sortable column keeps its own .sortlink override", () => {
+    for (const col of ["spec", "state", "started", "cost", "created"]) {
+      const overridePattern = new RegExp(`table\\.list th\\[data-col="${col}"\\] \\.sortlink`);
+      expect(css).not.toMatch(overridePattern);
     }
+  });
+
+  // The reserved padding has to be wide enough for the chevron's own
+  // footprint plus its inset from the <th> edge, and symmetric so the
+  // centred label stays centred (spec 432, Risk analysis Risk 1) — a
+  // future edit to either number cannot silently reopen a crowding
+  // regression.
+  test("the header link's padding is symmetric and clears the chevron", () => {
+    const rule = /\.sortlink \{([^}]*)\}/.exec(css)![1]!;
+    const padding = /padding: (\d+)px (\d+)px/.exec(rule)!;
+    const horizontal = Number(padding[2]);
+    const svg = /\.sortlink svg \{([^}]*)\}/.exec(css)![1]!;
+    const right = Number(/right: (\d+)px/.exec(svg)![1]);
+    const chevronWidth = 14;
+    expect(horizontal).toBeGreaterThanOrEqual(right + chevronWidth);
   });
 
   // REQ-2/REQ-3: the Spec column's header spells out the full word in
