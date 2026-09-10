@@ -11,7 +11,7 @@ export function renderResetSpecPage(
   specFolder: string,
   entries: NavEntry[],
   generatedAt: string,
-  opts: { token?: string; error?: string; script?: string; lang?: Language } = {},
+  opts: { token?: string; error?: string; script?: string; lang?: Language; currentUrl?: string } = {},
 ): string {
   const back = specPagePath(project, specFolder);
   const title = `Reset ${specFolder}`;
@@ -49,6 +49,6 @@ export function renderResetSpecPage(
     `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(title, entries, "/", body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

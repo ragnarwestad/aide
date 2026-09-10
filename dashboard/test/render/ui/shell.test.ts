@@ -103,7 +103,20 @@ describe("pageShell language (spec 350)", () => {
     expect(html).not.toContain('aria-label="Theme"');
   });
 
-  test("the language control's own link is always /?lang=..., regardless of currentPath", () => {
+  // Spec 435: the link now targets the CALLER's own current address
+  // (`opts.currentUrl`), with only `lang` swapped, so switching
+  // language keeps the reader on the page, tab, sort and filter they
+  // were already on — reversing spec 408's "always /?lang=..." choice.
+  test("the language control's link targets currentUrl with lang swapped", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+      lang: "nb",
+      currentUrl: "/specs/aide/435-x?tab=solution",
+    });
+    expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=en"');
+    expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=nb" aria-current="true"');
+  });
+
+  test("no currentUrl falls back to /?lang=..., the same as every caller had before this field existed", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
       lang: "nb",
     });

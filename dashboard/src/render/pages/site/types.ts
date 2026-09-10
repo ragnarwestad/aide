@@ -89,4 +89,7 @@ export interface ProjectPageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page and tab. */
+  currentUrl?: string;
 }

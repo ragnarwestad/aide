@@ -24,7 +24,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // to the href: it says the title over again in hyphens.
     expect(html).toContain(
       `<a class="label" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">` +
-        `<span class="muted">aide:</span>81-`,
+        `<span class="muted">aide:</span><span class="specname">81-`,
     );
     expect(html).toContain(`href="${SPEC_HREF}"`);
   });
@@ -59,7 +59,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
   // click).
   test("the stylesheet clamps the name", async () => {
     const { CSS } = await import("../../../../../src/render/ui/css.ts");
-    expect(CSS).toContain(".spec-name > .label { overflow: hidden;");
+    expect(CSS).toContain(".spec-name > .label > .specname { overflow: hidden;");
     expect(CSS).toContain("-webkit-line-clamp: 2;");
   });
 
@@ -73,7 +73,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // The project is on this row from the first moment too, the same
     // shape every landed row has — only the link is missing, because
     // there is no page to open yet.
-    expect(html).toContain('<span class="label"><span class="muted">aide:</span>My new idea</span>');
+    expect(html).toContain('<span class="label"><span class="muted">aide:</span><span class="specname">My new idea</span></span>');
     expect(html).not.toContain("data-goto");
   });
 

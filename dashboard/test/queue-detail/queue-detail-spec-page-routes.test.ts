@@ -280,6 +280,14 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
   const SPEC = "81-queue-and-runner";
   const PATH = `/specs/aide/${SPEC}`;
 
+  // Spec 435: the header's language links now target the request's own
+  // full address, `job=` included — so two responses that differ only
+  // in a harmless `job=` legitimately differ there now. That is not
+  // what AC6 tests: strip the one block that is SUPPOSED to vary before
+  // asserting the rest of the page is untouched.
+  const withoutLangMenu = (html: string): string =>
+    html.replace(/<details class="menu lang">[\s\S]*?<\/details>/, "");
+
   /** Two finished analyze jobs on one spec, oldest last — which is one
    *  more than the queue will accept through its own route, so the
    *  second is written into the mirror the server reads at boot. */
@@ -318,10 +326,10 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
     const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth);
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe(bare);
+    expect(withoutLangMenu(await res.text())).toBe(bare);
   });
 
   test("?job= naming no job at all changes nothing (AC6)", async () => {
@@ -330,10 +338,10 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
     const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`, auth);
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe(bare);
+    expect(withoutLangMenu(await res.text())).toBe(bare);
   });
 
   // The candidate used to be looked for only among THIS spec's own
@@ -361,10 +369,10 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     writeFileSync(mirror, JSON.stringify(jobs));
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
     const res = await fetch(`${base2}${PATH}?tab=steps&job=another-spec`, auth);
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe(bare);
+    expect(withoutLangMenu(await res.text())).toBe(bare);
   });
 
   test("both attempts' cost figures are present together in one response (AC7)", async () => {

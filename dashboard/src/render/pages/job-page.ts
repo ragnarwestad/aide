@@ -473,7 +473,7 @@ export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; now?: number; lang?: Language } = {},
+  opts: { tab?: string; step?: string; now?: number; lang?: Language; currentUrl?: string } = {},
 ): string {
   const now = opts.now ?? Date.now();
   const lang: Language = opts.lang ?? "en";
@@ -567,5 +567,10 @@ export function renderJobDetailPage(
 
   // `/`, not this page's own address: the nav entry it belongs under is
   // the spec list, and that is where the list lives now.
-  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, { hideHeading: true, hideTabBar: true, lang });
+  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, {
+    hideHeading: true,
+    hideTabBar: true,
+    lang,
+    currentUrl: opts.currentUrl,
+  });
 }

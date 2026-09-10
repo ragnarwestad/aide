@@ -42,4 +42,17 @@ describe("the language the reader chose is remembered", () => {
     const res = await fetch(`${base}/?token=${TOKEN}&lang=nb&rows=1`);
     expect(langCookie(res)).toContain("aide_lang=nb");
   });
+
+  // Spec 435, AC-3: the cookie already carries a chosen language across
+  // navigation to a DIFFERENT page, not only a second fetch of the same
+  // one — a regression guard, not a behaviour change.
+  test("a language chosen on / is still in effect on a different route", async () => {
+    const { base, server } = start({ queueToken: TOKEN });
+    const chosen = await fetch(`${base}/?token=${TOKEN}&lang=nb`);
+    const jar = langCookie(chosen).split(";")[0]!;
+    const projects = await fetch(`${base}/projects`, {
+      headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` },
+    });
+    expect(await projects.text()).toContain('<html lang="nb">');
+  });
 });
