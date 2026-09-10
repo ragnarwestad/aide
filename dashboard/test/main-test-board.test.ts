@@ -33,7 +33,8 @@ describe("main.ts generate's own --test-board flag", () => {
         branch: "aide/424-headeren-sier-hvilket-board",
       });
       const projects = readFileSync(join(out, "projects.html"), "utf-8");
-      expect(projects).toContain("Test - 424-headeren-sier-hvilket-board : aide/424-headeren-sier-hvilket-board");
+      expect(projects).toContain("Test - 424<");
+      expect(projects).toContain('title="424-headeren-sier-hvilket-board : aide/424-headeren-sier-hvilket-board"');
     } finally {
       rmSync(root, { recursive: true, force: true });
       rmSync(out, { recursive: true, force: true });

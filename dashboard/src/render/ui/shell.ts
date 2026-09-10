@@ -13,6 +13,7 @@ import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
 import { getBoardInfo } from "./board-info.ts";
+import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
 const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
@@ -250,7 +251,12 @@ function boardLine(lang: Language): string {
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
   if (!board) return `<span class="row muted small">${machine} - Prod</span>`;
   return (
-    `<span class="row muted small">${machine} - Test - ${esc(board.specFolder)} : ${esc(board.branch)}` +
+    // The spec's NUMBER, with the folder and branch as hover text
+    // (2026-09-10): the folder is what the reader knows the spec by,
+    // and the branch is always `aide/<folder>`, so spelling both out
+    // put the same long name on the line twice.
+    `<span class="row muted small" title="${esc(board.specFolder)} : ${esc(board.branch)}">` +
+    `${machine} - Test - ${esc(specNumber(board.specFolder))}` +
     // No hidden token field (unlike `boardStatus()`'s own Stop form,
     // `overview.ts`): the reader is already past `queueGuard` to see
     // this page at all, which means the port-scoped cookie is already

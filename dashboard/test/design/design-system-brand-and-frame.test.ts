@@ -216,13 +216,18 @@ describe("the board line and its Stop control (spec 424)", () => {
     }
   });
 
-  test("REQ-2: a test board's header reads '<machine> - Test - <spec> : <branch>'", () => {
+  // The spec's number on the line, the folder and branch as hover text
+  // (2026-09-10): spec 424's "<spec> : <branch>" spelt the same long name
+  // twice, since the branch is always aide/<folder>.
+  test("a test board's header reads '<machine> - Test - <number>', with folder and branch on hover", () => {
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
     for (const html of render()) {
+      expect(html).toContain(`${machine} - Test - 424<`);
       expect(html).toContain(
-        `${machine} - Test - 424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra : ` +
-          `aide/424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra`,
+        'title="424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra : ' +
+          'aide/424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra"',
       );
+      expect(html).not.toContain("Test - 424-headeren");
     }
   });
 
