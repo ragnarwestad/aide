@@ -157,7 +157,11 @@ export function unifiedSettingsTable(
     // above the table the same way `.frow` does without needing that
     // wrapper itself (spec 301).
     `<div class="configactions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
-    `<a class="btn" href="${esc(path)}">Cancel</a></div>` +
+    // No `${prefix}-cancel` id like the other Cancel controls on this
+    // page's siblings (a plain link, not a submit-form pair) —
+    // `data-discard-changes` gives unsaved-changes.ts the same
+    // exemption by a different marker (spec 438).
+    `<a class="btn" data-discard-changes href="${esc(path)}">Cancel</a></div>` +
     `<span class="frow">${table}</span>` +
     messageSlot("refused") +
     `</form>`

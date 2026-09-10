@@ -99,6 +99,12 @@ const SPEC_FORM_ACTIONS_SCRIPT = transpile("spec-form-actions.ts");
 /** Ticking a dependency moves its chip between the two blocks at
  *  once, rather than only when the form comes back saved. */
 const DEPENDS_LIFT_SCRIPT = transpile("depends-lift.ts");
+// The tenth (spec 438): a page with an unsaved edit in one of the
+// tracked forms warns before it is left, by any means — an in-app
+// link, the browser's Back/Forward, a closed tab, a typed address —
+// since it rides `beforeunload` rather than intercepting any one of
+// those individually.
+const UNSAVED_CHANGES_SCRIPT = transpile("unsaved-changes.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -458,7 +464,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${UNSAVED_CHANGES_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
 ${pageHeader(lang, currentUrl)}
