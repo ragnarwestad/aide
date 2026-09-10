@@ -273,10 +273,13 @@ table.speclist thead th { position: relative; }
      cell's own edge, one fixed width to the right. The box holding a
      width of its own only left 28px of nothing between the two. */
   width: auto; }
-/* The second line lands flush with the first — it is the same box, not
-   a hanging indent — because the box's own left edge already sits
-   right after the fold control, exactly where the first line starts. */
-.spec-name > .label { overflow: hidden;
+/* The label is a row of two: the project ("aide:") and the name. The
+   name wraps inside its own span, so its second line starts where its
+   first does — right after the project — instead of running back under
+   "aide:" (asked for 2026-09-10). The two-line clamp sits on the name. */
+.spec-name > .label { display: flex; align-items: flex-start; min-width: 0; }
+.spec-name > .label > .muted { flex: 0 0 auto; }
+.spec-name > .label > .specname { overflow: hidden;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2;
   min-width: 0; }
