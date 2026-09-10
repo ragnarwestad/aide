@@ -217,21 +217,35 @@ table.list th[data-col="cost"],
 table.list th[data-col="state"] { width: 0; white-space: nowrap; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
-.sortlink { display: flex; align-items: center; justify-content: space-between; width: 100%;
-  gap: 2px; padding: 2px 6px; margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
-/* The column NAME itself, not only its chevron: on these three narrow,
-   single-word columns the label and the chevron sit together in the
-   middle of the header cell instead of the label at the near edge and
-   the chevron at the far one — the general .sortlink recipe every
-   other sortable column still uses. */
-table.list th[data-col="started"] .sortlink,
-table.list th[data-col="cost"] .sortlink,
-table.list th[data-col="created"] .sortlink { justify-content: center; }
+/* The chevron's own positioning context (spec 432): the <th> itself,
+   never .sortlink — .sortlink's padding below reserves room for the
+   CENTRED LABEL, and if the chevron were positioned against .sortlink
+   instead, growing that padding would carry the chevron off with it,
+   past the column's own true edge and into the next column's header.
+   Pinning to the <th> keeps the two independent: the chevron always
+   sits at the column's real edge (matching the same edge every
+   value-cell and the table's own last-child clearance already agree
+   on, list.css:170-175) regardless of what .sortlink reserves. */
+table.speclist thead th { position: relative; }
+/* Every sortable column shares one rule: the label centres in the
+   FULL column width, narrowed only by its own reserved padding.
+   box-sizing: border-box is what makes that padding a genuine
+   reservation instead of extra width tacked on: with the default
+   content-box, `width: 100%` sets the CONTENT box and padding adds to
+   it, so a wider padding would grow .sortlink past the column's own
+   edge (exactly the bug a first draft of this fix had) — border-box
+   makes `width: 100%` mean the padding-INCLUSIVE box, so padding
+   narrows the space the label centres in without moving .sortlink's
+   own outer edge at all, and no compensating margin is needed. */
+.sortlink { display: flex; align-items: center; justify-content: center; width: 100%;
+  box-sizing: border-box; padding: 2px 20px; margin: -2px 0; border-radius: var(--r-s);
+  text-decoration: none; }
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
 .sortlink.on { color: var(--text); font-weight: 600; }
-.sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
+.sortlink svg { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
-.sortlink.asc svg { transform: rotate(180deg); }
+.sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }
 /* Up to two lines, then an ellipsis (asked for again 2026-08-26): one
    clamped line hid most of a long folder name behind a click. The
    2026-08-19 regression this replaces was the wrapped second line
