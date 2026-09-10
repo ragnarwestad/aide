@@ -96,6 +96,7 @@ export async function specPageRoutes(
       {
         tab,
         step: url.searchParams.get("step") ?? undefined,
+        currentUrl: langResult.currentUrl,
         // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
         // reference to whichever bundle's own route this tab's panel
         // actually mounts (`documentTabScript`, the same predicate

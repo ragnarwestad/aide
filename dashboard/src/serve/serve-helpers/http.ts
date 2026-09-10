@@ -132,17 +132,22 @@ export function stateChoice(url: URL, req: Request, port: number): { state?: str
  *  in, where the other two let their caller's own default apply. */
 export const LANG_COOKIE = "aide_lang";
 
-export function languageChoice(url: URL, req: Request): { lang: Language; setCookie?: string } {
+export function languageChoice(
+  url: URL,
+  req: Request,
+): { lang: Language; currentUrl: string; setCookie?: string } {
+  const currentUrl = `${url.pathname}${url.search}`;
   const requested = url.searchParams.get("lang");
   if (requested === "en" || requested === "nb") {
     return {
       lang: requested,
+      currentUrl,
       setCookie:
         `${LANG_COOKIE}=${requested}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
   const stored = cookieValue(req.headers.get("cookie"), LANG_COOKIE);
-  return { lang: stored === "nb" ? "nb" : "en" };
+  return { lang: stored === "nb" ? "nb" : "en", currentUrl };
 }
 
 // A body may arrive as JSON (API) or urlencoded (a no-JS form).

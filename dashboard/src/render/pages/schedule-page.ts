@@ -33,6 +33,9 @@ export interface SchedulePageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
@@ -45,6 +48,7 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,
+    currentUrl: opts.currentUrl,
   });
 }
 
@@ -64,6 +68,9 @@ export interface ScheduleDetailPageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 export function renderScheduleDetailPage(
@@ -88,6 +95,7 @@ export function renderScheduleDetailPage(
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,
+    currentUrl: opts.currentUrl,
   });
 }
 
@@ -100,6 +108,9 @@ export interface DeleteSchedulePageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 export function renderDeleteSchedulePage(
@@ -133,7 +144,7 @@ export function renderDeleteSchedulePage(
     `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(title, nav, back, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }
 
@@ -153,6 +164,9 @@ export interface NewSchedulePageOptions {
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
+  /** Spec 435. The request's own address, threaded to `pageShell` so its
+   *  language links keep the reader on this same page. */
+  currentUrl?: string;
 }
 
 export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
@@ -171,6 +185,6 @@ export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts
         `Add one on the Projects page first.</p>`) +
     `</main>`;
   return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang,
+    script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

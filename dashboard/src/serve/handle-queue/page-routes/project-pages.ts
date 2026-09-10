@@ -37,6 +37,7 @@ export async function projectPages(
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -71,6 +72,7 @@ export async function projectPages(
       token: ctx.queueToken,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -119,6 +121,7 @@ export async function projectPages(
       ),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -140,6 +143,7 @@ export async function projectPages(
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
@@ -246,6 +250,7 @@ export async function projectPages(
         restartWaiting: ctx.readPendingRestart()?.jobs,
         tab: url.searchParams.get("tab") ?? undefined,
         lang: langResult.lang,
+        currentUrl: langResult.currentUrl,
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
@@ -345,6 +350,7 @@ export async function projectPages(
         notice: url.searchParams.get("notice") ?? undefined,
         noticeOk: url.searchParams.get("noticeOk") === "1",
         lang: langResult.lang,
+        currentUrl: langResult.currentUrl,
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
