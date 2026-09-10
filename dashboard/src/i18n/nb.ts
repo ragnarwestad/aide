@@ -100,4 +100,8 @@ export const nb: Record<TranslationKey, string> = {
   "state.stoppedJobCap": "stoppet — jobbtak",
   "state.stoppedTestsRed": "stoppet — røde tester",
   "state.stoppedBudget": "stoppet — budsjett",
+
+  "project.deployRestartWaiting":
+    "Det lokale repoet er oppdatert mot origin, men tjenesten kjører fortsatt commit {sha} — " +
+    "omstarten venter på disse jobbene: {jobs}.",
 };

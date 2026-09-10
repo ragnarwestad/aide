@@ -100,13 +100,16 @@ describe("submitDeploy (spec 385)", () => {
 
   const submitEvent = () => ({ defaultPrevented: false, preventDefault: () => {} }) as unknown as Event;
 
-  test("shows the waiting note, and skips the restarting note, when restartWaiting is present (REQ-1, REQ-2)", async () => {
+  // The restart-waiting sentence says itself on the Deploy tab alone,
+  // once the reload lands (project-page.ts) — never here, and never
+  // into `.refused`, the slot every genuine refusal uses (spec 431,
+  // the same reason `restarting` below stopped doing it on 2026-09-09).
+  test("says nothing under the button, and reloads, when restartWaiting is present (spec 431)", async () => {
     const { form, refusedSpan } = fakeForm();
     const stub = stubGlobals({ ok: true, restartWaiting: ["ab12cd34"] });
     try {
       await submitDeploy(form as unknown as HTMLFormElement, submitEvent());
-      expect(refusedSpan.textContent).toContain("the restart is waiting for running jobs: ab12cd34");
-      expect(refusedSpan.textContent).not.toContain("the dashboard is restarting");
+      expect(refusedSpan.textContent).toBe("");
       expect(stub.reloaded()).toBe(true);
     } finally {
       stub.restore();

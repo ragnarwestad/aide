@@ -210,7 +210,12 @@ export async function submitDeploy(form: HTMLFormElement, event: Event): Promise
       // reloads straight away, onto the Deploy tab's own "waiting"
       // sentence.
       if (answer?.restartWaiting?.length) {
-        formNote(form, `deployed — the restart is waiting for running jobs: ${answer.restartWaiting.join(", ")}`);
+        // The Deploy tab's own sentence (project-page.ts) already says this,
+        // correctly styled and in the reader's own language — writing it
+        // here too only reused `.refused`, the slot every genuine refusal
+        // uses, which is what made a deploy that had just succeeded read as
+        // an error (spec 431), the same way `restarting` did until
+        // 2026-09-09.
         location.reload();
         return;
       }

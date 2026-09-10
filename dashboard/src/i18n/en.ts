@@ -106,4 +106,8 @@ export const en = {
   "state.stoppedJobCap": "stopped — job cap",
   "state.stoppedTestsRed": "stopped — tests red",
   "state.stoppedBudget": "stopped — budget",
+
+  "project.deployRestartWaiting":
+    "This checkout matches origin, but the service is still running commit {sha} — " +
+    "the restart is waiting for running jobs: {jobs}.",
 } as const;

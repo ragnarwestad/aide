@@ -103,3 +103,43 @@ describe("renderProjectPage: a checkout-level check shows as plain text on Confi
     expect(html).not.toContain("field-owned detail text");
   });
 });
+
+// Spec 431: the restart-waiting sentence on the Deploy tab reads as a
+// plain notice (`rowmsg waiting`), not an error, and exists in the
+// reader's own language.
+describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", () => {
+  const deployOpts = {
+    worktreeLinkCandidates: [],
+    editing: false,
+    tab: "deploy",
+    drift: { behind: 0, checkedAt: 1735689600000 },
+    serving: { sha: "aaaa111bbbb", checkoutHead: "bbbb222cccc", current: false },
+    restartWaiting: ["aide:070-example"],
+  };
+
+  test("names the job and the served commit, styled as a waiting notice, in English", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-08-31T00:00:00Z",
+      NAV,
+      deployOpts,
+    );
+    expect(html).toContain("the restart is waiting for running jobs: aide:070-example");
+    expect(html).toContain("aaaa111");
+    expect(html).toMatch(/rowmsg waiting/);
+  });
+
+  test("renders in Norwegian when opts.lang is nb", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-08-31T00:00:00Z",
+      NAV,
+      { ...deployOpts, lang: "nb" },
+    );
+    expect(html).toContain("omstarten venter på disse jobbene: aide:070-example");
+  });
+});
