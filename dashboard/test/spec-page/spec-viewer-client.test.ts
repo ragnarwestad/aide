@@ -75,6 +75,18 @@ describe("REQ-1/REQ-2: mounts a Viewer over a <pre> sibling with no toolbar or m
   });
 });
 
+describe("spec 434: the recommended-approach heading renders at the same size as its sibling headings", () => {
+  test("'### Recommended: Approach A' and another '###' heading both mount as <h3>", () => {
+    const host = setHost(
+      '<pre class="spec-editor-raw">## Approaches\n\n### Recommended: Approach A\n\n## Scope\n\n### Complexity\n</pre>',
+    );
+    mount();
+    const headings = [...host.querySelectorAll("h3")].map((h) => h.textContent);
+    expect(headings).toContain("Recommended: Approach A");
+    expect(headings).toContain("Complexity");
+  });
+});
+
 describe("REQ-5: dark mode", () => {
   test("an explicit dark choice classes the mount host itself (no .toastui-editor-defaultUI wrapper exists here)", () => {
     document.documentElement.dataset.theme = "dark";

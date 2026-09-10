@@ -216,6 +216,7 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 - Scope
 - Approaches
+- Recommended: Approach A
 - Recommended solution
 - Behavior delta
 - Acceptance criteria
@@ -243,11 +244,19 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 ## Approaches
 
-### Approach 1: [Name] (recommended)
+**Approach A: [Name] (recommended).** [one-line description]
+- **Pros:** [list]
+- **Cons:** [list]
+- **Estimate:** [time]
 
-**Pros:** [list]
-**Cons:** [list]
-**Estimate:** [time]
+**Approach B: [Name].** [one-line description]
+- **Pros:** [list]
+- **Cons:** [list]
+- **Estimate:** [time]
+
+### Recommended: Approach A
+
+[Why this approach was chosen over the others, as plain text.]
 
 ---
 
@@ -329,8 +338,14 @@ written or read by a model. `aide-archive-spec`'s move step already
 **Key points:**
 - Scope, complexity, estimate and risk analysis live here: they judge
   the solution, not what the investigation found
-- Approaches with pros/cons. The RECOMMENDED one IS the spec — every
-  section below it describes that approach and no other, and
+- Approaches with pros/cons, each a bold-paragraph lead (not a
+  heading) — `**Approach A: [Name] (recommended).**` followed by
+  Pros/Cons/Estimate. The choice itself stands as its own heading,
+  `### Recommended: Approach X`, directly under Approaches, with the
+  reasoning as plain text below it and its own line in the table of
+  contents — a reader who jumps straight to the heading, or only scans
+  the ToC, must still find the pick. The RECOMMENDED one IS the spec —
+  every section below it describes that approach and no other, and
   `/aide-implement` builds the plan it finds. Wanting a different one
   means saying so in `1-description.md` and analysing again
   (`/aide-reset`, then `/aide-analyze`)

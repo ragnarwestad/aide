@@ -197,6 +197,58 @@ class TestScopeComplexityRiskLiveInSolution:
 
 
 @pytest.mark.validation
+class TestApproachChoiceIsItsOwnHeading:
+    """Spec 434: the chosen approach in 3-solution.md's Approaches section
+    is its own heading, not folded into a bold paragraph — so a reader who
+    jumps straight to it, or only scans the Table of contents, still finds
+    the pick.
+    """
+
+    @staticmethod
+    def _rule(workspace_root):
+        path = workspace_root / "core" / "rules" / "spec-structure.md"
+        if not path.exists():
+            pytest.skip("spec-structure.md not found")
+        return path.read_text()
+
+    # AC-1
+    def test_recommended_approach_is_its_own_heading(self, workspace_root):
+        block = structure_block(self._rule(workspace_root), "3-solution")
+        approaches = block.index("## Approaches")
+        recommended_solution = block.index("## Recommended solution")
+        between = block[approaches:recommended_solution]
+        assert re.search(r"^### Recommended: Approach", between, re.M), \
+            "the chosen approach must be its own heading between " \
+            "'## Approaches' and '## Recommended solution'"
+
+    # AC-2
+    def test_toc_lists_the_recommended_approach_heading(self, workspace_root):
+        block = structure_block(self._rule(workspace_root), "3-solution")
+        toc = block[block.index("## Table of contents"):block.index("## Scope")]
+        lines = [l.strip() for l in toc.splitlines() if l.strip().startswith("-")]
+        approaches_index = next(
+            i for i, l in enumerate(lines) if l == "- Approaches")
+        recommended_solution_index = next(
+            i for i, l in enumerate(lines) if l == "- Recommended solution")
+        assert recommended_solution_index == approaches_index + 2, \
+            "the Table of contents must list the recommended-approach " \
+            "heading between 'Approaches' and 'Recommended solution'"
+        assert lines[approaches_index + 1].startswith("- Recommended: Approach"), \
+            "the Table of contents entry must read 'Recommended: Approach <letter>'"
+
+    # AC-3
+    def test_recommended_solution_heading_is_unchanged_and_follows_directly(self, workspace_root):
+        block = structure_block(self._rule(workspace_root), "3-solution")
+        headings = list(re.finditer(r"^## (.*)$", block, re.M))
+        choice_index = next(
+            i for i, h in enumerate(headings)
+            if h.group(1) == "Approaches")
+        assert headings[choice_index + 1].group(1) == "Recommended solution", \
+            "'## Recommended solution' must still be the next '##'-level " \
+            "heading directly after Approaches, unchanged in wording and position"
+
+
+@pytest.mark.validation
 class TestRequirementsTracingIsDocumented:
     """Spec 279: an optional Requirements/REQ-n section in 1-description.md,
     threaded by /aide-analyze into 2-analysis.md findings, 3-solution.md
