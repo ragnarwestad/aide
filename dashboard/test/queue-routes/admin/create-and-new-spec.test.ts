@@ -66,6 +66,43 @@ describe("--effort reaches the runner only when a step actually named one", () =
   });
 });
 
+// --- spec 433: create with no AI session at all -------------------------------
+
+describe("--no-ai-formulate reaches the runner only when the job says so", () => {
+  test("present when the job's box was cleared, absent otherwise (AC-1/AC-5)", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const job = {
+      project: "aide", specFolder: "new-abc123de", steps: ["create"],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
+      createNoAiFormulate: true,
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "create", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+    expect(argv).toContain("--no-ai-formulate");
+
+    const ticked = { ...job, createNoAiFormulate: undefined } as unknown as Parameters<typeof runnerArgv>[0];
+    const argvTicked = runnerArgv(ticked, "create", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+    expect(argvTicked).not.toContain("--no-ai-formulate");
+  });
+
+  test("never appended for a step other than create", async () => {
+    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const job = {
+      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+      createNoAiFormulate: true,
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+    });
+    expect(argv).not.toContain("--no-ai-formulate");
+  });
+});
+
 // --- spec 110: what a new spec builds on --------------------------------------
 
 describe("a chosen dependency reaches the runner and the page", () => {

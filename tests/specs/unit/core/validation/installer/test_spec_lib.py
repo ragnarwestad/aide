@@ -200,6 +200,32 @@ class TestArchiveAwareness:
 
 
 @pytest.mark.validation
+class TestSlugFromTitle:
+    """aide_slug_from_title (spec 433): the deterministic bash version of
+    SKILL.md Step 3's slug rule, used by the no-AI create path so its
+    folder name matches what an AI-run create would also choose. NOT the
+    same one-liner run-spec-invocation.sh:122-124 builds for the AI
+    prompt's own throwaway TODO-<slug> token — that one has no diacritic
+    handling and is explicitly not the spec's folder slug.
+    """
+
+    def test_skill_mds_own_worked_example(self, workspace_root):
+        out = _call(workspace_root, 'aide_slug_from_title "Clean up console.log"')
+        assert out == "clean-up-console-log"
+
+    def test_norwegian_diacritics_are_transliterated(self, workspace_root):
+        out = _call(
+            workspace_root,
+            'aide_slug_from_title "Rydd opp i loggføring på østsiden"',
+        )
+        assert out == "rydd-opp-i-loggforing-pa-ostsiden"
+
+    def test_an_all_non_ascii_title_falls_back_to_new_spec(self, workspace_root):
+        out = _call(workspace_root, 'aide_slug_from_title "日本語"')
+        assert out == "new-spec"
+
+
+@pytest.mark.validation
 class TestConfigGet:
     """aide_config_get reads a key from .aide/config in a given directory."""
 

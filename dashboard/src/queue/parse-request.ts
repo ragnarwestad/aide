@@ -441,6 +441,11 @@ export function parseCreateRequest(
   // has to be thought about.
   const acceptanceRequired = r.acceptanceRequired === "1" || r.acceptanceRequired === true;
 
+  // Whether AI formulates this create's acceptance criteria at all (spec
+  // 433) — the same checked-by-default, posts-when-ticked shape as
+  // `acceptanceRequired` above, inverted onto the job the same way.
+  const aiFormulateAcceptance = r.aiFormulateAcceptance === "1" || r.aiFormulateAcceptance === true;
+
   return {
     ok: true,
     job: {
@@ -463,6 +468,7 @@ export function parseCreateRequest(
       // no line", all the way down.
       ...(dependsOn.length ? { createDependsOn: dependsOn } : {}),
       ...(acceptanceRequired ? {} : { acceptanceNotRequired: true }),
+      ...(aiFormulateAcceptance ? {} : { createNoAiFormulate: true }),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

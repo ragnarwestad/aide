@@ -143,6 +143,105 @@ def test_create_reports_no_folder_when_none_appeared(runner, workspace, fake_cla
     assert rc == 0, out
     assert "specFolder" not in out, out
 
+# --- spec 433: create with no AI session at all ------------------------------
+
+def test_create_with_no_ai_formulate_spawns_no_ai(runner, workspace, fake_claude):
+    """AC-1: the box cleared means create writes the spec directly, no
+    claude/codex process at all — regardless of whether the description
+    has an '## Acceptance criteria' section."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(
+        runner, workspace, claude,
+        title="A new spec", description="Do the thing that was asked for",
+        no_ai_formulate=True,
+    )
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert not fake_claude.calls.exists()
+
+
+def test_create_with_no_ai_formulate_reports_zero_measured_cost_and_tool_none(runner, workspace, fake_claude):
+    """AC-2/AC-6: the result JSON says the step is done, cost 0, measured,
+    and names which of the two paths create took."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
+    assert rc == 0, out
+    assert out["costUsd"] == 0, out
+    assert out["costMeasured"] is True, out
+    assert out["tool"] == "none", out
+    assert out["terminalReason"] == "completed", out
+
+
+def test_create_with_no_ai_formulate_makes_the_next_numbered_folder(runner, workspace, fake_claude):
+    """AC-3: the next free number, and the same 5 files a real
+    aide-create-spec call would write for the same inputs."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(
+        runner, workspace, claude,
+        title="A new spec", description="Do the thing that was asked for",
+        no_ai_formulate=True,
+    )
+    assert rc == 0, out
+    assert out["specFolder"] == "82-a-new-spec", out
+    # The commit landed on the branch the step reported — read straight
+    # off the object store, the same way the existing
+    # test_create_reports_the_folder_the_step_actually_made does, rather
+    # than off a checkout no push_mode="none" run ever updates.
+    branch_log = git(workspace["specs"], "log", "--stat", "--oneline", f"aide/{CREATE_KEY}")
+    for name in ["0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]:
+        assert f"82-a-new-spec/{name}" in branch_log, branch_log
+
+
+def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, workspace, fake_claude):
+    """AC-3: Depends on and the acceptance choice reach Tracking info
+    exactly as the form set them."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(
+        runner, workspace, claude,
+        depends_on="81-queue-and-runner", acceptance_not_required=True,
+        no_ai_formulate=True,
+    )
+    assert rc == 0, out
+    text = git(
+        workspace["specs"], "show", f"aide/{CREATE_KEY}:{out['specFolder']}/1-description.md",
+    )
+    assert "Depends on" in text and "81-queue-and-runner" in text, text
+    assert "Acceptance:" in text and "not required" in text, text
+
+
+def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace, fake_claude):
+    """A refused aide-create-spec call (here: a malformed AC line) must
+    surface as ok:false, not be swallowed as a mechanical success."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(
+        runner, workspace, claude,
+        description="- AC-1: forgot the bold markers",
+        no_ai_formulate=True,
+    )
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "cli-error", out
+
+
+def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace, fake_claude):
+    """AC-5: the box left ticked (the flag omitted) produces exactly
+    today's argv/prompt — the no-AI path changes nothing about it."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, dry_run=True)
+    assert rc == 0, out
+    assert out["prompt"].startswith("/aide-create TODO-a-new-spec"), out
+
+
+def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, workspace, fake_claude):
+    """AC-2's timing clause: the whole step, not merely the missing AI
+    spawn."""
+    claude = fake_claude("exit 1")
+    started = time.time()
+    rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
+    elapsed = time.time() - started
+    assert rc == 0, out
+    assert elapsed < 25, f"took {elapsed}s"
+
+
 def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     runner, workspace, fake_claude
 ):

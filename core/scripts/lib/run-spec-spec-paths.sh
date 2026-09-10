@@ -183,15 +183,52 @@ if [ "$command_name" = "archive" ]; then
   esac
 fi
 
-if [ -n "$skip_ai" ]; then
+# --- the mechanical create path (spec 433) -----------------------------
+# `create` needs no AI session at all when the New-spec form's own
+# "let AI formulate acceptance criteria" box was cleared: the title,
+# description, depends-on and acceptance choice the form already posted
+# are the whole of what /aide-create's Step 4 needs, and its own script
+# call (aide-create-spec) is 100% mechanical file writing. Kept as its
+# own variable rather than folded into $skip_ai: archive's skip_ai is
+# also `ok=true` on several NON-completed terminal reasons (below), which
+# create's deterministic path has no equivalent of — it either completes
+# or it does not.
+create_no_ai=""
+if [ "$command_name" = "create" ] && [ "$no_ai_formulate" = "yes" ]; then
+  create_no_ai="yes"
+fi
+
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
   # the same zero/absent shape already_landed() already uses above for
   # the same reason — a decline costs nothing.
   stopped=""; exit_code=0; duration=0
   session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
-  cost_known="true"
-  terminal_reason="$archive_terminal_reason"; error_msg=""
+  cost_known="true"; error_msg=""
+  if [ -n "$create_no_ai" ]; then
+    slug="$(aide_slug_from_title "$title")"
+    create_args=(--specs-root "$specs_root_wt" --slug "$slug"
+                  --title "$title" --description "$description")
+    [ -n "$depends_on" ] && create_args+=(--depends-on "$depends_on")
+    [ "$acceptance_not_required" = "yes" ] && create_args+=(--acceptance-not-required)
+    create_result="$("$SCRIPT_DIR/aide-create-spec" "${create_args[@]}" 2>/dev/null)"
+    if [ "$(jq -r '.ok // false' <<<"$create_result" 2>/dev/null)" = "true" ]; then
+      terminal_reason="completed"
+      cost_measured="true"
+      tool="none"
+      # No AI ran, so nothing chosen for --model/--effort means anything:
+      # run-spec-cleanup.sh's model_value="$tool${model:+ $model}" would
+      # otherwise read "none <configured-model>" for a create job whose
+      # config still names a default model for that step.
+      model=""; effort=""
+    else
+      terminal_reason="cli-error"
+      error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
+    fi
+  else
+    terminal_reason="$archive_terminal_reason"; error_msg=""
+  fi
 else
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent

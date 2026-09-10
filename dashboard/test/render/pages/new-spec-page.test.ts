@@ -111,7 +111,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     // for that is markup, not order — the rule here is that no OTHER
     // field or control sits in the gap.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><\/span><span class="frow"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -263,12 +263,12 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // drafted from the text, or that an Acceptance criteria section written
   // here is left alone — the only hint lived in a job log a headless run
   // never shows.
-  test("the Description field carries a hint about drafted acceptance criteria", () => {
+  test("the Description field carries a hint naming both paths (spec 433)", () => {
     const html = newPage();
     expect(html).toContain(
-      '<small class="muted small">Acceptance criteria will be drafted from ' +
-        'this text — a "## Acceptance criteria" section you write here is ' +
-        'left as it stands.</small>',
+      '<small class="muted small">Ticked above, acceptance criteria will be drafted from ' +
+        'this text; cleared, the description is used exactly as written — a ' +
+        '"## Acceptance criteria" section you write here is left as it stands either way.</small>',
     );
     const field = html.slice(
       html.indexOf('<textarea name="description"'),
@@ -400,6 +400,33 @@ describe("spec 342: the phase table", () => {
     expect(html).not.toContain("acceptance ticking not required");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
+  });
+
+  // Spec 433, AC-4: "let AI formulate acceptance criteria", checked by
+  // default — the same "checked, and a sibling of the acceptance switch"
+  // shape, said the positive way for the same reason: unticking it is
+  // meant to read as an active choice, not a default a reader stumbles
+  // into.
+  test("spec 433: the AI-formulate switch is checked by default, beside the acceptance switch", () => {
+    const html = newPage();
+    const box = html.match(/<input type="checkbox"[^>]*name="aiFormulateAcceptance"[^>]*>/)?.[0] ?? "";
+    expect(box).not.toBe("");
+    expect(box).toContain("checked");
+    expect(box).toContain('value="1"');
+    expect(box).toContain('form="new-spec-form"');
+    expect(html).toContain("let AI formulate acceptance criteria");
+    // Its own line, right after the acceptance switch's.
+    const acceptIdx = html.indexOf('name="acceptanceRequired"');
+    const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
+    expect(acceptIdx).toBeGreaterThan(-1);
+    expect(formulateIdx).toBeGreaterThan(acceptIdx);
+    const acceptFrowStart = html.lastIndexOf('<span class="frow">', acceptIdx);
+    const formulateFrowStart = html.lastIndexOf('<span class="frow">', formulateIdx);
+    expect(acceptFrowStart).toBeGreaterThan(-1);
+    expect(formulateFrowStart).toBeGreaterThan(acceptFrowStart);
+    // Adjacent: the acceptance switch's own frow closes right where the
+    // new field's frow opens, nothing else sitting between them.
+    expect(html.slice(formulateFrowStart - "</span>".length, formulateFrowStart)).toBe("</span>");
   });
 
   // Spec 415, REQ-2: the caption row shares phaseCaptionCells() with the

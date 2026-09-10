@@ -71,6 +71,37 @@ aide_next_spec_number() {
   printf '%02d\n' "$(( 10#${max:-0} + 1 ))"
 }
 
+# The slug side of Step 3 in core/skills/aide-create/SKILL.md, made
+# deterministic (spec 433): lowercase, transliterate the diacritics this
+# project's own titles actually use, drop anything else non-ASCII, spaces
+# and runs of special characters collapse to one hyphen, no leading or
+# trailing hyphen. SKILL.md's Step 3 names this exact algorithm so a
+# human reading the skill and this function never drift apart.
+#
+# Not the same one-liner run-spec-invocation.sh:122-124 builds for the
+# AI prompt's own throwaway TODO-<slug> token — that one is explicitly
+# commented as NOT the spec's folder slug and has no diacritic handling.
+# This is the first version meant to BE the real folder slug.
+#
+# The diacritic sed runs under LC_ALL=C.UTF-8, scoped to that one command:
+# in the "C" locale a bracket expression matches BYTES, not characters, and
+# every one of these diacritics is multi-byte UTF-8 — under "C" the class
+# matches half a character and corrupts the string (verified: "på" came
+# out "paea"). C.UTF-8 is the portable minimal UTF-8 locale, expected to
+# exist wherever this runs; the override is per-command so it never
+# changes how the REST of this script sorts or matches.
+aide_slug_from_title() {
+  local title="$1" slug
+  slug="$(printf '%s' "$title" \
+    | LC_ALL=C.UTF-8 sed -e 's/[ÆæÄä]/ae/g' -e 's/[ØøÖö]/o/g' -e 's/[ÅåÁáÀàÂâ]/a/g' \
+          -e 's/[ÉéÈèÊê]/e/g' -e 's/[ÜüÚúÛû]/u/g' -e 's/[ÍíÌìÎî]/i/g' \
+          -e 's/[ÓóÒòÔô]/o/g' \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
+  [ -n "$slug" ] || slug="new-spec"
+  printf '%s\n' "$slug"
+}
+
 # JIRA issue vs TODO plan based on the folder name (works for archived
 # folders too, which arrive as "archive/<NN>-slug").
 # JIRA folders are <NN>-<jira-key>-slug, so a key (letters, hyphen, digits)

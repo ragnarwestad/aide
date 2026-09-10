@@ -292,3 +292,27 @@ describe("a step whose merge was refused does not read ok", () => {
     expect(html).toContain("(fail) some suite &gt; a test that failed");
   });
 });
+
+// Spec 433: which of create's two paths ran shows on the Steps tab —
+// "created (no AI)" for the deterministic path, the ordinary "ok" for
+// every other finished step, an AI-run create included.
+describe("a no-AI create reads distinctly from an AI-run one (spec 433)", () => {
+  const cellsFor = (html: string, step: string): string =>
+    html.match(new RegExp(`<tr><td>[^<]*(?:<[^>]+>)*${step}</td>.*?</tr>`))?.[0] ?? "";
+
+  test("create with tool: \"none\" reads \"created (no AI)\"", () => {
+    const html = stepResults([
+      { step: "create", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "none" },
+    ]);
+    expect(cellsFor(html, "create")).toContain("created (no AI)");
+    expect(cellsFor(html, "create")).not.toContain(">ok<");
+  });
+
+  test("an AI-run create still reads ok", () => {
+    const html = stepResults([
+      { step: "create", ok: true, costUsd: 0.4, costMeasured: true, terminalReason: "completed", tool: "claude" },
+    ]);
+    expect(cellsFor(html, "create")).toContain(">ok<");
+    expect(cellsFor(html, "create")).not.toContain("no AI");
+  });
+});

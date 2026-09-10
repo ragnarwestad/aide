@@ -125,6 +125,11 @@ export function runnerArgv(
     // and `analyze` instead reads a fresh file read the caller resolves
     // into `acceptanceNotRequiredForAnalyze` below.
     ...(step === "create" && job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
+    // spec 433: only a `create` job has this, and only when the New-spec
+    // form's own "let AI formulate acceptance criteria" box was cleared
+    // — absent produces byte-for-byte the argv every caller before this
+    // flag existed already produces.
+    ...(step === "create" && job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
     ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file

@@ -423,10 +423,15 @@ export class Runner {
         ok: !!outcome.ok,
         costUsd: cost,
         // Read as defensively as everything else here, and narrowed to
-        // the two names the page knows how to route on: whatever else
-        // a result file says, it is not a tool this dashboard can
-        // render for.
-        tool: (outcome.tool === "codex" ? "codex" : "claude") as "claude" | "codex",
+        // the names the page knows how to route on: whatever else a
+        // result file says, it is not a tool this dashboard can render
+        // for. "none" is spec 433's deterministic create path — the one
+        // other value `aide-run-spec` actually writes, alongside
+        // "codex" — and must not be silently collapsed into "claude".
+        tool: (outcome.tool === "codex" ? "codex" : outcome.tool === "none" ? "none" : "claude") as
+          | "claude"
+          | "codex"
+          | "none",
         tokens,
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",

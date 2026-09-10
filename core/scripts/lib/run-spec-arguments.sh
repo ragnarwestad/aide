@@ -72,6 +72,12 @@ reason=""
 # there is nothing to validate, and its absence is the byte-for-byte
 # behaviour every caller before this flag existed already has (REQ-3).
 acceptance_not_required="no"
+# Whether a `create` step skips the AI session entirely (spec 433): the
+# New-spec form's "let AI formulate acceptance criteria" box, cleared. A
+# bare flag, same shape as --acceptance-not-required: nothing to
+# validate, and its absence is the byte-for-byte behaviour every caller
+# before this flag existed already has.
+no_ai_formulate="no"
 # The file whose contents become the prompt VERBATIM, for `--command
 # schedule` alone (spec 259). A schedule entry names no aide skill and
 # no spec folder — its whole "job" is the text at this path, read from
@@ -114,6 +120,7 @@ while [ $# -gt 0 ]; do
     --depends-on) depends_on="${2:-}"; shift 2 ;;
     --reason) reason="${2:-}"; shift 2 ;;
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
+    --no-ai-formulate) no_ai_formulate="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
