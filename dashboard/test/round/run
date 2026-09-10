@@ -94,9 +94,13 @@ SPEC_FOLDER="${BRANCH#aide/}"
 # argument". So the flag goes only where the branch's argument parser
 # names it; an older branch gets the board it always got, without the
 # header line and the Stop button.
+# Every board the round starts is a TEST board (2026-09-10): it serves
+# the round's own fixture specs and a stub model, whatever checkout it
+# runs from. A branch names its spec; a plain checkout is named by its
+# folder, which the header shows as just "Test".
 TEST_BOARD_ARGS=()
-if [ -n "$SPEC_FOLDER" ] && grep -q -- '--test-board' "$SERVE_FROM/dashboard/src/serve/serve-helpers/parse-args.ts" 2>/dev/null; then
-  TEST_BOARD_ARGS=(--test-board "$SPEC_FOLDER")
+if grep -q -- '--test-board' "$SERVE_FROM/dashboard/src/serve/serve-helpers/parse-args.ts" 2>/dev/null; then
+  TEST_BOARD_ARGS=(--test-board "${SPEC_FOLDER:-$(basename "$SERVE_FROM")}")
 fi
 
 CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"

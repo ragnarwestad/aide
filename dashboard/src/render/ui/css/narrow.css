@@ -392,5 +392,10 @@
      trigger on desktop; at phone width they hide, and the "…" menu's
      own flat morerows copy (rows-and-forms.css) takes over instead. */
   .menu.theme, .menu.lang, .menu.unit { display: none; }
+  /* The board line moves from the header into the "…" menu, first row:
+     beside the wordmark it wrapped "aide -dashboard" onto two lines. */
+  header > .boardline { display: none; }
+  .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
+    padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }

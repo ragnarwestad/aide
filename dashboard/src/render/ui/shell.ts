@@ -302,24 +302,46 @@ function aboutDialog(buildStamp?: string): string {
 // them. Harmless when unset: `hostname()` is then this same machine's
 // own name anyway.
 function boardLine(lang: Language): string {
+  return `<span class="row muted small boardline"${boardTitle()}>${boardText(lang)}</span>`;
+}
+
+/** The same line again as the first row of the "…" menu: at phone width
+ *  the header has no room for it beside the wordmark — "aide -dashboard"
+ *  wrapped under it — so the menu carries it there and the header's own
+ *  copy hides (narrow.css, 2026-09-10). Two Stop forms is fine: neither
+ *  has an id, and only the visible one can be pressed. */
+function boardRow(lang: Language): string {
+  return `<div class="boardrow muted small"${boardTitle()}>${boardText(lang)}</div>`;
+}
+
+function boardTitle(): string {
+  const board = getBoardInfo();
+  if (!board || !isSpecFolder(board.specFolder)) return "";
+  return ` title="${esc(board.specFolder)} : ${esc(board.branch)}"`;
+}
+
+/** "Prod" is the service on main with the real specs; everything else
+ *  is "Test" (2026-09-10) — a round started from a branch names the
+ *  spec by number, a round started from a checkout says only Test. What
+ *  KIND of test is a question left for later. */
+function boardText(lang: Language): string {
   const board = getBoardInfo();
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
-  if (!board) return `<span class="row muted small">${machine} - Prod</span>`;
+  if (!board) return `${machine} - Prod`;
+  const which = isSpecFolder(board.specFolder) ? ` - ${esc(specNumber(board.specFolder))}` : "";
   return (
-    // The spec's NUMBER, with the folder and branch as hover text
-    // (2026-09-10): the folder is what the reader knows the spec by,
-    // and the branch is always `aide/<folder>`, so spelling both out
-    // put the same long name on the line twice.
-    `<span class="row muted small" title="${esc(board.specFolder)} : ${esc(board.branch)}">` +
-    `${machine} - Test - ${esc(specNumber(board.specFolder))}` +
+    `${machine} - Test${which}` +
     // No hidden token field (unlike `boardStatus()`'s own Stop form,
     // `overview.ts`): the reader is already past `queueGuard` to see
     // this page at all, which means the port-scoped cookie is already
     // set, and this form posts to the SAME port.
     `<form class="actionform" method="post" action="/api/self-stop">` +
-    `<button class="btn" type="submit">${t(lang, "shell.stopTestServer")}</button></form>` +
-    `</span>`
+    `<button class="btn" type="submit">${t(lang, "shell.stopTestServer")}</button></form>`
   );
+}
+
+function isSpecFolder(folder: string): boolean {
+  return /^\d+(-|$)/.test(folder);
 }
 
 function pageHeader(lang: Language, currentUrl: string): string {
@@ -347,7 +369,7 @@ function pageHeader(lang: Language, currentUrl: string): string {
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
     // Settings, then the board-wide test-server overview (spec 425),
     // then About.
-    `<div class="menupanel">${mobileRows}<a href="/settings">${t(lang, "shell.settings")}</a>` +
+    `<div class="menupanel">${boardRow(lang)}${mobileRows}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></span></header>`

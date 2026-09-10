@@ -105,6 +105,9 @@ const STRUCTURE = [
   // closeAll() would close the outer menu on the same click) — a plain
   // wrapper div instead, shown only at phone width.
   "morerows",
+  // The board line in the header, and its copy at the top of the "…"
+  // menu for phones (2026-09-10).
+  "boardline", "boardrow",
   // a confirmation asked over the page instead of on one of its own
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.

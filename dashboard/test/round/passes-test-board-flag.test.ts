@@ -182,13 +182,17 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     }
   });
 
-  test("with no --branch, neither invocation carries --test-board", async () => {
+  // Every board the round starts is a test board (2026-09-10): with no
+  // --branch the checkout's own folder name is the label, which the
+  // header shows as just "Test".
+  test("with no --branch, both invocations carry --test-board <checkout folder>", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);
     const seed = tmp("aide-round-seed-");
     git(seed, ["init", "-q", "-b", "main"]);
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
+    writeParseArgs(seed, true);
     git(seed, ["add", "-A"]);
     git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
@@ -208,7 +212,8 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
         AIDE_ROUND_TOKEN: "test-token",
       });
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      for (const line of lines) expect(line).not.toContain("--test-board");
+      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
+      expect(serveLine).toContain(`--test-board ${aide.split("/").pop()}`);
     } finally {
       decoy.stop();
     }
