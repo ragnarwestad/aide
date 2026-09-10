@@ -569,6 +569,7 @@ export function renderJobDetailPage(
   // the spec list, and that is where the list lives now.
   return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, {
     hideHeading: true,
+    hideTabBar: true,
     lang,
     currentUrl: opts.currentUrl,
   });

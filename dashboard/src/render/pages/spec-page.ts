@@ -204,6 +204,7 @@ export function renderSpecPage(
       script: opts.script,
       scriptSrc: opts.scriptSrc,
       hideHeading: true,
+      hideTabBar: true,
       lang: opts.lang,
       currentUrl: opts.currentUrl,
     },

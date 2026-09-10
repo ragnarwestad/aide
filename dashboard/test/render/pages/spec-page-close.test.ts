@@ -46,6 +46,12 @@ describe("spec 406, REQ-1: the Close control", () => {
   test("a live spec with no closeAction offers nothing of the sort", () => {
     expect(page(view())).not.toContain(">Close<");
   });
+
+  // Spec 437, AC-1/AC-2: the Close confirmation is a subpage.
+  test("draws no site-level tab bar", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    expect(html).not.toContain('<nav class="tabbar">');
+  });
 });
 
 describe("spec 406, REQ-2: the Reset/Close distinction is visible page text, not only a hover title", () => {

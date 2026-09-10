@@ -133,6 +133,9 @@ describe("the header and the two tabs (spec 119)", () => {
   // took the tab back off; three again from spec 272 (Schedule).
   test("three tabs, Specs, Projects and Schedule, between the header and the page's own h1", () => {
     for (const [path, html] of every) {
+      // Spec 437: the job detail page is a subpage now and draws no
+      // site-level tab bar — checked separately below.
+      if (path === "/specs/job-1") continue;
       const bar = tabs(html);
       expect([path, [...bar.matchAll(/<a[^>]*>([^<]*)<\/a>/g)].map((m) => m[1])]).toEqual([
         path,
@@ -153,11 +156,12 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  test("Specs is current on the spec list and on a job detail page", () => {
-    for (const html of [served["/"], served["/specs/job-1"]]) {
-      expect(tab(html, "Specs")).toContain('aria-current="page"');
-      expect(tab(html, "Projects")).not.toContain("aria-current");
-    }
+  // Spec 437 reverses spec 119's own premise here: the job detail page
+  // is a subpage now, drawing no site-level nav to mark current at all.
+  test("Specs is current on the spec list; the job detail page carries no site-level nav", () => {
+    expect(tab(served["/"], "Specs")).toContain('aria-current="page"');
+    expect(tab(served["/"], "Projects")).not.toContain("aria-current");
+    expect(served["/specs/job-1"]).not.toContain('<nav class="tabbar">');
   });
 
   // A project's own generated page went on 2026-08-22 — the server

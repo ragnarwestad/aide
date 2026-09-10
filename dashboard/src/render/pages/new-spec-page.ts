@@ -371,6 +371,7 @@ export function renderNewSpecPage(
     docTitle: "aide -board — new spec",
     script: opts.script,
     hideHeading: true,
+    hideTabBar: true,
     lang: opts.lang,
     currentUrl: opts.currentUrl,
   });

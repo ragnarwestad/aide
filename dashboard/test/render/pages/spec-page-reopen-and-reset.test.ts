@@ -175,6 +175,12 @@ describe("spec 231: the Reset control", () => {
     );
     expect(html.match(new RegExp(`<h1>Reset ${view().specFolder}</h1>`, "g"))?.length ?? 0).toBe(1);
   });
+
+  // Spec 437, AC-1/AC-2: the Reset confirmation is a subpage.
+  test("draws no site-level tab bar", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    expect(html).not.toContain('<nav class="tabbar">');
+  });
 });
 
 // A press that deletes this spec's branches and starts it over ends with
