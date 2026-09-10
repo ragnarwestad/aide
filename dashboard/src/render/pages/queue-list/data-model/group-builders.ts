@@ -125,7 +125,14 @@ export function groupBySpec(
         // nothing on disk to match. Without this it would be filtered out
         // in exactly the projects that already have specs — so the job the
         // reader just started would render nothing at all.
-        (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
+        (known.has(key) || !judgeable.has(all[0]!.project) ||
+          // …unless every job the row would stand for was CANCELLED and
+          // the folder never landed (2026-09-10): there is nothing on
+          // disk, nothing to press, and the row outlived the spec it
+          // named — the one such row had to be cut out of the queue file
+          // by hand. A create that FAILED keeps its row: the reader
+          // re-runs it from there.
+          (all.some(isCreate) && !all.every((r) => r.state === "cancelled"))),
     )
     .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)
     .filter(([, all]) => all.length > 0)
