@@ -81,17 +81,12 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const message = opts.error ?? opts.notice ?? "";
   const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
-  const unitsBlock = `<p class="row"><span class="lbl">Units</span>` +
-    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
-    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>` +
-    `</p>`;
   const body = `<main>${back}<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<p class="row"><label class="lbl" for="budgetUsd">Budget per job (USD)</label><input id="budgetUsd" type="number" min="0.01" max="100" step="0.01" ` +
     `name="budgetUsd" value="${opts.budgetUsd}"></p>` +
     `<p class="row"><label class="lbl" for="jobCapUsd">Job cap (USD)</label><input id="jobCapUsd" type="number" min="0.01" max="300" step="0.01" ` +
     `name="jobCapUsd" value="${opts.jobCapUsd}"></p>` +
-    unitsBlock +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="configactions">` +

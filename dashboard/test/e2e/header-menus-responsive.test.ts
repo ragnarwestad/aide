@@ -1,0 +1,97 @@
+// A real-browser check for the header's theme/language/unit menus (spec
+// 436): the one thing a string-matching unit test cannot catch is the
+// nested-`<details>` hazard `2-analysis.md` names — menu-script.ts's
+// closeAll() closes every open `details.menu` except the innermost one a
+// click landed in, so a naive nested-<details> implementation would
+// close the outer "…" menu the instant a mobile choice row inside it was
+// clicked, before the choice could even register. Approach A (flat rows,
+// no nested <details>) avoids this by construction; this spec is what
+// would actually catch a regression back into the nested shape, in a
+// real browser, at a real viewport width.
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { chromium, type Browser, type Page } from "playwright";
+import { queueHarness, ran } from "../helpers/queue-server.ts";
+
+setDefaultTimeout(20_000);
+
+const TOKEN = "s3cret-token";
+
+const harness = queueHarness("aide-e2e-header-menus-");
+let browser: Browser;
+let page: Page;
+let base: string;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} did not resolve within ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
+beforeAll(async () => {
+  browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
+  page = await browser.newPage();
+  const started = harness.start({ extra: { queueToken: TOKEN } });
+  base = started.base;
+  ran(started.dir, []);
+  await new Promise((r) => setTimeout(r, 400));
+  await withTimeout(page.goto(`${base}/?token=${TOKEN}&live=0`), 10_000, "page.goto(/?token=)");
+});
+
+afterAll(async () => {
+  await browser.close();
+  harness.cleanup();
+});
+
+// The codebase's one breakpoint (narrow.css) is 40rem = 640px at the
+// default 16px root — 600px sits below it, 1270px is spec 336's own
+// measured laptop width, already the "desktop" convention this suite's
+// sibling (specs-page-layout.test.ts) uses.
+const PHONE = { width: 600, height: 900 };
+const DESKTOP = { width: 1270, height: 800 };
+
+test("AC-1: at desktop width, theme, language and unit each stand as their own header trigger", async () => {
+  await page.setViewportSize(DESKTOP);
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
+    await expect(page.locator(selector)).toBeVisible();
+  }
+});
+
+test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden", async () => {
+  await page.setViewportSize(PHONE);
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  for (const selector of [".menu.theme", ".menu.lang", ".menu.unit"]) {
+    await expect(page.locator(selector)).toBeHidden();
+  }
+});
+
+test("AC-2 criterion 4: opening the … menu at phone width reveals all three choice groups", async () => {
+  await page.setViewportSize(PHONE);
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  await page.locator("header > span.row > details.menu > summary").click();
+  const morerows = page.locator("header .menu .morerows");
+  await expect(morerows.locator("[data-theme-choice]").first()).toBeVisible();
+  await expect(morerows.locator('a[href^="/?lang="]').first()).toBeVisible();
+  await expect(morerows.locator("[data-unit-choice]").first()).toBeVisible();
+});
+
+// The nested-<details> hazard itself: a click on a flat mobile row must
+// apply the choice AND leave the "…" menu open — Approach A's whole
+// reason for existing, per 3-solution.md's Risk analysis item 4.
+test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu open", async () => {
+  await page.setViewportSize(PHONE);
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  const trigger = page.locator("header > span.row > details.menu > summary");
+  await trigger.click();
+  const menu = page.locator("header > span.row > details.menu");
+  await expect(menu).toHaveJSProperty("open", true);
+
+  const darkButton = page.locator('header .menu .morerows [data-theme-choice="dark"]');
+  await darkButton.click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(menu).toHaveJSProperty("open", true);
+});

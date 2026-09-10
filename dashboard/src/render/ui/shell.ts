@@ -125,6 +125,28 @@ const THEME_ICONS: Record<string, string> = {
   dark: ICON_THEME_DARK, light: ICON_THEME_LIGHT, auto: ICON_THEME_AUTO,
 };
 
+// Auto is marked here, on the row AND on the trigger's icon, because the
+// server has no way to know what this reader picked — theme-script.ts
+// moves both once it does, the same mark() call doing the row's
+// aria-current and the trigger's icon together. Module-scoped (spec
+// 436), not function-local: themeChoiceRows() needs to read it too, and
+// a function-local const is invisible outside its own function.
+const THEME_LABELS: Record<string, TranslationKey> = {
+  dark: "shell.themeDark", light: "shell.themeLight", auto: "shell.themeAuto",
+};
+
+// The theme choice rows, shared (spec 436) by themeControl()'s own
+// standalone panel (desktop) and the "…" menu's flat mobile copy — the
+// same markup either way, so a reader's choice looks identical wherever
+// it is reached from.
+function themeChoiceRows(lang: Language): string {
+  return THEME_CHOICES.map(
+    ([choice]) =>
+      `<button type="button" data-theme-choice="${choice}"` +
+      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}<span>${t(lang, THEME_LABELS[choice]!)}</span></button>`,
+  ).join("");
+}
+
 // The header-level switch (spec 243, moved out of the "…" menu; a
 // popup of its own since PaceUp's own header is the reference for HOW,
 // not just where — one icon that names the current choice, a dropdown
@@ -133,50 +155,67 @@ const THEME_ICONS: Record<string, string> = {
 // `menu-script.ts`'s `closeAll` already targets every `details.menu`,
 // not one in particular.
 function themeControl(lang: Language): string {
-  // Auto is marked here, on the row AND on the trigger's icon, because
-  // the server has no way to know what this reader picked —
-  // `theme-script.ts` moves both once it does, the same `mark()` call
-  // doing the row's `aria-current` and the trigger's icon together.
-  const THEME_LABELS: Record<string, TranslationKey> = {
-    dark: "shell.themeDark", light: "shell.themeLight", auto: "shell.themeAuto",
-  };
   const trigger = THEME_CHOICES.map(
     ([choice]) =>
       `<span data-theme-icon="${choice}"${choice === "auto" ? "" : " hidden"}>${THEME_ICONS[choice]}</span>`,
   ).join("");
-  const rows = THEME_CHOICES.map(
-    ([choice]) =>
-      `<button type="button" data-theme-choice="${choice}"` +
-      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}<span>${t(lang, THEME_LABELS[choice]!)}</span></button>`,
-  ).join("");
   const theme = t(lang, "shell.theme");
   return (
     `<details class="menu theme"><summary aria-label="${theme}" title="${theme}">${trigger}</summary>` +
-    `<div class="menupanel">${rows}</div>` +
+    `<div class="menupanel">${themeChoiceRows(lang)}</div>` +
     `</details>`
+  );
+}
+
+// The language choice links, shared (spec 436) the same way
+// themeChoiceRows() is. Deliberately ignores `currentPath` and always
+// links to `/?lang=<code>` — landing on the Specs list in the chosen
+// language is a known, coherent result from any page, where following
+// `currentPath` would mean inventing a second "reader's actual address"
+// concept distinct from what that value already means to `tabBar`
+// (which tab is current) — see spec 408's `2-analysis.md`, "Why the
+// language link still always targets `/`, unchanged".
+function languageChoiceLinks(lang: Language): string {
+  const other: Language = lang === "nb" ? "en" : "nb";
+  const choice = (l: Language) => `${LANGUAGE_FLAGS[l]} ${t(lang, LANGUAGE_NAME_KEYS[l])}`;
+  return (
+    `<a href="/?lang=${lang}" aria-current="true">${choice(lang)}</a>` +
+    `<a href="/?lang=${other}">${choice(other)}</a>`
   );
 }
 
 // The header-level language switch (spec 350), beside the theme control
 // (REQ-3) and built the same way: a `<details class="menu">` trigger +
-// panel, so it gets the same outside-click/Escape close for free. It
-// deliberately ignores `currentPath` and always links to `/?lang=<code>`
-// — landing on the Specs list in the chosen language is a known,
-// coherent result from any page, where following `currentPath` would
-// mean inventing a second "reader's actual address" concept distinct
-// from what that value already means to `tabBar` (which tab is current)
-// — see spec 408's `2-analysis.md`, "Why the language link still
-// always targets `/`, unchanged".
+// panel, so it gets the same outside-click/Escape close for free.
 function languageControl(lang: Language): string {
-  const other: Language = lang === "nb" ? "en" : "nb";
-  const choice = (l: Language) => `${LANGUAGE_FLAGS[l]} ${t(lang, LANGUAGE_NAME_KEYS[l])}`;
   const langLabel = t(lang, "shell.language");
   return (
     `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_FLAGS[lang]}</summary>` +
-    `<div class="menupanel">` +
-    `<a href="/?lang=${lang}" aria-current="true">${choice(lang)}</a>` +
-    `<a href="/?lang=${other}">${choice(other)}</a>` +
-    `</div></details>`
+    `<div class="menupanel">${languageChoiceLinks(lang)}</div></details>`
+  );
+}
+
+// Relocated from settings-page.ts's own unitsBlock (spec 436), markup
+// unchanged — unit-script.ts's mark() already targets every
+// [data-unit-choice] on the page, however many copies exist, so this
+// needs no script change of its own.
+function unitChoiceRows(): string {
+  return (
+    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
+    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>`
+  );
+}
+
+// The header-level unit switch (spec 436), built the same way as
+// themeControl()/languageControl(). A static "$", not a live icon:
+// unlike theme's three-way choice, where the trigger's own icon is the
+// only way to see which of three is active, a two-way choice does not
+// need the trigger to track it.
+function unitControl(lang: Language): string {
+  const unit = t(lang, "shell.unit");
+  return (
+    `<details class="menu unit"><summary aria-label="${unit}" title="${unit}">$</summary>` +
+    `<div class="menupanel">${unitChoiceRows()}</div></details>`
   );
 }
 
@@ -268,22 +307,31 @@ function boardLine(lang: Language): string {
 }
 
 function pageHeader(lang: Language): string {
+  // Theme, language and unit repeat here flat, with no second `<details>`
+  // wrapper (spec 436): the "…" menu's own `closeAll()` behaviour
+  // (menu-script.ts) closes every open `details.menu`/`details.intro`
+  // except the innermost the click landed in, and a nested `<details>`
+  // here would make its own trigger close this outer menu instead of
+  // opening. narrow.css hides the three standalone triggers and reveals
+  // this block only at phone width.
+  const mobileRows =
+    `<div class="morerows">${themeChoiceRows(lang)}${languageChoiceLinks(lang)}${unitChoiceRows()}</div>`;
   return (
     `<header>${WORDMARK}${boardLine(lang)}` +
-    // Theme and language sit beside the "…" trigger, both at the
-    // header's right-hand end (spec 243, spec 350) — header-level
-    // controls the reader reaches without opening the menu first, not
-    // one more item behind it.
-    `<span class="row">${themeControl(lang)}${languageControl(lang)}` +
+    // Theme, language and unit sit beside the "…" trigger, all at the
+    // header's right-hand end (spec 243, spec 350, spec 436) —
+    // header-level controls the reader reaches without opening the menu
+    // first, not one more item behind it.
+    `<span class="row">${themeControl(lang)}${languageControl(lang)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    // Units moved to Settings itself (spec 409); Settings, then the
-    // board-wide test-server overview (spec 425), then About.
-    `<div class="menupanel"><a href="/settings">${t(lang, "shell.settings")}</a>` +
+    // Settings, then the board-wide test-server overview (spec 425),
+    // then About.
+    `<div class="menupanel">${mobileRows}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></span></header>`

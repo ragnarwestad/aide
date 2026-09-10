@@ -94,8 +94,14 @@ const STRUCTURE = [
   // "state" is the state-filter dropdown's own (spec 289, replacing the
   // per-state chips) — a third "details.menu", named the same way.
   // "lang" is the language choice beside Theme (spec 350) — a fourth
-  // "details.menu", named the same way.
-  "menu", "menupanel", "theme", "lang", "state", "about", "aboutpanel", "aboutclose", "listtop",
+  // "details.menu", named the same way. "unit" is the same again for
+  // the header-level Units switch (spec 436).
+  "menu", "menupanel", "theme", "lang", "unit", "state", "about", "aboutpanel", "aboutclose", "listtop",
+  // the "…" menu's own flat mobile copy of the theme/language/unit rows
+  // (spec 436): no second "details.menu" nested inside it (menu-script.ts's
+  // closeAll() would close the outer menu on the same click) — a plain
+  // wrapper div instead, shown only at phone width.
+  "morerows",
   // a confirmation asked over the page instead of on one of its own
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.

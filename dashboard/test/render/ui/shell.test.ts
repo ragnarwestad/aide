@@ -142,6 +142,37 @@ describe("pageShell language (spec 350)", () => {
   });
 });
 
+// Spec 436: theme, language and unit all reach the header directly on
+// desktop, and all three repeat, flat, inside the "…" menu for mobile.
+describe("pageShell header controls (spec 436)", () => {
+  test("AC-1: theme, language and unit each stand as their own trigger in the header row", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const row = html.match(/<span class="row">[\s\S]*?<details class="menu"><summary/)![0];
+    expect(row).toContain('<details class="menu theme">');
+    expect(row).toContain('<details class="menu lang">');
+    expect(row).toContain('<details class="menu unit">');
+  });
+
+  test("AC-1: the unit control's own panel offers $ and Tokens as two radio choices", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const unit = html.match(/<details class="menu unit">[\s\S]*?<\/details>/)![0];
+    expect(unit).toContain('<input type="radio" name="unit" value="usd" data-unit-choice="usd" checked>');
+    expect(unit).toContain('<input type="radio" name="unit" value="tokens" data-unit-choice="tokens">');
+  });
+
+  test("AC-2: the \"…\" menu's panel carries a morerows block with the theme, language and unit choices", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const menu = html.match(/<details class="menu"><summary[\s\S]*?<\/details>/)![0];
+    const morerows = menu.match(/<div class="morerows">([\s\S]*?)<\/div>/)?.[1] ?? "";
+    expect(morerows).toContain('data-theme-choice="dark"');
+    expect(morerows).toContain('href="/?lang=en"');
+    expect(morerows).toContain('data-unit-choice="usd"');
+    expect(menu).toContain('href="/settings"');
+    expect(menu).toContain('href="/test-servers"');
+    expect(menu).toContain("data-about");
+  });
+});
+
 // Spec 408, REQ-2: Settings belongs to none of the tabs the bar offers,
 // so it draws no tab bar at all — everything else keeps drawing one.
 describe("pageShell hideTabBar (spec 408)", () => {

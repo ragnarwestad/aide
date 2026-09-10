@@ -24,30 +24,38 @@ import { site, NAV, detail, row } from "../../fixtures.ts";
 // that both figures are in the HTML, in the right span, with the right
 // text: given that, the CSS rule (asserted in css-token-guard.test.ts)
 // is the whole of the switch.
-// Spec 409, REQ-2: Units moved out of the "…" menu and onto /settings —
-// this suite only proves the menu's own side of that (the menu carries
-// no trace of Units any more); the Units radios on /settings are
-// settings-page.test.ts's own concern.
-describe("spec 409: the … menu no longer carries Units", () => {
+// Spec 436 reverses spec 409's own decision: Units (and Theme/Language)
+// now also repeat, flat, inside the "…" menu's own morerows block, for a
+// reader at phone width where the standalone triggers are hidden.
+describe("spec 436: the … menu now also carries the theme, language and unit choices", () => {
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
 
-  test("no page's … menu has a data-unit-choice element or the word Units", () => {
+  // The flat mobile copy is the two radio rows alone, unitChoiceRows()'s
+  // own markup with no group label ("$"/"Tokens" say what each is) — the
+  // word "Units" itself lives only on the standalone header trigger's
+  // aria-label/title, a sibling `.menu.unit`, not inside this menu.
+  test("every page's … menu has a data-unit-choice element", () => {
     for (const page of site) {
       const m = menu(page.html);
-      expect(m).not.toContain("data-unit-choice");
-      expect(m).not.toContain("Units");
+      expect(m).toContain("data-unit-choice");
     }
   });
 
-  // Spec 243, criterion 5, narrowed by spec 409: Theme and Units are
-  // both gone from this menu; only Settings and About remain, in order.
-  test("the menu panel's children are Settings, About, in that order", () => {
+  // Spec 243/409's own ordering (Settings, About) still holds at the
+  // panel's tail end — the morerows block (spec 436) is new content
+  // ahead of it, not a reordering of what was already there. Read
+  // straight off the whole <details> block rather than the menupanel's
+  // own (now non-greedy-unsafe) opening `<div>`, since the new morerows
+  // wrapper is itself a nested `<div>` inside `.menupanel`.
+  test("the menu panel's tail is still Settings, Test servers, About, in that order", () => {
     for (const page of site) {
-      const panel = menu(page.html).match(/<div class="menupanel">([\s\S]*?)<\/div>/)?.[1] ?? "";
-      const settingsAt = panel.indexOf('href="/settings"');
-      const aboutAt = panel.indexOf("data-about");
-      expect([settingsAt, aboutAt].every((i) => i >= 0)).toBe(true);
-      expect(settingsAt).toBeLessThan(aboutAt);
+      const m = menu(page.html);
+      const settingsAt = m.indexOf('href="/settings"');
+      const testServersAt = m.indexOf('href="/test-servers"');
+      const aboutAt = m.indexOf("data-about");
+      expect([settingsAt, testServersAt, aboutAt].every((i) => i >= 0)).toBe(true);
+      expect(settingsAt).toBeLessThan(testServersAt);
+      expect(testServersAt).toBeLessThan(aboutAt);
     }
   });
 
