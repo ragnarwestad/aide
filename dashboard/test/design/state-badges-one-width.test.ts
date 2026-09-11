@@ -20,6 +20,13 @@ describe("the State column's badges share one width", () => {
     expect(cell).toMatch(/padding-left: var\(--sp-3\); padding-right: var\(--sp-3\)/);
     expect(cell).toMatch(/text-align: center/);
   });
+
+  // The pips over the badge (a shut row) share its width, so the two
+  // centre on each other even where the column is narrower than both.
+  test("a shut row's pips take the badge's width", () => {
+    const badge = /table\.list td\[data-col="state"\] \.badge \{ min-width: ([\d.]+rem)/.exec(css)![1];
+    expect(css).toContain(`table.list tr.spechead .pipslot { min-width: ${badge}; }`);
+  });
 });
 
 describe("on a phone the badges are their own width again", () => {

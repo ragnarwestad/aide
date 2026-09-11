@@ -2,8 +2,7 @@
 // state badge over the phases' own state column (2026-09-11). Alone at
 // the left of its line the badge read as a stray, and the pips say at
 // a glance what the phase lines under a shut row cannot. A desktop
-// never draws the head row's pips: its button already says how far the
-// spec has come.
+// stacks the same two in the State cell, the pips over the badge.
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { CSS } from "../../src/render/ui/css.ts";
@@ -34,8 +33,9 @@ describe("a phone's second line is pips, then the state", () => {
     );
   });
 
-  test("a desktop hides them", () => {
-    expect(DESKTOP).toContain("table.list tr.spechead .pipslot { display: none; }");
+  test("a desktop stacks them over the badge, and an open row drops them", () => {
+    expect(DESKTOP).toContain("table.list tr.spechead .pipslot { display: flex; justify-content: center; margin: 0 0 var(--sp-2); padding-left: 0; }");
+    expect(DESKTOP).toContain('table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none; }');
   });
 
   test("a phone lays the cell out as the caption line's own two columns", () => {
@@ -53,7 +53,7 @@ describe("a phone's second line is pips, then the state", () => {
     expect(NARROW).toMatch(/td\[data-col="state"\] > \.actionslot \{[^}]*padding-left: var\(--sp-3\); box-sizing: border-box/);
     // Cancel is a form, not a bare button, and is placed the same way.
     expect(NARROW).toContain('table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }');
-    expect(NARROW).toContain("table.list tr.spechead .pipslot { display: inline-flex; grid-column: 1; grid-row: 1; justify-self: start; padding-left: 0; margin-left: 0; }");
+    expect(NARROW).toContain("table.list tr.spechead .pipslot { display: inline-flex; grid-column: 1; grid-row: 1; justify-self: start; justify-content: flex-start; min-width: 0; padding-left: 0; margin: 0; }");
     // The line keeps clear of both edges; the left air comes off the
     // first column so the badge's x does not move.
     expect(NARROW).toMatch(/tr\.spechead > td\[data-col="state"\] \{[^}]*padding-left: var\(--sp-3\); padding-right: var\(--sp-3\)/);

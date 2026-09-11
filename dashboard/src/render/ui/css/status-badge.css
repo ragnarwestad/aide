@@ -31,4 +31,9 @@
    (2026-09-10). A text wider than that still grows: min-width, not
    width. */
 table.list td[data-col="state"] .badge { min-width: 7.5rem; box-sizing: border-box; justify-content: center; }
+/* The pips over a shut row's badge take the badge's own width, so the
+   two centre on each other — also where the column is narrower than the
+   badge (640–950px) and both overflow it to the right by the same
+   amount. The same number, on purpose, kept next to the badge's. */
+table.list tr.spechead .pipslot { min-width: 7.5rem; }
 
