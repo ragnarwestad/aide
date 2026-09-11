@@ -83,7 +83,7 @@ dependency's `archive` step runs. The dashboard's copy decides whether a
 queued job is PARKED (left `queued` with the reason on its row); the
 script's copy decides whether a run started by hand is REFUSED. The
 acceptance-criteria gate has the same two halves: `blockedForUntickedAcceptance`
-in `dashboard/src/serve/schedules.ts` parks a queued `archive` while the
+in `dashboard/src/serve/schedules/blocked.ts` parks a queued `archive` while the
 state file has an open row, and `aide-archive-spec` refuses a run that
 reaches it anyway. Both that check and the row's "archive held back"
 read the BRANCH copy of the state file first (`BranchFileStepsChecker`'s
