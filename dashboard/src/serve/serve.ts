@@ -1,6 +1,4 @@
-import { existsSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
@@ -24,7 +22,7 @@ import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 
 import { AideRunStore } from "../queue/aide-run-store.ts";
 import { Notifier } from "../integrations/notify.ts";
-import { QueueStore, type Job, type ProjectResolver } from "../queue/queue.ts";
+import { QueueStore, type ProjectResolver } from "../queue/queue.ts";
 
 import { QUEUE_DEFAULTS, navFromSite, compressResponse } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
@@ -33,25 +31,20 @@ import type { ServerOptions } from "./options.ts";
 import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
 import { DEFAULT_PDF_CACHE_DIR } from "./handle-queue/spec-pdf.ts";
-import {
-  archivedSpecRows as archivedSpecRowsImpl,
-  specPageView as specPageViewImpl,
-  jobDetailView as jobDetailViewImpl,
-  type SpecViewsContext,
-} from "./spec-views.ts";
+import { type SpecViewsContext } from "./spec-views.ts";
 import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
-import { createServerState, setPendingRestart } from "./state.ts";
+import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup-watch.ts";
 import { setupProjectResolution } from "./setup-project-resolution.ts";
 import { setupSchedules } from "./setup-schedules.ts";
 import { setupLand } from "./setup-land.ts";
+import { setupBoards } from "./setup-boards.ts";
+import { setupSpecViews } from "./setup-spec-views.ts";
+import { setupQueueContext } from "./setup-queue-context.ts";
 import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
-import { BoardStore } from "./boards/store.ts";
-import { findFreePort, type BoardsContext } from "./boards/lifecycle.ts";
 import { recoverBoards, sweepDeadBoards } from "./boards/recover.ts";
-import { boardOnPort } from "./boards/port-owner.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
 
 export function createServer(opts: ServerOptions) {
@@ -182,60 +175,17 @@ export function createServer(opts: ServerOptions) {
 
   // The board registry (spec 388) — built before `land`, which needs it
   // to stop a spec's board once its archive actually lands (REQ-7).
-  // `spawn`/`isAlive` are test seams the same shape `restart`/
-  // `landingGate` already are just below: no test should start a real
-  // round, which takes minutes and real model spend.
-  const boardStore = new BoardStore({ path: opts.boardsPath });
-  const boardsCtx: BoardsContext = {
-    store: boardStore,
-    aideCheckout: (project) => resolution.machineryProjectDir(project),
-    roundScript: (project) => join(resolution.machineryProjectDir(project), "dashboard", "test", "round", "run"),
-    // A capability check, never a hardcoded project name (REQ-1): the
-    // round only ever makes sense for a project whose own checkout
-    // carries dashboard code, which in practice is `aide` alone,
-    // self-hosting.
-    roundAvailable: (project) =>
-      opts.boardsAvailable ??
-      (existsSync(join(resolution.machineryProjectDir(project), "dashboard", "test", "round", "run")) &&
-        existsSync(join(resolution.machineryProjectDir(project), "dashboard", "src", "serve", "serve.ts"))),
+  const { boardStore, boardsCtx } = setupBoards(state, {
+    boardsPath: opts.boardsPath,
+    machineryProjectDir: resolution.machineryProjectDir,
     gitRun,
-    spawn:
-      opts.boardsSpawn ??
-      ((cmd, logPath) => {
-        const proc = Bun.spawn({ cmd, stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
-        proc.unref();
-        return { pid: proc.pid };
-      }),
-    isAlive:
-      opts.boardsIsAlive ??
-      ((pid) => {
-        try {
-          process.kill(pid, 0);
-          return true;
-        } catch {
-          return false;
-        }
-      }),
-    now: () => new Date().toISOString(),
-    makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-")),
-    // REQ-10: the served board's own port, plus every OTHER tracked
-    // board's port — a `failed` entry no longer holds anything.
-    reservedPorts: () => [
-      state.server?.port ?? opts.port,
-      ...boardStore.all().filter((e) => e.status !== "failed").map((e) => e.port),
-    ],
-    // The probe is the seam, not the search: `boardsPortProbe` lets a
-    // test answer "can this port be bound" without binding anything, so
-    // no test depends on which of 8801-8806 this machine happens to have
-    // free. Unset in production, where the real probe binds.
-    findFreePort: (reserved: number[]) => findFreePort(reserved, opts.boardsPortProbe),
-    // Reads the process table, so a board still running after a
-    // restart can be found again: what holds the port, and which
-    // directory it was started with. `--root <work>/root` is the round's
-    // own invocation, and the work directory is what identifies it.
-    boardOnPort: opts.boardsOnPort ?? boardOnPort,
-    log: (line) => console.log(line),
-  };
+    boardsAvailable: opts.boardsAvailable,
+    boardsSpawn: opts.boardsSpawn,
+    boardsIsAlive: opts.boardsIsAlive,
+    boardsPortProbe: opts.boardsPortProbe,
+    boardsOnPort: opts.boardsOnPort,
+    port: opts.port,
+  });
 
   const land = setupLand(state, {
     machineryProjectDir: resolution.machineryProjectDir,
@@ -356,28 +306,16 @@ export function createServer(opts: ServerOptions) {
     pdfToolAvailable,
     boards: boardsCtx,
   };
-  function archivedSpecRows(state: string | undefined) {
-    return archivedSpecRowsImpl(specViewsCtx, state);
-  }
-  function specPageView(project: string, specFolder: string, tab?: string) {
-    return specPageViewImpl(specViewsCtx, project, specFolder, tab);
-  }
-  function jobDetailView(job: Job) {
-    return jobDetailViewImpl(specViewsCtx, job);
-  }
+  const { archivedSpecRows, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
 
-  // Built once, from the same locals `handleQueue` always closed over
-  // directly — see `HandleQueueContext`'s own doc comment for why
-  // `scan` rides as a getter/invalidator pair instead of a value.
-  const queueCtx: HandleQueueContext = {
+  // Built last, from every earlier stage's own pieces — see
+  // `HandleQueueContext`'s own doc comment for why `scan` rides as a
+  // getter/invalidator pair instead of a value.
+  const queueCtx: HandleQueueContext = setupQueueContext(state, {
     opts,
     nav,
     allowed,
-    readScan: () => state.scan,
-    invalidateScan: () => {
-      state.scan = null;
-    },
-    forgetBranchFileSteps: (dir, specFolder) => schedules.branchFileSteps.forget(dir, specFolder),
+    branchFileSteps: schedules.branchFileSteps,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,
@@ -405,18 +343,11 @@ export function createServer(opts: ServerOptions) {
     archivedSpecRows,
     specPageView,
     jobDetailView,
-    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
-    readPendingRestart: () => state.pendingRestart,
-    setPendingRestart: (jobs) => setPendingRestart(state, jobs),
     pdfCacheDir,
     pdfGeneratorBin,
     pdfToolAvailable,
     boards: boardsCtx,
-    // Spec 424: never a bare `process.exit()` in the route itself — a
-    // test posting to `/api/self-stop` must not end the `bun test`
-    // runner it is running inside.
-    selfStopExit: opts.selfStopExit ?? (() => process.exit(0)),
-  };
+  });
 
   const coreCtx: CoreRoutesContext = {
     store, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir,
