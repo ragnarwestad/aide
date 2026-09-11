@@ -29,7 +29,7 @@ intentionally impossible, not a gap).
 
 ## The shared builder
 
-`src/render/ui/error-sentence.ts` composes parts 1 and 2 for every sentence the render-facing layer builds directly:
+`src/format/error-sentence.ts` composes parts 1 and 2 for every sentence built this way — a neutral spot, since its callers are `queue/parse-request.ts` and `git/specs-pull.ts`, not the render layer itself:
 
 ```typescript
 const PUSH_ERROR_SENTENCE = errorSentence({

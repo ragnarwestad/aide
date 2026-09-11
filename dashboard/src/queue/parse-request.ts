@@ -9,7 +9,7 @@
 //     mode at all; widening what an unattended run may do is not
 //     something an HTTP body gets to decide
 
-import { errorSentence } from "../render/ui/error-sentence.ts";
+import { errorSentence } from "../format/error-sentence.ts";
 import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ModelChoice, ProjectResolver, QueueDefaults } from "./types.ts";
 

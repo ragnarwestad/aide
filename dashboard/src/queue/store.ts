@@ -29,7 +29,7 @@ import {
   persistPendingModels,
   persistPendingSteps,
 } from "./persist.ts";
-import { gerund, landingStepIndex } from "../render/ui/job-state/resting.ts";
+import { gerund, landingStepIndex } from "../format/gerund.ts";
 
 
 import type { PendingEffortResult, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./store/types.ts";
@@ -163,8 +163,9 @@ export class QueueStore {
       // shows for it (spec 399, REQ-3) — `landing.steps[landing.stepIndex]`
       // taken raw names the WRONG step once `landing` has already advanced
       // to "queued" on its next one while the previous step's branch is
-      // still merging (`resting.ts`'s `landingStepIndex`, the same rule
-      // `landingStep` applies for a `QueueRowView`).
+      // still merging (`gerund.ts`'s `landingStepIndex`, the same rule
+      // `landingStep` (`render/ui/job-state/resting.ts`) applies for a
+      // `QueueRowView`).
       const lastStep = landing.steps[landingStepIndex(landing.state, landing.stepIndex)] ?? landing.steps[landing.stepIndex]!;
       return {
         ok: false,

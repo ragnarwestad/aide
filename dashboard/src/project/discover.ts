@@ -27,5 +27,5 @@ export { specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } fr
 
 export {
   discoverProjects, discoverUnclaimedDirectories, gitignoreCandidates, buildProjectViews,
-  type SpecRef, type DiscoveredProject, type OwnedSpecsRoot,
+  type SpecRef, type DiscoveredProject, type OwnedSpecsRoot, type SpecView, type ProjectView,
 } from "./discover/scan.ts";

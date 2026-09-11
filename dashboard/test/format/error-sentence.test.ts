@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { errorSentence } from "../../../src/render/ui/error-sentence.ts";
+import { errorSentence } from "../../src/format/error-sentence.ts";
 
 // spec 352, Step 0: the shared builder every render-facing sentence is
 // migrated to call. Its whole job is refusing to compose a sentence
