@@ -248,12 +248,19 @@ describe("the board line and its Stop control (spec 424)", () => {
   // The Run control (2026-09-11): the round's fixtures through again on
   // this same board, the server left as it is. Beside Stop, and like
   // Stop nowhere on a prod board.
-  test("a test board's header carries a Run form beside Stop, and a prod board none", () => {
-    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+  test("a round board's header carries a Run form beside Stop; a spec's branch board and a prod board none", () => {
+    // Started from a checkout: the round's own fixtures, and Run.
+    setBoardInfo("aide-wt-run");
     for (const html of render()) {
       expect(html).toMatch(
         /action="\/api\/self-stop">[\s\S]*?<\/form><form class="actionform" method="post" action="\/api\/self-run">/,
       );
+    }
+    // Started from a spec's branch: a preview of that spec, never re-run.
+    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    for (const html of render()) {
+      expect(html).toContain('action="/api/self-stop"');
+      expect(html).not.toContain('action="/api/self-run"');
     }
     setBoardInfo(undefined);
     for (const html of render()) {
