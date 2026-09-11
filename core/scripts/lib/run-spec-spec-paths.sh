@@ -405,21 +405,21 @@ elif [ -n "${provider_limit_json:-}" ]; then
   terminal_reason="provider-limit"
   limit_type="$(jq -r '.rate_limit_info.rateLimitType // "provider" | gsub("_"; " ")' <<<"$provider_limit_json")"
   reset_at="$(jq -r '.rate_limit_info.resetsAt // empty | if type == "number" then todateiso8601 else tostring end' <<<"$provider_limit_json")"
-  error_msg="$limit_type provider limit reached — press Run again once it resets"
+  error_msg="$limit_type provider limit reached — press $step_button again once it resets"
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
   if [ "$subtype" = "error_max_budget_usd" ]; then
     terminal_reason="budget"
-    error_msg="the step's budget was reached — raise the job cap in the project's .aide/config, then press Run again"
+    error_msg="the step's budget was reached — raise the job cap in the project's .aide/config, then press $step_button again"
   elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
     [ -n "$error_msg" ] || error_msg="provider reported an error"
-    error_msg="$error_msg — press Run again"
+    error_msg="$error_msg — press $step_button again"
   elif [ "$exit_code" -ne 0 ]; then
     terminal_reason="cli-error"
-    error_msg="$tool exit $exit_code — press Run again"
+    error_msg="$tool exit $exit_code — press $step_button again"
   else
   case "$subtype" in
     success) terminal_reason="completed" ;;
@@ -427,7 +427,7 @@ elif [ "$have_result" = "true" ]; then
     # here; only claude's shape needs digging out at this point.
     *) terminal_reason="cli-error"
        [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
-       error_msg="$error_msg — press Run again" ;;
+       error_msg="$error_msg — press $step_button again" ;;
   esac
   fi
 else
@@ -435,7 +435,7 @@ else
   cost="$budget_usd"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
-  error_msg="$error_msg — press Run again"
+  error_msg="$error_msg — press $step_button again"
 fi
 fi
 

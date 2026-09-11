@@ -6,6 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { stepButton } from "../format/step-label.ts";
 import {
   EFFORT_LEVELS,
   PHASE_STEPS,
@@ -172,7 +173,7 @@ export class QueueStore {
         error:
           `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while ` +
           `${gerund("en", lastStep)} is still in progress ` +
-          `(job ${landing.id.slice(0, 8)}) — press Run again in a moment, once the merge finishes`,
+          `(job ${landing.id.slice(0, 8)}) — press ${stepButton(parsed.job.steps[0]!)} again in a moment, once the merge finishes`,
       };
     }
     this.jobs.set(parsed.job.id, parsed.job);

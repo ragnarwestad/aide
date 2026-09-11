@@ -254,8 +254,8 @@ const PHASE_2_BATCH_1: RegistryEntry[] = [
 const PHASE_3_BATCH_2: RegistryEntry[] = [
   {
     name: "the job cap would be exceeded (queue/runner.ts, startOne)",
-    text: "the job cap ($5) would be exceeded by the next step. — Raise the job cap in the project's .aide/config, then press Run again.",
-    resolve: "Raise the job cap in the project's .aide/config, then press Run again.",
+    text: "the job cap ($5) would be exceeded by the next step. — Raise the job cap in the project's .aide/config, then press Implement again.",
+    resolve: "Raise the job cap in the project's .aide/config, then press Implement again.",
   },
   {
     name: "the daily cap would be exceeded (queue/runner.ts, startOne)",
@@ -264,20 +264,20 @@ const PHASE_3_BATCH_2: RegistryEntry[] = [
   },
   {
     name: "the run vanished (queue/runner.ts, poll)",
-    text: "the run vanished without leaving a result. — Press Run again.",
-    resolve: "Press Run again.",
+    text: "the run vanished without leaving a result. — Press Implement again.",
+    resolve: "Press Implement again.",
   },
   {
     name: "the server restarted mid-step (queue/runner.ts, reconcile)",
-    text: "the server restarted while this step was running, and it left no result. — Press Run again.",
-    resolve: "Press Run again.",
+    text: "the server restarted while this step was running, and it left no result. — Press Implement again.",
+    resolve: "Press Implement again.",
   },
   {
     name: "a spec's last step is still landing (queue/store.ts, insert)",
     text:
       "implement on 81-x cannot start while its last step is still landing (job abcd1234) — " +
-      "press Run again in a moment, once the landing finishes",
-    resolve: "press Run again",
+      "press Implement again in a moment, once the landing finishes",
+    resolve: "press Implement again",
   },
   {
     name: "a create job's landing threw (land-branch/steps.ts, landNewSpec)",

@@ -22,3 +22,12 @@ export const STEP_LABELS_NB: Record<string, string> = {
 
 export const stepLabel = (step: string, lang: Language = "en"): string =>
   (lang === "nb" ? STEP_LABELS_NB[step] : undefined) ?? STEP_LABELS[step] ?? step;
+
+/** The word on the row's own button for a step — `stepLabel` with a
+ *  capital, in English whatever the language, because the button is.
+ *  A message that tells the reader to press it names it with this, so
+ *  the message and the button cannot drift apart. */
+export const stepButton = (step: string): string => {
+  const word = stepLabel(step);
+  return `${word[0]!.toUpperCase()}${word.slice(1)}`;
+};

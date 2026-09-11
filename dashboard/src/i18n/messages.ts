@@ -70,9 +70,9 @@ export const MESSAGES = {
     // the "{cap}" substring, so the "$" survives untouched either side
     // of it.
     en: "the job cap (${cap}) would be exceeded by the next step. — Raise the job cap in the project's " +
-      ".aide/config, then press Run again.",
+      ".aide/config, then press {button} again.",
     nb: "jobbtaket (${cap}) ville blitt overskredet av neste steg. — Øk jobbtaket i prosjektets .aide/config, " +
-      "og trykk Kjør igjen.",
+      "og trykk {button} igjen.",
     resolve: "Raise the job cap",
   },
   "runner.dailyCapExceeded": {
@@ -83,28 +83,28 @@ export const MESSAGES = {
     resolve: "Raise the daily cap",
   },
   "runner.runVanished": {
-    en: "the run vanished without leaving a result. — Press Run again.",
-    nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk Kjør igjen.",
-    resolve: "Press Run again.",
+    en: "the run vanished without leaving a result. — Press {button} again.",
+    nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",
+    resolve: "Press {button} again.",
   },
   // The bash cross-check's own verdict on a step that reported success
   // while changing nothing (core/scripts/lib/run-spec-status-line.sh),
   // said in the board's words: the English sentence the script wrote is
   // kept on the job as hover detail, never shown as the row's text.
   "runner.noProgressImplement": {
-    en: "implement reported success but left no real progress — nothing changed in the project. — Press Run again.",
-    nb: "implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet. — Trykk Kjør igjen.",
-    resolve: "Press Run again.",
+    en: "implement reported success but left no real progress — nothing changed in the project. — Press {button} again.",
+    nb: "implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet. — Trykk {button} igjen.",
+    resolve: "Press {button} again.",
   },
   "runner.noProgressArchive": {
-    en: "archive reported success but left no real progress — the spec folder was never moved to archive/. — Press Run again.",
-    nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk Kjør igjen.",
-    resolve: "Press Run again.",
+    en: "archive reported success but left no real progress — the spec folder was never moved to archive/. — Press {button} again.",
+    nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk {button} igjen.",
+    resolve: "Press {button} again.",
   },
   "runner.serverRestarted": {
-    en: "the server restarted while this step was running, and it left no result. — Press Run again.",
-    nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk Kjør igjen.",
-    resolve: "Press Run again.",
+    en: "the server restarted while this step was running, and it left no result. — Press {button} again.",
+    nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk {button} igjen.",
+    resolve: "Press {button} again.",
   },
 
   // --- the landing's refusals (land-branch/{steps,install,merge}.ts) -------
@@ -578,10 +578,10 @@ export const MESSAGES = {
   },
   "tab.landingClashRefusal": {
     en: "{step} on {specFolder} cannot start while its last step is still in progress (job {shortId}) — " +
-      "press Run again in a moment, once the merge finishes",
+      "press {button} again in a moment, once the merge finishes",
     nb: "{step} på {specFolder} kan ikke starte mens det siste steget fortsatt er i gang (jobb {shortId}) — " +
-      "trykk Kjør igjen om et øyeblikk, når mergen er ferdig",
-    resolve: "press Run again in a moment",
+      "trykk {button} igjen om et øyeblikk, når mergen er ferdig",
+    resolve: "press {button} again in a moment",
   },
 
   // --- a tab's refusal (git/specs-pull.ts) --------------------------------

@@ -5,6 +5,7 @@
 import { currentStep, inFlight, stateLabel } from "../../ui/job-state.ts";
 import { gerund, landingStep } from "../../ui/job-state/resting.ts";
 import { stepLabel } from "../../ui/components.ts";
+import { stepButton } from "../../../format/step-label.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, groupKey, type SpecGroup } from "./data-model.ts";
 
@@ -175,8 +176,7 @@ export function actionState(
   // disabled — a press that cannot do anything is still named for what
   // it would take to make it do something, rather than hidden.
   const shown = firstTicked ?? next;
-  const word = stepLabel(shown);
-  return { label: `${word[0]!.toUpperCase()}${word.slice(1)}`, active: !!firstTicked };
+  return { label: stepButton(shown), active: !!firstTicked };
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake

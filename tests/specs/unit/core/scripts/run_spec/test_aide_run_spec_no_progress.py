@@ -378,7 +378,7 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
     assert "999-made-by-the-run" in out["error"], out
-    assert "press Run again" in out["error"], out
+    assert "press Analyze again" in out["error"], out
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
     assert "999-made-by-the-run" not in tree, tree
     assert f"{workspace['folder']}/2-analysis.md" in tree, tree

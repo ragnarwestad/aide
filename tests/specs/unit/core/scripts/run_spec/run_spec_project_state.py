@@ -218,17 +218,17 @@ BASH_ERROR_REGISTRY: list[dict] = [
     {
         "name": "a completed implement left no real progress",
         "pattern": r"the step reported success but left no real progress — nothing changed in the project.*",
-        "resolve": "Press Run again",
+        "resolve": "Press $step_button again",
     },
     {
         "name": "a completed archive left no real progress",
         "pattern": r"the step reported success but left no real progress — the spec folder was never moved to archive/.*",
-        "resolve": "Press Run again",
+        "resolve": "Press $step_button again",
     },
     {
         "name": "a completed analyze changed things outside its scope",
         "pattern": r"the step reported success but changed things outside analyze's scope.*",
-        "resolve": "Press Run again",
+        "resolve": "Press $step_button again",
     },
     {
         "name": "a step stopped at its own time limit",
@@ -238,26 +238,26 @@ BASH_ERROR_REGISTRY: list[dict] = [
     {
         "name": "a provider rate/usage limit was reached",
         "pattern": r"\$limit_type provider limit reached.*",
-        "resolve": "press Run again",
+        "resolve": "press $step_button again",
     },
     {
         "name": "the step's own budget was reached",
         "pattern": r"the step's budget was reached.*",
-        "resolve": "press Run again",
+        "resolve": "press $step_button again",
     },
     {
         "name": "the provider reported an error with no message of its own (is_error)",
-        "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press Run again"',
-        "resolve": "press Run again",
+        "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press \$step_button again"',
+        "resolve": "press $step_button again",
     },
     {
         "name": "the tool exited non-zero with no result JSON error",
-        "pattern": r'error_msg="\$tool exit \$exit_code — press Run again"',
-        "resolve": "press Run again",
+        "pattern": r'error_msg="\$tool exit \$exit_code — press \$step_button again"',
+        "resolve": "press $step_button again",
     },
     {
         "name": "the tool produced no result JSON at all",
-        "pattern": r'no result JSON \(exit \$exit_code\)"\n\s*error_msg="\$error_msg — press Run again"',
-        "resolve": "press Run again",
+        "pattern": r'no result JSON \(exit \$exit_code\)"\n\s*error_msg="\$error_msg — press \$step_button again"',
+        "resolve": "press $step_button again",
     },
 ]

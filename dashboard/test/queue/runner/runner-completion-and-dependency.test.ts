@@ -164,7 +164,7 @@ describe("spec 93: the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.noProgressArchive" });
+    expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
     expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
   });

@@ -31,6 +31,7 @@
 import { specNumber } from "../project/spec-folder.ts";
 import type { NotifyEvent } from "../integrations/notify.ts";
 import { renderMessage, type BoardMessage } from "../i18n/message.ts";
+import { stepButton } from "../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
 import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
@@ -288,7 +289,10 @@ export class Runner {
     // Both caps are checked BEFORE the step starts: a cap that only
     // stops you afterwards is a report, not a cap.
     if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
-      const reason: BoardMessage = { key: "runner.jobCapExceeded", values: { cap: job.jobCapUsd } };
+      const reason: BoardMessage = {
+        key: "runner.jobCapExceeded",
+        values: { cap: job.jobCapUsd, button: stepButton(step) },
+      };
       const result = this.o.store.transition(job.id, "cap-hit", {
         stopReason: "job-cap",
         finishedAt: this.o.now(),
@@ -365,7 +369,7 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: { key: "runner.runVanished" },
+          error: { key: "runner.runVanished", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
     }
@@ -383,7 +387,7 @@ export class Runner {
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: { key: "runner.serverRestarted" },
+          error: { key: "runner.serverRestarted", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
     }
@@ -586,7 +590,7 @@ export class Runner {
  *  English. Every other failure keeps the sentence the script wrote. */
 function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
   if (outcome.terminalReason !== "no-progress") return undefined;
-  if (step === "archive") return { key: "runner.noProgressArchive" };
-  if (step === "implement") return { key: "runner.noProgressImplement" };
+  if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
+  if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   return undefined;
 }
