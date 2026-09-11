@@ -78,11 +78,10 @@ describe("Started and Cost fold away at phone width", () => {
     expect(NARROW).toContain("table.list tr.spechead > td:first-child { display: contents; }");
     expect(NARROW).toContain(".spec-name { display: contents; }");
     expect(NARROW).toContain("table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }");
-    // Orders 1 and 2 were the button's and the pips'. Both are off the
-    // head row now — the pips on 2026-09-07, the action on 2026-09-08 —
-    // and the badge keeps its own, so the title after it still lands on
-    // a line of its own.
-    expect(NARROW).toMatch(/tr\.spechead \.badgeslot \{ order: 3; \}/);
+    // Line 2 is the State cell as one item, taking the whole width: the
+    // pips at its left, the badge in its second column. Order 3 keeps
+    // the title after it on a line of its own.
+    expect(NARROW).toMatch(/tr\.spechead > td\[data-col="state"\] \{ order: 3; flex: 0 0 100%; display: grid;/);
     // After all three, never beside them: equal orders keep document
     // order, and this line is written in the FIRST cell — at the
     // badge's own order it came before the badge and, taking the whole
@@ -203,11 +202,11 @@ describe("the row's name at phone width", () => {
     expect((NARROW.match(/\.spec-name > \.label \{/g) ?? []).length).toBe(1);
   });
 
-  // The pips came off the list on 2026-09-07 and nothing took their
-  // place: the name box holds the fold and the name, and that is what
-  // these rules select on.
+  // The name box holds the fold and the name, and that is what these
+  // rules select on. The pips are in the State cell (a phone's second
+  // line, see phone-pips-beside-state.test.ts), never in the name box.
   test("the name box holds the name alone", () => {
-    expect(rows()).not.toContain("pipslot");
+    expect(rows()).not.toMatch(/<div class="spec-name">(?:(?!<\/div>)[\s\S])*pipslot/);
     expect(rows()).not.toContain("actionslot");
   });
 });

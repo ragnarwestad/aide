@@ -317,3 +317,8 @@ p.intro { margin: 0 0 var(--sp-3); }
   margin: 0 0 var(--sp-3); align-items: baseline; }
 .kv dt { color: var(--muted); font-size: var(--fs-s); font-weight: 500; }
 .kv dd { margin: 0; }
+
+/* The board line ("<machine> - Prod" / "… - Test - 434") lives in the
+   header on a desktop; the "…" menu's copy of it (`.boardrow`) is for
+   phones only — narrow.css swaps the two. */
+.menupanel > .boardrow { display: none; }

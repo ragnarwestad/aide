@@ -76,7 +76,10 @@ const JS_HOOKS = [
 const STRUCTURE = [
   // the frame — "menu" and "menupanel" are the "…" disclosure in the
   // header and the box it opens (spec 119, which removed "layout").
-  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot", "current", "lbl",
+  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot",
+  // The spec's own state drawn again inside the caption line's action
+  // slot, for a phone (2026-09-10).
+  "headstate", "current", "lbl",
   // where the pips sit on a spec's name line, since the Progress
   // column went and they moved in beside the name (2026-08-22)
   "pipslot",
@@ -102,6 +105,9 @@ const STRUCTURE = [
   // closeAll() would close the outer menu on the same click) — a plain
   // wrapper div instead, shown only at phone width.
   "morerows",
+  // The board line in the header, and its copy at the top of the "…"
+  // menu for phones (2026-09-10).
+  "boardline", "boardrow",
   // a confirmation asked over the page instead of on one of its own
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.

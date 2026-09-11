@@ -176,10 +176,11 @@ describe("pageShell header controls (spec 436)", () => {
   test("AC-2: the \"…\" menu's panel carries a morerows block with the theme, language and unit choices", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
     const menu = html.match(/<details class="menu"><summary[\s\S]*?<\/details>/)![0];
-    const morerows = menu.match(/<div class="morerows">([\s\S]*?)<\/div>/)?.[1] ?? "";
-    expect(morerows).toContain('data-theme-choice="dark"');
-    expect(morerows).toContain('href="/?lang=en"');
-    expect(morerows).toContain('data-unit-choice="usd"');
+    const morerows = [...menu.matchAll(/<div class="morerows (theme|lang|unit)">([\s\S]*?)<\/div>/g)];
+    expect(morerows.map((m) => m[1])).toEqual(["theme", "lang", "unit"]);
+    expect(morerows[0]![2]).toContain('data-theme-choice="dark"');
+    expect(morerows[1]![2]).toContain('href="/?lang=en"');
+    expect(morerows[2]![2]).toContain('data-unit-choice="usd"');
     expect(menu).toContain('href="/settings"');
     expect(menu).toContain('href="/test-servers"');
     expect(menu).toContain("data-about");

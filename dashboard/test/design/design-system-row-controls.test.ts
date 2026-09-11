@@ -196,7 +196,19 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
 
   test("a machine set to reduce motion gets none, and can still tell running from waiting", async () => {
     const { CSS } = await import("../../src/render/ui/css.ts");
-    const reduced = CSS.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    // Every reduced-motion block in the bundle, each brace-matched —
+    // there are several (one per stylesheet that animates), and a lazy
+    // match from the first one to the next "\n}" ran through whatever
+    // other media block came first.
+    const opening = "@media (prefers-reduced-motion: reduce) {";
+    const reduced = CSS.split(opening).slice(1).map((rest) => {
+      let depth = 1;
+      for (let i = 0; i < rest.length; i++) {
+        if (rest[i] === "{") depth++;
+        else if (rest[i] === "}" && --depth === 0) return rest.slice(0, i);
+      }
+      throw new Error("a reduced-motion block is never closed");
+    }).join("\n");
     expect(reduced).toContain(".pip.now");
     expect(reduced).toContain("animation: none");
     // The mark stands still; it does not go grey. The accent is what

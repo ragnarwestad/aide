@@ -11,6 +11,24 @@
    selector with one class more or fewer would change the specificity
    and quietly stop applying. */
 
+/* The header's three standalone controls come into the "…" menu one at
+   a time as the page narrows — unit, then language, then theme — at the
+   same three widths list.css drops the list's figure columns (Created,
+   Cost, Time); the board line follows at 40rem, below. Each step hides
+   the trigger and reveals the menu's own flat copy of that one control. */
+@media (max-width: 59.5rem) {
+  .menu.unit { display: none; }
+  .menu .morerows.unit { display: flex; flex-direction: column; gap: 2px; }
+}
+@media (max-width: 53rem) {
+  .menu.lang { display: none; }
+  .menu .morerows.lang { display: flex; flex-direction: column; gap: 2px; }
+}
+@media (max-width: 46.5rem) {
+  .menu.theme { display: none; }
+  .menu .morerows.theme { display: flex; flex-direction: column; gap: 2px; }
+}
+
 @media (max-width: 40rem) {
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
@@ -93,15 +111,6 @@
      fractional pixel in the row's own width is enough to put the title
      under the chevron instead of beside it. */
   table.list tr.spechead .spec-name > .label { flex: 0 0 calc(100% - 40px); }
-  /* Line 2, in the order asked for: the button, the pips, the state.
-     The badge and the button share one cell, so the cell is dissolved
-     too and the row orders all three itself. */
-  table.list tr.spechead > td:nth-child(2) { display: contents; }
-  table.list tr.spechead > td:nth-child(2) > .row { display: contents; }
-  /* The badge leads line 2. The button led it until 2026-09-08, when
-     the row's one action moved onto the caption line the fold opens —
-     a head row has none to order. */
-  table.list tr.spechead .badgeslot { order: 3; }
   /* The spec's own summary line, under all three. `order: 3` — the
      badge's own — put it BEFORE the badge: equal orders keep document
      order, and this line is written in the first cell. Taking the whole
@@ -171,6 +180,39 @@
      pips, state. Held anyway, a "ready" of five characters carried
      144px of reserved width and wrapped the state onto a third line. */
   table.list tr.spechead .badgeslot { width: auto; margin-left: 0; }
+  /* The desktop's one-width badges (7.5rem, status-badge.css) do not
+     fit a phone line: every badge wrapped onto a line of its own and
+     pushed the button off the row (2026-09-10). Each badge is its own
+     word's width here, as it was. */
+  table.list td[data-col="state"] .badge { min-width: 0; }
+  /* No side padding on a phone: a phase line is name, box, tick and
+     state on ONE line down to 360px, and 24px a side was what tipped
+     the state onto a second line under 410px. */
+  table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }
+  /* Line 2 is the State cell, whole: the pips at the left and the badge
+     in a second column that starts where the caption line's own copy of
+     the state starts once the row is open (the same sum as that grid's
+     first column, below), so the state does not move when the fold
+     opens. Written AFTER the head row's generic cell rules above (auto
+     width, no side padding), since it overrides both. The pips are back on a phone since 2026-09-11: alone at the
+     left of its line the badge read as a stray, and the pips say at a
+     glance what the phase lines under a shut row cannot. */
+  table.list tr.spechead > td[data-col="state"] { order: 3; flex: 0 0 100%; display: grid;
+    grid-template-columns: minmax(min-content, calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3))) auto;
+    align-items: center; padding-left: var(--sp-3); padding-right: var(--sp-3); box-sizing: border-box; }
+  /* The same air on both sides. The left padding is taken off the first
+     column again, so the badge still starts where the caption line's
+     copy of it does. */
+  /* The first column gives way, never the badge: a long state
+     ("implementing 1/1") on a 390px screen would otherwise run past the
+     edge. With a short one the badge starts where the caption line's
+     copy of it does. */
+  /* Flush left: the desktop's own padding before the pips (list.css)
+     is for a pip block that ends a name line, and here they start one;
+     its auto margin, which right-aligns them there, goes for the same
+     reason. */
+  table.list tr.spechead .pipslot { display: inline-flex; grid-column: 1; grid-row: 1; justify-self: start; justify-content: flex-start; min-width: 0; padding-left: 0; margin: 0; }
+  table.list tr.spechead .badgeslot { grid-column: 2; grid-row: 1; justify-self: start; }
   /* Time and cost follow the button, on the same left edge as
      everything else on this line. They stood at the line's RIGHT edge
      until the pips came in beside the name (2026-09-07): with the name,
@@ -300,7 +342,49 @@
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
      row on mobile at all. */
-  table.list tr.subrow[data-caption="1"] { display: none; }
+  /* The caption line is drawn here too (asked for 2026-09-10), as a
+     flex line like the phase lines under it, each caption over its own
+     column in THIS layout's order — name, AI/model box, tick, state —
+     and the row's action button where the state stands. The AI and
+     Model captions are one box on a phone, so one caption heads it. */
+  table.list tr.subrow[data-caption="1"] { display: flex; }
+  /* Two lines: first the action button at the far left and the spec's
+     own state starting where the phases' state column starts (the name,
+     the box, the tick and three gaps), then the captions. The state
+     cell takes the whole first line, which is what puts the captions on
+     the second. */
+  table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
+  table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
+    grid-template-columns: calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3)) 1fr;
+    align-items: center; padding-left: var(--sp-3); box-sizing: border-box; }
+  /* The button keeps the same air from the left edge as a shut row's
+     pips do; the padding comes off the first column again, so the state
+     copy still starts over the phases' own state column. */
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
+  /* The slot holds an empty form (the button points at it by id), the
+     button, and the state copy: the button in the first column at its
+     own width, the state in the second, the form out of the grid. */
+  table.list tr.subrow[data-caption="1"] .actionslot > .rowrun { display: none; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .btn { grid-column: 1; grid-row: 1; justify-self: start; }
+  /* A running row's one action is Cancel, a form rather than a bare
+     button: placed the same way, or it stretches across the column and
+     its button sits in the middle of it. */
+  table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
+  /* An open row's own second line comes off: the caption line carries
+     the state, over the phases' states, and the phase lines say what the
+     pips say — one state twice on one screen is one too many. A shut
+     row keeps the line under the name. */
+  table.list tr.spechead:has(.fold[aria-expanded="true"]) > td[data-col="state"] { display: none; }
+  table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] {
+    flex: none; width: calc(8rem - 10px); min-width: 0; max-width: none; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"]::after { content: "/Model"; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { display: none; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
+    flex: none; width: 2.5rem; min-width: 0; max-width: none; margin-left: 0; text-align: center; }
 
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the
@@ -349,5 +433,16 @@
      trigger on desktop; at phone width they hide, and the "…" menu's
      own flat morerows copy (rows-and-forms.css) takes over instead. */
   .menu.theme, .menu.lang, .menu.unit { display: none; }
+  /* The board's name stays in the header to the last; its Stop button
+     moves into the "…" menu, first row — beside the wordmark the two
+     together wrapped "aide -dashboard" onto two lines. */
+  header > .boardline > .actionform { display: none; }
+  /* The wordmark never wraps; the board's name is what gives way — it
+     shrinks to the room left between the wordmark and the "…" and wraps
+     inside that, right against the menu. */
+  header .brand { flex: none; white-space: nowrap; }
+  header > .boardline { flex: 1 1 auto; min-width: 0; justify-content: flex-end; text-align: right; }
+  .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
+    padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }

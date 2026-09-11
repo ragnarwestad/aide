@@ -93,11 +93,12 @@ describe("spec 103: a collapsed row shows status only", () => {
     // 2026-08-24; the button beside it is what names the next phase.
     expect(line).toContain('class="badge b-ready"');
     expect(line).toContain(">ready<");
-    // The pips stood here until 2026-09-07 and the button until
-    // 2026-09-08. What the head line says now is the state, the time
-    // and the cost — the phase it would run next is one click in.
+    // The button left the head line on 2026-09-08 — the phase it would
+    // run next is one click in. The pips are back since 2026-09-11, in
+    // the State cell over the badge (beside it on a phone), never in
+    // the name box.
     expect(line).not.toContain("<button");
-    expect(line).not.toContain('class="pips"');
+    expect(line).toMatch(/<td data-col="state"><span class="pipslot">[\s\S]*?class="pips"[\s\S]*?<span class="badgeslot">/);
     expect(line).toContain("$1.50");
   });
 

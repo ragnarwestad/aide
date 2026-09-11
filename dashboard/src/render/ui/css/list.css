@@ -155,6 +155,46 @@ table.speclist > colgroup > col[data-col="state"] { width: 16.2162%; }
 table.speclist > colgroup > col[data-col="created"] { width: 11.7117%; }
 table.speclist > colgroup > col[data-col="started"] { width: 11.7117%; }
 table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
+/* Under 952px the list no longer fits the page (its 55.5rem plus the
+   page's own 2 × 32px), and the three figure columns leave one at a
+   time from the right — Created, then Cost, then Time — rather than all
+   at once at the phone's 40rem. Each step hides one column and takes
+   its 6.5rem off the list's own width, so the columns still shown keep
+   the pixel widths they had; the percentages are the same rem widths
+   over the new total. The last step lands the list at 36rem, which is
+   the room left at exactly 40rem, where narrow.css takes over. Only
+   the cells and the heading go — the <col> keeps a width of 0 so the
+   fixed layout has six columns to lay out, as it always has. */
+@media (max-width: 59.5rem) {
+  #jobrows { --speclist-width: 49rem; }
+  table.speclist th[data-col="created"], table.speclist td[data-col="created"] { display: none; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 14.2857%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 40.8163%; }
+  table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+}
+@media (max-width: 53rem) {
+  #jobrows { --speclist-width: 42.5rem; }
+  table.speclist th[data-col="cost"], table.speclist td[data-col="cost"] { display: none; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 16.4706%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 47.0588%; }
+  table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+}
+@media (max-width: 46.5rem) {
+  #jobrows { --speclist-width: 36rem; }
+  table.speclist th[data-col="started"], table.speclist td[data-col="started"] { display: none; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 19.4444%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
+  table.speclist > colgroup > col[data-col="state"] { width: 25%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+}
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
 thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
@@ -197,6 +237,9 @@ table.list td[data-col="created"] { text-align: center; }
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
+/* The caption line's copy of the spec's state is phone-only
+   (narrow.css): on a desktop the head row's badge is a column away. */
+table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: none; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
    REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
@@ -268,6 +311,12 @@ table.speclist thead th { position: relative; }
    sit level with, so it centers against the name's own height instead. */
 /* Still drawn on the spec page's own Overview and the job page. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
+/* A shut row's pips stand over its badge in the State cell, centred
+   like the badge, with a little air between the two. An open row drops
+   them: the phase lines under it say what the pips say. (A phone lays
+   the same two out side by side, narrow.css.) */
+table.list tr.spechead .pipslot { display: flex; justify-content: center; margin: 0 0 var(--sp-2); padding-left: 0; }
+table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
