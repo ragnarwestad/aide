@@ -235,11 +235,12 @@ function decidePhase(
       // a dash, and a dash means one thing on this page: no value,
       // because nothing ran. So the word is the attempt's own.
       //
-      // Amber, never the green a landed phase takes: the files do not
-      // agree with this run yet, whether its work is sitting on the
-      // branch or was never written at all, and the row's own message
-      // says which. Green here would read as "landed, nothing to do".
-      badge: { variant: "waiting", label: stateLabel(attempt, lang) },
+      // Green when the step's own commit exists on its branch: the step
+      // did its work, and what is left — archiving merges it in — is a
+      // later step's, not a reason to colour this one. Amber only when
+      // nothing reached the files at all, and the row's own message
+      // says so (2026-09-11).
+      badge: { variant: history.historyDone ? "done" : "waiting", label: stateLabel(attempt, lang) },
       qualifier: renderMessage(lang, {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
       }),

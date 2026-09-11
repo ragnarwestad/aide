@@ -173,7 +173,11 @@ describe("spec 108: one rule per phase", () => {
       [target("108-lagging", { done: ["analyze"], historyDone: ["implement"] })],
     );
     const implement = subRow(html, "implement");
-    expect(implement).not.toContain("b-done");
+    // Green: the step did its work, and the commit proves it. Only a
+    // later step (archive) has anything left to do — amber here read as
+    // a fault in a phase that had none (2026-09-11).
+    expect(implement).toContain("b-done");
+    expect(implement).not.toContain("b-waiting");
     // Never silently hidden — and never on the line either, since spec
     // 195: the row's panel is where the sentence goes, named for the
     // phase it is about.
@@ -334,13 +338,13 @@ describe("a phase that ran never draws the not-run dash", () => {
     return line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
   };
 
-  // Amber both ways, never the green a landed phase takes: the files do
-  // not agree with this run yet, and the row's own message says which of
-  // the two it is.
-  test("its work on the branch: a word, amber, and no dash", () => {
+  // Green when the step's own commit is on the branch (the step did its
+  // work; archiving merges it in), amber only when nothing reached the
+  // files — and the row's own message says which of the two it is.
+  test("its work on the branch: a word, green, and no dash", () => {
     const cell = state(render(true), "implement");
     expect(cell).toContain("done");
-    expect(cell).toContain("b-waiting");
+    expect(cell).toContain("b-done");
     expect(cell).not.toContain(PHASE_NOT_RUN);
   });
 
