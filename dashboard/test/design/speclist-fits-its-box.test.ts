@@ -30,11 +30,31 @@ describe("the specs table fits the box that scrolls it", () => {
   // it worse: the five fixed ones took the whole table and the auto one
   // was squeezed to 7px, with the phase name lying across the pickers
   // beside it (2026-09-09).
+  // Four times over: the full list, and the three steps down that hide
+  // one figure column each (Created, Cost, Time) — every set of six adds
+  // up to the whole table, with the hidden columns at 0.
   test("the six columns are percentages, and they add up to the whole table", () => {
     const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)%/g)].map((m) => rem(m[1]!));
-    expect(cols).toHaveLength(6);
-    expect(cols.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    expect(cols).toHaveLength(24);
+    for (let i = 0; i < cols.length; i += 6) {
+      expect(cols.slice(i, i + 6).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
+    }
     expect(css).not.toMatch(/col\[data-col="\w+"\] \{ width: (auto|[\d.]+rem)/);
+  });
+
+  // The figure columns leave one at a time from the right, each step
+  // taking the column's 6.5rem off the list's width so the others keep
+  // their pixel widths, and the last step lands at the phone's own room
+  // (40rem less the page's 2 × 32px = 36rem).
+  test("Created, Cost and Time leave one at a time, each taking its width with it", () => {
+    const steps = [...css.matchAll(/@media \(max-width: ([\d.]+)rem\) \{\s*#jobrows \{ --speclist-width: ([\d.]+)rem; \}\s*table\.speclist th\[data-col="(\w+)"\], table\.speclist td\[data-col="\w+"\] \{ display: none; \}/g)]
+      .map((m) => ({ at: rem(m[1]!), width: rem(m[2]!), hides: m[3] }));
+    expect(steps.map((s) => s.hides)).toEqual(["created", "cost", "started"]);
+    expect(steps.map((s) => s.width)).toEqual([49, 42.5, 36]);
+    // Each breakpoint is where the previous width stops fitting: the
+    // list plus 4rem of page padding.
+    expect(steps.map((s) => s.at)).toEqual([55.5 + 4, 49 + 4, 42.5 + 4]);
+    expect(steps.every((s) => s.at > 40)).toBe(true);
   });
 
   // The Spec column carries a phase line's name and nothing else, and
