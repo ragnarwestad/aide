@@ -1,19 +1,10 @@
 // The site's own view types.
 
-import type { SpecRef } from "../../../project/discover.ts";
-import type { StatusInfo } from "../../../project/parse-status.ts";
-import type { ManifestResult, ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { SpecView, ProjectView } from "../../../project/discover.ts";
+import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { Language } from "../../../i18n";
 
-export interface SpecView extends SpecRef {
-  status: StatusInfo | null;
-}
-
-export interface ProjectView {
-  name: string;
-  manifest: ManifestResult;
-  specs: SpecView[];
-}
+export type { SpecView, ProjectView };
 
 export interface Page {
   path: string;

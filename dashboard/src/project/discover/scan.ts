@@ -4,10 +4,9 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest } from "../parse-manifest.ts";
+import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
 import { projectNameError } from "../project-admin.ts";
-import { parseStatus } from "../parse-status.ts";
-import type { ProjectView } from "../../render/pages/site.ts";
+import { parseStatus, type StatusInfo } from "../parse-status.ts";
 import { configSpecsPath } from "./config.ts";
 import { specDependsOn } from "./depends-on.ts";
 import { specClosed, specDescription, specTitle } from "./spec-files.ts";
@@ -37,6 +36,21 @@ export interface DiscoveredProject {
   manifestPath: string;
   specsRoot: string;
   specs: SpecRef[];
+}
+
+/** A `SpecRef` with its `4-status.md` parsed, or `null` where the spec
+ *  has none — the shape `buildProjectViews` below returns, and what a
+ *  page shows for one spec. */
+export interface SpecView extends SpecRef {
+  status: StatusInfo | null;
+}
+
+/** What `buildProjectViews` below returns for one project: its parsed
+ *  manifest and every spec's parsed status. */
+export interface ProjectView {
+  name: string;
+  manifest: ManifestResult;
+  specs: SpecView[];
 }
 
 function specFolders(root: string, archived: boolean): SpecRef[] {
