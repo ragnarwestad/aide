@@ -105,6 +105,45 @@ describe("several jobs at once", () => {
     expect(sentence(held.error)).toContain("another archive is running in this project");
   });
 
+  // The same hold while another job's LANDING is still in flight: the
+  // job reads "done" with `landing` set while its branch is merged, and
+  // an archive started in that window brings its branch up to a main
+  // the merge has not reached — its own landing then finds the conflict
+  // the step should have resolved (the round's 02, one run in three).
+  test("an archive step waits while another job in the project is landing", () => {
+    const a = enqueue({ steps: ["archive"] });
+    store.update(a.id, { state: "done", landing: true });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(0);
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(sentence(held.error)).toContain("another archive is running in this project");
+    // The landing done, the next tick starts it.
+    store.update(a.id, { landing: undefined });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  test("an archive landing holds no step but archive", () => {
+    const a = enqueue({ steps: ["archive"] });
+    store.update(a.id, { state: "done", landing: true });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  test("an analyze landing moves the specs repository alone and holds no archive", () => {
+    const a = enqueue({ steps: ["analyze"] });
+    store.update(a.id, { state: "done", landing: true });
+    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
   // Two specs numbered 416 on 2026-09-08: two `create` steps started
   // together, both read the same highest number off disk, and both
   // added one to it. Nothing about the number can fix that — the runs

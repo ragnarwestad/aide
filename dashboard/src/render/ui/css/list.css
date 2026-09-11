@@ -585,6 +585,10 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
 .pip { width: 21px; height: 4px; border-radius: 2px; background: var(--line-strong);
   position: relative; overflow: hidden; }
 .pip.past { background: var(--ok); }
+/* The badge's own colours on the pip beside it: amber for a phase held
+   back or stopped, red for one that failed (2026-09-11). */
+.pip.waiting { background: var(--warn); }
+.pip.refused { background: var(--danger); }
 /* The one moving thing on the page that says a phase is RUNNING (spec
    168). It was a spinner on that phase's checkbox, which only exists
    on an open row — so the closed row, the whole interface for the

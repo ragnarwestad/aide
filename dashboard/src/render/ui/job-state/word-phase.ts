@@ -87,7 +87,7 @@ const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
  *  same badge as the first branch's real thing — the precise ambiguity
  *  this exists to remove. That one state goes in the qualifier instead;
  *  no other state's label collides with a file-truth badge. */
-export function wordPhase(
+function decidePhase(
   happened: boolean,
   heldBack: { reason: string } | undefined,
   attempt: QueueRowView | undefined,
@@ -249,4 +249,17 @@ export function wordPhase(
     pip: running ? "now" : "todo",
     badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt, lang) },
   };
+}
+
+/** The pip takes the badge's colour (2026-09-11): a phase held back or
+ *  stopped reads amber on both, a failed one red on both, so the row
+ *  never says one phase's state in two colours. `past` and `now` are
+ *  decided above and stay; only a `todo` pip beside a coloured badge
+ *  is recoloured. */
+export function wordPhase(...args: Parameters<typeof decidePhase>): PhaseWord {
+  const word = decidePhase(...args);
+  if (word.pip !== "todo" || !word.badge) return word;
+  const variant = word.badge.variant;
+  if (variant === "waiting" || variant === "refused") return { ...word, pip: variant };
+  return word;
 }

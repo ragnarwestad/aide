@@ -147,6 +147,7 @@ fact_for() {
     a-fact-that-depends-on-the-first) echo "a dependent spec waits until the dependency is archived" ;;
     a-test-that-stays-red) echo "" ;;
     an-unticked-acceptance-row) echo "an archive with an unticked acceptance row must not land" ;;
+    a-landing-that-conflicts) echo "a conflict nobody resolves fails the landing" ;;
     *) echo "" ;;
   esac
 }
@@ -199,6 +200,26 @@ case "$step" in
         append_fact "$fact"
         { status_file "✅" "✅"; acceptance_section; } | write 4-status.md
         ;;
+      a-landing-that-conflicts)
+        # The fact on the branch, and a COMPETING line on origin's main
+        # behind the branch's back — as if someone landed by hand while
+        # this ran. The archive step below leaves the conflict open, so
+        # the landing fails every time: the round's one deterministic
+        # failure, for the row's red to be seen (2026-09-11).
+        fact="$(fact_for "$slug")"
+        write_test "$slug" "$fact"
+        append_fact "$fact"
+        status_file "✅" "✅" | write 4-status.md
+        rival="$(mktemp -d)"
+        git clone -q "$(git remote get-url origin)" "$rival/main" \
+          && ( cd "$rival/main" \
+               && awk -v f="someone landed this by hand, on the same line" '/^\];/ { print "  \"" f "\","; } { print }' src/facts.ts > src/facts.ts.new \
+               && mv src/facts.ts.new src/facts.ts \
+               && git -c user.name=rival -c user.email=rival@localhost commit -qam "land a competing fact by hand" \
+               && git push -q origin main ) \
+          || fail "claude-stub: could not land the rival fact on main"
+        rm -rf "$rival"
+        ;;
       *)
         fact="$(fact_for "$slug")"
         [ -n "$fact" ] || fail "claude-stub: no implement recipe for $slug"
@@ -217,6 +238,8 @@ case "$step" in
     # landing's to run, once, on the merged result — not this step's.
     for repo in . "$specs_root"; do
       top="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || continue
+      # The one fixture whose conflict is left standing (see implement).
+      [ "$slug" = "a-landing-that-conflicts" ] && continue
       if [ -f "$top/.git/MERGE_HEAD" ] || git -C "$top" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
         say "claude-stub: resolving the open merge in $top"
         for f in $(git -C "$top" diff --name-only --diff-filter=U); do

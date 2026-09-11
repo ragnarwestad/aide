@@ -389,7 +389,10 @@ export function resolveBackHref(
 /** The whole workflow in six millimetres, on the line you are already
  *  reading. Shared by the list and the job page, which computed the
  *  same three-way answer independently until this existed. */
-export type PipKind = "past" | "now" | "todo";
+// `waiting` and `refused` (2026-09-11): the pip on a phase line takes
+// the colour of the badge beside it, so the two never say a phase's
+// state in two colours — amber for held back/stopped, red for failed.
+export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 
 /** `third` (spec 210): how many of a running implement's three parts
  *  are behind it — 1 or 2, never 0 (zero thirds complete is what an
