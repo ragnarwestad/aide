@@ -57,7 +57,13 @@ if [ -n "$phase_file" ]; then
   # first, so this file is the only place the true count survives.
   prior_attempts="$(grep -oE '^- \*\*Attempts:\*\*[[:space:]]*[0-9]+' "$phase_file" 2>/dev/null \
     | grep -oE '[0-9]+$')"
-  attempts_display=$(( ${prior_attempts:-0} + 1 ))
+  # A run the archive gates turned away before anything was tried is a
+  # guard, not an attempt: the count stays what it was. The same two
+  # reasons the dashboard leaves out of its own count (phase-rows.ts).
+  case "$terminal_reason" in
+    not-implemented-yet|acceptance-criteria-unticked) attempts_display=${prior_attempts:-0} ;;
+    *) attempts_display=$(( ${prior_attempts:-0} + 1 )) ;;
+  esac
   cost_line=""
   if [ "$cost_known" = "true" ]; then
     cost_line="$(printf '$%.4f' "$cost")"
@@ -89,7 +95,7 @@ if [ -n "$phase_file" ]; then
   [ -n "$effort" ] && printf -- '- **Effort:** %s\n' "$effort" >> "$work_dir/phase-outcome"
   printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
   printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
-  printf -- '- **Attempts:** %s\n' "$attempts_display" >> "$work_dir/phase-outcome"
+  [ "$attempts_display" -gt 0 ] && printf -- '- **Attempts:** %s\n' "$attempts_display" >> "$work_dir/phase-outcome"
   [ -n "$cost_line" ] && printf -- '- **Cost:** %s\n' "$cost_line" >> "$work_dir/phase-outcome"
   [ -n "$tokens_line" ] && printf -- '- **Tokens:** %s\n' "$tokens_line" >> "$work_dir/phase-outcome"
   # Scoped to INSIDE `## Tracking info` only (in_tracking), never the

@@ -74,6 +74,34 @@ describe("a phase's attempt count outlives the queue's memory (spec 341)", () =>
     expect(subRow(html, "analyze")).not.toContain("attempts");
   });
 
+  // A run the archive gates turned away is a guard, not an attempt
+  // (2026-09-11): two "held back" answers and one real archive run
+  // are one attempt, and one attempt shows no count at all.
+  test("archive runs the gates refused are not counted as attempts", () => {
+    const refused = (id: string, at: string, reason: string) =>
+      job(id, {
+        steps: ["archive"],
+        results: [{ step: "archive", ok: true, costUsd: 0, at, terminalReason: reason }],
+      });
+    const html = renderQueueRows(
+      [
+        refused("a1", "2026-09-02T09:05:00Z", "not-implemented-yet"),
+        refused("a2", "2026-09-02T10:05:00Z", "acceptance-criteria-unticked"),
+        job("a3", {
+          steps: ["archive"],
+          results: [{ step: "archive", ok: true, costUsd: 1, at: "2026-09-02T11:05:00Z", terminalReason: "completed" }],
+        }),
+      ],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "aa-spec", done: ["analyze", "implement", "archive"] }],
+        filter: { open: "aide/aa-spec" },
+      },
+      Date.parse(NOW),
+    );
+    expect(subRow(html, "archive")).not.toContain("attempts");
+  });
+
   test("the queue's own count wins while an attempt is still in flight, not yet stamped", () => {
     const html = renderQueueRows(
       [

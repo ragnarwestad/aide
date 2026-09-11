@@ -5,6 +5,7 @@ import { PHASE_TAB, specTabPath } from "../spec-page.ts";
 import { badge, phaseChip, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
+import type { QueueRowView } from "../../ui/job-state/types.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { QUEUE_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
@@ -12,6 +13,11 @@ import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel
 import { busyReason, chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
+
+/** The archive gates' own refusals: nothing was tried, so nothing is
+ *  counted as an attempt. Hand-paired with run-spec-outcome.sh. */
+const GUARD_REFUSALS = new Set(["not-implemented-yet", "acceptance-criteria-unticked"]);
+const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).find((x) => x.step === step);
 
 // Ticked and locked: the box answers "has this phase run", nothing
 // else. Shared by `create` (always) and by any other phase once
@@ -164,7 +170,12 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // stamped); the file wins once the queue has forgotten the
       // earliest of them, or once the phase is archived and the queue
       // has nothing left for it at all.
-      const attemptCount = Math.max(p.attempts.length, p.attemptCount ?? 0);
+      // A run the archive gates turned away before anything was tried
+      // is a guard, not an attempt (2026-09-11) — the same two reasons
+      // aide-run-spec leaves out of the file's own stamp
+      // (run-spec-outcome.sh).
+      const tried = p.attempts.filter((a) => !GUARD_REFUSALS.has(stepResultOf(a, p.step)?.terminalReason ?? ""));
+      const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
 
       // Live although the row is busy (spec 160): a phase this run has
       // not reached, which the reader may add to it or drop from it as
