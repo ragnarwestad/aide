@@ -79,7 +79,7 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" });
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -107,7 +107,7 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" });
+    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" }, "aide/81-x");
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -129,11 +129,11 @@ describe("the landing's test gate", () => {
     // concerned.
     writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, "#!/bin/sh\necho 'FAILED test_x'\nexit 1\n", { mode: 0o755 });
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" });
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
 
     expect(verdict.ok).toBe(false);
     expect(sentence(verdict.error)).toBe(
-      "the project's tests are red on this merge, so nothing was pushed. " +
+      "the project's tests are red on this merge, so nothing was pushed — the work is still on aide/81-x. " +
         "The archive step's own log names the tests that failed; archive merges the work once they pass.",
     );
     // Nothing here knows that a second implement run would turn the
