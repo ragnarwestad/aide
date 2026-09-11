@@ -13,6 +13,7 @@ import {
   archiveDateCell,
   costCell,
   createdCell,
+  phasePips,
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
@@ -209,7 +210,13 @@ export function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td data-col="state"><span class="badgeslot">${stateBadge}</span></td>` +
+    // The pips ride in front of the badge for a PHONE only (narrow.css
+    // lays the two out on the row's second line, the pips at the left
+    // and the badge over the phases' own state column). A desktop hides
+    // them: there the button's label already says how far the spec has
+    // come, and the pips drew that fact a second time.
+    `<td data-col="state"><span class="pipslot">${phasePips(g.phases, g.done)}</span>` +
+    `<span class="badgeslot">${stateBadge}</span></td>` +
     // When the spec was made (spec 317, REQ-1/REQ-6) — one call for
     // either kind of row, now that `readerGroup()` copies an archived
     // row's own answer onto these same top-level fields.

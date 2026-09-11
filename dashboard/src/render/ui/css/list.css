@@ -271,6 +271,9 @@ table.speclist thead th { position: relative; }
    sit level with, so it centers against the name's own height instead. */
 /* Still drawn on the spec page's own Overview and the job page. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
+/* The head row carries its pips for a phone alone (narrow.css); a
+   desktop's button already says how far the spec has come. */
+table.list tr.spechead .pipslot { display: none; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
