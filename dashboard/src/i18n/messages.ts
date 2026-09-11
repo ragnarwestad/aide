@@ -192,14 +192,6 @@ export const MESSAGES = {
     nb: "klarer ikke å finne hovedgrenen i {root} — sjekk det lokale repoet på serveren",
     resolve: "check the checkout on the serving host",
   },
-  "landing.archivedNotYetOnDefault": {
-    en: "the archived spec is on {branch}, not on the default branch yet.",
-    nb: "den arkiverte specen ligger på {branch}, ikke på hovedgrenen ennå.",
-    // The test run already gave the one instruction that applies (run
-    // implement again) moments earlier on the same row; a second,
-    // different instruction here would contradict it (merge.ts:289-294).
-    exempt: "the test run's own verdict already named the fix",
-  },
   "landing.stillOnOriginRunArchiveAgain": {
     en: "{branch} is still on origin in {root} — the spec was archived, but its work has not merged. " +
       "Run archive again to merge it.",
@@ -385,10 +377,10 @@ export const MESSAGES = {
     resolve: "Run archive again",
   },
   "testGate.redSuite": {
-    en: "the project's tests are red on this merge, so nothing was pushed. The archive step's own " +
-      "log names the tests that failed; archive merges the work once they pass.",
-    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet. Arkiveringsstegets " +
-      "egen logg navngir testene som feiler; arkivering merger arbeidet så snart de er grønne.",
+    en: "the project's tests are red on this merge, so nothing was pushed — the work is still on {branch}. " +
+      "The archive step's own log names the tests that failed; archive merges the work once they pass.",
+    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet — arbeidet ligger fortsatt på {branch}. " +
+      "Arkiveringsstegets egen logg navngir testene som feiler; arkivering merger arbeidet så snart de er grønne.",
     resolve: "archive merges the work once they pass",
   },
 

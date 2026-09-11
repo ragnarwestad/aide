@@ -190,7 +190,7 @@ export async function landBranch(
       // `defaultBranch` above only asks a question, and holding the
       // root while asking it would serialize page loads too.
       const gate = codeRoots.has(repo.root) && ctx.landingGate
-        ? (root: string) => ctx.landingGate!(root, job)
+        ? (root: string) => ctx.landingGate!(root, job, branch)
         : undefined;
       const merge = () =>
         ctx.mergeLock.run(
@@ -311,18 +311,9 @@ export async function landBranch(
     // legitimately open, and the same check there would call a
     // healthy landing failed.
     // The gate stopping the landing is its own case: nothing was merged
-    // and nothing was pushed, so of course the branch is still on origin.
-    // Repeating the generic "the spec was archived, run archive again"
-    // once per root would add a second, contradicting instruction to the
-    // one the gate just gave ("run implement again") — but the row would
-    // then say nothing at all about where the work IS, while every phase
-    // line reads `done` off the branch's own record. One sentence, once.
-    if (what.step === "archive" && reason === "tests-red") {
-      const held = await ctx.rootsStillHolding(job.project, branch, true);
-      if (held.length) {
-        failures.push({ key: "landing.archivedNotYetOnDefault", values: { branch } });
-      }
-    }
+    // and nothing was pushed, so of course the branch is still on
+    // origin. The gate's own verdict says so, and names the branch the
+    // work is on — one sentence, and nothing added beside it.
     // One reason per row. A landing that has already said why it failed
     // (a conflict, a rejected push) is not joined by this check: it
     // exists for the landing that reported ok while a branch stayed on

@@ -53,7 +53,7 @@ export interface LandContext {
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
   /** The board registry (spec 388, REQ-7): `landArchivedSpec` stops
    *  whatever is tracked for a spec once its archive actually lands. */
   boards: BoardsContext;
