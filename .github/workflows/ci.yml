@@ -97,9 +97,11 @@ jobs:
       # .shellcheckrc at the repo root is picked up automatically — it
       # silences SC2154/SC2034, both unreliable across this script's
       # shared-sourcing architecture (see that file's own comments), not
-      # turned off project-wide.
+      # turned off project-wide. Warnings and errors fail the job; the
+      # info and style classes do not (the header above: not a gate on
+      # style alone).
       - run: command -v shellcheck >/dev/null || brew install shellcheck
-      - run: shellcheck core/scripts/aide-* core/scripts/_*.sh core/scripts/build-agents-md.sh core/scripts/upgrade-ai-tools core/scripts/validate-env core/scripts/lib/*.sh
+      - run: shellcheck --severity=warning core/scripts/aide-* core/scripts/_*.sh core/scripts/build-agents-md.sh core/scripts/upgrade-ai-tools core/scripts/validate-env core/scripts/lib/*.sh
 
   biome:
     name: biome (dashboard lint)
