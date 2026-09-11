@@ -17,35 +17,10 @@
 // (`specs/102-design-foundation/assets/Components.dc.html`); nothing is
 // invented at this layer.
 
-import type { Language } from "../../i18n";
 import { esc } from "./html.ts";
+import { STEP_LABELS, STEP_LABELS_NB, stepLabel } from "../../format/step-label.ts";
 
-// --- the step's name is not the reader's word --------------------------------
-
-/** What a phase is CALLED on the page. English is empty: the step's own
- *  id is the word, and `stepLabel` falls back to it for every entry not
- *  listed here. Kept as a table (not deleted) so the row, the phase
- *  line, the pips and the job page have one shared place to name a step
- *  differently if one ever needs it.
- *
- *  Norwegian is a real table, keyed by the step ID and decoupled from
- *  the English one — the same shape `GERUND_NB` (resting.ts) already
- *  has, and for the same reason: a Norwegian name is not the English
- *  word with a rule applied to it. A step neither table names falls
- *  back to its own id, in English whatever the language; a test pins
- *  that every `WORKFLOW_STEPS` member is in the Norwegian one, so an
- *  omission fails `make test` rather than surfacing on the board. */
-export const STEP_LABELS: Record<string, string> = {};
-export const STEP_LABELS_NB: Record<string, string> = {
-  create: "oppretting", analyze: "analyse", implement: "implementering", archive: "arkivering",
-  explore: "utforsking", manifest: "manifestoppdatering", reopen: "gjenåpning", reset: "tilbakestilling",
-  schedule: "plankjøring", close: "lukking",
-};
-
-export const stepLabel = (step: string, lang: Language = "en"): string =>
-  (lang === "nb" ? STEP_LABELS_NB[step] : undefined) ?? STEP_LABELS[step] ?? step;
-
-/** The same, for a sentence built from several steps. */
+export { STEP_LABELS, STEP_LABELS_NB, stepLabel };
 
 // --- button -------------------------------------------------------------------
 

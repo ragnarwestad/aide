@@ -26,7 +26,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 import { lastCommitOf } from "./description-freshness.ts";
-import { errorSentence } from "../render/ui/error-sentence.ts";
+import { errorSentence } from "../format/error-sentence.ts";
 
 /** The remedy every refusal below shares, once the specific fact has
  *  been said (REQ-3, spec 352): none of these is a press on the board —
