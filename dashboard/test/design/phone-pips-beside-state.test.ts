@@ -4,7 +4,6 @@
 // a glance what the phase lines under a shut row cannot. A desktop
 // stacks the same two in the State cell, the pips over the badge.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { CSS } from "../../src/render/ui/css.ts";
 import { renderQueueRows, type QueueTarget } from "../../src/render.ts";
 
