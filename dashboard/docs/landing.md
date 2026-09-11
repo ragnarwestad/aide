@@ -150,6 +150,9 @@ land is not finished, and its row has to say so.**
   landing because the merge has just deleted the branch it is about to ask about. A root that still holds
   `aide/<folder>` is a landing that did not finish, whatever the merge loop reported — and this catches every cause at
   once: a conflict, a repo the queue never knew about, history the LRU cap evicted, a push that half-succeeded.
+- **It speaks only when the merge loop gave no reason of its own.** A row carries one reason. A conflict the loop
+  reported is the row's sentence; the check's "still on origin — run archive again" is for the landing that reported ok
+  while a branch stayed on origin, and beside a conflict it would contradict the sentence just given, once per root.
 - **It is `archive`'s question and no other step's.** An `analyze`
   landing runs while implement's code branch is legitimately open, and the same check there would call a healthy landing
   failed.

@@ -323,7 +323,12 @@ export async function landBranch(
         failures.push({ key: "landing.archivedNotYetOnDefault", values: { branch } });
       }
     }
-    if (what.step === "archive" && reason !== "tests-red") {
+    // One reason per row. A landing that has already said why it failed
+    // (a conflict, a rejected push) is not joined by this check: it
+    // exists for the landing that reported ok while a branch stayed on
+    // origin, and beside a conflict its "run archive again" — once per
+    // root — contradicted the sentence the reader had just been given.
+    if (what.step === "archive" && reason !== "tests-red" && failures.length === 0) {
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that
         // failed to merge (spec 220). Without this, every working

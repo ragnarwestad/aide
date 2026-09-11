@@ -39,6 +39,51 @@ describe("code lands before specs for archive (spec 280)", () => {
     expect(merges(git.calls).some((c) => repoOf(c.dir) === SPECS_REPO)).toBe(false);
   });
 
+  // The origin check after the loop exists for a landing that reported
+  // ok while a branch stayed on origin. A landing that already said
+  // WHY it failed leaves the row one reason: adding "still on origin —
+  // run archive again" once per root beside a conflict told the reader
+  // two contradicting things, and the second one twice.
+  test("a conflict the loop reported is the row's one reason, not joined by the origin check per root", async () => {
+    let specsRoot = "";
+    let codeRoot = "";
+    // Filled once the roots are known: the fixture reads it per call.
+    const conflicting: string[] = [];
+    const inner = gitFor({ conflicting });
+    const git = {
+      calls: inner.calls,
+      run: async (dir: string, args: string[]) => {
+        const a = args.join(" ");
+        if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
+          inner.calls.push({ dir, args });
+          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+        }
+        return inner.run(dir, args);
+      },
+    };
+    const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+    specsRoot = join(dir, "root", "aide", "specs");
+    codeRoot = join(dir, "root", "aide");
+    conflicting.push(codeRoot);
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: specsRoot, url: "https://example.test/aide-specs" },
+          { root: codeRoot, url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    const failed = await settle(base, job.id, (j) => !!j.error);
+
+    const text = sentence(failed.error);
+    expect(text).toContain("conflict");
+    expect(text).not.toContain("still on origin");
+    expect(failed.errorReason).toBe("conflict");
+  });
+
   test("AC9: a successful code root is followed by the specs root, unaffected", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
