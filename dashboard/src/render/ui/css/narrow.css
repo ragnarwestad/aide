@@ -30,6 +30,19 @@
 }
 
 @media (max-width: 40rem) {
+  /* The two widths a phase line is built from, and the caption line and
+     a shut row's second line add up to place the state over the phases'
+     own state column: the phase name's column and the AI/model box.
+     5.75rem (92px) for the name: "implementering" is 88px in this face
+     on a phone, and the 75px it had held "implement" (55px) but let the
+     Norwegian name run into the box beside it. The tick's cell is
+     31px, the chip's own measured width (12px box, 8px padding and a
+     1px border a side), so the caption's "Select" cell and the state
+     after it sit exactly where a phase line's do; the 2.5rem it had
+     was air. The
+     AI/model box takes every pixel the line has left over — as wide as
+     it can be with the state column still on a 390px screen. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: calc(8.75rem - 10px); --tick-w: 31px; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
@@ -198,7 +211,7 @@
      left of its line the badge read as a stray, and the pips say at a
      glance what the phase lines under a shut row cannot. */
   table.list tr.spechead > td[data-col="state"] { order: 3; flex: 0 0 100%; display: grid;
-    grid-template-columns: minmax(min-content, calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3))) auto;
+    grid-template-columns: minmax(min-content, calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))) auto;
     align-items: center; padding-left: var(--sp-3); padding-right: var(--sp-3); box-sizing: border-box; }
   /* The same air on both sides. The left padding is taken off the first
      column again, so the badge still starts where the caption line's
@@ -285,9 +298,9 @@
      inside a flex container affect only that row.
 
      [name] [tick box] [status] [AI/model box] on one line — the name
-     column fixed at 4.7rem so the box and status start at the same x on
-     all four lines. 4.7rem is 75px, and "implement" — the longest of
-     the four names — is about 55 of them. The pair used to sit
+     column fixed at --phase-w so the box and status start at the same
+     x on all four lines (the number is argued at the top of this
+     block). The pair used to sit
      behind a chevron per phase line; against the 418px floor it fits
      beside the rest, and a control whose whole job was to hide two
      fields that fit is a control to explain for nothing.
@@ -308,10 +321,10 @@
   /* The cell's own right padding (12px, from `table.list td`) sat
      between the phase's name and the tick box beside it, on top of the
      row's flex gap. Nothing lines up against it — the width is the
-     4.7rem below, and the padding is added OUTSIDE it (content-box) —
+     --phase-w below, and the padding is added OUTSIDE it (content-box) —
      so it is 12px of nothing. The left padding stays: it is what makes
      the phase lines read as indented under the spec's own name. */
-  table.list tr.subrow .phasecell { flex: 0 0 4.7rem; min-width: 4.7rem; padding-right: 0; }
+  table.list tr.subrow .phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
   /* One box instead of two selects: a 360px phone has room for one of
@@ -321,8 +334,8 @@
      covers what was tapped rather than pushing the line below it down.
      No auto margin anywhere: free space at the line's end would stand
      between the status and the box, as wide as the status text left. */
-  table.list tr.subrow .aimodel { display: block; flex: 0 0 calc(8rem - 10px); }
-  table.list tr.subrow .aimodelnow { width: calc(8rem - 10px); box-sizing: border-box;
+  table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }
+  table.list tr.subrow .aimodelnow { width: var(--aimodel-w); box-sizing: border-box;
     height: 28px; padding: 0 var(--sp-2); border: 1px solid var(--line-strong);
     border-radius: var(--r-s); background: var(--surface); color: var(--text);
     font: var(--fs-s)/var(--lh) var(--mono); display: flex; align-items: center;
@@ -355,7 +368,7 @@
      the second. */
   table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
   table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
-    grid-template-columns: calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3)) 1fr;
+    grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2)) 1fr;
     align-items: center; padding-left: var(--sp-3); box-sizing: border-box; }
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
@@ -380,11 +393,11 @@
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] {
-    flex: none; width: calc(8rem - 10px); min-width: 0; max-width: none; }
+    flex: none; width: var(--aimodel-w); min-width: 0; max-width: none; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"]::after { content: "/Model"; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { display: none; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
-    flex: none; width: 2.5rem; min-width: 0; max-width: none; margin-left: 0; text-align: center; }
+    flex: none; width: var(--tick-w); min-width: 0; max-width: none; margin-left: 0; text-align: center; }
 
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the

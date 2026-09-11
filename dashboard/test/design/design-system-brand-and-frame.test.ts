@@ -249,9 +249,11 @@ describe("the board line and its Stop control (spec 424)", () => {
   // this same board, the server left as it is. Beside Stop, and like
   // Stop nowhere on a prod board.
   test("a round board's header carries a Run form beside Stop; a spec's branch board and a prod board none", () => {
-    // Started from a checkout: the round's own fixtures, and Run.
+    // Started from a checkout: the round's own fixtures, and Run — and
+    // the line says so: "Test - round", not a spec's number.
     setBoardInfo("aide-wt-run");
     for (const html of render()) {
+      expect(html).toContain(`${machine} - Test - round<`);
       expect(html).toMatch(
         /action="\/api\/self-stop">[\s\S]*?<\/form><form class="actionform" method="post" action="\/api\/self-run">/,
       );

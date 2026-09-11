@@ -38,14 +38,14 @@ describe("a phone's second line is pips, then the state", () => {
   });
 
   test("a phone lays the cell out as the caption line's own two columns", () => {
-    const columns = "grid-template-columns: calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3)) 1fr;";
+    const columns = "grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2)) 1fr;";
     // The caption line (action left, state right) and the shut row's
     // line (pips left, state right) share the first column's width, so
     // the state stays put when the fold opens.
     expect(NARROW).toMatch(new RegExp(`tr\\.subrow\\[data-caption="1"\\] td\\[data-col="state"\\] > \\.actionslot \\{[^}]*${columns.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     // The shut row's first column is the same sum, but gives way to a
     // long badge instead of pushing it past the screen's edge.
-    const shut = "grid-template-columns: minmax(min-content, calc(4.7rem + 8rem - 10px + 2.5rem + 3 * var(--sp-2) - var(--sp-3))) auto;";
+    const shut = "grid-template-columns: minmax(min-content, calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))) auto;";
     expect(NARROW).toMatch(new RegExp(`tr\\.spechead > td\\[data-col="state"\\] \\{ order: 3; flex: 0 0 100%; display: grid;\\s*${shut.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     // The caption line carries the same left air, so the button and a
     // shut row's pips start at one x.

@@ -323,14 +323,16 @@ function boardTitle(): string {
 }
 
 /** "Prod" is the service on main with the real specs; everything else
- *  is "Test" (2026-09-10) — a round started from a branch names the
- *  spec by number, a round started from a checkout says only Test. What
- *  KIND of test is a question left for later. */
+ *  is "Test" (2026-09-10) — a board started from a spec's branch names
+ *  the spec by number, a board started from a checkout is the round's
+ *  own and says so (2026-09-11). */
 function boardText(lang: Language): string {
   const board = getBoardInfo();
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
   if (!board) return `${machine} - Prod`;
-  const which = isSpecFolder(board.specFolder) ? ` - ${esc(specNumber(board.specFolder))}` : "";
+  const which = isSpecFolder(board.specFolder)
+    ? ` - ${esc(specNumber(board.specFolder))}`
+    : ` - ${esc(t(lang, "shell.testRound"))}`;
   return `${machine} - Test${which}${stopForm(lang)}${runForm(lang)}`;
 }
 
