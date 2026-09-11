@@ -148,6 +148,7 @@ fact_for() {
     a-test-that-stays-red) echo "" ;;
     an-unticked-acceptance-row) echo "an archive with an unticked acceptance row must not land" ;;
     a-landing-that-conflicts) echo "a conflict nobody resolves fails the landing" ;;
+    an-archive-that-moves-nothing) echo "a step that says done without doing anything is caught" ;;
     *) echo "" ;;
   esac
 }
@@ -227,6 +228,21 @@ case "$step" in
         git -C "$top" -c core.editor=true commit --no-edit -q || fail "claude-stub: could not finish the merge in $top"
       fi
     done
+    if [ "$slug" = "an-archive-that-moves-nothing" ]; then
+      # aide-run-spec has already stamped and moved the folder before
+      # this session runs (run-spec-spec-paths.sh, the mechanical
+      # pre-check) — unless the step met an open merge, in which case it
+      # left the folder alone. Either way the session below undoes every
+      # uncommitted change in the specs worktree and still says done:
+      # the folder is where it was, without an Archived stamp, and the
+      # runner's own cross-check (run-spec-status-line.sh) turns the
+      # claim into `no-progress`. The round's one "no real progress"
+      # row, the same whichever way the pre-check went.
+      name="${folder##*/}"
+      ( cd "$specs_root" && git reset -q --hard HEAD && rm -rf "archive/$name" ) \
+        || fail "claude-stub: could not put $name back"
+      ok "archived $name"
+    fi
     specs_dir="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null)"
     "$SCRIPTS/aide-archive-spec" --project-dir . --spec "$spec" --specs-dir "$specs_dir" >/dev/null 2>&1 || true
     if [ "$slug" = "a-landing-that-conflicts" ]; then
