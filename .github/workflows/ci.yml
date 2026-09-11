@@ -92,10 +92,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      # Preinstalled on the macOS runner image. .shellcheckrc at the repo
-      # root is picked up automatically — it silences SC2154/SC2034, both
-      # unreliable across this script's shared-sourcing architecture (see
-      # that file's own comments), not turned off project-wide.
+      # No longer preinstalled on the macOS runner image (it was, until
+      # September 2026), so it is installed unless it is already there.
+      # .shellcheckrc at the repo root is picked up automatically — it
+      # silences SC2154/SC2034, both unreliable across this script's
+      # shared-sourcing architecture (see that file's own comments), not
+      # turned off project-wide.
+      - run: command -v shellcheck >/dev/null || brew install shellcheck
       - run: shellcheck core/scripts/aide-* core/scripts/_*.sh core/scripts/build-agents-md.sh core/scripts/upgrade-ai-tools core/scripts/validate-env core/scripts/lib/*.sh
 
   biome:

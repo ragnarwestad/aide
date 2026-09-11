@@ -60,7 +60,11 @@ def branch_with_changed_files(project, *rel_paths):
         p = project / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("change\n")
-    git(project, "add", "-A")
+    # The named files and nothing else: `add -A` swept the fixture's own
+    # `.aide/config` into the commit on any machine whose global ignore
+    # does not drop it (CI), and a changed file no scope claims makes the
+    # resolver run every scope — so the test read as a resolver bug.
+    git(project, "add", "--", *rel_paths)
     git(project, "commit", "-qm", "touch " + " ".join(rel_paths))
 
 

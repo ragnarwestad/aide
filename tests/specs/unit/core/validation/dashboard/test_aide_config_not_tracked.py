@@ -151,6 +151,13 @@ class TestCutoverRecipe:
         # state, since the file is personal by design.
         host = tmp_path / "host"
         subprocess.run(["git", "-C", str(tmp_path), "clone", "-q", str(origin), str(host)], check=True)
+        # The operator's global ignore, which is what drops the file once
+        # it is untracked (this module's docstring) — spelled out here so
+        # the recipe's end state does not depend on the machine running
+        # the test having one (CI does not).
+        ignore = tmp_path / "global-ignore"
+        ignore.write_text(".aide/config\n")
+        _git(host, "config", "core.excludesFile", str(ignore))
         (host / ".aide" / "config").write_text("AIDE_SPECS_PATH=/this-machines-own-path\n")
 
         # The "editor": lands REQ-1 — untrack the file, drop the negation

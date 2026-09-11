@@ -134,9 +134,13 @@ class TestCiWorkflow:
         core/scripts, not just aide-run-spec and its lib/ files."""
         jobs = _jobs(_workflow_text(workspace_root))
         assert "shellcheck" in jobs, f"No 'shellcheck' job, found {sorted(jobs)}"
-        commands = "\n".join(_run_commands(jobs["shellcheck"]))
-        assert commands.strip().startswith("shellcheck "), \
+        steps = _run_commands(jobs["shellcheck"])
+        # One of the job's steps is the shellcheck run itself; a step
+        # before it may install the tool (the macOS runner image stopped
+        # shipping it in September 2026).
+        assert any(c.strip().startswith("shellcheck ") for c in steps), \
             "The shellcheck job never runs shellcheck"
+        commands = "\n".join(steps)
         for target in (
             "core/scripts/aide-*",
             "core/scripts/_*.sh",
