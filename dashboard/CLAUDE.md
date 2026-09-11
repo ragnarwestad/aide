@@ -82,7 +82,9 @@ with the tests and assertions that pin all of them.
   a landing that did not finish. The check is `archive`'s alone, by the
   literal step name; a failed landing moves the job to `failed` and ONLY
   from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
-  the "not landed" row is filtered on the BRANCH, never on `errorReason`.
+  the "not landed" row is filtered on the BRANCH, never on `errorReason`;
+  and it adds its sentence only when the merge loop reported no failure
+  of its own — one reason per row.
 - **A landing the project's suite refused STOPS the job, it does not fail
   it.** `errorReason: tests-red` takes the `landing-held` transition to
   `stopped` with `stopReason: tests-red`, and the row's mark is amber and
