@@ -167,9 +167,27 @@ export class Runner {
       // second one's landing finds a main the first moved under it. Held
       // back with the reason on the row, the same shape as the two
       // hold-backs below; the next tick tries again.
+      //
+      // And not while another ARCHIVE's landing is still in flight
+      // either (2026-09-11): a job whose archive step has ended reads
+      // "done" with `landing` set while its branch is merged into the
+      // code root's main, and an archive started in that window brings
+      // its branch up to a main the merge has not reached yet — its own
+      // landing then finds the conflict the step should have resolved.
+      // The round's fixture 02 failed one run in three on exactly this.
+      // An analyze or implement landing moves the specs repository
+      // alone and holds nothing, as before.
       if (
         job.steps[job.stepIndex] === "archive" &&
-        this.runningJobs().some((r) => r.project === job.project && r.steps[r.stepIndex] === "archive")
+        this.o.store
+          .list()
+          .some(
+            (r) =>
+              r.project === job.project &&
+              r.id !== job.id &&
+              r.steps[r.stepIndex] === "archive" &&
+              (r.state === "running" || r.landing === true),
+          )
       ) {
         hold(job, { key: "runner.archiveRunning" });
         continue;

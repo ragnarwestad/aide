@@ -71,7 +71,12 @@ with the tests and assertions that pin all of them.
 - **Two `archive` steps never run at once in one project.** Both branch
   from the code root's main and both land into it; the second is held
   `queued` with the reason on its row until the first has landed — the
-  same shape as the two hold-backs beside it in `Runner.tick()`.
+  same shape as the two hold-backs beside it in `Runner.tick()`. "Has
+  landed" includes the landing itself: a job whose archive step ended
+  reads `done` with `landing` set while its branch is merged, and an
+  archive started in that window brings its branch up to a main the
+  merge has not reached yet. An analyze or implement landing moves the
+  specs repository alone and holds nothing.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the

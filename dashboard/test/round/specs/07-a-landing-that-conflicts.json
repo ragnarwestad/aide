@@ -1,0 +1,5 @@
+{
+  "title": "A landing that conflicts",
+  "steps": ["analyze", "implement", "archive"],
+  "expected": "not-archived"
+}

@@ -202,7 +202,7 @@ const STRUCTURE = [
   // of running off the right edge of a cell sized for a word.
   "specnotice",
   "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
-  "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo",
+  "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo", "waiting", "refused",
   // a spec row's own state — deliberately NOT `active`/`archived`,
   // which `site.ts` uses for the unrelated question of whether a spec
   // folder has been archived on disk. "run-archived" is spec 221's

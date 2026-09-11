@@ -24,12 +24,18 @@ function stepsTouched(r: QueueRowView): string[] {
 function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   const res = (r.results ?? []).find((x) => x.step === step);
   if (res) {
+    // A step whose own process finished but whose LANDING did not (a
+    // merge conflict, red tests): the job carries the failure, and it
+    // is this one step's — the one whose branch was being merged
+    // (2026-09-11). Read as done, the line said "done" over a job that
+    // said "failed", and the pip beside it took the wrong colour.
+    const landingFell = res.ok && currentStep(r) === step && (r.state === "failed" || r.state === "stopped");
     return {
       ...r,
-      state: res.ok ? "done" : r.state === "done" ? "failed" : r.state,
+      state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
       spentUsd: res.costUsd,
       spentTokens: res.tokens,
-      error: res.ok ? undefined : r.error,
+      error: res.ok && !landingFell ? undefined : r.error,
       // The job's `landing` flag belongs to the ONE step whose branch is
       // being merged, never to the steps behind it. Spread whole, it
       // made `inFlight` true for every finished step, and a three-step

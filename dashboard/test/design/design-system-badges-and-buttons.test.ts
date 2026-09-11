@@ -237,11 +237,12 @@ describe("the status badge carries no mark of its own", () => {
     expect(CSS).not.toContain(".badge .dot");
   });
 
-  // The settled pill is painted a shade off the page's own ground, so
-  // without an edge "archived" and "done" read as plain text.
-  test("the settled pills have an edge of their own", async () => {
+  // The idle pill is painted on the page's own ground, so without an
+  // edge "queued" read as plain text. "done" is green since 2026-09-11
+  // — the same tones as ready, and as the pip beside it.
+  test("the idle pill has an edge of its own, and done is the pip's green", async () => {
     const { CSS } = await import("../../src/render/ui/css.ts");
-    expect(CSS).toMatch(/\.b-done \{[^}]*border-color: var\(--line\)/);
     expect(CSS).toMatch(/\.b-idle \{[^}]*border-color: var\(--line\)/);
+    expect(CSS).toMatch(/\.b-done \{ background: var\(--ok-soft\); color: var\(--ok\); \}/);
   });
 });
