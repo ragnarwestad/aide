@@ -54,7 +54,7 @@ describe("every token has a dark-surface value (acceptance criterion 13)", () =>
   // failure mode a missing override produces.
   const PAIRED = [
     "--bg", "--surface", "--surface-2", "--text", "--muted", "--line", "--line-strong",
-    "--accent", "--accent-strong", "--accent-soft", "--ok", "--ok-soft",
+    "--accent", "--accent-strong", "--accent-soft", "--link", "--link-strong", "--ok", "--ok-soft",
     "--warn", "--warn-soft", "--danger", "--danger-soft",
   ];
 

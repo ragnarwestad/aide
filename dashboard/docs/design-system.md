@@ -29,8 +29,9 @@ through a variable, and a control has one class wherever it appears — never a 
 `var(--…)`; nothing else in the file may contain a literal.
 
 The palette is the brand's: warm neutrals (paper `--bg`, card
-`--surface`, ink `--text`), vermilion `--accent`, and `--danger` set to the darkest bar of the mark rather than to a
-shade of the accent — so
+`--surface`, ink `--text`), vermilion `--accent`, a muted blue `--link` for every link (the accent is for action and
+activity alone, so a page of spec titles never reads as a page of failures), and `--danger` set to the darkest bar of
+the mark rather than to a shade of the accent — so
 "running" and "refused" never rest on hue alone. The refused badge is also the only live one with a visible border, and
 the row that carries it carries a `.rowmsg.failed` with its own mark beside the reason.
 

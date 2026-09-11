@@ -47,8 +47,8 @@
    more button beside the ones that do. */
 .backlink { display: inline-flex; align-items: center; gap: var(--sp-1);
   font: 700 var(--fs-s)/1 var(--sans); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--accent); text-decoration: none; }
-.backlink:hover { color: var(--accent-strong); text-decoration: none; }
+  letter-spacing: 0.08em; color: var(--link); text-decoration: none; }
+.backlink:hover { color: var(--link-strong); text-decoration: none; }
 
 /* A control that is its icon alone — no button frame: the spec page's
    PDF link. Same height as a .btn so it lines up in the actions row. */
