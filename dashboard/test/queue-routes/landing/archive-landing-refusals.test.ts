@@ -316,4 +316,74 @@ describe("one landing error names one path for one checkout (spec 330)", () => {
     expect(stillOnOrigin).toBe(1);
     expect(errorText).toContain(codeRoot);
   });
+
+  // One message per row, whatever the number of roots: two repos that
+  // both still hold the branch are two roots inside one sentence, never
+  // a sentence each joined with a semicolon.
+  test("two repos still holding the branch produce one sentence naming both", async () => {
+    let specsRoot = "";
+    let codeRoot = "";
+    const inner = gitFor();
+    const git = {
+      calls: inner.calls,
+      run: async (dir: string, args: string[]) => {
+        if ((dir === specsRoot || dir === codeRoot) && args.join(" ").startsWith("ls-remote --heads")) {
+          inner.calls.push({ dir, args });
+          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+        }
+        return inner.run(dir, args);
+      },
+    };
+    const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
+    specsRoot = join(dir, "root", "aide", "specs");
+    codeRoot = join(dir, "root", "aide");
+    const job = await runStep(base, "archive");
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    const failed = await settle(base, job.id, (j) => !!j.error);
+
+    expect(Array.isArray(failed.error)).toBe(false);
+    const errorText = sentence(failed.error);
+    expect(errorText.split("still on origin").length - 1).toBe(1);
+    expect(errorText).toContain(codeRoot);
+    expect(errorText).toContain(specsRoot);
+    expect(errorText).not.toContain("; ");
+  });
+
+  // Two roots that each fail on their own leave the row ONE sentence —
+  // the first — and the second behind it as hover detail.
+  test("a second root's failure goes behind the first as detail, not onto the row", async () => {
+    const inner = gitFor();
+    const git = {
+      calls: inner.calls,
+      run: async (dir: string, args: string[]) => {
+        const a = args.join(" ");
+        if (a.startsWith("symbolic-ref") || a.startsWith("show-ref --verify")) {
+          inner.calls.push({ dir, args });
+          return { code: 1, stdout: "" };
+        }
+        return inner.run(dir, args);
+      },
+    };
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git as never, {
+      queueProjectRoot: "/repos",
+    });
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+          { root: "/repos/aide", url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    const failed = await settle(base, job.id, (j) => !!j.error);
+
+    expect(Array.isArray(failed.error)).toBe(false);
+    const errorText = sentence(failed.error);
+    expect(errorText).toContain("cannot work out the default branch");
+    expect(errorText).not.toContain("; ");
+    expect(failed.errorDetail).toContain("cannot work out the default branch");
+  });
 });

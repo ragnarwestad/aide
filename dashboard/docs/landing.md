@@ -159,8 +159,9 @@ land is not finished, and its row has to say so.**
 - **A failed landing moves the job to `failed`.** Every page reads the state through one path, so it reads as unfinished
   wherever the job is shown. Downgraded only from `done`: the runner may have queued the job's NEXT step in between, and
   a landing must not overwrite a job that has moved on.
-- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a person reads — the sentence is joined
-  across repos before any page sees it, so nothing may match on it. Declared twice, in
+- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a person reads — the row carries one
+  sentence (several roots are named inside it; a second root's own failure goes behind it as hover detail), so nothing
+  may match on it. Declared twice, in
   `src/queue/types.ts` and `src/render/ui/job-state/types.ts`, and pinned to each other by a test in `test/queue/requests/parsing-schedule-and-errors.test.ts` the way
   `PHASE_STEPS` is pinned to
   `QUEUE_STEPS`.
