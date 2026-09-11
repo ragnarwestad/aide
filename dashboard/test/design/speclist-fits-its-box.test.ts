@@ -222,7 +222,8 @@ describe("the specs table fits the box that scrolls it", () => {
   // the column's true edge.
   test("a sortable header's chevron sits at the column's right edge", () => {
     const th = /table\.speclist thead th \{([^}]*)\}/.exec(css)![1]!;
-    expect(th).toMatch(/position: relative/);
+    expect(th).toMatch(/position: sticky/);
+    expect(th).toMatch(/top: 0/);
     const rule = /\.sortlink \{([^}]*)\}/.exec(css)![1]!;
     expect(rule).toMatch(/display: flex/);
     expect(rule).toMatch(/width: 100%/);
@@ -234,6 +235,18 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(svg).toMatch(/transform: translateY\(-50%\)/);
     const ascSvg = /\.sortlink\.asc svg \{([^}]*)\}/.exec(css)![1]!;
     expect(ascSvg).toMatch(/transform: translateY\(-50%\) rotate\(180deg\)/);
+  });
+
+  // Spec 440: the sticky header is scoped to the Specs page's own table
+  // alone — the Schedule, Settings, Project and New-spec tables share
+  // the unscoped `thead th` and `table.list th` rules and have no
+  // scrolling box of their own to stick within, so `position: sticky`
+  // must never leak onto either of those.
+  test("the sticky header is scoped to the Specs page's own table alone", () => {
+    const bare = /\nthead th \{([^}]*)\}/.exec(css)![1]!;
+    expect(bare).not.toMatch(/position: sticky/);
+    const shared = /table\.list th \{([^}]*)\}/.exec(css)![1]!;
+    expect(shared).not.toMatch(/position: sticky/);
   });
 
   // Time, Cost/Tokens and Created used to fall into two different

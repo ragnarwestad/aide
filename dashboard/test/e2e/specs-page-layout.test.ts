@@ -378,6 +378,39 @@ test("REQ-3: a spec row's Created cell stays on one line", async () => {
   expect(whiteSpace).toBe("nowrap");
 });
 
+// Spec 440: the header row stays pinned to the top of the scroll box
+// while the list's own rows scroll underneath it, instead of scrolling
+// away with them. The 40 padding specs `beforeAll` seeds are what make
+// `#jobrows .tablewrap` overflow its own height in the first place.
+test("spec 440: the header row stays pinned to the top of the box as the list scrolls", async () => {
+  await page.setViewportSize({ width: 1270, height: 600 });
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  const wrap = page.locator("#jobrows .tablewrap");
+  const before = await wrap.evaluate((el) => ({
+    wrapTop: el.getBoundingClientRect().top,
+    scrollHeight: el.scrollHeight,
+    clientHeight: el.clientHeight,
+  }));
+  expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
+
+  await wrap.evaluate((el) => {
+    el.scrollTop = 300;
+  });
+  const [headTop, wrapTopAfter, background] = await Promise.all([
+    page.locator("table.speclist thead th").first().evaluate((el) => el.getBoundingClientRect().top),
+    wrap.evaluate((el) => el.getBoundingClientRect().top),
+    page.locator("table.speclist thead th").first().evaluate((el) => getComputedStyle(el).backgroundColor),
+  ]);
+  // AC-1: the header's own top stays at the box's own top, not scrolled
+  // out of view with the rows.
+  expect(headTop).toBeCloseTo(wrapTopAfter, 0);
+  // AC-2: an opaque background, so a row scrolled up underneath does not
+  // show through.
+  expect(background).not.toBe("rgba(0, 0, 0, 0)");
+
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
 // Guards spec 333: a locked document tab (archived, or a job in flight)
 // that fell through to no script at all, leaving the raw markdown source
 // visible instead of the rendered document.

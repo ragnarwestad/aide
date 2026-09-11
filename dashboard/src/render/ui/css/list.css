@@ -273,8 +273,24 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    Pinning to the <th> keeps the two independent: the chevron always
    sits at the column's real edge (matching the same edge every
    value-cell and the table's own last-child clearance already agree
-   on, list.css:170-175) regardless of what .sortlink reserves. */
-table.speclist thead th { position: relative; }
+   on, list.css:170-175) regardless of what .sortlink reserves.
+
+   Sticky within the box that scrolls the list (spec 440), for the same
+   reason: `sticky` is a positioned value exactly as `relative` was, so
+   the chevron's anchor above is unaffected. `top: 0` pins the row to
+   the top of `#jobrows .tablewrap` (list.css:50-52), the one box that
+   scrolls — every row moves under it instead of over it. Scoped to
+   `.speclist` alone (the class only queue-list.ts ever writes): the
+   Schedule, Settings, Project and New-spec tables share table.list's
+   own header rules but have no scrolling box of their own to stick
+   within, and widening this to `table.list th` or the bare `thead th`
+   above would pin their headers to the page instead. The background
+   that keeps a scrolled-up row from showing through is already on
+   every `.list` table's `<th>` (table.list th, list.css:210) — nothing
+   new needed here. Phone width hides the whole `<thead>` (narrow.css,
+   `display: none` below 40rem) before this rule can have any visible
+   effect there. */
+table.speclist thead th { position: sticky; top: 0; }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine
