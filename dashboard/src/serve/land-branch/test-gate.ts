@@ -75,6 +75,7 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
 export async function runProjectSuiteBeforePush(
   root: string,
   job: { project: string; specFolder: string },
+  branch: string,
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
   // The suite runs in a throwaway worktree of the merge commit, never in
   // the live checkout: a run's own git and a fast-forward of main moved
@@ -83,7 +84,7 @@ export async function runProjectSuiteBeforePush(
   // five tests failed that had nothing to do with the merge.
   const tree = await checkoutForGate(root);
   try {
-    return await runSuiteIn(tree.dir, root, job);
+    return await runSuiteIn(tree.dir, root, job, branch);
   } finally {
     await tree.remove();
   }
@@ -152,6 +153,7 @@ async function runSuiteIn(
   root: string,
   liveRoot: string,
   job: { project: string; specFolder: string },
+  branch: string,
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
   const resolver = installed("aide-resolve-test-cmd", process.env.AIDE_RESOLVE_TEST_CMD_BIN);
   const recorder = installed("aide-record-test-run", process.env.AIDE_RECORD_TEST_RUN_BIN);
@@ -211,8 +213,11 @@ async function runSuiteIn(
         // which test failed. What IS known is where the failure is
         // written down, and which press lands the work once the code
         // passes — the row offers that one and no other.
+        // Where the work IS rides in the sentence itself: the origin
+        // check after the merge loop adds nothing beside a red suite,
+        // so this is the row's one sentence (one message per failure).
         error:
-          "the project's tests are red on this merge, so nothing was pushed. " +
+          `the project's tests are red on this merge, so nothing was pushed — the work is still on ${branch}. ` +
           "The archive step's own log names the tests that failed; archive merges the work once they pass.",
         detail: [
           "A timing test that lost to a busy host passes on a re-run: run the step again when the host is quieter.",

@@ -103,7 +103,11 @@ export interface ServerOptions {
   dashboardRoot?: string;
   /** The landing's test gate; the real one runs the project's suite through
    *  aide-resolve-test-cmd and aide-record-test-run. Tests pass a stub. */
-  landingGate?: (root: string, job: { project: string; specFolder: string }) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  landingGate?: (
+    root: string,
+    job: { project: string; specFolder: string },
+    branch: string,
+  ) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

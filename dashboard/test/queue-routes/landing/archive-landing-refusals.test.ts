@@ -188,6 +188,63 @@ describe("a branch left behind after a successful merge (spec 319)", () => {
     expect(failed.errorReason).toBe("unlanded");
   });
 });
+describe("a red suite on an archive landing is one sentence", () => {
+  // The gate's own verdict says where the work is; the origin check
+  // after the loop adds nothing beside it. Two sentences on that row
+  // read as two failures.
+  test("the gate's verdict is the row's one sentence, and it names the branch", async () => {
+    let specsRoot = "";
+    let codeRoot = "";
+    // The code root needs a real merge that changes the tree, or the
+    // gate never runs (spec 402): filled once the roots are known.
+    const needsRealMerge: string[] = [];
+    const inner = gitFor({ needsRealMerge });
+    const git = {
+      calls: inner.calls,
+      run: async (dir: string, args: string[]) => {
+        const a = args.join(" ");
+        if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
+          inner.calls.push({ dir, args });
+          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+        }
+        if (repoOf(dir) === codeRoot && a.startsWith("diff --quiet")) {
+          inner.calls.push({ dir, args });
+          return { code: 1, stdout: "" };
+        }
+        return inner.run(dir, args);
+      },
+    };
+    const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never, {
+      landingGate: async (_root, _job, branch) => ({
+        ok: false,
+        error: `the project's tests are red on this merge, so nothing was pushed — the work is still on ${branch}.`,
+        reason: "tests-red",
+      }),
+    });
+    specsRoot = join(dir, "root", "aide", "specs");
+    codeRoot = join(dir, "root", "aide");
+    needsRealMerge.push(codeRoot);
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: specsRoot, url: "https://example.test/aide-specs" },
+          { root: codeRoot, url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    const stopped = await settle(base, job.id, (j) => !!j.error);
+
+    const text = sentence(stopped.error);
+    expect(text).toContain(`the work is still on ${BRANCH}`);
+    expect(text).not.toContain("not on the default branch");
+    expect(text.split("; ").length).toBe(1);
+    expect(stopped.errorReason).toBe("tests-red");
+  });
+});
+
 describe("one landing error names one path for one checkout (spec 330)", () => {
   test("the post-loop sentence names the same resolved root the merge loop already failed for", async () => {
     const resolvedRoot = "/repos/aide-specs-real-root";
