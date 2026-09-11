@@ -305,7 +305,7 @@ function boardLine(lang: Language): string {
   return `<span class="row muted small boardline"${boardTitle()}>${boardText(lang)}</span>`;
 }
 
-/** The Stop control again as the first row of the "…" menu: at phone
+/** The Stop and Run controls again as the first row of the "…" menu: at phone
  *  width the header keeps the board's name but has no room for the
  *  button beside it — "aide -dashboard" wrapped under it — so the menu
  *  carries the button there and the header's own hides (narrow.css,
@@ -313,7 +313,7 @@ function boardLine(lang: Language): string {
  *  visible one can be pressed. A prod board has no Stop, and no row. */
 function boardRow(lang: Language): string {
   const stop = stopForm(lang);
-  return stop ? `<div class="boardrow muted small">${stop}</div>` : "";
+  return stop ? `<div class="boardrow muted small">${stop}${runForm(lang)}</div>` : "";
 }
 
 function boardTitle(): string {
@@ -331,7 +331,18 @@ function boardText(lang: Language): string {
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
   if (!board) return `${machine} - Prod`;
   const which = isSpecFolder(board.specFolder) ? ` - ${esc(specNumber(board.specFolder))}` : "";
-  return `${machine} - Test${which}${stopForm(lang)}`;
+  return `${machine} - Test${which}${stopForm(lang)}${runForm(lang)}`;
+}
+
+/** A test board's Run control: the round's fixture specs through again
+ *  on this same board (self-run.ts), the server left as it is. Nothing
+ *  on a prod board. */
+function runForm(lang: Language): string {
+  if (!getBoardInfo()) return "";
+  return (
+    `<form class="actionform" method="post" action="/api/self-run">` +
+    `<button class="btn" type="submit" data-pending="starting…">${t(lang, "shell.runTestRound")}</button></form>`
+  );
 }
 
 /** A test board's Stop control; nothing on a prod board. */

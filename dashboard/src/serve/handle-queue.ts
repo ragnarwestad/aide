@@ -47,6 +47,7 @@ import { handleSpecPdfRoute } from "./handle-queue/spec-pdf.ts";
 import { handleScheduleAdminRoutes } from "./handle-queue/schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./handle-queue/job-detail.ts";
 import { selfStopRoute } from "./handle-queue/self-stop.ts";
+import { selfRunRoute } from "./handle-queue/self-run.ts";
 
 /** Everything `handleQueue` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`
@@ -141,6 +142,7 @@ export async function handleQueue(ctx: HandleQueueContext, req: Request, url: UR
 
   return (
     selfStopRoute(ctx, req, path) ??
+    selfRunRoute(ctx, req, path) ??
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??

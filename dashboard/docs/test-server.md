@@ -68,6 +68,15 @@ button right beside it. Pressing it works the same way as the prod-board button 
 and the port are freed — without needing to go back to the prod board's spec page at all. The prod
 board's own header carries no such line beyond "*machine* - Prod", and no Stop button.
 
+Beside Stop, a test server's header has a **Run** button: it puts the round's fixture specs through
+again on this same server, the server itself left as it is. Whatever the last round left is cleared
+first — its jobs cancelled and dropped, the throwaway project and its specs put back to their first
+commit — and then the fixtures go in one by one, exactly as `dashboard/test/round/run` sends them
+(that script presses the same endpoint, `POST /api/self-run`). While the round runs the server's
+checkouts follow origin the way the specs cron does on the serving host, so a spec that depends on
+an archived one sees the archive. `GET /api/self-run` says how far it has come. The prod board has
+no Run button either.
+
 ## After the dashboard restarts
 
 Deploying new code restarts this dashboard, and what it knows about running test servers lives in

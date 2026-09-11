@@ -170,6 +170,10 @@ export interface ServerOptions {
    *  like `boardsSpawn`: no test should actually end the process
    *  running it. */
   selfStopExit?: () => void;
+  /** Where the test board's Run control (self-run.ts) reads the round's
+   *  fixture specs from; absent means `dashboard/test/round/specs`
+   *  beside the code being served. A test seam. */
+  roundFixturesDir?: string;
   /** Overrides the boot-time "is the round available on this host" check
    *  (REQ-1), the same test-seam shape `pdfToolAvailable` already is: no
    *  test should depend on a real checkout carrying
