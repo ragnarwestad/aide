@@ -199,6 +199,13 @@ export const MESSAGES = {
       "merget. Kjør arkivering igjen for å merge det.",
     resolve: "Run archive again to merge it.",
   },
+  "landing.stillOnOriginRunArchiveAgainMany": {
+    en: "{branch} is still on origin in {roots} — the spec was archived, but its work has not merged. " +
+      "Run archive again to merge it.",
+    nb: "{branch} ligger fortsatt på origin i {roots} — specen ble arkivert, men arbeidet er ikke " +
+      "merget. Kjør arkivering igjen for å merge det.",
+    resolve: "Run archive again to merge it.",
+  },
 
   // --- branch-merge.ts's refuse() sites and its two fastForwardToOrigin ---
 

@@ -320,6 +320,7 @@ export async function landBranch(
     // origin, and beside a conflict its "run archive again" — once per
     // root — contradicted the sentence the reader had just been given.
     if (what.step === "archive" && reason !== "tests-red" && failures.length === 0) {
+      const holding: string[] = [];
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that
         // failed to merge (spec 220). Without this, every working
@@ -334,14 +335,20 @@ export async function landBranch(
         // above already carries the sentence that says what actually
         // happened, and the row reads it from there.
         if (leftBehindRoots.has(root)) continue;
+        holding.push(root);
+      }
+      if (holding.length) {
+        // One sentence however many roots hold the branch: the roots
+        // are data inside it, never a sentence each. It carries the
+        // move as well as the state: the way out is the step that just
+        // ran, and the row's own button already offers it. Phrased as
+        // an instruction rather than as a quote of that button's label,
+        // so a future rename leaves the sentence less exact but never
+        // wrong.
         failures.push(
-          // The sentence carries the move as well as the state: the
-          // way out is the step that just ran, and the row's own
-          // button already offers it. Phrased as an instruction
-          // rather than as a quote of that button's label, so a
-          // future rename leaves the sentence less exact but never
-          // wrong.
-          { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root } },
+          holding.length === 1
+            ? { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root: holding[0]! } }
+            : { key: "landing.stillOnOriginRunArchiveAgainMany", values: { branch, roots: holding.join(", ") } },
         );
         // Only where nothing more specific was found: a conflict is
         // the reason, and "unlanded" is what a conflict LOOKS like
@@ -367,11 +374,17 @@ export async function landBranch(
       // it, the same way a cap-stop does — nothing was pushed, and the
       // answer is to run implement again.
       const held = reason === "tests-red";
+      // One message per row: the first failure is the row's sentence,
+      // and any further one — a second root that could not merge —
+      // goes behind it as detail, in the catalog's source language,
+      // rather than joined onto the sentence with a semicolon.
+      const [first, ...rest] = failures as [Sentence, ...Sentence[]];
+      const detail = [...rest.map((f) => renderSentence("en", f) ?? ""), ...failureDetails].filter(Boolean);
       const patch = {
-        error: failures,
-        errorDetail: failureDetails.length ? failureDetails.join("; ") : undefined,
+        error: first,
+        errorDetail: detail.length ? detail.join("\n") : undefined,
         errorReason: reason,
-        landingError: firstLandingError(failures, held),
+        landingError: firstLandingError(first, held),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
