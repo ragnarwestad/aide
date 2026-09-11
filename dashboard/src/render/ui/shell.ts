@@ -305,13 +305,15 @@ function boardLine(lang: Language): string {
   return `<span class="row muted small boardline"${boardTitle()}>${boardText(lang)}</span>`;
 }
 
-/** The same line again as the first row of the "…" menu: at phone width
- *  the header has no room for it beside the wordmark — "aide -dashboard"
- *  wrapped under it — so the menu carries it there and the header's own
- *  copy hides (narrow.css, 2026-09-10). Two Stop forms is fine: neither
- *  has an id, and only the visible one can be pressed. */
+/** The Stop control again as the first row of the "…" menu: at phone
+ *  width the header keeps the board's name but has no room for the
+ *  button beside it — "aide -dashboard" wrapped under it — so the menu
+ *  carries the button there and the header's own hides (narrow.css,
+ *  2026-09-11). Two Stop forms is fine: neither has an id, and only the
+ *  visible one can be pressed. A prod board has no Stop, and no row. */
 function boardRow(lang: Language): string {
-  return `<div class="boardrow muted small"${boardTitle()}>${boardText(lang)}</div>`;
+  const stop = stopForm(lang);
+  return stop ? `<div class="boardrow muted small">${stop}</div>` : "";
 }
 
 function boardTitle(): string {
@@ -329,8 +331,13 @@ function boardText(lang: Language): string {
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
   if (!board) return `${machine} - Prod`;
   const which = isSpecFolder(board.specFolder) ? ` - ${esc(specNumber(board.specFolder))}` : "";
+  return `${machine} - Test${which}${stopForm(lang)}`;
+}
+
+/** A test board's Stop control; nothing on a prod board. */
+function stopForm(lang: Language): string {
+  if (!getBoardInfo()) return "";
   return (
-    `${machine} - Test${which}` +
     // No hidden token field (unlike `boardStatus()`'s own Stop form,
     // `overview.ts`): the reader is already past `queueGuard` to see
     // this page at all, which means the port-scoped cookie is already
@@ -352,8 +359,14 @@ function pageHeader(lang: Language, currentUrl: string): string {
   // here would make its own trigger close this outer menu instead of
   // opening. narrow.css hides the three standalone triggers and reveals
   // this block only at phone width.
+  //
+  // Three blocks, one per control, since they come into the menu one at
+  // a time as the page narrows — unit first, then language, then theme
+  // — at the same widths the specs list drops its figure columns.
   const mobileRows =
-    `<div class="morerows">${themeChoiceRows(lang)}${languageChoiceLinks(lang, currentUrl)}${unitChoiceRows()}</div>`;
+    `<div class="morerows theme">${themeChoiceRows(lang)}</div>` +
+    `<div class="morerows lang">${languageChoiceLinks(lang, currentUrl)}</div>` +
+    `<div class="morerows unit">${unitChoiceRows()}</div>`;
   return (
     `<header>${WORDMARK}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the

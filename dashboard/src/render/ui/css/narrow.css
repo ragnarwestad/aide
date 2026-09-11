@@ -11,6 +11,24 @@
    selector with one class more or fewer would change the specificity
    and quietly stop applying. */
 
+/* The header's three standalone controls come into the "…" menu one at
+   a time as the page narrows — unit, then language, then theme — at the
+   same three widths list.css drops the list's figure columns (Created,
+   Cost, Time); the board line follows at 40rem, below. Each step hides
+   the trigger and reveals the menu's own flat copy of that one control. */
+@media (max-width: 59.5rem) {
+  .menu.unit { display: none; }
+  .menu .morerows.unit { display: flex; flex-direction: column; gap: 2px; }
+}
+@media (max-width: 53rem) {
+  .menu.lang { display: none; }
+  .menu .morerows.lang { display: flex; flex-direction: column; gap: 2px; }
+}
+@media (max-width: 46.5rem) {
+  .menu.theme { display: none; }
+  .menu .morerows.theme { display: flex; flex-direction: column; gap: 2px; }
+}
+
 @media (max-width: 40rem) {
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
@@ -415,9 +433,15 @@
      trigger on desktop; at phone width they hide, and the "…" menu's
      own flat morerows copy (rows-and-forms.css) takes over instead. */
   .menu.theme, .menu.lang, .menu.unit { display: none; }
-  /* The board line moves from the header into the "…" menu, first row:
-     beside the wordmark it wrapped "aide -dashboard" onto two lines. */
-  header > .boardline { display: none; }
+  /* The board's name stays in the header to the last; its Stop button
+     moves into the "…" menu, first row — beside the wordmark the two
+     together wrapped "aide -dashboard" onto two lines. */
+  header > .boardline > .actionform { display: none; }
+  /* The wordmark never wraps; the board's name is what gives way — it
+     shrinks to the room left between the wordmark and the "…" and wraps
+     inside that, right against the menu. */
+  header .brand { flex: none; white-space: nowrap; }
+  header > .boardline { flex: 1 1 auto; min-width: 0; justify-content: flex-end; text-align: right; }
   .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
