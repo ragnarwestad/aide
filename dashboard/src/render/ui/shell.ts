@@ -78,33 +78,33 @@ const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
 // The fifth: a pressed Save that looks pressed on the pages that post a
 // real form and wait — the spec editor's takes two or three seconds to
 // commit and push. Same tag as the others, for the same reason.
-const FORM_BUSY_SCRIPT = transpile("form-busy.ts");
+const FORM_BUSY_SCRIPT = transpile("busy/form-busy.ts");
 // The sixth: a link that leaves the page says so the moment it is
 // clicked, on every page (spec 312) — `queue-client.ts` used to own
 // this for the one page it loads on.
-const NAV_BUSY_SCRIPT = transpile("nav-busy.ts");
+const NAV_BUSY_SCRIPT = transpile("busy/nav-busy.ts");
 // The seventh: the same click nav-busy.ts marks also gets a covering
 // layer, for the whole wait rather than only while the pointer sits
 // still over the link (spec 314).
-const NAV_OVERLAY_SCRIPT = transpile("nav-overlay.ts");
+const NAV_OVERLAY_SCRIPT = transpile("busy/nav-overlay.ts");
 // The eighth (spec 358): the PDF button opens a NEW tab, which neither
 // form-busy.ts (no form) nor nav-busy.ts/nav-overlay.ts (both decline a
 // target="_blank" link, since this document is never replaced) cover.
-const PDF_BUSY_SCRIPT = transpile("pdf-busy.ts");
+const PDF_BUSY_SCRIPT = transpile("busy/pdf-busy.ts");
 // The ninth (spec 391): Save and Cancel enable together the instant a
 // spec form has an edit, and disable together again once Cancel puts it
 // back — one script for every `.specform` on the page rather than one
 // per tab.
-const SPEC_FORM_ACTIONS_SCRIPT = transpile("spec-form-actions.ts");
+const SPEC_FORM_ACTIONS_SCRIPT = transpile("forms/spec-form-actions.ts");
 /** Ticking a dependency moves its chip between the two blocks at
  *  once, rather than only when the form comes back saved. */
-const DEPENDS_LIFT_SCRIPT = transpile("depends-lift.ts");
+const DEPENDS_LIFT_SCRIPT = transpile("forms/depends-lift.ts");
 // The tenth (spec 438): a page with an unsaved edit in one of the
 // tracked forms warns before it is left, by any means — an in-app
 // link, the browser's Back/Forward, a closed tab, a typed address —
 // since it rides `beforeunload` rather than intercepting any one of
 // those individually.
-const UNSAVED_CHANGES_SCRIPT = transpile("unsaved-changes.ts");
+const UNSAVED_CHANGES_SCRIPT = transpile("forms/unsaved-changes.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the

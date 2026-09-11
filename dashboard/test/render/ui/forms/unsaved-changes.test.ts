@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "ui", "unsaved-changes.ts"), "utf-8"),
+  readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "unsaved-changes.ts"), "utf-8"),
 );
 
 type FakeElement = {

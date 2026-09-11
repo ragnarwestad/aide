@@ -21,7 +21,7 @@ beforeAll(async () => {
   const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
   GlobalRegistrator.register();
   scriptText = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-    readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "ui", "spec-form-actions.ts"), "utf-8"),
+    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "spec-form-actions.ts"), "utf-8"),
   );
 });
 

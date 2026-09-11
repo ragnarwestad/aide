@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "ui", "form-busy.ts"), "utf-8"),
+  readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "busy", "form-busy.ts"), "utf-8"),
 );
 
 function harness() {
