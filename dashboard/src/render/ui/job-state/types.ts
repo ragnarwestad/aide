@@ -115,6 +115,10 @@ export interface QueueRowView {
 export interface StepResultView {
   step?: string;
   ok: boolean;
+  /** How the step ended, in the runner's own words — what tells a guard
+   *  refusal (`not-implemented-yet`, `acceptance-criteria-unticked`)
+   *  apart from a run that was actually tried. */
+  terminalReason?: string;
   costUsd: number;
   /** When this step ENDED (spec 199). Absent on a result written before
    *  the runner recorded it, and then that step simply has no duration
