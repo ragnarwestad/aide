@@ -34,7 +34,7 @@ chip uses.
 
 What is ticked is a recorded CHOICE, not a fresh guess on every render: the phases posted from New spec at create
 time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more recently. That
-choice sticks until the reader changes it themselves, by re-ticking the row's own boxes and pressing Run again. A spec
+choice sticks until the reader changes it themselves, by re-ticking the row's own boxes and pressing the row's button again. A spec
 that has never had either — a create or a Run — recorded under it falls back to ticking every phase it has not had, the
 same default it always had; a fresh spec, or one whose only recorded choice is empty, starts from there. A phase
 already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way.

@@ -145,7 +145,8 @@ describe("reconciliation after a restart", () => {
     // the job's own row needs — the rendered "the server restarted while
     // this step was running..." sentence is drawn from this `error`
     // field, which this test used to leave unasserted.
-    expect(store.get(job.id)?.error).toEqual({ key: "runner.serverRestarted" });
+    // The message names the row's own button: the phase this job was on.
+    expect(store.get(job.id)?.error).toEqual({ key: "runner.serverRestarted", values: { button: "Analyze" } });
   });
 });
 

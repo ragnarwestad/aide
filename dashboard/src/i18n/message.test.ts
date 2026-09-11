@@ -25,14 +25,14 @@ describe("renderSentence", () => {
   });
 
   test("a BoardMessage renders through the catalog", () => {
-    expect(renderSentence("nb", { key: "runner.runVanished" })).toBe(
-      "kjøringen forsvant uten å etterlate et resultat. — Trykk Kjør igjen.",
+    expect(renderSentence("nb", { key: "runner.runVanished", values: { button: "Archive" } })).toBe(
+      "kjøringen forsvant uten å etterlate et resultat. — Trykk Archive igjen.",
     );
   });
 
   test("an array of mixed Sentences joins rendered text with '; '", () => {
-    const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished" }]);
-    expect(result).toBe("cannot fast-forward main; the run vanished without leaving a result. — Press Run again.");
+    const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
+    expect(result).toBe("cannot fast-forward main; the run vanished without leaving a result. — Press Implement again.");
   });
 
   test("undefined stays undefined", () => {

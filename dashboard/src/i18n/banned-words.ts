@@ -28,6 +28,10 @@ export const BANNED_WORDS: BannedWord[] = [
   // run". Anchored to the whole word, so "investigate"/"navigate" and
   // the Norwegian "gaten" as part of a longer word are untouched.
   { word: "gate", insteadOf: "test / test log / test run", pattern: /\bgate(?:n|r|ne|s|d)?\b/i },
+  // There is no Run button on a spec's row: the button carries the name
+  // of the phase it would run ("Archive", "Implement"). A message that
+  // tells the reader to press it says that name, through `{button}`.
+  { word: "Run again", insteadOf: "{button} again (the phase's own button)", pattern: /\bRun again\b|\bKjør igjen\b/ },
 ];
 
 export function findBannedWord(text: string): BannedWord | undefined {

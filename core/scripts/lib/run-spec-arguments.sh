@@ -193,6 +193,10 @@ case " $WORKFLOW_STEPS " in
   *" $command_name "*) ;;
   *) refuse "invalid --command: $command_name (not an aide workflow step)" ;;
 esac
+# The word on the row's own button for this step ("Archive"): there is
+# no Run button on a spec's row, so a message that tells the reader to
+# press again names the button it means. awk, not ${var^}: /bin/bash is 3.2.
+step_button="$(printf '%s' "$command_name" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }')"
 
 case "$push_mode" in
   none|branch|pr) ;;
