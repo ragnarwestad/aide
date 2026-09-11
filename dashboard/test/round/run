@@ -5,11 +5,12 @@
 # the fixture project and one for its specs, seeded from
 # fixture-project/ and specs/, starts the dashboard FROM THE AIDE
 # CHECKOUT GIVEN with that checkout's own aide-run-spec as the runner
-# and the fixture project as its only project, sends every fixture
-# spec's description through /api/queue/create, waits for each create
-# job to land a specFolder before sending the next spec's create
-# request, queues that spec's own steps, waits for the queue to drain,
-# and reports each spec's actual end state against what was expected.
+# and the fixture project as its only project, presses the board's own
+# Run (`POST /api/self-run`, which sends every fixture spec's
+# description through create, waits for each to land a specFolder
+# before the next, and queues that spec's own steps), waits for the
+# queue to drain, and reports each spec's actual end state against what
+# was expected.
 # Nothing here touches the production dashboard, its files, or aide's
 # own origin.
 #
@@ -265,64 +266,35 @@ fi
 api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
 
 echo "== queue the specs, each through create"
-declare -a FOLDERS=() EXPECTS=() SLUGS=()
+# The board owns the round since 2026-09-11: `POST /api/self-run` puts
+# the board back to its start and sends every fixture through create,
+# waits for the folder each becomes, and queues that spec's own steps —
+# the loop this script used to run itself. The Run button in the
+# board's header presses the same endpoint, so a kept board can run the
+# round again without a terminal. `GET /api/self-run` says how far the
+# queueing has come and which folder each fixture became.
+declare -a FOLDERS=() EXPECTS=()
 fails=0
-for spec_json in "$HERE"/specs/*.json; do
-  slug="$(basename "$spec_json" .json)"
-  title="$(jq -r .title "$spec_json")"
-  description="$(cat "$HERE/specs/$slug.md")"
-  # A fixture names its dependency by the NUMBER in its own file name
-  # ("01"), because the folder that number becomes is only decided when
-  # the spec is created — `aide_next_spec_number` counts what is already
-  # there. `/api/queue/create` takes folders it can resolve, and refuses
-  # a bare number ("unknown spec in dependsOn: 01"), which left the
-  # dependency spec uncreated and shifted every number after it. So the
-  # number is translated here, against the folders this round has already
-  # made. Bash 3.2: parallel arrays, no associative ones.
-  dependsOn=""
-  for dep in $(jq -r '(.dependsOn // [])[]' "$spec_json"); do
-    resolved=""
-    i=0
-    while [ "$i" -lt "${#SLUGS[@]}" ]; do
-      case "${SLUGS[$i]}" in "$dep"-*) resolved="${FOLDERS[$i]}" ;; esac
-      i=$((i + 1))
-    done
-    [ -n "$resolved" ] || { echo "  no folder yet for dependency $dep of $slug"; fails=1; }
-    [ -n "$dependsOn" ] && dependsOn="$dependsOn,"
-    dependsOn="$dependsOn$resolved"
-  done
-  body="$(jq -cn --arg p "aide-test" --arg t "$title" --arg d "$description" --arg dep "$dependsOn" \
-    '{project:$p, title:$t, description:$d} + (if $dep == "" then {} else {dependsOn:($dep|split(","))} end)')"
-  create_job="$(api /api/queue/create "$body" | jq -r .job.id)"
-  # A create job's OWN specFolder starts as a provisional "new-<8 hex>"
-  # placeholder (spec 93) and only becomes the real "NN-slug" once the
-  # step has run and landed — reading .specFolder the instant it exists
-  # would take that placeholder as the answer. Wait for it to stop
-  # looking provisional instead.
-  spec_folder=""
-  for _ in $(seq 1 60); do
-    spec_folder="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" \
-      | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | .specFolder // empty')"
-    case "$spec_folder" in
-      new-????????) spec_folder="" ;;
-    esac
-    [ -n "$spec_folder" ] && break
-    sleep 2
-  done
-  if [ -z "$spec_folder" ]; then
-    echo "  create never landed for $slug"
-    fails=$((fails + 1))
-    continue
-  fi
-  FOLDERS+=("$spec_folder")
-  EXPECTS+=("$(jq -r .expected "$spec_json")")
-  # Kept beside the folder it became, so a later fixture can name this
-  # one as a dependency by the number in its own file name.
-  SLUGS+=("$slug")
-  steps="$(jq -r '.steps | join(",")' "$spec_json")"
-  api /api/queue "$(jq -cn --arg p "aide-test" --arg f "$spec_folder" --arg s "$steps" \
-    '{project:$p, specFolder:$f, steps:($s|split(","))}')" >/dev/null
+started="$(api /api/self-run '{}')"
+printf '%s' "$started" | jq -e '.ok' >/dev/null \
+  || { echo "  the board refused to start the round: $started" >&2; exit 1; }
+round=""
+for _ in $(seq 1 600); do
+  round="$(curl -s -m 20 "$BASE/api/self-run" -H "accept: application/json" -H "X-Aide-Token: $TOKEN")"
+  case "$(printf '%s' "$round" | jq -r .stage)" in
+    running|done|failed) break ;;
+  esac
+  sleep 2
 done
+if [ "$(printf '%s' "$round" | jq -r .stage)" = "failed" ]; then
+  echo "  the round did not get queued: $(printf '%s' "$round" | jq -r '.error // .stage')"
+  fails=1
+fi
+# Bash 3.2: parallel arrays, no associative ones.
+while IFS=$'\t' read -r slug folder expect; do
+  [ -n "$folder" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
+  FOLDERS+=("$folder"); EXPECTS+=("$expect")
+done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected] | @tsv')
 
 echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
 start=$(date +%s)

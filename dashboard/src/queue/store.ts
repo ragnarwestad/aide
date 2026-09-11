@@ -267,6 +267,24 @@ export class QueueStore {
     return this.jobs.get(id);
   }
 
+  /** Every job of one project, gone — the test board's Run control
+   *  (self-run.ts) starts its round over from nothing, and rows for
+   *  folders the round is about to make again would read as history
+   *  the new run never had. Returns how many were dropped. */
+  dropProject(project: string): number {
+    let dropped = 0;
+    for (const [id, job] of this.jobs) {
+      if (job.project !== project) continue;
+      this.jobs.delete(id);
+      dropped += 1;
+    }
+    if (dropped) {
+      this.mirror();
+      this.changed();
+    }
+    return dropped;
+  }
+
   /** Add or remove a step a RUNNING job has not reached yet (spec 160).
    *
    *  Read, checked and written in ONE synchronous call, with nothing

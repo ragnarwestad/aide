@@ -245,6 +245,22 @@ describe("the board line and its Stop control (spec 424)", () => {
     }
   });
 
+  // The Run control (2026-09-11): the round's fixtures through again on
+  // this same board, the server left as it is. Beside Stop, and like
+  // Stop nowhere on a prod board.
+  test("a test board's header carries a Run form beside Stop, and a prod board none", () => {
+    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    for (const html of render()) {
+      expect(html).toMatch(
+        /action="\/api\/self-stop">[\s\S]*?<\/form><form class="actionform" method="post" action="\/api\/self-run">/,
+      );
+    }
+    setBoardInfo(undefined);
+    for (const html of render()) {
+      expect(html).not.toContain('action="/api/self-run"');
+    }
+  });
+
   // Risk (3-solution.md): a module-level singleton must never leak a
   // prior test's board across `createServer()`/render calls in the same
   // `bun test` process.

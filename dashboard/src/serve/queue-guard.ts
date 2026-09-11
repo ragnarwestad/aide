@@ -47,7 +47,9 @@ export const isQueuePath = (path: string) =>
   path.startsWith("/specs/") ||
   // The test board's own Stop control (spec 424, REQ-4) — a POST with
   // real consequences, guarded exactly like every other queue route.
-  path === "/api/self-stop";
+  path === "/api/self-stop" ||
+  // And its Run control (2026-09-11), on the same terms.
+  path === "/api/self-run";
 
 /** Whether a bind address is loopback-only — the one address a header
  *  set by a proxy in front of this process cannot be forged on, since
