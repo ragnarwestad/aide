@@ -233,7 +233,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // the outside — so the badge reads "ready", not "waiting". Spec 411
   // gives the panel below the same link-carrying shape the pull-request
   // mark already has, which now supersedes the plain reason text
-  // (`cell-helpers.ts`'s `liveMarks()` — a row-marks.test.ts describe
+  // (`row-marks.ts`'s `liveMarks()` — a row-marks.test.ts describe
   // block pins the mark itself; this test keeps its own eye on the
   // badge beside it).
   test("unticked Acceptance criteria read as ready, not as a decline", () => {

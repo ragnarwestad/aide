@@ -444,7 +444,7 @@ export async function mergeBranchIntoDefault(
       // The stderr tail (spec 352, REQ-5) is never part of the sentence
       // — it rides in `detail` instead, for whoever needs the exact
       // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
-      // sentence, never this text directly (`cell-helpers.ts`).
+      // sentence, never this text directly (`row-marks.ts`).
       const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
       // Names the branch; the ROOT is added where this is composed for
       // the row (`landBranch`, spec 319), which is the one place that

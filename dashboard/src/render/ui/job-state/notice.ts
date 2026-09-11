@@ -111,7 +111,7 @@ export function specNotice(
    *  caller — this file knows nothing about a spec's phase list. */
   disagreement?: string,
   /** The row's own marks, ranked highest-first (REQ-2/REQ-4,
-   *  `errorMarkNotices`/`archivedRowNotices`, cell-helpers.ts) — a pull
+   *  `errorMarkNotices`/`archivedRowNotices`, row-marks.ts) — a pull
    *  request open for the branch is one of them now (REQ-1/REQ-2, spec
    *  403, reversing spec 339's REQ-1, which kept it out of here as a
    *  State-column badge instead). Folded in at the same priority

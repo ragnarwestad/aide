@@ -95,7 +95,7 @@ export async function landBranch(
   // itself.
   // The step-name/stopped-or-failed prefix this used to compose is
   // redundant with the badge label the one display site
-  // (`cell-helpers.ts`'s `liveMarks()`) already shows beside it — and a
+  // (`row-marks.ts`'s `liveMarks()`) already shows beside it — and a
   // landing runs with nobody's browser attached, so there is no `lang`
   // here to render `msg` with anyway (REQ-1/REQ-3).
   const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>

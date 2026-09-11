@@ -141,7 +141,7 @@ export function specHeadRow(
   // nothing about which of the states the spec passes through in between
   // it sits beside. It is said on the notice line instead, ranked among
   // this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
-  // cell-helpers.ts).
+  // row-marks.ts).
   // The earliest phase the spec's own files say has not happened — the
   // same one `chosenSteps`/`actionState` name a box or a button for
   // (spec 439's rename of `preTicked`/`actionLabel`), from the same
