@@ -28,6 +28,7 @@ export const en = {
   "shell.overlayLoading": "loading…",
   "shell.stopTestServer": "Stop",
   "shell.runTestRound": "Run",
+  "shell.testRound": "round",
 
   "list.statesLabel": "States",
   "list.state.all": "All",

@@ -244,8 +244,8 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // that control is gone — and nothing is a second copy: the same two
   // selects are drawn once, for both widths.
   test("the pair is one box on a narrow screen, and a panel over it", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 calc(8rem - 10px); }");
-    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: calc(8rem - 10px);");
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }");
+    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: var(--aimodel-w);");
     expect(NARROW).toContain("table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }");
     expect(NARROW).not.toContain("foldphase");
   });
@@ -290,7 +290,10 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // 12px of table-cell padding, added outside the 4.7rem the cell is
   // given (content-box), sat between the phase's name and the tick box.
   test("the phase name's cell gives its right padding back", () => {
-    expect(NARROW).toContain(".phasecell { flex: 0 0 4.7rem; min-width: 4.7rem; padding-right: 0; }");
+    expect(NARROW).toContain(".phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }");
+    // Wide enough for the longest phase name in either language:
+    // "implementering" is 98px in this face.
+    expect(NARROW).toMatch(/table\.list \{ --phase-w: 5\.75rem; --aimodel-w: calc\(8\.75rem - 10px\); --tick-w: 31px; \}/);
     // The left one stays — it is the indent under the spec's own name.
     expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });

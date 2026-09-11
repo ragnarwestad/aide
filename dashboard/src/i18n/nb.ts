@@ -27,6 +27,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.overlayLoading": "laster…",
   "shell.stopTestServer": "Stopp",
   "shell.runTestRound": "Kjør",
+  "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",
   "list.state.all": "Alle",
