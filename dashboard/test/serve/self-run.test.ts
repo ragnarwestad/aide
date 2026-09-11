@@ -74,6 +74,14 @@ describe("POST /api/self-run", () => {
     expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(404);
   });
 
+  // A board started from a spec's branch (a numbered folder) previews
+  // that spec and is never re-run: no Run there, whatever is sent.
+  test("on a board started from a spec's branch, answers 404 to both", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: "424-headeren-sier-hvilket-board" } });
+    expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(404);
+    expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(404);
+  });
+
   test("before any press the status is idle", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD } });
     const res = await fetch(`${base}/api/self-run`, auth);

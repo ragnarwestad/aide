@@ -19,7 +19,7 @@
 // serves exactly one project, the round's own.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { getBoardInfo } from "../../render/ui/board-info.ts";
+import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 import { json } from "../serve-helpers/http.ts";
@@ -73,6 +73,9 @@ export function selfRunRoute(ctx: HandleQueueContext, req: Request, path: string
   // An ordinary (prod) server never draws the Run button, but a request
   // can be sent by hand regardless of what the page draws.
   if (!getBoardInfo()) return new Response("not a test board", { status: 404 });
+  // A board started from a spec's branch previews that spec; its round
+  // is never run again from here.
+  if (!isRoundBoard()) return new Response("not a round board", { status: 404 });
   if (req.method === "GET") return json(current);
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // A running round can be pressed over — that is what cancels it and

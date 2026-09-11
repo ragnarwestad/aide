@@ -25,3 +25,11 @@ export function setBoardInfo(specFolder: string | undefined): void {
 export function getBoardInfo(): BoardInfo | undefined {
   return current;
 }
+
+/** A board `test/round/run` started from a CHECKOUT — the one that
+ *  serves the round's own fixture specs and may run them again (the Run
+ *  control, self-run.ts). A board started from a spec's branch (a
+ *  numbered folder) previews that spec and is never re-run. */
+export function isRoundBoard(): boolean {
+  return current !== undefined && !/^\d+(-|$)/.test(current.specFolder);
+}

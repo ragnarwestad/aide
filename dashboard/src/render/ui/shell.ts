@@ -12,7 +12,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
-import { getBoardInfo } from "./board-info.ts";
+import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
@@ -334,11 +334,13 @@ function boardText(lang: Language): string {
   return `${machine} - Test${which}${stopForm(lang)}${runForm(lang)}`;
 }
 
-/** A test board's Run control: the round's fixture specs through again
- *  on this same board (self-run.ts), the server left as it is. Nothing
- *  on a prod board. */
+/** A round board's Run control: the round's fixture specs through again
+ *  on this same board (self-run.ts), the server left as it is. Only on
+ *  a board started from a checkout — never on one started from a spec's
+ *  branch, which previews that spec and is not re-run — and nothing on
+ *  a prod board. */
 function runForm(lang: Language): string {
-  if (!getBoardInfo()) return "";
+  if (!isRoundBoard()) return "";
   return (
     `<form class="actionform" method="post" action="/api/self-run">` +
     `<button class="btn" type="submit" data-pending="starting…">${t(lang, "shell.runTestRound")}</button></form>`
