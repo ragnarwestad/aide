@@ -1,14 +1,15 @@
 {
-  "title": "A test that stays red",
+  "title": "A step that runs past its time limit",
   "steps": [
     "analyze",
     "implement",
     "archive"
   ],
   "expected": "not-archived",
+  "timeoutSec": 10,
   "expect": {
     "state": "stopped",
-    "stopReason": "tests-red",
-    "message": "tests are red"
+    "stopReason": "timeout",
+    "message": "time limit"
   }
 }

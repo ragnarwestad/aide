@@ -1,5 +1,5 @@
 {
-  "title": "A landing that conflicts",
+  "title": "A step the tool could not finish",
   "steps": [
     "analyze",
     "implement",
@@ -8,6 +8,6 @@
   "expected": "not-archived",
   "expect": {
     "state": "failed",
-    "message": "landing.mergeConflict"
+    "message": "press Implement again"
   }
 }

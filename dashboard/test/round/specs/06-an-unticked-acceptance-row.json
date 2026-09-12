@@ -1,5 +1,12 @@
 {
   "title": "An unticked acceptance row",
-  "steps": ["analyze", "implement", "archive"],
-  "expected": "not-archived"
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
+  "expected": "not-archived",
+  "expect": {
+    "state": "done"
+  }
 }

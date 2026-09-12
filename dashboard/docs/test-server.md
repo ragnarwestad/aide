@@ -125,6 +125,15 @@ told to leave the result running (`--keep`) instead of finishing and cleaning up
 dashboard a test run already proves works, just left up for a person to open instead of graded and
 torn down, implemented as a thin wrapper around it in `src/serve/boards/lifecycle.ts`.
 
+Each sample spec is a pair in `dashboard/test/round/specs/`: `<NN-slug>.md` is the description the
+spec is created from, and `<NN-slug>.json` says which steps it runs and how it must come out —
+`expected` (`archived` or `not-archived`), and optionally `expect`, what its row on the board must
+show at the end: the job's `state`, its `stopReason`, and its `message` (the message key when the
+board wrote one, `runner.jobCapExceeded`, or a piece of the sentence when the runner script's own
+English is the text). A fixture can also tighten its own time limit with `timeoutSec`, which is how
+the round has a row the clock stopped. The script grades every field and names the one that was
+off, so a message that changes on the board is caught here before anyone reads it on the real one.
+
 Two process ids are tracked for different reasons: one is this server's own handle on the spawned
 process, known immediately and what a stop signal reaches (the whole process group, so a server
 mid-build stops as cleanly as a fully running one); the other is read out of the running server's

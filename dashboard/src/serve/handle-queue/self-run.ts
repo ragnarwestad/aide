@@ -24,12 +24,27 @@ import { configSpecsPath } from "../../project/discover/config.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 import { json } from "../serve-helpers/http.ts";
 
+/** What the spec's row is expected to show once the round is over
+ *  (`dashboard/test/round/run` reads it back and compares): the job's
+ *  state, its stop reason when stopped, and the message — a message
+ *  KEY when the board wrote one (`runner.jobCapExceeded`), or a piece
+ *  of the sentence when the runner script's own English is the text. */
+export interface RoundExpect {
+  state?: string;
+  stopReason?: string;
+  message?: string;
+}
+
 export interface RoundSpec {
   slug: string;
   title: string;
   steps: string[];
   expected: string;
   dependsOn: string[];
+  /** A tighter time limit for every step of this spec, in seconds —
+   *  the one way a fixture can make the runner's clock the outcome. */
+  timeoutSec?: number;
+  expect?: RoundExpect;
   /** The `NN-slug` folder the create step made — absent until it has. */
   folder?: string;
 }
@@ -277,8 +292,18 @@ export function readFixtures(dir: string): RoundSpec[] {
         steps: string[];
         expected: string;
         dependsOn?: string[];
+        timeoutSec?: number;
+        expect?: RoundExpect;
       };
-      return { slug, title: meta.title, steps: meta.steps, expected: meta.expected, dependsOn: meta.dependsOn ?? [] };
+      return {
+        slug,
+        title: meta.title,
+        steps: meta.steps,
+        expected: meta.expected,
+        dependsOn: meta.dependsOn ?? [],
+        ...(typeof meta.timeoutSec === "number" ? { timeoutSec: meta.timeoutSec } : {}),
+        ...(meta.expect ? { expect: meta.expect } : {}),
+      };
     });
 }
 
@@ -327,6 +352,11 @@ async function queueFixtures(ctx: HandleQueueContext, project: string, specs: Ro
     // the spec's state from, before its steps are asked for.
     await pullDisplay(ctx, [specsDir]);
     ctx.invalidateScan();
-    await api("/api/queue", { project, specFolder: spec.folder, steps: spec.steps });
+    await api("/api/queue", {
+      project,
+      specFolder: spec.folder,
+      steps: spec.steps,
+      ...(spec.timeoutSec !== undefined ? { timeoutSec: spec.timeoutSec } : {}),
+    });
   }
 }

@@ -1,6 +1,15 @@
 {
   "title": "A fact that depends on the first",
-  "dependsOn": ["01"],
-  "steps": ["analyze", "implement", "archive"],
-  "expected": "archived"
+  "dependsOn": [
+    "01"
+  ],
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
+  "expected": "archived",
+  "expect": {
+    "state": "done"
+  }
 }

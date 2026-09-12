@@ -32,9 +32,14 @@ done
 prompt="$(cat)"
 
 emit() { printf '%s\n' "$1"; }
+# What the stand-in says a step cost. $0 everywhere but the one spec
+# whose point is the cost: the queue checks the job cap BEFORE a step
+# starts, so a cost that leaves no room for the next step's budget is
+# what makes it stop the job there (runner.ts, startOne).
+COST=0
 ok() {
-  emit "$(jq -cn --arg s "$session" --arg r "$1" \
-    '{type:"result",subtype:"success",is_error:false,session_id:$s,total_cost_usd:0,num_turns:1,result:$r}')"
+  emit "$(jq -cn --arg s "$session" --arg r "$1" --argjson c "$COST" \
+    '{type:"result",subtype:"success",is_error:false,session_id:$s,total_cost_usd:$c,num_turns:1,result:$r}')"
   exit 0
 }
 fail() {
@@ -149,6 +154,10 @@ fact_for() {
     an-unticked-acceptance-row) echo "an archive with an unticked acceptance row must not land" ;;
     a-landing-that-conflicts) echo "a conflict nobody resolves fails the landing" ;;
     an-archive-that-moves-nothing) echo "a step that says done without doing anything is caught" ;;
+    a-step-that-costs-more-than-the-job-cap) echo "a job the cap stops is stopped, not failed" ;;
+    a-step-that-runs-past-its-time-limit) echo "a step the clock ends is stopped, not failed" ;;
+    a-step-that-writes-outside-its-own-folder) echo "a step writes only its own spec folder" ;;
+    a-step-the-tool-could-not-finish) echo "a tool error fails the step and names the button" ;;
     *) echo "" ;;
   esac
 }
@@ -186,6 +195,10 @@ case "$step" in
     { status_file "⬜" "⬜"
       case "$slug" in an-unticked-acceptance-row) acceptance_section ;; esac
     } | write 4-status.md
+    # Analyze alone eats the room implement would need: the round's
+    # config caps a job at $5 and gives each step $1, so $4.50 spent
+    # here leaves the next step over the cap.
+    [ "$slug" = "a-step-that-costs-more-than-the-job-cap" ] && COST=4.5
     ok "analyzed $folder"
     ;;
   implement)
@@ -200,6 +213,28 @@ case "$step" in
         write_test "$slug" "$fact"
         append_fact "$fact"
         { status_file "✅" "✅"; acceptance_section; } | write 4-status.md
+        ;;
+      a-step-that-runs-past-its-time-limit)
+        # The fixture gives this spec a 10s limit; the runner's own clock
+        # ends the step (SIGTERM to the group) long before this returns.
+        say "claude-stub: $slug sleeps past its time limit"
+        sleep 120
+        fail "claude-stub: $slug was not stopped by the time limit"
+        ;;
+      a-step-that-writes-outside-its-own-folder)
+        fact="$(fact_for "$slug")"
+        write_test "$slug" "$fact"
+        append_fact "$fact"
+        status_file "✅" "✅" | write 4-status.md
+        # A note in a folder that is not this spec's — a new one, so it
+        # is the same whichever fixtures have been archived by now. The
+        # runner's specs guard discards it and fails the step
+        # (run-spec-specs-guard.sh).
+        mkdir -p "$specs_root/00-not-this-spec"
+        printf '# A note that does not belong here\n' > "$specs_root/00-not-this-spec/5-note.md"
+        ;;
+      a-step-the-tool-could-not-finish)
+        fail "the model's tool stopped with an error before it could finish"
         ;;
       *)
         fact="$(fact_for "$slug")"
