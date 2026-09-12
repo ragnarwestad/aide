@@ -74,7 +74,10 @@ resume it at the first unticked task if it found it in progress.
 ### Phase 2: GREEN — Implement until tests pass
 
 1. Run `aide-emit-run --phase green --spec <ID>`
-2. Implement each step from 3-solution.md
+2. Implement each step from 3-solution.md — before writing to a file,
+   check its current line count against any limit the project's coding
+   standard states (e.g. dashboard/CLAUDE.md's "Code health" section),
+   and split by responsibility instead of appending past it
 3. Run the tests after each step
 4. Verify that the tests PASS
 5. Tick this phase's task rows in `4-status.md` as each one's tests turn
