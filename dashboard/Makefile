@@ -39,7 +39,8 @@ test:
 
 # The browser tests, on their own, for a quiet machine. Run them when
 # layout or the page's own behaviour changed -- they are not part of
-# `test`, so nothing runs them for you.
+# `test`, so a landing never runs them. CI's dashboard job does, as its
+# own step after `make test`.
 test-e2e:
 	bun test --timeout 20000 test/e2e
 

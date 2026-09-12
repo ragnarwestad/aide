@@ -126,9 +126,12 @@ for (const viewport of VIEWPORTS) {
 // which caps its rendered width at 1216px — so 1270px and 1920px
 // already render `main`, and everything under it, at the identical
 // capped 1216px, on the CURRENT code too (measured directly with this
-// same harness before writing this test). 900px sits below that cap,
+// same harness before writing this test). 1100px sits below that cap,
 // where the table genuinely still grows with the window, so it is the
-// low end here instead of 1270px; 1920px stays as the high end.
+// low end here instead of 1270px; 1920px stays as the high end. Not
+// lower: from 59.5rem (952px) down, list.css drops one column per
+// step and the table is narrower BY DESIGN, so a low end under that
+// would measure the column drops, not the stretch this test guards.
 async function measureStateRow() {
   const [stateCol, table, frame, badgeslot, actionslot] = await Promise.all([
     page.locator('th[data-col="state"]').evaluate((el) => el.getBoundingClientRect()),
@@ -144,8 +147,8 @@ async function measureStateRow() {
 }
 
 test("spec 379 REQ-2/REQ-3/REQ-4: the State column, the table and the badge-to-button gap do not grow with the window", async () => {
-  await page.setViewportSize({ width: 900, height: 900 });
-  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 900px");
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 1100px");
   const narrow = await measureStateRow();
 
   await page.setViewportSize({ width: 1920, height: 1080 });

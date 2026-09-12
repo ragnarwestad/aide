@@ -74,6 +74,11 @@ jobs:
       # so it alone says nothing about types. The Makefile runs
       # `bunx tsc --noEmit` first.
       - run: cd dashboard && make test
+      # The browser tests are not in `make test` on purpose: that target
+      # is also the landing's gate on the serving host, where they lose
+      # to load. This runner is quiet, and it has the browser from the
+      # step above — so this is where they run.
+      - run: cd dashboard && make test-e2e
 
   markdownlint:
     name: markdownlint
