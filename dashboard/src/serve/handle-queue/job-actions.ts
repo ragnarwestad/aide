@@ -2,6 +2,7 @@
 // cancel, and the two tail-edit routes (steps, model). Extracted
 // from handle-queue.ts (split of split serve.ts step 2).
 import { readFileSync } from "node:fs";
+import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render.ts";
 import { readSpecState } from "../../project/parse-spec-state.ts";
@@ -206,13 +207,7 @@ export async function handleJobActionRoutes(
     // SIGTERM to the GROUP, never a bare pid: claude spawns
     // children, and a kill that only reaches the parent is not a
     // bound.
-    if (job.pgid !== undefined) {
-      try {
-        process.kill(-job.pgid, "SIGTERM");
-      } catch {
-        /* already gone */
-      }
-    }
+    signalGroup(job.pgid);
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(view);
   }
 

@@ -18,6 +18,7 @@
 // Not scoped to a project/specFolder, like `self-stop.ts`: a test board
 // serves exactly one project, the round's own.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
@@ -157,13 +158,7 @@ async function cancelLiveJobs(ctx: HandleQueueContext, project: string): Promise
       error: undefined,
       errorReason: undefined,
     });
-    if (result.ok && job.pgid !== undefined) {
-      try {
-        process.kill(-job.pgid, "SIGTERM");
-      } catch {
-        /* already gone */
-      }
-    }
+    if (result.ok) signalGroup(job.pgid);
   }
   const until = Date.now() + 30_000;
   while (Date.now() < until) {

@@ -58,6 +58,24 @@ afterEach(() => {
 });
 
 describe("stopBoard", () => {
+  // `kill(-1)` is every process the user owns. An entry whose wrapper
+  // pid is 1 (or 0, or absent) is dropped from the registry without
+  // any signal at all — measured twice on 2026-09-12, when a fixture's
+  // `wrapperPid: 1` reached a real kill and took the login session with
+  // it.
+  test("an entry whose wrapper pid is 1 is dropped without any signal", () => {
+    const store = new BoardStore();
+    store.set("aide", "spec-1", entry({ wrapperPid: 1 }));
+    store.set("aide", "spec-2", entry({ wrapperPid: 0 }));
+    store.set("aide", "spec-3", entry({ wrapperPid: 1, recovered: true }));
+    const ctx = makeCtx(store);
+    stopBoard(ctx, "aide", "spec-1");
+    stopBoard(ctx, "aide", "spec-2");
+    stopBoard(ctx, "aide", "spec-3");
+    expect(killed).toEqual([]);
+    expect(store.all()).toEqual([]);
+  });
+
   test("sends SIGTERM to the negated wrapper pid and clears the entry", () => {
     const store = new BoardStore();
     store.set("aide", "spec-1", entry());
