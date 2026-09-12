@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
     --folder) folder="${2:-}"; shift 2 ;;
     --file) file="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
-    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
 
@@ -41,7 +41,7 @@ done
 # below can be called — without it a missing jq turns every refusal into
 # a raw shell error instead of the one-JSON-line contract every caller
 # relies on.
-command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Jq is required"}'; exit 2; }
 
 refuse() {
   local msg="$1" line
@@ -59,10 +59,10 @@ emit_ok() {
   exit 0
 }
 
-[ -n "$specs_root" ] || refuse "missing --specs-root"
-[ -n "$folder" ] || refuse "missing --folder"
-[ -n "$file" ] || refuse "missing --file"
-[[ " $ALLOWED_FILES " == *" $file "* ]] || refuse "unknown --file: $file"
+[ -n "$specs_root" ] || refuse "Missing --specs-root"
+[ -n "$folder" ] || refuse "Missing --folder"
+[ -n "$file" ] || refuse "Missing --file"
+[[ " $ALLOWED_FILES " == *" $file "* ]] || refuse "Unknown --file: $file"
 
 # Dual-location resolution — mirrors aide-create-spec's --stamp-outcome,
 # needed because aide-archive's Step 2 writes 4-status.md AFTER
@@ -71,11 +71,11 @@ target=""
 for candidate in "$specs_root/$folder/$file" "$specs_root/archive/$folder/$file"; do
   [ -f "$candidate" ] && { target="$candidate"; break; }
 done
-[ -n "$target" ] || refuse "spec file not found: $folder/$file"
+[ -n "$target" ] || refuse "Spec file not found: $folder/$file"
 
 content_tmp="$(mktemp)"
 cat > "$content_tmp"
-[ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "no content on stdin"; }
+[ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "No content on stdin"; }
 mv "$content_tmp" "$target"
 
 # spec 355: landing 4-status.md is the moment its machine-read state is

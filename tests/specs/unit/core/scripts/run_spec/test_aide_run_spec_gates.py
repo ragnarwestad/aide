@@ -219,7 +219,7 @@ def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
 
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
-    assert "unknown spec" in out["error"], out
+    assert "Unknown spec" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(

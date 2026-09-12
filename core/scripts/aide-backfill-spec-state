@@ -39,13 +39,13 @@ specs_root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --specs-root) specs_root="${2:-}"; shift 2 ;;
-    *) echo "unknown argument: $1" >&2; exit 2 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
-[ -n "$specs_root" ] || { echo "missing --specs-root" >&2; exit 2; }
-command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 2; }
-declare -f write_spec_state >/dev/null 2>&1 || { echo "spec-state.sh could not be loaded" >&2; exit 2; }
+[ -n "$specs_root" ] || { echo "Missing --specs-root" >&2; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo "Jq is required" >&2; exit 2; }
+declare -f write_spec_state >/dev/null 2>&1 || { echo "Spec-state.sh could not be loaded" >&2; exit 2; }
 
 archive_dir="$specs_root/archive"
 [ -d "$archive_dir" ] || { echo '{"written":0,"uncertain":0}'; exit 0; }

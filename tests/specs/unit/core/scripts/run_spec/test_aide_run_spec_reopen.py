@@ -47,7 +47,7 @@ def test_the_archive_is_opened_for_reopen_and_for_no_other_step(
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 2, out
-    assert "unknown spec" in out["error"], out
+    assert "Unknown spec" in out["error"], out
 
 def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_claude):
     """The branch, the worktree and the commit are named after the spec,
@@ -167,7 +167,7 @@ def test_reset_is_refused_for_an_archived_spec(runner, workspace, fake_claude):
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="reset")
     assert rc == 2, out
-    assert "unknown spec" in out["error"]
+    assert "Unknown spec" in out["error"]
 
 def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
     runner, workspace, fake_claude

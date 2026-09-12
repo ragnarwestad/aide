@@ -35,33 +35,33 @@ export const MESSAGES = {
   // --- the runner's hold-backs and caps (runner.ts) -------------------------
 
   "runner.landingPause": {
-    en: "held back: a merge is still running — this starts when it has finished",
-    nb: "holdt tilbake: en merge kjører fortsatt — dette starter når den er ferdig",
+    en: "Held back: a merge is still running — this starts when it has finished",
+    nb: "Holdt tilbake: en merge kjører fortsatt — dette starter når den er ferdig",
     resolve: "this starts when it has finished",
   },
   "runner.archiveRunning": {
-    en: "held back: another archive is running in this project — it starts when that one has merged",
-    nb: "holdt tilbake: en annen arkivering kjører i dette prosjektet — dette starter når den er merget",
+    en: "Held back: another archive is running in this project — it starts when that one has merged",
+    nb: "Holdt tilbake: en annen arkivering kjører i dette prosjektet — dette starter når den er merget",
     resolve: "it starts when that one has merged",
   },
   "runner.createRunning": {
-    en: "held back: another spec is being created in this project — it starts when that one has its number",
-    nb: "holdt tilbake: en annen spec lages i dette prosjektet — denne starter når den har fått nummeret sitt",
+    en: "Held back: another spec is being created in this project — it starts when that one has its number",
+    nb: "Holdt tilbake: en annen spec lages i dette prosjektet — denne starter når den har fått nummeret sitt",
     resolve: "it starts when that one has its number",
   },
   "runner.notAnalyzed": {
-    en: "held back: not analyzed yet — run /aide-analyze first",
-    nb: "holdt tilbake: ikke analysert ennå — kjør /aide-analyze først",
+    en: "Held back: not analyzed yet — run /aide-analyze first",
+    nb: "Holdt tilbake: ikke analysert ennå — kjør /aide-analyze først",
     resolve: "run /aide-analyze first",
   },
   "runner.dependencyNotArchived": {
-    en: "held back: depends on {dependency}, which is not archived yet",
-    nb: "holdt tilbake: avhenger av {dependency}, som ikke er arkivert ennå",
+    en: "Held back: depends on {dependency}, which is not archived yet",
+    nb: "Holdt tilbake: avhenger av {dependency}, som ikke er arkivert ennå",
     exempt: "resolves on its own once the dependency is archived — nothing to press",
   },
   "runner.acceptanceCriteriaUnticked": {
-    en: "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
-    nb: "holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset ennå — kryss dem av på Sjekker-fanen",
+    en: "Held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
+    nb: "Holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset ennå — kryss dem av på Sjekker-fanen",
     resolve: "tick them on the Checks tab",
   },
   "runner.jobCapExceeded": {
@@ -69,22 +69,22 @@ export const MESSAGES = {
     // "{cap}" placeholder — `renderMessage`'s substitution only replaces
     // the "{cap}" substring, so the "$" survives untouched either side
     // of it.
-    en: "the job cap (${cap}) would be exceeded by the next step. — Raise the job cap in the project's " +
+    en: "The job cap (${cap}) would be exceeded by the next step. — Raise the job cap in the project's " +
       ".aide/config, then press {button} again.",
-    nb: "jobbtaket (${cap}) ville blitt overskredet av neste steg. — Øk jobbtaket i prosjektets .aide/config, " +
+    nb: "Jobbtaket (${cap}) ville blitt overskredet av neste steg. — Øk jobbtaket i prosjektets .aide/config, " +
       "og trykk {button} igjen.",
     resolve: "Raise the job cap",
   },
   "runner.dailyCapExceeded": {
-    en: "held back: the daily cap (${cap}) would be exceeded. — Raise the daily cap in the project's " +
+    en: "Held back: the daily cap (${cap}) would be exceeded. — Raise the daily cap in the project's " +
       ".aide/config, or wait for it to reset tomorrow.",
-    nb: "holdt tilbake: dagstaket (${cap}) ville blitt overskredet. — Øk dagstaket i prosjektets .aide/config, " +
+    nb: "Holdt tilbake: dagstaket (${cap}) ville blitt overskredet. — Øk dagstaket i prosjektets .aide/config, " +
       "eller vent til det nullstilles i morgen.",
     resolve: "Raise the daily cap",
   },
   "runner.runVanished": {
-    en: "the run vanished without leaving a result. — Press {button} again.",
-    nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",
+    en: "The run vanished without leaving a result. — Press {button} again.",
+    nb: "Kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
   // The bash cross-check's own verdict on a step that reported success
@@ -92,104 +92,104 @@ export const MESSAGES = {
   // said in the board's words: the English sentence the script wrote is
   // kept on the job as hover detail, never shown as the row's text.
   "runner.noProgressImplement": {
-    en: "implement reported success but left no real progress — nothing changed in the project. — Press {button} again.",
-    nb: "implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet. — Trykk {button} igjen.",
+    en: "Implement reported success but left no real progress — nothing changed in the project. — Press {button} again.",
+    nb: "Implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
   "runner.noProgressArchive": {
-    en: "archive reported success but left no real progress — the spec folder was never moved to archive/. — Press {button} again.",
-    nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk {button} igjen.",
+    en: "Archive reported success but left no real progress — the spec folder was never moved to archive/. — Press {button} again.",
+    nb: "Arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
   "runner.serverRestarted": {
-    en: "the server restarted while this step was running, and it left no result. — Press {button} again.",
-    nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk {button} igjen.",
+    en: "The server restarted while this step was running, and it left no result. — Press {button} again.",
+    nb: "Serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
 
   // --- the landing's refusals (land-branch/{steps,install,merge}.ts) -------
 
   "landing.createNothingToLand": {
-    en: "the spec was created, but the run reported no pushed branch to merge it from. — " +
+    en: "The spec was created, but the run reported no pushed branch to merge it from. — " +
       "Merge it by hand, in the checkout on the serving host, or check the queue's push mode.",
-    nb: "specen ble opprettet, men kjøringen rapporterte ingen pushet gren å merge fra. — " +
+    nb: "Specen ble opprettet, men kjøringen rapporterte ingen pushet gren å merge fra. — " +
       "Merge den for hånd, i det lokale repoet på serveren, eller sjekk køens pushmodus.",
     resolve: "Merge it by hand",
   },
   "landing.createLandingFailed": {
-    en: "the spec was created, but the merge failed. — Check the checkout on the serving host, " +
+    en: "The spec was created, but the merge failed. — Check the checkout on the serving host, " +
       "then try running the step again.",
-    nb: "specen ble opprettet, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
+    nb: "Specen ble opprettet, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.stepLandingFailed": {
-    en: "the {step} step finished, but the merge failed. — Check the checkout on the serving host, " +
+    en: "The {step} step finished, but the merge failed. — Check the checkout on the serving host, " +
       "then try running the step again.",
-    nb: "steget {step} ble ferdig, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
+    nb: "Steget {step} ble ferdig, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.stoppedStepLandingFailed": {
-    en: "the {step} step stopped at its time limit, and the merge of what it wrote failed. — " +
+    en: "The {step} step stopped at its time limit, and the merge of what it wrote failed. — " +
       "Check the checkout on the serving host, then try running the step again.",
-    nb: "steget {step} stoppet ved tidsgrensen, og mergen av det det skrev feilet. — " +
+    nb: "Steget {step} stoppet ved tidsgrensen, og mergen av det det skrev feilet. — " +
       "Sjekk det lokale repoet på serveren, og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.archiveLandingFailed": {
-    en: "the spec was archived, but the merge failed. — Check the checkout on the serving host, " +
+    en: "The spec was archived, but the merge failed. — Check the checkout on the serving host, " +
       "then try running the step again.",
-    nb: "specen ble arkivert, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
+    nb: "Specen ble arkivert, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.closeLandingFailed": {
-    en: "the spec was closed, but the merge failed. — Check the checkout on the serving host, " +
+    en: "The spec was closed, but the merge failed. — Check the checkout on the serving host, " +
       "then try running the step again.",
-    nb: "specen ble lukket, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
+    nb: "Specen ble lukket, men mergen feilet. — Sjekk det lokale repoet på serveren, " +
       "og prøv å kjøre steget igjen.",
     resolve: "Check the checkout on the serving host",
   },
   "landing.noInstallCommand": {
-    en: "merged, not installed — no {label} configured. — Set the {label} in the project's .aide/config " +
+    en: "Merged, not installed — no {label} configured. — Set the {label} in the project's .aide/config " +
       "to enable it.",
-    nb: "merget, ikke installert — ingen {label} er satt opp. — Sett {label} i prosjektets .aide/config " +
+    nb: "Merget, ikke installert — ingen {label} er satt opp. — Sett {label} i prosjektets .aide/config " +
       "for å slå det på.",
     resolve: "Set the {label} in the project's .aide/config",
   },
   "landing.installTimedOut": {
-    en: "merged, but the install timed out after {timeoutMs}ms and was stopped. — " +
+    en: "Merged, but the install timed out after {timeoutMs}ms and was stopped. — " +
       "Check the install command in the checkout on the serving host.",
-    nb: "merget, men installasjonen brukte for lang tid ({timeoutMs}ms) og ble stoppet. — " +
+    nb: "Merget, men installasjonen brukte for lang tid ({timeoutMs}ms) og ble stoppet. — " +
       "Sjekk installasjonskommandoen i det lokale repoet på serveren.",
     resolve: "Check the install command in the checkout on the serving host.",
   },
   "landing.installFailedExit": {
-    en: "merged, but the install failed (exit {code}). — Check the install command in the checkout on " +
+    en: "Merged, but the install failed (exit {code}). — Check the install command in the checkout on " +
       "the serving host.",
-    nb: "merget, men installasjonen feilet (avsluttet med {code}). — Sjekk installasjonskommandoen " +
+    nb: "Merget, men installasjonen feilet (avsluttet med {code}). — Sjekk installasjonskommandoen " +
       "i det lokale repoet på serveren.",
     resolve: "Check the install command in the checkout on the serving host.",
   },
   "landing.installCouldNotRun": {
-    en: "merged, but the install could not be run. — Check the install command in the checkout on the " +
+    en: "Merged, but the install could not be run. — Check the install command in the checkout on the " +
       "serving host.",
-    nb: "merget, men installasjonen kunne ikke kjøres. — Sjekk installasjonskommandoen i det lokale " +
+    nb: "Merget, men installasjonen kunne ikke kjøres. — Sjekk installasjonskommandoen i det lokale " +
       "repoet på serveren.",
     resolve: "Check the install command in the checkout on the serving host.",
   },
   "landing.cannotMergeFallback": {
-    en: "cannot merge {branch} in {root} — check the checkout on the serving host",
-    nb: "klarer ikke å merge {branch} i {root} — sjekk det lokale repoet på serveren",
+    en: "Cannot merge {branch} in {root} — check the checkout on the serving host",
+    nb: "Klarer ikke å merge {branch} i {root} — sjekk det lokale repoet på serveren",
     // Reached only when a `RepoMergeResult`'s own `error` is unset,
     // which every real refusal always sets — a defensive fallback, not
     // a sentence any known code path produces today.
     resolve: "check the checkout on the serving host",
   },
   "landing.cannotWorkOutDefaultBranch": {
-    en: "cannot work out the default branch in {root} — check the checkout on the serving host",
-    nb: "klarer ikke å finne hovedgrenen i {root} — sjekk det lokale repoet på serveren",
+    en: "Cannot work out the default branch in {root} — check the checkout on the serving host",
+    nb: "Klarer ikke å finne hovedgrenen i {root} — sjekk det lokale repoet på serveren",
     resolve: "check the checkout on the serving host",
   },
   "landing.stillOnOriginRunArchiveAgain": {
@@ -210,8 +210,8 @@ export const MESSAGES = {
   // --- branch-merge.ts's refuse() sites and its two fastForwardToOrigin ---
 
   "landing.nothingLeftToMerge": {
-    en: "there is nothing left to merge — the branch is not on origin ({ref} in {root})",
-    nb: "det er ingenting igjen å merge — grenen finnes ikke på origin ({ref} i {root})",
+    en: "There is nothing left to merge — the branch is not on origin ({ref} in {root})",
+    nb: "Det er ingenting igjen å merge — grenen finnes ikke på origin ({ref} i {root})",
     // Reached only through `reason: "gone"`, which the caller treats as
     // settled rather than a failure (`landBranch`'s own `else if
     // (result.reason === "gone")` branch never reads `.error`) — the
@@ -220,25 +220,25 @@ export const MESSAGES = {
     exempt: "the branch already being gone is itself the resolution — nothing to press",
   },
   "landing.cannotSwitch": {
-    en: "cannot switch to {base} ({ref} in {root})",
-    nb: "klarer ikke å bytte til {base} ({ref} i {root})",
+    en: "Cannot switch to {base} ({ref} in {root})",
+    nb: "Klarer ikke å bytte til {base} ({ref} i {root})",
     exempt: "an internal git step failure with no separate location of its own",
   },
   "landing.cannotFastForward": {
-    en: "cannot fast-forward {base} — merge it by hand, in the checkout on the serving host ({ref} in {root})",
-    nb: "kan ikke spole {base} fremover — merge den for hånd, i det lokale repoet på serveren ({ref} i {root})",
+    en: "Cannot fast-forward {base} — merge it by hand, in the checkout on the serving host ({ref} in {root})",
+    nb: "Kan ikke spole {base} fremover — merge den for hånd, i det lokale repoet på serveren ({ref} i {root})",
     resolve: "merge it by hand",
   },
   "landing.mergeConflict": {
-    en: "cannot merge into {base} — conflict, merge it by hand, in the checkout on the serving host " +
+    en: "Cannot merge into {base} — conflict, merge it by hand, in the checkout on the serving host " +
       "({ref} in {root})",
-    nb: "klarer ikke å merge med {base} — konflikt, merge den for hånd, i det lokale repoet på " +
+    nb: "Klarer ikke å merge med {base} — konflikt, merge den for hånd, i det lokale repoet på " +
       "serveren ({ref} i {root})",
     resolve: "merge it by hand",
   },
   "landing.pushFailed": {
-    en: "merged locally, but the push of {base} failed: {pushError} ({ref} in {root})",
-    nb: "merget lokalt, men push av {base} feilet: {pushError} ({ref} i {root})",
+    en: "Merged locally, but the push of {base} failed: {pushError} ({ref} in {root})",
+    nb: "Merget lokalt, men push av {base} feilet: {pushError} ({ref} i {root})",
     exempt: "the branch is already merged locally; git's own error names the failure and there is no further move",
   },
   "landing.baseMovedTwice": {
@@ -249,27 +249,27 @@ export const MESSAGES = {
     resolve: "run the step again",
   },
   "landing.gitCouldNotRun": {
-    en: "git could not be run — check the checkout on the serving host ({ref} in {root})",
-    nb: "git kunne ikke kjøres — sjekk det lokale repoet på serveren ({ref} i {root})",
+    en: "Git could not be run — check the checkout on the serving host ({ref} in {root})",
+    nb: "Git kunne ikke kjøres — sjekk det lokale repoet på serveren ({ref} i {root})",
     resolve: "check the checkout on the serving host",
   },
   "landing.deployWrongBranch": {
-    en: "the checkout is on {on}, not {base} — bring it there by hand first, in the checkout on the " +
+    en: "The checkout is on {on}, not {base} — bring it there by hand first, in the checkout on the " +
       "serving host ({ref} in {root})",
-    nb: "det lokale repoet står på {on}, ikke {base} — flytt det dit for hånd først, i det lokale repoet " +
+    nb: "Det lokale repoet står på {on}, ikke {base} — flytt det dit for hånd først, i det lokale repoet " +
       "på serveren ({ref} i {root})",
     resolve: "bring it there by hand first",
   },
   "landing.deployCannotFastForward": {
-    en: "cannot fast-forward it — bring it up to date by hand, in the checkout on the serving host " +
+    en: "Cannot fast-forward it — bring it up to date by hand, in the checkout on the serving host " +
       "({ref} in {root})",
-    nb: "klarer ikke å spole det fremover — hent det oppdatert for hånd, i det lokale repoet på serveren " +
+    nb: "Klarer ikke å spole det fremover — hent det oppdatert for hånd, i det lokale repoet på serveren " +
       "({ref} i {root})",
     resolve: "bring it up to date by hand",
   },
   "landing.testsRedOnMergeFallback": {
-    en: "the project's tests are red on the merge into {base}",
-    nb: "prosjektets tester er røde på mergen med {base}",
+    en: "The project's tests are red on the merge into {base}",
+    nb: "Prosjektets tester er røde på mergen med {base}",
     // The real message: the landing's own test run always carries its
     // own resolution; this is only the fallback for the rare case it
     // returns none at all.
@@ -281,12 +281,12 @@ export const MESSAGES = {
   // row while a later step runs (spec 327).
   "landing.stepFailed": {
     en: "{step} merge failed: {message}",
-    nb: "merge av {step} feilet: {message}",
+    nb: "Merge av {step} feilet: {message}",
     exempt: "the resolution is the message it carries",
   },
   "landing.stepStopped": {
     en: "{step} merge stopped: {message}",
-    nb: "mergen av {step} ble stoppet: {message}",
+    nb: "Mergen av {step} ble stoppet: {message}",
     exempt: "the resolution is the message it carries",
   },
   "landing.branchDeleteFailed": {
@@ -312,33 +312,33 @@ export const MESSAGES = {
   // --- the landing's own past-outcome sentences (job-state/word-phase.ts) -
 
   "wordPhase.stopNotImplementedYet": {
-    en: "nothing is implemented yet — run implement first",
-    nb: "ingenting er implementert ennå — kjør implementer først",
+    en: "Nothing is implemented yet — run implement first",
+    nb: "Ingenting er implementert ennå — kjør implementer først",
     resolve: "run implement first",
   },
   "wordPhase.stopAcceptanceCriteriaUnticked": {
-    en: "the Acceptance criteria are not all ticked — tick them on the Checks tab",
-    nb: "ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
+    en: "The Acceptance criteria are not all ticked — tick them on the Checks tab",
+    nb: "Ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
     resolve: "tick them on the Checks tab",
   },
   "wordPhase.stopNoPassingTestRecord": {
-    en: "the project's tests did not pass for this commit — run implement again",
-    nb: "prosjektets tester besto ikke for denne commiten — kjør implementer igjen",
+    en: "The project's tests did not pass for this commit — run implement again",
+    nb: "Prosjektets tester besto ikke for denne commiten — kjør implementer igjen",
     resolve: "run implement again",
   },
   "wordPhase.stopAlreadyArchived": {
-    en: "the spec was already archived — nothing to do",
-    nb: "specen var allerede arkivert — ingenting å gjøre",
+    en: "The spec was already archived — nothing to do",
+    nb: "Specen var allerede arkivert — ingenting å gjøre",
     exempt: "already finished — nothing left to resolve",
   },
   "wordPhase.stopConflictOpen": {
-    en: "a merge is open in the worktree — archive resolves it, so run archive again",
-    nb: "en merge står åpen i arbeidstreet — arkivering løser den, så kjør arkivering igjen",
+    en: "A merge is open in the worktree — archive resolves it, so run archive again",
+    nb: "En merge står åpen i arbeidstreet — arkivering løser den, så kjør arkivering igjen",
     resolve: "run archive again",
   },
   "wordPhase.filesDisagree": {
-    en: "the files disagree with what has run",
-    nb: "filene stemmer ikke med det som faktisk har kjørt",
+    en: "The files disagree with what has run",
+    nb: "Filene stemmer ikke med det som faktisk har kjørt",
     // States a fact with no action attached, the same shape as
     // ARCHIVED_REFUSAL (docs/error-sentences.md).
     exempt: "a bookkeeping mismatch report, not an action the reader takes",
@@ -347,46 +347,46 @@ export const MESSAGES = {
     // Read behind the phase's own name ("archive merge failed: …"), so
     // the sentence opens with what happened rather than repeating the
     // phase: "archive archived, but …" is the shape that gave.
-    en: "merge failed: the spec was archived, but its branch is still open — re-run archive.",
-    nb: "merge feilet: specen ble arkivert, men grenen står fortsatt åpen — kjør arkivering på nytt.",
+    en: "Merge failed: the spec was archived, but its branch is still open — re-run archive.",
+    nb: "Merge feilet: specen ble arkivert, men grenen står fortsatt åpen — kjør arkivering på nytt.",
     resolve: "re-run archive.",
   },
   "wordPhase.lastRunDisagreesUnlanded": {
-    en: "last run reported done — its work is on the branch, and archiving merges it in",
-    nb: "siste kjøring rapporterte ferdig — arbeidet ligger på grenen, og arkivering merger det inn",
+    en: "Last run reported done — its work is on the branch, and archiving merges it in",
+    nb: "Siste kjøring rapporterte ferdig — arbeidet ligger på grenen, og arkivering merger det inn",
     resolve: "archiving merges it in",
   },
   "wordPhase.lastRunDisagreesUnwritten": {
-    en: "last run reported done, but nothing reached the files — run it again",
-    nb: "siste kjøring rapporterte ferdig, men ingenting nådde filene — kjør det på nytt",
+    en: "Last run reported done, but nothing reached the files — run it again",
+    nb: "Siste kjøring rapporterte ferdig, men ingenting nådde filene — kjør det på nytt",
     resolve: "run it again",
   },
 
   // --- the landing's own test run and its verdicts -----------------------
 
   "testGate.cannotResolveCommand": {
-    en: "the merge could not work out the test command in {root} — {resolverError}",
-    nb: "mergen klarte ikke å finne testkommandoen i {root} — {resolverError}",
+    en: "The merge could not work out the test command in {root} — {resolverError}",
+    nb: "Mergen klarte ikke å finne testkommandoen i {root} — {resolverError}",
     exempt: "the resolver's own error, carried as a value, already names what to look at",
   },
   "testGate.cannotReadResolverAnswer": {
-    en: "the merge could not read aide-resolve-test-cmd's answer in {root}",
-    nb: "mergen klarte ikke å lese svaret fra aide-resolve-test-cmd i {root}",
+    en: "The merge could not read aide-resolve-test-cmd's answer in {root}",
+    nb: "Mergen klarte ikke å lese svaret fra aide-resolve-test-cmd i {root}",
     exempt: "an internal resolver failure with no separate action beyond investigating the resolver itself",
   },
   "testGate.timedOut": {
-    en: "the project's tests did not finish within {minutes} minutes on the merge — nothing was " +
+    en: "The project's tests did not finish within {minutes} minutes on the merge — nothing was " +
       "pushed; the archive step's own log has what they managed to say. Run archive again when the " +
       "host is quieter.",
-    nb: "prosjektets tester ble ikke ferdig innen {minutes} minutter på mergen — ingenting ble " +
+    nb: "Prosjektets tester ble ikke ferdig innen {minutes} minutter på mergen — ingenting ble " +
       "pushet; arkiveringsstegets egen logg har det de rakk å si. Kjør arkivering igjen når " +
       "maskinen er roligere.",
     resolve: "Run archive again",
   },
   "testGate.redSuite": {
-    en: "the project's tests are red on this merge, so nothing was pushed — the work is still on {branch}. " +
+    en: "The project's tests are red on this merge, so nothing was pushed — the work is still on {branch}. " +
       "The archive step's own log names the tests that failed; archive merges the work once they pass.",
-    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet — arbeidet ligger fortsatt på {branch}. " +
+    nb: "Prosjektets tester er røde på denne mergen, så ingenting ble pushet — arbeidet ligger fortsatt på {branch}. " +
       "Arkiveringsstegets egen logg navngir testene som feiler; arkivering merger arbeidet så snart de er grønne.",
     resolve: "archive merges the work once they pass",
   },
@@ -394,48 +394,48 @@ export const MESSAGES = {
   // --- a tab's refusal (queue/parse-request.ts, queue/store.ts) -----------
 
   "tab.bodyNotObject": {
-    en: "body is not an object" + INVALID_REQUEST_TAIL_EN,
-    nb: "kroppen er ikke et objekt" + INVALID_REQUEST_TAIL_NB,
+    en: "Body is not an object" + INVALID_REQUEST_TAIL_EN,
+    nb: "Kroppen er ikke et objekt" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidProject": {
-    en: "invalid project" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig prosjekt" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid project" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig prosjekt" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.unknownProject": {
-    en: "unknown or not-allowed project: {project}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ukjent eller ikke tillatt prosjekt: {project}" + INVALID_REQUEST_TAIL_NB,
+    en: "Unknown or not-allowed project: {project}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ukjent eller ikke tillatt prosjekt: {project}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidSpecFolder": {
-    en: "invalid specFolder" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig specFolder" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid specFolder" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig specFolder" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.scheduleKeyMustStartWith": {
-    en: "invalid specFolder: a schedule job's tracking key must start with schedule-" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig specFolder: en planlagt jobbs sporingsnøkkel må starte med schedule-" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid specFolder: a schedule job's tracking key must start with schedule-" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig specFolder: en planlagt jobbs sporingsnøkkel må starte med schedule-" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.unknownSpecFolder": {
-    en: "unknown specFolder: {specFolder}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ukjent specFolder: {specFolder}" + INVALID_REQUEST_TAIL_NB,
+    en: "Unknown specFolder: {specFolder}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ukjent specFolder: {specFolder}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.stepsMustBeAList": {
-    en: "steps must be a list of 1-8 workflow steps" + INVALID_REQUEST_TAIL_EN,
-    nb: "steps må være en liste med 1-8 arbeidsflytsteg" + INVALID_REQUEST_TAIL_NB,
+    en: "Steps must be a list of 1-8 workflow steps" + INVALID_REQUEST_TAIL_EN,
+    nb: "Steps må være en liste med 1-8 arbeidsflytsteg" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.createStepsMustBeAList": {
-    en: "steps must be a list" + INVALID_REQUEST_TAIL_EN,
-    nb: "steps må være en liste" + INVALID_REQUEST_TAIL_NB,
+    en: "Steps must be a list" + INVALID_REQUEST_TAIL_EN,
+    nb: "Steps må være en liste" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidStepsEntry": {
-    en: "invalid entry in steps: {value}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig verdi i steps: {value}" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid entry in steps: {value}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig verdi i steps: {value}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.archivedOnlyStepRefusal": {
@@ -449,38 +449,38 @@ export const MESSAGES = {
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidModel": {
-    en: "invalid model" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig modell" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid model" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig modell" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.unknownModel": {
-    en: "unknown or not-allowed model: {model}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ukjent eller ikke tillatt modell: {model}" + INVALID_REQUEST_TAIL_NB,
+    en: "Unknown or not-allowed model: {model}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ukjent eller ikke tillatt modell: {model}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.noModelConfigured": {
-    en: "no model choice is configured on this server" + INVALID_REQUEST_TAIL_EN,
-    nb: "ingen modellvalg er satt opp på denne serveren" + INVALID_REQUEST_TAIL_NB,
+    en: "No model choice is configured on this server" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ingen modellvalg er satt opp på denne serveren" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidModelForStep": {
-    en: "invalid model for {step}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig modell for {step}" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid model for {step}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig modell for {step}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidEffort": {
-    en: "invalid effort" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig innsatsnivå" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid effort" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig innsatsnivå" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidEffortForStep": {
-    en: "invalid effort for {step}: {level}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig innsatsnivå for {step}: {level}" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid effort for {step}: {level}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig innsatsnivå for {step}: {level}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidTightenField": {
-    en: "invalid {name}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig {name}" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid {name}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig {name}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.tightenMaxExceeded": {
@@ -489,23 +489,23 @@ export const MESSAGES = {
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.dependsOnMustBeList": {
-    en: "dependsOn must be a list" + INVALID_REQUEST_TAIL_EN,
-    nb: "dependsOn må være en liste" + INVALID_REQUEST_TAIL_NB,
+    en: "DependsOn must be a list" + INVALID_REQUEST_TAIL_EN,
+    nb: "DependsOn må være en liste" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.dependsOnAtMost20": {
-    en: "dependsOn: at most 20" + INVALID_REQUEST_TAIL_EN,
-    nb: "dependsOn: maks 20" + INVALID_REQUEST_TAIL_NB,
+    en: "DependsOn: at most 20" + INVALID_REQUEST_TAIL_EN,
+    nb: "DependsOn: maks 20" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.unknownDependsOnSpec": {
-    en: "unknown spec in dependsOn: {value}" + INVALID_REQUEST_TAIL_EN,
-    nb: "ukjent spec i dependsOn: {value}" + INVALID_REQUEST_TAIL_NB,
+    en: "Unknown spec in dependsOn: {value}" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ukjent spec i dependsOn: {value}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.dependsOnRepeats": {
-    en: "dependsOn repeats {value}" + INVALID_REQUEST_TAIL_EN,
-    nb: "dependsOn gjentar {value}" + INVALID_REQUEST_TAIL_NB,
+    en: "DependsOn repeats {value}" + INVALID_REQUEST_TAIL_EN,
+    nb: "DependsOn gjentar {value}" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.fieldRequired": {
@@ -529,8 +529,8 @@ export const MESSAGES = {
     resolve: FIX_IN_FORM_RESOLVE,
   },
   "tab.noSuchJob": {
-    en: "no such job" + INVALID_REQUEST_TAIL_EN,
-    nb: "ingen slik jobb" + INVALID_REQUEST_TAIL_NB,
+    en: "No such job" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ingen slik jobb" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.stepNotGivable": {
@@ -564,8 +564,8 @@ export const MESSAGES = {
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.invalidEffortValue": {
-    en: "invalid effort: {effort} (one of: {list})" + INVALID_REQUEST_TAIL_EN,
-    nb: "ugyldig innsatsnivå: {effort} (ett av: {list})" + INVALID_REQUEST_TAIL_NB,
+    en: "Invalid effort: {effort} (one of: {list})" + INVALID_REQUEST_TAIL_EN,
+    nb: "Ugyldig innsatsnivå: {effort} (ett av: {list})" + INVALID_REQUEST_TAIL_NB,
     resolve: INVALID_REQUEST_RESOLVE,
   },
   "tab.clashRefusal": {
@@ -593,49 +593,49 @@ export const MESSAGES = {
     resolve: "checkout on the serving host",
   },
   "tab.specsCheckoutDirty": {
-    en: "the specs checkout has uncommitted changes — nothing was pulled. — Commit or discard them in " +
+    en: "The specs checkout has uncommitted changes — nothing was pulled. — Commit or discard them in " +
       "the checkout on the serving host, then try again.",
-    nb: "det lokale specrepoet har ubekreftede endringer — ingenting ble hentet. — Commit eller " +
+    nb: "Det lokale specrepoet har ubekreftede endringer — ingenting ble hentet. — Commit eller " +
       "forkast dem i det lokale repoet på serveren, og prøv igjen.",
     resolve: "checkout on the serving host",
   },
   "tab.noDefaultBranchOnOrigin": {
-    en: "the specs checkout has no default branch on origin — nothing was pulled. — Check the specs " +
+    en: "The specs checkout has no default branch on origin — nothing was pulled. — Check the specs " +
       "repo's default branch on origin, from the checkout in the checkout on the serving host.",
-    nb: "det lokale specrepoet har ingen hovedgren på origin — ingenting ble hentet. — Sjekk " +
+    nb: "Det lokale specrepoet har ingen hovedgren på origin — ingenting ble hentet. — Sjekk " +
       "specrepoets hovedgren på origin, fra det lokale repoet på serveren.",
     resolve: "checkout on the serving host",
   },
   "tab.specsCheckoutWrongBranch": {
-    en: "the specs checkout is on {on}, not {base} — nothing was pulled. — Switch it to {base} in the " +
+    en: "The specs checkout is on {on}, not {base} — nothing was pulled. — Switch it to {base} in the " +
       "checkout on the serving host, then try again.",
-    nb: "det lokale specrepoet står på {on}, ikke {base} — ingenting ble hentet. — Bytt det til " +
+    nb: "Det lokale specrepoet står på {on}, ikke {base} — ingenting ble hentet. — Bytt det til " +
       "{base} i det lokale repoet på serveren, og prøv igjen.",
     resolve: "checkout on the serving host",
   },
   "tab.originUnreachable": {
-    en: "origin could not be reached — nothing was pulled. — Check the network from the serving host, " +
+    en: "Origin could not be reached — nothing was pulled. — Check the network from the serving host, " +
       "then try again.",
-    nb: "origin kunne ikke nås — ingenting ble hentet. — Sjekk nettverket fra serveren, og prøv igjen.",
+    nb: "Origin kunne ikke nås — ingenting ble hentet. — Sjekk nettverket fra serveren, og prøv igjen.",
     resolve: "the network from the serving host",
   },
   "tab.specsCheckoutDiverged": {
-    en: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was " +
+    en: "The specs checkout has commits origin does not, so it cannot fast-forward — nothing was " +
       "pulled. — Merge it by hand, in the checkout on the serving host.",
-    nb: "det lokale specrepoet har commits origin ikke har, så det kan ikke spoles fremover — " +
+    nb: "Det lokale specrepoet har commits origin ikke har, så det kan ikke spoles fremover — " +
       "ingenting ble hentet. — Merge det for hånd, i det lokale repoet på serveren.",
     resolve: "checkout on the serving host",
   },
   "tab.pullFailed": {
-    en: "the pull failed — nothing was pulled. — Try again; if it keeps failing, check it in the " +
+    en: "The pull failed — nothing was pulled. — Try again; if it keeps failing, check it in the " +
       "checkout on the serving host.",
-    nb: "hentingen feilet — ingenting ble hentet. — Prøv igjen; hvis det fortsetter å feile, sjekk det i " +
+    nb: "Hentingen feilet — ingenting ble hentet. — Prøv igjen; hvis det fortsetter å feile, sjekk det i " +
       "det lokale repoet på serveren.",
     resolve: "checkout on the serving host",
   },
   "tab.pullGitCouldNotRun": {
-    en: "git could not be run: {message}",
-    nb: "git kunne ikke kjøres: {message}",
+    en: "Git could not be run: {message}",
+    nb: "Git kunne ikke kjøres: {message}",
     exempt: "an internal git-spawn failure with no separate location beyond the checkout the button already acts on",
   },
   "tab.staleEdit": {

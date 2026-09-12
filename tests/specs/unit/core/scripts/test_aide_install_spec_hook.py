@@ -48,7 +48,7 @@ def test_no_arguments_refuses_with_a_usage_line(installer):
     result = subprocess.run([str(installer)], capture_output=True, text=True)
 
     assert result.returncode == 2
-    assert "usage:" in result.stderr
+    assert "Usage:" in result.stderr
 
 
 def test_the_hook_is_installed_into_the_common_git_dir(installer, tmp_path):

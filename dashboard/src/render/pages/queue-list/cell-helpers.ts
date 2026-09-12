@@ -278,7 +278,7 @@ export function createdCell(
  *  where markup would show as literal tags. `checkedAt` is epoch ms
  *  (the checker's cache stamp) and the label takes an ISO string. */
 export function notLandedTitle(checkedAt: number | undefined, now: number): string {
-  const why = "its branch is still on origin — re-run archive";
+  const why = "Its branch is still on origin — re-run archive";
   if (checkedAt === undefined) return why;
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 }

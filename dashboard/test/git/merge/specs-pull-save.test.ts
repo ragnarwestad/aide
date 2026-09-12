@@ -143,7 +143,7 @@ describe("saveSpecFile", () => {
       ["uncommitted changes", { "diff --quiet HEAD": { code: 1 } }, "uncommitted"],
       ["a spec branch", { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/162-edit\n" } }, "aide/162-edit"],
       ["a divergence", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
-      ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
+      ["an unreachable origin", { fetch: { code: 128 } }, "Origin"],
     ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
       const { root, dir } = checkout();
       const git = savable(root, extra);

@@ -25,7 +25,7 @@ find_bin() {
 claude_bin=""; codex_bin=""
 if [ "$tool" = "codex" ]; then
   codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
-  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "cannot find the codex binary (set AIDE_CODEX_BIN)"
+  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "Cannot find the codex binary (set AIDE_CODEX_BIN)"
 else
   # The environment wins; the project's own .aide/config is the fallback.
   # A per-machine file is where a project points its runs at a stand-in
@@ -39,7 +39,7 @@ else
     refuse "--tool fake-claude needs a stand-in binary — set AIDE_CLAUDE_BIN in the project's .aide/config"
   fi
   claude_bin="$(find_bin "$claude_override" claude)"
-  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
+  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "Cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 fi
 
 # Claude's safety is ONE string; Codex's is a sandbox mode and (in the
@@ -91,7 +91,7 @@ if [ "$command_name" = "schedule" ]; then
   # pulled to origin/$base a few lines above, so the two are identical
   # content-wise and only one of them exists yet.
   [ -f "$project_root/$prompt_file" ] \
-    || refuse "no such --prompt-file: $prompt_file (under $project_root)"
+    || refuse "No such --prompt-file: $prompt_file (under $project_root)"
   prompt="$(cat "$project_root/$prompt_file")
 $headless_note"
 elif [ -n "$spec_folder" ]; then
@@ -164,7 +164,7 @@ if [ "$tool" = "codex" ]; then
   # names its own thread and the result parser reads that back, exactly
   # as claude's session id is read back today.
   codex_safety_flags "$permission_mode" \
-    || refuse "invalid --permission-mode for codex: $permission_mode"
+    || refuse "Invalid --permission-mode for codex: $permission_mode"
   argv=("$codex_bin" exec --json)
   argv+=("${safety_flags[@]}")
   [ -n "$model" ] && argv+=(--model "$model")

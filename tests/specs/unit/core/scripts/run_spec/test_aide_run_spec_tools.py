@@ -317,7 +317,7 @@ def test_resolve_is_no_longer_a_command_this_script_will_run(runner, workspace, 
     rc, out, _ = run(runner, workspace, claude, command="resolve")
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
-    assert "invalid --command" in out["error"], out
+    assert "Invalid --command" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
@@ -330,5 +330,5 @@ def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
     rc, out, _ = run(runner, workspace, claude, command="review-plan")
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
-    assert "invalid --command" in out["error"], out
+    assert "Invalid --command" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"

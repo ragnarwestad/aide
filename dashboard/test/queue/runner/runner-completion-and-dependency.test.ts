@@ -166,7 +166,7 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
-    expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
+    expect(renderSentence("nb", after?.error)).toContain("Arkivering meldte ferdig");
   });
 
   test("any other failure keeps the sentence the script wrote", () => {
@@ -333,7 +333,7 @@ describe("parked on its own missing analyze step (spec 344)", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(stored?.error)).toBe("Held back: not analyzed yet — run /aide-analyze first");
   });
 
   test("the same job starts once the set no longer names it", () => {
@@ -353,7 +353,7 @@ describe("parked on its own missing analyze step (spec 344)", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), new Set([job.id]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(store.get(job.id)?.error)).toBe("Held back: not analyzed yet — run /aide-analyze first");
   });
 
   test("no set at all is exactly today's behaviour", () => {
@@ -411,7 +411,7 @@ describe("a step appended to a running job's tail (spec 160)", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain("held back: depends on 80,");
+    expect(sentence(after.error)).toContain("Held back: depends on 80,");
   });
 });
 
@@ -420,7 +420,7 @@ describe("a job parked on unticked acceptance criteria", () => {
   // run, the step would only be refused by aide-archive-spec, and a
   // chained analyze/implement/archive job would end with archive
   // unarchived. Held here, it waits for the tick and starts by itself.
-  const REASON = "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
+  const REASON = "Held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
 
   test("an archive job in the set stays queued with the reason on it", () => {
     const job = enqueue({ steps: ["archive"] });
@@ -447,7 +447,7 @@ describe("a job parked on unticked acceptance criteria", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), undefined, new Set([job.id]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80,");
+    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on 80,");
   });
 });
 

@@ -61,14 +61,14 @@ while [ $# -gt 0 ]; do
     --folder) folder="${2:-}"; shift 2 ;;
     --start-epoch) start_epoch="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
-    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
 
 # Same guard aide-archive-spec uses, before either helper below can be
 # called — without it, a missing jq turns every refusal into a raw shell
 # error instead of the one-JSON-line contract every caller relies on.
-command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Jq is required"}'; exit 2; }
 
 refuse() {
   local msg="$1" line
@@ -86,7 +86,7 @@ emit_ok() {
   exit 0
 }
 
-[ -n "$specs_root" ] || refuse "missing --specs-root"
+[ -n "$specs_root" ] || refuse "Missing --specs-root"
 
 if [ "$stamp_outcome" = "yes" ]; then
   # Patches an already-created 1-description.md's Tracking info with this
@@ -94,16 +94,16 @@ if [ "$stamp_outcome" = "yes" ]; then
   # aide-run-spec's own "outcome record" block (spec 245), which only
   # ever runs for a headless create. See core/skills/aide-create/SKILL.md
   # Step 5.
-  [ -n "$folder" ] || refuse "missing --folder"
-  [[ "$start_epoch" =~ ^[0-9]+$ ]] || refuse "missing or invalid --start-epoch"
+  [ -n "$folder" ] || refuse "Missing --folder"
+  [[ "$start_epoch" =~ ^[0-9]+$ ]] || refuse "Missing or invalid --start-epoch"
 
   target=""
   for candidate in "$specs_root/$folder/1-description.md" \
                    "$specs_root/archive/$folder/1-description.md"; do
     [ -f "$candidate" ] && { target="$candidate"; break; }
   done
-  [ -n "$target" ] || refuse "spec file not found: $folder/1-description.md"
-  grep -q '^## Tracking info' "$target" || refuse "no Tracking info heading in $target"
+  [ -n "$target" ] || refuse "Spec file not found: $folder/1-description.md"
+  grep -q '^## Tracking info' "$target" || refuse "No Tracking info heading in $target"
 
   # AIDE_NOW_EPOCH: the clock a test hands in, so a span is exact rather
   # than one second either way on a busy host.
@@ -154,9 +154,9 @@ fi
 # and writes the same folder — which is why the round had to send its
 # fixture specs one at a time. `mkdir` settles it instead: the loser of
 # the race takes the next free number and tries again.
-[ -n "$slug" ] || refuse "missing --slug"
-[ -n "$title" ] || refuse "missing --title"
-[ -n "$description" ] || refuse "missing --description"
+[ -n "$slug" ] || refuse "Missing --slug"
+[ -n "$title" ] || refuse "Missing --title"
+[ -n "$description" ] || refuse "Missing --description"
 
 # The rule's own definition of an acceptance-criteria line
 # (core/rules/spec-structure.md § 1-description) is
@@ -192,12 +192,12 @@ if [ -n "$number" ]; then
     expected="$(aide_next_spec_number "$specs_root")"
     highest="$(( 10#$expected - 1 ))"
     if [ "$((10#$number))" -le "$highest" ]; then
-      refuse "spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
+      refuse "Spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
     fi
   fi
   folder="${number}-${slug}"
   dest="$specs_root/$folder"
-  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+  [ -d "$dest" ] && refuse "Spec folder already exists: $dest"
 else
   declare -f aide_next_spec_number >/dev/null 2>&1 \
     || refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide, or pass --number"
@@ -219,9 +219,9 @@ else
       dest="$specs_root/$folder"
       if [ -d "$dest" ]; then
         rmdir "$lock" 2>/dev/null
-        refuse "spec folder already exists: $dest"
+        refuse "Spec folder already exists: $dest"
       fi
-      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; refuse "could not create $dest"; }
+      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; refuse "Could not create $dest"; }
       rmdir "$lock" 2>/dev/null
       claimed="yes"
       break
@@ -232,7 +232,7 @@ else
     fi
     sleep 0.1
   done
-  [ -n "$claimed" ] || refuse "could not claim a spec number under $specs_root — $lock is held"
+  [ -n "$claimed" ] || refuse "Could not claim a spec number under $specs_root — $lock is held"
 fi
 
 today="$(date -u +%Y-%m-%d)"
@@ -254,7 +254,7 @@ accept_line=""
 
 # Already made above when this run claimed its own number; `-p` is what
 # makes that case a no-op rather than a second, failing create.
-mkdir -p "$dest" || refuse "could not create $dest"
+mkdir -p "$dest" || refuse "Could not create $dest"
 
 # The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
 # <<'AIDE_EOF') so ${title}/${folder}/${today}/${depends_line}/

@@ -32,7 +32,7 @@
 set -u
 
 usage() {
-  echo "usage: aide-pull-specs <repo-path> [<repo-path> ...]" >&2
+  echo "Usage: aide-pull-specs <repo-path> [<repo-path> ...]" >&2
   exit 2
 }
 

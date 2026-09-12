@@ -82,7 +82,7 @@ export async function pullFastForward(
     if (dirty.code !== 0) {
       return refuse(
         errorSentence({
-          what: "the specs checkout has uncommitted changes — nothing was pulled.",
+          what: "The specs checkout has uncommitted changes — nothing was pulled.",
           resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
         }).text,
       );
@@ -92,7 +92,7 @@ export async function pullFastForward(
     if (!base) {
       return refuse(
         errorSentence({
-          what: "the specs checkout has no default branch on origin — nothing was pulled.",
+          what: "The specs checkout has no default branch on origin — nothing was pulled.",
           resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
         }).text,
       );
@@ -104,7 +104,7 @@ export async function pullFastForward(
       // would fetch a branch whose upstream may be gone.
       return refuse(
         errorSentence({
-          what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
+          what: `The specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
           resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
         }).text,
       );
@@ -114,7 +114,7 @@ export async function pullFastForward(
     if (fetched.code !== 0) {
       return refuse(
         errorSentence({
-          what: "origin could not be reached — nothing was pulled.",
+          what: "Origin could not be reached — nothing was pulled.",
           resolve: "Check the network from the serving host, then try again.",
         }).text,
       );
@@ -127,7 +127,7 @@ export async function pullFastForward(
     if (ancestor.code !== 0) {
       return refuse(
         errorSentence({
-          what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
+          what: "The specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
           resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
         }).text,
       );
@@ -138,7 +138,7 @@ export async function pullFastForward(
     if (merged.code !== 0) {
       return refuse(
         errorSentence({
-          what: "the pull failed — nothing was pulled.",
+          what: "The pull failed — nothing was pulled.",
           resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
         }).text,
       );

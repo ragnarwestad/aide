@@ -141,7 +141,7 @@ describe("pullFastForward", () => {
     const git = behind({ fetch: { code: 128 } });
     const result = await pullFastForward(git.run, DIR, base);
     expect(result.ok).toBe(false);
-    expect(result.note).toContain("origin");
+    expect(result.note).toContain("Origin");
     expect(git.calls.map((c) => c.args[0])).not.toContain("merge");
   });
 
@@ -157,5 +157,32 @@ describe("pullFastForward", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.note).toContain("git");
+  });
+
+  // Spec 442: every one of this function's refusals whose text does not
+  // open with a dynamic value (the checkout's directory) starts with an
+  // uppercase letter.
+  test("every fixed-lead refusal starts with an uppercase letter", async () => {
+    const uncommitted = await pullFastForward(behind({ "diff --quiet HEAD": { code: 1 } }).run, DIR, base);
+    expect(uncommitted.note).toMatch(/^[A-ZÆØÅ]/);
+
+    const noDefaultBranch = await pullFastForward(behind().run, DIR, async () => null);
+    expect(noDefaultBranch.note).toMatch(/^[A-ZÆØÅ]/);
+
+    const wrongBranch = await pullFastForward(
+      behind({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/150-one-page\n" } }).run,
+      DIR,
+      base,
+    );
+    expect(wrongBranch.note).toMatch(/^[A-ZÆØÅ]/);
+
+    const unreachableOrigin = await pullFastForward(behind({ fetch: { code: 128 } }).run, DIR, base);
+    expect(unreachableOrigin.note).toMatch(/^[A-ZÆØÅ]/);
+
+    const diverged = await pullFastForward(behind({ "merge-base --is-ancestor": { code: 1 } }).run, DIR, base);
+    expect(diverged.note).toMatch(/^[A-ZÆØÅ]/);
+
+    const pullFailed = await pullFastForward(behind({ "merge -q --ff-only": { code: 1 } }).run, DIR, base);
+    expect(pullFailed.note).toMatch(/^[A-ZÆØÅ]/);
   });
 });

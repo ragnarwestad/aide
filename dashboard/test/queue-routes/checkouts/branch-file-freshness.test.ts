@@ -129,7 +129,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     ran(dir, ["create", "analyze", "implement"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(phaseDone(line, "implement")).toBe(true);
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   test("REQ-2: a branch copy that genuinely disagrees with the history still says so", async () => {
@@ -140,7 +140,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze", "implement"]);
     const line = specControls(await listPage(base), FOLDER);
-    expect(line).toContain("the files disagree with what has run");
+    expect(line).toContain("The files disagree with what has run");
   });
 
   // Reported live on spec 306 (2026-09-01): `archive` had already run ON
@@ -168,7 +168,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     // half answers.
     ran(dir, ["create", "analyze", "implement", "archive"]);
     const line = specControls(await listPage(base), FOLDER);
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   test("REQ-3: no open branch falls back to the disk read, exactly as before this fix", async () => {
@@ -179,7 +179,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), FOLDER);
-    expect(line).toContain("the files disagree with what has run");
+    expect(line).toContain("The files disagree with what has run");
   });
 
   // Spec 362 (REQ-1/REQ-5, branch path): the branch's own 4-status.json
@@ -205,7 +205,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   // REQ-4: `withFreshness` stays synchronous, so a render never awaits

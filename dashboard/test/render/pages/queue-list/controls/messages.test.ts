@@ -133,8 +133,8 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     expect(panel(html)).toContain("hand ticks survive");
     expect(panel(html)).toContain("last re-run failed");
     // One message, not two rows — and the phase is named once, by the
-    // "archive held back:" prefix the panel already carried.
-    expect([...panel(html).matchAll(/archive/g)]).toHaveLength(1);
+    // "Archive held back:" prefix the panel already carried.
+    expect([...panel(html).matchAll(/archive/gi)]).toHaveLength(1);
   });
 
   // The second producer, and the one the description names first: a run

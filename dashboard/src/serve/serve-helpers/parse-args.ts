@@ -72,7 +72,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     // Spec 424: which spec/branch this process is a TEST board for —
     // absent means an ordinary (prod) server.
     else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
-    else throw new Error(`unknown argument: ${a}`);
+    else throw new Error(`Unknown argument: ${a}`);
   }
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");
   if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), "aide-dashboard", "aide-queue.json");

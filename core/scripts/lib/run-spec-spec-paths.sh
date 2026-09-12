@@ -397,7 +397,7 @@ if [ -n "$stopped" ]; then
   # can be re-run from where it got to. The row says "press Run"
   # separately (`nextActionHint`); this sentence only has to say why
   # and that nothing was lost.
-  error_msg="stopped at its own ${timeout_sec}s time limit for this step — work up to that point is committed to the branch"
+  error_msg="Stopped at its own ${timeout_sec}s time limit for this step — work up to that point is committed to the branch"
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.
@@ -411,11 +411,11 @@ elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
   if [ "$subtype" = "error_max_budget_usd" ]; then
     terminal_reason="budget"
-    error_msg="the step's budget was reached — raise the job cap in the project's .aide/config, then press $step_button again"
+    error_msg="The step's budget was reached — raise the job cap in the project's .aide/config, then press $step_button again"
   elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
-    [ -n "$error_msg" ] || error_msg="provider reported an error"
+    [ -n "$error_msg" ] || error_msg="Provider reported an error"
     error_msg="$error_msg — press $step_button again"
   elif [ "$exit_code" -ne 0 ]; then
     terminal_reason="cli-error"

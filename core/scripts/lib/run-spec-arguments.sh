@@ -136,7 +136,7 @@ while [ $# -gt 0 ]; do
     --worktree-base) worktree_base="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
-    *) printf '{"ok":false,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) printf '{"ok":false,"terminalReason":"refused","error":"Unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
 
@@ -176,22 +176,22 @@ already_landed() {
 
 is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && (( $(echo "$1 > 0" | bc -l) )); }
 
-[ -n "$project_dir" ] || refuse "missing --project-dir"
-[ -n "$command_name" ] || refuse "missing --command"
-[ -n "$spec_arg" ] || refuse "missing --spec"
-[ -n "$budget_usd" ] || refuse "missing --budget-usd"
-[ -n "$timeout_sec" ] || refuse "missing --timeout-sec"
+[ -n "$project_dir" ] || refuse "Missing --project-dir"
+[ -n "$command_name" ] || refuse "Missing --command"
+[ -n "$spec_arg" ] || refuse "Missing --spec"
+[ -n "$budget_usd" ] || refuse "Missing --budget-usd"
+[ -n "$timeout_sec" ] || refuse "Missing --timeout-sec"
 # Never defaulted: the most dangerous knob in the stage is typed out by
 # whoever starts the run, or the run does not start.
-[ -n "$permission_mode" ] || refuse "missing --permission-mode"
-[ -n "$result_file" ] || refuse "missing --result-file"
+[ -n "$permission_mode" ] || refuse "Missing --permission-mode"
+[ -n "$result_file" ] || refuse "Missing --result-file"
 
-is_positive_number "$budget_usd" || refuse "invalid --budget-usd: $budget_usd"
-is_positive_number "$timeout_sec" || refuse "invalid --timeout-sec: $timeout_sec"
+is_positive_number "$budget_usd" || refuse "Invalid --budget-usd: $budget_usd"
+is_positive_number "$timeout_sec" || refuse "Invalid --timeout-sec: $timeout_sec"
 
 case " $WORKFLOW_STEPS " in
   *" $command_name "*) ;;
-  *) refuse "invalid --command: $command_name (not an aide workflow step)" ;;
+  *) refuse "Invalid --command: $command_name (not an aide workflow step)" ;;
 esac
 # The word on the row's own button for this step ("Archive"): there is
 # no Run button on a spec's row, so a message that tells the reader to
@@ -200,7 +200,7 @@ step_button="$(printf '%s' "$command_name" | awk '{ print toupper(substr($0, 1, 
 
 case "$push_mode" in
   none|branch|pr) ;;
-  *) refuse "invalid --push: $push_mode (none, branch or pr)" ;;
+  *) refuse "Invalid --push: $push_mode (none, branch or pr)" ;;
 esac
 
 # `fake-claude` is Claude Code's own path with the binary swapped: same
@@ -210,16 +210,16 @@ esac
 # when nothing is there to stand in.
 case "$tool" in
   claude|codex|fake-claude) ;;
-  *) refuse "invalid --tool: $tool (claude, codex or fake-claude)" ;;
+  *) refuse "Invalid --tool: $tool (claude, codex or fake-claude)" ;;
 esac
 
 if [ -n "$effort" ]; then
   case " $EFFORT_LEVELS " in
     *" $effort "*) ;;
-    *) refuse "invalid --effort: $effort (one of: $EFFORT_LEVELS)" ;;
+    *) refuse "Invalid --effort: $effort (one of: $EFFORT_LEVELS)" ;;
   esac
 fi
 
-[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+[ -d "$project_dir" ] || refuse "No such --project-dir: $project_dir"
 project_root="$(git -C "$project_dir" rev-parse --show-toplevel 2>/dev/null)" \
-  || refuse "not a git repository: $project_dir"
+  || refuse "Not a git repository: $project_dir"

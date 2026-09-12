@@ -389,7 +389,7 @@ describe("quick steps before slow ones", () => {
     expect(store.get(analyze.id)?.state).toBe("running");
     const held = store.get(archive.id)!;
     expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("held back");
+    expect(sentence(held.error)).toContain("Held back");
   });
 });
 

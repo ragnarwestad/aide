@@ -329,7 +329,7 @@ class TestJqRequiredContractStaysConsistent:
             assert payload.get("ok") is False, f"{name}: {payload}"
             assert payload.get("exitCode") == 2, f"{name}: {payload}"
             assert payload.get("terminalReason") == "refused", f"{name}: {payload}"
-            assert "jq" in payload.get("error", ""), f"{name}: {payload}"
+            assert "jq" in payload.get("error", "").lower(), f"{name}: {payload}"
 
 
 

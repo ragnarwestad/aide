@@ -12,7 +12,7 @@ refuse_base_inside_a_root() {
   for root in "${roots[@]}"; do
     case "$candidate/" in
       "$root"/*)
-        refuse "the worktree base $candidate is inside $root — a worktree there would be committed by the run"
+        refuse "The worktree base $candidate is inside $root — a worktree there would be committed by the run"
         ;;
     esac
   done
@@ -21,8 +21,8 @@ refuse_base_inside_a_root() {
 # known: a symlinked base could resolve into a root the literal path did
 # not name.
 refuse_base_inside_a_root "$worktree_base"
-mkdir -p "$worktree_base" 2>/dev/null || refuse "cannot create the worktree base at $worktree_base"
-worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the worktree base"
+mkdir -p "$worktree_base" 2>/dev/null || refuse "Cannot create the worktree base at $worktree_base"
+worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "Cannot resolve the worktree base"
 refuse_base_inside_a_root "$worktree_base"
 # Keyed by project AND spec: two projects can share one specs repo, and a
 # path keyed by the spec alone would put both runs in the same directory.

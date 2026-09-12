@@ -125,7 +125,7 @@ sync_branch_with_origin() {
   git -C "$root" merge-base --is-ancestor "$tip" "$here" >/dev/null 2>&1 && return 0
   if git -C "$root" merge-base --is-ancestor "$here" "$tip" >/dev/null 2>&1; then
     git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
-      || refuse "cannot fast-forward $br to origin's copy in $root — merge it by hand, in the checkout on the serving host"
+      || refuse "Cannot fast-forward $br to origin's copy in $root — merge it by hand, in the checkout on the serving host"
     return 0
   fi
   refuse "$br has diverged from origin's copy in $root (each has commits the other has not) — reconcile them by hand, in the checkout on the serving host"
@@ -273,7 +273,7 @@ update_branch_to_base() {
       return 0
     fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
-    refuse "cannot bring $branch up to date with $ref in $root — conflict, merge it by hand, in the checkout on the serving host" "conflict"
+    refuse "Cannot bring $branch up to date with $ref in $root — conflict, merge it by hand, in the checkout on the serving host" "conflict"
   fi
   return 0
 }
@@ -333,7 +333,7 @@ acquire_worktree_lock() {
     fi
     if [ "$(date +%s)" -ge "$deadline" ]; then
       worktree_lock=""
-      refuse "timed out waiting for the worktree lock on $root (pid ${owner_pid:-unknown} may be stuck)"
+      refuse "Timed out waiting for the worktree lock on $root (pid ${owner_pid:-unknown} may be stuck)"
     fi
     sleep 0.2
   done

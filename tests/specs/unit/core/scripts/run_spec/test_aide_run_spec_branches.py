@@ -421,5 +421,5 @@ def test_extra_project_dir_is_no_longer_an_argument(runner, workspace, fake_clau
     rc, out, _ = run(runner, workspace, claude, extra_project_dir="/tmp/whatever")
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
-    assert "unknown argument" in out["error"]
+    assert "Unknown argument" in out["error"]
     assert "--extra-project-dir" in out["error"]

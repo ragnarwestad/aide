@@ -109,7 +109,7 @@ rm -f "$0"
 # (aide-archive-spec) that never shares this gate's resolver functions.
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
-command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Jq is required"}'; exit 2; }
 
 # Each phase of this run is a file beside the script (split 2026-09-04).
 # A missing one is an installation that did not finish, and it says so:
@@ -117,7 +117,7 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 # a caller reading the result file would see nothing but an exit code.
 need_part() {
   [ -f "$SCRIPT_DIR/lib/$1" ] && return 0
-  echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"lib/'"$1"' is missing beside aide-run-spec — reinstall aide (implementations/claude-code/install.sh)"}'
+  echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Lib/'"$1"' is missing beside aide-run-spec — reinstall aide (implementations/claude-code/install.sh)"}'
   exit 2
 }
 
@@ -233,7 +233,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   ok="false"
   terminal_reason="unpushed"
   suffix=" (stopped: unpushed)"
-  error_msg="the step's own work did not reach origin: $unpushed_roots"
+  error_msg="The step's own work did not reach origin: $unpushed_roots"
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
   # Nothing derived leaves the file alone: an empty line says less than
@@ -303,7 +303,7 @@ elif [ -n "$status_file" ]; then
     ok="false"
     terminal_reason="unpushed"
     suffix=" (stopped: unpushed)"
-    error_msg="the workflow-steps line did not reach origin: $unpushed_roots"
+    error_msg="The workflow-steps line did not reach origin: $unpushed_roots"
   fi
 fi
 

@@ -7,7 +7,7 @@ import { FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render
  *  in one place: the GET that would have rendered the form and the POST
  *  that would have written the file both say it, and the page a reader
  *  lands on is the spec's own. */
-export const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
+export const ARCHIVED_REFUSAL = "This spec is archived — it is a record, and cannot be edited";
 
 /** What a Save's commit RECORDS. Two routes since spec 212 — the
  *  document tabs' own Save (any of the four files, spec 310) and the

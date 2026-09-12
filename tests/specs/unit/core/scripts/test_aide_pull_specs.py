@@ -189,7 +189,7 @@ def test_no_arguments_refuses_with_a_usage_line(puller):
     result = subprocess.run([str(puller)], capture_output=True, text=True)
 
     assert result.returncode == 2
-    assert "usage:" in result.stderr
+    assert "Usage:" in result.stderr
 
 
 def test_the_script_is_installed_with_the_other_shared_scripts(workspace_root):

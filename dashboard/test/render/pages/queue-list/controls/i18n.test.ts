@@ -47,7 +47,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
     expect(html).not.toContain(">pull request<");
   });
 
-  test("a notice line: a held-back archive reads 'arkivering holdt tilbake: <reason>'", () => {
+  test("a notice line: a held-back archive reads 'Arkivering holdt tilbake: <reason>'", () => {
     const html = renderQueueRows(
       [row({ id: "r3", specFolder: "3-x", steps: ["archive"], state: "done" })],
       {
@@ -57,7 +57,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
         lang: "nb",
       },
     );
-    expect(html).toContain("arkivering holdt tilbake: a real reason");
+    expect(html).toContain("Arkivering holdt tilbake: a real reason");
     expect(html).not.toContain("archive held back —");
   });
 
@@ -100,16 +100,16 @@ describe("the row's message panel", () => {
 
   test("a phase whose last run stopped says so in Norwegian", () => {
     const html = stopped("nb");
-    expect(html).toContain("ingenting er implementert ennå");
+    expect(html).toContain("Ingenting er implementert ennå");
     expect(html).not.toContain("nothing is implemented yet");
   });
 
   test("the same line in English is unchanged", () => {
-    expect(stopped("en")).toContain("archive stopped: nothing is implemented yet");
+    expect(stopped("en")).toContain("archive stopped: Nothing is implemented yet");
   });
 
   test("a held-back job names the phase that is waiting, in Norwegian", () => {
-    expect(held()).toContain("implementering holdt tilbake:");
+    expect(held()).toContain("implementering Holdt tilbake:");
     expect(held()).not.toContain("implement holdt tilbake:");
   });
 

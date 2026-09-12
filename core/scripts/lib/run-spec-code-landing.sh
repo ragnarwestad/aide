@@ -43,7 +43,7 @@ if declare -f aide_specs_root >/dev/null 2>&1; then
 else
   specs_root="$project_root/specs"
 fi
-[ -d "$specs_root" ] || refuse "no specs root at $specs_root"
+[ -d "$specs_root" ] || refuse "No specs root at $specs_root"
 # Resolved, because everything below compares it with `git rev-parse
 # --show-toplevel`'s answer BY TEXT to work out where inside the specs
 # repository this root sits. git resolves symlinks and a configured path
@@ -152,21 +152,21 @@ fi
 # which is what keeps this from repeating spec 82's mistake of one rule
 # written down twice.
 if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
-  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
+  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "Invalid --spec: $spec_arg"
   # Refused here, before a worktree exists, like every other required
   # argument — a create without these two has nothing to create.
-  [ -n "$title" ] || refuse "missing --title (required for create)"
-  [ -n "$description" ] || refuse "missing --description (required for create)"
+  [ -n "$title" ] || refuse "Missing --title (required for create)"
+  [ -n "$description" ] || refuse "Missing --description (required for create)"
 elif [ -z "$spec_folder" ] && [ "$command_name" = "schedule" ]; then
   # A second, unrelated exemption from "the folder must already exist"
   # (spec 259) — not a copy of `create`'s, which is a different shape
   # entirely: a schedule entry never becomes a spec folder, so its
   # tracking key names only a branch and a worktree, for as long as the
   # entry exists.
-  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
-  [ -n "$prompt_file" ] || refuse "missing --prompt-file (required for schedule)"
+  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "Invalid --spec: $spec_arg"
+  [ -n "$prompt_file" ] || refuse "Missing --prompt-file (required for schedule)"
 else
-  [ -n "$spec_folder" ] || refuse "unknown spec: $spec_arg (not under $specs_root)"
+  [ -n "$spec_folder" ] || refuse "Unknown spec: $spec_arg (not under $specs_root)"
 fi
 spec_id="${spec_folder%%-*}"
 # What the branch, the worktree and the commit message are named after:

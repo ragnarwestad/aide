@@ -125,11 +125,11 @@ case " $DEPENDENCY_GATED_STEPS " in
       for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
         resolve_dependency_folder "$dep_id"
         [ -n "$dep_folder" ] \
-          || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+          || refuse "Spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
         [ "$dep_folder" = "$spec_folder" ] \
-          && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+          && refuse "Spec $spec_folder cannot depend on itself ($dep_id)"
         dependency_archived_on_origin "$dep_folder" \
-          || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
+          || refuse "Spec $spec_folder depends on $dep_folder, which is not archived yet"
       done
     fi
     ;;
@@ -178,9 +178,9 @@ note_pull_error() {
 
 for root in "${roots[@]}"; do
   base="$(default_branch "$root")"
-  [ -n "$base" ] || refuse "cannot work out the default branch in $root"
+  [ -n "$base" ] || refuse "Cannot work out the default branch in $root"
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
-    git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
+    git -C "$root" switch -q "$base" 2>/dev/null || refuse "Cannot switch to $base in $root"
   fi
   if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
     if git -C "$root" fetch -q origin "$base" 2>/dev/null; then

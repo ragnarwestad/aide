@@ -310,7 +310,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // The ordinary queued badge, with the reason underneath it — no
     // seventh badge variant and no new job state were introduced.
     expect(html).toContain('badge b-idle">queued');
-    expect(html).toContain("held back: depends on 80, which is not archived yet");
+    expect(html).toContain("Held back: depends on 80, which is not archived yet");
   });
 
   test("cancelling a parked job cancels it like any other queued job", async () => {
@@ -345,7 +345,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     // Nor go on rendering on the row (REQ-2).
-    expect(html).not.toContain("held back: depends on 80, which is not archived yet");
+    expect(html).not.toContain("Held back: depends on 80, which is not archived yet");
   });
 
   // --- spec 344: the same park, one question earlier -------------------------
@@ -400,7 +400,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       };
       expect(listed.jobs[0].state).toBe("queued");
       expect(sentence(listed.jobs[0].error)).toBe(
-        "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
+        "Held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
       );
     });
 
@@ -456,7 +456,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         jobs: { state: string; error?: unknown }[];
       };
       expect(listed.jobs[0].state).toBe("queued");
-      expect(sentence(listed.jobs[0].error)).toBe("held back: not analyzed yet — run /aide-analyze first");
+      expect(sentence(listed.jobs[0].error)).toBe("Held back: not analyzed yet — run /aide-analyze first");
     });
 
     test("the job proceeds once analyze is on the line", async () => {

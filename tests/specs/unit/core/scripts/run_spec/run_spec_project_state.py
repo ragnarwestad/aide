@@ -152,9 +152,9 @@ def _break_worktree_links(workspace):
 # `rc == 2` assertion would pass for that wrong reason — caught by doing
 # the disable-and-confirm proof this comment describes, below.
 READINESS_SCENARIOS = {
-    ("gitRoot", "the project directory is not a git repository"): (_break_git_root, "not a git repository"),
-    ("specsRoot", "the specs root does not exist as a directory"): (_break_specs_root, "no specs root at"),
-    ("defaultBranch", "another worktree already has the default branch checked out"): (_break_default_branch_held_elsewhere, "cannot switch to"),
+    ("gitRoot", "the project directory is not a git repository"): (_break_git_root, "Not a git repository"),
+    ("specsRoot", "the specs root does not exist as a directory"): (_break_specs_root, "No specs root at"),
+    ("defaultBranch", "another worktree already has the default branch checked out"): (_break_default_branch_held_elsewhere, "Cannot switch to"),
     ("worktreeLinks", "a configured worktree-link entry names a path that is not on disk"): (_break_worktree_links, "nowhere"),
 }
 
@@ -207,32 +207,32 @@ BASH_ERROR_REGISTRY: list[dict] = [
     },
     {
         "name": "a local branch cannot fast-forward to origin's copy (sync_branch_with_origin)",
-        "pattern": r"cannot fast-forward \$br to origin's copy.*",
+        "pattern": r"Cannot fast-forward \$br to origin's copy.*",
         "resolve": "in the checkout on the serving host",
     },
     {
         "name": "bringing a branch up to date conflicts (update_branch_to_base)",
-        "pattern": r"cannot bring \$branch up to date with \$ref.*",
+        "pattern": r"Cannot bring \$branch up to date with \$ref.*",
         "resolve": "in the checkout on the serving host",
     },
     {
         "name": "a completed implement left no real progress",
-        "pattern": r"the step reported success but left no real progress — nothing changed in the project.*",
+        "pattern": r"The step reported success but left no real progress — nothing changed in the project.*",
         "resolve": "Press $step_button again",
     },
     {
         "name": "a completed archive left no real progress",
-        "pattern": r"the step reported success but left no real progress — the spec folder was never moved to archive/.*",
+        "pattern": r"The step reported success but left no real progress — the spec folder was never moved to archive/.*",
         "resolve": "Press $step_button again",
     },
     {
         "name": "a completed analyze changed things outside its scope",
-        "pattern": r"the step reported success but changed things outside analyze's scope.*",
+        "pattern": r"The step reported success but changed things outside analyze's scope.*",
         "resolve": "Press $step_button again",
     },
     {
         "name": "a step stopped at its own time limit",
-        "pattern": r"stopped at its own \$\{timeout_sec\}s time limit for this step.*",
+        "pattern": r"Stopped at its own \$\{timeout_sec\}s time limit for this step.*",
         "exempt": "a time-limited step resumes on its own next run — nothing to resolve by hand",
     },
     {
@@ -242,12 +242,12 @@ BASH_ERROR_REGISTRY: list[dict] = [
     },
     {
         "name": "the step's own budget was reached",
-        "pattern": r"the step's budget was reached.*",
+        "pattern": r"The step's budget was reached.*",
         "resolve": "press $step_button again",
     },
     {
         "name": "the provider reported an error with no message of its own (is_error)",
-        "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press \$step_button again"',
+        "pattern": r'error_msg="Provider reported an error"\n\s*error_msg="\$error_msg — press \$step_button again"',
         "resolve": "press $step_button again",
     },
     {

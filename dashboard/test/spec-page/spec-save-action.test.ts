@@ -105,7 +105,7 @@ describe("a save that cannot go through changes nothing", () => {
       "aide/162-edit",
     ],
     ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
-    ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
+    ["an unreachable origin", { fetch: { code: 128 } }, "Origin"],
     ["a push that fails", { push: { code: 1 } }, "push"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
     test(`${what}: back to the editor with the reason`, async () => {

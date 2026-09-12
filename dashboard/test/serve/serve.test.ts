@@ -205,7 +205,7 @@ describe("generated site nav (criterion 5)", () => {
 // the bash suite's one for one.
 describe("parseArgs (spec 412)", () => {
   test("--claude-usage is refused as an unknown argument, not silently accepted", () => {
-    expect(() => parseArgs(["--claude-usage", "http://x"])).toThrow("unknown argument: --claude-usage");
+    expect(() => parseArgs(["--claude-usage", "http://x"])).toThrow("Unknown argument: --claude-usage");
   });
 
   // Spec 424: which spec this process is a test board for.

@@ -226,7 +226,7 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     // Said once. The queue's own sentence opens "archive held back:"
     // now, so the file's note being absent is a COUNT, not the absence
     // of those words.
-    expect(notice.match(/held back/g)).toHaveLength(1);
+    expect(notice.match(/Held back/g)).toHaveLength(1);
     // And the link is untouched: it is a different fact.
     expect(notice).toContain("Click the link to start a test server running this branch");
   });

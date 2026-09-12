@@ -4,16 +4,16 @@ import { renderMessage, renderSentence } from "./message.ts";
 describe("renderMessage", () => {
   test("renders a message with values substituted, per language", () => {
     expect(renderMessage("en", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "held back: depends on 80-x, which is not archived yet",
+      "Held back: depends on 80-x, which is not archived yet",
     );
     expect(renderMessage("nb", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
+      "Holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
     );
   });
 
   test("renders a message with no values unchanged", () => {
     expect(renderMessage("en", { key: "runner.notAnalyzed" })).toBe(
-      "held back: not analyzed yet — run /aide-analyze first",
+      "Held back: not analyzed yet — run /aide-analyze first",
     );
   });
 });
@@ -26,13 +26,13 @@ describe("renderSentence", () => {
 
   test("a BoardMessage renders through the catalog", () => {
     expect(renderSentence("nb", { key: "runner.runVanished", values: { button: "Archive" } })).toBe(
-      "kjøringen forsvant uten å etterlate et resultat. — Trykk Archive igjen.",
+      "Kjøringen forsvant uten å etterlate et resultat. — Trykk Archive igjen.",
     );
   });
 
   test("an array of mixed Sentences joins rendered text with '; '", () => {
     const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
-    expect(result).toBe("cannot fast-forward main; the run vanished without leaving a result. — Press Implement again.");
+    expect(result).toBe("cannot fast-forward main; The run vanished without leaving a result. — Press Implement again.");
   });
 
   test("undefined stays undefined", () => {

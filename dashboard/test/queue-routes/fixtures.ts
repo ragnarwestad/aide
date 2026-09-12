@@ -83,7 +83,7 @@ export const OPEN_81 = openQuery("aide/81-queue-and-runner");
  *  state it was waiting for, and the assertion after it failed on that
  *  page — so the report named the assertion, and the wait that actually
  *  gave up was invisible. That is what stopped a landing on 2026-09-05:
- *  the row still carried "the files disagree with what has run" because
+ *  the row still carried "The files disagree with what has run" because
  *  `dated` had never come true, and the failure read as a broken row.
  *
  *  `what` names the condition in that error. The budget is generous

@@ -102,7 +102,7 @@ describe("spec 154: what has run is what has been committed", () => {
     ran(dir, ["analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   // Criterion 3, the same fixture: the row does not swallow it.
@@ -112,7 +112,7 @@ describe("spec 154: what has run is what has been committed", () => {
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
-    expect(line).toContain("the files disagree with what has run");
+    expect(line).toContain("The files disagree with what has run");
   });
 
   test("and so does a file that has NOT caught up with a step that ran", async () => {
@@ -121,7 +121,7 @@ describe("spec 154: what has run is what has been committed", () => {
     ran(dir, ["create", "analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).toContain("the files disagree with what has run");
+    expect(line).toContain("The files disagree with what has run");
   });
 
   test("a file that agrees with the history says nothing at all", async () => {
@@ -129,7 +129,7 @@ describe("spec 154: what has run is what has been committed", () => {
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   // Spec 362 (REQ-1/REQ-5, disk path): a state file's own claim is the
@@ -152,7 +152,7 @@ describe("spec 154: what has run is what has been committed", () => {
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toContain("the files disagree with what has run");
+    expect(line).not.toContain("The files disagree with what has run");
   });
 
   // Criterion 2: the 147 incident. No job in the queue's memory at all
@@ -343,11 +343,11 @@ describe("a description newer than the analysis is shown on the row", () => {
     // and that scan was taken at boot — before `analysedSpec` wrote.
     // The watcher clears it and the row catches up a tick later.
     const html = await listUntil(base, (h) =>
-      specControls(h, "81-queue-and-runner").includes("the files disagree with what has run"),
+      specControls(h, "81-queue-and-runner").includes("The files disagree with what has run"),
     );
     expect(html).not.toContain("description changed since");
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
-    expect(line).toContain("the files disagree with what has run");
+    expect(line).toContain("The files disagree with what has run");
   });
 });

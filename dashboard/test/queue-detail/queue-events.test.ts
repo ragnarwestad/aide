@@ -294,7 +294,7 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     // ordinary "archived", not as a problem (spec 208's own contract:
     // fail closed, never claim a mark it cannot back up).
     const before = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
-    expect(await before.text()).not.toContain("its branch is still on origin — re-run archive");
+    expect(await before.text()).not.toContain("Its branch is still on origin — re-run archive");
 
     const s = await connect(base);
     release();
@@ -303,6 +303,6 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     const after = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
     const html = await after.text();
     expect(html).toContain('data-folder="77-old-thing"');
-    expect(html).toContain("its branch is still on origin — re-run archive");
+    expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 });

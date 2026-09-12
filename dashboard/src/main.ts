@@ -25,7 +25,7 @@ export function writeSite(pages: Page[], dir: string): void {
 
 export function main(argv: string[]): number {
   if (argv[0] !== "generate") {
-    console.error("usage: main.ts generate [--root DIR] [--out DIR] [--test-board SPEC]");
+    console.error("Usage: main.ts generate [--root DIR] [--out DIR] [--test-board SPEC]");
     return 2;
   }
   let root = join(homedir(), "develop");
@@ -43,7 +43,7 @@ export function main(argv: string[]): number {
     // `serve.ts serve` — those two pages need to read "Test" too.
     else if (argv[i] === "--test-board" && argv[i + 1]) testBoardSpec = argv[++i]!;
     else {
-      console.error(`unknown argument: ${argv[i]}`);
+      console.error(`Unknown argument: ${argv[i]}`);
       return 2;
     }
   }

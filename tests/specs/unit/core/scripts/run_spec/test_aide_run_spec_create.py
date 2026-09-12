@@ -35,7 +35,7 @@ def test_every_other_step_still_refuses_an_unknown_spec(runner, workspace, fake_
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, command="analyze", spec="no-such-spec")
     assert rc == 2
-    assert "unknown spec" in out["error"], out
+    assert "Unknown spec" in out["error"], out
     assert not fake_claude.calls.exists()
 
 def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, workspace, fake_claude):
@@ -256,7 +256,7 @@ def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     claude = fake_claude("cat > /dev/null\nexit 1")
     rc, out, _ = schedule(runner, workspace, claude, dry_run=True)
     assert rc == 0, out
-    assert "unknown spec" not in out.get("error", ""), out
+    assert "Unknown spec" not in out.get("error", ""), out
     prompt = out["prompt"]
     assert prompt.startswith("Summarize last night's traffic."), prompt
     assert "headless" in prompt.lower()
@@ -285,6 +285,6 @@ def test_every_other_step_still_refuses_the_schedule_tracking_key(runner, worksp
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, command="analyze", spec=SCHEDULE_KEY)
     assert rc == 2
-    assert "unknown spec" in out["error"], out
+    assert "Unknown spec" in out["error"], out
     assert not fake_claude.calls.exists()
 

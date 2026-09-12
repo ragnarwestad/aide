@@ -12,13 +12,13 @@ describe("the acceptance-criteria hold-back reads in the reader's language", () 
   test("the row's notice, in Norwegian, has no English in it", () => {
     const notice = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], "nb");
     expect(notice?.text).toBe(
-      "arkivering holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
+      "Arkivering holdt tilbake: Ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
     );
   });
 
   test("in English it is the catalogue's sentence, not the raw marker", () => {
     const notice = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], "en");
-    expect(notice?.text).toBe("archive held back: the Acceptance criteria are not all ticked — tick them on the Checks tab");
+    expect(notice?.text).toBe("Archive held back: The Acceptance criteria are not all ticked — tick them on the Checks tab");
   });
 
   test("a reason an archive run wrote is shown as written", () => {

@@ -260,7 +260,7 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(sentence(result.error)).toContain("merged locally");
+    expect(sentence(result.error)).toContain("Merged locally");
     expect(sentence(result.error)).toContain(ROOT);
     expect(ran(git.calls, "reset")).toBe(false);
     expect(ran(git.calls, "merge --abort")).toBe(false);

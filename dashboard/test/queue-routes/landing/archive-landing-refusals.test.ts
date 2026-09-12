@@ -382,8 +382,8 @@ describe("one landing error names one path for one checkout (spec 330)", () => {
 
     expect(Array.isArray(failed.error)).toBe(false);
     const errorText = sentence(failed.error);
-    expect(errorText).toContain("cannot work out the default branch");
+    expect(errorText).toContain("Cannot work out the default branch");
     expect(errorText).not.toContain("; ");
-    expect(failed.errorDetail).toContain("cannot work out the default branch");
+    expect(failed.errorDetail).toContain("Cannot work out the default branch");
   });
 });

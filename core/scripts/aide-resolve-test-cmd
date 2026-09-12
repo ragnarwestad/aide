@@ -39,11 +39,11 @@ project_dir=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-dir) project_dir="${2:-}"; shift 2 ;;
-    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
 
-command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"Jq is required"}'; exit 2; }
 
 refuse() {
   local msg="$1"
@@ -51,12 +51,12 @@ refuse() {
   exit 2
 }
 
-[ -n "$project_dir" ] || refuse "missing --project-dir"
-[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+[ -n "$project_dir" ] || refuse "Missing --project-dir"
+[ -d "$project_dir" ] || refuse "No such --project-dir: $project_dir"
 git -C "$project_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-  || refuse "not a git repository: $project_dir"
+  || refuse "Not a git repository: $project_dir"
 declare -f aide_test_scope_commands >/dev/null 2>&1 \
-  || refuse "aide_test_scope_commands is not available (missing _aide-spec-lib.sh)"
+  || refuse "Aide_test_scope_commands is not available (missing _aide-spec-lib.sh)"
 
 # --- REQ-6 fast path: no scopes declared, no git needed at all -------------
 first_paths="$(aide_config_get AIDE_TEST_SCOPE_PATHS_1 "$project_dir")"
@@ -72,11 +72,11 @@ fi
 
 # --- scoped path: resolve the changed-file list, then the commands ---------
 base_ref="$(aide_test_scope_base_ref "$project_dir")"
-[ -n "$base_ref" ] || refuse "could not resolve a base ref for $project_dir"
+[ -n "$base_ref" ] || refuse "Could not resolve a base ref for $project_dir"
 
 changed_output="$(git -C "$project_dir" diff --name-only "${base_ref}...HEAD" 2>&1)"
 diff_status=$?
-[ "$diff_status" -eq 0 ] || refuse "git diff against $base_ref failed: $changed_output"
+[ "$diff_status" -eq 0 ] || refuse "Git diff against $base_ref failed: $changed_output"
 
 changed_files=()
 while IFS= read -r line; do

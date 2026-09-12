@@ -86,7 +86,7 @@ beforeAll(async () => {
   // has verified "implement" against real git history, and the list
   // reaches that by its own poll, not by the write above. A fixed sleep
   // here raced that poll and lost under load — the row was left on its
-  // honest interim message ("the files disagree with what has run") and
+  // honest interim message ("The files disagree with what has run") and
   // REQ-4 went red on a board that was working correctly. Waiting for the
   // message itself removes the guess without weakening what REQ-4 proves:
   // a board that never shows it still fails, on the bound below.

@@ -50,7 +50,7 @@ if [ -n "$status_file" ]; then
       terminal_reason="no-progress"
       ok="false"
       suffix=" (stopped: no-progress)"
-      error_msg="the step reported success but left no real progress — nothing changed in the project. Press $step_button again for this step."
+      error_msg="The step reported success but left no real progress — nothing changed in the project. Press $step_button again for this step."
     fi
   elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
     # spec 280: a "completed" archive claim is cross-checked the same
@@ -93,7 +93,7 @@ if [ -n "$status_file" ]; then
           terminal_reason="no-progress"
           ok="false"
           suffix=" (stopped: no-progress)"
-          error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/. Press $step_button again for this step."
+          error_msg="The step reported success but left no real progress — the spec folder was never moved to archive/. Press $step_button again for this step."
         fi
         ;;
     esac
@@ -172,7 +172,7 @@ if [ -n "$status_file" ]; then
       [ "$proj_changed" = "yes" ] && scope_what="the project repo changed${proj_dirty_list:+ (uncommitted: $proj_dirty_list)}"
       [ "$rows_advanced" = "yes" ] && scope_what="${scope_what:+$scope_what; }a Phase-table row was ticked"
       [ "$claims_extra_step" = "yes" ] && scope_what="${scope_what:+$scope_what; }the Workflow-steps-completed line claims a step that did not run"
-      error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press $step_button again for this step."
+      error_msg="The step reported success but changed things outside analyze's scope — $scope_what. Press $step_button again for this step."
     fi
   fi
 fi

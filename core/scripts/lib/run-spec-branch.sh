@@ -48,14 +48,14 @@ if [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; then
         push_url="$(git -C "$root" remote get-url --push origin 2>/dev/null)" \
           || push_url="$(git -C "$root" remote get-url origin 2>/dev/null)"
         remote_ref="$(git -C "$root" ls-remote --heads "$push_url" "refs/heads/$branch" 2>/dev/null)" \
-          || refuse "cannot verify that origin/$branch was removed from $root"
-        [ -z "$remote_ref" ] || refuse "cannot remove origin/$branch from $root"
+          || refuse "Cannot verify that origin/$branch was removed from $root"
+        [ -z "$remote_ref" ] || refuse "Cannot remove origin/$branch from $root"
       fi
     fi
   done
 fi
 
-mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
+mkdir -p "$wt_dir" 2>/dev/null || refuse "Cannot create the worktree directory at $wt_dir"
 work_roots=()
 reopen_boundary_sha=""
 for root in "${roots[@]}"; do
@@ -90,17 +90,17 @@ for root in "${roots[@]}"; do
   fi
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
-      || refuse "cannot check out $branch in a worktree of $root"
+      || refuse "Cannot check out $branch in a worktree of $root"
     created_wt+=("$wt"); created_wt_root+=("$root")
     update_branch_to_base "$wt" "$base_ref" "$root"
   else
     if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
       git -C "$root" fetch -q origin "$base" 2>/dev/null \
-        || refuse "cannot fetch $base from origin in $root — refusing rather than cutting $branch from this checkout's own tip"
+        || refuse "Cannot fetch $base from origin in $root — refusing rather than cutting $branch from this checkout's own tip"
       base_ref_for "$root" "$base"
     fi
     git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>/dev/null \
-      || refuse "cannot create $branch in a worktree of $root"
+      || refuse "Cannot create $branch in a worktree of $root"
     created_wt+=("$wt"); created_wt_root+=("$root")
   fi
   link_worktree_deps "$root" "$wt"
