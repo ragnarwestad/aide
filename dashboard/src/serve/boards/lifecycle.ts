@@ -4,6 +4,7 @@
 // is a wrapper and not a second implementation of the round.
 
 import { readFileSync, rmSync } from "node:fs";
+import { signalGroup, signalProcess } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { BoardStore, BoardEntry } from "./store.ts";
@@ -261,14 +262,13 @@ export function stopBoard(ctx: BoardsContext, project: string, specFolder: strin
     // Best effort: a directory that will not go is not worth failing a
     // stop over.
   }
-  try {
-    // A recovered board (`recover.ts`) has no wrapper left to lead a
-    // group: the signal goes to the board's own process instead, which
-    // is what the round's own disowned watcher waits for before it
-    // removes the worktree.
-    process.kill(entry.recovered ? entry.wrapperPid : -entry.wrapperPid, "SIGTERM");
-  } catch {
-    // already gone
-  }
+  // A recovered board (`recover.ts`) has no wrapper left to lead a
+  // group: the signal goes to the board's own process instead, which
+  // is what the round's own disowned watcher waits for before it
+  // removes the worktree. Both go through the guard that refuses a
+  // pid below 2 — an entry that says `wrapperPid: 1` would otherwise
+  // turn into `kill(-1)`, every process the user owns.
+  if (entry.recovered) signalProcess(entry.wrapperPid);
+  else signalGroup(entry.wrapperPid);
   ctx.store.delete(project, specFolder);
 }

@@ -2,7 +2,7 @@
 // terminal user does — every assertion here is against a FAKE spawn/
 // isAlive/gitRun, the same seam `runner-fixtures.ts` uses so a spawn/
 // kill test never touches a real process.
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -16,6 +16,16 @@ import {
   type SpawnResult,
 } from "../../../src/serve/boards/lifecycle.ts";
 import type { BoardEntry } from "../../../src/serve/boards/store.ts";
+
+// No test in this file may reach a real `process.kill`: the fixtures
+// below carry made-up pids (one of them is 1, and `kill(-1)` is every
+// process the user owns). Spied for the whole file, whatever a later
+// test happens to call.
+let killSpy: ReturnType<typeof spyOn>;
+beforeEach(() => {
+  killSpy = spyOn(process, "kill").mockImplementation((() => true) as typeof process.kill);
+});
+afterEach(() => killSpy.mockRestore());
 
 let dir: string;
 let spawnCalls: { cmd: string[]; logPath: string }[];
