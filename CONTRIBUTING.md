@@ -25,9 +25,13 @@ other — see `.claude/rules/development.md` for why they stay separate.
 ```bash
 .venv/bin/pytest                    # the root's gate
 cd dashboard && make test           # the dashboard's gate (tsc --noEmit, then bun test)
+scripts/check-bash                  # shellcheck over core/scripts, when a bash script changed
+npx markdownlint-cli2 '**/*.md'     # markdown, from the repo root
 ```
 
-Both must pass before a pull request is reviewed.
+All of them must pass before a pull request is reviewed; CI runs the same
+four commands. The tools they need are listed in DEVELOPING.md, "Tools you
+need".
 
 ## Commit messages
 

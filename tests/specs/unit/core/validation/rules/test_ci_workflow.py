@@ -129,18 +129,30 @@ class TestCiWorkflow:
         assert "npx markdownlint-cli2 '**/*.md'" in commands, \
             "The markdownlint job never runs the documented command"
 
-    def test_shellcheck_job_runs_correct_command(self, workspace_root):
-        """Criterion 9: shellcheck runs over every bash script in
-        core/scripts, not just aide-run-spec and its lib/ files."""
+    def test_shellcheck_job_runs_check_bash(self, workspace_root):
+        """Criterion 9: the shellcheck job runs scripts/check-bash, the same
+        command a person runs before a merge, so the list of scripts and
+        the severity have one home."""
         jobs = _jobs(_workflow_text(workspace_root))
         assert "shellcheck" in jobs, f"No 'shellcheck' job, found {sorted(jobs)}"
         steps = _run_commands(jobs["shellcheck"])
-        # One of the job's steps is the shellcheck run itself; a step
-        # before it may install the tool (the macOS runner image stopped
-        # shipping it in September 2026).
-        assert any(c.strip().startswith("shellcheck ") for c in steps), \
-            "The shellcheck job never runs shellcheck"
-        commands = "\n".join(steps)
+        # One of the job's steps is the check itself; a step before it may
+        # install the tool (the macOS runner image stopped shipping it in
+        # September 2026).
+        assert any(c.strip() == "scripts/check-bash" for c in steps), \
+            "The shellcheck job never runs scripts/check-bash"
+        assert not any(c.strip().startswith("shellcheck ") for c in steps), \
+            "The shellcheck job runs shellcheck directly — the list of " \
+            "scripts belongs in scripts/check-bash alone"
+
+    def test_check_bash_names_every_script_group(self, workspace_root):
+        """scripts/check-bash covers every bash script in core/scripts, not
+        just aide-run-spec and its lib/ files, and fails on warnings."""
+        path = workspace_root / "scripts" / "check-bash"
+        assert path.exists(), "No scripts/check-bash"
+        text = path.read_text()
+        assert "shellcheck --severity=warning" in text, \
+            "scripts/check-bash must fail on warnings and errors"
         for target in (
             "core/scripts/aide-*",
             "core/scripts/_*.sh",
@@ -149,8 +161,23 @@ class TestCiWorkflow:
             "core/scripts/validate-env",
             "core/scripts/lib/*.sh",
         ):
-            assert target in commands, \
-                f"The shellcheck job's command never names {target}"
+            assert target in text, \
+                f"scripts/check-bash never names {target}"
+
+    def test_check_bash_says_how_to_install_shellcheck(self, workspace_root):
+        """Without shellcheck on PATH the script refuses with the install
+        command, rather than failing on 'command not found'."""
+        import os
+        import subprocess
+        result = subprocess.run(
+            [str(workspace_root / "scripts" / "check-bash")],
+            env={**os.environ, "PATH": "/usr/bin:/bin"},
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 2, \
+            f"Expected exit 2 without shellcheck, got {result.returncode}"
+        assert "brew install shellcheck" in result.stderr, \
+            f"The refusal never says how to install it: {result.stderr!r}"
 
     def test_biome_job_runs_lint_only(self, workspace_root):
         """Criterion 10: lint alone, not check/format — this codebase was

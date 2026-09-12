@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# check-bash - Run shellcheck over every bash script in core/scripts.
+#
+# The one place the list of scripts lives: CI's shellcheck job runs this
+# same file, so a script added here is checked on both sides at once. The
+# severity matches CI — warnings and errors fail, info and style do not.
+# .shellcheckrc at the repo root is picked up automatically when run from
+# there, which is why this script changes directory first.
+#
+# Usage:
+#   scripts/check-bash
+
+set -e
+
+if ! command -v shellcheck >/dev/null 2>&1; then
+  echo "shellcheck is not installed — brew install shellcheck (see DEVELOPING.md, \"Tools you need\")" >&2
+  exit 2
+fi
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+shellcheck --severity=warning \
+  core/scripts/aide-* \
+  core/scripts/_*.sh \
+  core/scripts/build-agents-md.sh \
+  core/scripts/upgrade-ai-tools \
+  core/scripts/validate-env \
+  core/scripts/lib/*.sh \
+  scripts/check-bash

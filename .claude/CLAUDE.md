@@ -36,12 +36,16 @@ root is pytest and `dashboard/` is bun + TypeScript (see
 cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then bun test
 cd dashboard && bun test test/queue.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
+scripts/check-bash                  # shellcheck over core/scripts — run it when a bash script changed
 ```
 
 **`bun test` transpiles; it does not type-check.** A green `bun test` says
 nothing about types, and `make test` exists to stop that being mistaken for
 a green build — it runs `bunx tsc --noEmit` first and fails there. Never
 report the dashboard as green off `bun test` alone.
+
+`scripts/check-bash` needs shellcheck (`brew install shellcheck`); CI runs
+the same script, so a bash change that passes it locally passes there.
 
 The full pytest run takes about three minutes; the dashboard's about
 seventy seconds. For a change that only touches `core/`, the narrower
