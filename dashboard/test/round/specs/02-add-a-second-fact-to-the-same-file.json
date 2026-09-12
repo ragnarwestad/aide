@@ -1,5 +1,12 @@
 {
   "title": "Add a second fact to the same file",
-  "steps": ["analyze", "implement", "archive"],
-  "expected": "archived"
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
+  "expected": "archived",
+  "expect": {
+    "state": "done"
+  }
 }

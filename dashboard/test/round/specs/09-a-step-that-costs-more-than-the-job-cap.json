@@ -1,5 +1,5 @@
 {
-  "title": "A test that stays red",
+  "title": "A step that costs more than the job cap",
   "steps": [
     "analyze",
     "implement",
@@ -8,7 +8,7 @@
   "expected": "not-archived",
   "expect": {
     "state": "stopped",
-    "stopReason": "tests-red",
-    "message": "tests are red"
+    "stopReason": "job-cap",
+    "message": "runner.jobCapExceeded"
   }
 }

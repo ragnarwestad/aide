@@ -273,7 +273,7 @@ echo "== queue the specs, each through create"
 # board's header presses the same endpoint, so a kept board can run the
 # round again without a terminal. `GET /api/self-run` says how far the
 # queueing has come and which folder each fixture became.
-declare -a FOLDERS=() EXPECTS=()
+declare -a FOLDERS=() EXPECTS=() ROWS=()
 fails=0
 started="$(api /api/self-run '{}')"
 printf '%s' "$started" | jq -e '.ok' >/dev/null \
@@ -291,10 +291,13 @@ if [ "$(printf '%s' "$round" | jq -r .stage)" = "failed" ]; then
   fails=1
 fi
 # Bash 3.2: parallel arrays, no associative ones.
-while IFS=$'\t' read -r slug folder expect; do
+# The third column is the fixture's own `expect` (state, stopReason,
+# message) as one JSON value, or "null" for a fixture that says nothing
+# about its row.
+while IFS=$'\t' read -r slug folder expect row; do
   [ -n "$folder" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
-  FOLDERS+=("$folder"); EXPECTS+=("$expect")
-done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected] | @tsv')
+  FOLDERS+=("$folder"); EXPECTS+=("$expect"); ROWS+=("$row")
+done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected, (.expect // null | tojson)] | @tsv')
 
 echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
 start=$(date +%s)
@@ -329,7 +332,30 @@ while [ "$i" -lt "${#FOLDERS[@]}" ]; do
   if printf '%s\n' "$archived_on_origin" | grep -qx "$folder"; then got=archived; else got=not-archived; fi
   branch=""; printf '%s\n' "$open_code $open_specs" | tr ' ' '\n' | grep -qx "aide/$folder" && branch=" (branch still on origin)"
   mark="ok"; [ "$got" = "$expect" ] || { mark="MISMATCH"; fails=$((fails + 1)); }
-  printf '  %-8s %-42s job=%-9s %s%s%s\n' "$mark" "$folder" "$state" "$got" "$branch" "${err:+ — $err}"
+  # What the ROW says, against what the fixture expects of it: the
+  # state, the stop reason, and the message — a key when the board
+  # wrote one, a piece of the sentence when the runner script's own
+  # English is the text. Each miss is named, so the line says which of
+  # the three was off.
+  row="${ROWS[$i]}"; miss=""
+  if [ "$row" != "null" ]; then
+    want_state="$(printf '%s' "$row" | jq -r '.state // empty')"
+    want_stop="$(printf '%s' "$row" | jq -r '.stopReason // empty')"
+    want_msg="$(printf '%s' "$row" | jq -r '.message // empty')"
+    got_stop="$(printf '%s' "$job" | jq -r '.stopReason // empty')"
+    got_key="$(printf '%s' "$job" | jq -r '.error | if type == "object" then .key elif type == "array" then (.[0] | if type == "object" then .key else . end) else (. // "") end')"
+    got_text="$(printf '%s' "$job" | jq -r '.error | if type == "string" then . elif type == "array" then (map(if type == "string" then . else "" end) | join(" ")) else "" end')"
+    [ -n "$want_state" ] && [ "$want_state" != "$state" ] && miss="$miss state=$state(want $want_state)"
+    [ -n "$want_stop" ] && [ "$want_stop" != "$got_stop" ] && miss="$miss stopReason=${got_stop:-none}(want $want_stop)"
+    if [ -n "$want_msg" ]; then
+      case "$got_key $got_text" in
+        *"$want_msg"*) ;;
+        *) miss="$miss message=${got_key:-none}(want $want_msg)" ;;
+      esac
+    fi
+    [ -z "$miss" ] || { mark="MISMATCH"; fails=$((fails + 1)); }
+  fi
+  printf '  %-8s %-42s job=%-9s %s%s%s%s\n' "$mark" "$folder" "$state" "$got" "$branch" "${err:+ — $err}" "${miss:+ —$miss}"
   i=$((i + 1))
 done
 

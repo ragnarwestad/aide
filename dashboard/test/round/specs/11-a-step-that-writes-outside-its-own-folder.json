@@ -1,5 +1,5 @@
 {
-  "title": "A landing that conflicts",
+  "title": "A step that writes outside its own folder",
   "steps": [
     "analyze",
     "implement",
@@ -8,6 +8,6 @@
   "expected": "not-archived",
   "expect": {
     "state": "failed",
-    "message": "landing.mergeConflict"
+    "message": "wrote outside its own spec folder"
   }
 }
