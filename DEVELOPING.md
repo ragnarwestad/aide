@@ -4,6 +4,7 @@ This guide is for you who want to **contribute to or further develop** aide.
 
 ## Table of contents
 
+- [Tools you need](#tools-you-need)
 - [Directory structure](#directory-structure)
 - [Adding new functionality](#adding-new-functionality)
   - [New skill](#new-skill)
@@ -11,6 +12,23 @@ This guide is for you who want to **contribute to or further develop** aide.
   - [Updating Copilot instructions](#updating-copilot-instructions)
 - [Installation](#installation)
 - [Architecture](#architecture)
+
+---
+
+## Tools you need
+
+Using aide needs what each installer's own INSTALL.md lists. Developing it
+also needs the tools its checks run on — the same four commands CI runs:
+
+| Tool | Used by | Install |
+|---|---|---|
+| Python 3.9 | `.venv/bin/pytest`, the root's gate | `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` |
+| bun | `cd dashboard && make test`, the dashboard's gate | `brew install oven-sh/bun/bun` (or mise; the version is `dashboard/bun.lock`'s) |
+| markdownlint-cli2 | `npx markdownlint-cli2 '**/*.md'` | fetched by `npx`, needs Node.js |
+| shellcheck | `scripts/check-bash`, over every bash script in `core/scripts` | `brew install shellcheck` |
+
+`scripts/check-bash` refuses with the install command when shellcheck is
+missing, so a machine without it never reports a bash change as checked.
 
 ---
 
