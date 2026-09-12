@@ -50,6 +50,11 @@ afterAll(async () => {
 // measured laptop width, already the "desktop" convention this suite's
 // sibling (specs-page-layout.test.ts) uses.
 const PHONE = { width: 600, height: 900 };
+// The "…" menu is the one `details.menu` in the header row with no
+// theme/lang/unit class of its own — the three standalone triggers
+// are `details.menu` too, and a bare `details.menu` locator names
+// all four.
+const MORE_MENU = "header > span.row > details.menu:not(.theme):not(.lang):not(.unit)";
 const DESKTOP = { width: 1270, height: 800 };
 
 test("AC-1: at desktop width, theme, language and unit each stand as their own header trigger", async () => {
@@ -71,7 +76,7 @@ test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden
 test("AC-2 criterion 4: opening the … menu at phone width reveals all three choice groups", async () => {
   await page.setViewportSize(PHONE);
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
-  await page.locator("header > span.row > details.menu > summary").click();
+  await page.locator(`${MORE_MENU} > summary`).click();
   const morerows = page.locator("header .menu .morerows");
   // `href*="lang="` rather than `href^="/?lang="` (spec 435): the
   // language links now carry `currentUrl` (here `/?live=0`) ahead of
@@ -87,9 +92,9 @@ test("AC-2 criterion 4: opening the … menu at phone width reveals all three ch
 test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu open", async () => {
   await page.setViewportSize(PHONE);
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
-  const trigger = page.locator("header > span.row > details.menu > summary");
+  const trigger = page.locator(`${MORE_MENU} > summary`);
   await trigger.click();
-  const menu = page.locator("header > span.row > details.menu");
+  const menu = page.locator(MORE_MENU);
   expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 
   const darkButton = page.locator('header .menu .morerows [data-theme-choice="dark"]');

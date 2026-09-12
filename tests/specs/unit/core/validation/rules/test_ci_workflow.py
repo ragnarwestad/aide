@@ -120,6 +120,18 @@ class TestCiWorkflow:
             "The dashboard job must run 'cd dashboard && make test' — " \
             "'bun test' alone transpiles without type-checking"
 
+    def test_dashboard_job_runs_the_browser_tests_too(self, workspace_root):
+        """The e2e suite is out of `make test` (the landing's gate), so CI
+        is the one place it runs — as its own step, after make test."""
+        jobs = _jobs(_workflow_text(workspace_root))
+        commands = _run_commands(jobs["dashboard"])
+        assert "cd dashboard && make test-e2e" in commands, \
+            "The dashboard job never runs 'cd dashboard && make test-e2e' — " \
+            "the browser tests would be red without anyone seeing it"
+        assert commands.index("cd dashboard && make test-e2e") > \
+            commands.index("cd dashboard && make test"), \
+            "make test-e2e must come after make test"
+
     def test_markdownlint_job_runs_correct_command(self, workspace_root):
         """Criterion 4: markdownlint from the root, where its config lives."""
         jobs = _jobs(_workflow_text(workspace_root))
