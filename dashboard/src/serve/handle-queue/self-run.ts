@@ -89,11 +89,13 @@ export function selfRunRoute(ctx: HandleQueueContext, req: Request, path: string
   // An ordinary (prod) server never draws the Run button, but a request
   // can be sent by hand regardless of what the page draws.
   if (!getBoardInfo()) return new Response("not a test board", { status: 404 });
-  // A board started from a spec's branch previews that spec; its round
-  // is never run again from here.
-  if (!isRoundBoard()) return new Response("not a round board", { status: 404 });
   if (req.method === "GET") return json(current);
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+  // A board started from a spec's branch previews that spec: the round
+  // script seeds its fixtures through this same route ONCE, when the
+  // board comes up, and no press after that runs them again — the page
+  // draws no Run button there, and a press sent by hand is refused.
+  if (!isRoundBoard() && current.stage !== "idle") return new Response("not a round board", { status: 404 });
   // A running round can be pressed over — that is what cancels it and
   // starts again; one still being put back or queued cannot.
   if (current.stage === "resetting" || current.stage === "queueing") {
