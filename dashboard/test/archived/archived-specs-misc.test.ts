@@ -65,6 +65,9 @@ describe("building the archived rows", () => {
     expect(filterShowsArchived(undefined)).toBe(true);
     expect(filterShowsArchived("all")).toBe(true);
     expect(filterShowsArchived("archived")).toBe(true);
+    // A closed spec's folder is under archive/ too: the Closed chip
+    // needs the walk, or it counts rows it never lists.
+    expect(filterShowsArchived("closed")).toBe(true);
     expect(filterShowsArchived("not-archived")).toBe(false);
     for (const key of ["active", "waiting", "failed"]) {
       expect(filterShowsArchived(key)).toBe(false);
