@@ -49,6 +49,9 @@ interface StreamBlock {
   text?: string;
   name?: string;
   input?: unknown;
+  id?: string;
+  tool_use_id?: string;
+  is_error?: boolean;
 }
 
 function blocksOf(event: Record<string, unknown>): StreamBlock[] {
@@ -95,8 +98,10 @@ function* events(text: string): Generator<Record<string, unknown>> {
 }
 
 /** Trimming as we go, not at the end: a long run's transcript should
- *  never be held in memory in full just to throw most of it away. */
-function trim(out: string[], max: number): void {
+ *  never be held in memory in full just to throw most of it away. Shared
+ *  by the activity list (`string[]`) and the command list (`StepCommand[]`,
+ *  spec 452) — the bound is a property of the reader, not of the shape. */
+function trim<T>(out: T[], max: number): void {
   if (out.length > max * 2) out.splice(0, out.length - max);
 }
 
@@ -193,4 +198,112 @@ function sniff(text: string): "claude" | "codex" {
 export function summarizeStream(text: string, opts: SummarizeOptions = {}): string[] {
   const tool = opts.tool ?? sniff(text);
   return tool === "codex" ? summarizeCodexStream(text, opts) : summarizeClaudeStream(text, opts);
+}
+
+// --- spec 452: the Logs tab's summary --------------------------------------
+//
+// Two things the bounded activity list above deliberately drops: which
+// commands a step ran, and the assistant's own final message in full.
+// Neither tool's transcript alone carries BOTH a real exit code and a
+// duration for every command (2-analysis.md's stream-format
+// investigation) — Claude's Bash result never carries a numeric exit
+// code, only `is_error`, while Codex's `command_execution` item carries
+// a real `exit_code` but no event in that schema carries a timestamp at
+// all. So the two are read differently, and neither invents what its
+// own tool's schema does not report.
+
+export interface StepCommand {
+  command: string;
+  outcome: { kind: "exitCode"; code: number } | { kind: "ok" | "failed" };
+  /** Absent for Codex — no event in that schema carries a timestamp. */
+  durationMs?: number;
+}
+
+/** Which item kind a Codex event names itself — `codexEntry`'s own
+ *  lookup (see its comment), read again here because the item shapes
+ *  this reads are different ones (`command_execution`, `agent_message`),
+ *  not because the rule differs. */
+function codexKind(item: Record<string, unknown>): string {
+  const str = (k: string) => (typeof item[k] === "string" ? (item[k] as string) : "");
+  return str("item_type") || str("type");
+}
+
+function claudeCommands(text: string, max: number): StepCommand[] {
+  const open = new Map<string, { command: string; at?: string }>();
+  const out: StepCommand[] = [];
+  for (const event of events(text)) {
+    const at = typeof event.timestamp === "string" ? event.timestamp : undefined;
+    if (event.type === "assistant") {
+      for (const block of blocksOf(event)) {
+        if (block.type === "tool_use" && block.name === "Bash" && typeof block.id === "string") {
+          const command = toolSubject(block.input);
+          if (command) open.set(block.id, { command, at });
+        }
+      }
+    } else if (event.type === "user") {
+      for (const block of blocksOf(event)) {
+        if (block.type !== "tool_result" || typeof block.tool_use_id !== "string") continue;
+        const pending = open.get(block.tool_use_id);
+        if (!pending) continue;
+        open.delete(block.tool_use_id);
+        const durationMs = pending.at && at ? Date.parse(at) - Date.parse(pending.at) : NaN;
+        out.push({
+          command: esc(clip(pending.command)),
+          outcome: block.is_error ? { kind: "failed" } : { kind: "ok" },
+          ...(Number.isFinite(durationMs) ? { durationMs } : {}),
+        });
+        trim(out, max);
+      }
+    }
+  }
+  return out.slice(-max);
+}
+
+function codexCommands(text: string, max: number): StepCommand[] {
+  const out: StepCommand[] = [];
+  for (const event of events(text)) {
+    if (event.type !== "item.completed") continue;
+    const item = event.item;
+    if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
+    const r = item as Record<string, unknown>;
+    if (codexKind(r) !== "command_execution") continue;
+    const command = typeof r.command === "string" ? r.command : "";
+    // Never invented: a completed command item with no numeric exit
+    // code is not this dashboard's to guess an outcome for.
+    if (!command || typeof r.exit_code !== "number") continue;
+    out.push({ command: esc(clip(command)), outcome: { kind: "exitCode", code: r.exit_code } });
+    trim(out, max);
+  }
+  return out.slice(-max);
+}
+
+/** The commands a step ran, whichever tool wrote the transcript — same
+ *  bound as `summarizeStream`, same escaping. */
+export function summarizeCommands(text: string, opts: SummarizeOptions = {}): StepCommand[] {
+  const max = opts.max ?? 40;
+  const tool = opts.tool ?? sniff(text);
+  return tool === "codex" ? codexCommands(text, max) : claudeCommands(text, max);
+}
+
+/** The assistant's own final message, in full — Claude's one `result`
+ *  event's `result` field, or Codex's LAST `agent_message` item's text.
+ *  Unclipped, unlike every entry `summarizeStream` returns: this is the
+ *  run's own closing word, not a one-line label for something else. */
+export function finalMessage(text: string, opts: SummarizeOptions = {}): string | undefined {
+  const tool = opts.tool ?? sniff(text);
+  let found: string | undefined;
+  for (const event of events(text)) {
+    if (tool === "codex") {
+      if (event.type !== "item.completed") continue;
+      const item = event.item;
+      if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
+      const r = item as Record<string, unknown>;
+      if (codexKind(r) !== "agent_message") continue;
+      if (typeof r.text === "string" && r.text.trim()) found = esc(r.text);
+    } else {
+      if (event.type !== "result") continue;
+      if (typeof event.result === "string" && event.result.trim()) found = esc(event.result);
+    }
+  }
+  return found;
 }

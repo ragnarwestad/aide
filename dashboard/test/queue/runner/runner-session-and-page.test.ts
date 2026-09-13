@@ -172,6 +172,44 @@ describe("what the page needs from a step", () => {
       { root: "/repos/aide", url: "https://example.test/aide" },
     ]);
   });
+
+  // Spec 452: `aide-run-spec` has emitted `repos[].headBefore/headAfter`
+  // for every step since spec 81 — the commit range the Logs tab's new
+  // summary needs to compute a diff-stat from — and nothing on this
+  // side read it until now.
+  test("a step's own commit range (repos) is kept on its result", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(1),
+        repos: [{ root: "/repos/aide", worktree: "/tmp/wt", headBefore: "abc111", headAfter: "abc222", changedFiles: 3 }],
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.repos).toEqual([
+      { root: "/repos/aide", headBefore: "abc111", headAfter: "abc222" },
+    ]);
+  });
+
+  test("a malformed repos entry is dropped rather than half-carried", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), repos: [{ root: "/repos/aide", headBefore: 123 }] }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.repos).toEqual([]);
+  });
+
+  test("no repos field at all (an old result) leaves it absent, not an empty array", () => {
+    const job = enqueue();
+    const { repos: _drop, ...noRepos } = okResult(1);
+    const runner = makeRunner({ readResult: () => noRepos });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.repos).toBeUndefined();
+  });
 });
 
 // One transcript per STEP, not per job. `StepResult.streamFile` is

@@ -111,6 +111,59 @@ function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusa
   return `<p class="muted">Nothing has been captured from this step.</p>`;
 }
 
+/** What a step's raw log cannot show at a glance (spec 452): the files
+ *  it touched, the commands it ran, its own final message, and the
+ *  numbers already drawn on its row — repeated here from the SAME
+ *  fields (`r.at`/`r.costUsd`/`r.tokens`/`r.terminalReason`), never a
+ *  second, independently computed copy of them (AC-5). Drawn above
+ *  `stepLogPanel`'s output, unconditionally: it carries no fold of its
+ *  own, only the raw log beneath it does (AC-6).
+ *
+ *  No class of its own: `table.facts` is the page's existing key/value
+ *  component (`job-page.ts`'s `labelled()`), and `specfile`/`muted`/
+ *  `small`/`num`/`label` are the same classes the raw log and the row's
+ *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
+ *  any render file that introduces a class outside that vocabulary. */
+function stepSummary(r: JobStepResultView): string {
+  const hasLog = !!(r.logs && r.logs.length > 0);
+  const facts =
+    `<table class="facts"><tbody>` +
+    `<tr><td class="label">At</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
+    `<tr><td class="label">${unitLabel("Cost", "Tokens")}</td>` +
+    `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}</td></tr>` +
+    `<tr><td class="label">Result</td><td>${esc(r.terminalReason)}</td></tr>` +
+    `</tbody></table>`;
+  // AC-7: a step whose transcript is missing shows whatever the job
+  // itself recorded (the facts above) and says so in words, rather than
+  // an empty commands/changed-files list with no explanation.
+  if (!hasLog) {
+    return `${facts}<p class="muted">The log is missing for this step.</p>`;
+  }
+  const files =
+    r.changedFiles && r.changedFiles.length > 0
+      ? `<h4>Changed files</h4><ul>${r.changedFiles
+          .map((f) =>
+            f.binary
+              ? `<li>${esc(f.path)} <span class="muted small">binary</span></li>`
+              : `<li>${esc(f.path)} +${f.added} -${f.removed}</li>`,
+          )
+          .join("")}</ul>`
+      : "";
+  const commands =
+    r.commands && r.commands.length > 0
+      ? `<h4>Commands</h4><ul>${r.commands
+          .map((c) => {
+            const outcome = c.outcome.kind === "exitCode" ? `exit ${c.outcome.code}` : c.outcome.kind;
+            const duration =
+              c.durationMs !== undefined ? ` <span class="muted small">${c.durationMs}ms</span>` : "";
+            return `<li><code>${c.command}</code> — ${outcome}${duration}</li>`;
+          })
+          .join("")}</ul>`
+      : "";
+  const message = r.finalMessage ? `<h4>Final message</h4><pre class="specfile">${r.finalMessage}</pre>` : "";
+  return `${facts}${files}${commands}${message}`;
+}
+
 /** Exported since spec 150: the SPEC page's Steps tab is the lead job's
  *  own, and two copies of this table would be a fourth instance of the
  *  hand-paired-lists problem `development.md` already names three times
@@ -177,7 +230,7 @@ export function stepResults(
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepLogPanel(
+        ? `<tr class="steplog"><td colspan="6">${stepSummary(r)}${stepLogPanel(
             r.logs,
             r.terminalReason,
             opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,

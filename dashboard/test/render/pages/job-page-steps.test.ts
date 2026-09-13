@@ -327,3 +327,75 @@ describe("a no-AI create reads distinctly from an AI-run one (spec 433)", () => 
     expect(cellsFor(html, "create")).not.toContain("no AI");
   });
 });
+
+// Spec 452: a summary above each step's own raw log — files, commands,
+// final message and the step's already-existing numbers, repeated from
+// the SAME fields the row itself draws (AC-5), never a second computed
+// copy of them.
+describe("the Logs tab's per-step summary (spec 452)", () => {
+  const FULL_RESULT = {
+    step: "implement",
+    ok: true,
+    costUsd: 1.23,
+    costMeasured: true,
+    terminalReason: "completed",
+    at: "2026-09-13T10:05:00Z",
+    logs: ["Bash bun test"],
+    commands: [{ command: "bun test", outcome: { kind: "ok" as const }, durationMs: 1500 }],
+    finalMessage: "All done.",
+    changedFiles: [{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }],
+  };
+
+  test("AC-6: neither the summary nor the raw log is in the markup while the row is collapsed", () => {
+    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps" });
+    expect(html).not.toContain("Changed files");
+    expect(html).not.toContain("Bash bun test");
+  });
+
+  test("AC-1/AC-2/AC-3/AC-4: the summary renders above the raw log once the row is expanded", () => {
+    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" });
+    const summaryAt = html.indexOf("Changed files");
+    const logAt = html.indexOf("Bash bun test");
+    expect(summaryAt).toBeGreaterThan(-1);
+    expect(logAt).toBeGreaterThan(-1);
+    expect(summaryAt).toBeLessThan(logAt);
+    expect(html).toContain("src/queue/runner.ts");
+    expect(html).toContain("bun test");
+    expect(html).toContain("All done.");
+  });
+
+  test("AC-5: the summary's own numbers are exactly the row's costUsd/tokens/terminalReason/at, not a recomputed copy", () => {
+    const html = stepResults([FULL_RESULT], undefined, { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" });
+    expect(html).toContain("2026-09-13T10:05:00Z");
+    expect(html).toContain("$1.23");
+    expect(html).toContain("completed");
+  });
+
+  test("a binary changed file never reads as a false zero", () => {
+    const html = stepResults(
+      [{ ...FULL_RESULT, changedFiles: [{ path: "assets/logo.png", added: 0, removed: 0, binary: true }] }],
+      undefined,
+      { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" },
+    );
+    expect(html).toContain("assets/logo.png");
+    expect(html).toContain("binary");
+  });
+
+  test("AC-7: a step with no log states the log is missing, alongside whatever numbers exist", () => {
+    const html = stepResults(
+      [
+        {
+          step: "implement", ok: false, costUsd: 0.5, costMeasured: true, terminalReason: "process-gone",
+          at: "2026-09-13T10:05:00Z",
+        },
+      ],
+      undefined,
+      { tabHref: "/specs/aide/1-x?tab=steps", openStep: "0" },
+    );
+    expect(html).toContain("log is missing");
+    expect(html).toContain("$0.50");
+    expect(html).toContain("process-gone");
+    expect(html).not.toContain("Commands");
+    expect(html).not.toContain("Changed files");
+  });
+});

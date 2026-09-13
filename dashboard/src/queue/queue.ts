@@ -32,6 +32,7 @@ export {
   type ModelChoice,
   type ProjectResolver,
   type QueueDefaults,
+  type StepRepoRange,
   type StepResult,
   type TokenUsage,
 } from "./types.ts";

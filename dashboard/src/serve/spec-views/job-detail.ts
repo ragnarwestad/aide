@@ -6,7 +6,8 @@ import { specPhaseFile } from "../../project/discover.ts";
 import type { JobDetailView } from "../../render.ts";
 import type { Job } from "../../queue/queue.ts";
 import { resolveStepModel, tailFile } from "../serve-helpers.ts";
-import { summarizeStream } from "../../queue/parse-stream.ts";
+import { finalMessage, summarizeCommands, summarizeStream } from "../../queue/parse-stream.ts";
+import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "../spec-views.ts";
 
 export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<JobDetailView> {
@@ -37,11 +38,31 @@ export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<Jo
     // Each finished step's OWN transcript (spec 240), read from its
     // own `streamFile` rather than the job's last one — a three-step
     // attempt used to make only its last step's log reachable at all.
-    results: job.results.map((r) => ({
-      ...r,
-      tokens: r.tokens?.total,
-      logs: r.streamFile ? summarizeStream(tailFile(r.streamFile), { tool: r.tool ?? named }) : undefined,
-    })),
+    // Spec 452: the same text also yields the Logs tab's summary —
+    // which commands ran and the assistant's own final message — and
+    // `r.repos` (its own commit range) yields the changed-files list,
+    // via one `git diff --numstat` per repo the step touched.
+    results: await Promise.all(
+      job.results.map(async (r) => {
+        const tool = r.tool ?? named;
+        const text = r.streamFile ? tailFile(r.streamFile) : undefined;
+        const changedFiles = r.repos
+          ? (
+              await Promise.all(
+                r.repos.map((repo) => diffStatBetween(ctx.gitRun, repo.root, repo.headBefore, repo.headAfter)),
+              )
+            ).flat()
+          : undefined;
+        return {
+          ...r,
+          tokens: r.tokens?.total,
+          logs: text ? summarizeStream(text, { tool }) : undefined,
+          commands: text ? summarizeCommands(text, { tool }) : undefined,
+          finalMessage: text ? finalMessage(text, { tool }) : undefined,
+          changedFiles,
+        };
+      }),
+    ),
     phase: phase ?? undefined,
     // The step running RIGHT NOW, when one is: it has no `StepResult`
     // yet, so it cannot ride along in `results` above, and its

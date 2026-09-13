@@ -59,6 +59,12 @@ export interface StepResult {
    *  written. Absent on a result written before this field existed, and
    *  then this step simply falls back to the boundary it always used. */
   startedAt?: string;
+  /** Every repo root this step's own commit(s) span (spec 452). Absent
+   *  on a result written before this field existed, or when the result
+   *  file's own `repos` did not parse — the Logs tab's summary then
+   *  shows no changed-files list, the same "nothing to show" degrade
+   *  `tokens`/`streamFile` already take. */
+  repos?: StepRepoRange[];
 }
 
 /** One repo a step pushed the spec's branch to, and the compare page for
@@ -68,6 +74,18 @@ export interface StepResult {
 export interface BranchRef {
   root: string;
   url: string;
+}
+
+/** One repo root a step's own commit(s) span, from `headBefore` to
+ *  `headAfter` (spec 452). `aide-run-spec` has emitted this for every
+ *  step since spec 81 (`repos_json`); this is the field's first reader
+ *  on this side. `worktree`/`changedFiles` are the bash script's own
+ *  bookkeeping and are not carried here — the Logs tab's summary needs
+ *  only the commit range, to run `git diff --numstat` against later. */
+export interface StepRepoRange {
+  root: string;
+  headBefore: string;
+  headAfter: string;
 }
 
 /** Fold `next` into `prev` BY ROOT. A step that touched fewer repos than

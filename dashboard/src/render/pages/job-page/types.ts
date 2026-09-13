@@ -1,6 +1,8 @@
 // The job page's own view types. Split out of job-page.ts by theme.
 
 import type { QueueRowView } from "../../ui/job-state.ts";
+import type { StepCommand } from "../../../queue/parse-stream.ts";
+import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -33,6 +35,21 @@ export interface JobStepResultView {
    *  table never sets this; only `spec-page.ts`'s flattened, multi-job
    *  Steps tab does. */
   attempt?: number;
+  /** The commands this step ran, extracted from its own transcript
+   *  (spec 452) — a real exit code when the tool reports one (Codex),
+   *  "ok"/"failed" from `is_error` when it does not (Claude). Absent
+   *  exactly when `logs` is: no transcript, nothing to extract from. */
+  commands?: StepCommand[];
+  /** The assistant's own final message, unclipped (spec 452) — Claude's
+   *  `result` event, or Codex's last `agent_message`. Absent when the
+   *  step wrote no transcript, or the transcript has neither. */
+  finalMessage?: string;
+  /** The files this step's own commit(s) touched, with lines added and
+   *  removed (spec 452) — `git diff --numstat` between the step's
+   *  `headBefore`/`headAfter`. Undefined means "not checked" (no `repos`
+   *  recorded — a result written before this field existed); an empty
+   *  array means "checked, nothing changed" (`headBefore === headAfter`). */
+  changedFiles?: DiffStatEntry[];
 }
 
 /** A spec's own file, or one section of one, as it stands on disk

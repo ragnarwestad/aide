@@ -4,7 +4,7 @@
 // more than prettiness: the list can never grow without limit, and
 // nothing in it can leave the page as markup.
 import { describe, expect, test } from "bun:test";
-import { summarizeStream } from "../../../src/queue/parse-stream.ts";
+import { finalMessage, summarizeCommands, summarizeStream } from "../../../src/queue/parse-stream.ts";
 
 const line = (o: unknown) => JSON.stringify(o);
 
@@ -234,5 +234,91 @@ describe("summarizeCodexStream", () => {
 
     expect(summarizeStream(codex, { max: 10 })[0]).toContain("sniffed");
     expect(summarizeStream(assistantText("still claude"), { max: 10 })[0]).toContain("still claude");
+  });
+});
+
+// Spec 452: the Logs tab's summary needs two things the bounded activity
+// list above deliberately drops — which commands a step ran (with
+// whatever outcome/duration its own tool's schema actually carries) and
+// the assistant's own final message, in full. Neither tool's transcript
+// alone carries BOTH a real exit code and a duration for every command
+// (2-analysis.md's stream-format investigation), so the two fixtures
+// below are deliberately NOT symmetric the way the activity-list pair
+// above is.
+const assistantToolUse = (id: string, name: string, input: Record<string, unknown>, timestamp: string) =>
+  line({ type: "assistant", timestamp, message: { content: [{ type: "tool_use", id, name, input }] } });
+
+const userToolResult = (toolUseId: string, isError: boolean, timestamp: string) =>
+  line({ type: "user", timestamp, message: { content: [{ type: "tool_result", tool_use_id: toolUseId, is_error: isError }] } });
+
+describe("summarizeCommands", () => {
+  test("a Claude Bash tool_use/tool_result pair yields one ok command with a computed duration", () => {
+    const stream = [
+      assistantToolUse("t1", "Bash", { command: "bun test" }, "2026-09-13T10:00:00.000Z"),
+      userToolResult("t1", false, "2026-09-13T10:00:02.500Z"),
+    ].join("\n");
+
+    const commands = summarizeCommands(stream, { tool: "claude" });
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0]!.command).toContain("bun test");
+    expect(commands[0]!.outcome).toEqual({ kind: "ok" });
+    expect(commands[0]!.durationMs).toBe(2500);
+  });
+
+  test("an is_error:true result yields a failed outcome — Claude never reports a numeric exit code", () => {
+    const stream = [
+      assistantToolUse("t1", "Bash", { command: "bun test" }, "2026-09-13T10:00:00.000Z"),
+      userToolResult("t1", true, "2026-09-13T10:00:01.000Z"),
+    ].join("\n");
+
+    const commands = summarizeCommands(stream, { tool: "claude" });
+
+    expect(commands[0]!.outcome).toEqual({ kind: "failed" });
+  });
+
+  test("a Codex command_execution item yields a real exit code and no duration — no event in that schema carries a timestamp", () => {
+    const stream = codexLine({
+      type: "item.completed",
+      item: { id: "i1", item_type: "command_execution", command: "bun test", exit_code: 2, status: "completed" },
+    });
+
+    const commands = summarizeCommands(stream, { tool: "codex" });
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0]!.command).toContain("bun test");
+    expect(commands[0]!.outcome).toEqual({ kind: "exitCode", code: 2 });
+    expect(commands[0]!.durationMs).toBeUndefined();
+  });
+
+  test("a non-Bash, non-command_execution tool call yields nothing", () => {
+    const claudeStream = assistantToolUse("t1", "Read", { file_path: "src/queue.ts" }, "2026-09-13T10:00:00.000Z");
+    const codexStream = codexLine({
+      type: "item.completed",
+      item: { id: "i1", item_type: "file_change", changes: [{ path: "src/queue.ts" }] },
+    });
+
+    expect(summarizeCommands(claudeStream, { tool: "claude" })).toEqual([]);
+    expect(summarizeCommands(codexStream, { tool: "codex" })).toEqual([]);
+  });
+});
+
+describe("finalMessage", () => {
+  test("a Claude result event's result field comes back unclipped, past 160 characters", () => {
+    const long = "x".repeat(200);
+    const stream = line({ type: "result", subtype: "success", result: long });
+
+    expect(finalMessage(stream, { tool: "claude" })).toBe(long);
+  });
+
+  test("a Codex stream's last agent_message wins over an earlier one", () => {
+    const stream = [codexAgentMessage("first"), codexAgentMessage("last")].join("\n");
+
+    expect(finalMessage(stream, { tool: "codex" })).toBe("last");
+  });
+
+  test("a stream with neither a result event nor an agent_message returns undefined", () => {
+    expect(finalMessage(assistantText("just text"), { tool: "claude" })).toBeUndefined();
+    expect(finalMessage(codexLine({ type: "turn.completed", usage: {} }), { tool: "codex" })).toBeUndefined();
   });
 });

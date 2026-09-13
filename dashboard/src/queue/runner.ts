@@ -33,7 +33,7 @@ import type { NotifyEvent } from "../integrations/notify.ts";
 import { renderMessage, type BoardMessage } from "../i18n/message.ts";
 import { stepButton } from "../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
-import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
+import { stepRepoRanges, tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
 
@@ -462,6 +462,10 @@ export class Runner {
         // step whose result carried no session was still run under one.
         sessionId: outcome.sessionId ?? job.sessionId,
         streamFile: job.streamFile,
+        // Every repo root this step's own commit(s) span (spec 452) —
+        // `aide-run-spec` has emitted this since spec 81; nothing here
+        // read it until now.
+        repos: stepRepoRanges(outcome.repos),
         // A step whose work lands (spec 395, REQ-3): the clock this
         // stamp ends is the step's OWN work, and that work is not over
         // until the merge is. Written immediately only when there is

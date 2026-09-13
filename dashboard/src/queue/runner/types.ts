@@ -2,7 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { BranchRef, Job, QueueStore, TokenUsage, WorkflowStep } from "../queue.ts";
+import type { BranchRef, Job, QueueStore, StepRepoRange, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -86,6 +86,11 @@ export interface StepOutcome {
    *  the two discovery points differ in nothing else. Absent for every
    *  other refusal: there is no step to send at those. */
   errorReason?: "conflict";
+  /** Every repo root this step's own commit(s) span (spec 452).
+   *  `aide-run-spec` has emitted this for every step since spec 81 —
+   *  this is the field's first reader on this side, the same shape
+   *  `branchUrls` already takes through this boundary. */
+  repos?: StepRepoRange[];
 }
 
 export interface RunnerOptions {
@@ -164,4 +169,23 @@ export function tokenUsage(raw: unknown): TokenUsage | undefined {
     cacheCreation: r.cacheCreation as number,
     total: r.total as number,
   };
+}
+
+/** `outcome.repos`, read as defensively as `tokenUsage` reads
+ *  `outcome.tokens` above: the result file is another process's JSON, so
+ *  a malformed entry is dropped rather than half-carried into a
+ *  diff-stat lookup built on a bad SHA. Undefined only when `raw` itself
+ *  is not an array — an old result file that never had this field —
+ *  never when every entry in it happened to be malformed. */
+export function stepRepoRanges(raw: unknown): StepRepoRange[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: StepRepoRange[] = [];
+  for (const entry of raw) {
+    if (entry === null || typeof entry !== "object") continue;
+    const r = entry as Record<string, unknown>;
+    if (typeof r.root === "string" && typeof r.headBefore === "string" && typeof r.headAfter === "string") {
+      out.push({ root: r.root, headBefore: r.headBefore, headAfter: r.headAfter });
+    }
+  }
+  return out;
 }
