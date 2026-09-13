@@ -48,7 +48,14 @@ function repoWithHistory(dir: string, origin: string, tag: boolean): void {
   git(dir, "init", "-q", "-b", "main");
   git(dir, "remote", "add", "origin", origin);
   writeFileSync(join(dir, "fact.txt"), "first\n");
-  git(dir, "add", "fact.txt");
+  // The round's own fixture project ignores `.aide/config` (its
+  // `.gitignore`), which is what lets the config outlive a reset to the
+  // first commit. Without this line the file is only kept out of the
+  // commits below by a GLOBAL git ignore — which this machine has and a
+  // clean one (CI) does not, where `add -A` then committed it and the
+  // reset removed it as a tracked file (2026-09-13).
+  writeFileSync(join(dir, ".gitignore"), ".aide/config\n");
+  git(dir, "add", "fact.txt", ".gitignore");
   git(dir, "commit", "-q", "-m", "start");
   if (tag) git(dir, "tag", "baseline");
   writeFileSync(join(dir, "fact.txt"), "first\nsecond\n");
@@ -154,7 +161,7 @@ describe("POST /api/self-run", () => {
       [specs, join(dir, "specs-origin.git")],
     ]) {
       expect(readFileSync(join(repo, "fact.txt"), "utf8")).toBe("first\n");
-      expect(git(repo, "ls-files")).toBe("fact.txt");
+      expect(git(repo, "ls-files")).toBe(".gitignore\nfact.txt");
       expect(git(repo, "log", "--format=%s")).toBe("start");
       expect(git(repo, "rev-parse", "main")).toBe(git(origin, "rev-parse", "main"));
       expect(git(origin, "branch", "--list", "aide/*")).toBe("");

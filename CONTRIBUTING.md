@@ -30,7 +30,8 @@ npx markdownlint-cli2 '**/*.md'     # markdown, from the repo root
 ```
 
 All of them must pass before a pull request is reviewed; CI runs the same
-four commands. The tools they need are listed in DEVELOPING.md, "Tools you
+four commands on every pull request (and only there — a merge that lands
+locally is gated by the landing's own run of the suite). The tools they need are listed in DEVELOPING.md, "Tools you
 need".
 
 ## Commit messages

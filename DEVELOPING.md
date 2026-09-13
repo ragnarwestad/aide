@@ -18,7 +18,8 @@ This guide is for you who want to **contribute to or further develop** aide.
 ## Tools you need
 
 Using aide needs what each installer's own INSTALL.md lists. Developing it
-also needs the tools its checks run on — the same four commands CI runs:
+also needs the tools its checks run on — the same four commands CI runs on a
+pull request:
 
 | Tool | Used by | Install |
 |---|---|---|
