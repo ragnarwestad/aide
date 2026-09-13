@@ -1,7 +1,8 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { fileOnceWritten } from "../../helpers/file-once-written.ts";
+import { existsSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
@@ -41,17 +42,6 @@ describe("the runner invocation", () => {
       { mode: 0o755 },
     );
     return { bin, argvFile, envFile };
-  }
-
-  async function fileOnceWritten(path: string, what: string): Promise<string> {
-    for (let i = 0; i < 100; i++) {
-      try {
-        return readFileSync(path, "utf-8");
-      } catch {
-        await Bun.sleep(50);
-      }
-    }
-    throw new Error(what);
   }
 
   async function argvOf(argvFile: string): Promise<string> {
@@ -240,17 +230,6 @@ describe("the runner invocation", () => {
 // own spawn carries `AIDE_SCHEDULE_OUTPUT_DIR`, and by the time the
 // child starts, the directory it names already exists on disk.
 describe("the schedule step's output directory (spec 272)", () => {
-  async function fileOnceWritten(path: string, what: string): Promise<string> {
-    for (let i = 0; i < 100; i++) {
-      try {
-        return readFileSync(path, "utf-8");
-      } catch {
-        await Bun.sleep(50);
-      }
-    }
-    throw new Error(what);
-  }
-
   function scheduleEnvStub(dir: string): { bin: string; envFile: string } {
     const envFile = join(dir, "runner-schedule-env.txt");
     const bin = join(dir, "fake-run-spec-schedule");
