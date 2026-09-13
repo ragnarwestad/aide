@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderNewSpecPage,
-  renderQueuePage,
-  renderQueueRows,
+  renderSpecsPage,
+  renderSpecsRows,
   PHASE_LINES,
   type NewSpecPageOptions,
-  type QueuePageOptions,
+  type SpecsPageOptions,
 } from "../../../src/render.ts";
-import { aiPicker, modelPicker } from "../../../src/render/pages/queue-list/model-picker.ts";
-import { type SpecGroup } from "../../../src/render/pages/queue-list/data-model.ts";
+import { aiPicker, modelPicker } from "../../../src/render/pages/specs-list/model-picker.ts";
+import { type SpecGroup } from "../../../src/render/pages/specs-list/data-model.ts";
 import {
   row,
 } from "./fixtures.ts";
@@ -23,8 +23,8 @@ import {
 // everything `/new` has on it — with a Create that goes home and a
 // Cancel that goes home doing nothing.
 describe("spec 121: New spec is a link, and the form is its own page", () => {
-  const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+  const page = (opts: Partial<SpecsPageOptions> = {}) =>
+    renderSpecsPage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       createProjects: ["aide"],
@@ -487,8 +487,8 @@ describe("spec 342: the phase table", () => {
 });
 
 describe("spec 113: the runs explanation is a popover beside the filter chips", () => {
-  const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+  const page = (opts: Partial<SpecsPageOptions> = {}) =>
+    renderSpecsPage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       ...opts,
@@ -517,14 +517,14 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
   });
 
   test("the popover sits in the filter bar when only one project has specs", () => {
-    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    const bar = beforeTable(renderSpecsRows([row()], { runnerAvailable: true, targets: [] }));
     expect(bar).toContain('<details class="intro">');
     expect(bar).toContain(">?</summary>");
   });
 
   test("it sits there with several projects too, before the state trigger", () => {
     const bar = beforeTable(
-      renderQueueRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
+      renderSpecsRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
         runnerAvailable: true,
         targets: [],
       }),
@@ -542,7 +542,7 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
   // below the search form — dropped from the page entirely, not moved
   // anywhere else, so there is no "stopped"/cap wording left to assert.
   test("the copy says what the search reads, not how runs work", () => {
-    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    const bar = beforeTable(renderSpecsRows([row()], { runnerAvailable: true, targets: [] }));
     expect(bar).toContain("Searches the");
     expect(bar).not.toContain("<em>stopped</em>");
   });

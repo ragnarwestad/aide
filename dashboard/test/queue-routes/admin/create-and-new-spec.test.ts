@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import {
   renderNewSpecPage,
-  renderQueuePage,
+  renderSpecsPage,
   type NewSpecPageOptions,
 } from "../../../src/render.ts";
 import {
@@ -198,7 +198,7 @@ describe("the New-spec form offers what the spec may build on (criterion 7)", ()
 describe("a spec's row says what it depends on (criterion 12)", () => {
   const row = (dependsOn: string[]) =>
     specHead(
-      renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
         runnerAvailable: true,
         targets: [{ project: "aide", specFolder: "109-expanded-row", title: "Expanded row", dependsOn }],
       }),

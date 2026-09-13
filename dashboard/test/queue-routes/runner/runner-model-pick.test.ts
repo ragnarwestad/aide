@@ -1,7 +1,7 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { renderQueuePage } from "../../../src/render.ts";
+import { renderSpecsPage } from "../../../src/render.ts";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -28,7 +28,7 @@ describe("picking a model for a job", () => {
   const OPEN = { open: "aide/81-queue-and-runner" };
 
   test("the form offers the configured models, one picker per phase", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
@@ -55,7 +55,7 @@ describe("picking a model for a job", () => {
   // pre-filled with a real name instead, and every option's figure lives
   // in its tooltip — never on the label.
   test("no default option, no figure on any label; the tooltips keep them", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
@@ -71,7 +71,7 @@ describe("picking a model for a job", () => {
   });
 
   test("with nothing configured the page offers no model at all", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
@@ -80,7 +80,7 @@ describe("picking a model for a job", () => {
   });
 
   test("a row says which model it ran on — as the select's pre-filled value", () => {
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       [
         {
           id: "a", project: "aide", specFolder: "81-queue-and-runner",

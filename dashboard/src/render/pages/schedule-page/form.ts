@@ -8,7 +8,7 @@
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, field, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type QueuePageOptions } from "../queue-list.ts";
+import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list.ts";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
@@ -30,11 +30,11 @@ export interface ScheduleFormOptions {
    *  New-spec form are given, built by the same helper in `serve.ts` so
    *  no two pages come to offer different lists. Absent or empty draws
    *  no picker at all, exactly as the New-spec form does. */
-  modelChoices?: QueuePageOptions["modelChoices"];
+  modelChoices?: SpecsPageOptions["modelChoices"];
   /** What the configuration would give each step. Only `schedule`'s own
    *  entry (or the table's `default`) can matter here: a scheduled job
    *  runs that one step. */
-  defaultModels?: QueuePageOptions["defaultModels"];
+  defaultModels?: SpecsPageOptions["defaultModels"];
 }
 
 /** The form's own id. Both selects are written INSIDE the form, so the

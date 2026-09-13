@@ -68,7 +68,7 @@ export async function handleJobActionRoutes(
     // refused before the job ever reaches the queue, naming `reset` (or
     // `reopen`, for an archived spec) as the way back. This is the one
     // HTTP-reachable path both the spec-page Reopen control and the
-    // queue-list row's Run/Reopen forms post through, and `ctx.specDir`
+    // specs-list row's Run/Reopen forms post through, and `ctx.specDir`
     // is the same resolver `backTo`, above, already uses — no new
     // resolver plumbing. A spec with no state file yet reads as
     // `created`, which the table refuses nothing forward-legal from.

@@ -164,7 +164,7 @@ land is not finished, and its row has to say so.**
   may match on it. Declared twice, in
   `src/queue/types.ts` and `src/render/ui/job-state/types.ts`, and pinned to each other by a test in `test/queue/requests/parsing-schedule-and-errors.test.ts` the way
   `PHASE_STEPS` is pinned to
-  `QUEUE_STEPS`.
+  `RUN_STEPS`.
 - **An unanswerable question invents nothing.** `ls-remote` that fails is `null`, and `null` claims neither that the
   branch is open nor that it is gone — the same fail-open rule `isMerged` keeps. A network blip must not report every
   archive as unlanded.
@@ -229,6 +229,6 @@ describing it, or a pull request merged past moments after it was opened. Four t
 - **`errorReason` has no member for this.** A branch left open on purpose is a success; that pair classifies failures a
   person can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen` in
   `src/serve/serve.ts` is the subset that is open deliberately, and `PR_OPEN` in
-  `src/render/pages/queue-list/row-shared.ts` is what such a row says instead of `NOT_LANDED`. The set itself is the
+  `src/render/pages/specs-list/row-shared.ts` is what such a row says instead of `NOT_LANDED`. The set itself is the
   same, so the row stays on the list and `archive` stays enqueueable for it. `assessProjectReadiness` never looks at
   `codeLanding`: every value is valid to run with, so it is never a reason to refuse a run.

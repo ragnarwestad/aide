@@ -22,7 +22,7 @@ const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
 ]);
 
 /** A sentence a row has to show, and how loudly. The row draws it in a
- *  panel of its own (`specNoticeRow`, queue-list.ts) rather than in a
+ *  panel of its own (`specNoticeRow`, specs-list.ts) rather than in a
  *  table cell: both producers write free text out of a file or a
  *  runner's refusal — 130 characters on spec 141 — and every cell on
  *  this row is sized for a word. */

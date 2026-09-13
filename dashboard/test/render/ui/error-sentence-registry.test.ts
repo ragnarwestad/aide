@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { invalidRequest } from "../../../src/queue/parse-request.ts";
-import { renderQueueRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render.ts";
-import { notLandedTitle } from "../../../src/render/pages/queue-list/cell-helpers.ts";
+import { renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render.ts";
+import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helpers.ts";
 import { wordPhase } from "../../../src/render/ui/job-state.ts";
 import { worktreeLinksError } from "../../../src/project/project-admin/manifest-io.ts";
 import { row } from "../pages/fixtures.ts";
@@ -73,10 +73,10 @@ const rowBlock = (html: string, folder: string): string =>
   )?.[0] ?? "";
 
 const live = (folder: string, extra: Partial<QueueRowView>): string =>
-  renderQueueRows([row({ specFolder: folder, ...extra })], { runnerAvailable: true, targets: [] });
+  renderSpecsRows([row({ specFolder: folder, ...extra })], { runnerAvailable: true, targets: [] });
 
 const archived = (folder: string, over: Partial<ArchivedSpecView>): string =>
-  renderQueueRows([], {
+  renderSpecsRows([], {
     runnerAvailable: true,
     targets: [],
     archived: [`aide/${folder}`],

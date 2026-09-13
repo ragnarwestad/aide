@@ -60,7 +60,7 @@ describe("building the archived rows", () => {
   });
 
   test("and the gate answers for every chip there is", async () => {
-    const { filterShowsArchived } = await import("../../src/render/pages/queue-list.ts");
+    const { filterShowsArchived } = await import("../../src/render/pages/specs-list.ts");
     // Absent resolves to the default chip, which is All.
     expect(filterShowsArchived(undefined)).toBe(true);
     expect(filterShowsArchived("all")).toBe(true);

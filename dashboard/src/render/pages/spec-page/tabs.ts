@@ -120,7 +120,7 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
  *  what that phase MADE, or — for archive, which writes no file of its
  *  own — Checks, the spec's own remaining-work tab.
  *
- *  ONE map, exported and imported rather than copied: `queue-list.ts`
+ *  ONE map, exported and imported rather than copied: `specs-list.ts`
  *  is the only caller, and `development.md` names two copies of one
  *  shape as this repo's own recurring mistake often enough that a
  *  fifth would be a choice.

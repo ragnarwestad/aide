@@ -5,7 +5,7 @@
 //                         that carries the config and the readiness answer
 //   render/projects-page.ts  /projects — the listing, and the panel that
 //                            adds and removes projects
-//   render/queue-list.ts  / — the spec list
+//   render/specs-list.ts  / — the spec list
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
@@ -84,17 +84,17 @@ export {
 // `stepBoxes` and `specSummary` used to be exported alongside these
 // two. They are internal now: both take a spec ROW rather than a
 // target, and a row is an internal shape with no caller outside
-// queue-list.ts.
+// specs-list.ts.
 // `FILTER_KEYS`/`FILTER_FIELD_PREFIX` are the page's, not the server's:
 // the forms send the view and the server sends it back, and one list
 // kept in two places would eventually forget a key on one side.
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, phasePips, phasesFor, renderQueuePage, renderQueueRows,
-} from "./render/pages/queue-list.ts";
+  filterShowsArchived, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
+} from "./render/pages/specs-list.ts";
 export type {
-  ArchivedSpecView, Phase, QueueFilter, QueuePageOptions, QueueTarget,
-} from "./render/pages/queue-list.ts";
+  ArchivedSpecView, Phase, SpecsFilter, SpecsPageOptions, SpecTarget,
+} from "./render/pages/specs-list.ts";
 
 export type { QueueRowView } from "./render/ui/job-state.ts";
 

@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import {
-  renderQueuePage,
+  renderSpecsPage,
 } from "../../../src/render.ts";
 import {
   TOKEN,
@@ -203,7 +203,7 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   // the check above cannot sweep for the word, because this machine's
   // own spec 81 is CALLED `81-queue-and-runner`.
   test("nothing a reader reads on the page says Queue (criterion 9)", () => {
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       [
         {
           id: "j1", project: "aide", specFolder: "87-run-from-the-list",

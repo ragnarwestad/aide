@@ -269,7 +269,7 @@ describe("acceptance criteria left unticked (spec 291's fix, applied 2026-08-31)
 
 // The validity rule for a held-back reason lives HERE, next to the
 // constant it compares against, so the layer rendering it (`heldBackFor`
-// in queue-list/data-model/phases.ts) asks instead of re-deriving the
+// in specs-list/data-model/phases.ts) asks instead of re-deriving the
 // comparison itself — re-deriving it is how spec 299's follow-up and
 // spec 298's fix collided in the first place.
 describe("archiveHeldBackApplies", () => {

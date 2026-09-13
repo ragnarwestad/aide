@@ -158,7 +158,7 @@ unticked` gates: Close is legal from every phase Archive would refuse.
   shown** (REQ-7): `SpecRef.closed` (off the `**Closed:**` stamp), the
   specs list's own `CLOSED_STATE` (excluded from both the Archived and
   Active filters), and the spec page's `closedLine` in place of
-  `archivedLine`. `isArchivedRow` (queue-list) is widened to include it —
+  `archivedLine`. `isArchivedRow` (specs-list) is widened to include it —
   every caller's real question is "is this row locked", true of a closed
   row the same way.
 

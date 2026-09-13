@@ -2,7 +2,7 @@
 // it does. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
 import { row, rows, target } from "./design-system-fixtures.ts";
-import type { QueuePageOptions, QueueRowView } from "../../src/render.ts";
+import type { SpecsPageOptions, QueueRowView } from "../../src/render.ts";
 import { wordPhase } from "../../src/render/ui/job-state/word-phase.ts";
 import { badge } from "../../src/render/ui/components.ts";
 import { restingChip, specStateChip } from "../../src/render/ui/job-state/resting.ts";
@@ -179,7 +179,7 @@ describe("no Resolve control (spec 171)", () => {
     errorReason: "conflict" as const,
   };
 
-  const conflicted = (opts: Partial<QueuePageOptions> = {}) =>
+  const conflicted = (opts: Partial<SpecsPageOptions> = {}) =>
     rows([row({ state: "done", ...CONFLICT })], { targets: [target()], ...opts });
 
   test("a conflict refusal draws no control of its own", () => {

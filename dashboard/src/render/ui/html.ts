@@ -32,7 +32,7 @@ export function tokens(n: number | null | undefined): string {
  *  mechanism, and the same reason, as the theme.
  *
  *  Every consumption figure on the site goes through here. There used to
- *  be two dollar formatters — this one and `queue-list.ts`'s `costCell`
+ *  be two dollar formatters — this one and `specs-list.ts`'s `costCell`
  *  — and both needed the identical new capability, so they are one. */
 export function usdOrTokens(
   usd: number | null | undefined,

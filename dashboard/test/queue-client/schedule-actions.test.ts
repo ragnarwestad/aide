@@ -1,6 +1,6 @@
 // The /schedule page's own client wiring (spec 276): the Enabled
 // toggle, Run-now, and the debounced cron-next preview. Minimal
-// hand-built fakes rather than the queue-list's own bundle-and-fake-
+// hand-built fakes rather than the specs-list's own bundle-and-fake-
 // document harness (`fixtures.ts`): none of these controls live inside
 // `#jobrows`, so this page has no row-swap machinery to exercise.
 // Acceptance criteria 14, 15, 16.

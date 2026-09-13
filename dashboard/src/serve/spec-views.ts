@@ -5,7 +5,7 @@
 // used to read directly.
 
 import { SPEC_FILES, specFileText, type SpecRef } from "../project/discover.ts";
-import type { SpecFileView, QueueRowView, QueueTarget } from "../render.ts";
+import type { SpecFileView, QueueRowView, SpecTarget } from "../render.ts";
 import type { QueueStore, Job } from "../queue/queue.ts";
 import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
@@ -20,7 +20,7 @@ import type { BoardsContext } from "./boards/lifecycle.ts";
  *  never see a later refresh. */
 export interface SpecViewsContext {
   projectRoot: string | undefined;
-  targets: () => QueueTarget[];
+  targets: () => SpecTarget[];
   peekUnlanded: () => string[];
   peekUnlandedCheckedAt: () => number | null;
   readPrOpen: () => string[];
@@ -32,7 +32,7 @@ export interface SpecViewsContext {
   machinerySpecDir: (project: string, dir: string) => Promise<string>;
   dependencyFolders: (project: string, dir: string) => string[];
   gitRun: GitRunner;
-  withFreshness: (list: QueueTarget[]) => QueueTarget[];
+  withFreshness: (list: SpecTarget[]) => SpecTarget[];
   jobRow: (job: Job) => Promise<QueueRowView>;
   queueToken: string | undefined;
   specFileCommits: SpecFileCommitChecker;

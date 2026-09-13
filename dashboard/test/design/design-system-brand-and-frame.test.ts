@@ -13,7 +13,7 @@ import {
   navEntries,
   renderJobDetailPage,
   renderProjectsPage,
-  renderQueuePage,
+  renderSpecsPage,
   renderSite,
   type ProjectView,
 } from "../../src/render.ts";
@@ -82,7 +82,7 @@ describe("the header and the two tabs (spec 119)", () => {
   // is what decides whether that tab reads as current on `/projects`.
   const entries = navEntries();
   const served = {
-    "/": renderQueuePage([], AT, entries, { runnerAvailable: true, targets: [] }),
+    "/": renderSpecsPage([], AT, entries, { runnerAvailable: true, targets: [] }),
     "/specs/job-1": renderJobDetailPage(detail(), AT, entries),
     "/projects": renderProjectsPage([project], AT, entries, {}),
   };
@@ -190,7 +190,7 @@ describe("the header and the two tabs (spec 119)", () => {
 // Which board a page is served from — a process-lifetime value read
 // directly by `pageHeader()` (`getBoardInfo()`), never threaded through
 // any of the call sites above. Covers both a statically generated page
-// (`renderSite`) and a dynamically served one (`renderQueuePage`),
+// (`renderSite`) and a dynamically served one (`renderSpecsPage`),
 // since REQ-2 names "headeren" with no page excluded and a test board's
 // own Projects/About come from exactly the same `renderSite()` call a
 // dynamically served page's header does.
@@ -205,7 +205,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   function render(): string[] {
     return [
       ...renderSite([project], AT).map((p) => p.html),
-      renderQueuePage([], AT, entries, { runnerAvailable: true, targets: [] }),
+      renderSpecsPage([], AT, entries, { runnerAvailable: true, targets: [] }),
     ];
   }
 

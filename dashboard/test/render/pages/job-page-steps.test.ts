@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
-  renderQueueRows,
+  renderSpecsRows,
   type JobDetailView,
 } from "../../../src/render.ts";
 import { stateChip, stateLabel } from "../../../src/render/ui/job-state.ts";
@@ -25,7 +25,7 @@ import {
 // --- spec 240: which Steps row is open survives the page's own reload -------
 //
 // Approach A (a bare `<details>` per row) was rejected in `3-solution.md`
-// for the exact reason `queue-list.ts` already rejected it for its own
+// for the exact reason `specs-list.ts` already rejected it for its own
 // row-fold: both pages reload themselves every 10 seconds via a real
 // `<meta http-equiv="refresh">`, a full navigation rather than a DOM
 // patch, so a `<details open>` set by a click is gone on the very next
@@ -213,7 +213,7 @@ describe("provider-limit presentation", () => {
     const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
     const capitalized = "Seven day provider limit; resets 2026-08-24 12:00 UTC";
     const stopped = row({ state: "stopped", stopReason: "provider-limit", error } as never);
-    expect(renderQueueRows([stopped], { runnerAvailable: true, targets: [] })).toContain(capitalized);
+    expect(renderSpecsRows([stopped], { runnerAvailable: true, targets: [] })).toContain(capitalized);
     expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(capitalized);
   });
 });

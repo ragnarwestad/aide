@@ -317,7 +317,7 @@ and a step that finished waits up to five seconds to show. The server says when 
 route on this surface, and `EventSource` reaches it with the cookie the page was given on load — it cannot set a header,
 so the cookie is the whole of its auth. The event it writes is a bare `changed` signal with no payload: the browser
 already knows how to fetch a fresh `#jobrows`, so
-`renderQueueRows` stays the one place a row is described and there is no second format to keep in step with it.
+`renderSpecsRows` stays the one place a row is described and there is no second format to keep in step with it.
 
 Two things broadcast, because two independent stores feed a row.
 `QueueStore`'s `onChange` hook covers every write to a job — the runner's step transitions, the page's presses, the
@@ -365,7 +365,7 @@ The date comes from **git, never from the queue**. `QueueStore` is an LRU of 200
 `src/git/description-freshness.ts` asks for it and
 `SpecCreatedAtChecker` caches the answer, both shaped exactly like
 `DescriptionFreshnessChecker` beside them — same TTL, same key, same fail-to-nothing. `withFreshness` attaches it to
-each `QueueTarget`.
+each `SpecTarget`.
 
 Two traps worth knowing before touching this:
 

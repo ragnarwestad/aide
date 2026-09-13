@@ -13,7 +13,7 @@ import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { withFreshness } from "../../../src/serve/land-branch/freshness.ts";
 import type { LandContext } from "../../../src/serve/land-branch/types.ts";
-import type { QueueTarget } from "../../../src/render.ts";
+import type { SpecTarget } from "../../../src/render.ts";
 import {
   TOKEN,
   specControls,
@@ -212,7 +212,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
   // the branch read. `bunx tsc --noEmit` catches a regression that made
   // it `async` at the type level; this proves it at the value level too.
   test("REQ-4: withFreshness returns synchronously, with no await anywhere in the call", () => {
-    const list: QueueTarget[] = [
+    const list: SpecTarget[] = [
       { project: "aide", specFolder: FOLDER, dir: "/some/dir", fileSteps: { proseSteps: ["create"], stateSteps: undefined } },
     ];
     const ctx = {

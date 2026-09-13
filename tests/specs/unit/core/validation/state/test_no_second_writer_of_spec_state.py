@@ -45,7 +45,7 @@ ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/git/branch-file.ts",            # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/workflow-history.ts",       # spec 362: reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
-    "dashboard/src/render/pages/queue-list/data-model/types.ts",  # doc comment on the stateMissing field
+    "dashboard/src/render/pages/specs-list/data-model/types.ts",  # doc comment on the stateMissing field
     "dashboard/src/queue/spec-transitions.ts",  # spec 356: doc comment only, reads through phaseFromState's own completedPhases/archived params
     "dashboard/src/serve/handle-queue/job-actions.ts",  # spec 356 (REQ-9): reads via readSpecState (parse-spec-state.ts), never a second derivation
 }

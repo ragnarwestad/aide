@@ -23,7 +23,7 @@ import {
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import type { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
-import type { QueueTarget } from "../render.ts";
+import type { SpecTarget } from "../render.ts";
 import { STATUS_SPEC_FILE } from "../render.ts";
 import { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./schedules/blocked.ts";
 
@@ -59,7 +59,7 @@ export interface ScheduleContext {
    *  still open there. */
   specsRoot: (dir: string) => Promise<string>;
   readBranchFileSteps: () => BranchFileStepsChecker;
-  targets: () => QueueTarget[];
+  targets: () => SpecTarget[];
   readScan: () => { archived: string[]; dirs: Map<string, string> } | null;
   allowed: Set<string>;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;

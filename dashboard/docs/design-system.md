@@ -96,7 +96,7 @@ baseline, not `.row`'s default, and the override must stay scoped to that one ro
 
 ## One busy flag, not a per-step lookup
 
-A spec's queue row reads its "is anything in flight" state from a single predicate, `specBusy()` in `queue-list.ts`,
+A spec's queue row reads its "is anything in flight" state from a single predicate, `specBusy()` in `specs-list.ts`,
 rather than each control re-deriving it from the in-flight job's own `steps` list. A control that derives it itself can
 show a step as tickable, and Run as clickable, while a job is already running on the spec — the queue refuses the
 request, and the row has promised something it cannot keep. Every control that can act on a busy row — the phase boxes,

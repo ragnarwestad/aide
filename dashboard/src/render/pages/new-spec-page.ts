@@ -22,8 +22,8 @@ import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepL
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { PHASE_LINES, type QueuePageOptions, type QueueTarget, type SpecGroup } from "./queue-list.ts";
-import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./queue-list/model-picker.ts";
+import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list.ts";
+import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
 
 export interface NewSpecPageOptions {
   /** Carried into the form, for a browser that got here with the token
@@ -37,7 +37,7 @@ export interface NewSpecPageOptions {
   createProjects?: string[];
   /** Every active spec, across every project: what the new one may be
    *  made to build on. */
-  targets?: QueueTarget[];
+  targets?: SpecTarget[];
   /** The page's browser code, compiled from `queue-client.ts` by the
    *  server: the inline refusal and the Depends-on scoping. Everything
    *  here works without it, one page load at a time. */
@@ -50,11 +50,11 @@ export interface NewSpecPageOptions {
    *  starts — the same view the spec list's phase lines are given, built
    *  by the same helper in `serve.ts` so the two pages cannot come to
    *  offer different lists (spec 228). */
-  modelChoices?: QueuePageOptions["modelChoices"];
+  modelChoices?: SpecsPageOptions["modelChoices"];
   /** What the configuration would give each step. Only `create`'s entry
    *  (or the table's `default`) can matter here: a create job runs that
    *  one step. */
-  defaultModels?: QueuePageOptions["defaultModels"];
+  defaultModels?: SpecsPageOptions["defaultModels"];
   /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
@@ -89,7 +89,7 @@ export interface NewSpecPageOptions {
 // it is already ticked. A second copy of this markup would have drifted
 // from it the first time one of the two was fixed.
 export function dependsOnField(
-  targets: QueueTarget[],
+  targets: SpecTarget[],
   checked: Set<string> = new Set(),
   // A row of its own, or a field sharing one. The New-spec page asks for
   // the first since spec 228; the Edit page, the other caller, keeps the
@@ -111,7 +111,7 @@ export function dependsOnField(
       -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
   );
   if (specs.length === 0 && !(o.locked ?? []).length) return "";
-  const chip = (t: QueueTarget) =>
+  const chip = (t: SpecTarget) =>
     `<span data-project="${esc(t.project)}">` +
     phaseChip({
       dataAttr: "data-depends",

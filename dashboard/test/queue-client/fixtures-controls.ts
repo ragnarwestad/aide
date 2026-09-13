@@ -28,7 +28,7 @@ export function classes(el: { className: string }) {
  *
  *  `form` is the attribute, and it is the whole point for Run: that
  *  button is written OUTSIDE `<form class="rowrun">` and reaches it
- *  by name alone (`queue-list.ts`, `stateAction`). */
+ *  by name alone (`specs-list.ts`, `stateAction`). */
 export const makeButton = (label: string, pending: string, variant: string, form?: string) => {
   const b = {
     textContent: label,
@@ -66,7 +66,7 @@ export const MODELS: [string, string][] = [
 ];
 
 /** `ran` is the server's own "this phase has history" marker
- *  (`data-ran="1"`, `queue-list.ts`): the select is showing what the
+ *  (`data-ran="1"`, `specs-list.ts`): the select is showing what the
  *  phase really ran on. `formId` is the row's run-form id, so a write
  *  on this select can be told apart from one on another row's. */
 export const modelSelect = (formId: string, step: string, chosen: string, ran = false, live = false) => {
@@ -148,7 +148,7 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
     selected: t === tool,
   }));
   const self = {
-    // No `name`: the control posts nothing (`queue-list.ts`). It is
+    // No `name`: the control posts nothing (`specs-list.ts`). It is
     // still what the DOM reports — an empty string, not undefined —
     // and the key a kept choice would be filed under is built from
     // it, which is why the handler must intercept it BEFORE the

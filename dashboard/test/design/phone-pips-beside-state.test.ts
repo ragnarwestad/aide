@@ -5,11 +5,11 @@
 // stacks the same two in the State cell, the pips over the badge.
 import { describe, expect, test } from "bun:test";
 import { CSS } from "../../src/render/ui/css.ts";
-import { renderQueueRows, type QueueTarget } from "../../src/render.ts";
+import { renderSpecsRows, type SpecTarget } from "../../src/render.ts";
 
-const target = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
+const target = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
 const rows = () =>
-  renderQueueRows([], { runnerAvailable: true, targets: [target("155-x")] }, Date.parse("2026-08-21T12:00:00Z"));
+  renderSpecsRows([], { runnerAvailable: true, targets: [target("155-x")] }, Date.parse("2026-08-21T12:00:00Z"));
 
 function narrowBlock(css: string): string {
   const opening = "@media (max-width: 40rem) {";

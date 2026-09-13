@@ -81,7 +81,7 @@ export function landingRefusal(
  *  in the URL defaults to the running row when there is one, exactly
  *  the behaviour `activityPanel` gave a live job before it existed. This
  *  is what survives the page's own 10-second reload: the open row is a
- *  property of the URL, never of a client-only widget (`queue-list.ts`'s
+ *  property of the URL, never of a client-only widget (`specs-list.ts`'s
  *  row-fold already rejected `<details>` for the identical reason). */
 export function resolveOpenStep(query: string | undefined, hasRunning: boolean): string | undefined {
   if (query === "none") return undefined;

@@ -32,7 +32,7 @@ import type {
   JobDetailView,
   NavEntry,
   QueueRowView,
-  QueueTarget,
+  SpecTarget,
   SpecPageView,
 } from "../render.ts";
 import type { createRootLock } from "./serve-helpers.ts";
@@ -67,8 +67,8 @@ export interface HandleQueueContext {
   /** Drop the cached branch answer for one spec (`dir`, `specFolder`),
    *  after a write that changed the file it caches. */
   forgetBranchFileSteps?: (dir: string, specFolder: string) => void;
-  targets: () => QueueTarget[];
-  withFreshness: (list: QueueTarget[]) => QueueTarget[];
+  targets: () => SpecTarget[];
+  withFreshness: (list: SpecTarget[]) => SpecTarget[];
   specDir: (project: string, specFolder: string) => string | undefined;
   specRef: (project: string, specFolder: string) => SpecRef | undefined;
   specsRoot: (dir: string) => Promise<string>;

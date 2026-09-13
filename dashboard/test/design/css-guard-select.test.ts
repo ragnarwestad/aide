@@ -13,7 +13,7 @@ import { CSS, outsideTokens, tokensAfter, oneRule } from "./css-guard-fixtures.t
 //
 // Two of the four selects on the site are NOT inside a `.field`:
 // `modelPicker()` renders into `<span class="row">` and `toolPicker()`
-// into `<label class="muted small">` (`queue-list.ts`). They are
+// into `<label class="muted small">` (`specs-list.ts`). They are
 // addressed by attribute instead, and a selector list that quietly
 // narrowed back to `.field select` alone would pass every other check
 // here while leaving both showing the platform chevron — which is the

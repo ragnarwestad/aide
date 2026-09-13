@@ -2,12 +2,12 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  renderQueuePage,
-  renderQueueRows,
+  renderSpecsPage,
+  renderSpecsRows,
   type ArchivedSpecView,
-  type QueuePageOptions,
+  type SpecsPageOptions,
   type QueueRowView,
-  type QueueTarget,
+  type SpecTarget,
 } from "../../../src/render.ts";
 import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -34,7 +34,7 @@ describe("the job list sorts and filters", () => {
 
   /** A spec on disk, as the server hands it to the page. `createdAt` is
    *  what git answered for the folder's first commit (spec 199). */
-  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -54,17 +54,17 @@ describe("the job list sorts and filters", () => {
 
   const page = (
     rows: QueueRowView[],
-    filter?: QueuePageOptions["filter"],
+    filter?: SpecsPageOptions["filter"],
     // Spec 199: a creation date comes off the TARGET (git), never off a
     // job. Spec 281 stopped drawing it in the Time column at all — that
     // column shows the spec's summed duration now — but `createdAt`
     // still decides the folder-order tie-break between two specs
     // neither git nor a job can date (below), so tests about that still
     // need a target to give one on.
-    targets: QueueTarget[] = [],
+    targets: SpecTarget[] = [],
     archivedSpecs?: ArchivedSpecView[],
   ) =>
-    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    renderSpecsPage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets,
       filter,
@@ -228,11 +228,11 @@ describe("the job list sorts and filters", () => {
     const now = Date.parse("2026-08-16T12:00:00Z");
     // Before: "small" has nothing settled yet, so it sorts behind "big"'s
     // 20 measured minutes.
-    const before = renderQueueRows([row("small"), settled("big")], opts, now);
+    const before = renderSpecsRows([row("small"), settled("big")], opts, now);
     expect(specOrder(before)).toEqual(["big-spec", "small-spec"]);
     // After: "small" has been running for an hour (11:00 to NOW 12:00) —
     // more than "big"'s 20 settled minutes — so it now sorts FIRST.
-    const after = renderQueueRows(
+    const after = renderSpecsRows(
       [row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }), settled("big")],
       opts,
       now,

@@ -2,7 +2,7 @@
 // vocabularies stay distinct, and the row's message panel reuses the
 // existing component. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
-import { renderQueuePage, renderQueueRows } from "../../src/render.ts";
+import { renderSpecsPage, renderSpecsRows } from "../../src/render.ts";
 import { AT, NAV, row, rows, target } from "./design-system-fixtures.ts";
 
 // --- dark mode is implemented, not merely declared ----------------------------
@@ -39,7 +39,7 @@ describe("the button component works on a link too (spec 121)", () => {
   });
 
   test("New spec really is a link wearing it", () => {
-    const list = renderQueuePage([], AT, NAV, {
+    const list = renderSpecsPage([], AT, NAV, {
       runnerAvailable: true,
       targets: [],
       createProjects: ["aide"],
@@ -110,7 +110,7 @@ describe("the row's message panel is the component, not new markup", () => {
     expect(panel).toMatch(/class="rowmsg failed">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
-    const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
+    const empty = renderSpecsRows([], { runnerAvailable: true, targets: [] });
     expect(empty).toContain(`colspan="6"`);
   });
 

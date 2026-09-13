@@ -2,10 +2,10 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  renderQueuePage,
-  type QueuePageOptions,
+  renderSpecsPage,
+  type SpecsPageOptions,
   type QueueRowView,
-  type QueueTarget,
+  type SpecTarget,
 } from "../../../src/render.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -35,10 +35,10 @@ describe("filtering and sorting work on specs, not jobs", () => {
   // are read off the lines an open row draws.
   const page = (
     rows: QueueRowView[],
-    filter?: QueuePageOptions["filter"],
-    targets: QueueTarget[] = [],
+    filter?: SpecsPageOptions["filter"],
+    targets: SpecTarget[] = [],
   ) =>
-    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    renderSpecsPage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets,
       filter: { open: "aide/aa-spec", ...filter },
@@ -135,7 +135,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
   // check, so this now asserts everything (state, "?", New spec) lives
   // inside the one `<form class="specsearch">`, in that order.
   test('the state dropdown, "?" and New spec all sit on the search field\'s own row (spec 261, spec 289)', () => {
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       [job("a1", "aa-spec")],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],

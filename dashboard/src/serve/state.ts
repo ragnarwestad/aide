@@ -11,13 +11,13 @@
 // functions, unchanged — this object is what those functions close
 // over now instead of a bare local.
 
-import type { QueueTarget } from "../render.ts";
+import type { SpecTarget } from "../render.ts";
 import type { SpecRef } from "../project/discover.ts";
 import type { Runner } from "../queue/runner.ts";
 
 export interface Scan {
   at: number;
-  targets: QueueTarget[];
+  targets: SpecTarget[];
   archived: string[];
   dirs: Map<string, string>;
   refs: Map<string, SpecRef>;

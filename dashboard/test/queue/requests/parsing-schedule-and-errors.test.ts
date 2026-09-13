@@ -9,7 +9,7 @@ import {
   parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-import { QUEUE_STEPS } from "../../../src/render/pages/queue-list.ts";
+import { RUN_STEPS } from "../../../src/render/pages/specs-list.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -37,7 +37,7 @@ const resolve = (project: string) =>
 // module, deliberately — so this is what says they agree.
 describe("PHASE_STEPS", () => {
   test("is the row's own box list, in the workflow's order", () => {
-    expect([...PHASE_STEPS] as string[]).toEqual([...QUEUE_STEPS]);
+    expect([...PHASE_STEPS] as string[]).toEqual([...RUN_STEPS]);
     const ranks = PHASE_STEPS.map((s) => WORKFLOW_STEPS.indexOf(s));
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
     expect(ranks).not.toContain(-1);

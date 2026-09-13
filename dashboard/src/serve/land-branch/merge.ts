@@ -367,7 +367,7 @@ export async function landBranch(
       // that is the whole difference between this and the Merge button
       // spec 149 removed: nobody's browser is attached to a landing, so
       // the row has to be able to read the reason on any later request
-      // (`queue-list.ts`, `resolveForm`).
+      // (`specs-list.ts`, `resolveForm`).
       // A red suite is the one failure here that is not a fault: the
       // step ran, the merge was built, and the project's own tests said
       // the result is not green. That stops the job rather than failing

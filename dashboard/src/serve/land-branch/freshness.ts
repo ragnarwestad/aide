@@ -2,7 +2,7 @@
 // spec over the same checkout.
 
 import { resolveWorkflowState } from "../../git/workflow-history.ts";
-import type { QueueTarget } from "../../render.ts";
+import type { SpecTarget } from "../../render.ts";
 import type { LandContext } from "./types.ts";
 
 /** Everything about a spec that only git can answer, asked once per
@@ -34,7 +34,7 @@ import type { LandContext } from "./types.ts";
  *  A spec with no `dir` — a create job's spec, which is the folder the
  *  job is making — has no history to read and keeps the empty
  *  done-set it arrived with. */
-export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarget[] {
+export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[] {
   return list.map((t) => {
     if (!t.dir) return t;
     // Spec 302: the one canonical `{done, stopped, fileDisagrees,
@@ -52,11 +52,11 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
     );
     if (!resolved) return { ...t, freshnessUnknown: true };
     const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
-    const withHistory: QueueTarget = {
+    const withHistory: SpecTarget = {
       ...t,
       // Not `...resolved`: `resolved.fileSteps` is the prose half alone
       // (spec 362, `resolveWorkflowState`'s own `answer.proseSteps`),
-      // and nothing downstream ever reads `QueueTarget.fileSteps` again
+      // and nothing downstream ever reads `SpecTarget.fileSteps` again
       // once resolved — only `fileDisagrees` reaches the row. Spreading
       // it would overwrite `t.fileSteps`'s own `FileStepsAnswer` with a
       // bare array, which is not what that field is typed to hold.
@@ -72,7 +72,7 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
       // Spec 317: "checking…" versus a real "cannot date" — the same
       // distinction the Created cell draws for an archived row, kept
       // for a live one too rather than losing `checkedAt` the moment
-      // it reaches `QueueTarget`.
+      // it reaches `SpecTarget`.
       createdAtChecking: createdAtPeek.checkedAt === null,
     };
     if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;

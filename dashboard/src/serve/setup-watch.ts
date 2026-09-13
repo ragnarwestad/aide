@@ -30,7 +30,7 @@ export function setupWatch(
   //
   // One held-open response per open tab. The event is a SIGNAL and
   // carries nothing: the browser already knows how to fetch a fresh
-  // `#jobrows`, so `renderQueueRows` stays the one place a row is
+  // `#jobrows`, so `renderSpecsRows` stays the one place a row is
   // described and there is no second format to keep in step with it.
   // What travels the wire is "go and look".
   const encoder = new TextEncoder();

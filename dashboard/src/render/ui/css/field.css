@@ -5,7 +5,7 @@
 /* The two selects on a phase line are named here alongside the fields
    because neither one is inside a field: modelPicker renders into a
    span.row and aiPicker straight into the AI column's own cell
-   (queue-list.ts), so the .field selector reached neither, and both
+   (specs-list.ts), so the .field selector reached neither, and both
    carried no height, border, background or colour from the design
    system at all. Attribute selectors rather than a wrapper — both
    attributes are already in the markup, so this stays a stylesheet

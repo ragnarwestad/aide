@@ -11,9 +11,9 @@
 import { describe, expect, test } from "bun:test";
 import { CSS } from "../../src/render/ui/css.ts";
 import {
-  renderQueueRows,
-  type QueuePageOptions,
-  type QueueTarget,
+  renderSpecsRows,
+  type SpecsPageOptions,
+  type SpecTarget,
 } from "../../src/render.ts";
 import { stepResults } from "../../src/render/pages/job-page.ts";
 
@@ -36,10 +36,10 @@ function narrowBlock(css: string): string {
 
 const NARROW = narrowBlock(CSS);
 
-const target = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
+const target = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
 
-const rows = (filter?: QueuePageOptions["filter"], extra: Partial<QueuePageOptions> = {}) =>
-  renderQueueRows(
+const rows = (filter?: SpecsPageOptions["filter"], extra: Partial<SpecsPageOptions> = {}) =>
+  renderSpecsRows(
     [],
     { runnerAvailable: true, targets: [target("155-x")], filter, ...extra },
     Date.parse("2026-08-21T12:00:00Z"),

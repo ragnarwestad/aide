@@ -2,7 +2,7 @@ import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { esc } from "../ui/html.ts";
 import { backLink, btn } from "../ui/components.ts";
 import type { Language } from "../../i18n";
-import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "./queue-list.ts";
+import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "./specs-list.ts";
 import { WORKFLOW_STEPS } from "../../queue/steps.ts";
 
 export const SETTINGS_ROUTE = "/settings";

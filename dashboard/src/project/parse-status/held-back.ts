@@ -119,7 +119,7 @@ export function acceptanceStillOpen(
  *  declined, before implement is done.
  *
  *  Owned here, next to the constant it compares against, so callers
- *  (`heldBackFor` in queue-list/data-model/phases.ts) ask instead of
+ *  (`heldBackFor` in specs-list/data-model/phases.ts) ask instead of
  *  re-deriving the comparison themselves. */
 export function archiveHeldBackApplies(reason: string, doneSteps: string[]): boolean {
   return reason !== ACCEPTANCE_CRITERIA_UNTICKED_NOTE || doneSteps.includes("implement");

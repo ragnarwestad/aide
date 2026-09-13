@@ -19,7 +19,7 @@ import type { CodeLanding } from "../project/discover.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { Job, QueueStore, WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
-import type { QueueTarget } from "../render.ts";
+import type { SpecTarget } from "../render.ts";
 import { jobRow as jobRowImpl, type JobRowContext } from "./job-row.ts";
 import {
   landNewSpec as landNewSpecImpl,
@@ -132,7 +132,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
       },
     };
   }
-  function withFreshness(list: QueueTarget[]) {
+  function withFreshness(list: SpecTarget[]) {
     return withFreshnessImpl(landCtx, list);
   }
 

@@ -3,13 +3,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   computeSpecTotalDurationMs,
-  renderQueueRows,
+  renderSpecsRows,
   type ArchivedSpecView,
   type QueueRowView,
-  type QueueTarget,
+  type SpecTarget,
 } from "../../../src/render.ts";
 import { durationLabel } from "../../../src/render/ui/job-state.ts";
-import { phaseDuration } from "../../../src/render/pages/queue-list/data-model/phases.ts";
+import { phaseDuration } from "../../../src/render/pages/specs-list/data-model/phases.ts";
 
 // --- spec 199: time becomes something worth reading -------------------------
 //
@@ -35,17 +35,17 @@ describe("a phase says how long it took", () => {
     ...extra,
   });
 
-  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
 
-  // `renderQueueRows`, not `renderQueuePage`: the page reads the clock
+  // `renderSpecsRows`, not `renderSpecsPage`: the page reads the clock
   // itself and takes no `now`, and every figure in this block is
   // measured against one.
-  const page = (rows: QueueRowView[], targets: QueueTarget[] = [], spec = "aa-spec") =>
-    renderQueueRows(
+  const page = (rows: QueueRowView[], targets: SpecTarget[] = [], spec = "aa-spec") =>
+    renderSpecsRows(
       rows,
       { runnerAvailable: true, targets, filter: { open: `aide/${spec}` } },
       Date.parse(NOW),
@@ -370,7 +370,7 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
   // The list draws this figure on a live row now (spec 281) — the
   // inverse of the rule this block asserted from spec 207 until then.
   test("the spec list draws the figure, on a spec still missing a phase", () => {
-    const html = renderQueueRows(
+    const html = renderSpecsRows(
       [rows()[0]!],
       {
         runnerAvailable: true,
@@ -408,7 +408,7 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
         archive: { timeSpentMs: 5 * 60 * 1000 },
       },
     };
-    const html = renderQueueRows([], {
+    const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [],
       archivedSpecs: [archived],
@@ -466,7 +466,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
         results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
       }),
     ];
-    const html = renderQueueRows(
+    const html = renderSpecsRows(
       rows,
       {
         runnerAvailable: true,
@@ -490,7 +490,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
       }),
     ];
     const liveMs = computeSpecTotalDurationMs(rows, NOW)?.ms;
-    const html = renderQueueRows(
+    const html = renderSpecsRows(
       rows,
       {
         runnerAvailable: true,

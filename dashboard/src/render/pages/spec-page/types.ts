@@ -1,7 +1,7 @@
 // The spec page's own view types.
 
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page.ts";
-import type { Phase, QueueTarget } from "../queue-list.ts";
+import type { Phase, SpecTarget } from "../specs-list.ts";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
  *  182). `phase` and `line` are the row's identity: the checks form
@@ -142,7 +142,7 @@ export interface SpecPageView {
   /** What this spec MAY be made to depend on: every active spec in its
    *  own project, itself left out. Empty — a project whose only spec is
    *  this one — and the picker is not drawn (spec 174). */
-  dependsOnOptions?: QueueTarget[];
+  dependsOnOptions?: SpecTarget[];
   /** Whether the spec's own Tracking info says acceptance ticking is not
    *  required (spec 394) — read fresh off `1-description.md`
    *  (`specAcceptanceNotRequired`), the same file `dependsOn` above

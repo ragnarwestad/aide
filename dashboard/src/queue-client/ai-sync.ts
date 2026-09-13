@@ -66,7 +66,7 @@ export function offerOnly(model: HTMLSelectElement, tool: string): void {
 //
 // The value written is the one the SERVER worked out and put on the
 // option. Which model an AI stands for is a configuration fact
-// (`defaultModelForTool`, `queue-list.ts`), so the browser copies it
+// (`defaultModelForTool`, `specs-list.ts`), so the browser copies it
 // and never chooses between a tool's models itself.
 //
 // The write is recorded in `chosen` as well. Setting `.value` from

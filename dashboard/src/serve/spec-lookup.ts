@@ -24,14 +24,14 @@ import {
   acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status.ts";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
-import type { QueueTarget } from "../render.ts";
+import type { SpecTarget } from "../render.ts";
 import { resolveDependencyFolder } from "./serve-helpers.ts";
 
 /** What `targets()` caches for five seconds and every other lookup in
  *  this file reads a slice of. */
 export interface ScanState {
   at: number;
-  targets: QueueTarget[];
+  targets: SpecTarget[];
   archived: string[];
   dirs: Map<string, string>;
   refs: Map<string, SpecRef>;
@@ -47,7 +47,7 @@ export interface SpecLookupContext {
    *  when it rebuilds the scan, so every OTHER function in this file
    *  keeps calling `ctx.targets()` with no argument and gets the same
    *  five-second cache `targets()` has always kept. */
-  targets: () => QueueTarget[];
+  targets: () => SpecTarget[];
   readScan: () => ScanState | null;
   writeScan: (scan: ScanState | null) => void;
   projectRoot: string | undefined;
@@ -71,11 +71,11 @@ export interface SpecLookupContext {
  *  Cached for five seconds off `ctx.readScan()`/`ctx.writeScan()` —
  *  the same `scan` `let` every other function in this file peeks
  *  through `readScan()`. */
-export function targets(ctx: SpecLookupContext): QueueTarget[] {
+export function targets(ctx: SpecLookupContext): SpecTarget[] {
   const now = Date.now();
   const cached = ctx.readScan();
   if (cached && now - cached.at < 5000) return cached.targets;
-  const found: QueueTarget[] = [];
+  const found: SpecTarget[] = [];
   const gone: string[] = [];
   // And WHAT each of them is, from the same walk (spec 163). `targets`
   // is live-only by design, so the page of an ARCHIVED spec looked its

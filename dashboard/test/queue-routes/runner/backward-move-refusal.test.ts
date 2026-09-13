@@ -2,7 +2,7 @@
 // on a spec that has already reached a later phase must be refused
 // before the job ever reaches the queue, naming `reset` as the way
 // back. `job-actions.ts` is the one HTTP-reachable path both the
-// spec-page control and the queue-list row's forms post through.
+// spec-page control and the specs-list row's forms post through.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";

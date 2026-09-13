@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { renderQueuePage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render.ts";
+import { renderSpecsPage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render.ts";
 import { CSS } from "../../../src/render/ui/css.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import {
@@ -138,7 +138,7 @@ describe("GET / (the spec list, HTML)", () => {
   });
 });
 
-describe("renderQueuePage state labels", () => {
+describe("renderSpecsPage state labels", () => {
   // Every job gets its own spec: the list holds one line per SPEC, so
   // nine jobs sharing a folder would be nine attempts at one phase, of
   // which only the latest shows — and this test is about how each state
@@ -163,7 +163,7 @@ describe("renderQueuePage state labels", () => {
   test("stopped is never rendered as failed", () => {
     const budgetRow = row("stopped", { stopReason: "budget", error: "stopped — budget" });
     const timeoutRow = row("stopped", { stopReason: "timeout", error: "stopped — 20 min" });
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       [
         budgetRow,
         timeoutRow,
@@ -189,7 +189,7 @@ describe("renderQueuePage state labels", () => {
   });
 
   test("the Spec column is pinned to its own width (REQ-1/REQ-2)", () => {
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       [],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],

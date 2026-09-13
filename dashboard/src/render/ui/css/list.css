@@ -56,7 +56,7 @@ table { border-collapse: collapse; width: 100%; }
    `table.list` alone is shared with the Schedule, Settings, Project and
    New-spec tables — none of them has a State-style column, and none
    asked for this — so the override is scoped to `.speclist`, the class
-   `queue-list.ts` already puts on this one table. Auto layout then
+   `specs-list.ts` already puts on this one table. Auto layout then
    sizes the table to the sum of its own columns' widths (below): a
    wider window leaves empty page beside the table, not inside a cell. */
 /* The sum of the six columns below. Stated, because `table-layout:
@@ -280,7 +280,7 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    the chevron's anchor above is unaffected. `top: 0` pins the row to
    the top of `#jobrows .tablewrap` (list.css:50-52), the one box that
    scrolls — every row moves under it instead of over it. Scoped to
-   `.speclist` alone (the class only queue-list.ts ever writes): the
+   `.speclist` alone (the class only specs-list.ts ever writes): the
    Schedule, Settings, Project and New-spec tables share table.list's
    own header rules but have no scrolling box of their own to stick
    within, and widening this to `table.list th` or the bare `thead th`

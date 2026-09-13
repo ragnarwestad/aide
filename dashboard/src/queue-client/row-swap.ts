@@ -131,7 +131,7 @@ export function restoreChosen(body: Element): void {
 // falls.
 
 /** One spec's rows, keyed by the anchor id the server already puts on
- *  its head row (`rowAnchorId`, `render/queue-list.ts`). */
+ *  its head row (`rowAnchorId`, `render/specs-list.ts`). */
 interface RowGroup {
   key: string;
   html: string;

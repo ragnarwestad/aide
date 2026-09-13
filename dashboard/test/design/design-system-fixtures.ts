@@ -5,11 +5,11 @@
 // by theme).
 
 import {
-  renderQueueRows,
+  renderSpecsRows,
   type JobDetailView,
-  type QueuePageOptions,
+  type SpecsPageOptions,
   type QueueRowView,
-  type QueueTarget,
+  type SpecTarget,
 } from "../../src/render.ts";
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
@@ -29,7 +29,7 @@ export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   ...extra,
 });
 
-export const target = (extra: Partial<QueueTarget> = {}): QueueTarget => ({
+export const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   project: "aide",
   specFolder: "102-design-foundation",
   ...extra,
@@ -38,8 +38,8 @@ export const target = (extra: Partial<QueueTarget> = {}): QueueTarget => ({
 // Spec 103: a row is collapsed unless the view names it, and the
 // controls this file is about come with opening it — so every render
 // here opens the one spec it draws.
-export const rows = (list: QueueRowView[], opts: Partial<QueuePageOptions> = {}) =>
-  renderQueueRows(
+export const rows = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>
+  renderSpecsRows(
     list,
     {
       runnerAvailable: true,

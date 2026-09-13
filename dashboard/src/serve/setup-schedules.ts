@@ -17,7 +17,7 @@ import {
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
 import type { QueueStore } from "../queue/queue.ts";
-import type { QueueTarget } from "../render.ts";
+import type { SpecTarget } from "../render.ts";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
@@ -39,7 +39,7 @@ export interface ScheduleSetupOptions {
 export interface ScheduleSetupInputs {
   machineryProjectDir: (project: string) => string;
   branchStatus: BranchStatusChecker;
-  targets: () => QueueTarget[];
+  targets: () => SpecTarget[];
   allowed: Set<string>;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
   queue: QueueStore;

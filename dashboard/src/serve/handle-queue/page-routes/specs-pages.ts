@@ -5,7 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { NEW_SPEC_ROUTE, renderNewSpecPage, renderQueuePage, renderQueueRows, resolveBackHref } from "../../../render.ts";
+import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render.ts";
 import { languageChoice, queueClientScript, sortChoice, stateChoice } from "../../serve-helpers.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -150,11 +150,11 @@ export async function specsPages(
       if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
       if (stateResult.setCookie) rowHeaders.append("set-cookie", stateResult.setCookie);
       if (langResult.setCookie) rowHeaders.append("set-cookie", langResult.setCookie);
-      return new Response(renderQueueRows(await Promise.all(listed.map(ctx.jobRow)), view), {
+      return new Response(renderSpecsRows(await Promise.all(listed.map(ctx.jobRow)), view), {
         headers: rowHeaders,
       });
     }
-    const html = renderQueuePage(
+    const html = renderSpecsPage(
       await Promise.all(listed.map(ctx.jobRow)),
       new Date().toISOString(),
       ctx.nav(),

@@ -12,9 +12,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   computeSpecTotalDurationMs,
-  renderQueueRows,
+  renderSpecsRows,
   type QueueRowView,
-  type QueueTarget,
+  type SpecTarget,
 } from "../../../src/render.ts";
 
 // --- spec 199: time becomes something worth reading -------------------------
@@ -67,15 +67,15 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     ...extra,
   });
 
-  const target = (extra: Partial<QueueTarget> = {}): QueueTarget => ({
+  const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder: "aa-spec",
     dir,
     ...extra,
   });
 
-  const page = (rows: QueueRowView[], targets: QueueTarget[]) =>
-    renderQueueRows(rows, { runnerAvailable: true, targets, filter: { open: "aide/aa-spec" } }, Date.parse(NOW));
+  const page = (rows: QueueRowView[], targets: SpecTarget[]) =>
+    renderSpecsRows(rows, { runnerAvailable: true, targets, filter: { open: "aide/aa-spec" } }, Date.parse(NOW));
 
   const phaseCell = (html: string, step: string, col: "started" | "cost"): string =>
     html

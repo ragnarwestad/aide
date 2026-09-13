@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
   renderNewSpecPage,
-  renderQueuePage,
+  renderSpecsPage,
   navEntries,
   renderSite,
-  type QueuePageOptions,
+  type SpecsPageOptions,
 } from "../../../src/render.ts";
 import {
   external,
@@ -183,7 +183,7 @@ describe("the About dialog", () => {
   });
 
   test("a served page's dialog carries no build stamp — it was not built", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", NAV, {
+    const html = renderSpecsPage([], "2026-08-16T00:00:00Z", NAV, {
       runnerAvailable: true,
       targets: [],
     });
@@ -252,8 +252,8 @@ describe("self-contained (criterion 5)", () => {
 // sits on the page that lists what it changes — and `/` is back to one
 // panel above the list. Its own tests live in projects-page.test.ts.
 describe("the front page after the panel moved", () => {
-  const page = (opts: Partial<QueuePageOptions> = {}): string =>
-    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+  const page = (opts: Partial<SpecsPageOptions> = {}): string =>
+    renderSpecsPage([], "2026-08-18T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       runnerAvailable: true,
       targets: [],
       ...opts,
@@ -291,7 +291,7 @@ describe("the front page after the panel moved", () => {
 
     assertOrder(page({ createProjects: ["aide"] }));
     assertOrder(
-      renderQueuePage(
+      renderSpecsPage(
         [row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })],
         "2026-08-18T00:00:00Z",
         [{ label: "Projects", path: "/projects" }],
@@ -422,7 +422,7 @@ describe("Live right now is gone (criterion 9)", () => {
 describe("spec 173: every page says how it is installed", () => {
   const pages = (): string[] => [
     ...renderSite([project("aide")], "2026-08-21T00:00:00Z").map((p) => p.html),
-    renderQueuePage([], "2026-08-21T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+    renderSpecsPage([], "2026-08-21T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       runnerAvailable: true,
       targets: [],
     }),
