@@ -71,6 +71,12 @@ export interface ProjectPageOptions {
   /** Non-empty while a Deploy press's restart is held back by these
    *  running jobs (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];
+  /** Whether this project's own machinery checkout carries the
+   *  dashboard's source (`ctx.boards.roundAvailable`) — the same
+   *  capability check the spec-page's test-server link already gates on.
+   *  Undefined only where the boards context was never wired (should not
+   *  happen outside a test that omits it on purpose). */
+  testBoardAvailable?: boolean;
   /** Which tab is open, off the request's own `?tab=` (spec 293) — the
    *  same URL-driven pattern `ScheduleDetailPageOptions.tab` already
    *  uses, and for the same reason: this page reloads on a timer, so a

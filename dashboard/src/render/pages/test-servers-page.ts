@@ -5,7 +5,7 @@
 // the one existing precedent for "a global, token-guarded page with a
 // table of rows", and reached the same way Settings is: the "…" menu.
 
-import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
 import { backLink, tokenField } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
@@ -51,7 +51,9 @@ const row = (r: TestServerRow, token?: string): string => {
   return (
     `<tr>` +
     `<td>${esc(r.project)}</td>` +
-    `<td><a href="${esc(r.specHref)}">${esc(r.specFolder)}</a></td>` +
+    // AC-7: a board tracked under a non-spec key (`MAIN_BOARD_KEY`) has no
+    // spec page to link to.
+    `<td>${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
     `<td>${esc(r.branch)}</td>` +
     `<td>${esc(r.status)}</td>` +
     `<td>${address}</td>` +

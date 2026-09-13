@@ -10,7 +10,9 @@ import { BoardStore } from "../../../src/serve/boards/store.ts";
 import {
   BOARD_PORTS,
   findFreePort,
+  MAIN_BOARD_KEY,
   refreshBoardStatus,
+  restartMainBoard,
   startBoard,
   type BoardsContext,
   type SpawnResult,
@@ -222,6 +224,103 @@ describe("startBoard", () => {
     expect(!result.ok && result.error).toContain("0");
     expect(!result.ok && result.error).toContain(String(BOARD_PORTS.length));
     expect(spawnCalls).toHaveLength(0);
+  });
+});
+
+// AC-3: the Deploy tab's button starts a board on the project's real
+// default branch, not a spec's `aide/<specFolder>` derivation.
+describe("startBoard with an explicit branch (AC-3)", () => {
+  test("opts.branch is used instead of aide/<specFolder>, for both the spawn and the entry", async () => {
+    const ctx = makeCtx({
+      gitRun: async (_dir, args) => {
+        if (args[0] === "ls-remote") return { code: 0, stdout: "def456\trefs/heads/main\n", stderr: "" };
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    const result = await startBoard(ctx, "aide", MAIN_BOARD_KEY, { branch: "main" });
+    expect(result.ok).toBe(true);
+    expect(spawnCalls[0]!.cmd).toEqual([
+      "/checkout/aide/dashboard/test/round/run",
+      "/checkout/aide",
+      "--branch",
+      "main",
+      "--port",
+      "9000",
+      "--keep",
+    ]);
+    if (result.ok) {
+      expect(result.entry.branch).toBe("main");
+      expect(result.entry.commit).toBe("def456");
+    }
+  });
+
+  test("with no opts at all, the default derivation is unchanged", async () => {
+    const ctx = makeCtx();
+    const result = await startBoard(ctx, "aide", "spec-1");
+    expect(result.ok && result.entry.branch).toBe("aide/spec-1");
+  });
+});
+
+describe("restartMainBoard (AC-6)", () => {
+  test("nothing tracked yet behaves like a plain startBoard", async () => {
+    const ctx = makeCtx({
+      gitRun: async (_dir, args) => {
+        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    const result = await restartMainBoard(ctx, "aide", "main");
+    expect(result.ok).toBe(true);
+    expect(spawnCalls).toHaveLength(1);
+    if (result.ok) {
+      expect(result.entry.branch).toBe("main");
+      expect(ctx.store.get("aide", MAIN_BOARD_KEY)).toEqual(result.entry);
+    }
+  });
+
+  // AC-6: a second press stops whatever is tracked under MAIN_BOARD_KEY —
+  // whatever its status — and starts a fresh one, rather than leaving the
+  // first running beside a second.
+  test("a second call stops the first board's process group and starts a fresh one", async () => {
+    const ctx = makeCtx({
+      gitRun: async (_dir, args) => {
+        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    const first = await restartMainBoard(ctx, "aide", "main");
+    if (!first.ok) throw new Error("expected restartMainBoard to succeed");
+    alive.add(5252);
+    spawnResult = { pid: 5252 };
+    const second = await restartMainBoard(ctx, "aide", "main");
+    expect(spawnCalls).toHaveLength(2);
+    expect(killSpy).toHaveBeenCalledWith(-4242, "SIGTERM");
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(second.entry.wrapperPid).toBe(5252);
+      expect(ctx.store.get("aide", MAIN_BOARD_KEY)?.wrapperPid).toBe(5252);
+    }
+  });
+
+  // AC-6: restarting must not be blocked by its OWN prior entry's port —
+  // stopBoard clears the registry before startBoard ever asks for a free
+  // one.
+  test("the freed port is available to the fresh board", async () => {
+    const store = new BoardStore();
+    const ctx = makeCtx({
+      store,
+      gitRun: async (_dir, args) => {
+        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        return { code: 1, stdout: "", stderr: "" };
+      },
+      reservedPorts: () => store.all().map((e) => e.port),
+      findFreePort: (reserved) => findFreePort(reserved, () => true),
+    });
+    const first = await restartMainBoard(ctx, "aide", "main");
+    expect(first.ok && first.entry.port).toBe(BOARD_PORTS[0]);
+    spawnResult = { pid: 5252 };
+    const second = await restartMainBoard(ctx, "aide", "main");
+    expect(second.ok && second.entry.port).toBe(BOARD_PORTS[0]);
   });
 });
 

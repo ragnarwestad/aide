@@ -98,4 +98,26 @@ describe("the test servers overview", () => {
     expect(after).not.toContain("woodstack");
     expect(after).toContain("aide");
   });
+
+  // AC-7 (spec 441): a board started from the Deploy tab is tracked under
+  // "main" — not a real spec folder — and posts its Stop form to the
+  // project-scoped route rather than a spec-scoped one that would 404.
+  test("a non-spec specFolder ('main') renders as plain text, not a link", () => {
+    const r = row({
+      specFolder: "main",
+      branch: "main",
+      stopAction: "/api/queue/projects/aide/test-board/stop",
+    });
+    const html = renderTestServersPage(NAV, GENERATED, [r]);
+    expect(html).not.toContain(`<a href="${r.specHref}">main</a>`);
+    expect(html).toContain("<td>main</td>");
+    expect(html).toContain(`action="${r.stopAction}"`);
+  });
+
+  // A real spec-folder row is unaffected — every existing row still links.
+  test("a real spec-folder row is unchanged, byte for byte", () => {
+    const r = row();
+    const html = renderTestServersPage(NAV, GENERATED, [r]);
+    expect(html).toContain(`<a href="${r.specHref}">${r.specFolder}</a>`);
+  });
 });

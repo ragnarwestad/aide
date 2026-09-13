@@ -25,6 +25,13 @@ On the specs list, a spec waiting only on that requirements review gets a second
 beside the "archive held back" one: **"Click the link to start a test server running this
 branch."**
 
+A project's own page has a second entry point, on its Deploy tab: beside "Deploy for prod", a
+"Testserver med testspecene" section with its own "Start test server" button. Pressing it starts a
+test server from the project's latest main, seeded with the round's own twelve fixture specs —
+useful whenever you want to try the dashboard as it stands today, not a spec's own branch. It opens
+in a new tab, and pressing it again restarts the server rather than starting a second one, so it
+always ends up running the latest main.
+
 ## What happens when you click it
 
 The link opens in the same tab and holds it: building a test server is a real dashboard starting
@@ -114,7 +121,9 @@ automation works from — actually contains the dashboard's source. In practice 
 self-hosting; the dashboard checks for this rather than naming the project directly, so it would
 extend automatically to any other project in the same position. For a spec in a project this
 doesn't apply to, or one archived in the meantime, the link falls back to the spec's own Steps tab
-instead.
+instead. The Deploy tab's own "Testserver med testspecene" section follows the same check: on a
+project it doesn't apply to, the heading stays, with a sentence saying a test server cannot start
+from there — and no button.
 
 ## Under the hood
 

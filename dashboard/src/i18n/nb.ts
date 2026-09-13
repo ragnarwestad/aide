@@ -107,4 +107,12 @@ export const nb: Record<TranslationKey, string> = {
   "project.deployRestartWaiting":
     "Det lokale repoet er oppdatert mot origin, men tjenesten kjører fortsatt commit {sha} — " +
     "omstarten venter på disse jobbene: {jobs}.",
+  "project.deployHeading": "Deploy for prod",
+  "project.testBoardHeading": "Testserver med testspecene",
+  "project.testBoardNote":
+    "Starter en testserver fra siste main, med rundens egne testspecer. Den rører ikke prod; " +
+    "serveren dukker opp under Testservere.",
+  "project.testBoardButton": "Start testserver",
+  "project.testBoardUnavailable":
+    "Dette prosjektet inneholder ikke dashbordets egen kode, så en testserver kan ikke starte herfra.",
 };

@@ -11,7 +11,9 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render.ts";
-import { refreshBoardStatus } from "../../boards/lifecycle.ts";
+import { MAIN_BOARD_KEY, refreshBoardStatus } from "../../boards/lifecycle.ts";
+import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../spec-edit/board-waiting.ts";
+import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
 import type { HandleQueueContext } from "../../handle-queue.ts";
 
@@ -65,7 +67,11 @@ export async function projectPages(
         branch: entry!.branch,
         status: entry!.status,
         url: entry!.url,
-        stopAction: `/api/queue${specPagePath(project, specFolder)}/board/stop`,
+        // AC-7: `MAIN_BOARD_KEY` has no real spec to be scoped to — the
+        // spec-scoped route would 404 on it.
+        stopAction: isSpecFolder(specFolder)
+          ? `/api/queue${specPagePath(project, specFolder)}/board/stop`
+          : `/api/queue/projects/${encodeURIComponent(project)}/test-board/stop`,
       }));
     const langResult = languageChoice(url, req);
     const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
@@ -168,6 +174,28 @@ export async function projectPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(projectPage[1]!);
     if (!ctx.opts.projectRoot) return new Response("no such project\n", { status: 404 });
+    // AC-5: the tab the Deploy button's POST opened WAITS here, the same
+    // way `spec-page.ts`'s own `?startBoard=1` does — but this GET never
+    // starts or restarts a board itself (the POST route already did, or
+    // nobody ever pressed the button at all).
+    if (url.searchParams.get("startTestBoard") === "1") {
+      const already = refreshBoardStatus(ctx.boards, name, MAIN_BOARD_KEY);
+      if (already?.status === "running" && already.url) {
+        return Response.redirect(boardUrlFor(req, already.url), 303);
+      }
+      if (already?.status === "failed") {
+        return boardFailedPage(MAIN_BOARD_KEY, already.error);
+      }
+      if (!already) {
+        // A bookmarked or shared URL, with nobody's POST behind it —
+        // nothing to wait for.
+        return new Response(null, {
+          status: 303,
+          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+        });
+      }
+      return waitingForBoardPage(name, MAIN_BOARD_KEY);
+    }
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
     // this page, so a scan per request is the cost `make generate`
     // already treats as cheap — and no invalidation to get wrong.
@@ -248,6 +276,9 @@ export async function projectPages(
         deployError: url.searchParams.get("deployError") ?? undefined,
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
+        // AC-8: the same capability check the spec-page's own
+        // test-server link already gates on.
+        testBoardAvailable: ctx.boards.roundAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,

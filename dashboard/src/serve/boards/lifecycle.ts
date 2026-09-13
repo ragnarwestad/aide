@@ -128,15 +128,21 @@ function tailLine(logPath: string): string {
   }
 }
 
+/** The registry key `restartMainBoard` tracks its board under (AC-6) —
+ *  never a real spec folder, so `isSpecFolder()` (`render/ui/shell.ts`)
+ *  is what every reader of the registry uses to tell the two apart. */
+export const MAIN_BOARD_KEY = "main";
+
 export async function startBoard(
   ctx: BoardsContext,
   project: string,
   specFolder: string,
+  opts: { branch?: string } = {},
 ): Promise<{ ok: true; entry: BoardEntry } | { ok: false; error: string }> {
   if (!ctx.roundAvailable(project)) {
     return { ok: false, error: "the round is not available on this host" };
   }
-  const branch = `aide/${specFolder}`;
+  const branch = opts.branch ?? `aide/${specFolder}`;
   const aideCheckout = ctx.aideCheckout(project);
   const commit = await headCommit(ctx.gitRun, aideCheckout, branch);
   if (!commit) return { ok: false, error: `no such branch on origin: ${branch}` };
@@ -271,4 +277,18 @@ export function stopBoard(ctx: BoardsContext, project: string, specFolder: strin
   if (entry.recovered) signalProcess(entry.wrapperPid);
   else signalGroup(entry.wrapperPid);
   ctx.store.delete(project, specFolder);
+}
+
+/** AC-6: pressing the Deploy tab's button always ends up running the
+ *  latest `branch` — never a second board beside a stale one. Unlike
+ *  `startBoard()`'s own REQ-6 dedup (right for a spec branch, which does
+ *  not move), the `MAIN_BOARD_KEY` entry is always torn down and started
+ *  fresh, whatever its status. */
+export async function restartMainBoard(
+  ctx: BoardsContext,
+  project: string,
+  branch: string,
+): Promise<{ ok: true; entry: BoardEntry } | { ok: false; error: string }> {
+  stopBoard(ctx, project, MAIN_BOARD_KEY);
+  return startBoard(ctx, project, MAIN_BOARD_KEY, { branch });
 }

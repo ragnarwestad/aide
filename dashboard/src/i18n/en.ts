@@ -113,4 +113,12 @@ export const en = {
   "project.deployRestartWaiting":
     "This checkout matches origin, but the service is still running commit {sha} — " +
     "the restart is waiting for running jobs: {jobs}.",
+  "project.deployHeading": "Deploy for prod",
+  "project.testBoardHeading": "Test server with the test specs",
+  "project.testBoardNote":
+    "Starts a test server from the latest main, seeded with the round's own test specs. It never touches " +
+    "prod; the server shows up under Test servers.",
+  "project.testBoardButton": "Start test server",
+  "project.testBoardUnavailable":
+    "This project does not carry the dashboard's own source, so a test server cannot start from here.",
 } as const;

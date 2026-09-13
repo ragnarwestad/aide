@@ -42,4 +42,21 @@ describe("BoardStore.listAll", () => {
     store.set("aide", "150-x", entry());
     expect(store.all()).toEqual([entry()]);
   });
+
+  // AC-7 (spec 441): the Deploy tab's button tracks its board under
+  // "main", a non-numeric key — `listAll()`'s split on the first "/"
+  // reads its project half the same way it does a real spec folder's.
+  test("a 'main'-keyed entry round-trips beside a real spec-folder entry", () => {
+    const store = new BoardStore();
+    store.set("aide", "150-x", entry());
+    store.set("aide", "main", entry({ branch: "main", port: 8802 }));
+    const all = store.listAll();
+    expect(all).toHaveLength(2);
+    expect(all).toContainEqual({ project: "aide", specFolder: "150-x", entry: entry() });
+    expect(all).toContainEqual({
+      project: "aide",
+      specFolder: "main",
+      entry: entry({ branch: "main", port: 8802 }),
+    });
+  });
 });

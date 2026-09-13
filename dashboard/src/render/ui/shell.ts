@@ -362,7 +362,7 @@ function stopForm(lang: Language): string {
   );
 }
 
-function isSpecFolder(folder: string): boolean {
+export function isSpecFolder(folder: string): boolean {
   return /^\d+(-|$)/.test(folder);
 }
 

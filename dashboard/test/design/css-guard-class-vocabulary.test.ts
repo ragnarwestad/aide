@@ -57,6 +57,12 @@ const JS_HOOKS = [
   "addprojectform", "removeform",
   // spec 258: the Deploy button on a project's own page.
   "deployform",
+  // spec 441: the Deploy tab's "Testserver med testspecene" button.
+  // Deliberately matched by no CSS rule and no JS selector — the whole
+  // point of its own class is to stay OUTSIDE `queue-client.ts`'s
+  // `ACTIONS` selector (`form.rowrun, form.actionform`), so its submit is
+  // never replaced by an XHR and `target="_blank"` still opens a new tab.
+  "testboardform",
   // spec 276: queue-client.ts selects on all three — the Enabled
   // checkbox, the Run-now form, and the create/edit form (whose own
   // `input[name="cron"]` feeds the live cron-next preview).

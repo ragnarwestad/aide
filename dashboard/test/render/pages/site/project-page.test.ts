@@ -144,6 +144,113 @@ describe("renderProjectPage: Deploy tab's restart-waiting sentence (spec 431)", 
   });
 });
 
+// Spec 441: the Deploy tab gets a second, headed section for a test
+// server seeded with the round's own test specs, beside the existing
+// "Deploy for prod" section (now itself headed for the first time).
+describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", () => {
+  const deployTab = (extra: Record<string, unknown> = {}) => ({
+    worktreeLinkCandidates: [],
+    editing: false,
+    tab: "deploy",
+    ...extra,
+  });
+
+  // AC-1
+  test("shows both headings, 'Deploy for prod' and 'Test server with the test specs'", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: true }),
+    );
+    expect(html).toContain("<h3>Deploy for prod</h3>");
+    expect(html).toContain("<h3>Test server with the test specs</h3>");
+  });
+
+  // AC-2: the prod section's existing sentence and button survive
+  // unchanged under its new heading.
+  test("the prod section's own sentence and button are unchanged", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: true }),
+    );
+    expect(html).toMatch(/install command/i);
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  // AC-3, AC-4: the test-board section's own explanatory sentence and
+  // button, when the round is available.
+  test("the test-board section shows its sentence and button when available (AC-3, AC-4)", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: true }),
+    );
+    expect(html).toContain("Starts a test server from the latest main");
+    expect(html).toContain("the server shows up under Test servers");
+    expect(html).toContain('class="testboardform"');
+    expect(html).toContain("Start test server");
+  });
+
+  // AC-8: the heading stays, with a sentence explaining why, and no
+  // button at all, when the round is not available.
+  test("the test-board section names why, with no button, when unavailable (AC-8)", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: false }),
+    );
+    expect(html).toContain("<h3>Test server with the test specs</h3>");
+    expect(html).toContain("This project does not carry the dashboard's own source");
+    expect(html).not.toContain('class="testboardform"');
+  });
+
+  // Risk analysis's own must-catch case: the button's form must NOT carry
+  // any of the three classes `queue-client.ts` intercepts and replaces
+  // with an XHR — doing so would silently defeat target="_blank" (AC-5).
+  test("the button's form carries none of deployform/actionform/rowrun", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: true }),
+    );
+    const form = html.match(/<form[^>]*class="testboardform"[^>]*>/)?.[0] ?? "";
+    expect(form).not.toBe("");
+    expect(form).not.toMatch(/class="[^"]*\b(deployform|actionform|rowrun)\b/);
+    expect(form).toContain('target="_blank"');
+  });
+
+  test("in Norwegian (nb), both headings and the note are Norwegian", () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-09-13T00:00:00Z",
+      NAV,
+      deployTab({ testBoardAvailable: true, lang: "nb" }),
+    );
+    expect(html).toContain("<h3>Deploy for prod</h3>");
+    expect(html).toContain("<h3>Testserver med testspecene</h3>");
+    expect(html).toContain("Starter en testserver fra siste main");
+    expect(html).toContain("Start testserver");
+  });
+});
+
 describe("renderProjectPage: no site-level tab bar (spec 437)", () => {
   test('draws no <nav class="tabbar">', () => {
     const html = renderProjectPage(

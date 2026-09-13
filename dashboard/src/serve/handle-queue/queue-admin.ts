@@ -5,6 +5,8 @@
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
+import { MAIN_BOARD_KEY, restartMainBoard, stopBoard } from "../boards/lifecycle.ts";
+import { boardFailedPage } from "./spec-edit/board-waiting.ts";
 import { runningJobNames } from "../land-branch/restart.ts";
 import { resolveInstallCmd } from "../../project/discover.ts";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
@@ -306,6 +308,60 @@ export async function handleQueueAdminRoutes(
     }
     after.restart?.();
     return response;
+  }
+
+  // AC-3/AC-5/AC-6: the Deploy tab's "Testserver med testspecene" button.
+  // Its form deliberately carries none of `deployform`/`actionform`/
+  // `rowrun` (see `project-page.ts`'s `testBoardSection`), so this is
+  // always a plain browser POST followed by a real navigation — never an
+  // XHR — which is what lets it open in a new tab and land the reader on
+  // the same waiting page the spec-page's own test-server link uses.
+  const testBoardPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-board$/);
+  if (testBoardPost) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const name = decodeURIComponent(testBoardPost[1]!);
+    const body = await readBounded(req);
+    if ("refusal" in body) return body.refusal;
+    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
+      return new Response("no such project\n", { status: 404 });
+    }
+    if (!ctx.boards.roundAvailable(name)) {
+      return boardFailedPage(MAIN_BOARD_KEY, "this project's own checkout does not carry the dashboard's source");
+    }
+    const root = ctx.boards.aideCheckout(name);
+    const branch = await ctx.branchStatus.defaultBranch(root);
+    if (!branch) return boardFailedPage(MAIN_BOARD_KEY, `cannot work out the default branch in ${root}`);
+    const result = await restartMainBoard(ctx.boards, name, branch);
+    if (!result.ok) return boardFailedPage(MAIN_BOARD_KEY, result.error);
+    return new Response(null, {
+      status: 303,
+      headers: { location: `/projects/${encodeURIComponent(name)}?startTestBoard=1` },
+    });
+  }
+
+  // AC-7: the Test servers list's own Stop button for a board tracked
+  // under `MAIN_BOARD_KEY` — it has no real spec to be scoped to, so it
+  // cannot reach `board-controls.ts`'s spec-scoped route. That row's form
+  // carries `class="actionform"` (test-servers-page.ts), which IS posted
+  // through `queue-client.ts`'s XHR — unlike the start route above — so
+  // this one answers `wantsJson` the same way `board-controls.ts`'s own
+  // stop route does, rather than always redirecting.
+  const testBoardStop = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-board\/stop$/);
+  if (testBoardStop) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const name = decodeURIComponent(testBoardStop[1]!);
+    const body = await readBounded(req);
+    if ("refusal" in body) return body.refusal;
+    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
+      return new Response("no such project\n", { status: 404 });
+    }
+    stopBoard(ctx.boards, name, MAIN_BOARD_KEY);
+    return wantsJson
+      ? json({ ok: true })
+      : new Response(null, {
+          status: 303,
+          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+        });
   }
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);

@@ -27,6 +27,10 @@ import type { ProjectPageOptions, ProjectView } from "./types.ts";
  *  short enough that nobody reads the stale sentence twice. */
 const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 
+/** Shared by `deploySection` and `testBoardSection`: the Deploy tab's own
+ *  panel wrapper, empty content drawing nothing at all. */
+const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
+
 export const driftPrefix = (behind: number, checkedAt: number, now: number): string =>
   `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
   `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
@@ -54,7 +58,9 @@ export const driftPrefix = (behind: number, checkedAt: number, now: number): str
  *  third shape is reachable only there; every other gated project only
  *  ever shows the first two. */
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
-  const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
+  // AC-1/AC-2: this section's own heading, so it reads apart from the
+  // new "Testserver med testspecene" section beside it.
+  const heading = `<h3>${esc(t(opts.lang ?? "en", "project.deployHeading"))}</h3>`;
   const serving = opts.serving;
   const servingLine = serving
     ? rowMessage(
@@ -67,7 +73,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     : "";
   const drift = opts.drift;
   if (!drift) {
-    return panel(
+    return heading + panel(
       rowMessage(
         "info",
         `No ${SETTING_LABELS.AIDE_INSTALL_CMD} is configured for this project, so its origin drift is not tracked here.`,
@@ -83,7 +89,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // Only "asked, unanswerable" still bails out with no claim and no
   // button (REQ-5) — "never asked" now falls into the shared chain
   // below (spec 392, REQ-1, REQ-3).
-  if (!notYetChecked && behind === null) return panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
+  if (!notYetChecked && behind === null) return heading + panel(errorLine + servingLine); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
@@ -153,7 +159,33 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     }) +
     messageSlot("refused") +
     `</form>`;
-  return panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence) + button);
+  return heading + panel(errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence) + button);
+}
+
+/** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that
+ *  starts (or, per AC-6, restarts) a test server from the latest main,
+ *  seeded with the round's own test specs. `!opts.testBoardAvailable`
+ *  mirrors `deploySection()`'s own established pattern: the heading stays,
+ *  and a sentence says why there is nothing to act on, rather than the
+ *  section disappearing. */
+function testBoardSection(name: string, opts: ProjectPageOptions): string {
+  const lang = opts.lang ?? "en";
+  const heading = `<h3>${esc(t(lang, "project.testBoardHeading"))}</h3>`;
+  if (!opts.testBoardAvailable) {
+    return heading + panel(rowMessage("info", t(lang, "project.testBoardUnavailable")));
+  }
+  // Deliberately NOT class="deployform"/"actionform"/"rowrun" — any of
+  // those three classes gets its native submit replaced by an XHR
+  // (`queue-client/forms.ts`/`press.ts`), which silently defeats
+  // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
+  // spaces this form's children with no CSS of its own needed.
+  const button =
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-board" ` +
+    `target="_blank" class="testboardform">` +
+    tokenField(opts.token) +
+    btn({ label: t(lang, "project.testBoardButton"), variant: "primary" }) +
+    `</form>`;
+  return heading + panel(rowMessage("info", t(lang, "project.testBoardNote")) + button);
 }
 
 /** The Schedule section (spec 259): each entry's name, cron expression,
@@ -268,7 +300,7 @@ export function renderProjectPage(
   const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, "config");
   const base = projectPagePath(p.name);
   const panel =
-    tab === "deploy" ? deploySection(p.name, opts, now)
+    tab === "deploy" ? deploySection(p.name, opts, now) + testBoardSection(p.name, opts)
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
     : configSection(settings, p.name, readiness, opts);
 
