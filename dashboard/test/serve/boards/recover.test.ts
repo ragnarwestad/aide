@@ -63,8 +63,8 @@ describe("git worktree list --porcelain", () => {
     ]);
   });
 
-  test("a detached worktree has no branch and is left out", () => {
-    expect(parseWorktrees("worktree /a\nHEAD abc\ndetached\n")).toEqual([]);
+  test("a detached worktree is listed with an empty branch", () => {
+    expect(parseWorktrees("worktree /a\nHEAD abc\ndetached\n")).toEqual([{ path: "/a", branch: "", commit: "abc" }]);
   });
 });
 
@@ -89,6 +89,31 @@ describe("finding a test server again", () => {
     ]);
     // The address is no use without the token the round serves with.
     expect(entry?.url).toBe("http://127.0.0.1:8801/?token=s3cret");
+  });
+
+  // The Deploy tab's own test server (spec 441) serves the serving
+  // checkout's branch from a DETACHED worktree, and a restart forgot it:
+  // the next press then failed to start a second one on a port the
+  // first still held (2026-09-13).
+  test("a detached round worktree is the main board, serving the checkout's own branch", async () => {
+    const work = roundWorkDir("s3cret");
+    const store = new BoardStore();
+    const ctx = makeCtx({
+      store,
+      worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
+        `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
+      onPort: async (port) => (port === 8802 ? { pid: 238, workDir: work } : undefined),
+    });
+    const found = await recoverBoards(ctx, ["aide"]);
+    expect(found).toHaveLength(1);
+    const entry = store.get("aide", "main");
+    expect([entry?.status, entry?.port, entry?.branch, entry?.commit, entry?.recovered]).toEqual([
+      "running",
+      8802,
+      "main",
+      "b67707e",
+      true,
+    ]);
   });
 
   // Everything else on the machine that happens to hold one of these
@@ -229,6 +254,15 @@ describe("the worktrees of test servers that are gone", () => {
     expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([join(work, "checkout")]);
     expect(removals(calls)).toHaveLength(1);
     expect(calls.some((a) => a[0] === "worktree" && a[1] === "prune")).toBe(true);
+  });
+
+  test("a dead main board's detached worktree is removed too", async () => {
+    const work = roundWorkDir();
+    const ctx = makeCtx({
+      worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
+        `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
+    });
+    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([join(work, "checkout")]);
   });
 
   // `recoverBoards` runs first and puts a live board in the registry;

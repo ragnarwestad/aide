@@ -103,8 +103,12 @@ worktree".
 A test server that did NOT survive the restart leaves the same obstacle behind. Its worktree is
 removed by a watcher the test run leaves running beside it — and a restart that takes the server
 takes the watcher with it, so the worktree stays registered and refuses that branch's next
-checkout. Start-up clears those too: a worktree the test run made, on a branch it made, that no
-live server answers for.
+checkout. Start-up clears those too: a worktree the test run made, on a branch it made or detached,
+that no live server answers for.
+
+A kept test server that dies on its own keeps its log: the watcher copies the server's own log to
+`~/aide-dashboard/round-logs/` (one file per event, named by time and board) before it removes the
+rest, so a server that is gone can still say how it went.
 
 ## Which commit it serves
 
