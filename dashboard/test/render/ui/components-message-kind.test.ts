@@ -5,7 +5,7 @@
 // and its own <svg> mark, so a reader who cannot tell red from amber
 // still sees which of the three a message is.
 import { describe, expect, test } from "bun:test";
-import { rowMessage, type MessageVariant } from "../../../src/render/ui/components.ts";
+import { rowMessage, rowMessageParts, type MessageVariant } from "../../../src/render/ui/components.ts";
 
 const KINDS: MessageVariant[] = ["info", "waiting", "failed"];
 
@@ -24,5 +24,22 @@ describe("rowMessage — the three kinds, decided once (REQ-1, REQ-2)", () => {
 
   test("waiting keeps the existing warning triangle", () => {
     expect(rowMessage("waiting", "x")).toContain("<path d=\"M8 2.5l6 11H2z\">");
+  });
+});
+
+// spec 442: the row's own text is capitalized once, at render time,
+// after every part is joined — never the message catalog, which stays
+// lowercase because its entries are reused both standalone and mid-sentence.
+describe("rowMessage/rowMessageParts capitalize their rendered text (spec 442)", () => {
+  test("rowMessage capitalizes a lowercase-starting sentence", () => {
+    expect(rowMessage("failed", "archive merge failed: cannot merge into main")).toContain(
+      "Archive merge failed: cannot merge into main",
+    );
+  });
+
+  test("rowMessageParts capitalizes EACH joined part independently, not only the first", () => {
+    const html = rowMessageParts("failed", [{ text: "push failed" }, { text: "landing failed" }]);
+    expect(html).toContain("Push failed");
+    expect(html).toContain("Landing failed");
   });
 });

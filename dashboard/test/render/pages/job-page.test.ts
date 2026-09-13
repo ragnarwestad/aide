@@ -138,7 +138,7 @@ describe("renderJobDetailPage", () => {
     );
     expect(html).toContain("refused before it started");
     // The banner already carries the job's own error, on every tab.
-    expect(html).toContain("cannot fast-forward main");
+    expect(html).toContain("Cannot fast-forward main");
     expect(html).not.toContain("Nothing has been captured from this step");
   });
 

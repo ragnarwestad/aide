@@ -57,7 +57,7 @@ describe("the Specs list in Norwegian (spec 350)", () => {
         lang: "nb",
       },
     );
-    expect(html).toContain("arkivering holdt tilbake: a real reason");
+    expect(html).toContain("Arkivering holdt tilbake: a real reason");
     expect(html).not.toContain("archive held back —");
   });
 
@@ -105,11 +105,11 @@ describe("the row's message panel", () => {
   });
 
   test("the same line in English is unchanged", () => {
-    expect(stopped("en")).toContain("archive stopped: nothing is implemented yet");
+    expect(stopped("en")).toContain("Archive stopped: nothing is implemented yet");
   });
 
   test("a held-back job names the phase that is waiting, in Norwegian", () => {
-    expect(held()).toContain("implementering holdt tilbake:");
+    expect(held()).toContain("Implementering holdt tilbake:");
     expect(held()).not.toContain("implement holdt tilbake:");
   });
 

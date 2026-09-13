@@ -74,7 +74,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
       ],
       [target("195-both", { done: ["analyze"] })],
     );
-    expect(panel(html)).toContain("analyze last re-run cancelled");
+    expect(panel(html)).toContain("Analyze last re-run cancelled");
     expect(panel(html)).not.toContain("implement:");
     expect(subRow(html, "analyze")).not.toContain("last re-run cancelled");
     expect(subRow(html, "implement")).not.toContain("disagree");
@@ -149,7 +149,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
       [target("195-refused", { done: ["analyze"] })],
       { errorSpec: "aide/195-refused", error: "a job is already queued for this spec" },
     );
-    expect(panel(html)).toContain("a job is already queued for this spec");
+    expect(panel(html)).toContain("A job is already queued for this spec");
     expect(panel(html)).not.toContain("the files disagree");
   });
 
@@ -166,7 +166,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
       ],
       [target("195-errored", { done: ["analyze"], fileDisagrees: ["analyze"] })],
     );
-    expect(panel(html)).toContain("the specs tree is dirty");
+    expect(panel(html)).toContain("The specs tree is dirty");
     expect(panel(html)).not.toContain("the files disagree");
   });
 });

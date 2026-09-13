@@ -30,3 +30,9 @@ export function errorSentence({ what, resolve, exempt, detail }: ErrorSentence):
   if (!resolve && !exempt) throw new Error(`errorSentence: "${what}" has neither resolve nor exempt`);
   return { text: resolve ? `${what} — ${resolve}` : what, title: detail };
 }
+
+/** The finished sentence's own first letter, capitalized — never the
+ *  message catalog's (`docs/error-sentences.md`): a catalog entry is
+ *  reused both on its own and glued behind a phase name, so only the
+ *  fully composed row text is safe to touch here. */
+export const capitalizeFirst = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

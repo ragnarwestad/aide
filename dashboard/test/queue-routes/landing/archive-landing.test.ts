@@ -280,7 +280,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(landed.error).toBeFalsy();
 
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain("archive held back: the implementation was reverted");
+    expect(html).toContain("Archive held back: the implementation was reverted");
   });
 
   // Criterion 5, as spec 149 leaves it. `analyze` lands itself now too,
@@ -439,7 +439,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     const siblingRow = rowFor(html, SIBLING);
     expect(siblingRow).toContain('<span class="badge b-done">archived</span>');
     const siblingBlock = blockFor(html, SIBLING);
-    expect(siblingBlock).toContain("its branch is still on origin — re-run archive");
+    expect(siblingBlock).toContain("Its branch is still on origin — re-run archive");
     expect(siblingBlock).not.toContain("This spec merged, but its branch could not be deleted");
   }, 15000);
 });

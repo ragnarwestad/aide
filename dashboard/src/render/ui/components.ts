@@ -18,6 +18,7 @@
 // invented at this layer.
 
 import { esc } from "./html.ts";
+import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { STEP_LABELS, STEP_LABELS_NB, stepLabel } from "../../format/step-label.ts";
 
 export { STEP_LABELS, STEP_LABELS_NB, stepLabel };
@@ -228,7 +229,7 @@ export function rowMessage(
 ): string {
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(text)}</span></${tag}>`;
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(capitalizeFirst(text))}</span></${tag}>`;
 }
 
 /** `rowMessage()` for more than one ranked part, each keeping its own
@@ -250,7 +251,11 @@ export function rowMessageParts(
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
   const body = parts
-    .map((p) => (p.href ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(p.text)}</a>` : esc(p.text)))
+    .map((p) =>
+      p.href
+        ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
+        : esc(capitalizeFirst(p.text)),
+    )
     .join(" · ");
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
 }

@@ -48,9 +48,9 @@ describe("renderProjectPage: title beside ← Back (spec 296)", () => {
 // it reads on its own settings row instead (see project-settings.test.ts).
 describe("renderProjectPage: a checkout-level check shows as plain text on Config (spec 378)", () => {
   const checks: ProjectReadiness["checks"] = [
-    { check: "gitRoot", subject: "/repos/aide", ok: false, blocking: true, detail: "blocking detail text" },
+    { check: "gitRoot", subject: "/repos/aide", ok: false, blocking: true, detail: "Blocking detail text" },
     { check: "defaultBranch", subject: "/repos/aide", ok: true, blocking: false, detail: "passing detail text" },
-    { check: "dashboardCheckout", subject: "/repos/aide", ok: false, blocking: false, detail: "warn detail text" },
+    { check: "dashboardCheckout", subject: "/repos/aide", ok: false, blocking: false, detail: "Warn detail text" },
   ];
 
   test("every check's detail appears, and none of it sits inside an <a> or a <button>", () => {

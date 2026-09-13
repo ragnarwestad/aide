@@ -148,7 +148,7 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   test("keeps its row, and the notice line says the branch is still open", () => {
     const html = listed(true);
     expect(html).toContain('data-folder="191-x"');
-    expect(noticeCellHtml(html, "191-x")).toContain("its branch is still on origin — re-run archive");
+    expect(noticeCellHtml(html, "191-x")).toContain("Its branch is still on origin — re-run archive");
   });
 
   test("and the one whose branch is gone gets the row without the mark", () => {
@@ -302,7 +302,7 @@ describe("spec 221: archived specs on the spec list", () => {
       archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
       filter: { state: "archived" },
     });
-    expect(html).toContain("its branch is still on origin — re-run archive");
+    expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 
   // Spec 335, REQ-2/REQ-4: `archive.prOpen` had no coverage anywhere —

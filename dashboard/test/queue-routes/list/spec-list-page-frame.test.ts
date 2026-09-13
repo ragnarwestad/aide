@@ -182,8 +182,8 @@ describe("renderQueuePage state labels", () => {
     expect(specHead(html, budgetRow.specFolder)).not.toContain("stopped — budget");
     expect(specHead(html, timeoutRow.specFolder)).not.toContain("stopped — 20 min");
     // REQ-2/REQ-9: the reason moves to the notice line, in full.
-    expect(specPanel(html, budgetRow.specFolder)).toContain("stopped — budget");
-    expect(specPanel(html, timeoutRow.specFolder)).toContain("stopped — 20 min");
+    expect(specPanel(html, budgetRow.specFolder)).toContain("Stopped — budget");
+    expect(specPanel(html, timeoutRow.specFolder)).toContain("Stopped — 20 min");
     expect(html).toContain("failed");
     expect(html).not.toContain("stopped — failed");
   });

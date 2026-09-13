@@ -126,9 +126,9 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "implement")).toContain("b-refused");
     expect(subRow(html, "implement")).not.toContain("cannot fast-forward");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
-      "cannot fast-forward main",
+      "Cannot fast-forward main",
     );
-    expect([...html.matchAll(/cannot fast-forward main/g)]).toHaveLength(1);
+    expect([...html.matchAll(/cannot fast-forward main/gi)]).toHaveLength(1);
   });
 
   test("a job with no per-step results still lands on the step it is on", () => {

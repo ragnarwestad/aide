@@ -226,7 +226,7 @@ describe("GET /projects never waits on git for drift", () => {
     const res = await fetch(`${base}/projects`, { headers: AUTH });
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("origin drift not checked yet");
+    expect(html).toContain("Origin drift not checked yet");
     expect(html).not.toContain("behind origin");
     // Nothing polls, and the request does not poll on its behalf.
     expect(driftCalls(git).length).toBe(0);

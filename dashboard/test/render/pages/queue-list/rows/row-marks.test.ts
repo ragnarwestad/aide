@@ -351,7 +351,7 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
 // whether an EARLIER step's landing ever finished.
 describe("a row shows an unresolved landing failure (spec 327)", () => {
   const FOLDER = "81-queue-and-runner";
-  const MESSAGE = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+  const MESSAGE = "Analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
   const withFailure = (state: QueueRowView["state"]): string =>
     renderQueueRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
 
@@ -377,7 +377,7 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
   // machine when the answer is to run implement again.
   test("a landing the suite refused is amber and says so", () => {
     const RED =
-      "archive landing stopped: the project's tests are red on this merge, so nothing was pushed. " +
+      "Archive landing stopped: the project's tests are red on this merge, so nothing was pushed. " +
       "The gate log names the failing test; archive lands the work once it passes.";
     const html = renderQueueRows(
       [row({ state: "stopped", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
@@ -408,7 +408,7 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
     );
     const notice = noticeCellHtml(html, FOLDER);
     expect(notice.split(REASON).length - 1).toBe(1);
-    expect(notice).toContain(`archive landing failed: ${REASON}`);
+    expect(notice).toContain(`Archive landing failed: ${REASON}`);
   });
 
   test("a row with no landing failure carries no mark", () => {

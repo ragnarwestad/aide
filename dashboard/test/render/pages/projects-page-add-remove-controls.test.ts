@@ -102,7 +102,7 @@ describe("the Add page", () => {
   });
 
   test("a refusal carried back in the query string is shown here", () => {
-    expect(add({ error: "the name is already taken" })).toContain("the name is already taken");
+    expect(add({ error: "the name is already taken" })).toContain("The name is already taken");
   });
 
   // Spec 131: "…or a path on this host" asked for a path the reader had
@@ -211,7 +211,7 @@ describe("the Remove page", () => {
   // project that was never added, so there is no row for it to land on.
   test("a refusal carried back in the query string is shown", () => {
     const html = page([project("aide")], { createProjects: ["aide"], error: "the name is already taken" });
-    expect(html).toContain("the name is already taken");
+    expect(html).toContain("The name is already taken");
     expect(html).toContain('class="refusal rowmsg failed"');
   });
 

@@ -279,8 +279,8 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
 
   test("a refusal carried back in the query string is shown above the form", () => {
     const html = newPage({ error: "no such project: nope" });
-    expect(html).toContain("no such project: nope");
-    expect(html.indexOf("no such project: nope")).toBeLessThan(
+    expect(html).toContain("No such project: nope");
+    expect(html.indexOf("No such project: nope")).toBeLessThan(
       html.indexOf('action="/api/queue/create"'),
     );
   });

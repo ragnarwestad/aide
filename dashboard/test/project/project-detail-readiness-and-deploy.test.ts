@@ -37,7 +37,7 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   test("a worktree link with nothing to link is on the page (criterion 4)", async () => {
     const root = projectsRoot({ aide: "AIDE_WORKTREE_LINKS=node_modules\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("a run refuses a worktree link with nothing to link");
+    expect(html).toContain("A run refuses a worktree link with nothing to link");
   });
 
   // Spec 378 (REQ-2): a field-owned check that is UNSET (nothing
@@ -48,13 +48,13 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/worktree links/i);
-    expect(html).toContain("no worktree links are configured");
+    expect(html).toContain("No worktree links are configured");
   });
 
   test("a specs root that is not there is on the page (criterion 5)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("there is no specs root at /tmp/aide-no-such-specs-root");
+    expect(html).toContain("There is no specs root at /tmp/aide-no-such-specs-root");
   });
 
   // Fail-open, the way the drift check on /projects already does: the
@@ -206,7 +206,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
         headers: AUTH,
       })
     ).text();
-    expect(html).toContain("could not deploy");
+    expect(html).toContain("Could not deploy");
     expect(html).toContain("Whether this checkout is behind origin has not been checked yet.");
   });
 

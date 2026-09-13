@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { errorSentence } from "../../src/format/error-sentence.ts";
+import { capitalizeFirst, errorSentence } from "../../src/format/error-sentence.ts";
 
 // spec 352, Step 0: the shared builder every render-facing sentence is
 // migrated to call. Its whole job is refusing to compose a sentence
@@ -31,5 +31,24 @@ describe("errorSentence", () => {
 
   test("neither resolve nor exempt throws", () => {
     expect(() => errorSentence({ what: "something happened" })).toThrow(/neither resolve nor exempt/);
+  });
+});
+
+// spec 442: the finished sentence's own first letter, capitalized once
+// at render time — never the message catalog's, which stays lowercase
+// because its entries are reused both standalone and mid-sentence.
+describe("capitalizeFirst", () => {
+  test("capitalizes a lowercase-starting sentence", () => {
+    expect(capitalizeFirst("archive merge failed: cannot merge into main")).toBe(
+      "Archive merge failed: cannot merge into main",
+    );
+  });
+
+  test("leaves an already-capitalized sentence unchanged", () => {
+    expect(capitalizeFirst("Already capitalized.")).toBe("Already capitalized.");
+  });
+
+  test("an empty string is unchanged", () => {
+    expect(capitalizeFirst("")).toBe("");
   });
 });

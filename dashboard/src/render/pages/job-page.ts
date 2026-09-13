@@ -13,6 +13,7 @@
 // render layer imports from it.
 
 import { esc, relTime, usdOrTokens } from "../ui/html.ts";
+import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { renderSentence } from "../../i18n/message.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -106,7 +107,7 @@ export function renderJobDetailPage(
   // block rather than inside the paragraph — `pips()` is a `<div>`.
   const banner =
     `<p class="pagehead">${stateChip(job, lang)}` +
-    (job.error ? ` <span class="muted small">${esc(renderSentence(lang, job.error) ?? "")}</span>` : "") +
+    (job.error ? ` <span class="muted small">${esc(capitalizeFirst(renderSentence(lang, job.error) ?? ""))}</span>` : "") +
     `</p>` +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");

@@ -211,9 +211,20 @@ describe("provider-limit presentation", () => {
 
   test("the specs list and job detail show the structured explanation", () => {
     const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
+    const capitalized = "Seven day provider limit; resets 2026-08-24 12:00 UTC";
     const stopped = row({ state: "stopped", stopReason: "provider-limit", error } as never);
-    expect(renderQueueRows([stopped], { runnerAvailable: true, targets: [] })).toContain(error);
-    expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(error);
+    expect(renderQueueRows([stopped], { runnerAvailable: true, targets: [] })).toContain(capitalized);
+    expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(capitalized);
+  });
+});
+
+// spec 442: the job detail page's own banner bypasses rowMessage, so it
+// capitalizes job.error's rendered sentence directly.
+describe("the job detail page's banner capitalizes job.error (spec 442)", () => {
+  test("a lowercase-starting error renders with an uppercase first letter", () => {
+    const stopped = row({ state: "stopped", stopReason: "job-cap", error: "the job cap ($4) would be exceeded" } as never);
+    const html = renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV);
+    expect(html).toContain("The job cap ($4) would be exceeded");
   });
 });
 

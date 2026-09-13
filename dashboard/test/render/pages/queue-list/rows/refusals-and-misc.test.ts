@@ -118,7 +118,7 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       error: "the tree is dirty in /repos/aide",
       errorSpec: "aide/99-x",
     });
-    expect(head(html, "99-x")).toContain("the tree is dirty in /repos/aide");
+    expect(head(html, "99-x")).toContain("The tree is dirty in /repos/aide");
     expect(head(html, "99-y")).not.toContain("the tree is dirty");
   });
 
@@ -136,7 +136,7 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
     });
     expect(page).not.toContain('<p class="refusal">');
     // …and the reason is still on the page, on its row.
-    expect(page).toContain("the tree is dirty in /repos/aide");
+    expect(page).toContain("The tree is dirty in /repos/aide");
   });
 
   test("a refusal that belongs to no row keeps the banner (criterion 12)", () => {
@@ -146,7 +146,7 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       error: "payload too large",
     });
     expect(page).toContain('<p class="refusal rowmsg failed">');
-    expect(page).toContain("payload too large");
+    expect(page).toContain("Payload too large");
   });
 });
 

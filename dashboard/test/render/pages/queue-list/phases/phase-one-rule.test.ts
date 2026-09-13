@@ -102,7 +102,7 @@ describe("spec 108: one rule per phase", () => {
     // badge makes one phase line taller than the ones beside it. The
     // row's panel says it instead — named for the phase it is about.
     expect(analyze).not.toContain("last re-run cancelled");
-    expect(panel(html)).toContain("analyze last re-run cancelled");
+    expect(panel(html)).toContain("Analyze last re-run cancelled");
   });
 
   // Criterion 3's "Run again" wording was retired 2026-08-19, and the
@@ -183,7 +183,7 @@ describe("spec 108: one rule per phase", () => {
     // phase it is about.
     expect(implement).not.toContain("its work is on the branch");
     expect(panel(html)).toContain(
-      "implement last run reported done — its work is on the branch, and archiving merges it in",
+      "Implement last run reported done — its work is on the branch, and archiving merges it in",
     );
   });
 
@@ -196,7 +196,7 @@ describe("spec 108: one rule per phase", () => {
     expect(implement).not.toContain("b-done");
     expect(implement).not.toContain("run it again");
     expect(panel(html)).toContain(
-      "implement last run reported done, but nothing reached the files — run it again",
+      "Implement last run reported done, but nothing reached the files — run it again",
     );
   });
 

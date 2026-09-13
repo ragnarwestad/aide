@@ -134,7 +134,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     expect(panel(html)).toContain("last re-run failed");
     // One message, not two rows — and the phase is named once, by the
     // "archive held back:" prefix the panel already carried.
-    expect([...panel(html).matchAll(/archive/g)]).toHaveLength(1);
+    expect([...panel(html).matchAll(/archive/gi)]).toHaveLength(1);
   });
 
   // The second producer, and the one the description names first: a run
@@ -152,9 +152,9 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       ],
       [target("141-says-what")],
     );
-    expect(panel(html)).toContain("the specs tree is dirty");
+    expect(panel(html)).toContain("The specs tree is dirty");
     expect(stateCell(html)).not.toContain("the specs tree is dirty");
-    expect([...wholeRow(html).matchAll(/the specs tree is dirty/g)]).toHaveLength(1);
+    expect([...wholeRow(html).matchAll(/the specs tree is dirty/gi)]).toHaveLength(1);
     // The bare cell rendering it used to get is gone from both the head
     // row and the phase line.
     expect(subRow(html, "implement")).not.toContain("the specs tree is dirty");

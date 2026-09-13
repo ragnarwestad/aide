@@ -107,7 +107,7 @@ describe("the drift banner on /projects", () => {
     const html = page([project("aide")], {
       driftByProject: { aide: { behind: null, checkedAt: null } },
     });
-    expect(html).toContain("origin drift not checked yet");
+    expect(html).toContain("Origin drift not checked yet");
     expect(html).not.toContain("behind origin");
   });
 
@@ -161,7 +161,7 @@ describe("the next-scheduled-run badge on /projects (spec 259)", () => {
       scheduleByProject: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }] },
     });
     // AT is 2026-08-19T00:00:00Z; the next 3am UTC fire is the same day.
-    expect(html).toContain("next scheduled run 2026-08-19T03:00:00.000Z");
+    expect(html).toContain("Next scheduled run 2026-08-19T03:00:00.000Z");
   });
 
   test("the soonest of several entries is the one shown", () => {
@@ -173,7 +173,7 @@ describe("the next-scheduled-run badge on /projects (spec 259)", () => {
         ],
       },
     });
-    expect(html).toContain("next scheduled run 2026-08-19T03:00:00.000Z");
+    expect(html).toContain("Next scheduled run 2026-08-19T03:00:00.000Z");
     expect(html).not.toContain("next scheduled run 2026-08-2");
   });
 

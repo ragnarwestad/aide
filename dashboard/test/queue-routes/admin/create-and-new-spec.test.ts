@@ -474,7 +474,7 @@ describe("GET /new (spec 121)", () => {
     const html = await (
       await fetch(`${base}/new?error=${encodeURIComponent("no such project: nope")}`, auth)
     ).text();
-    expect(html).toContain("no such project: nope");
+    expect(html).toContain("No such project: nope");
   });
 
   test("the token handover works here too, the way it does on / and /projects", async () => {

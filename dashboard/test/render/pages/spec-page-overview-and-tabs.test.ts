@@ -298,12 +298,12 @@ describe("the Update button", () => {
 
   test("a refusal is shown on the page the button was pressed from", () => {
     const html = page(view({ error: "the specs checkout has uncommitted changes" }));
-    expect(html).toContain("the specs checkout has uncommitted changes");
+    expect(html).toContain("The specs checkout has uncommitted changes");
   });
 
   test("what the pull DID is shown the same way", () => {
     const html = page(view({ notice: { note: "pulled a3f9c21 → 7b1e004", ok: true } }));
-    expect(html).toContain("pulled a3f9c21 → 7b1e004");
+    expect(html).toContain("Pulled a3f9c21 → 7b1e004");
   });
 });
 

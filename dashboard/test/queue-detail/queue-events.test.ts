@@ -303,6 +303,6 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     const after = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
     const html = await after.text();
     expect(html).toContain('data-folder="77-old-thing"');
-    expect(html).toContain("its branch is still on origin — re-run archive");
+    expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 });

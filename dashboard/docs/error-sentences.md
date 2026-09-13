@@ -27,6 +27,11 @@ A sentence carries part 2 unless there is genuinely nothing to resolve — the f
 answer (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/redirect.ts` is the model case: editing an archived spec is
 intentionally impossible, not a gap).
 
+The row's own text starts with an uppercase letter. That happens once, at render time, in `rowMessage`/
+`rowMessageParts` (`src/render/ui/components.ts`) and the job detail page's own banner — after every part above is
+joined into the finished sentence — never in the message catalog (`src/i18n/messages.ts`), which stays lowercase
+because its entries are reused both on their own and glued behind a phase name.
+
 ## The shared builder
 
 `src/format/error-sentence.ts` composes parts 1 and 2 for every sentence built this way — a neutral spot, since its callers are `queue/parse-request.ts` and `git/specs-pull.ts`, not the render layer itself:
