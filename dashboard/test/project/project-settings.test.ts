@@ -224,7 +224,7 @@ describe("a value that does not resolve is marked, in the words readiness alread
 
 // Spec 255: the Worktree links row moved from raw `configValue()` to
 // `resolveWorktreeLinks()`'s manifest-then-config precedence, and
-// `DERIVABLE` is now exported so `render/site.ts` can gate edit-mode on
+// `DERIVABLE` is now exported so `render/projects-page.ts` can gate edit-mode on
 // key membership rather than a second, hand-duplicated list.
 describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 255)", () => {
   test("DERIVABLE's export names exactly the three command keys, and touches no row shape", () => {

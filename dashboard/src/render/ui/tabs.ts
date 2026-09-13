@@ -2,7 +2,7 @@
 // open off the URL, the bar itself, and the frame it sits in. Split out
 // of job-page.ts, which is where it used to live because the job page
 // was the first to need it — `spec-page.ts`, `schedule-page.ts` and
-// `site/project-page.ts` all call the same functions rather than
+// `projects-page/project-page.ts` all call the same functions rather than
 // carrying copies (spec 150). `development.md` names the
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring cost; a second tab bar would have been the fourth.

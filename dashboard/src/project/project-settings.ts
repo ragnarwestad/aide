@@ -98,7 +98,7 @@ const PURPOSE: Record<string, string> = {
 };
 
 /** The three keys a lockfile can answer, and which command each is.
- *  Exported so `render/site.ts` can gate a row's edit-mode input on KEY
+ *  Exported so `render/projects-page.ts` can gate a row's edit-mode input on KEY
  *  membership here, rather than on the row's current `origin` — a key
  *  that is momentarily `unset` (no lockfile found yet) must stay
  *  read-only exactly as a `derived` one does, and a second,

@@ -5,7 +5,7 @@
 // nothing would happen, while a `pr` landing runs `gh pr create`.
 
 import { describe, expect, test } from "bun:test";
-import { codeLandingChoices } from "../../../src/render/pages/site/settings-table.ts";
+import { codeLandingChoices } from "../../../src/render/pages/projects-page/settings-table.ts";
 
 describe("the Code-landing choice says what it does", () => {
   test("the merge choice names the project's own branch", () => {

@@ -179,8 +179,8 @@ function themeControl(lang: Language): string {
 // link targets the CALLER's own current address — `pageShell`'s
 // `currentUrl` opt — with only `lang` swapped, so switching language
 // keeps the reader on the page, tab, sort and filter they were already
-// on. Absent `currentUrl` (the two build-time pages in `site.ts`, which
-// have no request to read one from) falls back to `/`.
+// on. Absent `currentUrl` (the two build-time pages in `projects-page.ts`,
+// which have no request to read one from) falls back to `/`.
 function languageHref(currentUrl: string, target: Language): string {
   const [path, search = ""] = currentUrl.split("?");
   const kept = search.split("&").filter((pair) => pair && !pair.startsWith("lang="));
@@ -475,9 +475,9 @@ export function pageShell(
     lang?: Language;
     /** The exact request address (path + query, `lang` included) the
      *  reader is ON right now — what the language links point at, `lang`
-     *  swapped. Absent means `/`: the two build-time pages in `site.ts`
-     *  have no request to read one from, and always link home exactly as
-     *  every page already did before this field existed. */
+     *  swapped. Absent means `/`: the two build-time pages in
+     *  `projects-page.ts` have no request to read one from, and always link
+     *  home exactly as every page already did before this field existed. */
     currentUrl?: string;
     /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
      *  offers, so it draws no tab bar at all. Absent (never required)

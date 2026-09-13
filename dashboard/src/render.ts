@@ -1,10 +1,10 @@
 // The dashboard's rendering, one file per page:
 //
-//   render/site.ts        projects.html + one page per project — the
-//                         generated file, and the served `/projects/<name>`
-//                         that carries the config and the readiness answer
-//   render/projects-page.ts  /projects — the listing, and the panel that
-//                            adds and removes projects
+//   render/projects-page.ts  /projects — the listing, the panel that adds
+//                            and removes projects, projects.html + one
+//                            page per project (the generated file), and
+//                            the served `/projects/<name>` that carries
+//                            the config and the readiness answer
 //   render/specs-list.ts  / — the spec list
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
@@ -31,15 +31,13 @@ export {
   // what it says about the config file is true when it is read rather
   // than when the site was last generated.
   projectPagePath, renderProjectPage,
-} from "./render/pages/site.ts";
-export type { Page, ProjectPageOptions, ProjectView, SpecView } from "./render/pages/site.ts";
-
-export { renderProjectsPage,
+  renderProjectsPage,
   renderAddProjectPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
-  removeProjectRoute } from "./render/pages/projects-page.ts";
-export type { ProjectsPageOptions, ProjectDrift } from "./render/pages/projects-page.ts";
+  removeProjectRoute,
+} from "./render/pages/projects-page.ts";
+export type { Page, ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./render/pages/projects-page.ts";
 
 export { renderNewSpecPage } from "./render/pages/new-spec-page.ts";
 export type { NewSpecPageOptions } from "./render/pages/new-spec-page.ts";

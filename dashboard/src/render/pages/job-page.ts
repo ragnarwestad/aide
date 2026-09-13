@@ -7,7 +7,7 @@
 // (JobStepResultView, SpecFileView, JobDetailView) and steps-table.ts
 // (the steps table, each row expanding to its own log, spec 240). The
 // tab-bar machinery moved out further still, to `../ui/tabs.ts`, since
-// `spec-page.ts`, `schedule-page.ts` and `site/project-page.ts` all call
+// `spec-page.ts`, `schedule-page.ts` and `projects-page/project-page.ts` all call
 // the same functions rather than carrying copies (spec 150) — none of
 // them a job page. Kept as a barrel at this path because most of the
 // render layer imports from it.

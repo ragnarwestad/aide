@@ -67,7 +67,7 @@ export function addProjectTarget(
 /** The manifest the Add flow writes when a checkout has none: `name`
  *  and `description`, which is the smallest manifest that renders
  *  USEFULLY rather than the smallest that avoids an error
- *  (`render/site.ts` shows a description and nothing else without one).
+ *  (`render/projects-page.ts` shows a description and nothing else without one).
  *  Everything past those two is `/aide-manifest`'s job, and the form
  *  says so. Serialized by the same `yaml` package that reads it back,
  *  so nobody here has to get quoting right on a description's behalf. */

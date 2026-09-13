@@ -1,17 +1,26 @@
 // The dashboard's Projects page: the listing every reader came for, an
-// Add button above it, and a Remove on every row.
+// Add button above it, and a Remove on every row — plus, still in this
+// same file, the two build-time pages left of the old static
+// generator: the `projects.html` redirect and the About page
+// (`renderSite`).
 //
-// The listing is `site.ts`'s, unchanged — the generated overview drew
-// exactly these rows until spec 115, and draws a redirect here now. What
-// is new is that the page is SERVED, which is what the controls needed:
-// adding and removing a project is a mutating action behind the queue's
-// token, and a token has to be checked per request by a server.
+// The listing (`projects-page/overview-list.ts`) is served now, not
+// generated — the generated overview drew exactly these rows until
+// spec 115, and draws a redirect here now, because adding and removing
+// a project is a mutating action behind the queue's token, checked per
+// request by a server. The controls follow the New-spec pattern
+// (2026-08-19): Add is a real button at the top right of the list that
+// opens a page of its own with Save and Cancel, and each project row
+// carries its own Remove.
 //
-// The controls follow the New-spec pattern (2026-08-19): Add is a real
-// button at the top right of the list that opens a page of its own with
-// Save and Cancel, and each project row carries its own Remove — the
-// old fold at the bottom of the page, whose opener was the bare word
-// "Projects", hid both.
+// Split by theme into projects-page/: types.ts (the view types),
+// routes.ts (nav and paths), overview-list.ts (the `/projects` list
+// rows), settings-table.ts (the project page's unified settings table)
+// and project-page.ts (drift/deploy, readiness, schedule, and
+// `renderProjectPage` itself — the served page that carries what a
+// generated file could not: the config and readiness answer, without
+// repeating the manifest, spec 238). `renderSite` — what is left of the
+// static generator — stays here, beside the CRUD functions above.
 
 import {
   backLink,
@@ -22,28 +31,94 @@ import {
   tokenField,
 } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
-import { codeLandingChoices } from "./site/settings-table.ts";
+import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../ui/shell.ts";
 import { t, type Language } from "../../i18n";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { nextFireTime } from "../../queue/schedule.ts";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./projects-page/routes.ts";
+import { projectListBody, projectSummary } from "./projects-page/overview-list.ts";
+import { driftPrefix, renderProjectPage } from "./projects-page/project-page.ts";
 import {
-  driftPrefix,
-  projectListBody,
-  projectPagePath,
-  projectSummary,
   UNCHECKED_NOTE,
   type ProjectDrift,
   type ProjectView,
-} from "./site.ts";
+  type Page,
+  type SpecView,
+  type ProjectPageOptions,
+} from "./projects-page/types.ts";
+import { codeLandingChoices } from "./projects-page/settings-table.ts";
+
+export type { SpecView, ProjectView, Page, ProjectDrift, ProjectPageOptions };
+export {
+  UNCHECKED_NOTE,
+  navEntries,
+  ABOUT_PAGE,
+  OVERVIEW_PAGE,
+  PROJECTS_ROUTE,
+  NEW_SPEC_ROUTE,
+  projectPagePath,
+  projectListBody,
+  projectSummary,
+  driftPrefix,
+  renderProjectPage,
+};
+
+// The prose itself lives in shell.ts, where the About DIALOG on every
+// page shows the same words — this page is the no-JS fallback the menu
+// item's href still points at.
+function aboutBody(generatedAt: string): string {
+  return aboutProse() + buildStampLine(generatedAt);
+}
+
+export function renderSite(_projects: ProjectView[], generatedAt: string): Page[] {
+  const entries = navEntries();
+
+  // The overview is served now (spec 115), because the controls that
+  // change the project list need a token checked per request and a file
+  // has no server behind it to do that. What is written HERE is the way
+  // on: the script for a browser, the link for everything else. Both are
+  // in the generated content rather than in the server, so a site
+  // rsynced behind a plain file server sends the reader on too.
+  const moved =
+    `<p>This page has moved to <a href="${PROJECTS_ROUTE}">${PROJECTS_ROUTE}</a>.</p>`;
+  const pages: Page[] = [
+    {
+      path: OVERVIEW_PAGE,
+      // The tab always leads with aide; the tagline rides on the
+      // overview, the one page that is about aide itself.
+      html: pageShell("Projects", entries, PROJECTS_ROUTE, moved, generatedAt, undefined, {
+        docTitle: "aide -board — from spec to merge",
+        // The query string comes along: a bookmark that carried the
+        // token is how a reader arrives here with one.
+        script: `location.replace('${PROJECTS_ROUTE}' + location.search);`,
+        // No request exists at generate time to read a language from
+        // (spec 408) — this page is static output, permanently English.
+        lang: "en",
+      }),
+    },
+  ];
+  pages.push({
+    path: ABOUT_PAGE,
+    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt, undefined, {
+      buildStamp: generatedAt,
+      // Same reason as above: no request exists at generate time.
+      lang: "en",
+    }),
+  });
+  // A page per project was written here until 2026-08-22. The server
+  // serves one now (spec 185) — the one with the settings and the
+  // readiness answer on it, reached from the Projects page — and a
+  // frozen copy beside it was a second page with the same name, one
+  // tab away from the live one and always a little out of date. The
+  // overview above went the same way at spec 115 and is a redirect.
+  return pages;
+}
 
 /** Where a project is added (its own page, like `/new`), and where one
  *  is removed — the confirm page each row's Remove links to. */
 export const ADD_PROJECT_ROUTE = "/projects/new";
 export const removeProjectRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/remove`;
-
-export type { ProjectDrift };
 
 export interface ProjectsPageOptions {
   /** Carried into every form on the page, for a browser that got here
@@ -144,14 +219,12 @@ export interface ProjectsPageOptions {
 }
 
 /** What the row says. Spelled out here rather than at the call site so
- *  the count and its wording cannot drift apart.
- *
- *  The freshness clause is spec 203's half: the count is whatever a
- *  background schedule last found, so how OLD it is decides how much of
- *  it to believe — `driftPrefix` (spec 258, moved to `site.ts` so the
- *  project's own page can share the wording) does that conversion. This
- *  list has no Deploy button, so its own ending says so, unlike the
- *  project page's shared prefix. */
+ *  the count and its wording cannot drift apart. The freshness clause
+ *  is spec 203's half: the count is whatever a background schedule
+ *  last found, so how OLD it is decides how much of it to believe —
+ *  `driftPrefix` (spec 258) does that conversion. This list has no
+ *  Deploy button, so its own ending says so, unlike the project page's
+ *  shared prefix. */
 const driftNote = (behind: number, checkedAt: number, now: number): string =>
   `${driftPrefix(behind, checkedAt, now)} — deploy is a hand step`;
 

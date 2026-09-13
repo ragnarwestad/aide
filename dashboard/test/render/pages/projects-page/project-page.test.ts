@@ -1,11 +1,12 @@
 // Spec 296: `renderProjectPage` had no direct test before this — only
-// `test/render/pages/site.test.ts`'s exercise of the generated static
-// site around it (nav, tabs), never its own heading or Back link.
+// `test/render/pages/projects-page-shell.test.ts`'s exercise of the
+// generated static site around it (nav, tabs), never its own heading or
+// Back link.
 
 import { describe, expect, test } from "bun:test";
-import { renderProjectPage } from "../../../../src/render/pages/site/project-page.ts";
+import { renderProjectPage } from "../../../../src/render/pages/projects-page/project-page.ts";
 import type { ProjectReadiness } from "../../../../src/project/project-admin.ts";
-import type { ProjectView } from "../../../../src/render/pages/site/types.ts";
+import type { ProjectView } from "../../../../src/render/pages/projects-page/types.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 

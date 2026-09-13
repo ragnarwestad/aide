@@ -69,7 +69,7 @@ export function specHeadRow(
   // again, without a Reopen first".
   const locked = isArchivedRow(g);
   // Four answers, not three — and named `run-*` rather than
-  // `active`/`archived`, which `site.ts` uses for the unrelated
+  // `active`/`archived`, which `projects-page.ts` uses for the unrelated
   // question of whether a spec folder has been archived on disk. The
   // two used to share the words and mean different things.
   const rowClass = locked
