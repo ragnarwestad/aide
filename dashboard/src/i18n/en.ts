@@ -72,8 +72,8 @@ export const en = {
   "list.dateUnknown": "date unknown",
   "list.waitingOnReview": "its code is waiting on a pull request — open it to review",
   "list.testServer": "test server",
-  "list.boardStartLink": "Click the link to start a test server running this branch",
-  "list.boardStartComing": "The link to start one appears once this spec's implement run is recorded as done",
+  "list.testServerStartLink": "Click the link to start a test server running this branch",
+  "list.testServerStartComing": "The link to start one appears once this spec's implement run is recorded as done",
   "list.pushError":
     "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
     "then push it again from a terminal.",
@@ -116,11 +116,11 @@ export const en = {
     "This checkout matches origin, but the service is still running commit {sha} — " +
     "the restart is waiting for running jobs: {jobs}.",
   "project.deployHeading": "Deploy for prod",
-  "project.testBoardHeading": "Test server with the test specs",
-  "project.testBoardNote":
+  "project.testServerHeading": "Test server with the test specs",
+  "project.testServerNote":
     "Starts a test server from the latest main, seeded with the round's own test specs. It never touches " +
     "prod; the server shows up under Test servers.",
-  "project.testBoardButton": "Start test server",
-  "project.testBoardUnavailable":
+  "project.testServerButton": "Start test server",
+  "project.testServerUnavailable":
     "This project does not carry the dashboard's own source, so a test server cannot start from here.",
 } as const;

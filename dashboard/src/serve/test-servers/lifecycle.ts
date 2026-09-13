@@ -7,7 +7,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { signalGroup, signalProcess } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import type { BoardStore, BoardEntry } from "./store.ts";
+import type { TestServerStore, TestServer } from "./store.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -18,8 +18,8 @@ export interface SpawnResult {
  *  inject a fake that never touches a real process. */
 export type Spawner = (cmd: string[], logPath: string) => SpawnResult;
 
-export interface BoardsContext {
-  store: BoardStore;
+export interface TestServersContext {
+  store: TestServerStore;
   /** The checkout the round runs FROM for this project — the same
    *  checkout `machineryProjectDir(project)` already resolves to
    *  everywhere else on this server. */
@@ -44,7 +44,7 @@ export interface BoardsContext {
    *  `recover.ts` asks this once per port after a restart; the real
    *  implementation reads the process table, and a test injects an
    *  answer. `undefined` for a free port, or one held by anything else. */
-  boardOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  testServerOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
   /** The board's own log line — what a start spawned, and why one did
    *  not come up. Four presses of the start link left four empty work
    *  directories and no trace of what happened (2026-09-09), and the
@@ -76,7 +76,7 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
  *  before, without needing a config surface — one more line here, and
  *  the matching `tailscale serve` command run once by hand, is what a
  *  different number costs. */
-export const BOARD_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
+export const TEST_SERVER_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
 
 /** The first port in the pool that nothing is using. `reserved` is what
  *  this server and its other boards already hold (REQ-10); the probe is
@@ -106,7 +106,7 @@ const bindable: PortProbe = (port) => {
 
 export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number | undefined> {
   const taken = new Set(reserved);
-  for (const port of BOARD_PORTS) {
+  for (const port of TEST_SERVER_PORTS) {
     if (taken.has(port)) continue;
     if (canBind(port)) return port;
   }
@@ -128,17 +128,17 @@ function tailLine(logPath: string): string {
   }
 }
 
-/** The registry key `restartMainBoard` tracks its board under (AC-6) —
+/** The registry key `restartMainTestServer` tracks its board under (AC-6) —
  *  never a real spec folder, so `isSpecFolder()` (`render/ui/shell.ts`)
  *  is what every reader of the registry uses to tell the two apart. */
-export const MAIN_BOARD_KEY = "main";
+export const MAIN_TEST_SERVER_KEY = "main";
 
-export async function startBoard(
-  ctx: BoardsContext,
+export async function startTestServer(
+  ctx: TestServersContext,
   project: string,
   specFolder: string,
   opts: { branch?: string } = {},
-): Promise<{ ok: true; entry: BoardEntry } | { ok: false; error: string }> {
+): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
   if (!ctx.roundAvailable(project)) {
     return { ok: false, error: "the round is not available on this host" };
   }
@@ -169,7 +169,7 @@ export async function startBoard(
     return {
       ok: false,
       error:
-        `${running} of ${BOARD_PORTS.length} test servers are already running — ` +
+        `${running} of ${TEST_SERVER_PORTS.length} test servers are already running — ` +
         `open Test servers (⋯ menu) and stop one before starting another`,
     };
   }
@@ -185,7 +185,7 @@ export async function startBoard(
     return { ok: false, error: `could not start the round: ${why}` };
   }
   ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
-  const entry: BoardEntry = {
+  const entry: TestServer = {
     branch,
     commit,
     port,
@@ -202,7 +202,7 @@ export async function startBoard(
 /** Tails the board's own log to learn whether it has come up or failed.
  *  Called on read (the spec page's own render), not on a timer of its
  *  own — the page already polls every ten seconds. */
-export function refreshBoardStatus(ctx: BoardsContext, project: string, specFolder: string): BoardEntry | undefined {
+export function refreshTestServerStatus(ctx: TestServersContext, project: string, specFolder: string): TestServer | undefined {
   const entry = ctx.store.get(project, specFolder);
   // REQ-2: a "running" entry is never re-examined below this point — the
   // early return just past this only ever revisits "starting". Once the
@@ -211,13 +211,13 @@ export function refreshBoardStatus(ctx: BoardsContext, project: string, specFold
   // (crashed, a reboot) stayed "running" in the registry forever.
   // `entry.pid` is always set once `status` is "running" — both writers
   // of that status (this function's own "left running"/"board up" match
-  // below, and `recover.ts`'s `recoverBoards`) set it in the same object
+  // below, and `recover.ts`'s `recoverTestServers`) set it in the same object
   // literal as the status itself. The type keeps `pid` optional
   // regardless (nothing enforces this invariant statically, only this
   // comment) — the same trade-off `store.ts`'s own doc comment on `pid`
   // already makes for the field itself.
   if (entry?.status === "running" && !ctx.isAlive(entry.pid!)) {
-    stopBoard(ctx, project, specFolder);
+    stopTestServer(ctx, project, specFolder);
     return undefined;
   }
   if (entry?.status !== "starting") return entry;
@@ -236,14 +236,14 @@ export function refreshBoardStatus(ctx: BoardsContext, project: string, specFold
   const m = LEFT_RUNNING_RE.exec(log);
   if (!m) {
     if (!ctx.isAlive(entry.wrapperPid)) {
-      const failed: BoardEntry = { ...entry, status: "failed", error: tailLine(entry.logPath) };
+      const failed: TestServer = { ...entry, status: "failed", error: tailLine(entry.logPath) };
       ctx.store.set(project, specFolder, failed);
       ctx.log?.(`boards: ${entry.branch} did not come up on :${entry.port} — ${failed.error} (log ${entry.logPath})`);
       return failed;
     }
     return entry;
   }
-  const running: BoardEntry = { ...entry, status: "running", pid: Number(m[1]), url: m[2] };
+  const running: TestServer = { ...entry, status: "running", pid: Number(m[1]), url: m[2] };
   ctx.store.set(project, specFolder, running);
   return running;
 }
@@ -255,7 +255,7 @@ export function refreshBoardStatus(ctx: BoardsContext, project: string, specFold
  *  bun-serve process — see 3-solution.md's Risk analysis for the
  *  measured process-group fact this depends on). The round's own
  *  disowned watcher removes the worktree once that process dies. */
-export function stopBoard(ctx: BoardsContext, project: string, specFolder: string): void {
+export function stopTestServer(ctx: TestServersContext, project: string, specFolder: string): void {
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
   // The log this server made for the round goes with the board
@@ -281,14 +281,14 @@ export function stopBoard(ctx: BoardsContext, project: string, specFolder: strin
 
 /** AC-6: pressing the Deploy tab's button always ends up running the
  *  latest `branch` — never a second board beside a stale one. Unlike
- *  `startBoard()`'s own REQ-6 dedup (right for a spec branch, which does
- *  not move), the `MAIN_BOARD_KEY` entry is always torn down and started
+ *  `startTestServer()`'s own REQ-6 dedup (right for a spec branch, which does
+ *  not move), the `MAIN_TEST_SERVER_KEY` entry is always torn down and started
  *  fresh, whatever its status. */
-export async function restartMainBoard(
-  ctx: BoardsContext,
+export async function restartMainTestServer(
+  ctx: TestServersContext,
   project: string,
   branch: string,
-): Promise<{ ok: true; entry: BoardEntry } | { ok: false; error: string }> {
-  stopBoard(ctx, project, MAIN_BOARD_KEY);
-  return startBoard(ctx, project, MAIN_BOARD_KEY, { branch });
+): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
+  stopTestServer(ctx, project, MAIN_TEST_SERVER_KEY);
+  return startTestServer(ctx, project, MAIN_TEST_SERVER_KEY, { branch });
 }

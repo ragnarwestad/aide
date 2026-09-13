@@ -17,7 +17,7 @@ const row = (extra: Partial<TestServerRow> = {}): TestServerRow => ({
   branch: "aide/150-one-page-shows-the-whole-spec",
   status: "running",
   url: "http://127.0.0.1:8801/?token=t0ken",
-  stopAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/board/stop",
+  stopAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/test-server/stop",
   ...extra,
 });
 
@@ -32,7 +32,7 @@ describe("the test servers overview", () => {
         branch: "aide/9-x",
         status: "starting",
         url: undefined,
-        stopAction: "/api/queue/specs/woodstack/9-x/board/stop",
+        stopAction: "/api/queue/specs/woodstack/9-x/test-server/stop",
       }),
     ]);
     expect(html).toContain("aide");
@@ -78,7 +78,7 @@ describe("the test servers overview", () => {
   });
 
   // REQ-4's end-to-end clause: pressing Stop already removes the entry
-  // (the existing, already-tested `.../board/stop` route and
+  // (the existing, already-tested `.../test-server/stop` route and
   // `stopBoard()`); what this page adds is that the NEXT load no longer
   // shows the row for it.
   test("a row whose entry is gone is not drawn on the next load", () => {
@@ -89,7 +89,7 @@ describe("the test servers overview", () => {
         specFolder: "9-x",
         specHref: "/specs/woodstack/9-x",
         branch: "aide/9-x",
-        stopAction: "/api/queue/specs/woodstack/9-x/board/stop",
+        stopAction: "/api/queue/specs/woodstack/9-x/test-server/stop",
       }),
     ];
     const before = renderTestServersPage(NAV, GENERATED, rows);
@@ -106,7 +106,7 @@ describe("the test servers overview", () => {
     const r = row({
       specFolder: "main",
       branch: "main",
-      stopAction: "/api/queue/projects/aide/test-board/stop",
+      stopAction: "/api/queue/projects/aide/test-server/stop",
     });
     const html = renderTestServersPage(NAV, GENERATED, [r]);
     expect(html).not.toContain(`<a href="${r.specHref}">main</a>`);

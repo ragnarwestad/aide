@@ -3,18 +3,18 @@
 // standing in the one behind it.
 
 import { describe, expect, test } from "bun:test";
-import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../../src/serve/routes/spec-edit/board-waiting.ts";
+import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../../src/serve/routes/spec-edit/test-server-waiting.ts";
 
 const body = (r: Response) => r.text();
 
 describe("waiting for a test server", () => {
   test("names the spec in quotes, on its own line, so it reads apart from the sentence", async () => {
-    const html = await body(waitingForBoardPage("aide", "415-specs-og-new-spec-side-layout"));
+    const html = await body(waitingForTestServerPage("aide", "415-specs-og-new-spec-side-layout"));
     expect(html).toContain('Starting a test server for<br>"415-specs-og-new-spec-side-layout"');
   });
 
   test("comes back by itself, and says something is coming", async () => {
-    const html = await body(waitingForBoardPage("aide", "415-x"));
+    const html = await body(waitingForTestServerPage("aide", "415-x"));
     expect(html).toMatch(/http-equiv="refresh"/);
     expect(html).toContain('class="spin"');
     expect(html).toContain("leave it open");
@@ -22,7 +22,7 @@ describe("waiting for a test server", () => {
 
   // The reader clicked a link in the spec page; that page is still open.
   test("offers no way back to the spec", async () => {
-    const html = await body(waitingForBoardPage("aide", "415-x"));
+    const html = await body(waitingForTestServerPage("aide", "415-x"));
     expect(html).not.toContain("Back to the spec");
     expect(html).not.toContain("<a ");
   });
@@ -30,7 +30,7 @@ describe("waiting for a test server", () => {
 
 describe("a test server that could not start", () => {
   test("says so, with the round's own words, and stops refreshing", async () => {
-    const html = await body(boardFailedPage("415-x", "port already held"));
+    const html = await body(testServerFailedPage("415-x", "port already held"));
     expect(html).toContain('Could not start a test server for "415-x"');
     expect(html).toContain("port already held");
     expect(html).not.toMatch(/http-equiv="refresh"/);
@@ -40,13 +40,13 @@ describe("a test server that could not start", () => {
   });
 
   test("with nothing to quote, it still says what happened", async () => {
-    const html = await body(boardFailedPage("415-x"));
+    const html = await body(testServerFailedPage("415-x"));
     expect(html).toContain("did not report an address");
   });
 
   // Arbitrary text off a log reaches this page.
   test("the round's words are escaped", async () => {
-    const html = await body(boardFailedPage("415-x", "<script>alert(1)</script>"));
+    const html = await body(testServerFailedPage("415-x", "<script>alert(1)</script>"));
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
   });
@@ -62,7 +62,7 @@ describe("the board's address, as the reader can reach it", () => {
 
   test("takes the host the reader used, and keeps the board's port", () => {
     expect(
-      boardUrlFor(
+      testServerUrlFor(
         asking("https://rw-macmini.ts.net/specs/aide/415-x", "rw-macmini.ts.net"),
         "http://127.0.0.1:8801/?token=t0ken",
       ),
@@ -78,19 +78,19 @@ describe("the board's address, as the reader can reach it", () => {
     const proxied = new Request("http://127.0.0.1:8788/specs/aide/415-x", {
       headers: { host: "rw-macmini.ts.net", "x-forwarded-proto": "https" },
     });
-    expect(boardUrlFor(proxied, "http://127.0.0.1:8801/?token=t0ken")).toBe(
+    expect(testServerUrlFor(proxied, "http://127.0.0.1:8801/?token=t0ken")).toBe(
       "https://rw-macmini.ts.net:8801/?token=t0ken",
     );
   });
 
   test("with no proxy in front, the request's own scheme still decides", () => {
     expect(
-      boardUrlFor(asking("http://box.local:8788/x", "box.local:8788"), "http://127.0.0.1:8801/?token=t"),
+      testServerUrlFor(asking("http://box.local:8788/x", "box.local:8788"), "http://127.0.0.1:8801/?token=t"),
     ).toBe("http://box.local:8801/?token=t");
   });
 
   test("the token rides along untouched", () => {
-    const out = boardUrlFor(
+    const out = testServerUrlFor(
       asking("https://host.ts.net/x", "host.ts.net"),
       "http://127.0.0.1:8802/?token=abc%2Fdef",
     );
@@ -102,10 +102,10 @@ describe("the board's address, as the reader can reach it", () => {
   test("a request with no host at all falls back to what the round said", () => {
     const bare = new Request("http://127.0.0.1:8788/x");
     bare.headers.delete("host");
-    expect(boardUrlFor(bare, "http://127.0.0.1:8801/?token=t")).toContain("8801");
+    expect(testServerUrlFor(bare, "http://127.0.0.1:8801/?token=t")).toContain("8801");
   });
 
   test("an address the round did not phrase as a URL is passed through", () => {
-    expect(boardUrlFor(asking("https://h.ts.net/x", "h.ts.net"), "not a url")).toBe("not a url");
+    expect(testServerUrlFor(asking("https://h.ts.net/x", "h.ts.net"), "not a url")).toBe("not a url");
   });
 });

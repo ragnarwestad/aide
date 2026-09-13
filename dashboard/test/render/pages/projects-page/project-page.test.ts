@@ -164,7 +164,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: true }),
+      deployTab({ testServerAvailable: true }),
     );
     expect(html).toContain("<h3>Deploy for prod</h3>");
     expect(html).toContain("<h3>Test server with the test specs</h3>");
@@ -179,7 +179,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: true }),
+      deployTab({ testServerAvailable: true }),
     );
     expect(html).toMatch(/install command/i);
     expect(html).not.toContain('class="deployform"');
@@ -194,11 +194,11 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: true }),
+      deployTab({ testServerAvailable: true }),
     );
     expect(html).toContain("Starts a test server from the latest main");
     expect(html).toContain("the server shows up under Test servers");
-    expect(html).toContain('class="testboardform"');
+    expect(html).toContain('class="testserverform"');
     expect(html).toContain("Start test server");
   });
 
@@ -211,11 +211,11 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: false }),
+      deployTab({ testServerAvailable: false }),
     );
     expect(html).toContain("<h3>Test server with the test specs</h3>");
     expect(html).toContain("This project does not carry the dashboard's own source");
-    expect(html).not.toContain('class="testboardform"');
+    expect(html).not.toContain('class="testserverform"');
   });
 
   // Risk analysis's own must-catch case: the button's form must NOT carry
@@ -228,9 +228,9 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: true }),
+      deployTab({ testServerAvailable: true }),
     );
-    const form = html.match(/<form[^>]*class="testboardform"[^>]*>/)?.[0] ?? "";
+    const form = html.match(/<form[^>]*class="testserverform"[^>]*>/)?.[0] ?? "";
     expect(form).not.toBe("");
     expect(form).not.toMatch(/class="[^"]*\b(deployform|actionform|rowrun)\b/);
     expect(form).toContain('target="_blank"');
@@ -243,7 +243,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
       null,
       "2026-09-13T00:00:00Z",
       NAV,
-      deployTab({ testBoardAvailable: true, lang: "nb" }),
+      deployTab({ testServerAvailable: true, lang: "nb" }),
     );
     expect(html).toContain("<h3>Deploy for prod</h3>");
     expect(html).toContain("<h3>Testserver med testspecene</h3>");

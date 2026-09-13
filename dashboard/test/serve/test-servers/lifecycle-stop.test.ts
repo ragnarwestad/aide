@@ -1,4 +1,4 @@
-// Spec 388, REQ-7: stopBoard reaches the round's whole process group by
+// Spec 388, REQ-7: stopTestServer reaches the round's whole process group by
 // sending SIGTERM to the NEGATED wrapper pid — the same primitive
 // job-actions.ts's own cancel route uses (`process.kill(-job.pgid, ...)`)
 // — and clears the registry entry, whether the board has finished
@@ -8,13 +8,13 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BoardStore, type BoardEntry } from "../../../src/serve/boards/store.ts";
-import { stopBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
+import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
+import { stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 
 let killed: { pid: number; signal: string }[];
 let killSpy: ReturnType<typeof spyOn>;
 
-function entry(overrides: Partial<BoardEntry> = {}): BoardEntry {
+function entry(overrides: Partial<TestServer> = {}): TestServer {
   return {
     branch: "aide/spec-1",
     commit: "abc123",
@@ -28,7 +28,7 @@ function entry(overrides: Partial<BoardEntry> = {}): BoardEntry {
   };
 }
 
-function makeCtx(store: BoardStore): BoardsContext {
+function makeCtx(store: TestServerStore): TestServersContext {
   return {
     store,
     aideCheckout: () => "/checkout/aide",
@@ -41,7 +41,7 @@ function makeCtx(store: BoardStore): BoardsContext {
     makeWorkDir: () => "/tmp",
     reservedPorts: () => [],
     findFreePort: async () => 9000,
-    boardOnPort: async () => undefined,
+    testServerOnPort: async () => undefined,
   };
 }
 
@@ -57,37 +57,37 @@ afterEach(() => {
   killSpy.mockRestore();
 });
 
-describe("stopBoard", () => {
+describe("stopTestServer", () => {
   // `kill(-1)` is every process the user owns. An entry whose wrapper
   // pid is 1 (or 0, or absent) is dropped from the registry without
   // any signal at all — measured twice on 2026-09-12, when a fixture's
   // `wrapperPid: 1` reached a real kill and took the login session with
   // it.
   test("an entry whose wrapper pid is 1 is dropped without any signal", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ wrapperPid: 1 }));
     store.set("aide", "spec-2", entry({ wrapperPid: 0 }));
     store.set("aide", "spec-3", entry({ wrapperPid: 1, recovered: true }));
     const ctx = makeCtx(store);
-    stopBoard(ctx, "aide", "spec-1");
-    stopBoard(ctx, "aide", "spec-2");
-    stopBoard(ctx, "aide", "spec-3");
+    stopTestServer(ctx, "aide", "spec-1");
+    stopTestServer(ctx, "aide", "spec-2");
+    stopTestServer(ctx, "aide", "spec-3");
     expect(killed).toEqual([]);
     expect(store.all()).toEqual([]);
   });
 
   test("sends SIGTERM to the negated wrapper pid and clears the entry", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry());
-    stopBoard(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1");
     expect(killed).toEqual([{ pid: -4242, signal: "SIGTERM" }]);
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 
   test("still reaches the process group while the board is only 'starting', with no inner pid known yet", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ status: "starting", pid: undefined }));
-    stopBoard(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1");
     expect(killed).toEqual([{ pid: -4242, signal: "SIGTERM" }]);
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
@@ -97,15 +97,15 @@ describe("stopBoard", () => {
     killSpy = spyOn(process, "kill").mockImplementation(() => {
       throw new Error("ESRCH");
     });
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry());
-    expect(() => stopBoard(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 
   test("nothing tracked for this spec is a no-op", () => {
-    const store = new BoardStore();
-    expect(() => stopBoard(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    const store = new TestServerStore();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
     expect(killed).toHaveLength(0);
   });
 });
@@ -117,17 +117,17 @@ describe("stopping a board takes its own files with it", () => {
   test("the work directory is removed", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-board-stop-"));
     writeFileSync(join(dir, "board.log"), "== starting\n");
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ workDir: dir, logPath: join(dir, "board.log") }));
-    stopBoard(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1");
     expect(existsSync(dir)).toBe(false);
   });
 
   // A directory that will not go is not worth failing a stop over.
   test("a work directory that is already gone stops the board anyway", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ workDir: "/tmp/aide-board-that-never-existed" }));
-    expect(() => stopBoard(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 });

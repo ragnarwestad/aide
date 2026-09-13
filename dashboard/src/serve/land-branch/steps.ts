@@ -3,7 +3,7 @@
 
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
-import { stopBoard } from "../boards/lifecycle.ts";
+import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch } from "./merge.ts";
 import type { LandContext } from "./types.ts";
 
@@ -134,9 +134,9 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // spec's own code branch, and once that branch is archived there is
     // nothing left for it to serve. Only fires once the merge has
     // actually landed (never on a held-back refusal, which never
-    // reaches `landBranch` at all) — `stopBoard` itself is a no-op when
+    // reaches `landBranch` at all) — `stopTestServer` itself is a no-op when
     // nothing is tracked for this spec.
-    onLanded: async () => stopBoard(ctx.boards, job.project, job.specFolder),
+    onLanded: async () => stopTestServer(ctx.testServers, job.project, job.specFolder),
   });
 }
 
@@ -162,6 +162,6 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
     failedNote: () => ({ key: "landing.closeLandingFailed" }),
     // Spec 388, REQ-7's own reasoning: a board running this spec's code
     // branch has nothing left to serve once that branch is gone.
-    onLanded: async () => stopBoard(ctx.boards, job.project, job.specFolder),
+    onLanded: async () => stopTestServer(ctx.testServers, job.project, job.specFolder),
   });
 }

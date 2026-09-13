@@ -27,7 +27,7 @@ import type { ProjectPageOptions, ProjectView } from "./types.ts";
  *  short enough that nobody reads the stale sentence twice. */
 const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 
-/** Shared by `deploySection` and `testBoardSection`: the Deploy tab's own
+/** Shared by `deploySection` and `testServerSection`: the Deploy tab's own
  *  panel wrapper, empty content drawing nothing at all. */
 const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
 
@@ -164,15 +164,15 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
 
 /** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that
  *  starts (or, per AC-6, restarts) a test server from the latest main,
- *  seeded with the round's own test specs. `!opts.testBoardAvailable`
+ *  seeded with the round's own test specs. `!opts.testServerAvailable`
  *  mirrors `deploySection()`'s own established pattern: the heading stays,
  *  and a sentence says why there is nothing to act on, rather than the
  *  section disappearing. */
-function testBoardSection(name: string, opts: ProjectPageOptions): string {
+function testServerSection(name: string, opts: ProjectPageOptions): string {
   const lang = opts.lang ?? "en";
-  const heading = `<h3>${esc(t(lang, "project.testBoardHeading"))}</h3>`;
-  if (!opts.testBoardAvailable) {
-    return heading + panel(rowMessage("info", t(lang, "project.testBoardUnavailable")));
+  const heading = `<h3>${esc(t(lang, "project.testServerHeading"))}</h3>`;
+  if (!opts.testServerAvailable) {
+    return heading + panel(rowMessage("info", t(lang, "project.testServerUnavailable")));
   }
   // Deliberately NOT class="deployform"/"actionform"/"rowrun" — any of
   // those three classes gets its native submit replaced by an XHR
@@ -180,12 +180,12 @@ function testBoardSection(name: string, opts: ProjectPageOptions): string {
   // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
   // spaces this form's children with no CSS of its own needed.
   const button =
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-board" ` +
-    `target="_blank" class="testboardform">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-server" ` +
+    `target="_blank" class="testserverform">` +
     tokenField(opts.token) +
-    btn({ label: t(lang, "project.testBoardButton"), variant: "primary" }) +
+    btn({ label: t(lang, "project.testServerButton"), variant: "primary" }) +
     `</form>`;
-  return heading + panel(rowMessage("info", t(lang, "project.testBoardNote")) + button);
+  return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
 }
 
 /** The Schedule section (spec 259): each entry's name, cron expression,
@@ -300,7 +300,7 @@ export function renderProjectPage(
   const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, "config");
   const base = projectPagePath(p.name);
   const panel =
-    tab === "deploy" ? deploySection(p.name, opts, now) + testBoardSection(p.name, opts)
+    tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
     : configSection(settings, p.name, readiness, opts);
 

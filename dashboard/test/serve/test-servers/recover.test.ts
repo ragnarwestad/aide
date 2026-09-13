@@ -9,10 +9,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BoardStore } from "../../../src/serve/boards/store.ts";
-import { stopBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
-import { parseWorktrees, recoverBoards, sweepDeadBoards } from "../../../src/serve/boards/recover.ts";
-import { workDirOf } from "../../../src/serve/boards/port-owner.ts";
+import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
+import { stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { parseWorktrees, recoverTestServers, sweepDeadTestServers } from "../../../src/serve/test-servers/recover.ts";
+import { workDirOf } from "../../../src/serve/test-servers/port-owner.ts";
 
 /** A work directory shaped the way the round leaves one: `mktemp -d`'s
  *  own `tmp.XXXX` name, the board's worktree inside it, and the token it
@@ -32,10 +32,10 @@ const porcelain = (work: string, branch: string, commit: string): string =>
 function makeCtx(o: {
   worktrees?: string;
   onPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
-  store?: BoardStore;
-} = {}): BoardsContext {
+  store?: TestServerStore;
+} = {}): TestServersContext {
   return {
-    store: o.store ?? new BoardStore(),
+    store: o.store ?? new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     roundScript: () => "/checkout/aide/dashboard/test/round/run",
     roundAvailable: () => true,
@@ -49,7 +49,7 @@ function makeCtx(o: {
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-recover-work-")),
     reservedPorts: () => [],
     findFreePort: async () => 8801,
-    boardOnPort: o.onPort ?? (async () => undefined),
+    testServerOnPort: o.onPort ?? (async () => undefined),
   };
 }
 
@@ -71,14 +71,14 @@ describe("git worktree list --porcelain", () => {
 describe("finding a test server again", () => {
   test("the port names the process, the worktree names the spec", async () => {
     const work = roundWorkDir("s3cret");
-    const store = new BoardStore();
+    const store = new TestServerStore();
     const ctx = makeCtx({
       store,
       worktrees: porcelain(work, "aide/415-x", "b67707e"),
       onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
     });
 
-    const found = await recoverBoards(ctx, ["aide"]);
+    const found = await recoverTestServers(ctx, ["aide"]);
     expect(found).toHaveLength(1);
     const entry = store.get("aide", "415-x");
     expect([entry?.status, entry?.port, entry?.branch, entry?.commit]).toEqual([
@@ -97,14 +97,14 @@ describe("finding a test server again", () => {
   // first still held (2026-09-13).
   test("a detached round worktree is the main board, serving the checkout's own branch", async () => {
     const work = roundWorkDir("s3cret");
-    const store = new BoardStore();
+    const store = new TestServerStore();
     const ctx = makeCtx({
       store,
       worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
         `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
       onPort: async (port) => (port === 8802 ? { pid: 238, workDir: work } : undefined),
     });
-    const found = await recoverBoards(ctx, ["aide"]);
+    const found = await recoverTestServers(ctx, ["aide"]);
     expect(found).toHaveLength(1);
     const entry = store.get("aide", "main");
     expect([entry?.status, entry?.port, entry?.branch, entry?.commit, entry?.recovered]).toEqual([
@@ -119,13 +119,13 @@ describe("finding a test server again", () => {
   // Everything else on the machine that happens to hold one of these
   // ports: not ours, and not to be adopted.
   test("a port held by something that is not a test server is left alone", async () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     const ctx = makeCtx({
       store,
       worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e"),
       onPort: async () => ({ pid: 99, workDir: "/somewhere/else" }),
     });
-    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
+    expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
     expect(store.all()).toEqual([]);
   });
 
@@ -141,7 +141,7 @@ describe("finding a test server again", () => {
         return undefined;
       },
     });
-    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
+    expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
     expect(asked).toBe(0);
   });
 
@@ -149,7 +149,7 @@ describe("finding a test server again", () => {
   // and its own entry — "starting", with the wrapper still going — is
   // the truer one.
   test("a port this server already tracks is not touched", async () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "415-x", {
       branch: "aide/415-x",
       commit: "b67707e",
@@ -169,7 +169,7 @@ describe("finding a test server again", () => {
         return undefined;
       },
     });
-    await recoverBoards(ctx, ["aide"]);
+    await recoverTestServers(ctx, ["aide"]);
     expect([asked, store.get("aide", "415-x")?.status]).toEqual([0, "starting"]);
   });
 
@@ -183,14 +183,14 @@ describe("finding a test server again", () => {
       asked.push(args);
       return { code: 1, stdout: "", stderr: "" };
     };
-    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
-    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+    expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
     expect(asked).toEqual([]);
   });
 
   test("a checkout git cannot be asked about recovers nothing, and does not throw", async () => {
     const ctx = makeCtx({ worktrees: undefined, onPort: async () => ({ pid: 1, workDir: "/w" }) });
-    expect(await recoverBoards(ctx, ["aide"])).toEqual([]);
+    expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
   });
 });
 
@@ -201,7 +201,7 @@ describe("finding a test server again", () => {
 describe("stopping a board that was found again", () => {
   const stopWith = (recovered: boolean): number[] => {
     const signalled: number[] = [];
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "415-x", {
       branch: "aide/415-x",
       commit: "b67707e",
@@ -219,7 +219,7 @@ describe("stopping a board that was found again", () => {
       signalled.push(pid);
     };
     try {
-      stopBoard(makeCtx({ store }), "aide", "415-x");
+      stopTestServer(makeCtx({ store }), "aide", "415-x");
     } finally {
       process.kill = real;
     }
@@ -251,7 +251,7 @@ describe("the worktrees of test servers that are gone", () => {
       calls.push(args);
       return gitRun(dir, args);
     };
-    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([join(work, "checkout")]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
     expect(removals(calls)).toHaveLength(1);
     expect(calls.some((a) => a[0] === "worktree" && a[1] === "prune")).toBe(true);
   });
@@ -262,21 +262,21 @@ describe("the worktrees of test servers that are gone", () => {
       worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
         `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
     });
-    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([join(work, "checkout")]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
   });
 
-  // `recoverBoards` runs first and puts a live board in the registry;
+  // `recoverTestServers` runs first and puts a live board in the registry;
   // its own worktree is not a leftover.
   test("the worktree of a board that IS running is left alone", async () => {
     const work = roundWorkDir();
-    const store = new BoardStore();
+    const store = new TestServerStore();
     const ctx = makeCtx({
       store,
       worktrees: porcelain(work, "aide/415-x", "b67707e"),
       onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
     });
-    await recoverBoards(ctx, ["aide"]);
-    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+    await recoverTestServers(ctx, ["aide"]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
   });
 
   // A run's own worktree lives at `~/aide-dashboard/worktrees/<project>/<spec>/code`
@@ -288,11 +288,11 @@ describe("the worktrees of test servers that are gone", () => {
         `worktree /Users/x/aide-dashboard/worktrees/aide/415-x/code\nHEAD abc\nbranch refs/heads/aide/415-x\n\n` +
         `worktree /var/folders/44/T/not-a-temp-name/checkout\nHEAD abc\nbranch refs/heads/aide/416-x\n`,
     });
-    expect(await sweepDeadBoards(ctx, ["aide"])).toEqual([]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
   });
 });
 
-// The one fact `boards/recover.ts` reads off a command line. The round
+// The one fact `test-servers/recover.ts` reads off a command line. The round
 // starts its board with `--root <work>/root`; this dashboard's own
 // `--root` is a projects directory, and must not read as a board.
 describe("which process on a port is a test server", () => {

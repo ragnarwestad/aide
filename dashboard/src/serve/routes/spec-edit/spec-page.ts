@@ -2,8 +2,8 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { refreshBoardStatus, startBoard } from "../../boards/lifecycle.ts";
-import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "./board-waiting.ts";
+import { refreshTestServerStatus, startTestServer } from "../../test-servers/lifecycle.ts";
+import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render.ts";
@@ -22,21 +22,21 @@ export async function specPageRoutes(
   if (specPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = specPage;
-    // Spec 411: the held-for-Checks row's own link reaches `startBoard()`
+    // Spec 411: the held-for-Checks row's own link reaches `startTestServer()`
     // through this GET — a plain `target="_blank"` link can only ever
     // issue one. The three-part capability check mirrors
-    // `spec-views/spec-page.ts`'s own (`boardCapable`) so the trigger
+    // `spec-views/spec-page.ts`'s own (`testServerCapable`) so the trigger
     // never starts a board against the wrong checkout in a multi-repo
     // project, or for a spec archived after the link was rendered.
-    // `startBoard()` carries its own branch+commit+alive dedup, so a
+    // `startTestServer()` carries its own branch+commit+alive dedup, so a
     // repeat of this same URL — the reload every 10 seconds on the Steps
     // tab it redirects to included — is a no-op read, not a second round.
-    if (url.searchParams.get("startBoard") === "1") {
+    if (url.searchParams.get("startTestServer") === "1") {
       const ref = ctx.specRef(project!, specFolder!);
       const capable =
         !ref?.archived &&
-        ctx.boards.roundAvailable(project!) &&
-        ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.boards.aideCheckout(project!));
+        ctx.testServers.roundAvailable(project!) &&
+        ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.testServers.aideCheckout(project!));
       // A board already up is where the reader wanted to go: straight
       // there, in the tab the link opened. REQ-3 asks for the board's
       // own page, and this is the moment there is one to ask for.
@@ -46,15 +46,15 @@ export async function specPageRoutes(
       // 2026-09-07, each dying on a branch the first had already
       // checked out. An entry of ANY kind means the attempt was made:
       // running goes to it, failed says so, starting waits.
-      const already = refreshBoardStatus(ctx.boards, project!, specFolder!);
+      const already = refreshTestServerStatus(ctx.testServers, project!, specFolder!);
       if (already?.status === "running" && already.url) {
-        return Response.redirect(boardUrlFor(req, already.url), 303);
+        return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
       // A round that died says so and stops. Refreshing for ever in
       // front of a reader who can do nothing about it is worse than
       // naming what happened and leaving the tab to them.
       if (already?.status === "failed") {
-        return boardFailedPage(specFolder!, already.error);
+        return testServerFailedPage(specFolder!, already.error);
       }
       // Otherwise it has to be started, and that takes minutes — so the
       // tab the reader opened WAITS here rather than being sent back to
@@ -65,10 +65,10 @@ export async function specPageRoutes(
         return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
       }
       if (!already) {
-        const result = await startBoard(ctx.boards, project!, specFolder!);
-        if (!result.ok) return boardFailedPage(specFolder!, result.error);
+        const result = await startTestServer(ctx.testServers, project!, specFolder!);
+        if (!result.ok) return testServerFailedPage(specFolder!, result.error);
       }
-      return waitingForBoardPage(project!, specFolder!);
+      return waitingForTestServerPage(project!, specFolder!);
     }
     const view = await ctx.specPageView(
       project!,

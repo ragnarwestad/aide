@@ -54,7 +54,7 @@ import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import {
-  archivedLine, boardStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
+  archivedLine, testServerStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
   resetControl, resetCloseNote, trackingControl,
 } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
@@ -109,7 +109,7 @@ export function renderSpecPage(
     trackingControl(view) +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
-    boardStatus(view) +
+    testServerStatus(view) +
     (view.error ? rowMessage("failed", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "waiting", view.notice.note, { tag: "p" }) : "");
 
