@@ -7,11 +7,11 @@ import {
 } from "../../project/discover.ts";
 import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status.ts";
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render.ts";
-import type { BoardStatusView } from "../../render/pages/spec-page/types.ts";
+import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { currentWorkRoundJobs, type Job } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
-import { refreshBoardStatus } from "../boards/lifecycle.ts";
+import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "../spec-views.ts";
 
 import { jobDetailView } from "./job-detail.ts";
@@ -193,19 +193,19 @@ export async function specPageView(
   // does). "Does one already exist" is answered separately, right
   // below, by asking the registry directly rather than folding that
   // question into this one.
-  const boardCapable =
+  const testServerCapable =
     !ref?.archived &&
-    ctx.boards.roundAvailable(project) &&
-    ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.boards.aideCheckout(project));
-  const boardEntry = ctx.boards.store.get(project, specFolder)
-    ? refreshBoardStatus(ctx.boards, project, specFolder)
+    ctx.testServers.roundAvailable(project) &&
+    ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.testServers.aideCheckout(project));
+  const testServerEntry = ctx.testServers.store.get(project, specFolder)
+    ? refreshTestServerStatus(ctx.testServers, project, specFolder)
     : undefined;
-  const board: BoardStatusView | undefined = boardEntry && {
-    status: boardEntry.status,
-    branch: boardEntry.branch,
-    commit: boardEntry.commit,
-    url: boardEntry.url,
-    error: boardEntry.error,
+  const testServer: TestServerStatusView | undefined = testServerEntry && {
+    status: testServerEntry.status,
+    branch: testServerEntry.branch,
+    commit: testServerEntry.commit,
+    url: testServerEntry.url,
+    error: testServerEntry.error,
   };
   // The same busy reasons `resetUnavailableReason` already reads below —
   // a board is another lifecycle action against this spec's own branch,
@@ -278,16 +278,16 @@ export async function specPageView(
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : "md-to-pdf is not installed on this host",
     resetUnavailableReason: busyReason,
     closeUnavailableReason: busyReason,
-    boardAction: boardCapable ? `/api/queue${specPagePath(project, specFolder)}/board` : undefined,
-    boardStopAction: boardEntry ? `/api/queue${specPagePath(project, specFolder)}/board/stop` : undefined,
+    testServerAction: testServerCapable ? `/api/queue${specPagePath(project, specFolder)}/test-server` : undefined,
+    testServerStopAction: testServerEntry ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop` : undefined,
     // The way IN to a running test server is this dashboard's own start
     // link, not the address the round printed: that one is loopback,
     // and a reader on another device reaches nothing at 127.0.0.1. The
     // link's own route already builds the address the reader can reach
     // — from the host THEY used — so the banner sends them through it.
-    boardOpenHref: boardEntry ? `${specPagePath(project, specFolder)}?tab=steps&startBoard=1` : undefined,
-    boardUnavailableReason: boardCapable ? busyReason : undefined,
-    board,
+    testServerOpenHref: testServerEntry ? `${specPagePath(project, specFolder)}?tab=steps&startTestServer=1` : undefined,
+    testServerUnavailableReason: testServerCapable ? busyReason : undefined,
+    testServer,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
     tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
     trackingAction: `/api/queue${specPagePath(project, specFolder)}/tracking`,

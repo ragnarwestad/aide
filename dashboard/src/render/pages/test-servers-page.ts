@@ -13,15 +13,15 @@ import type { Language } from "../../i18n";
 export const TEST_SERVERS_ROUTE = "/test-servers";
 
 /** One tracked board, already resolved into what a row needs to draw —
- *  the route handler builds this off `BoardStore.listAll()` plus each
+ *  the route handler builds this off `TestServerStore.listAll()` plus each
  *  entry's own spec path; this module only ever draws what it is given. */
 export interface TestServerRow {
   project: string;
   specFolder: string;
   specHref: string;
   branch: string;
-  // The same literal union `BoardStatusView` (spec-page/types.ts) already
-  // duplicates rather than importing `BoardStatus` from `boards/store.ts`
+  // The same literal union `TestServerStatusView` (spec-page/types.ts) already
+  // duplicates rather than importing `TestServerStatus` from `test-servers/store.ts`
   // — this module lives under `render/`, which never imports from
   // `serve/` (`test/guards/no-upward-imports-of-serve.test.ts`).
   status: "starting" | "running" | "failed";
@@ -51,7 +51,7 @@ const row = (r: TestServerRow, token?: string): string => {
   return (
     `<tr>` +
     `<td>${esc(r.project)}</td>` +
-    // AC-7: a board tracked under a non-spec key (`MAIN_BOARD_KEY`) has no
+    // AC-7: a board tracked under a non-spec key (`MAIN_TEST_SERVER_KEY`) has no
     // spec page to link to.
     `<td>${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
     `<td>${esc(r.branch)}</td>` +

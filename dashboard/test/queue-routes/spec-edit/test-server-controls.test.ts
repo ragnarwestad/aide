@@ -35,7 +35,7 @@ const folder = "81-queue-and-runner";
 describe("spec 388: the board start/stop routes", () => {
   test("404 for an unknown spec", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/api/queue/specs/aide/never-existed/board`, {
+    const res = await fetch(`${base}/api/queue/specs/aide/never-existed/test-server`, {
       method: "POST",
       headers: auth,
     });
@@ -48,13 +48,13 @@ describe("spec 388: the board start/stop routes", () => {
       extra: { queueToken: TOKEN },
       archivedSpecs: { [archivedFolder]: {} },
     });
-    for (const path of [`board`, `board/stop`]) {
+    for (const path of [`test-server`, `test-server/stop`]) {
       const res = await fetch(`${base}/api/queue/specs/aide/${archivedFolder}/${path}`, {
         method: "POST",
         headers: { ...auth, accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
-      if (path === "board") {
+      if (path === "test-server") {
         expect(res.status).toBe(400);
         const body = (await res.json()) as { error: string };
         expect(body.error).toContain("archived");
@@ -69,8 +69,8 @@ describe("spec 388: the board start/stop routes", () => {
   });
 
   test("a spec whose branch never made it to origin refuses without starting a process", async () => {
-    const { base } = start({ queueToken: TOKEN, boardsAvailable: true });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+    const { base } = start({ queueToken: TOKEN, testServersAvailable: true });
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
       headers: { ...auth, accept: "application/json", "content-type": "application/json" },
       body: "{}",
@@ -82,8 +82,8 @@ describe("spec 388: the board start/stop routes", () => {
   });
 
   test("the round being unavailable on this host refuses cleanly", async () => {
-    const { base } = start({ queueToken: TOKEN, boardsAvailable: false });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+    const { base } = start({ queueToken: TOKEN, testServersAvailable: false });
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
       headers: { ...auth, accept: "application/json", "content-type": "application/json" },
       body: "{}",
@@ -96,7 +96,7 @@ describe("spec 388: the board start/stop routes", () => {
   test("a start/stop round-trip against a fake spawn", async () => {
     // The spawn is faked (never the real, minutes-long round script),
     // but the process it stands in for is real and owned by this test —
-    // a harmless, detached `sleep`, so `stopBoard`'s own real
+    // a harmless, detached `sleep`, so `stopTestServer`'s own real
     // `process.kill(-pid, "SIGTERM")` has an actual, self-owned process
     // group to reach rather than an arbitrary pid this test does not
     // own.
@@ -104,7 +104,7 @@ describe("spec 388: the board start/stop routes", () => {
     const spawned: number[] = [];
     // Which ports the search asked about, and the answer it got. The
     // port search is the harness's to answer, not this machine's
-    // (`boardsPortProbe`, queue-server.ts): its default says the pool is
+    // (`testServersPortProbe`, queue-server.ts): its default says the pool is
     // free, and `probed` below pins that the option is what decides. The
     // day that seam stops being wired, this test goes back to BINDING
     // 8801-8803 — which is what let one leftover test server on the host
@@ -113,12 +113,12 @@ describe("spec 388: the board start/stop routes", () => {
     const probed: number[] = [];
     const { base, dir } = start({
       queueToken: TOKEN,
-      boardsAvailable: true,
-      boardsPortProbe: (port: number) => {
+      testServersAvailable: true,
+      testServersPortProbe: (port: number) => {
         probed.push(port);
         return true;
       },
-      boardsSpawn: (cmd) => {
+      testServersSpawn: (cmd) => {
         spawnCalls.push({ cmd });
         const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
         proc.unref();
@@ -127,7 +127,7 @@ describe("spec 388: the board start/stop routes", () => {
       },
     });
     // Give the fixture's own project root an `aide/<folder>` branch on
-    // "origin" — `startBoard`'s own `headCommit` reads `git ls-remote
+    // "origin" — `startTestServer`'s own `headCommit` reads `git ls-remote
     // --heads origin`, so the branch has to actually exist there.
     const root = `${dir}/root/aide`;
     Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
@@ -142,23 +142,23 @@ describe("spec 388: the board start/stop routes", () => {
     Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
 
     try {
-      const startRes = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+      const startRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
         method: "POST",
         headers: { ...auth, accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
       expect(startRes.status).toBe(200);
-      const started = (await startRes.json()) as { ok: boolean; board: { status: string; wrapperPid: number } };
+      const started = (await startRes.json()) as { ok: boolean; testServer: { status: string; wrapperPid: number } };
       expect(started.ok).toBe(true);
-      expect(started.board.status).toBe("starting");
-      expect(started.board.wrapperPid).toBe(spawned[0]);
+      expect(started.testServer.status).toBe("starting");
+      expect(started.testServer.wrapperPid).toBe(spawned[0]);
       expect(spawnCalls).toHaveLength(1);
       expect(spawnCalls[0]!.cmd).toContain(`aide/${folder}`);
       // The injected probe decided the port, so nothing was bound on
       // this machine to find one.
       expect(probed).toContain(8801);
 
-      const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/board/stop`, {
+      const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
         method: "POST",
         headers: { ...auth, accept: "application/json", "content-type": "application/json" },
         body: "{}",
@@ -167,7 +167,7 @@ describe("spec 388: the board start/stop routes", () => {
 
       // A second start after the stop spawns again — the registry entry
       // was cleared.
-      const restartRes = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+      const restartRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
         method: "POST",
         headers: { ...auth, accept: "application/json", "content-type": "application/json" },
         body: "{}",
@@ -191,7 +191,7 @@ describe("spec 388: the board start/stop routes", () => {
   // names — the automatic stop only fires when a merge actually lands).
   // The spec is archived from the START (`archivedSpecs`, the ordinary
   // fixture shape) and the board entry is seeded straight into the
-  // registry through `server.boardsStore()` — `BoardStore` knows
+  // registry through `server.testServersStore()` — `TestServerStore` knows
   // nothing about which directory a spec's files live in, so a board
   // tracked for an archived spec is exactly what a held-back archive
   // leaves behind; nothing about getting there needs a real spawn, a
@@ -199,10 +199,10 @@ describe("spec 388: the board start/stop routes", () => {
   test("REQ-1: an archived spec's already-tracked board keeps its link and Stop form", async () => {
     const archivedFolder = "82-archived";
     const { base, server } = harness.start({
-      extra: { queueToken: TOKEN, boardsIsAlive: () => true },
+      extra: { queueToken: TOKEN, testServersIsAlive: () => true },
       archivedSpecs: { [archivedFolder]: {} },
     });
-    server.boardsStore().set("aide", archivedFolder, {
+    server.testServersStore().set("aide", archivedFolder, {
       branch: `aide/${archivedFolder}`,
       commit: "abc1234deadbeef",
       port: 8801,
@@ -223,16 +223,16 @@ describe("spec 388: the board start/stop routes", () => {
     expect(html).toContain("Stop test server");
   });
 
-  // REQ-5: the ports-full case escapes `startBoard`'s own try/catch
+  // REQ-5: the ports-full case escapes `startTestServer`'s own try/catch
   // today (`lifecycle.ts` has none around `findFreePort`), so this route
-  // returns a bare 500 with no message. `boardsPortProbe: () => false`
+  // returns a bare 500 with no message. `testServersPortProbe: () => false`
   // makes every port in the pool read as taken, without binding
   // anything on this machine.
   test("REQ-5: every test-server port already in use refuses with a message, not a 500", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
-      boardsAvailable: true,
-      boardsPortProbe: () => false,
+      testServersAvailable: true,
+      testServersPortProbe: () => false,
     });
     const root = `${dir}/root/aide`;
     Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
@@ -246,7 +246,7 @@ describe("spec 388: the board start/stop routes", () => {
     Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
     Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
 
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/board`, {
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
       headers: { ...auth, accept: "application/json", "content-type": "application/json" },
       body: "{}",
@@ -261,11 +261,11 @@ describe("spec 388: the board start/stop routes", () => {
   });
 });
 
-// Spec 411: the held-for-Checks row's own link reaches `startBoard()`
-// through a GET a person can actually click — `?startBoard=1` on the
+// Spec 411: the held-for-Checks row's own link reaches `startTestServer()`
+// through a GET a person can actually click — `?startTestServer=1` on the
 // spec page itself, not the POST route above, which a plain
 // `target="_blank"` link can never reach.
-describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
+describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
   test("starts a board and 303s to the clean Steps-tab URL, once", async () => {
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
@@ -274,7 +274,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     ownDirs.push(results);
     // Every git call this harness's own job-and-landing pipeline makes
     // succeeds trivially, except: `ls-remote --heads origin aide/<folder>`,
-    // which needs a real SHA back for `startBoard()`'s own `headCommit()`
+    // which needs a real SHA back for `startTestServer()`'s own `headCommit()`
     // not to refuse "no such branch on origin"; and the merge itself,
     // held open the same way `landing-window-and-repo-lock.test.ts` holds
     // it (never released) — a landing that actually finished would merge
@@ -298,11 +298,11 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     };
     const { base, dir } = start({
       queueToken: TOKEN,
-      boardsAvailable: true,
+      testServersAvailable: true,
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
       queueResultDir: results,
-      boardsSpawn: (cmd, logPath) => {
+      testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
         // What a round that got its board up actually writes. Without
         // it the board stays "starting" for ever, and the click that
@@ -314,7 +314,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         return { pid: proc.pid };
       },
     });
-    // `ctx.boards.aideCheckout("aide")` resolves to this same path (no
+    // `ctx.testServers.aideCheckout("aide")` resolves to this same path (no
     // owned checkout exists in this fixture, so it falls back to the
     // display checkout, `queueProjectRoot/aide`) — `branchesFor()` has
     // to report a branch open on exactly this root for the GET route's
@@ -348,7 +348,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     await settleDone(base, made.job.id);
 
     try {
-      const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+      const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
         headers: auth,
         redirect: "manual",
       });
@@ -362,10 +362,10 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
       expect(spawnCalls).toHaveLength(1);
 
       // A repeat GET while it is still STARTING reaches the same,
-      // still-alive entry (`startBoard()`'s own dedup) rather than
+      // still-alive entry (`startTestServer()`'s own dedup) rather than
       // spawning again — and goes back to the tab where the wait is
       // visible, because there is no address yet to go to.
-      const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+      const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
         headers: auth,
         redirect: "manual",
       });
@@ -379,7 +379,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
 
       // Ten more reloads, and still one round.
       for (let i = 0; i < 10; i++) {
-        await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+        await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
           headers: auth,
           redirect: "manual",
         });
@@ -393,14 +393,14 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
         boardLog,
         `left running: pid 4242, http://127.0.0.1:8801/?token=t0ken — serving aide/${folder} @ abc1234\n`,
       );
-      const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+      const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
         headers: auth,
         redirect: "manual",
       });
       expect(res3.status).toBe(303);
       expect(res3.headers.get("location")).toBe("http://127.0.0.1:8801/?token=t0ken");
       // And nothing was started for it: the redirect happens before
-      // `startBoard()` is reached at all.
+      // `startTestServer()` is reached at all.
       expect(spawnCalls).toHaveLength(1);
     } finally {
       for (const pid of spawned) {
@@ -414,8 +414,8 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
   });
 
   test("the round being unavailable skips the call and still redirects cleanly", async () => {
-    const { base } = start({ queueToken: TOKEN, boardsAvailable: false });
-    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+    const { base } = start({ queueToken: TOKEN, testServersAvailable: false });
+    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
       headers: auth,
       redirect: "manual",
     });
@@ -423,15 +423,15 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
   });
 
-  // REQ-5: today this falls through to `waitingForBoardPage`, which
-  // polls forever with no message at all, since `startBoard()`'s result
-  // is discarded here. `boardFailedPage` is what it must show instead —
+  // REQ-5: today this falls through to `waitingForTestServerPage`, which
+  // polls forever with no message at all, since `startTestServer()`'s result
+  // is discarded here. `testServerFailedPage` is what it must show instead —
   // the page already built for exactly this kind of failure. The GET
   // route's own `capable` check needs a job whose result actually
   // carries `branchUrls` (`branchesFor()`'s only source) — the same
   // fake-runner scaffolding the sibling "starts a board and 303s" test
-  // above already builds, with `boardsPortProbe` the one thing changed.
-  test("REQ-5: every test-server port already in use shows boardFailedPage, not an endless wait", async () => {
+  // above already builds, with `testServersPortProbe` the one thing changed.
+  test("REQ-5: every test-server port already in use shows testServerFailedPage, not an endless wait", async () => {
     const results = mkdtempSync(join(tmpdir(), "aide-411-board-ports-full-"));
     ownDirs.push(results);
     const gitRun = async (_dir: string, args: string[]) => {
@@ -452,8 +452,8 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     };
     const { base, dir } = start({
       queueToken: TOKEN,
-      boardsAvailable: true,
-      boardsPortProbe: () => false,
+      testServersAvailable: true,
+      testServersPortProbe: () => false,
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
       queueResultDir: results,
@@ -482,7 +482,7 @@ describe("spec 411: the spec page's own ?startBoard=1 trigger", () => {
     );
     await settleDone(base, made.job.id);
 
-    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startBoard=1`, {
+    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
       headers: auth,
       redirect: "manual",
     });

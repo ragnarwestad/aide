@@ -34,7 +34,7 @@ import {
   type RestartHook,
 } from "./land-branch.ts";
 import { setPendingRestart, type ServerState } from "./state.ts";
-import type { BoardsContext } from "./boards/lifecycle.ts";
+import type { TestServersContext } from "./test-servers/lifecycle.ts";
 
 export interface LandSetupInputs {
   machineryProjectDir: (project: string) => string;
@@ -59,7 +59,7 @@ export interface LandSetupInputs {
   restartDeferTimeoutMs?: number;
   dashboardRoot?: string;
   landingGate?: LandContext["landingGate"];
-  boards: BoardsContext;
+  testServers: TestServersContext;
 }
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {
@@ -101,7 +101,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     onJobsWaitChange: (jobs) => setPendingRestart(state, jobs),
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
-    boards: inputs.boards,
+    testServers: inputs.testServers,
   };
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landNewSpecImpl(landCtx, job, outcome);

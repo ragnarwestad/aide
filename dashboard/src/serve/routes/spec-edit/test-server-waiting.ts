@@ -4,7 +4,7 @@
 // address for themselves — this holds the tab they opened and carries
 // them to the board the moment it has one.
 //
-// A meta refresh, not a script: it reloads onto the SAME `?startBoard=1`
+// A meta refresh, not a script: it reloads onto the SAME `?startTestServer=1`
 // URL, and that route redirects to the board as soon as the round has
 // reported it. So the waiting and the arriving are the same request,
 // asked again — nothing here has to know what a board's address looks
@@ -28,17 +28,17 @@ import { esc } from "../../../render/ui/html.ts";
  *
  *  Unparseable, or a request with no host: the round's own address, so
  *  a reader sitting at the serving machine still gets there. */
-export function boardUrlFor(reader: Request, boardUrl: string): string {
+export function testServerUrlFor(reader: Request, testServerUrl: string): string {
   try {
-    const board = new URL(boardUrl);
+    const address = new URL(testServerUrl);
     const host = reader.headers.get("host");
-    if (!host) return boardUrl;
+    if (!host) return testServerUrl;
     const forwarded = reader.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-    board.protocol = forwarded ? `${forwarded}:` : new URL(reader.url).protocol;
-    board.hostname = host.split(":")[0]!;
-    return board.toString();
+    address.protocol = forwarded ? `${forwarded}:` : new URL(reader.url).protocol;
+    address.hostname = host.split(":")[0]!;
+    return address.toString();
   } catch {
-    return boardUrl;
+    return testServerUrl;
   }
 }
 
@@ -51,7 +51,7 @@ const EVERY_SECONDS = 5;
  *
  *  No way back to the spec on either: this tab was opened from the spec
  *  page, which is still standing in the one behind it. */
-export function boardFailedPage(specFolder: string, why?: string): Response {
+export function testServerFailedPage(specFolder: string, why?: string): Response {
   return htmlPage(
     `Could not start a test server for "${esc(specFolder)}"`,
     why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>",
@@ -59,7 +59,7 @@ export function boardFailedPage(specFolder: string, why?: string): Response {
   );
 }
 
-export function waitingForBoardPage(_project: string, specFolder: string): Response {
+export function waitingForTestServerPage(_project: string, specFolder: string): Response {
   return htmlPage(
     // The folder name on its own line: it is long, and it reads apart
     // from the sentence rather than wrapping somewhere inside it.
@@ -73,7 +73,7 @@ export function waitingForBoardPage(_project: string, specFolder: string): Respo
 /** REQ-4 (spec 424): what the self-stop route hands back once it has
  *  scheduled its own exit. A third state beside waiting/failed, in the
  *  same frame — no refresh (nothing is coming back to poll for) and no
- *  navigation of its own, the same as `boardFailedPage`. */
+ *  navigation of its own, the same as `testServerFailedPage`. */
 export function stoppedPage(): Response {
   return htmlPage(
     "Test server stopped",

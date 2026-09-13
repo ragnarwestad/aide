@@ -39,12 +39,12 @@ import { setupWatch } from "./setup-watch.ts";
 import { setupProjectResolution } from "./setup-project-resolution.ts";
 import { setupSchedules } from "./setup-schedules.ts";
 import { setupLand } from "./setup-land.ts";
-import { setupBoards } from "./setup-boards.ts";
+import { setupTestServers } from "./setup-test-servers.ts";
 import { setupSpecViews } from "./setup-spec-views.ts";
 import { setupQueueContext } from "./setup-queue-context.ts";
 import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
-import { recoverBoards, sweepDeadBoards } from "./boards/recover.ts";
+import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
 
 export function createServer(opts: ServerOptions) {
@@ -175,15 +175,15 @@ export function createServer(opts: ServerOptions) {
 
   // The board registry (spec 388) — built before `land`, which needs it
   // to stop a spec's board once its archive actually lands (REQ-7).
-  const { boardStore, boardsCtx } = setupBoards(state, {
-    boardsPath: opts.boardsPath,
+  const { testServerStore, testServersCtx } = setupTestServers(state, {
+    testServersPath: opts.testServersPath,
     machineryProjectDir: resolution.machineryProjectDir,
     gitRun,
-    boardsAvailable: opts.boardsAvailable,
-    boardsSpawn: opts.boardsSpawn,
-    boardsIsAlive: opts.boardsIsAlive,
-    boardsPortProbe: opts.boardsPortProbe,
-    boardsOnPort: opts.boardsOnPort,
+    testServersAvailable: opts.testServersAvailable,
+    testServersSpawn: opts.testServersSpawn,
+    testServersIsAlive: opts.testServersIsAlive,
+    testServersPortProbe: opts.testServersPortProbe,
+    testServersOnPort: opts.testServersOnPort,
     port: opts.port,
   });
 
@@ -210,7 +210,7 @@ export function createServer(opts: ServerOptions) {
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
     landingGate: opts.landingGate ?? runProjectSuiteBeforePush,
-    boards: boardsCtx,
+    testServers: testServersCtx,
   });
 
   const runnerSetupCtx: RunnerSetupContext = {
@@ -304,7 +304,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     specCreatedAt: schedules.specCreatedAt,
     pdfToolAvailable,
-    boards: boardsCtx,
+    testServers: testServersCtx,
   };
   const { archivedSpecRows, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
 
@@ -346,7 +346,7 @@ export function createServer(opts: ServerOptions) {
     pdfCacheDir,
     pdfGeneratorBin,
     pdfToolAvailable,
-    boards: boardsCtx,
+    testServers: testServersCtx,
   });
 
   const coreCtx: CoreRoutesContext = {
@@ -378,14 +378,14 @@ export function createServer(opts: ServerOptions) {
   // port and its branch. Asked here, once, so the next click on that
   // spec's link goes to the board that exists rather than failing to
   // start a second one on a branch git already has checked out.
-  void recoverBoards(boardsCtx, [...allowed])
+  void recoverTestServers(testServersCtx, [...allowed])
     .then(async (found) => {
       for (const e of found) console.log(`boards: ${e.branch} is still running on :${e.port}`);
       // And the other half: a test server that did NOT survive leaves
       // its worktree registered, and that registration refuses the next
       // checkout of its branch — which is the next click on that spec's
       // own link.
-      for (const path of await sweepDeadBoards(boardsCtx, [...allowed])) {
+      for (const path of await sweepDeadTestServers(testServersCtx, [...allowed])) {
         console.log(`boards: removed the worktree of a test server that is gone — ${path}`);
       }
     })
@@ -406,7 +406,7 @@ export function createServer(opts: ServerOptions) {
      *  here, a fixture needs to seed directly — an archived spec whose
      *  board is already tracked, without spawning a real round to get
      *  there) that nothing else exposes. */
-    boardsStore: () => boardStore,
+    testServersStore: () => testServerStore,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.

@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components.ts";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
-import { PHASE_TAB } from "../../src/render/pages/spec-page/tabs.ts";
+import { PHASE_LINES } from "../../src/render/pages/specs-list/data-model.ts";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
 const rem = (v: string) => parseFloat(v);
@@ -85,13 +85,13 @@ describe("the specs table fits the box that scrolls it", () => {
     )![1]!);
     const room = px(stated * share) - padding;
 
-    // The four steps a spec goes through — `PHASE_TAB` is the list of
-    // them, the ones with a tab of their own on the spec page.
+    // The four steps a spec goes through — `PHASE_LINES` is the list of
+    // them (`specs-list/data-model/types.ts`).
     const MEASURED_PX: Record<string, number> = {
       create: 40, analyze: 48, implement: 66, archive: 46,
       oppretting: 66, analyse: 48, implementering: 98, arkivering: 62,
     };
-    const shown = Object.keys(PHASE_TAB).flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
+    const shown = PHASE_LINES.flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
       .filter((l): l is string => Boolean(l));
     for (const label of shown) {
       expect(`${label}: ${MEASURED_PX[label] ?? "not measured"}`).toBe(`${label}: ${MEASURED_PX[label]}`);

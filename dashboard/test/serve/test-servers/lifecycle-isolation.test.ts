@@ -1,6 +1,6 @@
 // Spec 388, REQ-8: starting or stopping a board must leave the served
-// board's own queue, specs and checkouts untouched. `startBoard`/
-// `stopBoard` take a `BoardsContext` that never carries a `QueueStore`
+// board's own queue, specs and checkouts untouched. `startTestServer`/
+// `stopTestServer` take a `TestServersContext` that never carries a `QueueStore`
 // or any checkout path at all — this test is the regression guard for
 // that boundary: a real `QueueStore` sits alongside a start/stop
 // round-trip, and nothing about it may change.
@@ -9,8 +9,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
-import { BoardStore } from "../../../src/serve/boards/store.ts";
-import { startBoard, stopBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
+import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
+import { startTestServer, stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 
 let dir: string;
 let queue: QueueStore;
@@ -35,9 +35,9 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function makeCtx(): BoardsContext {
+function makeCtx(): TestServersContext {
   return {
-    store: new BoardStore(),
+    store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     roundScript: () => "/checkout/aide/dashboard/test/round/run",
     roundAvailable: () => true,
@@ -48,7 +48,7 @@ function makeCtx(): BoardsContext {
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-work-")),
     reservedPorts: () => [],
     findFreePort: async () => 9000,
-    boardOnPort: async () => undefined,
+    testServerOnPort: async () => undefined,
   };
 }
 
@@ -56,8 +56,8 @@ describe("a board's start/stop round-trip", () => {
   test("leaves the served board's own queue exactly as it was", async () => {
     const before = queue.list();
     const ctx = makeCtx();
-    await startBoard(ctx, "aide", "spec-1");
-    stopBoard(ctx, "aide", "spec-1");
+    await startTestServer(ctx, "aide", "spec-1");
+    stopTestServer(ctx, "aide", "spec-1");
     expect(queue.list()).toEqual(before);
   });
 
@@ -69,7 +69,7 @@ describe("a board's start/stop round-trip", () => {
     expect(Object.keys(ctx).sort()).toEqual(
       [
         "aideCheckout",
-        "boardOnPort",
+        "testServerOnPort",
         "findFreePort",
         "gitRun",
         "isAlive",

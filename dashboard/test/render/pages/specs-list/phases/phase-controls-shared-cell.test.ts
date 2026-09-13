@@ -97,13 +97,13 @@ describe("spec 192: the phase line's controls share one cell", () => {
       expect([step, first.includes("<select")]).toEqual([step, false]);
       expect([step, first.includes("<input")]).toEqual([step, false]);
       expect([step, first.includes('class="phasefold"')]).toEqual([step, true]);
-      // The name is the whole of the visible text — a future
-      // `STEP_LABELS` entry would reach a reader as a different word,
-      // so the cell is checked for shape and not for the step's own
-      // word.
+      // The name is the whole of the visible text, plain (spec 451,
+      // no inner `<a>`/`<span>` any more) — a future `STEP_LABELS`
+      // entry would reach a reader as a different word, so the cell is
+      // checked for shape and not for the step's own word.
       expect([
         step,
-        /<(a|span)[^>]*>[a-z-]+<\/(a|span)><\/span>$/.test(first),
+        /<span class="phasefold">[a-z-]+<\/span>$/.test(first),
       ]).toEqual([step, true]);
       // And it is still a cell of its own: the merge is behind it, not
       // around it.

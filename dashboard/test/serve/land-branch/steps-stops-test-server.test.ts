@@ -11,15 +11,15 @@
 
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { landArchivedSpec } from "../../../src/serve/land-branch/steps.ts";
-import { BoardStore } from "../../../src/serve/boards/store.ts";
-import type { BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
+import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
+import type { TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 import { BRANCH, landCtx, landingGit, REPOS } from "./landing-fixtures.ts";
 import type { Answer } from "../../helpers/fake-git.ts";
 
 let killed: { pid: number; signal: string }[];
 let killSpy: ReturnType<typeof spyOn>;
 
-function makeBoardsCtx(store: BoardStore): BoardsContext {
+function makeTestServersCtx(store: TestServerStore): TestServersContext {
   return {
     store,
     aideCheckout: () => "/checkout/aide",
@@ -32,13 +32,13 @@ function makeBoardsCtx(store: BoardStore): BoardsContext {
     makeWorkDir: () => "/tmp",
     reservedPorts: () => [],
     findFreePort: async () => 9000,
-    boardOnPort: async () => undefined,
-  } as unknown as BoardsContext;
+    testServerOnPort: async () => undefined,
+  } as unknown as TestServersContext;
 }
 
 /** A store holding one running board for `150-spec`. */
-function storeWithBoard(): BoardStore {
-  const store = new BoardStore();
+function storeWithTestServer(): TestServerStore {
+  const store = new TestServerStore();
   store.set("aide", "150-spec", {
     branch: BRANCH,
     commit: "abc123",
@@ -53,9 +53,9 @@ function storeWithBoard(): BoardStore {
   return store;
 }
 
-async function archive(store: BoardStore, over: Record<string, Answer> = {}) {
+async function archive(store: TestServerStore, over: Record<string, Answer> = {}) {
   const { ctx } = landCtx(landingGit(over).run, {
-    boards: makeBoardsCtx(store),
+    testServers: makeTestServersCtx(store),
     queue: {
       get: () => undefined,
       update: () => {},
@@ -85,7 +85,7 @@ afterEach(() => {
 
 describe("landArchivedSpec's onLanded", () => {
   test("stops a board tracked for the spec once the merge has landed", async () => {
-    const store = storeWithBoard();
+    const store = storeWithTestServer();
     await archive(store);
     expect(killed).toEqual([{ pid: -4242, signal: "SIGTERM" }]);
     expect(store.get("aide", "150-spec")).toBeUndefined();
@@ -95,14 +95,14 @@ describe("landArchivedSpec's onLanded", () => {
   // refused merge leaves the branch, and the board still has something
   // to serve.
   test("leaves the board alone when the merge never went through", async () => {
-    const store = storeWithBoard();
+    const store = storeWithTestServer();
     await archive(store, { "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } });
     expect(killed).toHaveLength(0);
     expect(store.get("aide", "150-spec")).toBeDefined();
   });
 
   test("is a no-op when nothing is tracked for the spec", async () => {
-    await archive(new BoardStore());
+    await archive(new TestServerStore());
     expect(killed).toHaveLength(0);
   });
 });

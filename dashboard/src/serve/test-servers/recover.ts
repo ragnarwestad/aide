@@ -15,8 +15,8 @@
 
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { BOARD_PORTS, MAIN_BOARD_KEY, type BoardsContext } from "./lifecycle.ts";
-import type { BoardEntry } from "./store.ts";
+import { TEST_SERVER_PORTS, MAIN_TEST_SERVER_KEY, type TestServersContext } from "./lifecycle.ts";
+import type { TestServer } from "./store.ts";
 
 /** One worktree of a project's checkout, as `git worktree list
  *  --porcelain` describes it. A detached one has no branch and is
@@ -90,7 +90,7 @@ function isRoundWorktree(wt: WorktreeLine): boolean {
  *  is checked out there, and the branch says which spec. A port held by
  *  something that is not a test server matches no worktree and is left
  *  alone. */
-export async function recoverBoards(ctx: BoardsContext, projects: string[]): Promise<BoardEntry[]> {
+export async function recoverTestServers(ctx: TestServersContext, projects: string[]): Promise<TestServer[]> {
   const known = new Map<string, { project: string } & WorktreeLine>();
   // What each project's serving checkout has checked out: the branch a
   // detached round worktree was cut from, and so the branch the main
@@ -114,15 +114,15 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
   if (known.size === 0) return [];
 
   const held = new Set(ctx.store.all().map((e) => e.port));
-  const found: BoardEntry[] = [];
-  for (const port of BOARD_PORTS) {
+  const found: TestServer[] = [];
+  for (const port of TEST_SERVER_PORTS) {
     if (held.has(port)) continue;
-    const live = await ctx.boardOnPort(port);
+    const live = await ctx.testServerOnPort(port);
     if (!live) continue;
     const wt = known.get(resolved(join(live.workDir, "checkout")));
     if (!wt) continue;
     // A spec's board is keyed by its folder; the Deploy tab's own board
-    // (a detached worktree) by MAIN_BOARD_KEY, serving the branch the
+    // (a detached worktree) by MAIN_TEST_SERVER_KEY, serving the branch the
     // serving checkout has out — the one it was detached from.
     let specFolder: string;
     let branch: string;
@@ -130,7 +130,7 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
       specFolder = wt.branch.slice("aide/".length);
       branch = wt.branch;
     } else if (wt.branch === "") {
-      specFolder = MAIN_BOARD_KEY;
+      specFolder = MAIN_TEST_SERVER_KEY;
       branch = checkedOut.get(wt.project) ?? "main";
     } else {
       continue;
@@ -144,12 +144,12 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
     } catch {
       token = "";
     }
-    const entry: BoardEntry = {
+    const entry: TestServer = {
       branch,
       commit: wt.commit,
       port,
       // The round's wrapper is long gone: what is left is the board
-      // itself, and `recovered` is what tells `stopBoard` to send its
+      // itself, and `recovered` is what tells `stopTestServer` to send its
       // signal to that process rather than to a process GROUP the
       // wrapper no longer leads.
       wrapperPid: live.pid,
@@ -176,13 +176,13 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
  *  that branch: "it may already be checked out there, or in a leftover
  *  worktree", which is what the next click on the spec's link met.
  *
- *  Run after `recoverBoards`, so a worktree whose board IS still up has
+ *  Run after `recoverTestServers`, so a worktree whose board IS still up has
  *  already been matched to a live port and is not in `keep`. A board
  *  that is starting binds its port within seconds of making the
  *  worktree, so the window where one exists with nothing listening is
  *  that gap alone. */
-export async function sweepDeadBoards(
-  ctx: BoardsContext,
+export async function sweepDeadTestServers(
+  ctx: TestServersContext,
   projects: string[],
 ): Promise<string[]> {
   const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));

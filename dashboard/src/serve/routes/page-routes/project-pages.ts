@@ -11,8 +11,8 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render.ts";
-import { MAIN_BOARD_KEY, refreshBoardStatus } from "../../boards/lifecycle.ts";
-import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../spec-edit/board-waiting.ts";
+import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
+import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, specsClientScript } from "../../serve-helpers.ts";
 import type { RoutesContext } from "../../routes.ts";
@@ -52,12 +52,12 @@ export async function projectPages(
     // remove an entry right here (a "running" board whose process has
     // since died) — dropped from this page the same read that found it
     // gone, rather than drawn once more before the next visit clears it.
-    const rows: TestServerRow[] = ctx.boards.store
+    const rows: TestServerRow[] = ctx.testServers.store
       .listAll()
       .map(({ project, specFolder }) => ({
         project,
         specFolder,
-        entry: refreshBoardStatus(ctx.boards, project, specFolder),
+        entry: refreshTestServerStatus(ctx.testServers, project, specFolder),
       }))
       .filter((r) => r.entry !== undefined)
       .map(({ project, specFolder, entry }) => ({
@@ -67,11 +67,11 @@ export async function projectPages(
         branch: entry!.branch,
         status: entry!.status,
         url: entry!.url,
-        // AC-7: `MAIN_BOARD_KEY` has no real spec to be scoped to — the
+        // AC-7: `MAIN_TEST_SERVER_KEY` has no real spec to be scoped to — the
         // spec-scoped route would 404 on it.
         stopAction: isSpecFolder(specFolder)
-          ? `/api/queue${specPagePath(project, specFolder)}/board/stop`
-          : `/api/queue/projects/${encodeURIComponent(project)}/test-board/stop`,
+          ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop`
+          : `/api/queue/projects/${encodeURIComponent(project)}/test-server/stop`,
       }));
     const langResult = languageChoice(url, req);
     const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
@@ -175,16 +175,16 @@ export async function projectPages(
     const name = decodeURIComponent(projectPage[1]!);
     if (!ctx.opts.projectRoot) return new Response("no such project\n", { status: 404 });
     // AC-5: the tab the Deploy button's POST opened WAITS here, the same
-    // way `spec-page.ts`'s own `?startBoard=1` does — but this GET never
+    // way `spec-page.ts`'s own `?startTestServer=1` does — but this GET never
     // starts or restarts a board itself (the POST route already did, or
     // nobody ever pressed the button at all).
-    if (url.searchParams.get("startTestBoard") === "1") {
-      const already = refreshBoardStatus(ctx.boards, name, MAIN_BOARD_KEY);
+    if (url.searchParams.get("startTestServer") === "1") {
+      const already = refreshTestServerStatus(ctx.testServers, name, MAIN_TEST_SERVER_KEY);
       if (already?.status === "running" && already.url) {
-        return Response.redirect(boardUrlFor(req, already.url), 303);
+        return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
       if (already?.status === "failed") {
-        return boardFailedPage(MAIN_BOARD_KEY, already.error);
+        return testServerFailedPage(MAIN_TEST_SERVER_KEY, already.error);
       }
       if (!already) {
         // A bookmarked or shared URL, with nobody's POST behind it —
@@ -194,7 +194,7 @@ export async function projectPages(
           headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
         });
       }
-      return waitingForBoardPage(name, MAIN_BOARD_KEY);
+      return waitingForTestServerPage(name, MAIN_TEST_SERVER_KEY);
     }
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
     // this page, so a scan per request is the cost `make generate`
@@ -278,7 +278,7 @@ export async function projectPages(
         restartWaiting: ctx.readPendingRestart()?.jobs,
         // AC-8: the same capability check the spec-page's own
         // test-server link already gates on.
-        testBoardAvailable: ctx.boards.roundAvailable(name),
+        testServerAvailable: ctx.testServers.roundAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,

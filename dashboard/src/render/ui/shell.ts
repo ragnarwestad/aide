@@ -353,7 +353,7 @@ function runForm(lang: Language): string {
 function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
   return (
-    // No hidden token field (unlike `boardStatus()`'s own Stop form,
+    // No hidden token field (unlike `testServerStatus()`'s own Stop form,
     // `overview.ts`): the reader is already past `queueGuard` to see
     // this page at all, which means the port-scoped cookie is already
     // set, and this form posts to the SAME port.

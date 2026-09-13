@@ -130,7 +130,7 @@ export function queueHarness(prefix: string): QueueHarness {
         // (2026-09-09). Answered here instead: the pool is always free,
         // and a test that cares about a taken port says so through
         // `extra` below.
-        boardsPortProbe: () => true,
+        testServersPortProbe: () => true,
         ...extra,
       });
       servers.push(server);

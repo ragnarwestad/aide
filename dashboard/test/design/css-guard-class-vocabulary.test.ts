@@ -62,7 +62,7 @@ const JS_HOOKS = [
   // point of its own class is to stay OUTSIDE `specs-client.ts`'s
   // `ACTIONS` selector (`form.rowrun, form.actionform`), so its submit is
   // never replaced by an XHR and `target="_blank"` still opens a new tab.
-  "testboardform",
+  "testserverform",
   // spec 276: specs-client.ts selects on all three — the Enabled
   // checkbox, the Run-now form, and the create/edit form (whose own
   // `input[name="cron"]` feeds the live cron-next preview).

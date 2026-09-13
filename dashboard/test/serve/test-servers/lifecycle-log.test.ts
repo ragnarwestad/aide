@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BoardStore } from "../../../src/serve/boards/store.ts";
-import { refreshBoardStatus, startBoard, type BoardsContext } from "../../../src/serve/boards/lifecycle.ts";
+import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
+import { refreshTestServerStatus, startTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 
 let dir: string;
 let lines: string[];
@@ -17,9 +17,9 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function makeCtx(overrides: Partial<BoardsContext> = {}): BoardsContext {
+function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
   return {
-    store: new BoardStore(),
+    store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     roundScript: () => "/checkout/aide/dashboard/test/round/run",
     roundAvailable: () => true,
@@ -32,7 +32,7 @@ function makeCtx(overrides: Partial<BoardsContext> = {}): BoardsContext {
     now: () => "2026-09-10T00:00:00.000Z",
     makeWorkDir: () => dir,
     reservedPorts: () => [],
-    boardOnPort: async () => undefined,
+    testServerOnPort: async () => undefined,
     findFreePort: async () => 8801,
     log: (line) => lines.push(line),
     ...overrides,
@@ -42,7 +42,7 @@ function makeCtx(overrides: Partial<BoardsContext> = {}): BoardsContext {
 describe("the board log says what a start did", () => {
   test("a spawned round is logged with branch, commit, port, pid and its log path", async () => {
     const ctx = makeCtx();
-    const result = await startBoard(ctx, "aide", "spec-1");
+    const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain("boards: starting aide/spec-1 @ abc1234 on :8801");
@@ -56,7 +56,7 @@ describe("the board log says what a start did", () => {
         throw new Error("EACCES");
       },
     });
-    const result = await startBoard(ctx, "aide", "spec-1");
+    const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result).toEqual({ ok: false, error: "could not start the round: EACCES" });
     expect(lines[0]).toContain("boards: could not start aide/spec-1 @ abc1234 on :8801 — EACCES");
     expect(lines[0]).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
@@ -64,16 +64,16 @@ describe("the board log says what a start did", () => {
 
   test("a round that died before reporting an address is logged with its last line", async () => {
     const ctx = makeCtx();
-    await startBoard(ctx, "aide", "spec-1");
+    await startTestServer(ctx, "aide", "spec-1");
     writeFileSync(join(dir, "board.log"), "cannot check out aide/spec-1 in a worktree\n");
-    const after = refreshBoardStatus(ctx, "aide", "spec-1");
+    const after = refreshTestServerStatus(ctx, "aide", "spec-1");
     expect(after?.status).toBe("failed");
     expect(lines[1]).toContain("boards: aide/spec-1 did not come up on :8801 — cannot check out aide/spec-1 in a worktree");
   });
 
   test("a context without a log still works", async () => {
     const ctx = makeCtx({ log: undefined });
-    const result = await startBoard(ctx, "aide", "spec-1");
+    const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 // What holds one of the test-server ports, asked of the machine itself.
 //
-// `boards/recover.ts` needs two facts about a port that is in use: the
+// `test-servers/recover.ts` needs two facts about a port that is in use: the
 // process holding it, and the directory that process was started with.
 // The first comes from `lsof`, the second from the process's own command
 // line — the round starts its board with `--root <work>/root`, and that
@@ -27,7 +27,7 @@ export function workDirOf(command: string): string | undefined {
   return m?.[1];
 }
 
-export async function boardOnPort(port: number): Promise<{ pid: number; workDir: string } | undefined> {
+export async function testServerOnPort(port: number): Promise<{ pid: number; workDir: string } | undefined> {
   const listening = output(["lsof", "-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"]).trim().split("\n")[0];
   const pid = Number(listening);
   if (!pid) return undefined;

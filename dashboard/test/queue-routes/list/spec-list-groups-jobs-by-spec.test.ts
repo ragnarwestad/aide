@@ -63,13 +63,12 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).not.toContain("bb-spec");
     // Its finished job comes along with it — the spec is one line, and
     // that line carries every phase it has had, filter or no filter.
-    // Since spec 237 a phase line names no job: it opens the tab that
-    // shows what the phase MADE, on this spec's own page. The finished
-    // analyze and the running implement are therefore read off their
-    // two tabs, not off two job pages.
+    // A phase line names no job and carries no link of its own (spec
+    // 451): the finished analyze and the running implement each read
+    // as plain text, not as a link to a job page.
     expect(html.match(/<tr class="spechead/g)).toHaveLength(1);
-    expect(html).toContain('href="/specs/aide/aa-spec?tab=solution"');
-    expect(html).toContain('href="/specs/aide/aa-spec?tab=status"');
+    expect(html).not.toContain('href="/specs/aide/aa-spec?tab=solution"');
+    expect(html).not.toContain('href="/specs/aide/aa-spec?tab=status"');
     expect(html).not.toContain('href="/specs/a1"');
     expect(html).not.toContain('href="/specs/a2"');
   });

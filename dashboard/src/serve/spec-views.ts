@@ -9,7 +9,7 @@ import type { SpecFileView, QueueRowView, SpecTarget } from "../render.ts";
 import type { QueueStore, Job } from "../queue/queue.ts";
 import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
-import type { BoardsContext } from "./boards/lifecycle.ts";
+import type { TestServersContext } from "./test-servers/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,
  *  bundled the same way `RoutesContext` bundles `handleRoutes`'s.
@@ -56,7 +56,7 @@ export interface SpecViewsContext {
   /** The board registry and `roundAvailable`/status-refresh primitives
    *  (spec 388) — the only new field `specPageView` itself reads;
    *  the routes that start/stop a board live on `RoutesContext`. */
-  boards: BoardsContext;
+  testServers: TestServersContext;
 }
 
 export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {

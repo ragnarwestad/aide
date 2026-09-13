@@ -368,29 +368,29 @@ export function pdfControl(view: SpecPageView): string {
  *
  *  Drawn in the banner, above the tabs: it is a sentence, and the tab
  *  row holds buttons only. */
-export function boardStatus(view: SpecPageView): string {
-  // Spec 425, REQ-1: this used to also require `boardAction` (whether a
+export function testServerStatus(view: SpecPageView): string {
+  // Spec 425, REQ-1: this used to also require `testServerAction` (whether a
   // NEW board may be started), which hid an already-running board's own
-  // link and Stop button the moment the spec was archived. `boardAction`
+  // link and Stop button the moment the spec was archived. `testServerAction`
   // is unrelated to whether THIS board exists — nothing on this page has
   // ever drawn a Start button from it (see the comment above this
   // function).
-  if (!view.board) return "";
+  if (!view.testServer) return "";
   // "test server", the words the specs list already uses for this same
   // thing, and never "board" or "round": one is the name of the product
   // this page is part of, the other is a word from the machinery that
   // starts it, and neither says anything to a reader.
-  const where = `${esc(view.board.branch)} @ ${esc(view.board.commit.slice(0, 7))}`;
-  if (view.board.status === "starting") {
+  const where = `${esc(view.testServer.branch)} @ ${esc(view.testServer.commit.slice(0, 7))}`;
+  if (view.testServer.status === "starting") {
     return (
       `<p class="desc">${SPINNER}<span class="muted">Starting a test server for ${where} — ` +
       `this takes a few minutes.</span></p>`
     );
   }
-  if (view.board.status === "failed") {
+  if (view.testServer.status === "failed") {
     return (
       `<p class="desc"><span class="muted">The test server could not be started` +
-      `${view.board.error ? `: ${esc(view.board.error)}` : ""}.</span></p>`
+      `${view.testServer.error ? `: ${esc(view.testServer.error)}` : ""}.</span></p>`
     );
   }
   // The link carries a name, not the address itself: the address is a
@@ -399,10 +399,10 @@ export function boardStatus(view: SpecPageView): string {
   return (
     `<div class="row desc">` +
     `<span><strong>Test server:</strong> ` +
-    `<a href="${esc(view.boardOpenHref ?? view.board.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
+    `<a href="${esc(view.testServerOpenHref ?? view.testServer.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
-    `<form class="actionform" method="post" action="${esc(view.boardStopAction ?? "")}">` +
+    `<form class="actionform" method="post" action="${esc(view.testServerStopAction ?? "")}">` +
     tokenField(view.token) +
     `<button class="btn" type="submit">Stop test server</button></form>` +
     `</div>`
