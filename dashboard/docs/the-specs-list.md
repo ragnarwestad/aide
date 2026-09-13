@@ -219,13 +219,6 @@ checks, as real boxes with a Save of their own. Two more facts sit here too, abo
 one document: what the spec depends on, and whether it requires acceptance ticking — both editable in one form
 (`POST /api/queue/specs/<project>/<spec>/tracking`), since neither belongs to a single tab.
 
-**A phase line on the spec list opens the tab that shows what that phase MADE**: create → Description, analyze →
-Solution, implement → Status, archive → Overview, since archive writes no file of its own. `PHASE_TAB` in
-`render/pages/spec-page/tabs.ts` is the one place that mapping is written; the list imports it. A step outside those
-four — `explore`, or anything not in the fixed workflow — has no tab that speaks for it and keeps linking to its own
-job page, `/specs/<id>`. Such a link is live whether or not the phase has ever run: the tab belongs to the spec, not
-to the run.
-
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab

@@ -41,16 +41,16 @@ describe("the queue row links to the spec (criterion 12)", () => {
     expect(html).not.toContain('<span class="label" title="81-queue-and-runner">');
   });
 
-  // Spec 237: a phase line no longer leaves the spec. It opens the tab
-  // that shows what that phase MADE — analyze's is 3-solution.md — on
-  // the spec page the reader is already looking at.
-  test("the phase lines point at the tab their phase wrote", () => {
+  // Spec 451: a phase line's name is plain text — the spec page, with
+  // all its tabs, is reached from the row's own header line instead.
+  test("a phase line's name carries no link of its own", () => {
     const html = renderSpecsRows([row({ steps: ["analyze"], state: "done" })], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: { open: "aide/81-queue-and-runner" },
     });
-    expect(html).toContain(`href="${SPEC_HREF}?tab=solution"`);
+    expect(html).toContain('<span class="phasefold">analyze</span>');
+    expect(html).not.toContain(`href="${SPEC_HREF}?tab=solution"`);
     expect(html).not.toContain('href="/specs/job-1234"');
   });
 

@@ -30,9 +30,6 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     );
 
   const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
-  /** This block's spec page — where every phase line points since spec
-   *  237, one tab or another. */
-  const GROUPED_HREF = "/specs/aide/86-grouped";
   // The cell for one phase, from its name to the end of the row.
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
@@ -72,10 +69,10 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("newer", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const analyze = subRow(html, "analyze");
-    // Spec 237: the line points at the phase's own tab, not at either
-    // attempt's job page — the count beside it is what says there were
-    // two, and the picker on the page is what opens the older one.
-    expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
+    // Spec 451: the name is plain text, not a link to either attempt's
+    // job page — the count beside it is what says there were two, and
+    // the picker on the page is what opens the older one.
+    expect(analyze).not.toContain("<a ");
     expect(analyze).not.toContain('href="/specs/newer"');
     expect(analyze).not.toContain('href="/specs/older"');
     // The count rides with the phase's own word since 2026-09-08 — in
@@ -150,17 +147,17 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "create")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    expect(subRow(html, "create")).toContain(`href="${GROUPED_HREF}?tab=description"`);
+    expect(subRow(html, "create")).not.toContain("<a ");
   });
 
   test("a step outside the four is still shown, never silently dropped", () => {
     const html = rows([job("j1", "analyze"), job("j2", "explore")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive", "explore"]);
-    // Spec 237, criterion 3: a step outside the fixed workflow has no
-    // tab that speaks for it, so its line keeps the job page it has
-    // always had.
-    expect(subRow(html, "explore")).toContain('href="/specs/j2"');
+    // Spec 451: every phase name is plain text now, the fixed four and
+    // a step outside them alike.
+    expect(subRow(html, "explore")).not.toContain('href="/specs/j2"');
+    expect(subRow(html, "explore")).not.toContain("<a ");
   });
 
   // Spec 271: a reopen is what STARTED this round, so it is drawn
@@ -177,33 +174,25 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(subRow(html, "reopen")).toContain("disabled");
   });
 
-  // Spec 237, criteria 1-2: all four legs of the mapping, not just the
-  // two that happened to be asserted elsewhere.
-  test("each of the four phases opens the tab that shows what it made", () => {
+  // Spec 451: all four of the fixed steps carry no link of their own.
+  test("each of the four phases' names is plain text, not a link", () => {
     const html = rows([
       job("j1", "create"),
       job("j2", "analyze"),
       job("j3", "implement"),
       job("j4", "archive"),
     ]);
-    const expected: [string, string][] = [
-      ["create", "description"],
-      ["analyze", "solution"],
-      ["implement", "status"],
-      ["archive", "checks"],
-    ];
-    for (const [step, tab] of expected) {
-      expect([step, subRow(html, step).includes(`href="${GROUPED_HREF}?tab=${tab}"`)]).toEqual([step, true]);
+    for (const step of ["create", "analyze", "implement", "archive"]) {
+      expect([step, subRow(html, step).includes("<a ")]).toEqual([step, false]);
     }
   });
 
-  // Spec 237, criterion 4: the tab exists whether or not the phase has
-  // run, so there is somewhere honest to point even with no attempt —
-  // which is what made the name plain text before.
-  test("a phase with no attempt at all is a link too", () => {
+  // Spec 451: a phase with no attempt at all is plain text too — there
+  // is nothing left that distinguishes it from one that has run.
+  test("a phase with no attempt at all carries no link either", () => {
     const html = rows([job("j1", "analyze")]);
     const implement = subRow(html, "implement");
     expect(implement).toContain(PHASE_NOT_RUN);
-    expect(implement).toContain(`href="${GROUPED_HREF}?tab=status"`);
+    expect(implement).not.toContain("<a ");
   });
 });

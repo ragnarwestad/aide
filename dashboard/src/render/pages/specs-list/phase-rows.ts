@@ -1,7 +1,6 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { PHASE_TAB, specTabPath } from "../spec-page";
 import { badge, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { anyCostUnmeasured, wordPhase } from "../../ui/job-state";
@@ -122,32 +121,21 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
     .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult });
-      // Spec 237: a phase line opens the tab that shows what the phase
-      // MADE, on the spec page the reader is already on — the four
-      // workflow steps each have one, and `PHASE_TAB` is where the
-      // mapping lives.
+      // The phase's own name, plain text: a phase line used to open the
+      // tab the phase wrote (spec 237), but the mapping did not hold for
+      // every phase — archive writes no file of its own, and a step
+      // outside the fixed four pointed at its job page instead, with
+      // nothing on the row saying why the destination differed — so the
+      // name is text now, and the spec page stays reachable from the
+      // spec's own name in the row's header line (spec 451).
       //
-      // Such a link is live whether or not the phase has ever run: the
-      // tab is the spec's, not the run's, and it exists either way.
-      // That is the same reason spec 150 gave a never-run SPEC somewhere
-      // to point. A step OUTSIDE the four has no tab that speaks for it
-      // and keeps the old rule exactly: its own job page, or plain text
-      // when nothing has run it.
-      const tab = PHASE_TAB[p.step];
-      const href =
-        tab ? specTabPath(g.project, g.specFolder, tab)
-        : latest ? `/specs/${latest.id}`
-        : undefined;
-      const nameLink = href
-        ? `<a href="${esc(href)}">${esc(stepLabel(p.step, opts.lang))}</a>`
-        : `<span class="muted">${esc(stepLabel(p.step, opts.lang))}</span>`;
-      // The phase's own name. It wore a fold control on mobile until
+      // It wore a fold control on mobile until
       // 2026-09-07 — a chevron per phase line, whose only job was to
       // hide the AI/model pair on a narrow screen. The pair fits beside
       // the name at every width this list is drawn for (`narrow.css`
       // states the floor), so there is nothing left to fold and no
       // control to explain.
-      const name = `<span class="phasefold">${nameLink}</span>`;
+      const name = `<span class="phasefold">${esc(stepLabel(p.step, opts.lang))}</span>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
