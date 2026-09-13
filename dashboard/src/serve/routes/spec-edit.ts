@@ -1,6 +1,6 @@
 // The spec's own pages and their edit routes: the reset page and
 // its POST, the spec page itself, and update/save/tick. Extracted
-import { boardControlRoutes } from "./spec-edit/board-controls.ts";
+import { testServerControlRoutes } from "./spec-edit/test-server-controls.ts";
 import { checkRoutes } from "./spec-edit/checks.ts";
 import { closeControlRoutes } from "./spec-edit/close-controls.ts";
 import { runControlRoutes } from "./spec-edit/run-controls.ts";
@@ -24,7 +24,7 @@ export async function handleSpecEditRoutes(
   return (
     (await runControlRoutes(ctx, req, url, path, wantsJson)) ??
     (await closeControlRoutes(ctx, req, url, path, wantsJson)) ??
-    (await boardControlRoutes(ctx, req, path, wantsJson)) ??
+    (await testServerControlRoutes(ctx, req, path, wantsJson)) ??
     (await specPageRoutes(ctx, req, url, path, wantsJson)) ??
     (await trackingRoutes(ctx, req, url, path, wantsJson)) ??
     (await checkRoutes(ctx, req, url, path, wantsJson))

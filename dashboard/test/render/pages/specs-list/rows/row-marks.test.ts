@@ -181,14 +181,14 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
   test("REQ-1: the sentence, with a link, is in the notice line", () => {
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
     expect(notice).toContain("Click the link to start a test server running this branch");
-    expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startBoard=1"`);
+    expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`);
   });
 
   // REQ-2: the link opens in a new tab and carries the start trigger.
   test("REQ-2: the link opens in a new tab", () => {
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
     expect(notice).toMatch(
-      new RegExp(`href="/specs/aide/${FOLDER}\\?tab=steps&amp;startBoard=1" target="_blank" rel="noopener"`),
+      new RegExp(`href="/specs/aide/${FOLDER}\\?tab=steps&amp;startTestServer=1" target="_blank" rel="noopener"`),
     );
   });
 
@@ -292,7 +292,7 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
       FOLDER,
     );
     expect(notice).not.toContain("Click the link to start a test server");
-    expect(notice).not.toContain("startBoard=1");
+    expect(notice).not.toContain("startTestServer=1");
   });
 
   // REQ-6: a row not held back at all carries no link either.
@@ -301,7 +301,7 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
       renderSpecsRows([row({ specFolder: FOLDER, state: "done" })], { runnerAvailable: true, targets: [] }),
       FOLDER,
     );
-    expect(notice).not.toContain("startBoard=1");
+    expect(notice).not.toContain("startTestServer=1");
   });
 });
 

@@ -71,8 +71,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.dateUnknown": "dato ukjent",
   "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
   "list.testServer": "testserver",
-  "list.boardStartLink": "Klikk på lenken for å starte en testserver som kjører denne branchen",
-  "list.boardStartComing": "Lenken for å starte en kommer så snart implement-kjøringen til denne specen er registrert som ferdig",
+  "list.testServerStartLink": "Klikk på lenken for å starte en testserver som kjører denne branchen",
+  "list.testServerStartComing": "Lenken for å starte en kommer så snart implement-kjøringen til denne specen er registrert som ferdig",
   "list.pushError":
     "Et stegs push nådde ikke origin. — Hent grenen i det lokale repoet på serveren, " +
     "og push den på nytt fra en terminal.",
@@ -110,11 +110,11 @@ export const nb: Record<TranslationKey, string> = {
     "Det lokale repoet er oppdatert mot origin, men tjenesten kjører fortsatt commit {sha} — " +
     "omstarten venter på disse jobbene: {jobs}.",
   "project.deployHeading": "Deploy for prod",
-  "project.testBoardHeading": "Testserver med testspecene",
-  "project.testBoardNote":
+  "project.testServerHeading": "Testserver med testspecene",
+  "project.testServerNote":
     "Starter en testserver fra siste main, med rundens egne testspecer. Den rører ikke prod; " +
     "serveren dukker opp under Testservere.",
-  "project.testBoardButton": "Start testserver",
-  "project.testBoardUnavailable":
+  "project.testServerButton": "Start testserver",
+  "project.testServerUnavailable":
     "Dette prosjektet inneholder ikke dashbordets egen kode, så en testserver kan ikke starte herfra.",
 };

@@ -32,7 +32,7 @@ export function landingGit(over: Record<string, Answer> = {}) {
 
 /** Every ctx field `landBranch` reads on the way through a single-repo
  *  merge, and nothing else. `extra` is merged in last, so a caller adds
- *  what its own step needs (`boards`, a richer `queue`) without
+ *  what its own step needs (`testServers`, a richer `queue`) without
  *  restating the rest. */
 export function landCtx(
   gitRun: ReturnType<typeof landingGit>["run"],

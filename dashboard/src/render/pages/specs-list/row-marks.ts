@@ -23,7 +23,7 @@ const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitin
  *  specifically for unticked acceptance criteria (spec 411) — the same
  *  shape `waitingOnReviewSentence` has, for a fact this dashboard
  *  already knows how to act on (the round the checks are waiting on). */
-const boardStartLinkSentence = (lang: Language): string => t(lang, "list.boardStartLink");
+const testServerStartLinkSentence = (lang: Language): string => t(lang, "list.testServerStartLink");
 
 /** Is the QUEUE holding this spec's archive for unticked acceptance
  *  criteria? The file's own note answers the same question a moment
@@ -129,8 +129,8 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     marks.push({
       variant: "waiting",
       label: TEST_SERVER(lang),
-      sentence: boardStartLinkSentence(lang),
-      href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startBoard=1`,
+      sentence: testServerStartLinkSentence(lang),
+      href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
     });
   } else if (queueHeldForChecks(g) && !archiveRunning) {
     // The queue holds the job the moment it refuses to archive; the
@@ -141,7 +141,7 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     // one render and gone on the next. A reader in that window was told
     // to go and tick, with no way to see the thing being ticked and
     // nothing saying one was coming. So it is said.
-    marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.boardStartComing") });
+    marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.testServerStartComing") });
   }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });

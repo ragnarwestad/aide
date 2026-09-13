@@ -37,7 +37,7 @@ import type {
 } from "../render.ts";
 import type { createRootLock } from "./serve-helpers.ts";
 import type { ServerOptions } from "./options.ts";
-import type { BoardsContext } from "./boards/lifecycle.ts";
+import type { TestServersContext } from "./test-servers/lifecycle.ts";
 import { handlePageRoutes } from "./routes/page-routes.ts";
 import { handleQueueEvents } from "./routes/sse.ts";
 import { handleQueueAdminRoutes } from "./routes/queue-admin.ts";
@@ -126,13 +126,13 @@ export interface RoutesContext {
   /** Whether `md-to-pdf` is resolvable on this host (REQ-7), resolved
    *  once at boot. */
   pdfToolAvailable: boolean;
-  /** The board registry and everything `startBoard`/`stopBoard`
+  /** The board registry and everything `startTestServer`/`stopTestServer`
    *  (spec 388) need to reach the round without a second copy of its
    *  own worktree/checkout logic. */
-  boards: BoardsContext;
+  testServers: TestServersContext;
   /** What the self-stop route (spec 424) calls once its response has
    *  been sent — the real one is `() => process.exit(0)`, wired once in
-   *  `serve.ts`. A test seam, like `boards.spawn`: no test should
+   *  `serve.ts`. A test seam, like `testServers.spawn`: no test should
    *  actually end the process running it. */
   selfStopExit: () => void;
 }

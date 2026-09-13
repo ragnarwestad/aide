@@ -48,10 +48,11 @@ report the dashboard as green off `bun test` alone.
 pull request only) runs the same script, so a bash change that passes it
 locally passes there.
 
-The full pytest run takes about three minutes; the dashboard's about
-seventy seconds. For a change that only touches `core/`, the narrower
-`.venv/bin/pytest tests/specs/unit/core/validation` takes about two seconds
-and covers the rules, the templates and the skills.
+Both full runs take minutes, not seconds, and grow with the suites. Run
+the full suite ONCE, before the commit, in the background; while working,
+run only the narrow files that cover the change (`bun test <file>`, or for
+`core/` alone `.venv/bin/pytest tests/specs/unit/core/validation`, which
+covers the rules, the templates and the skills in seconds).
 
 The dashboard on the serving host runs as a launchd job
 (`com.aide-dashboard.serve`), and code reaching `main` changes nothing

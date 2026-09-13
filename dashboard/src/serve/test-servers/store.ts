@@ -12,14 +12,14 @@ import { dirname } from "node:path";
 // concept that happens to share two of the same words ("running",
 // "failed"), and the guard's naive text match cannot tell the two
 // apart.
-export type BoardStatus = "starting" | "running" | "failed";
+export type TestServerStatus = "starting" | "running" | "failed";
 
-export interface BoardEntry {
+export interface TestServer {
   branch: string;
   commit: string;
   port: number;
   /** This server's own `Bun.spawn` pid for the round script itself —
-   *  known from the instant it starts, and what `stopBoard` sends
+   *  known from the instant it starts, and what `stopTestServer` sends
    *  `SIGTERM` to (negated, reaching the whole process group). Stays
    *  valid for the process's whole life, unlike `pid` below. */
   wrapperPid: number;
@@ -34,13 +34,13 @@ export interface BoardEntry {
   url?: string;
   workDir: string;
   logPath: string;
-  status: BoardStatus;
+  status: TestServerStatus;
   error?: string;
   startedAt: string;
 }
 
-function parseBoards(raw: unknown): Record<string, BoardEntry> {
-  const out: Record<string, BoardEntry> = {};
+function parseTestServers(raw: unknown): Record<string, TestServer> {
+  const out: Record<string, TestServer> = {};
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return out;
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
     if (value === null || typeof value !== "object") continue;
@@ -75,9 +75,9 @@ function parseBoards(raw: unknown): Record<string, BoardEntry> {
   return out;
 }
 
-export class BoardStore {
+export class TestServerStore {
   private readonly path: string | undefined;
-  private readonly entries: Record<string, BoardEntry> = {};
+  private readonly entries: Record<string, TestServer> = {};
 
   constructor(opts: { path?: string } = {}) {
     this.path = opts.path;
@@ -88,12 +88,12 @@ export class BoardStore {
     return `${project}/${specFolder}`;
   }
 
-  get(project: string, specFolder: string): BoardEntry | undefined {
+  get(project: string, specFolder: string): TestServer | undefined {
     return this.entries[this.key(project, specFolder)];
   }
 
   /** Every tracked board, for REQ-10's port-collision check. */
-  all(): BoardEntry[] {
+  all(): TestServer[] {
     return Object.values(this.entries);
   }
 
@@ -104,14 +104,14 @@ export class BoardStore {
    *  directory entry (never containing "/") additionally constrained to
    *  letters/digits/dot/dash/underscore when added by hand
    *  (`project-admin/manifest-io.ts`'s `NAME_RE`). */
-  listAll(): { project: string; specFolder: string; entry: BoardEntry }[] {
+  listAll(): { project: string; specFolder: string; entry: TestServer }[] {
     return Object.entries(this.entries).map(([key, entry]) => {
       const slash = key.indexOf("/");
       return { project: key.slice(0, slash), specFolder: key.slice(slash + 1), entry };
     });
   }
 
-  set(project: string, specFolder: string, entry: BoardEntry): void {
+  set(project: string, specFolder: string, entry: TestServer): void {
     this.entries[this.key(project, specFolder)] = entry;
     this.persist();
   }
@@ -125,7 +125,7 @@ export class BoardStore {
     if (!this.path || !existsSync(this.path)) return;
     try {
       const raw = JSON.parse(readFileSync(this.path, "utf-8")) as unknown;
-      Object.assign(this.entries, parseBoards(raw));
+      Object.assign(this.entries, parseTestServers(raw));
     } catch {
       // A malformed file starts empty, the same fail-closed rule
       // `parseQueueProjects`/`parsePendingModels` follow.

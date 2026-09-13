@@ -172,22 +172,22 @@ export interface SpecPageView {
   /** Where the "Start board" form posts (spec 388). Absent means no
    *  control is drawn at all — the round is unavailable on this host, or
    *  this spec's own code branch carries no commits (REQ-1). */
-  boardAction?: string;
+  testServerAction?: string;
   /** Where the "Stop board" form posts, once a board is up. */
-  boardStopAction?: string;
+  testServerStopAction?: string;
   /** Where the banner's own "Open the test server" link goes: this
    *  dashboard's start route, which redirects to the board on the host
    *  the reader actually used. The round's own address is loopback and
    *  reaches nothing from another device. */
-  boardOpenHref?: string;
-  /** Why the control is disabled while `boardAction` IS present — a
+  testServerOpenHref?: string;
+  /** Why the control is disabled while `testServerAction` IS present — a
    *  transient reason (another job running, a landing in progress), the
    *  same disabled-with-reason shape `resetUnavailableReason` uses. */
-  boardUnavailableReason?: string;
+  testServerUnavailableReason?: string;
   /** The board's own live status (REQ-4), read off the registry on every
    *  render — absent means none has ever been started for this spec's
    *  current branch. */
-  board?: BoardStatusView;
+  testServer?: TestServerStatusView;
 }
 
 /** A board's status, as the spec page shows it (spec 388). Named
@@ -196,7 +196,7 @@ export interface SpecPageView {
  *  "state:" for a queue JOB's own state, and a board's lifecycle is an
  *  unrelated concept the guard's naive text match cannot tell apart from
  *  it. */
-export interface BoardStatusView {
+export interface TestServerStatusView {
   status: "starting" | "running" | "failed";
   branch: string;
   commit: string;

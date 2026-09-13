@@ -137,7 +137,7 @@ it builds a fresh, throwaway copy of it from a given checkout, feeds it a small 
 end to end, and checks each one came out as expected. Starting a test server is that same script,
 told to leave the result running (`--keep`) instead of finishing and cleaning up — the same real
 dashboard a test run already proves works, just left up for a person to open instead of graded and
-torn down, implemented as a thin wrapper around it in `src/serve/boards/lifecycle.ts`.
+torn down, implemented as a thin wrapper around it in `src/serve/test-servers/lifecycle.ts`.
 
 Each sample spec is a pair in `dashboard/test/round/specs/`: `<NN-slug>.md` is the description the
 spec is created from, and `<NN-slug>.json` says which steps it runs and how it must come out —

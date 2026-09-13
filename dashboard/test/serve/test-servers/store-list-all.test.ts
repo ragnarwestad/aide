@@ -4,9 +4,9 @@
 // needed it).
 
 import { describe, expect, test } from "bun:test";
-import { BoardStore, type BoardEntry } from "../../../src/serve/boards/store.ts";
+import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
 
-const entry = (overrides: Partial<BoardEntry> = {}): BoardEntry => ({
+const entry = (overrides: Partial<TestServer> = {}): TestServer => ({
   branch: "aide/150-x",
   commit: "abc123",
   port: 8801,
@@ -18,9 +18,9 @@ const entry = (overrides: Partial<BoardEntry> = {}): BoardEntry => ({
   ...overrides,
 });
 
-describe("BoardStore.listAll", () => {
+describe("TestServerStore.listAll", () => {
   test("returns every tracked board, with its project and specFolder", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "150-x", entry());
     store.set("woodstack", "9-y", entry({ branch: "aide/9-y", port: 8802 }));
     const all = store.listAll();
@@ -34,11 +34,11 @@ describe("BoardStore.listAll", () => {
   });
 
   test("an empty store returns an empty array", () => {
-    expect(new BoardStore().listAll()).toEqual([]);
+    expect(new TestServerStore().listAll()).toEqual([]);
   });
 
   test("all() is unaffected — it still drops the project/specFolder key", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "150-x", entry());
     expect(store.all()).toEqual([entry()]);
   });
@@ -47,7 +47,7 @@ describe("BoardStore.listAll", () => {
   // "main", a non-numeric key — `listAll()`'s split on the first "/"
   // reads its project half the same way it does a real spec folder's.
   test("a 'main'-keyed entry round-trips beside a real spec-folder entry", () => {
-    const store = new BoardStore();
+    const store = new TestServerStore();
     store.set("aide", "150-x", entry());
     store.set("aide", "main", entry({ branch: "main", port: 8802 }));
     const all = store.listAll();

@@ -7,7 +7,7 @@ import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
 import type { RestartHook } from "./land-branch.ts";
-import type { PortProbe, Spawner } from "./boards/lifecycle.ts";
+import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -163,7 +163,7 @@ export interface ServerOptions {
    *  sibling of the queue mirror. Absent means a tracked board is never
    *  durable across a restart, exactly as `pendingModelsPath` absent
    *  behaves for a pending model pick. */
-  boardsPath?: string;
+  testServersPath?: string;
   /** Set when THIS process is itself a test board (spec 424) — the
    *  specFolder `dashboard/test/round/run` was told to serve. Threads
    *  into the header's Prod/Test line and the self-stop route; absent
@@ -171,7 +171,7 @@ export interface ServerOptions {
   testBoardSpec?: string;
   /** What the self-stop route calls once its response has been sent
    *  (spec 424) — the real one is `() => process.exit(0)`. A test seam,
-   *  like `boardsSpawn`: no test should actually end the process
+   *  like `testServersSpawn`: no test should actually end the process
    *  running it. */
   selfStopExit?: () => void;
   /** Where the test board's Run control (self-run.ts) reads the round's
@@ -182,26 +182,26 @@ export interface ServerOptions {
    *  (REQ-1), the same test-seam shape `pdfToolAvailable` already is: no
    *  test should depend on a real checkout carrying
    *  `dashboard/test/round/run`. */
-  boardsAvailable?: boolean;
+  testServersAvailable?: boolean;
   /** Spawns the round script for a board (spec 388). A test seam: the
    *  real one is `Bun.spawn(..., { detached: true })` + `.unref()`, and
    *  no test should start a real round, which takes minutes and real
    *  model spend. */
-  boardsSpawn?: Spawner;
+  testServersSpawn?: Spawner;
   /** Polls whether a tracked board's own wrapper process is still alive
-   *  (spec 388). A test seam, like `boardsSpawn`. */
-  boardsIsAlive?: (pid: number) => boolean;
+   *  (spec 388). A test seam, like `testServersSpawn`. */
+  testServersIsAlive?: (pid: number) => boolean;
   /** Asks what is listening on one of the test-server ports, so a board
-   *  still running is found again after a restart (`boards/recover.ts`).
-   *  A test seam, like `boardsSpawn`: the real one reads the process
+   *  still running is found again after a restart (`test-servers/recover.ts`).
+   *  A test seam, like `testServersSpawn`: the real one reads the process
    *  table with `lsof` and `ps`. */
-  boardsOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  testServersOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
   /** Whether one of the test-server ports can be bound right now. A
-   *  test seam, like `boardsSpawn` — and the one that keeps this suite
+   *  test seam, like `testServersSpawn` — and the one that keeps this suite
    *  off the machine's real ports: the default probe BINDS 8801-8806 to
    *  find out, so a test server left running on this host made two
    *  board tests fail, and with them every landing whose merge runs the
    *  suite (2026-09-09). `findFreePort` has carried the parameter for
    *  exactly this since it was written; nothing reached it from here. */
-  boardsPortProbe?: PortProbe;
+  testServersPortProbe?: PortProbe;
 }
