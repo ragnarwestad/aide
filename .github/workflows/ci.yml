@@ -1,7 +1,7 @@
 name: CI
 
 # The two gates .claude/CLAUDE.md names, plus the markdown check, run here
-# instead of only when someone remembers them. The commands are the ones
+# on a pull request, before a person merges it. The commands are the ones
 # that file documents, character for character — a workflow that ran
 # something subtly different would go green about a gate nobody has.
 # shellcheck and biome are two more, added later and not gates in the
@@ -10,7 +10,14 @@ name: CI
 # things this codebase does on purpose — SC2154/SC2034 across the bash
 # scripts' shared-sourcing architecture, noNonNullAssertion and
 # useTemplate in the dashboard).
-on: [push, pull_request]
+# A pull request only, never a push: a project whose code lands by a
+# local merge (`codeLanding: branch`, aide itself) is gated by the
+# landing's own run of the same suite on the serving host, and a run
+# here beside it was a second lamp nobody watched — red for two days
+# on main in September 2026 before anyone looked. A project that lands
+# by pull request (`codeLanding: pr`) has no such landing gate, and this
+# is its check before a person merges.
+on: [pull_request]
 
 # Three pushes to a branch in a minute cost one completed run, not three.
 concurrency:
@@ -47,8 +54,13 @@ jobs:
       # under a different name.
       - run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       # No -m and no --override-ini: pytest.ini already deselects e2e and
-      # evaluation, which call AI APIs and are billed for it.
-      - run: .venv/bin/pytest
+      # evaluation, which call AI APIs and are billed for it. The output is
+      # kept so the step below can name the failing tests as annotations —
+      # readable through the API without the log-download right a plain
+      # token lacks. `pipefail` is the runner's default for `run`.
+      - run: .venv/bin/pytest 2>&1 | tee pytest.log
+      - if: failure()
+        run: grep -E '^(FAILED|ERROR) ' pytest.log | sed 's/^/::error::/' || echo '::error::pytest failed before it could name a test'
 
   dashboard:
     name: dashboard (tsc + bun test)
@@ -73,7 +85,9 @@ jobs:
       # make test, not bun test: bun test transpiles without type-checking,
       # so it alone says nothing about types. The Makefile runs
       # `bunx tsc --noEmit` first.
-      - run: cd dashboard && make test
+      - run: cd dashboard && make test 2>&1 | tee ../make-test.log
+      - if: failure()
+        run: grep -E '^\(fail\)|error TS[0-9]+' make-test.log | sed 's/^/::error::/' || echo '::error::make test failed before it could name a test'
       # The browser tests are not in `make test` on purpose: that target
       # is also the landing's gate on the serving host, where they lose
       # to load. This runner is quiet, and it has the browser from the

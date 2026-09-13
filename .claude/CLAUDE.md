@@ -44,8 +44,9 @@ nothing about types, and `make test` exists to stop that being mistaken for
 a green build — it runs `bunx tsc --noEmit` first and fails there. Never
 report the dashboard as green off `bun test` alone.
 
-`scripts/check-bash` needs shellcheck (`brew install shellcheck`); CI runs
-the same script, so a bash change that passes it locally passes there.
+`scripts/check-bash` needs shellcheck (`brew install shellcheck`); CI (on a
+pull request only) runs the same script, so a bash change that passes it
+locally passes there.
 
 The full pytest run takes about three minutes; the dashboard's about
 seventy seconds. For a change that only touches `core/`, the narrower
