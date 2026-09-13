@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine } from "../../src/project/parse-status.ts";
+import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine } from "../../src/project/parse-status";
 
 // --- spec 182: the rows a person can tick off from the page -----------------
 //

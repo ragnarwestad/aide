@@ -5,7 +5,7 @@
 // here, all three live on the detail page instead.
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components.ts";
+import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { deleteSchedulePath, newSchedulePath, schedulePagePath } from "./tabs.ts";
 

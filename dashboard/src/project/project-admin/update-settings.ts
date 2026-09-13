@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import { configValue } from "../discover.ts";
+import { configValue } from "../discover";
 import { parseManifest } from "../parse-manifest.ts";
 import { upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";

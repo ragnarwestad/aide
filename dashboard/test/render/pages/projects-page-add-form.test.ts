@@ -1,7 +1,7 @@
 // Split out of projects-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderAddProjectPage, type ProjectsPageOptions } from "../../../src/render.ts";
+import { renderAddProjectPage, type ProjectsPageOptions } from "../../../src/render";
 import { AT, NAV, page, project } from "./projects-page-fixtures.ts";
 
 // --- spec 138: the field that was missing, and the answer that was ------------

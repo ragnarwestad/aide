@@ -5,7 +5,7 @@
 // the oldest.
 import { describe, expect, test } from "bun:test";
 import { createdCell } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
-import { sortGroups, type SpecsFilter, type SpecGroup } from "../../../../src/render/pages/specs-list/data-model.ts";
+import { sortGroups, type SpecsFilter, type SpecGroup } from "../../../../src/render/pages/specs-list/data-model";
 
 const group = (over: Partial<SpecGroup>): SpecGroup =>
   ({ project: "aide", specFolder: "1-x", state: "not-started", phases: [], spentUsd: 0, ...over }) as SpecGroup;

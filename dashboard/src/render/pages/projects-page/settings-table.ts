@@ -3,7 +3,7 @@
 
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
-import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
+import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";
 import type { ProjectPageOptions } from "./types.ts";

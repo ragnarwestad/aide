@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { archiveHeldBackReason } from "../parse-status.ts";
+import { archiveHeldBackReason } from "../parse-status";
 
 export function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");

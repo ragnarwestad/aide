@@ -7,12 +7,12 @@
 // three be asked one after another exactly as the chain read before.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { resolveSchedule } from "../../../project/discover.ts";
+import { resolveSchedule } from "../../../project/discover";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
-import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render.ts";
-import { languageChoice, specsClientScript } from "../../serve-helpers.ts";
+import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render";
+import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers/static.ts";
-import type { RoutesContext } from "../../routes.ts";
+import type { RoutesContext } from "..";
 
 export async function schedulePages(
   ctx: RoutesContext,

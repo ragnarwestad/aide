@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
-import { installAfterMerge, restartAfterLanding, runningJobNames, type LandContext, type RestartHook } from "../../../src/serve/land-branch.ts";
+import { installAfterMerge, restartAfterLanding, runningJobNames, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
 
 /** The message a landing carries, as text: since spec 380 it is

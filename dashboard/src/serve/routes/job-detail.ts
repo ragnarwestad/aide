@@ -4,9 +4,9 @@
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
-import { json, languageChoice } from "../serve-helpers.ts";
-import { renderJobDetailPage, resolveBackHref } from "../../render.ts";
-import type { RoutesContext } from "../routes.ts";
+import { json, languageChoice } from "../serve-helpers";
+import { renderJobDetailPage, resolveBackHref } from "../../render";
+import type { RoutesContext } from "./";
 
 export async function handleJobDetailRoute(
   ctx: RoutesContext,

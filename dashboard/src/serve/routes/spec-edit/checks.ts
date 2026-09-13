@@ -6,19 +6,19 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
-import { specFileText } from "../../../project/discover.ts";
+import { specFileText } from "../../../project/discover";
 import {
   acceptanceCriteriaUnticked,
   clearArchiveHeldBack,
   parseStatusChecks,
   tickStatusLine,
   untickStatusLine,
-} from "../../../project/parse-status.ts";
-import { STATUS_SPEC_FILE, specTabPath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers.ts";
+} from "../../../project/parse-status";
+import { STATUS_SPEC_FILE, specTabPath } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
 
-import type { RoutesContext } from "../../routes.ts";
+import type { RoutesContext } from "..";
 
 export async function checkRoutes(
   ctx: RoutesContext,

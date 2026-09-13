@@ -8,7 +8,7 @@ import {
   clearArchiveHeldBack,
   parseStatus,
   parseStatusChecks,
-} from "../../src/project/parse-status.ts";
+} from "../../src/project/parse-status";
 
 // --- spec 190: the hold-back note a met check leaves behind -------------------
 //

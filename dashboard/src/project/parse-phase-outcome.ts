@@ -6,7 +6,7 @@
 // `parse-status.ts` (`archiveHeldBackReason`, for `specPhaseFile`) — putting
 // this parser there too would make the two files import each other.
 
-import { markdownSection, specFileText } from "./discover.ts";
+import { markdownSection, specFileText } from "./discover";
 
 export interface PhaseOutcome {
   model?: string;

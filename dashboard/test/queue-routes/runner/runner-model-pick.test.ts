@@ -1,7 +1,7 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { renderSpecsPage } from "../../../src/render.ts";
+import { renderSpecsPage } from "../../../src/render";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();

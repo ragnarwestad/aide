@@ -3,7 +3,7 @@
 // original absent — proving the threading reaches every file in Scope,
 // not just the shell.
 import { describe, expect, test } from "bun:test";
-import { renderSpecsPage, renderSpecsRows, type SpecsPageOptions, type SpecTarget } from "../../../../../src/render.ts";
+import { renderSpecsPage, renderSpecsRows, type SpecsPageOptions, type SpecTarget } from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({

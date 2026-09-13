@@ -3,8 +3,8 @@
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
-import { backLink, helpPopover, resolveBackHref } from "../../../src/render/ui/components.ts";
-import { CSS } from "../../../src/render/ui/css.ts";
+import { backLink, helpPopover, resolveBackHref } from "../../../src/render/ui/components";
+import { CSS } from "../../../src/render/ui/css";
 
 describe("backLink", () => {
   test("a .backlink anchor labelled ← Back, wrapped in the .intro spacing rule", () => {

@@ -1,7 +1,7 @@
 // State labels, durations, the state chip, and "is this job still
 // going".
 
-import { badge, type BadgeVariant } from "../components.ts";
+import { badge, type BadgeVariant } from "../components";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import type { QueueRowView } from "./types.ts";

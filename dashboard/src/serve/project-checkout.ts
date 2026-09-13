@@ -11,9 +11,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { projectCheckout } from "../git/branch-status.ts";
 import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout.ts";
-import { resolveCodeLanding, resolveSchedule, type CodeLanding } from "../project/discover.ts";
+import { resolveCodeLanding, resolveSchedule, type CodeLanding } from "../project/discover";
 import type { Job } from "../queue/queue.ts";
-import type { SpecTarget } from "../render.ts";
+import type { SpecTarget } from "../render";
 
 export interface ProjectCheckoutContext {
   queueProjectRoot: string | undefined;

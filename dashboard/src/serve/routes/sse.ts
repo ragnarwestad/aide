@@ -1,7 +1,7 @@
 // The SSE subscription route (spec 189). Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
-import type { RoutesContext } from "../routes.ts";
+import type { RoutesContext } from "./";
 
 export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path === "/api/queue/events") {

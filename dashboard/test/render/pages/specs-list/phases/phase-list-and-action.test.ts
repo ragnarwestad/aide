@@ -5,7 +5,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 124: one phase list, and the actions in a stack of their own -------

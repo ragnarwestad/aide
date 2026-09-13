@@ -294,15 +294,11 @@ describe("render files use the component vocabulary and nothing else", () => {
     });
   }
 
-  // Split across an entry point and its themed folder (split
-  // specs-client.ts into a bundled folder) — both are globbed, so a
-  // class written in any of the split files is caught the same as one
-  // in the entry.
+  // The entry point (specs-client/index.ts) and its themed folder are
+  // both reached by this one glob, so a class written in any of the
+  // split files is caught the same as one in the entry.
   test("the browser code writes no class of its own either", async () => {
-    const files = [
-      "src/specs-client.ts",
-      ...new Bun.Glob("src/specs-client/**/*.ts").scanSync(ROOT),
-    ];
+    const files = [...new Bun.Glob("src/specs-client/**/*.ts").scanSync(ROOT)];
     const source = (await Promise.all(files.map((f) => Bun.file(join(ROOT, f)).text()))).join("\n");
     const unknown = [...new Set(classesIn(source))].filter((c) => !ALLOWED.has(c));
     expect(unknown).toEqual([]);

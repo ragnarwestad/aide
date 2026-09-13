@@ -3,7 +3,7 @@
 // one red on both, a finished one green on both — the row never says a
 // phase's state in two colours.
 import { describe, expect, test } from "bun:test";
-import { CSS } from "../../../../src/render/ui/css.ts";
+import { CSS } from "../../../../src/render/ui/css";
 import { wordPhase } from "../../../../src/render/ui/job-state/word-phase.ts";
 
 const noJob = undefined;

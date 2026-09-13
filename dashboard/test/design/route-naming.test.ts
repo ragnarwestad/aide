@@ -25,7 +25,7 @@ describe("route naming (spec 446)", () => {
     expect(existsSync(join(SRC, "serve", "handle-queue.ts"))).toBe(false);
     expect(existsSync(join(SRC, "serve", "handle-queue"))).toBe(false);
     expect(existsSync(join(TEST, "handle-queue"))).toBe(false);
-    expect(existsSync(join(SRC, "serve", "routes.ts"))).toBe(true);
+    expect(existsSync(join(SRC, "serve", "routes", "index.ts"))).toBe(true);
     expect(existsSync(join(SRC, "serve", "routes"))).toBe(true);
   });
 

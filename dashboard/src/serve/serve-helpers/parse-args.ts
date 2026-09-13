@@ -5,9 +5,9 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
-import type { DiscoveredProject, SpecRef } from "../../project/discover.ts";
+import type { DiscoveredProject, SpecRef } from "../../project/discover";
 import { mergeQueueDefaults, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
-import { navEntries } from "../../render.ts";
+import { navEntries } from "../../render";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
 

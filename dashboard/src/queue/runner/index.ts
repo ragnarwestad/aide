@@ -28,14 +28,14 @@
 // theme); the Runner class itself — the only stateful piece — stays
 // here, re-exporting them for every existing importer.
 
-import { specNumber } from "../project/spec-folder.ts";
-import type { NotifyEvent } from "../integrations/notify.ts";
-import { renderMessage, type BoardMessage } from "../i18n/message.ts";
-import { stepButton } from "../format/step-label.ts";
-import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "./queue.ts";
-import { tokenUsage, type RunnerOptions, type StepOutcome } from "./runner/types.ts";
+import { specNumber } from "../../project/spec-folder.ts";
+import type { NotifyEvent } from "../../integrations/notify.ts";
+import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
+import { stepButton } from "../../format/step-label.ts";
+import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
+import { tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 
-export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./runner/types.ts";
+export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
 export class Runner {
   private readonly o: RunnerOptions;

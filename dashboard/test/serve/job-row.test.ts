@@ -6,7 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { QueueStore, queuePriorityOrder } from "../../src/queue/queue.ts";
 import { AideRunStore } from "../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../src/serve/job-row.ts";
-import { specStateChip } from "../../src/render/ui/job-state.ts";
+import { specStateChip } from "../../src/render/ui/job-state";
 
 const resolve = (project: string) =>
   project === "aide" ? { specFolders: ["a", "b", "c", "d"] } : null;

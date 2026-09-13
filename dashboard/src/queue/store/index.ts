@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { stepButton } from "../format/step-label.ts";
+import { stepButton } from "../../format/step-label.ts";
 import {
   EFFORT_LEVELS,
   PHASE_STEPS,
@@ -16,11 +16,11 @@ import {
   tailEdits,
   type TransitionEvent,
   type WorkflowStep,
-} from "./steps.ts";
-import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
-import type { Sentence } from "../i18n/message.ts";
-import { mergeBranchRefs, type BranchRef } from "./types.ts";
-import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "./parse-request.ts";
+} from "../steps.ts";
+import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
+import type { Sentence } from "../../i18n/message.ts";
+import { mergeBranchRefs, type BranchRef } from "../types.ts";
+import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "../parse-request.ts";
 import {
   parsePendingEffort,
   parsePendingModels,
@@ -29,11 +29,11 @@ import {
   persistPendingEffort,
   persistPendingModels,
   persistPendingSteps,
-} from "./persist.ts";
-import { gerund, landingStepIndex } from "../format/gerund.ts";
+} from "../persist.ts";
+import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 
-import type { PendingEffortResult, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./store/types.ts";
+import type { PendingEffortResult, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
 export class QueueStore {
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
@@ -581,4 +581,4 @@ export class QueueStore {
 }
 
 // What used to live here too, in parts beside this file.
-export type { PendingModelResult, PendingEffortResult, PendingStepsResult, TransitionResult, QueueOptions } from "./store/types.ts";
+export type { PendingModelResult, PendingEffortResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";

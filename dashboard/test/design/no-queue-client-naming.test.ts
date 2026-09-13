@@ -62,8 +62,8 @@ describe("the Specs page's browser code is named specs-client, not queue-client 
     expect(existsSync(join(ROOT, "src", "queue-client"))).toBe(false);
   });
 
-  test("src/specs-client.ts exists, src/queue-client.ts does not", () => {
-    expect(existsSync(join(ROOT, "src", "specs-client.ts"))).toBe(true);
+  test("src/specs-client/index.ts exists, src/queue-client.ts does not", () => {
+    expect(existsSync(join(ROOT, "src", "specs-client", "index.ts"))).toBe(true);
     expect(existsSync(join(ROOT, "src", "queue-client.ts"))).toBe(false);
   });
 

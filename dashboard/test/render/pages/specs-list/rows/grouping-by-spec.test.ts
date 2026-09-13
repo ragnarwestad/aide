@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type QueueRowView } from "../../../../../src/render.ts";
+import { renderSpecsRows, type QueueRowView } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 /** What a phase that has not run draws in the State column: a dash,

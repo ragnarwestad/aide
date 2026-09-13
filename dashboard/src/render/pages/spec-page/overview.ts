@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from "../../ui/components.ts";
+import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from "../../ui/components";
 import { SPINNER } from "../../ui/components/icons.ts";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";

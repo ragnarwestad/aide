@@ -8,7 +8,7 @@ import { hostname, tmpdir } from "node:os";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { main } from "../src/main.ts";
-import { renderSite } from "../src/render.ts";
+import { renderSite } from "../src/render";
 import { getBoardInfo, setBoardInfo } from "../src/render/ui/board-info.ts";
 
 afterEach(() => setBoardInfo(undefined));

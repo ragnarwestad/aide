@@ -6,8 +6,8 @@
 
 import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
-import type { QueueRowView } from "../render.ts";
-import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers.ts";
+import type { QueueRowView } from "../render";
+import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
 
 export interface JobRowContext {
   queue: QueueStore;

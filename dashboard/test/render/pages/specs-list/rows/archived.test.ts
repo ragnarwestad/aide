@@ -5,7 +5,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 
 // The row's own message panel (spec 143), where REQ-2's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>

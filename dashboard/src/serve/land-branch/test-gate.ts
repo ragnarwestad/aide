@@ -12,7 +12,7 @@
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
-import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers.ts";
+import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover/config.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach

@@ -15,7 +15,7 @@ import {
   renderSpecsRows,
   type QueueRowView,
   type SpecTarget,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 
 // --- spec 199: time becomes something worth reading -------------------------
 //

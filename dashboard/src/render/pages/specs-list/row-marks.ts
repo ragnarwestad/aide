@@ -3,13 +3,13 @@
 // an archive held back for unticked acceptance criteria. Split out of
 // cell-helpers.ts by theme.
 
-import { type BadgeVariant, type MessageVariant } from "../../ui/components.ts";
+import { type BadgeVariant, type MessageVariant } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
-import { specPagePath } from "../spec-page.ts";
-import { type ArchivedSpecView, type SpecGroup } from "./data-model.ts";
+import { specPagePath } from "../spec-page";
+import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 

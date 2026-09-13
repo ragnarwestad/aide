@@ -2,10 +2,10 @@
 // Settings, Add/Remove project, a project's own page, and the
 // Projects listing. Extracted from routes.ts (split of split
 // serve.ts step 2).
-import type { RoutesContext } from "../routes.ts";
-import { specsPages } from "./page-routes/specs-pages.ts";
-import { projectPages } from "./page-routes/project-pages.ts";
-import { schedulePages } from "./page-routes/schedule-pages.ts";
+import type { RoutesContext } from "..";
+import { specsPages } from "./specs-pages.ts";
+import { projectPages } from "./project-pages.ts";
+import { schedulePages } from "./schedule-pages.ts";
 
 /** The full-page GET routes, asked family by family. Each answers
  *  `null` for a path that is not its own, so the chain reads the way

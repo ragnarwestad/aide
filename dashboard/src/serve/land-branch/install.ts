@@ -1,10 +1,10 @@
 // Running the project's own install once its code has landed. Split
 // out of land-branch.ts by theme (split land-branch.ts by theme).
 
-import { resolveInstallCmd } from "../../project/discover.ts";
+import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
-import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
+import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
 import type { LandContext } from "./types.ts";
 
 /** Run the project's own install, once its code has landed. Bounded by

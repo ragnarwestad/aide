@@ -16,7 +16,7 @@ import {
   renderSpecsPage,
   renderSite,
   type ProjectView,
-} from "../../src/render.ts";
+} from "../../src/render";
 import { ICON_LINKS, WORDMARK } from "../../src/render/ui/brand.ts";
 import { getBoardInfo, setBoardInfo } from "../../src/render/ui/board-info.ts";
 import { AT, detail } from "./design-system-fixtures.ts";

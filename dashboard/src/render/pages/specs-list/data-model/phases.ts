@@ -4,8 +4,8 @@
 // in time — should read without counting rows.
 
 import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
-import { archiveHeldBackApplies } from "../../../../project/parse-status.ts";
-import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
+import { archiveHeldBackApplies } from "../../../../project/parse-status";
+import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
 
 /** Every step this job has anything to say about: the ones it finished,

@@ -4,7 +4,7 @@
 // against.
 
 import { describe, expect, test } from "bun:test";
-import { renderCloseSpecPage, type SpecPageView } from "../../../src/render.ts";
+import { renderCloseSpecPage, type SpecPageView } from "../../../src/render";
 import { GENERATED, NAV, page, view } from "./spec-page-fixtures.ts";
 
 describe("spec 406, REQ-1: the Close control", () => {

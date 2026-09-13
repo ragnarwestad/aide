@@ -3,13 +3,13 @@
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then either a JSON answer (script) or a
 // no-JS redirect back to the list.
-import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
+import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
 import type { ScheduleGit } from "../../project/project-admin/schedule-admin.ts";
-import { resolveSchedule } from "../../project/discover.ts";
+import { resolveSchedule } from "../../project/discover";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render.ts";
-import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { RoutesContext } from "../routes.ts";
+import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render";
+import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers";
+import type { RoutesContext } from "./";
 
 /** The `git` seam every write route below hands to `schedule-admin.ts`
  *  (REQ-2) — the same `ctx.gitRun`/`ctx.branchStatus.defaultBranch` pair

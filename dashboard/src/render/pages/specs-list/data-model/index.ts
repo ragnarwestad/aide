@@ -21,9 +21,9 @@ export {
   type Phase,
   type SpecGroup,
   groupKey,
-} from "./data-model/types.ts";
+} from "./types.ts";
 
-export { phaseDuration, computeSpecTotalDurationMs, phasesFor } from "./data-model/phases.ts";
+export { phaseDuration, computeSpecTotalDurationMs, phasesFor } from "./phases.ts";
 
 export {
   STATE_FILTERS,
@@ -40,6 +40,6 @@ export {
   matchesSearch,
   applyFilter,
   sortGroups,
-} from "./data-model/filter-sort.ts";
+} from "./filter-sort.ts";
 
-export { groupBySpec } from "./data-model/group-builders.ts";
+export { groupBySpec } from "./group-builders.ts";

@@ -29,15 +29,15 @@ import {
   messageSlot,
   rowMessage,
   tokenField,
-} from "../ui/components.ts";
-import { esc } from "../ui/html.ts";
-import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../ui/shell.ts";
-import { t, type Language } from "../../i18n";
-import type { ScheduleEntry } from "../../project/parse-manifest.ts";
-import { nextFireTime } from "../../queue/schedule.ts";
-import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./projects-page/routes.ts";
-import { projectListBody, projectSummary } from "./projects-page/overview-list.ts";
-import { driftPrefix, renderProjectPage } from "./projects-page/project-page.ts";
+} from "../../ui/components";
+import { esc } from "../../ui/html.ts";
+import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../../ui/shell.ts";
+import { t, type Language } from "../../../i18n";
+import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import { nextFireTime } from "../../../queue/schedule.ts";
+import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./routes.ts";
+import { projectListBody, projectSummary } from "./overview-list.ts";
+import { driftPrefix, renderProjectPage } from "./project-page.ts";
 import {
   UNCHECKED_NOTE,
   type ProjectDrift,
@@ -45,8 +45,8 @@ import {
   type Page,
   type SpecView,
   type ProjectPageOptions,
-} from "./projects-page/types.ts";
-import { codeLandingChoices } from "./projects-page/settings-table.ts";
+} from "./types.ts";
+import { codeLandingChoices } from "./settings-table.ts";
 
 export type { SpecView, ProjectView, Page, ProjectDrift, ProjectPageOptions };
 export {

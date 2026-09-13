@@ -5,7 +5,7 @@
 // this page (Plan review, Scope guardian must-fix).
 
 import { describe, expect, test } from "bun:test";
-import { renderTestServersPage, type TestServerRow } from "../../../src/render.ts";
+import { renderTestServersPage, type TestServerRow } from "../../../src/render";
 
 const NAV = [{ label: "Overview", path: "projects.html" }];
 const GENERATED = "2026-09-09T10:00:00Z";

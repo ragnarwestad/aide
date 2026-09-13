@@ -1,9 +1,9 @@
 // The document tabs: Description, plus (spec 310) Analysis, Solution and
 // Status — all four with the same editor, Save and JS-off fallback.
 
-import { field, tokenField, saveCancelActions } from "../../ui/components.ts";
+import { field, tokenField, saveCancelActions } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { fileStamp, specFilePanel, type SpecFileView } from "../job-page.ts";
+import { fileStamp, specFilePanel, type SpecFileView } from "../job-page";
 import { t, type Language } from "../../../i18n";
 import { activeJob, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";

@@ -4,17 +4,17 @@
 // schedule-page/*. Configuring, monitoring and editing all live here,
 // never on a project's own page.
 
-import type { ScheduleEntry } from "../../project/parse-manifest.ts";
-import type { Language } from "../../i18n";
-import { backLink, btn, rowMessage, tokenField } from "../ui/components.ts";
-import { esc } from "../ui/html.ts";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { renderScheduleForm, type ScheduleFormOptions } from "./schedule-page/form.ts";
-import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
-import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./schedule-page/list.ts";
-import { renderScheduleOverview } from "./schedule-page/overview.ts";
-import { deleteSchedulePath, newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./schedule-page/tabs.ts";
-import { pickTab, tabBar, tabbedBody } from "./job-page.ts";
+import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { Language } from "../../../i18n";
+import { backLink, btn, rowMessage, tokenField } from "../../ui/components";
+import { esc } from "../../ui/html.ts";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
+import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
+import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
+import { renderScheduleOverview } from "./overview.ts";
+import { deleteSchedulePath, newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
+import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { SCHEDULE_TABS, deleteSchedulePath, newSchedulePath, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };

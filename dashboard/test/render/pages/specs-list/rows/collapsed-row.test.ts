@@ -4,7 +4,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 // --- spec 103: a collapsed row shows status only -----------------------------

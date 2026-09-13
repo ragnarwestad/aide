@@ -6,7 +6,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import {
   row,
   openKeys,
@@ -110,7 +110,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
       expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
     }
     // And the indent that used to hold the box's place goes with it.
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     expect(CSS).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });
 
@@ -202,7 +202,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
   // --- criterion 6: the model select keeps its cap, wherever it sits --------
 
   test("the model select's width is capped by what it IS, not where it sits (criterion 6)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     // The floor and the cap the caption line and the boxes are lined up
     // by. 8rem, the AI select's own width: at 100px a name as ordinary
     // as `fake-model` was clipped mid-word, and a control that cannot
@@ -278,7 +278,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
   // --- criterion 5: the phase line at phone width ---------------------------
 
   test("at phone width the whole phase line is one flex row (criterion 5)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
     // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
     // flex row at this width, with the cells dissolved

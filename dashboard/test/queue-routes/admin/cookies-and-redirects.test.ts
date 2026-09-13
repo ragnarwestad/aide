@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import {
   renderSpecsPage,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import {
   TOKEN,
   JOB,

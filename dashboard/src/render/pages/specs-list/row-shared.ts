@@ -4,7 +4,7 @@
 
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { FILTER_FIELD_PREFIX, FILTER_KEYS, type SpecsFilter } from "./data-model.ts";
+import { FILTER_FIELD_PREFIX, FILTER_KEYS, type SpecsFilter } from "./data-model";
 
 /** What the date cell says when the spec carries no stamp and git
  *  cannot date its folder either — a folder copied in rather than

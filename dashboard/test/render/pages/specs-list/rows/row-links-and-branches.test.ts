@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows } from "../../../../../src/render.ts";
+import { renderSpecsRows } from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
@@ -58,7 +58,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
   // from a one-line clamp that hid most of a long folder name behind a
   // click).
   test("the stylesheet clamps the name", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     expect(CSS).toContain(".spec-name > .label > .specname { overflow: hidden;");
     expect(CSS).toContain("-webkit-line-clamp: 2;");
   });

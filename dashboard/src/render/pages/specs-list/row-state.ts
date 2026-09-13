@@ -2,12 +2,12 @@
 // whether it is busy, what phase it is waiting on, what a press would
 // run.
 
-import { currentStep, inFlight, stateLabel } from "../../ui/job-state.ts";
+import { currentStep, inFlight, stateLabel } from "../../ui/job-state";
 import { gerund, landingStep } from "../../ui/job-state/resting.ts";
-import { stepLabel } from "../../ui/components.ts";
+import { stepLabel } from "../../ui/components";
 import { stepButton } from "../../../format/step-label.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
-import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model.ts";
+import type { SpecsPageOptions } from "./";
+import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off

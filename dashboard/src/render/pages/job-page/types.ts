@@ -1,6 +1,6 @@
 // The job page's own view types. Split out of job-page.ts by theme.
 
-import type { QueueRowView } from "../../ui/job-state.ts";
+import type { QueueRowView } from "../../ui/job-state";
 
 export interface JobStepResultView {
   step?: string;

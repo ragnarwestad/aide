@@ -2,7 +2,7 @@
 // every response the server answers — never to the one response
 // (/api/queue/events, text/event-stream) that must stay unbuffered.
 import { afterEach, describe, expect, test } from "bun:test";
-import { compressResponse } from "../../src/serve/serve-helpers.ts";
+import { compressResponse } from "../../src/serve/serve-helpers";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 const gzipReq = () => new Request("http://x/", { headers: { "accept-encoding": "gzip, deflate, br" } });

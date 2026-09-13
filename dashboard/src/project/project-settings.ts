@@ -25,9 +25,9 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolveTestCmd } from "./discover.ts";
+import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
-import type { ProjectReadiness, ReadinessCheckName } from "./project-admin.ts";
+import type { ProjectReadiness, ReadinessCheckName } from "./project-admin";
 
 export type SettingOrigin = "configured" | "derived" | "unset";
 

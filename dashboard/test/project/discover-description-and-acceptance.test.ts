@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
-} from "../../src/project/discover.ts";
+} from "../../src/project/discover";
 
 describe("specAcceptanceNotRequired", () => {
   let dir: string;

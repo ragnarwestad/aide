@@ -12,9 +12,9 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { blockedForMissingAnalyze, blockedForUntickedAcceptance, type ScheduleContext } from "../../../src/serve/schedules.ts";
+import { blockedForMissingAnalyze, blockedForUntickedAcceptance, type ScheduleContext } from "../../../src/serve/schedules";
 import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
 
 const FOLDER = "81-queue-and-runner";
 const dirs: string[] = [];

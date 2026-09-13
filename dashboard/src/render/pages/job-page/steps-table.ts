@@ -9,7 +9,7 @@ import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
-import { ICON_CHEVRON, stepLabel } from "../../ui/components.ts";
+import { ICON_CHEVRON, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
 
 /** A heading that says "Cost" above a column of token counts is the

@@ -6,7 +6,7 @@ import {
   navEntries,
   renderSite,
   type SpecsPageOptions,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import {
   external,
   project,

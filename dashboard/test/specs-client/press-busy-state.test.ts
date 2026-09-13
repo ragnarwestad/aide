@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SPINNER } from "../../src/render/ui/components.ts";
+import { SPINNER } from "../../src/render/ui/components";
 import {
   SOURCE,
   CONTROLS,

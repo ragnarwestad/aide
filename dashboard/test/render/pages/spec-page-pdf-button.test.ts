@@ -1,7 +1,7 @@
 // Spec 358: a spec's page opens the spec as a PDF.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecPageView } from "../../../src/render.ts";
+import type { SpecPageView } from "../../../src/render";
 import { page, view } from "./spec-page-fixtures.ts";
 
 const PDF_ACTION = "/specs/aide/150-one-page-shows-the-whole-spec/pdf";

@@ -12,13 +12,13 @@
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
-import { Runner } from "../queue/runner.ts";
+import { Runner } from "../queue/runner";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir } from "../queue/schedule.ts";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
-import type { StepOutcome } from "../queue/runner.ts";
+import type { StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
-import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover.ts";
-import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers.ts";
+import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
+import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY } from "./serve-helpers";
 
 export interface RunnerSetupContext {
   store: QueueStore;

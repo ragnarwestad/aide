@@ -5,9 +5,9 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render.ts";
-import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers.ts";
-import type { RoutesContext } from "../../routes.ts";
+import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
+import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
+import type { RoutesContext } from "..";
 
 export async function specsPages(
   ctx: RoutesContext,

@@ -8,9 +8,9 @@ import {
   minimalManifest,
   updateProjectSettings,
   upsertManifestScalar,
-} from "../../../src/project/project-admin.ts";
+} from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
-import { configValue, resolveWorktreeLinks } from "../../../src/project/discover.ts";
+import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];

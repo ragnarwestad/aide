@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
   type JobDetailView,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import {
   external,
   NAV,

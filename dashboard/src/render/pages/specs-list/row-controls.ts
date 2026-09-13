@@ -2,19 +2,19 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, stepLabel, tokenField } from "../../ui/components.ts";
+import { ICON_CHEVRON, btn, stepLabel, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { currentStep, type QueueRowView } from "../../ui/job-state.ts";
+import { currentStep, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
+import type { SpecsPageOptions } from "./";
 import {
   FROM_LIST_FIELD,
   groupKey,
   isArchivedRow,
   type SpecsFilter,
   type SpecGroup,
-} from "./data-model.ts";
+} from "./data-model";
 import { queueHref } from "./filter-bar.ts";
 import { filterFields } from "./row-shared.ts";
 import { actionState, runFormId, specBusy } from "./row-state.ts";

@@ -10,24 +10,24 @@
 // separate theme, split out to schedules/blocked.ts; `tickRunner` below
 // is where the two meet.
 
-import type { BranchStatusChecker } from "../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
-} from "../git/description-freshness.ts";
-import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
-import { resolveOpenBranchTarget } from "../git/branch-file.ts";
-import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
+} from "../../git/description-freshness.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import {
   SPEC_FILES, buildProjectViews, resolveInstallCmd, resolveSchedule, specArchivedDate,
-} from "../project/discover.ts";
-import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
-import type { QueueStore } from "../queue/queue.ts";
-import type { Runner } from "../queue/runner.ts";
-import type { SpecTarget } from "../render.ts";
-import { STATUS_SPEC_FILE } from "../render.ts";
-import { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./schedules/blocked.ts";
+} from "../../project/discover";
+import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
+import type { QueueStore } from "../../queue/queue.ts";
+import type { Runner } from "../../queue/runner";
+import type { SpecTarget } from "../../render";
+import { STATUS_SPEC_FILE } from "../../render";
+import { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./blocked.ts";
 
-export { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./schedules/blocked.ts";
+export { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./blocked.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is

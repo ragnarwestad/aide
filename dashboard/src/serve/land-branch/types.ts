@@ -6,9 +6,9 @@ import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
-import type { CodeLanding } from "../../project/discover.ts";
-import type { QueueRowView } from "../../render.ts";
-import type { createRootLock } from "../serve-helpers.ts";
+import type { CodeLanding } from "../../project/discover";
+import type { QueueRowView } from "../../render";
+import type { createRootLock } from "../serve-helpers";
 import type { RestartHook } from "./restart.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 

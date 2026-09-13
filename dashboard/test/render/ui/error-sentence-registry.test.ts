@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { invalidRequest } from "../../../src/queue/parse-request.ts";
-import { renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render.ts";
+import { renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render";
 import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helpers.ts";
-import { wordPhase } from "../../../src/render/ui/job-state.ts";
+import { wordPhase } from "../../../src/render/ui/job-state";
 import { worktreeLinksError } from "../../../src/project/project-admin/manifest-io.ts";
 import { row } from "../pages/fixtures.ts";
 

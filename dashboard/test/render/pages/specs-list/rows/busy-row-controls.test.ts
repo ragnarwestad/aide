@@ -4,8 +4,8 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
-import { ICON_LOCK } from "../../../../../src/render/ui/components.ts";
+} from "../../../../../src/render";
+import { ICON_LOCK } from "../../../../../src/render/ui/components";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 105: while a spec is busy, its row offers Cancel and nothing else ---

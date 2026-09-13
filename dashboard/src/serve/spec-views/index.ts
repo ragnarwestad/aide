@@ -4,12 +4,12 @@
 // an explicit context object stands in for the locals these functions
 // used to read directly.
 
-import { SPEC_FILES, specFileText, type SpecRef } from "../project/discover.ts";
-import type { SpecFileView, QueueRowView, SpecTarget } from "../render.ts";
-import type { QueueStore, Job } from "../queue/queue.ts";
-import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../git/description-freshness.ts";
-import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
-import type { TestServersContext } from "./test-servers/lifecycle.ts";
+import { SPEC_FILES, specFileText, type SpecRef } from "../../project/discover";
+import type { SpecFileView, QueueRowView, SpecTarget } from "../../render";
+import type { QueueStore, Job } from "../../queue/queue.ts";
+import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../../git/description-freshness.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,
  *  bundled the same way `RoutesContext` bundles `handleRoutes`'s.
@@ -98,6 +98,6 @@ export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[
  *  shrinking minority. */
 
 // The three families that used to live here as well.
-export { archivedAt, archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./spec-views/archived.ts";
-export { specPageView } from "./spec-views/spec-page.ts";
-export { jobDetailView } from "./spec-views/job-detail.ts";
+export { archivedAt, archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./archived.ts";
+export { specPageView } from "./spec-page.ts";
+export { jobDetailView } from "./job-detail.ts";

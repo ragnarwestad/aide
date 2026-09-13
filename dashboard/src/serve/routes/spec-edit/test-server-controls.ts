@@ -2,10 +2,10 @@
 // `run-controls.ts` beside this file already established: a project/
 // specFolder path, `ctx.specRef` for the archived refusal, a redirect
 // back to the spec page for a no-JS form POST.
-import { specPagePath } from "../../../render.ts";
+import { specPagePath } from "../../../render";
 import { startTestServer, stopTestServer } from "../../test-servers/lifecycle.ts";
-import { ARCHIVED_REFUSAL, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers.ts";
-import type { RoutesContext } from "../../routes.ts";
+import { ARCHIVED_REFUSAL, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+import type { RoutesContext } from "..";
 
 export async function testServerControlRoutes(
   ctx: RoutesContext,

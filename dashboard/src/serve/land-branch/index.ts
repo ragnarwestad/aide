@@ -8,11 +8,11 @@
 // descriptions) and freshness.ts (withFreshness, specs 97/154). Kept
 // as a barrel at this path because setup-land.ts imports from it.
 
-export type { LandContext } from "./land-branch/types.ts";
-export { installAfterMerge } from "./land-branch/install.ts";
-export { landBranch } from "./land-branch/merge.ts";
+export type { LandContext } from "./types.ts";
+export { installAfterMerge } from "./install.ts";
+export { landBranch } from "./merge.ts";
 export {
   landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec,
-} from "./land-branch/steps.ts";
-export { withFreshness } from "./land-branch/freshness.ts";
-export { createLaunchdRestart, restartAfterLanding, runningJobNames, type RestartHook } from "./land-branch/restart.ts";
+} from "./steps.ts";
+export { withFreshness } from "./freshness.ts";
+export { createLaunchdRestart, restartAfterLanding, runningJobNames, type RestartHook } from "./restart.ts";

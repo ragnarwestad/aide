@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, parseArgs } from "../../src/serve/serve.ts";
-import { renderSite } from "../../src/render.ts";
+import { renderSite } from "../../src/render";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 let dir: string;

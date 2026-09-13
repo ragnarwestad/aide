@@ -5,7 +5,7 @@ import {
   renderSpecsRows,
   type JobDetailView,
   type QueueRowView,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { site, NAV, detail, row } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.

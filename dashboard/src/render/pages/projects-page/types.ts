@@ -1,6 +1,6 @@
 // The site's own view types.
 
-import type { SpecView, ProjectView } from "../../../project/discover.ts";
+import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { Language } from "../../../i18n";
 

@@ -5,7 +5,7 @@
 // first phase section whose task table has unchecked rows; all
 // checked means "done".
 
-import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export interface Progress {
   percent: number;
@@ -438,4 +438,4 @@ function setStatusLineMark(content: string, phase: string, line: string, done: b
 }
 
 // What used to live here too, in parts beside this file.
-export { archiveHeldBackReason, acceptanceCriteriaUnticked, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack } from "./parse-status/held-back.ts";
+export { archiveHeldBackReason, acceptanceCriteriaUnticked, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack } from "./held-back.ts";

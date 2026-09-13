@@ -1,15 +1,15 @@
 // The spec's own pages and their edit routes: the reset page and
 // its POST, the spec page itself, and update/save/tick. Extracted
-import { testServerControlRoutes } from "./spec-edit/test-server-controls.ts";
-import { checkRoutes } from "./spec-edit/checks.ts";
-import { closeControlRoutes } from "./spec-edit/close-controls.ts";
-import { runControlRoutes } from "./spec-edit/run-controls.ts";
-import { specPageRoutes } from "./spec-edit/spec-page.ts";
-import { trackingRoutes } from "./spec-edit/tracking.ts";
-import type { RoutesContext } from "../routes.ts";
+import { testServerControlRoutes } from "./test-server-controls.ts";
+import { checkRoutes } from "./checks.ts";
+import { closeControlRoutes } from "./close-controls.ts";
+import { runControlRoutes } from "./run-controls.ts";
+import { specPageRoutes } from "./spec-page.ts";
+import { trackingRoutes } from "./tracking.ts";
+import type { RoutesContext } from "..";
 
 // Its old home, so every caller keeps the import it has.
-export { specWriteInFlight } from "./spec-edit/shared.ts";
+export { specWriteInFlight } from "./shared.ts";
 
 /** The spec's own pages and their edit routes, asked family by family.
  *  Each answers `null` for a path that is not its own, so the chain

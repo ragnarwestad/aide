@@ -4,15 +4,15 @@
 // lines; every function is unchanged and keeps its name.
 import {
   specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
-} from "../../project/discover.ts";
-import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status.ts";
-import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render.ts";
+} from "../../project/discover";
+import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
+import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { currentWorkRoundJobs, type Job } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
-import { type SpecViewsContext, specFileViews } from "../spec-views.ts";
+import { type SpecViewsContext, specFileViews } from "./";
 
 import { jobDetailView } from "./job-detail.ts";
 

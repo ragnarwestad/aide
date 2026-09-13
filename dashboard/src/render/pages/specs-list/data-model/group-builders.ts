@@ -3,7 +3,7 @@
 // none it took.
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
+import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, phasesFor, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,

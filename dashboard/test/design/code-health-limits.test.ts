@@ -4,7 +4,7 @@
 // mirroring src/'s top-level structure. Picked up by `bun test`'s own
 // discovery with no separate registration (AC-6).
 import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 
 function tsFilesUnder(dir: string): string[] {
@@ -30,8 +30,8 @@ const TEST = join(ROOT, "test");
 // this list was written. A file that grows past that count fails; one
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {
-  "src/queue/runner.ts": 596,
-  "src/queue/store.ts": 584,
+  "src/queue/runner/index.ts": 596,
+  "src/queue/store/index.ts": 584,
   "src/git/branch-merge.ts": 581,
   "src/render/ui/shell.ts": 530,
   "src/render/pages/specs-list/data-model/types.ts": 510,
@@ -45,8 +45,8 @@ const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts"];
 // path relative to the dashboard root, with the count measured when this
 // list was written.
 const OVER_FILE_COUNT: Record<string, number> = {
-  "src/serve": 24,
-  "test/render/pages": 25,
+  "src/serve": 19,
+  "test/render/pages": 24,
   "test/specs-client": 21,
   "test/design": 25,
   "test/project": 20,
@@ -127,6 +127,20 @@ describe("dashboard code health (spec 443)", () => {
     const bad = testTopLevel.filter(
       (name) => !srcTopLevel.has(name) && !TEST_ONLY_TOP_LEVEL_DIRS.includes(name),
     );
+    expect(bad).toEqual([]);
+  });
+
+  test("no source file under src shares its base name with a sibling directory (spec 450)", () => {
+    const bad: string[] = [];
+    for (const file of srcFiles) {
+      const dir = join(file, "..");
+      const name = basename(file, ".ts");
+      if (name === "index") continue;
+      const siblingDir = join(dir, name);
+      if (existsSync(siblingDir) && statSync(siblingDir).isDirectory()) {
+        bad.push(`${relPath(file)} sits beside ${relPath(siblingDir)}/`);
+      }
+    }
     expect(bad).toEqual([]);
   });
 });

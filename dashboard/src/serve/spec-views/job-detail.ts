@@ -2,12 +2,12 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specPhaseFile } from "../../project/discover.ts";
-import type { JobDetailView } from "../../render.ts";
+import { specPhaseFile } from "../../project/discover";
+import type { JobDetailView } from "../../render";
 import type { Job } from "../../queue/queue.ts";
-import { resolveStepModel, tailFile } from "../serve-helpers.ts";
+import { resolveStepModel, tailFile } from "../serve-helpers";
 import { summarizeStream } from "../../queue/parse-stream.ts";
-import type { SpecViewsContext } from "../spec-views.ts";
+import type { SpecViewsContext } from "./";
 
 export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<JobDetailView> {
   const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);

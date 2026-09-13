@@ -1,7 +1,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecCheckView, SpecPageView } from "../../../src/render.ts";
+import type { SpecCheckView, SpecPageView } from "../../../src/render";
 import { lead, page, view } from "./spec-page-fixtures.ts";
 
 // --- spec 182, ticked again by spec 212: the spec's remaining checks --------

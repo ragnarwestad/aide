@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { durationLabel } from "../../src/render/ui/job-state.ts";
+import { durationLabel } from "../../src/render/ui/job-state";
 import {
   harness,
   flush,

@@ -17,9 +17,9 @@
 // (`specs/102-design-foundation/assets/Components.dc.html`); nothing is
 // invented at this layer.
 
-import { esc } from "./html.ts";
-import { capitalizeFirst } from "../../format/error-sentence.ts";
-import { STEP_LABELS, STEP_LABELS_NB, stepLabel } from "../../format/step-label.ts";
+import { esc } from "../html.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { STEP_LABELS, STEP_LABELS_NB, stepLabel } from "../../../format/step-label.ts";
 
 export { STEP_LABELS, STEP_LABELS_NB, stepLabel };
 
@@ -431,7 +431,7 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): 
   `</div>` +
   `</div>`;
 
-import { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER } from "./components/icons.ts";
+import { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER } from "./icons.ts";
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, CHECKING } from "./components/icons.ts";
+export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, CHECKING } from "./icons.ts";

@@ -1,7 +1,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { type JobDetailView } from "../../../src/render.ts";
+import { type JobDetailView } from "../../../src/render";
 import { file, lead, page, view } from "./spec-page-fixtures.ts";
 
 // --- spec 212, criteria 1-3: one tab per document ---------------------------

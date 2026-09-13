@@ -14,7 +14,7 @@ export type {
   ProjectReadiness,
   ProjectAdminResult,
   AddProjectRequest,
-} from "./project-admin/types.ts";
+} from "./types.ts";
 
 export {
   projectNameError,
@@ -27,7 +27,7 @@ export {
   worktreeLinksError,
   suggestWorktreeLinksFromLockfile,
   suggestSpecsPath,
-} from "./project-admin/manifest-io.ts";
+} from "./manifest-io.ts";
 
 export {
   type ScheduleAdminResult,
@@ -36,9 +36,9 @@ export {
   updateScheduleEntry,
   setScheduleEnabled,
   deleteScheduleEntry,
-} from "./project-admin/schedule-admin.ts";
+} from "./schedule-admin.ts";
 
-export { assessProjectReadiness } from "./project-admin/readiness.ts";
-export { addProject } from "./project-admin/add-project.ts";
-export { updateProjectSettings } from "./project-admin/update-settings.ts";
-export { removeProject } from "./project-admin/remove-project.ts";
+export { assessProjectReadiness } from "./readiness.ts";
+export { addProject } from "./add-project.ts";
+export { updateProjectSettings } from "./update-settings.ts";
+export { removeProject } from "./remove-project.ts";

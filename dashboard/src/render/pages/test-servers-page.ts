@@ -6,7 +6,7 @@
 // table of rows", and reached the same way Settings is: the "…" menu.
 
 import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
-import { backLink, tokenField } from "../ui/components.ts";
+import { backLink, tokenField } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 

@@ -6,7 +6,7 @@
 
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { setPendingRestart, type ServerState } from "./state.ts";
-import { type RoutesContext } from "./routes.ts";
+import { type RoutesContext } from "./routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
  *  this stage builds itself off `state` and `branchFileSteps` — the

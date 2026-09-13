@@ -23,7 +23,7 @@
 // move while a step runs, because a page that reloads on a timer wipes
 // a half-typed textarea and a half-ticked list.
 
-import { renderSpecPage, type JobDetailView, type SpecPageView } from "../../../src/render.ts";
+import { renderSpecPage, type JobDetailView, type SpecPageView } from "../../../src/render";
 import type { Language } from "../../../src/i18n";
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];

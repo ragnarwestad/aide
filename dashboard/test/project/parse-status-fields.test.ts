@@ -15,7 +15,7 @@ import {
   archiveHeldBackApplies,
   archiveHeldBackReason,
   parseStatus,
-} from "../../src/project/parse-status.ts";
+} from "../../src/project/parse-status";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "..", "fixtures", "status", name), "utf-8");

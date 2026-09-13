@@ -3,10 +3,10 @@
 // families `handleSpecEditRoutes` asks in turn. Split out on its own
 // rather than folded into run-controls.ts, so that file stays the size
 // its own header comment already notes a 2026-09-04 split at.
-import { renderCloseSpecPage, specPagePath } from "../../../render.ts";
-import { bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { renderCloseSpecPage, specPagePath } from "../../../render";
+import { bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
 
-import type { RoutesContext } from "../../routes.ts";
+import type { RoutesContext } from "..";
 
 export async function closeControlRoutes(
   ctx: RoutesContext,

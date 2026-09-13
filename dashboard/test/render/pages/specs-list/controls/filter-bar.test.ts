@@ -5,7 +5,7 @@
 // equally-private `stateDropdown()`: through the page it renders into.
 
 import { describe, expect, test } from "bun:test";
-import { renderSpecsPage, type SpecsPageOptions } from "../../../../../src/render.ts";
+import { renderSpecsPage, type SpecsPageOptions } from "../../../../../src/render";
 
 const page = (opts: Partial<SpecsPageOptions> = {}): string =>
   renderSpecsPage([], "2026-08-30T00:00:00Z", [{ label: "Projects", path: "/projects" }], {

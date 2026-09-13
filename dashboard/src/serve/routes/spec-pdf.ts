@@ -8,7 +8,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { lastCommitOf } from "../../git/description-freshness.ts";
-import type { RoutesContext } from "../routes.ts";
+import type { RoutesContext } from "./";
 
 /** Homedir, sibling of `queueResultDir`'s own default — never inside a
  *  checkout, which is the exact bug REQ-4 exists to prevent. */

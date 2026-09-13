@@ -4,7 +4,7 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildProjectViews, discoverProjects } from "../../src/project/discover.ts";
+import { buildProjectViews, discoverProjects } from "../../src/project/discover";
 import { useDiscoverRoot } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();

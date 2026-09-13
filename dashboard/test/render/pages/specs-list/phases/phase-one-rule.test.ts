@@ -7,7 +7,7 @@ import {
   type JobDetailView,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import {
   generatedAt,
   NAV,
@@ -15,7 +15,7 @@ import {
   row,
   openKeys,
 } from "../../fixtures.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).

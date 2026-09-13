@@ -2,10 +2,10 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { renderResetSpecPage, specPagePath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { renderResetSpecPage, specPagePath } from "../../../render";
+import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
 
-import type { RoutesContext } from "../../routes.ts";
+import type { RoutesContext } from "..";
 
 export async function runControlRoutes(
   ctx: RoutesContext,

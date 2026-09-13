@@ -4,7 +4,7 @@
 // see 3-solution.md's own "Confirmation shape, within Approach A" for
 // why this page, not a modal, is the right shape for Close.
 
-import { backLink, field, rowMessage, saveCancelActions, tokenField } from "../../ui/components.ts";
+import { backLink, field, rowMessage, saveCancelActions, tokenField } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";

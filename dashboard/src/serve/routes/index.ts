@@ -14,19 +14,19 @@
 // (`job-detail.ts`'s single-segment id regex would otherwise swallow
 // `/api/queue/create` and friends), so the order is never to be
 // changed without re-checking every regex for overlap.
-import type { GitRunner } from "../git/branch-status.ts";
-import type { BranchStatusChecker } from "../git/branch-status.ts";
-import type { RepoMergeResult } from "../git/branch-merge.ts";
-import type { DashboardCheckout } from "../git/dashboard-checkout.ts";
-import type { SpecRef } from "../project/discover.ts";
+import type { GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { SpecRef } from "../../project/discover";
 import type {
   Job, QueueStore,
-} from "../queue/queue.ts";
+} from "../../queue/queue.ts";
 import type {
   ProjectReadiness,
   ProjectStep,
-} from "../project/project-admin.ts";
-import type { Runner } from "../queue/runner.ts";
+} from "../../project/project-admin";
+import type { Runner } from "../../queue/runner";
 import type {
   ArchivedSpecView,
   JobDetailView,
@@ -34,20 +34,20 @@ import type {
   QueueRowView,
   SpecTarget,
   SpecPageView,
-} from "../render.ts";
-import type { createRootLock } from "./serve-helpers.ts";
-import type { ServerOptions } from "./options.ts";
-import type { TestServersContext } from "./test-servers/lifecycle.ts";
-import { handlePageRoutes } from "./routes/page-routes.ts";
-import { handleQueueEvents } from "./routes/sse.ts";
-import { handleQueueAdminRoutes } from "./routes/queue-admin.ts";
-import { handleJobActionRoutes } from "./routes/job-actions.ts";
-import { handleSpecEditRoutes } from "./routes/spec-edit.ts";
-import { handleSpecPdfRoute } from "./routes/spec-pdf.ts";
-import { handleScheduleAdminRoutes } from "./routes/schedule-admin-routes.ts";
-import { handleJobDetailRoute } from "./routes/job-detail.ts";
-import { selfStopRoute } from "./routes/self-stop.ts";
-import { selfRunRoute } from "./routes/self-run.ts";
+} from "../../render";
+import type { createRootLock } from "../serve-helpers";
+import type { ServerOptions } from "../options.ts";
+import type { TestServersContext } from "../test-servers/lifecycle.ts";
+import { handlePageRoutes } from "./page-routes";
+import { handleQueueEvents } from "./sse.ts";
+import { handleQueueAdminRoutes } from "./queue-admin.ts";
+import { handleJobActionRoutes } from "./job-actions.ts";
+import { handleSpecEditRoutes } from "./spec-edit";
+import { handleSpecPdfRoute } from "./spec-pdf.ts";
+import { handleScheduleAdminRoutes } from "./schedule-admin-routes.ts";
+import { handleJobDetailRoute } from "./job-detail.ts";
+import { selfStopRoute } from "./self-stop.ts";
+import { selfRunRoute } from "./self-run.ts";
 
 /** Everything `handleRoutes` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`

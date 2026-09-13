@@ -7,7 +7,7 @@ import { parseAideRun } from "../queue/aide-run-store.ts";
 import {
   json, readBounded, serveStatic, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
-} from "./serve-helpers.ts";
+} from "./serve-helpers";
 
 export interface CoreRoutesContext {
   store: AideRunStore;

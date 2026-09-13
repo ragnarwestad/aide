@@ -1,7 +1,7 @@
 import { esc } from "../../ui/html.ts";
-import { durationLabel } from "../../ui/job-state.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
-import { groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { durationLabel } from "../../ui/job-state";
+import type { SpecsPageOptions } from "./";
+import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { busyReason, runFormId } from "./cells.ts";
 import {
   ALREADY_RUN_REASON,

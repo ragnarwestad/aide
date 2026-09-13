@@ -5,19 +5,19 @@ import {
   renderSpecsRows,
   type ArchivedSpecView,
   type SpecsPageOptions,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 
 // The markup half on its own: `pips()` is shared by the list and the job
 // page, and the mark is only ever about the pip that is running.
 describe("spec 210: pips() marks the completed thirds", () => {
   test("a now pip with a third carries the attribute", async () => {
-    const { pips } = await import("../../../../../src/render/ui/components.ts");
+    const { pips } = await import("../../../../../src/render/ui/components");
     expect(pips([{ kind: "now", title: "implement", third: 1 }])).toContain('data-third="1"');
     expect(pips([{ kind: "now", title: "implement", third: 2 }])).toContain('data-third="2"');
   });
 
   test("a now pip without a third carries nothing, exactly as before", async () => {
-    const { pips } = await import("../../../../../src/render/ui/components.ts");
+    const { pips } = await import("../../../../../src/render/ui/components");
     expect(pips([{ kind: "now", title: "implement" }])).toBe(
       `<div class="pipwrap"><div class="pipletters" aria-hidden="true"><span>i</span></div>` +
         `<div class="pips"><span class="pip now" title="implement"></span></div></div>`,
@@ -25,7 +25,7 @@ describe("spec 210: pips() marks the completed thirds", () => {
   });
 
   test("a past or todo pip never carries the mark, whatever it is handed", async () => {
-    const { pips } = await import("../../../../../src/render/ui/components.ts");
+    const { pips } = await import("../../../../../src/render/ui/components");
     expect(pips([{ kind: "past", title: "analyze", third: 2 }])).not.toContain("data-third");
     expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
   });

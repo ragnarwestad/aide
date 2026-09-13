@@ -5,7 +5,7 @@
 // and its own <svg> mark, so a reader who cannot tell red from amber
 // still sees which of the three a message is.
 import { describe, expect, test } from "bun:test";
-import { rowMessage, rowMessageParts, type MessageVariant } from "../../../src/render/ui/components.ts";
+import { rowMessage, rowMessageParts, type MessageVariant } from "../../../src/render/ui/components";
 
 const KINDS: MessageVariant[] = ["info", "waiting", "failed"];
 

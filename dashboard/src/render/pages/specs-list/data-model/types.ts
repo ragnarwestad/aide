@@ -4,7 +4,7 @@
 // everything else on this page is built from.
 
 import type { PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
-import type { QueueRowView } from "../../../ui/job-state.ts";
+import type { QueueRowView } from "../../../ui/job-state";
 import type { FileStepsAnswer } from "../../../../git/workflow-history.ts";
 import type { Sentence } from "../../../../i18n/message.ts";
 

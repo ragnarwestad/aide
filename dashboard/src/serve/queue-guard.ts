@@ -3,8 +3,8 @@
 // step 5). Small and self-contained: neither function reads a `let`, so
 // there is no getter/accessor dance here, unlike `schedules.ts` beside it.
 
-import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render.ts";
-import { cookieValue, tokenMatches } from "./serve-helpers.ts";
+import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
+import { cookieValue, tokenMatches } from "./serve-helpers";
 
 /** `/specs/<id>` joins the guarded set HERE, never as a special case
  *  further down: a read route outside the guard is exactly the silent

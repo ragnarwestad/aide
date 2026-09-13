@@ -4,12 +4,12 @@
 import { readFileSync } from "node:fs";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
-import { FROM_LIST_FIELD, specPagePath } from "../../render.ts";
+import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { parseStatus } from "../../project/parse-status.ts";
+import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { RoutesContext } from "../routes.ts";
+import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
+import type { RoutesContext } from "./";
 
 // A spec analyzed before spec 355 landed carries no 4-status.json yet —
 // the same gap schedules.ts's own `proseSteps` falls back for

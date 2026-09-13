@@ -11,7 +11,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components.ts";
+import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
 import { PHASE_TAB } from "../../src/render/pages/spec-page/tabs.ts";

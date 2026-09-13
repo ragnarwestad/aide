@@ -10,7 +10,7 @@
 // start/stop routes: a test board serves exactly one thing, itself.
 import { getBoardInfo } from "../../render/ui/board-info.ts";
 import { stoppedPage } from "./spec-edit/test-server-waiting.ts";
-import type { RoutesContext } from "../routes.ts";
+import type { RoutesContext } from "./";
 
 /** `undefined` for a path that is not this route's own, so it joins the
  *  same `??`-chain `handleRoutes()`'s dispatcher already is. */

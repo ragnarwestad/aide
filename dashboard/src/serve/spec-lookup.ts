@@ -19,13 +19,13 @@ import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
-} from "../project/discover.ts";
+} from "../project/discover";
 import {
   acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
-} from "../project/parse-status.ts";
+} from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
-import type { SpecTarget } from "../render.ts";
-import { resolveDependencyFolder } from "./serve-helpers.ts";
+import type { SpecTarget } from "../render";
+import { resolveDependencyFolder } from "./serve-helpers";
 
 /** What `targets()` caches for five seconds and every other lookup in
  *  this file reads a slice of. */
