@@ -26,4 +26,6 @@ shellcheck --severity=warning \
   core/scripts/upgrade-ai-tools \
   core/scripts/validate-env \
   core/scripts/lib/*.sh \
+  dashboard/test/round/run \
+  dashboard/test/round/claude-stub \
   scripts/check-bash

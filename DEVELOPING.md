@@ -25,7 +25,7 @@ also needs the tools its checks run on — the same four commands CI runs:
 | Python 3.9 | `.venv/bin/pytest`, the root's gate | `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` |
 | bun | `cd dashboard && make test`, the dashboard's gate | `brew install oven-sh/bun/bun` (or mise; the version is `dashboard/bun.lock`'s) |
 | markdownlint-cli2 | `npx markdownlint-cli2 '**/*.md'` | fetched by `npx`, needs Node.js |
-| shellcheck | `scripts/check-bash`, over every bash script in `core/scripts` | `brew install shellcheck` |
+| shellcheck | `scripts/check-bash`, over every bash script in `core/scripts` and `dashboard/test/round` | `brew install shellcheck` |
 
 `scripts/check-bash` refuses with the install command when shellcheck is
 missing, so a machine without it never reports a bash change as checked.

@@ -36,7 +36,7 @@ root is pytest and `dashboard/` is bun + TypeScript (see
 cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then bun test
 cd dashboard && bun test test/queue.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
-scripts/check-bash                  # shellcheck over core/scripts — run it when a bash script changed
+scripts/check-bash                  # shellcheck over core/scripts and the round's bash — run it when a bash script changed
 ```
 
 **`bun test` transpiles; it does not type-check.** A green `bun test` says

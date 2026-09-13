@@ -421,5 +421,16 @@ if [ -n "$MODEL" ]; then
   echo "== total cost: \$$total_cost (model: $MODEL)"
 fi
 
+# A round that missed keeps its evidence: WORK is removed on exit (the
+# trap above), so a mismatch's own log would be gone before anyone could
+# read it — which is how one archived-instead-of-failed round on
+# 2026-09-12 went unexplained. Copied to a place that outlives the
+# round, one file per round, oldest first to delete by hand.
+KEPT_LOGS="${AIDE_ROUND_KEPT_LOGS:-$HOME/aide-dashboard/round-logs}"
+if [ "$fails" -gt 0 ]; then
+  mkdir -p "$KEPT_LOGS"
+  kept="$KEPT_LOGS/$(date +%Y%m%d-%H%M%S)-${SPEC_FOLDER:-$(basename "$SERVE_FROM")}.serve.log"
+  cp "$WORK/serve.log" "$kept" 2>/dev/null && echo "== log kept: $kept"
+fi
 echo "== log: $WORK/serve.log"
 exit $(( fails > 0 ? 1 : 0 ))
