@@ -69,7 +69,17 @@ if [ -n "$BRANCH" ]; then
   # even though the directory it once lived in is long gone).
   git -C "$AIDE" worktree prune >/dev/null 2>&1 || true
   WT="$WORK/checkout"
-  if ! git -C "$AIDE" worktree add -q "$WT" "$BRANCH" 2>/dev/null; then
+  # A branch that is checked out somewhere already (the serving
+  # checkout's own `main`, when the Deploy tab starts a test server from
+  # it) cannot be checked out a second time — git refuses — so it is
+  # served DETACHED at the branch's commit instead. The board is the same
+  # either way: nothing a round does commits to the branch it serves.
+  if git -C "$AIDE" worktree list --porcelain 2>/dev/null | grep -qx "branch refs/heads/$BRANCH"; then
+    WT_REF=(--detach "$BRANCH")
+  else
+    WT_REF=("$BRANCH")
+  fi
+  if ! git -C "$AIDE" worktree add -q "$WT" "${WT_REF[@]}" 2>/dev/null; then
     # Reached here, WORK exists but `trap stop EXIT` is not registered yet
     # (that happens later, once the server is started) — clean up by hand
     # rather than leaking the temp directory on this one failure path.
