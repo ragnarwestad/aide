@@ -172,6 +172,10 @@ class TestCiWorkflow:
             "core/scripts/upgrade-ai-tools",
             "core/scripts/validate-env",
             "core/scripts/lib/*.sh",
+            # The round's own bash — the script a test server is started
+            # by, and the stand-in model it drives.
+            "dashboard/test/round/run",
+            "dashboard/test/round/claude-stub",
         ):
             assert target in text, \
                 f"scripts/check-bash never names {target}"
