@@ -240,6 +240,22 @@ def test_close_on_a_plainly_archived_spec_names_reopen(script, project, specs):
     assert "**Closed:**" not in text
 
 
+def test_an_archived_spec_that_mentions_the_stamp_is_not_already_closed(script, project, specs):
+    """The stamp is the start of a line; a status table that quotes it
+    (the spec that built Close does) is an archived spec, and close
+    answers already-archived, not already-closed."""
+    configure(project, specs)
+    body = (
+        "# X - Status\n\n| Task | Status | Notes |\n|---|---|---|\n"
+        "| write the stamp | done | writes `**Closed:** <date> — <reason>` |\n\n"
+        "**Archived:** 2026-09-01\n"
+    )
+    add_spec(specs, "82-x", body, archived=True)
+    rc, out, _ = run(script, project, "82-x")
+    assert rc == 0, out
+    assert out["terminalReason"] == "already-archived", out
+
+
 # --- conflict-open ----------------------------------------------------------
 
 

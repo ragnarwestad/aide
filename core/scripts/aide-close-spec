@@ -129,7 +129,9 @@ case "$spec_folder" in
   archive/*)
     folder_name="${spec_folder#archive/}"
     existing_status="$specs_root/$spec_folder/4-status.md"
-    if [ -f "$existing_status" ] && grep -q '\*\*Closed:\*\*' "$existing_status" 2>/dev/null; then
+    # The stamp at the start of a line, as spec-state.sh reads it — a
+    # status that merely mentions the stamp in its text is not closed.
+    if [ -f "$existing_status" ] && grep -Eq '^[[:space:]]*-?[[:space:]]*\*\*Closed:\*\*' "$existing_status" 2>/dev/null; then
       emit_ok "$(jq -cn --arg n "spec $folder_name is already closed — nothing to do" \
         --arg f "$spec_folder" \
         '{terminalReason:"already-closed", note:$n, specFolder:$f}')"
