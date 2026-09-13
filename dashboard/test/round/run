@@ -273,31 +273,88 @@ echo "== queue the specs, each through create"
 # board's header presses the same endpoint, so a kept board can run the
 # round again without a terminal. `GET /api/self-run` says how far the
 # queueing has come and which folder each fixture became.
-declare -a FOLDERS=() EXPECTS=() ROWS=()
+declare -a FOLDERS=() EXPECTS=() ROWS=() SLUGS=()
 fails=0
-started="$(api /api/self-run '{}')"
-printf '%s' "$started" | jq -e '.ok' >/dev/null \
-  || { echo "  the board refused to start the round: $started" >&2; exit 1; }
-round=""
-for _ in $(seq 1 600); do
-  round="$(curl -s -m 20 "$BASE/api/self-run" -H "accept: application/json" -H "X-Aide-Token: $TOKEN")"
-  case "$(printf '%s' "$round" | jq -r .stage)" in
-    running|done|failed) break ;;
-  esac
-  sleep 2
-done
-if [ "$(printf '%s' "$round" | jq -r .stage)" = "failed" ]; then
-  echo "  the round did not get queued: $(printf '%s' "$round" | jq -r '.error // .stage')"
-  fails=1
-fi
+# Seeds the fixtures from HERE, the way this script did before the board
+# took the round over: one create per fixture through /api/queue/create,
+# waiting for the folder each becomes, then that spec's own steps. Kept
+# for a board whose own code predates `POST /api/self-run` on a branch
+# board (it answers "not a round board"): the script is always the
+# serving checkout's, the board is the branch's, and a branch cut before
+# that route learned to seed would otherwise come up with no specs.
 # Bash 3.2: parallel arrays, no associative ones.
-# The third column is the fixture's own `expect` (state, stopReason,
-# message) as one JSON value, or "null" for a fixture that says nothing
-# about its row.
-while IFS=$'\t' read -r slug folder expect row; do
-  [ -n "$folder" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
-  FOLDERS+=("$folder"); EXPECTS+=("$expect"); ROWS+=("$row")
-done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected, (.expect // null | tojson)] | @tsv')
+seed_from_script() {
+  for spec_json in "$HERE"/specs/*.json; do
+    slug="$(basename "$spec_json" .json)"
+    title="$(jq -r .title "$spec_json")"
+    description="$(cat "$HERE/specs/$slug.md")"
+    # A fixture names its dependency by the NUMBER in its file name
+    # ("01"); the folder that number became is only known once created.
+    dependsOn=""
+    for dep in $(jq -r '(.dependsOn // [])[]' "$spec_json"); do
+      resolved=""
+      i=0
+      while [ "$i" -lt "${#SLUGS[@]}" ]; do
+        case "${SLUGS[$i]}" in "$dep"-*) resolved="${FOLDERS[$i]}" ;; esac
+        i=$((i + 1))
+      done
+      [ -n "$resolved" ] || { echo "  no folder yet for dependency $dep of $slug"; fails=$((fails + 1)); }
+      [ -n "$dependsOn" ] && dependsOn="$dependsOn,"
+      dependsOn="$dependsOn$resolved"
+    done
+    body="$(jq -cn --arg p "aide-test" --arg t "$title" --arg d "$description" --arg dep "$dependsOn" \
+      '{project:$p, title:$t, description:$d} + (if $dep == "" then {} else {dependsOn:($dep|split(","))} end)')"
+    create_job="$(api /api/queue/create "$body" | jq -r '.job.id // empty')"
+    # A create job's specFolder starts as a provisional "new-<8 hex>" and
+    # becomes the real "NN-slug" once the step has run and landed.
+    spec_folder=""
+    for _ in $(seq 1 90); do
+      spec_folder="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" \
+        | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | .specFolder // empty')"
+      case "$spec_folder" in new-????????) spec_folder="" ;; esac
+      [ -n "$spec_folder" ] && break
+      sleep 2
+    done
+    if [ -z "$spec_folder" ]; then
+      echo "  create never landed for $slug"
+      fails=$((fails + 1))
+      continue
+    fi
+    FOLDERS+=("$spec_folder")
+    EXPECTS+=("$(jq -r .expected "$spec_json")")
+    ROWS+=("$(jq -c '.expect // null' "$spec_json")")
+    SLUGS+=("$slug")
+    api /api/queue "$(jq -c --arg p "aide-test" --arg f "$spec_folder" \
+      '{project:$p, specFolder:$f, steps:.steps} + (if .timeoutSec then {timeoutSec:.timeoutSec} else {} end)' "$spec_json")" >/dev/null
+  done
+}
+started="$(api /api/self-run '{}')"
+if printf '%s' "$started" | jq -e '.ok' >/dev/null 2>&1; then
+  round=""
+  for _ in $(seq 1 600); do
+    round="$(curl -s -m 20 "$BASE/api/self-run" -H "accept: application/json" -H "X-Aide-Token: $TOKEN")"
+    case "$(printf '%s' "$round" | jq -r .stage)" in
+      running|done|failed) break ;;
+    esac
+    sleep 2
+  done
+  if [ "$(printf '%s' "$round" | jq -r .stage)" = "failed" ]; then
+    echo "  the round did not get queued: $(printf '%s' "$round" | jq -r '.error // .stage')"
+    fails=1
+  fi
+  # The third column is the fixture's own `expect` (state, stopReason,
+  # message) as one JSON value, or "null" for a fixture that says nothing
+  # about its row.
+  while IFS=$'\t' read -r slug folder expect row; do
+    [ -n "$folder" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
+    FOLDERS+=("$folder"); EXPECTS+=("$expect"); ROWS+=("$row")
+  done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected, (.expect // null | tojson)] | @tsv')
+elif [ "$started" = "not a round board" ]; then
+  echo "  (this board's code predates seeding through /api/self-run; seeding from the script)"
+  seed_from_script
+else
+  echo "  the board refused to start the round: $started" >&2; exit 1
+fi
 
 echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
 start=$(date +%s)

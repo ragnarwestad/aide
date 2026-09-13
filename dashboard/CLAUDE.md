@@ -161,3 +161,23 @@ unticked` gates: Close is legal from every phase Archive would refuse.
   `archivedLine`. `isArchivedRow` (queue-list) is widened to include it —
   every caller's real question is "is this row locked", true of a closed
   row the same way.
+
+## Code health
+
+The dashboard's own source keeps four limits, checked by
+`test/design/code-health-limits.test.ts`:
+
+- A source file under `src/` stays at or under 500 lines. `messages.ts`,
+  `en.ts` and `nb.ts` are exempt by filename — the message catalogues
+  grow with every new string.
+- A test file stays at or under 800 lines.
+- A directory holds at most 15 `.ts` files directly inside it.
+- As a rule, a source file's tests live under the matching path in
+  `test/` — the test for `src/queue/store.ts` belongs under
+  `test/queue/`. A small, tightly-coupled file may keep its test beside
+  it instead, as `src/i18n/`'s own catalogue files already do.
+
+A file nearing a limit is split by responsibility, not by size — pull
+out the part that has its own name, not an arbitrary half. New
+functionality goes into its own file rather than being appended to one
+that already holds something else.

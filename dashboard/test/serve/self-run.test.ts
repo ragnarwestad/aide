@@ -76,10 +76,35 @@ describe("POST /api/self-run", () => {
 
   // A board started from a spec's branch (a numbered folder) previews
   // that spec and is never re-run: no Run there, whatever is sent.
-  test("on a board started from a spec's branch, answers 404 to both", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: "424-headeren-sier-hvilket-board" } });
+  // The round script seeds a branch board's fixtures through this route
+  // when the board comes up; without that first press the board shows
+  // no specs at all (2026-09-12). What a branch board never gets is a
+  // SECOND round: no Run button is drawn, and a press by hand is refused.
+  test("on a board started from a spec's branch, the first press seeds the round and a second is refused", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, testBoardSpec: "424-headeren-sier-hvilket-board", roundFixturesDir: fixtures },
+    });
+    const code = join(dir, "root", "aide");
+    const specs = join(dir, "specs-repo");
+    mkdirSync(specs, { recursive: true });
+    writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specs}\n`);
+    repoWithHistory(code, join(dir, "code-origin.git"), true);
+    repoWithHistory(specs, join(dir, "specs-origin.git"), false);
+
+    const first = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+    expect(first.status).toBe(200);
+    let state: { stage: string } = { stage: "resetting" };
+    for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      const res = await fetch(`${base}/api/self-run`, auth);
+      expect(res.status).toBe(200);
+      state = (await res.json()) as typeof state;
+    }
+    expect(state.stage).toBe("done");
+
     expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(404);
-    expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(404);
+    // The status stays readable: the page's own header reads it.
+    expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(200);
   });
 
   test("before any press the status is idle", async () => {
