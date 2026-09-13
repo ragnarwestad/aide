@@ -52,7 +52,7 @@ export interface NavEntry {
 
 // The theme switcher's own code is TypeScript like the rest of the
 // repo; the browser needs JavaScript. Transpiled once, here, the way
-// `serve.ts` does it for `queue-client.ts` — Bun has the transpiler
+// `serve.ts` does it for `specs-client.ts` — Bun has the transpiler
 // in-process, so this needs no build step and no bundle in the repo.
 const transpile = (file: string): string =>
   new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
@@ -80,7 +80,7 @@ const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
 // commit and push. Same tag as the others, for the same reason.
 const FORM_BUSY_SCRIPT = transpile("busy/form-busy.ts");
 // The sixth: a link that leaves the page says so the moment it is
-// clicked, on every page (spec 312) — `queue-client.ts` used to own
+// clicked, on every page (spec 312) — `specs-client.ts` used to own
 // this for the one page it loads on.
 const NAV_BUSY_SCRIPT = transpile("busy/nav-busy.ts");
 // The seventh: the same click nav-busy.ts marks also gets a covering

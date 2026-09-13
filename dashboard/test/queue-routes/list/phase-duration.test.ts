@@ -193,7 +193,7 @@ describe("a phase says how long it took", () => {
   // REQ-2: a running phase's own elapsed-so-far now counts toward the
   // header total (reversing spec 281's exclusion), and the cell carries
   // `data-elapsed` so the browser's existing per-second tick
-  // (`queue-client.ts`) keeps counting it up with no further redraw.
+  // (`specs-client.ts`) keeps counting it up with no further redraw.
   test("a spec with a phase in flight sums what has settled plus the live phase's elapsed time, and ticks (REQ-2)", () => {
     const html = page(
       [

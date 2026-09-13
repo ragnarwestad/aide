@@ -94,9 +94,9 @@ dropdown could not stay current: the row refresh deliberately replaces the ROWS 
 wiped — and a spec created since the page loaded would be in the list and not in the dropdown.
 
 Every control here is a plain form first: ticking phases and pressing Run works with JavaScript switched off, and so do
-Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `queue-client.ts` is a
+Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `specs-client.ts` is a
 layer ABOVE that floor, never the mechanism (see
-[what the script adds](#what-the-script-adds)). It cannot `import` anything: `queueClientScript()` runs
+[what the script adds](#what-the-script-adds)). It cannot `import` anything: `specsClientScript()` runs
 `Bun.Transpiler.transformSync` over it and inlines the result into a plain `<script>` tag — that transpiles, it does not
 bundle. An
 `import` survives as an ESM import inside a classic inline script (a 404, since this server does not serve that path),
@@ -139,7 +139,7 @@ it is alive" in the same mark instead of a second element. A pulse was rejected 
 not as work in progress. Every running row animates on one shared timing rather than each starting when its row was
 drawn, so several at once move together instead of shimmering at random. `phaseChip`'s `busy` option is gone along with
 `.phase.busy` in
-`css.ts` — `SPINNER` itself is used by `btn()`'s busy variant and by `queue-client.ts`'s in-flight-press
+`css.ts` — `SPINNER` itself is used by `btn()`'s busy variant and by `specs-client.ts`'s in-flight-press
 spinner, a different fact with a different lifetime (see [what the script adds](#what-the-script-adds)).
 
 `prefers-reduced-motion` is honoured here: `.pip.now` drops the animation and holds
@@ -402,14 +402,14 @@ Three things the column then says, by row type:
 
 The live count is the one timer on this page, and it is deliberately the narrowest one there can be: a one-second
 `setInterval` in
-`src/queue-client.ts` that re-queries `[data-elapsed]` fresh each tick and rewrites `textContent`. Re-querying is what
+`src/specs-client.ts` that re-queries `[data-elapsed]` fresh each tick and rewrites `textContent`. Re-querying is what
 lets it survive
 `swapRows()` replacing `#jobrows` with no rebinding. It fetches nothing and touches no layout-affecting attribute, so
 the redraw rule above holds.
 
 **`formatElapsed` there is HAND-PAIRED with `durationLabel` in
 `src/render/ui/job-state.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
-so the wording rule exists twice. `test/queue-client/live-redraw.test.ts`'s "the page words a duration exactly as the server does"
+so the wording rule exists twice. `test/specs-client/live-redraw.test.ts`'s "the page words a duration exactly as the server does"
 runs a tick against the imported
 `durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the
 first time the clock ticks over the figure the server drew.

@@ -176,7 +176,7 @@ function testBoardSection(name: string, opts: ProjectPageOptions): string {
   }
   // Deliberately NOT class="deployform"/"actionform"/"rowrun" — any of
   // those three classes gets its native submit replaced by an XHR
-  // (`queue-client/forms.ts`/`press.ts`), which silently defeats
+  // (`specs-client/forms.ts`/`press.ts`), which silently defeats
   // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
   // spaces this form's children with no CSS of its own needed.
   const button =

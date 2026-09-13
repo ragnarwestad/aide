@@ -38,7 +38,7 @@ export function btn(o: {
   /** `submit` unless said otherwise: every control on this page is a
    *  real form, which is what makes it work with script off. */
   type?: "submit" | "button";
-  /** What the button says while its request is out. `queue-client.ts`
+  /** What the button says while its request is out. `specs-client.ts`
    *  reads it, so it belongs beside the label it replaces. */
   pending?: string;
   title?: string;
@@ -219,7 +219,7 @@ const MESSAGE_ICON: Record<MessageVariant, string> = {
 };
 
 /** Why the button you just pressed did nothing, on the row you pressed
- *  it on. `hook` is the class `queue-client.ts` selects on — it carries
+ *  it on. `hook` is the class `specs-client.ts` selects on — it carries
  *  no styling of its own, and renaming one silently breaks the browser
  *  code with no type error to catch it. */
 export function rowMessage(

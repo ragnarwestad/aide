@@ -7,8 +7,8 @@
 // TypeScript (split css.ts into real .css files) — nothing here needed
 // to be a template literal, since every ${…} it ever carried was
 // static text (the light/dark colour blocks, the two SVG chevrons),
-// never logic. Bun reads each file the same way `queueClientScript`
-// reads `queue-client.ts` — synchronously, once, in-process, no build
+// never logic. Bun reads each file the same way `specsClientScript`
+// reads `specs-client.ts` — synchronously, once, in-process, no build
 // step and no bundle checked into the repo.
 //
 // One token block, six components, and nothing else. Every colour, type

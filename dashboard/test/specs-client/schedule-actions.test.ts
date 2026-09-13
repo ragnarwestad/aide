@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   bindScheduleDelete, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
-} from "../../src/queue-client/schedule-actions.ts";
+} from "../../src/specs-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
   const box = {

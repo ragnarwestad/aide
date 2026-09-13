@@ -219,7 +219,7 @@ describe("renderProjectPage: the Deploy tab's two headed sections (spec 441)", (
   });
 
   // Risk analysis's own must-catch case: the button's form must NOT carry
-  // any of the three classes `queue-client.ts` intercepts and replaces
+  // any of the three classes `specs-client.ts` intercepts and replaces
   // with an XHR — doing so would silently defeat target="_blank" (AC-5).
   test("the button's form carries none of deployform/actionform/rowrun", () => {
     const html = renderProjectPage(

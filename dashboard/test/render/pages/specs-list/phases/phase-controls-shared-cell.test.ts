@@ -258,7 +258,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   // The control posts nothing and finds the select it writes through
   // the `form` id and `data-ai` together (`applyAiPick`,
-  // `queue-client.ts`). Neither depends on which `<td>` it sits in —
+  // `specs-client.ts`). Neither depends on which `<td>` it sits in —
   // but both are markup this file writes, and moving the control into
   // the cell beside it is exactly the edit that could drop one without
   // a type error to say so.

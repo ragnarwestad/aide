@@ -3,7 +3,7 @@
 // between probes, and never mistakes a thrown fetch for an answer.
 
 import { describe, expect, test } from "bun:test";
-import { submitDeploy, waitForServer } from "../../src/queue-client/forms.ts";
+import { submitDeploy, waitForServer } from "../../src/specs-client/forms.ts";
 
 describe("waitForServer", () => {
   test("keeps probing through refused connections until the page answers, then resolves", async () => {

@@ -3,7 +3,7 @@
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
 import { renderResetSpecPage, specPagePath } from "../../../render.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
 
 import type { RoutesContext } from "../../routes.ts";
 
@@ -24,7 +24,7 @@ export async function runControlRoutes(
     const html = renderResetSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
       error: url.searchParams.get("error") ?? undefined,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

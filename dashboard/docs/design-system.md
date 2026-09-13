@@ -65,7 +65,7 @@ generated site is published as plain files and has to work opened from a folder.
 
 `test/design/css-guard-tokens.test.ts` fails the suite on a colour literal or an off-scale font size anywhere in `css.ts`
 outside the token block, and on any CSS class a render file emits that is not one of the components, one of the named
-`queue-client.ts` selector hooks (`rowrun`, `actionform`, `mergeform`, `refused`,
+`specs-client.ts` selector hooks (`rowrun`, `actionform`, `mergeform`, `refused`,
 `refusal`, `newspec`, `newspecform`) or one of the short list of structural names it writes out in full.
 
 So a spec that wants a look it cannot build from the tokens has to change the TOKENS — visibly, in one block — rather
@@ -77,10 +77,10 @@ than add a colour beside them.
 request, so it is read by whoever views source, not just by the next editor (`queue-detail.test.ts`
 proves the re-read by writing a marker word to a comment and asserting a second response does not contain it).
 
-`mergeoverride` in that allow-list and in `queue-client.ts`'s `ACTIONS`
+`mergeoverride` in that allow-list and in `specs-client.ts`'s `ACTIONS`
 selector is dead in production: no render path emits it any more. It stays deliberately — generic pending/disable
-plumbing shared by four form classes, not worth touching `queue-client.ts` and its
-tests under `test/queue-client/` to remove for a class nothing else needs.
+plumbing shared by four form classes, not worth touching `specs-client.ts` and its
+tests under `test/specs-client/` to remove for a class nothing else needs.
 
 ## Spacing lives in the container, not the component
 
@@ -135,7 +135,7 @@ literal containment.
 Where a field must ride inside the form for event bubbling but must never itself mark the form dirty
 (a display-only preference, not a saved field), exclude it from the shared listener with a
 `closest("[data-*]")` guard rather than moving it back outside the form — `spec-form-actions.ts`'s
-`bind()` and `queue-client.ts`'s AI-picker sync both do this already.
+`bind()` and `specs-client.ts`'s AI-picker sync both do this already.
 
 ## Theme choice
 
@@ -152,9 +152,9 @@ first paint (no flash)
 needs a script that runs before body content, on every page — served and generated alike — so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one shared, unconditional `<script>` in `<head>`:
 `src/render/scripts/theme-script.ts`, inlined the same way `serve.ts` inlines
-`queue-client.ts` for the served `/` page, and tested the same way (transpile the file and run it against a fake DOM —
+`specs-client.ts` for the served `/` page, and tested the same way (transpile the file and run it against a fake DOM —
 `theme-script.ts`
-cannot `import`/`export`, for the same reason `queue-client.ts` can't). This is a separate mechanism from `opts.script`
+cannot `import`/`export`, for the same reason `specs-client.ts` can't). This is a separate mechanism from `opts.script`
 (end-of-body, served-`/`-only) — a page carries two `<script>` tags, so a test that locates "the"
 script by first occurrence will silently grab the wrong one; find each by a substring unique to its content.
 

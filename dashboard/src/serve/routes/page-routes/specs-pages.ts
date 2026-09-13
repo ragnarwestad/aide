@@ -6,7 +6,7 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render.ts";
-import { languageChoice, queueClientScript, sortChoice, stateChoice } from "../../serve-helpers.ts";
+import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers.ts";
 import type { RoutesContext } from "../../routes.ts";
 
 export async function specsPages(
@@ -66,7 +66,7 @@ export async function specsPages(
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       archivedSpecs,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       // Only what the config granted a budget to is offerable: a
       // dropdown naming a model the machine has not agreed to pay for
       // would be a way around the caps.
@@ -197,7 +197,7 @@ export async function specsPages(
       createProjects: [...ctx.allowed].sort(),
       targets: ctx.withFreshness(ctx.targets()),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name,
         budgetUsd: choice.budgetUsd,

@@ -1,6 +1,6 @@
 // Serving what is not a queue route: the generated static site, the PWA
 // assets, the fallback nav for a server with no project root, the
-// bundled queue-client script, and a bounded file tail.
+// bundled specs-client script, and a bounded file tail.
 
 import {
   closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync,
@@ -39,25 +39,25 @@ export function navFromSite(siteDir: string): NavEntry[] {
   return entries;
 }
 
-// Page code is TypeScript, split across src/queue-client/*.ts and bundled
-// from its src/queue-client.ts entry point; the browser needs one flat
+// Page code is TypeScript, split across src/specs-client/*.ts and bundled
+// from its src/specs-client.ts entry point; the browser needs one flat
 // JavaScript file. Bundle once, on first use, and keep it — Bun has the
 // bundler in-process (`Bun.build`), so this needs no build step and no
 // bundle checked into the repo. `format: "iife"` is what makes that
 // legal to inline as a classic <script>: no import/export survives in
 // the output, every module's top-level code runs inside one wrapper
 // function, in the same order the entry point pulls its pieces in.
-let queueScript: Promise<string | undefined> | null = null;
-export function queueClientScript(): Promise<string | undefined> {
-  if (queueScript !== null) return queueScript;
-  queueScript = Bun.build({
-    entrypoints: [join(import.meta.dir, "../../queue-client.ts")],
+let specsScript: Promise<string | undefined> | null = null;
+export function specsClientScript(): Promise<string | undefined> {
+  if (specsScript !== null) return specsScript;
+  specsScript = Bun.build({
+    entrypoints: [join(import.meta.dir, "../../specs-client.ts")],
     target: "browser",
     format: "iife",
   })
     .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
     .catch(() => undefined); // the page still works: the noscript refresh takes over
-  return queueScript;
+  return specsScript;
 }
 
 // `@toast-ui/editor`'s package.json carries a top-level `"types"` field
@@ -84,12 +84,12 @@ function toastUiEditorResolveFix(): import("bun").BunPlugin {
 }
 
 // The Description tab's own bundle (spec 292): same shape as
-// `queueClientScript()` above — cached, `format: "iife"`, fail-open on
+// `specsClientScript()` above — cached, `format: "iife"`, fail-open on
 // a build error — so a failed build degrades to the plain textarea
 // rather than breaking the page. Its own CSS travels inside this same
 // bundle (see `spec-editor-client.ts`'s own comment on why), so this
 // one string is genuinely the whole payload. `minify: true` because the
-// unminified payload is ~900 KB — nothing `queueClientScript()` bundles
+// unminified payload is ~900 KB — nothing `specsClientScript()` bundles
 // is remotely this size, so it has never needed this.
 let specEditorScript: Promise<string | undefined> | null = null;
 export function specEditorClientScript(): Promise<string | undefined> {

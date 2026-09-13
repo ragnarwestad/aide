@@ -615,7 +615,7 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    Movement ALONG the bar, in the direction the four marks already
    read, rather than a pulse — a pulse reads as an alert.
    No animation-delay, ever: every row's pip is torn down and rebuilt
-   in one innerHTML swap (queue-client.ts), so a plain infinite
+   in one innerHTML swap (specs-client.ts), so a plain infinite
    animation starts them all together. A delay keyed off a row's index
    or a job's start time is what would make four running specs shimmer
    at random instead of moving as one. */

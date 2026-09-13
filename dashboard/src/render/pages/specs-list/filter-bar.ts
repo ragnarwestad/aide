@@ -194,7 +194,7 @@ function searchForm(f: SpecsFilter, opts: SpecsPageOptions, state: string, lang:
     // delete. A LINK, like the fold and the sort: `q` is dropped and
     // every other filter travels on, so it works with script off,
     // survives a reload and can be pasted — and `data-nav` lets
-    // `queue-client.ts` swap the rows in place instead of reloading.
+    // `specs-client.ts` swap the rows in place instead of reloading.
     // Drawn only when there is something to clear; an × over an empty
     // field is a control that does nothing.
     `<span class="searchfield">` +

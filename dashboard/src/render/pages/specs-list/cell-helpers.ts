@@ -100,7 +100,7 @@ export const phaseWordCell = (
  *  or stopped by an error, has genuinely spent whatever its settled
  *  phases show, and this cell says so rather than a bare dash. While a
  *  phase is running, `data-elapsed` mirrors `phaseDurationCell` exactly
- *  so the page's own per-second tick (`queue-client.ts`) counts this
+ *  so the page's own per-second tick (`specs-client.ts`) counts this
  *  cell up too, with no further server involvement. */
 export function activeDurationCell(g: SpecGroup): string {
   const ms = g.totalDurationMs ?? 0;

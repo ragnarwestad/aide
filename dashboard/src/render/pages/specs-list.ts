@@ -14,7 +14,7 @@
 // it deliberately replaces the rows alone. The row does everything it
 // did, so it is gone.
 //
-// The page carries browser code (compiled from queue-client.ts) so the
+// The page carries browser code (compiled from specs-client.ts) so the
 // list can refresh without reloading a control someone is half-way
 // through setting. Everything the code does also works without it: the
 // filters and the sort are ordinary links, and every Run control is a
@@ -114,7 +114,7 @@ export interface SpecsPageOptions {
    *  row as every other archived spec now, wearing the mark. */
   archivedSpecs?: ArchivedSpecView[];
   token?: string;
-  /** Browser code for this page, compiled from `queue-client.ts` by the
+  /** Browser code for this page, compiled from `specs-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
    *  TypeScript like everything else, and the compiler checks it. */
   script?: string;

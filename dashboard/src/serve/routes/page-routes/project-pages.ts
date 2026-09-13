@@ -14,7 +14,7 @@ import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_
 import { MAIN_BOARD_KEY, refreshBoardStatus } from "../../boards/lifecycle.ts";
 import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../spec-edit/board-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
+import { languageChoice, specsClientScript } from "../../serve-helpers.ts";
 import type { RoutesContext } from "../../routes.ts";
 
 export async function projectPages(
@@ -35,7 +35,7 @@ export async function projectPages(
       jobCapUsd: ctx.queue.defaults.jobCapUsd,
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
       lang: langResult.lang,
@@ -96,7 +96,7 @@ export async function projectPages(
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       existingCheckouts: unclaimed,
       // And what each of them ignores, which is where the worktree
       // links a run needs are named (spec 140). The union, deduped
@@ -146,7 +146,7 @@ export async function projectPages(
     const langResult = languageChoice(url, req);
     const html = renderRemoveProjectPage(name, ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
@@ -253,7 +253,7 @@ export async function projectPages(
       ctx.nav(),
       {
         token: ctx.queueToken,
-        script: await queueClientScript(),
+        script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`
         // above already resolved both, and the table draws its Value
@@ -373,7 +373,7 @@ export async function projectPages(
         // The RAW allowlist, like the New-spec dropdown: a project
         // with no spec yet is exactly what this page is for.
         createProjects: [...ctx.allowed].sort(),
-        script: await queueClientScript(),
+        script: await specsClientScript(),
         error: url.searchParams.get("error") ?? undefined,
         // What the Add that landed the reader here found out (spec
         // 138). Straight from the query string, like the refusal

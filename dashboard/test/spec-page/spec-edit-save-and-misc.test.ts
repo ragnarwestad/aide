@@ -96,7 +96,7 @@ describe("GET the edit page", () => {
   // REQ-1: the editor bundle is served from its own file and referenced
   // with <script src>, never inlined — on the ONE tab that has an
   // editable textarea and nowhere else, mirroring how
-  // queueClientScript() already scopes itself.
+  // specsClientScript() already scopes itself.
   test("the Description tab references the editor's script by src; other tabs do not", async () => {
     const { base } = start(savable("/host"));
     const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();

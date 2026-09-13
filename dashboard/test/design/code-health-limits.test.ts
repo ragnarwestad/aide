@@ -47,8 +47,8 @@ const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts"];
 const OVER_FILE_COUNT: Record<string, number> = {
   "src/serve": 24,
   "test/render/pages": 25,
-  "test/queue-client": 21,
-  "test/design": 24,
+  "test/specs-client": 21,
+  "test/design": 25,
   "test/project": 20,
   "test/serve": 20,
 };

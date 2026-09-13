@@ -38,7 +38,7 @@ export interface NewSpecPageOptions {
   /** Every active spec, across every project: what the new one may be
    *  made to build on. */
   targets?: SpecTarget[];
-  /** The page's browser code, compiled from `queue-client.ts` by the
+  /** The page's browser code, compiled from `specs-client.ts` by the
    *  server: the inline refusal and the Depends-on scoping. Everything
    *  here works without it, one page load at a time. */
   script?: string;
@@ -78,7 +78,7 @@ export interface NewSpecPageOptions {
 // untouched.
 //
 // On THIS page every project's chips are rendered, and the browser
-// scopes them to the chosen one (`queue-client.ts`). Without script they
+// scopes them to the chosen one (`specs-client.ts`). Without script they
 // are all offered, and a cross-project pick is caught by the same server
 // refusal that catches it from the API — the convenience is lost, the
 // guard is not.

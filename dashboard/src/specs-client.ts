@@ -1,6 +1,6 @@
 // The spec list's browser code. TypeScript like the rest of the
 // repo — `tsc --noEmit` covers it, and the server bundles it on the way
-// out (`queueClientScript`, `serve/serve-helpers.ts`).
+// out (`specsClientScript`, `serve/serve-helpers.ts`).
 //
 // One rule, applied twice: never reload the page under a control
 // someone is half-way through setting. That is why the table refreshes
@@ -15,17 +15,17 @@
 // own row-scoped control now, rendered by the server, so there is no
 // selection left to react to and none of that code has a caller.
 //
-// This is the ENTRY POINT the bundler starts from (split queue-client.ts
+// This is the ENTRY POINT the bundler starts from (split specs-client.ts
 // into a bundled folder): everything it USED to define inline now lives
-// in src/queue-client/*.ts, themed by what it is rather than where it
+// in src/specs-client/*.ts, themed by what it is rather than where it
 // sits in one long file. What stays here is the wiring below — every
 // top-level statement that binds a listener or runs once at load — kept
 // in its ORIGINAL order, because several of these bindings depend on an
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
-import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./queue-client/ai-sync.ts";
-import { interceptCancelSubmit } from "./queue-client/cancel-confirm.ts";
+import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./specs-client/ai-sync.ts";
+import { interceptCancelSubmit } from "./specs-client/cancel-confirm.ts";
 import {
   bindProposals,
   formNote,
@@ -34,19 +34,19 @@ import {
   submitDeploy,
   submitProjectChange,
   syncDependsOn,
-} from "./queue-client/forms.ts";
-import { formatElapsed } from "./queue-client/elapsed.ts";
-import { connect, onVisibility } from "./queue-client/live.ts";
-import { navigate } from "./queue-client/navigation.ts";
-import { postPendingModel } from "./queue-client/pending-model.ts";
-import { postForm } from "./queue-client/press.ts";
-import { relabelRunButton } from "./queue-client/row-swap.ts";
+} from "./specs-client/forms.ts";
+import { formatElapsed } from "./specs-client/elapsed.ts";
+import { connect, onVisibility } from "./specs-client/live.ts";
+import { navigate } from "./specs-client/navigation.ts";
+import { postPendingModel } from "./specs-client/pending-model.ts";
+import { postForm } from "./specs-client/press.ts";
+import { relabelRunButton } from "./specs-client/row-swap.ts";
 import {
   bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
-} from "./queue-client/schedule-actions.ts";
-import { NEW_SPEC_FORM } from "./queue-client/state.ts";
-import { postTailModel, postTailStep } from "./queue-client/tail-actions.ts";
-import { checkboxKey, chosen, chosenSteps, selectKey } from "./queue-client/state.ts";
+} from "./specs-client/schedule-actions.ts";
+import { NEW_SPEC_FORM } from "./specs-client/state.ts";
+import { postTailModel, postTailStep } from "./specs-client/tail-actions.ts";
+import { checkboxKey, chosen, chosenSteps, selectKey } from "./specs-client/state.ts";
 
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;
@@ -170,7 +170,7 @@ newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncD
 
 // The marks are looked up fresh on every tick rather than bound once,
 // which is what lets it survive `swapRows()` replacing `#jobrows`
-// underneath it with no rebinding at all. See `queue-client/elapsed.ts`
+// underneath it with no rebinding at all. See `specs-client/elapsed.ts`
 // for `formatElapsed` itself and the hand-pairing it carries.
 setInterval(() => {
   // A stamp it cannot read is left exactly as the server drew it:

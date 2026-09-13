@@ -1,4 +1,4 @@
-// Event-firing helpers extracted from queue-client/fixtures.ts's
+// Event-firing helpers extracted from specs-client/fixtures.ts's
 // harness() — the delegated-listener simulation (submit, click, the
 // fold chevron, a real navigation), parameterized on the harness state
 // they need rather than closing over it.

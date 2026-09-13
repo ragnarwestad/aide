@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { resolveSchedule } from "../../../project/discover.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render.ts";
-import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
+import { languageChoice, specsClientScript } from "../../serve-helpers.ts";
 import { serveStatic } from "../../serve-helpers/static.ts";
 import type { RoutesContext } from "../../routes.ts";
 
@@ -55,7 +55,7 @@ export async function schedulePages(
       projects,
       rows,
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       filter: {
         q: url.searchParams.get("q") ?? undefined,
         sort: url.searchParams.get("sort") ?? undefined,
@@ -75,7 +75,7 @@ export async function schedulePages(
     const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
       projects: [...ctx.allowed].sort(),
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
@@ -102,7 +102,7 @@ export async function schedulePages(
       project,
       entryName: name,
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
@@ -138,7 +138,7 @@ export async function schedulePages(
       tab: url.searchParams.get("tab") ?? undefined,
       history,
       token: ctx.queueToken,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({

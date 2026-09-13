@@ -144,7 +144,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   ];
 
   /** The value both selects have to agree on for `applyAiPick` to find
-   *  one from the other (`queue-client.ts`: the lookup is by `name` AND
+   *  one from the other (`specs-client.ts`: the lookup is by `name` AND
    *  `form`, so a shared enclosing `<form>` element is not enough). */
   const formAttr = (html: string, selector: string): string | undefined =>
     html.match(new RegExp(`<select ${selector}[^>]*\\bform="([^"]*)"`))?.[1];

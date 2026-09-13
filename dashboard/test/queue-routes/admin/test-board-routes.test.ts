@@ -159,7 +159,7 @@ describe("POST /api/queue/projects/<name>/test-board/stop (AC-7)", () => {
   });
 
   // The Test servers list's own Stop form carries class="actionform",
-  // which queue-client.ts posts as a JSON-wanting XHR — this route must
+  // which specs-client.ts posts as a JSON-wanting XHR — this route must
   // answer that shape too, not only the no-script redirect.
   test("answers JSON for the actionform's own XHR", async () => {
     const { base, server } = start({ queueToken: TOKEN });

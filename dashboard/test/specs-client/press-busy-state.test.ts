@@ -141,10 +141,10 @@ describe("a pressed row button holds its size (spec 104)", () => {
   });
 
   // One runs server-side (`components.ts`) and the other is bundled for
-  // the browser (`queue-client/press.ts`), so the spinner is a
+  // the browser (`specs-client/press.ts`), so the spinner is a
   // hand-copied literal on each side. Checked against the bundled
   // SOURCE rather than the raw entry file: the literal itself lives in
-  // one of the split files, not in queue-client.ts.
+  // one of the split files, not in specs-client.ts.
   test("the spinner it writes is the one components.ts renders", () => {
     expect(SOURCE).toContain(SPINNER);
   });

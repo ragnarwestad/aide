@@ -5,7 +5,7 @@
 // was drawn again.
 
 import { describe, expect, test } from "bun:test";
-import { refreshAiModelBox } from "../../src/queue-client/ai-sync.ts";
+import { refreshAiModelBox } from "../../src/specs-client/ai-sync.ts";
 
 /** The picker as the browser sees it: a box, a model select, and an AI
  *  select whose option carries the word the box is to show. */

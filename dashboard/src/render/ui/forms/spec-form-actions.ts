@@ -3,7 +3,7 @@
 // what it held when the page was opened (spec 391).
 //
 // Rendered-enabled-then-disabled-by-script, the same order
-// `bindTypedConfirm` (`queue-client/forms.ts`) already uses for the
+// `bindTypedConfirm` (`specs-client/forms.ts`) already uses for the
 // opposite case: a button the server rendered `disabled` could never be
 // enabled again without a script, and Save has to keep working with
 // scripting off (REQ-7). Cancel renders `disabled` from the start —

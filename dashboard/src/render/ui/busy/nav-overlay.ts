@@ -47,7 +47,7 @@
 
   // Deploy is not a navigation, but it takes the page away the same
   // way: the service restarts under it and the page reloads once the
-  // server answers again. `queue-client.ts` asks for THIS overlay by
+  // server answers again. `specs-client.ts` asks for THIS overlay by
   // event rather than building a second one, so the dashboard has one
   // covering layer rather than two that drift apart. The note is what a
   // navigation has no need of — a deploy waits long enough that a bare

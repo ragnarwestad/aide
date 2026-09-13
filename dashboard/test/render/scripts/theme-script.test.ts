@@ -7,7 +7,7 @@
 // transpiled and run, which is what this file does, against a document
 // small enough to state in full: one <html> element, three buttons, and
 // the storage the choice is remembered in. The same shape
-// `queue-client.test.ts` uses, for the same reason.
+// `specs-client.test.ts` uses, for the same reason.
 //
 // Note what the harness does NOT pass in: there is no `location`. A
 // script that tried to reload the page to change theme would throw a

@@ -5,7 +5,7 @@
 // own rows are replaced wholesale on every five-second poll
 // (`row-swap.ts`), which a per-element binding would not survive.
 //
-// Registered on `#jobrows` BEFORE `submitAction` (`queue-client.ts`), so
+// Registered on `#jobrows` BEFORE `submitAction` (`specs-client.ts`), so
 // its own `preventDefault()` is seen by that listener's `if
 // (event.defaultPrevented) return;` guard (`forms.ts:23`) — same
 // element, same event type, same-type listeners run in registration

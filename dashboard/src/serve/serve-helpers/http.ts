@@ -172,7 +172,7 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
     // The model is picked on the PHASE line since spec 123, so a form
     // posts one field per phase — `model.<step>`. A urlencoded body
     // cannot carry a nested object, and this is the one seam every form
-    // on the page passes through (`postForm` in queue-client.ts always
+    // on the page passes through (`postForm` in specs-client.ts always
     // urlencodes, and the no-JS fallback does too), so the dotted keys
     // are folded back into one object here.
     //

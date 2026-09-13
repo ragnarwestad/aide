@@ -343,7 +343,7 @@ export async function handleQueueAdminRoutes(
   // under `MAIN_BOARD_KEY` — it has no real spec to be scoped to, so it
   // cannot reach `board-controls.ts`'s spec-scoped route. That row's form
   // carries `class="actionform"` (test-servers-page.ts), which IS posted
-  // through `queue-client.ts`'s XHR — unlike the start route above — so
+  // through `specs-client.ts`'s XHR — unlike the start route above — so
   // this one answers `wantsJson` the same way `board-controls.ts`'s own
   // stop route does, rather than always redirecting.
   const testBoardStop = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-board\/stop$/);

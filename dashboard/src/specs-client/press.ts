@@ -10,7 +10,7 @@ export const ACTIONS = "form.rowrun, form.actionform";
 /** Character for character what `components.ts` renders (`SPINNER`).
  *  One runs server-side and the other is bundled for the browser, so
  *  the two are hand-paired rather than sharing an import — a test reads
- *  both (`test/queue-client/busy-state-and-locking.test.ts`). Change one
+ *  both (`test/specs-client/busy-state-and-locking.test.ts`). Change one
  *  and change the other. */
 export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 

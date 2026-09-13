@@ -65,7 +65,7 @@ beforeAll(async () => {
   // same "visit once with ?token=" flow a person follows, not a header
   // playwright's page.goto has no way to attach anyway. `live=0` is
   // carried on every navigation below too: without it, the page's own
-  // SSE connection (queue-client/live.ts) fires an async swapRows()
+  // SSE connection (specs-client/live.ts) fires an async swapRows()
   // shortly after load and races this test's own reads of the DOM it
   // just rendered — caught as an intermittent 0-rect read on
   // `.created-date` (REQ-3) with the app's own live update wired in.

@@ -11,7 +11,7 @@
 // two run in different processes — one in the browser, one on the
 // server rendering the page — so the wording rule exists twice, and the
 // two are pinned by a test rather than trusted:
-// `test/queue-client/live-redraw.test.ts`'s "the page words a duration
+// `test/specs-client/live-redraw.test.ts`'s "the page words a duration
 // exactly as the server does" runs a tick against the imported
 // `durationLabel` over a table of spans. Change one and change the
 // other.

@@ -76,7 +76,7 @@ describe("a pressed Save looks pressed", () => {
     expect(h.html).toHaveLength(1);
   });
 
-  // `queue-client.ts` marks its own buttons busy after intercepting the
+  // `specs-client.ts` marks its own buttons busy after intercepting the
   // press. Marking them again here would put a second spinner in them.
   test("a form another script has already taken is left alone", () => {
     const h = harness();

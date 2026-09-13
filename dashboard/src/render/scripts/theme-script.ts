@@ -7,7 +7,7 @@
 // upstream of the browser can have decided what colour it should be.
 // Reading the choice and setting one attribute is the whole of it.
 //
-// Like `queue-client.ts`, this file can neither import nor export
+// Like `specs-client.ts`, this file can neither import nor export
 // anything: `shell.ts` transpiles it into an inline classic <script>.
 // `test/theme-script.test.ts` runs it against a fake document for the
 // same reason that file exists.

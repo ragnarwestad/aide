@@ -127,7 +127,7 @@ export interface ProjectsPageOptions {
   /** Every project the queue may run — the RAW allowlist, which is what
    *  the Add and Remove pages exist to change. */
   createProjects?: string[];
-  /** The page's browser code, compiled from `queue-client.ts` by the
+  /** The page's browser code, compiled from `specs-client.ts` by the
    *  server: the typed-confirmation gate and the inline refusals. Every
    *  control works without it, one page load at a time. */
   script?: string;

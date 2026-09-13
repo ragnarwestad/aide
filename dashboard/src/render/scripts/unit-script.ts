@@ -13,7 +13,7 @@
 // a reader wants is a preference, not a page, so it is remembered in the
 // browser and switches with no reload.
 //
-// Like `queue-client.ts`, this file can neither import nor export
+// Like `specs-client.ts`, this file can neither import nor export
 // anything. `test/unit-script.test.ts` runs it against a fake document
 // for the same reason that file exists.
 

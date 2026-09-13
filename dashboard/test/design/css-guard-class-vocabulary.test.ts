@@ -45,7 +45,7 @@ const COMPONENTS = [
   "spec-editor-mount", "spec-editor-raw",
 ];
 
-/** Class names `queue-client.ts` selects on or writes. They carry no
+/** Class names `specs-client.ts` selects on or writes. They carry no
  *  styling of their own — renaming one silently breaks Run, Approve,
  *  Cancel, Merge or the refusal display in a browser, with no type
  *  error to catch it. */
@@ -59,16 +59,16 @@ const JS_HOOKS = [
   "deployform",
   // spec 441: the Deploy tab's "Testserver med testspecene" button.
   // Deliberately matched by no CSS rule and no JS selector — the whole
-  // point of its own class is to stay OUTSIDE `queue-client.ts`'s
+  // point of its own class is to stay OUTSIDE `specs-client.ts`'s
   // `ACTIONS` selector (`form.rowrun, form.actionform`), so its submit is
   // never replaced by an XHR and `target="_blank"` still opens a new tab.
   "testboardform",
-  // spec 276: queue-client.ts selects on all three — the Enabled
+  // spec 276: specs-client.ts selects on all three — the Enabled
   // checkbox, the Run-now form, and the create/edit form (whose own
   // `input[name="cron"]` feeds the live cron-next preview).
   "scheduleenabled", "schedulerun", "scheduleform",
   // spec 277: the Delete confirmation, a plain POST with no submit
-  // override — queue-client.ts binds bindTypedConfirm to it only.
+  // override — specs-client.ts binds bindTypedConfirm to it only.
   "scheduledeleteform",
   // spec 423: the queue list's own Cancel form, so the delegated
   // listener that opens its confirmation dialog can find it without
@@ -295,13 +295,13 @@ describe("render files use the component vocabulary and nothing else", () => {
   }
 
   // Split across an entry point and its themed folder (split
-  // queue-client.ts into a bundled folder) — both are globbed, so a
+  // specs-client.ts into a bundled folder) — both are globbed, so a
   // class written in any of the split files is caught the same as one
   // in the entry.
   test("the browser code writes no class of its own either", async () => {
     const files = [
-      "src/queue-client.ts",
-      ...new Bun.Glob("src/queue-client/**/*.ts").scanSync(ROOT),
+      "src/specs-client.ts",
+      ...new Bun.Glob("src/specs-client/**/*.ts").scanSync(ROOT),
     ];
     const source = (await Promise.all(files.map((f) => Bun.file(join(ROOT, f)).text()))).join("\n");
     const unknown = [...new Set(classesIn(source))].filter((c) => !ALLOWED.has(c));

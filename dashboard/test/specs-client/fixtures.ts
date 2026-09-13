@@ -1,9 +1,9 @@
-// Shared DOM/fetch harness for the queue-client.test.ts split (3096
-// lines, 20 describe blocks) into test/queue-client/, one file per
-// theme. `queue-client.ts` cannot be imported the way an ordinary
+// Shared DOM/fetch harness for the specs-client.test.ts split (3096
+// lines, 20 describe blocks) into test/specs-client/, one file per
+// theme. `specs-client.ts` cannot be imported the way an ordinary
 // module is (the server bundles it into an inline classic <script>),
 // so this harness bundles it the same way the server does
-// (`queueClientScript` in serve-helpers.ts) and runs the result against
+// (`specsClientScript` in serve-helpers.ts) and runs the result against
 // a fake document instead — see the file this was cut from for the
 // full rationale.
 
@@ -15,11 +15,11 @@ import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
 
 const built = await Bun.build({
-  entrypoints: [join(import.meta.dir, "..", "..", "src", "queue-client.ts")],
+  entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client.ts")],
   target: "browser",
   format: "iife",
 });
-if (!built.success) throw new AggregateError(built.logs, "queue-client.ts failed to bundle for the test harness");
+if (!built.success) throw new AggregateError(built.logs, "specs-client.ts failed to bundle for the test harness");
 export const SOURCE = await built.outputs[0]!.text();
 
 export interface Reply {

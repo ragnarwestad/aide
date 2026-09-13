@@ -3,7 +3,7 @@
 // theme into serve-helpers/config.ts (constants and the merge lock),
 // http.ts (request/response plumbing), redirect.ts (form-POST
 // redirects and commit messages), static.ts (the site, the PWA assets,
-// the bundled queue-client script), runner-argv.ts (a job's argv),
+// the bundled specs-client script), runner-argv.ts (a job's argv),
 // parse-args.ts (the CLI and dependency-folder resolution) and
 // compression.ts (the server-wide gzip wrapper, spec 315) — kept as a
 // barrel at this path because every route file imports from it.
@@ -24,7 +24,7 @@ export {
 } from "./serve-helpers/redirect.ts";
 
 export {
-  navFromSite, queueClientScript, specEditorClientScript, serveSpecEditorAsset,
+  navFromSite, specsClientScript, specEditorClientScript, serveSpecEditorAsset,
   SPEC_EDITOR_ASSET_PATH, specViewerClientScript, serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
   etagFor, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
 } from "./serve-helpers/static.ts";

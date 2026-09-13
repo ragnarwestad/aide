@@ -1,7 +1,7 @@
 // A Save that has been pressed looks pressed, on the pages that post a
 // real form and wait for the answer.
 //
-// The spec list gets this from `queue-client.ts`, which intercepts the
+// The spec list gets this from `specs-client.ts`, which intercepts the
 // press, fetches, and marks the button busy itself. The pages that are
 // nothing but a form — the spec editor above all — carry no script at
 // all on purpose: they post to a real route and follow the 303 back.
@@ -15,7 +15,7 @@
 // 104). It goes `busy` — the variant the server already renders for
 // work in flight — the pending word moves to the `title`, where it
 // costs no width, and the spinner goes inside the button, where it
-// costs none either. Character for character what `queue-client.ts`
+// costs none either. Character for character what `specs-client.ts`
 // does, for the same reason.
 //
 // ONE listener, on `document`, rather than a wire-up per form: this
@@ -34,7 +34,7 @@
   const VARIANTS = ["primary", "danger"];
 
   document.addEventListener("submit", (event: Event) => {
-    // A form `queue-client.ts` owns has already been handled: it
+    // A form `specs-client.ts` owns has already been handled: it
     // called preventDefault on its way past, and marking its button a
     // second time would put two spinners in it.
     if (event.defaultPrevented) return;

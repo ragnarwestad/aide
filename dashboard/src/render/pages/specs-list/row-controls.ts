@@ -21,7 +21,7 @@ import { actionState, runFormId, specBusy } from "./row-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
-// script off, `queue-client.ts` already intercepts `a[data-nav]` inside
+// script off, `specs-client.ts` already intercepts `a[data-nav]` inside
 // `#jobrows` so a click neither reloads the page nor wipes a half-filled
 // form, and the choice survives the table swapping itself every five
 // seconds — the same mechanism the filter and the sort ride on.
@@ -217,7 +217,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // One button, whichever way `active` reads (spec 439) — never a
     // second element for the disabled case. It still carries `form="…"`
     // disabled or not: that is what lets `relabelRunButton()`
-    // (`queue-client/row-swap.ts`) find and re-enable it the instant the
+    // (`specs-client/row-swap.ts`) find and re-enable it the instant the
     // reader ticks the phase it names, without waiting for a redraw —
     // and `type="submit"` throughout is what makes that re-enabling
     // actually able to submit, rather than a live control a script can

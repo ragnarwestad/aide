@@ -21,7 +21,7 @@
 // inline CSS, no external references — because the generated site is
 // published as plain files. The three SERVED pages — the spec list at
 // `/`, the New-spec form at `/new` and Projects at `/projects` — carry
-// browser code, compiled from queue-client.ts; the generated ones carry
+// browser code, compiled from specs-client.ts; the generated ones carry
 // none.
 
 export {

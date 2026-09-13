@@ -11,7 +11,7 @@
 // same reason `schedule-actions.test.ts` is — nothing on this page lives
 // inside `#jobrows`, so the row-swap harness has nothing to offer here.
 import { afterEach, describe, expect, test } from "bun:test";
-import { applyAiPick, offerEachToItsTool, syncAiToModel } from "../../src/queue-client/ai-sync.ts";
+import { applyAiPick, offerEachToItsTool, syncAiToModel } from "../../src/specs-client/ai-sync.ts";
 
 const FORM = "schedule-form";
 const MODELS: [string, string][] = [

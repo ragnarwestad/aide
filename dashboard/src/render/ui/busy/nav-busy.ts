@@ -2,7 +2,7 @@
 // it is clicked, on every page (spec 312) — the second half of the
 // promise `form-busy.ts` keeps for a pressed Save.
 //
-// It used to be `queue-client.ts`'s own `markGoing()`, bound only in
+// It used to be `specs-client.ts`'s own `markGoing()`, bound only in
 // that bundle, which only the Specs list page loads. Moved here so it
 // runs wherever `pageShell` does — the spec page's own tabs among them,
 // two of which (Checks, Logs) load no page script of their own at all.

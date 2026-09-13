@@ -4,7 +4,7 @@
 // rather than folded into run-controls.ts, so that file stays the size
 // its own header comment already notes a 2026-09-04 split at.
 import { renderCloseSpecPage, specPagePath } from "../../../render.ts";
-import { bodyToObject, json, languageChoice, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
+import { bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
 
 import type { RoutesContext } from "../../routes.ts";
 
@@ -25,7 +25,7 @@ export async function closeControlRoutes(
     const html = renderCloseSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
       error: url.searchParams.get("error") ?? undefined,
-      script: await queueClientScript(),
+      script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

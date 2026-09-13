@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { interceptCancelSubmit } from "../../src/queue-client/cancel-confirm.ts";
+import { interceptCancelSubmit } from "../../src/specs-client/cancel-confirm.ts";
 
 // A direct unit test of the interceptor itself, rather than through the
-// `queue-client.ts` bundle harness (`fixtures.ts`): that fake document
+// `specs-client.ts` bundle harness (`fixtures.ts`): that fake document
 // keeps one listener per event type (`on[type] = fn`), so a second
 // "submit" listener registered there would silently replace the first
 // rather than run alongside it, the way two real DOM listeners do.

@@ -1,6 +1,6 @@
 /* --- rows and forms ----------------------------------------------------- */
 /* "rowrun", "actionform", "newspecform", "refused" and
-   "refusal" are what queue-client.ts selects on. They are
+   "refusal" are what specs-client.ts selects on. They are
    laid out here and coloured nowhere: a rename breaks the browser code
    with no type error to catch it. */
 
@@ -53,7 +53,7 @@ td form { margin: 0; display: inline-block; }
    the phase lines and the button that submits it stands beside the
    state badge (spec 157), both reaching it by the "form" attribute
    alone. It is still a real form — the page works with script off —
-   and still carries the class queue-client.ts selects on, so a press
+   and still carries the class specs-client.ts selects on, so a press
    is still intercepted. It just has nothing to show, and a container
    that gave it a gap would open a hole beside the badge. */
 .rowrun { display: none; }
@@ -128,7 +128,7 @@ td form { margin: 0; display: inline-block; }
 .scheduleform .frow { display: contents; }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
-   "removeform" are what queue-client.ts selects on — laid out here,
+   "removeform" are what specs-client.ts selects on — laid out here,
    coloured nowhere. "scheduledeleteform" is the same shape for a
    schedule entry's own Delete confirmation (spec 277). */
 .removeform [data-confirm], .scheduledeleteform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }

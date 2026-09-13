@@ -30,11 +30,11 @@ export function stateLabel(r: QueueRowView, lang: Language = "en"): string {
  *  two hours is not a figure anybody reads to the second, and the
  *  column it sits in is the narrowest on the page.
  *
- *  HAND-PAIRED with `formatElapsed` in `src/queue-client/elapsed.ts`,
+ *  HAND-PAIRED with `formatElapsed` in `src/specs-client/elapsed.ts`,
  *  which rewrites a running phase's mark once a second and cannot
  *  import this one — it runs in the browser, bundled from a separate
  *  entry point, not in the same process as this file. The two are
- *  pinned by `test/queue-client/live-redraw.test.ts`, "the page words a
+ *  pinned by `test/specs-client/live-redraw.test.ts`, "the page words a
  *  duration exactly as the server does". Change one and
  *  change the other, or a phase changes its wording the first time the
  *  clock ticks over the figure the server drew. */

@@ -39,7 +39,7 @@ export interface ScheduleFormOptions {
 
 /** The form's own id. Both selects are written INSIDE the form, so the
  *  `form` attribute is not what submits them — it is what pairs them:
- *  `applyAiPick` (`queue-client/ai-sync.ts`) finds a model select by its
+ *  `applyAiPick` (`specs-client/ai-sync.ts`) finds a model select by its
  *  `name` and its form id together, the same pairing the New-spec form
  *  and the phase lines use. */
 export const SCHEDULE_FORM_ID = "schedule-form";
