@@ -82,7 +82,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
     ]);
     expect(html).toMatch(/>All \(2\)</);
     expect(html).toMatch(/>Running \(1\)</);
-    expect(html).toMatch(/>Done \(1\)</);
+    expect(html).toMatch(/>Waiting \(1\)</);
   });
 
   test("sorting by cost uses the spec's total, not one job's (criterion 10)", () => {

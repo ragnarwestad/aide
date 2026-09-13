@@ -33,9 +33,11 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.all": "Alle",
   "list.state.active": "Aktive",
   "list.state.running": "Kjører",
-  "list.state.done": "Ferdig",
-  "list.state.problem": "Problemer",
+  "list.state.waiting": "Venter",
+  "list.state.stopped": "Stoppet",
+  "list.state.failed": "Feilet",
   "list.state.archived": "Arkivert",
+  "list.state.closed": "Lukket",
   "list.searchHelpTitle": "Hva søket leser",
   "list.searchHelpBody":
     "Søker i prosjekt:mappe, tittelen og beskrivelsen — hele beskrivelsen, også den " +

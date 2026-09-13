@@ -96,7 +96,7 @@ describe("the All chip", () => {
   // The three chips that were here before this spec each list the states
   // they allow, and none of them lists `archived`.
   test("the three older chips keep their meaning", async () => {
-    for (const state of ["active", "done", "problem"]) {
+    for (const state of ["active", "waiting", "failed"]) {
       const html = await specsList(start().base, `?state=${state}`);
       for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     }

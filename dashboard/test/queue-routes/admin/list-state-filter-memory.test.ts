@@ -36,8 +36,8 @@ describe("the state filter the reader chose is remembered", () => {
   // the whole page would never be written by the act of choosing.
   test("the rows-only fetch writes it too", async () => {
     const { base, server } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/?token=${TOKEN}&state=done&rows=1`);
-    expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=done`);
+    const res = await fetch(`${base}/?token=${TOKEN}&state=waiting&rows=1`);
+    expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=waiting`);
   });
 
   test("a link that names a state still wins over what is remembered, including All", async () => {

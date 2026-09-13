@@ -307,8 +307,8 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(html).toMatch(/>All \(2\)</);
     expect(html).not.toContain(">Not started");
     expect(html).toMatch(/>Running \(0\)</);
-    expect(html).toMatch(/>Done \(1\)</);
-    expect(html).toMatch(/>Problems \(0\)</);
+    expect(html).toMatch(/>Waiting \(1\)</);
+    expect(html).toMatch(/>Failed \(0\)</);
 
     expect(html).toContain("90-never-run");
     expect(html).toContain("90-has-run");

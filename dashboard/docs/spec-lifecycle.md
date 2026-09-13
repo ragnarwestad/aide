@@ -173,9 +173,12 @@ state is shown, and only `reopen` is legal on it afterward — the same one-step
 
 The row's state is one of: `not-started` (the spec has no job at all), the state of its most recent or in-flight job
 (`queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted`), `archived`, `archived-unlanded`
-(archived with its branch still on origin), or `closed`. The chips group those — "All" is the default, "Active" is
-everything not archived and not closed, "Running" the in-flight states, "Done", "Problems" (the four failure states
-and `archived-unlanded`) and "Archived" (both archived states — `closed` is deliberately in neither the "Active" nor
-the "Archived" chip, so it never reads as one of them). Which PHASE a spec has reached is not a state on that axis:
+(archived with its branch still on origin), or `closed` — except that a job whose branch is still landing reads as
+`running` for this purpose regardless of its own state, so a still-merging spec sits with the ones still going rather
+than the ones waiting on a press. The chips group those — "All" is the default, "Active" is everything not archived
+and not closed, "Running" only `running` (landing included, `queued` excluded), "Waiting" (`queued` or `done`, with
+no landing in progress), "Stopped", "Failed" (the three other failure states and `archived-unlanded`), "Archived"
+(both archived states) and "Closed" (`closed` has its own chip now, rather than being reachable only from "All").
+Which PHASE a spec has reached is not a state on that axis:
 it is read off the completed line and drawn as the pips and the resting-state sentence ("ready for implement") — see
 [The specs list and the spec page](the-specs-list.md).

@@ -276,7 +276,12 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined, now: num
     project: lead.project,
     specFolder: lead.specFolder,
     lead,
-    state: lead.state,
+    // A landing job's branch is still merging whatever `lead.state` itself
+    // says (`done` on its last step, `queued` already on its next one) — the
+    // row's own badge already reads this as "running" (job-state/resting.ts),
+    // and the Kjører/Venter chips need to agree: a spec mid-landing belongs
+    // with the ones still going, not the ones waiting on a press.
+    state: lead.landing ? "running" : lead.state,
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
     costUnmeasured: all.some((r) => anyCostUnmeasured(r.results)),
     // Summed over the jobs that HAVE a figure, and absent when none

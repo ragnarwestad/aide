@@ -270,7 +270,7 @@ describe("spec 221: archived specs on the spec list", () => {
   });
 
   test("the three older chips still exclude archived rows", () => {
-    for (const state of ["active", "done", "problem"]) {
+    for (const state of ["active", "waiting", "failed"]) {
       const html = rows({
         archivedSpecs: [archivedSpec("50-archived")],
         targets: [live("60-live")],

@@ -66,7 +66,7 @@ describe("building the archived rows", () => {
     expect(filterShowsArchived("all")).toBe(true);
     expect(filterShowsArchived("archived")).toBe(true);
     expect(filterShowsArchived("not-archived")).toBe(false);
-    for (const key of ["active", "done", "problem"]) {
+    for (const key of ["active", "waiting", "failed"]) {
       expect(filterShowsArchived(key)).toBe(false);
     }
     // A stale bookmark falls back to the same default.

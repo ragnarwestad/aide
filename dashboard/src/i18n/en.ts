@@ -34,9 +34,11 @@ export const en = {
   "list.state.all": "All",
   "list.state.active": "Active",
   "list.state.running": "Running",
-  "list.state.done": "Done",
-  "list.state.problem": "Problems",
+  "list.state.waiting": "Waiting",
+  "list.state.stopped": "Stopped",
+  "list.state.failed": "Failed",
   "list.state.archived": "Archived",
+  "list.state.closed": "Closed",
   "list.searchHelpTitle": "What the search reads",
   "list.searchHelpBody":
     "Searches the project:folder, the title, the description — the whole description, " +

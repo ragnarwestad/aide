@@ -95,20 +95,20 @@ describe("the job list sorts and filters", () => {
     const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
     expect(html).toMatch(/>All \(3\)</);
     expect(html).toMatch(/>Running \(1\)</);
-    expect(html).toMatch(/>Done \(1\)</);
-    expect(html).toMatch(/>Problems \(1\)</);
+    expect(html).toMatch(/>Waiting \(1\)</);
+    expect(html).toMatch(/>Failed \(1\)</);
   });
 
-  test("asking for active work leaves the finished jobs out", () => {
+  test("the legacy active key (now Running) shows only what is actually running, not queued or done", () => {
     const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
     expect(html).toContain("a-spec");
-    expect(html).toContain("c-spec");
     expect(html).not.toContain("b-spec");
+    expect(html).not.toContain("c-spec");
   });
 
-  test("a stopped job is a problem, not a success", () => {
-    const html = page([row("a", { state: "stopped" }), row("b")], { state: "problem" });
+  test("a stopped job shows under its own Stopped chip, not Failed", () => {
+    const html = page([row("a", { state: "stopped" }), row("b")], { state: "stopped" });
     expect(html).toContain("a-spec");
     expect(html).not.toContain("b-spec");
   });

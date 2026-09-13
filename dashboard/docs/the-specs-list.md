@@ -157,10 +157,12 @@ is appended after them rather than dropped, so a run is never invisible.
 
 ## Filtering and searching the list
 
-The chips are one axis, and `?state=` is where it lives: "All" (the default), "Active" (everything not archived),
-"Running", "Done", "Problems" and "Archived". The default is `STATE_FILTERS[0]` and nothing else — moving an entry to
-the front changes the default for every reader. Every chip, including "All", carries its own `state=` value
-explicitly, so choosing one always overrides whatever is remembered (see below).
+The chips are one axis, and `?state=` is where it lives: "All" (the default), "Active" (everything not archived and
+not closed), "Running" (only `running`, or a job whose branch is still landing), "Waiting" (`queued` — in queue or
+held back — or `done` with no landing in progress), "Stopped", "Failed" (`failed`, `interrupted`, `cancelled`, or an
+archived spec whose branch still exists on origin), "Archived" and "Closed". The default is `STATE_FILTERS[0]` and
+nothing else — moving an entry to the front changes the default for every reader. Every chip, including "All",
+carries its own `state=` value explicitly, so choosing one always overrides whatever is remembered (see below).
 
 **The chosen chip is remembered across visits, the same way the sort column is.** Choosing a chip sets the
 `aide_state` cookie (`HttpOnly; SameSite=Lax`); a request with no `state=` in the query string — the Specs tab's own
@@ -190,7 +192,7 @@ a hundred specs, and this page rebuilds itself on every change event on every op
 show an archived row builds nothing for one. ONE exception: an archived spec whose own branch is still on origin is
 built whatever the chip, because it has NOT finished and the reading view is where that has to be seen. That is also
 why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is archived to the Archived
-chip, a problem to the Problems chip, and not-archived to the chip defined by excluding archived specs, and all three
+chip, failed to the Failed chip, and not-archived to the chip defined by excluding archived specs, and all three
 fall out of the chip tables rather than out of an exception inside the filter.
 
 **`?q=` is a plain search**, a GET form carrying the rest of the view as hidden fields, matching the folder, the title

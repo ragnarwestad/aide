@@ -2,13 +2,12 @@
 // picked, which column it is sorted by, and what a search term matches
 // against.
 
-import { IN_FLIGHT } from "../../../ui/job-state.ts";
 import { t, type Language, type TranslationKey } from "../../../../i18n";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, type QueueFilter, type SpecGroup } from "./types.ts";
 
-// "Problems" holds everything that did not simply finish — a cap-stop
-// and a crash are different, but both are things you go looking for on
-// purpose.
+// "Failed" holds everything that did not simply finish and did not
+// merely stop on its own terms — a cap-stop reads differently from a
+// crash, which is why "Stopped" is its own chip beside this one.
 //
 // "Active" is FIRST, and that position is the whole of what makes
 // it the default: `stateFilter` falls back to `STATE_FILTERS[0]`, so
@@ -22,7 +21,7 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 // there is, which is a list that goes stale the first time a state is
 // added; the exception is what this entry IS, so it says so.
 //
-// The three in the middle are untouched by spec 221 BY CONSTRUCTION:
+// The four in the middle are untouched by spec 221 BY CONSTRUCTION:
 // none of them names `ARCHIVED_STATE`, so each already excludes an
 // archived row without a line of new code.
 type StateFilterEntry = {
@@ -44,22 +43,24 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
   // just to be kept out of this chip.
   { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
-  // Read off `IN_FLIGHT` rather than written out a second time: a state
-  // added to one and forgotten in the other is exactly the drift this
-  // page cannot afford, and the single-job page needs the same set.
-  // One entry for every job in flight, regardless of step (spec 381 —
-  // a level per step, added by spec 374, proved wrong in use).
-  { key: "active:all", label: "Running", states: [...IN_FLIGHT] },
-  { key: "done", label: "Done", states: ["done"] },
+  // `["running"]` alone, not IN_FLIGHT (queued+running): `group-builders.ts`
+  // now folds a job's `landing` flag into this same state before it reaches
+  // here (see below), so "running" already means "running, or a step's
+  // branch is still being merged" — queued-with-no-landing is Waiting's to
+  // show, not this chip's.
+  { key: "active:all", label: "Running", states: ["running"] },
+  { key: "waiting", label: "Waiting", states: ["queued", "done"] },
+  { key: "stopped", label: "Stopped", states: ["stopped"] },
   {
-    key: "problem",
-    label: "Problems",
+    key: "failed",
+    label: "Failed",
     // An archive that left its own branch open did not simply finish
     // either, and it read as `failed` here before spec 221 gave it a
     // row of its own.
-    states: ["failed", "stopped", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
+    states: ["failed", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
   },
   { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
+  { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
 ];
 
 /** The default, by position and not by name — so a chip moved to the
@@ -76,9 +77,11 @@ const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   all: "list.state.all",
   "not-archived": "list.state.active",
   "active:all": "list.state.running",
-  done: "list.state.done",
-  problem: "list.state.problem",
+  waiting: "list.state.waiting",
+  stopped: "list.state.stopped",
+  failed: "list.state.failed",
   [ARCHIVED_STATE]: "list.state.archived",
+  [CLOSED_STATE]: "list.state.closed",
 };
 
 export function stateFilterLabel(key: string, lang: Language): string {
