@@ -33,8 +33,6 @@ describe("a multi-step job is shown on every step it ran", () => {
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
   const analysed: SpecTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
-  /** This block's spec page — where its phase lines point since spec 237. */
-  const GROUPED_HREF = "/specs/aide/90-grouped";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -56,14 +54,14 @@ describe("a multi-step job is shown on every step it ran", () => {
       ...extra,
     });
 
-  // Spec 237: two steps of ONE job used to share one link, because the
-  // link was the job's page. They now open two different tabs of the
-  // same spec page — which is the distinction the reader wanted from
-  // two lines in the first place.
-  test("its two steps open the two tabs they wrote", () => {
+  // Spec 451: two steps of ONE job used to share one link, because the
+  // link was the job's page. Neither carries a link now — each is its
+  // own plain-text line, which is the distinction the reader wanted
+  // from two lines in the first place.
+  test("its two steps are two plain-text lines, not one shared link", () => {
     const html = rows([twoStep()]);
-    expect(subRow(html, "analyze")).toContain(`href="${GROUPED_HREF}?tab=solution"`);
-    expect(subRow(html, "implement")).toContain(`href="${GROUPED_HREF}?tab=status"`);
+    expect(subRow(html, "analyze")).not.toContain("<a ");
+    expect(subRow(html, "implement")).not.toContain("<a ");
     expect(html).not.toContain('href="/specs/both"');
   });
 
@@ -81,7 +79,7 @@ describe("a multi-step job is shown on every step it ran", () => {
       twoStep(),
     ], analysed);
     const analyze = subRow(html, "analyze");
-    expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
+    expect(analyze).not.toContain("<a ");
     expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("unknown spec");
     expect(analyze).toContain("2 attempts");
@@ -135,7 +133,7 @@ describe("a multi-step job is shown on every step it ran", () => {
     const html = rows([
       row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
     ]);
-    expect(subRow(html, "implement")).toContain(`href="${GROUPED_HREF}?tab=status"`);
+    expect(subRow(html, "implement")).not.toContain("<a ");
     expect(subRow(html, "analyze")).toContain(PHASE_NOT_RUN);
   });
 });
@@ -243,7 +241,7 @@ describe("every spec is a row (criteria 1-10)", () => {
   test("a spec that is both a target and has jobs gets one row (criterion 4)", () => {
     const html = rows([job("j1", "analyze")], [target("90-has-run")]);
     expect(heads(html)).toHaveLength(1);
-    expect(html).toContain('href="/specs/aide/90-has-run?tab=solution"');
+    expect(html).not.toContain('href="/specs/aide/90-has-run?tab=solution"');
   });
 
   test("a job group whose spec is no longer a target is off the page (criterion 5)", () => {

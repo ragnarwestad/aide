@@ -74,10 +74,8 @@ describe("spec 116: create is the first phase line", () => {
     // disabled (2026-08-21): it is the line saying the phase is behind
     // you, in the same shape the other four use, and it takes no click.
     //
-    // Spec 237 left one thing on the line that IS a click: the name,
-    // which opens the Description tab. No job ever ran create here — the
-    // folder was made by hand — and the tab is the spec's rather than a
-    // run's, so it is there to open all the same.
+    // The name is plain text (spec 451): no job ever ran create here —
+    // the folder was made by hand — and the line has nothing to click.
     const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
     const line = subRow(html, "create");
     expect(line).toContain("b-done");
@@ -94,10 +92,7 @@ describe("spec 116: create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      new RegExp(
-        `<td class="phasecell"><span class="phasefold">` +
-          `<a href="/specs/aide/116-hand-made\\?tab=description">create</a></span></td>`,
-      ),
+      new RegExp(`<td class="phasecell"><span class="phasefold">create</span></td>`),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
@@ -129,16 +124,16 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).not.toContain("b-done");
   });
 
-  test("a landed create job's line reads done and links to the description (criterion 4)", () => {
+  test("a landed create job's line reads done, name as plain text (criterion 4)", () => {
     const html = rows(
       [createJob("116-landed", { model: "sonnet", spentUsd: 0.42 })],
       [target("116-landed", { done: ["create", "analyze"] })],
     );
     expect(order(html)[0]).toBe("create");
     const line = subRow(html, "create");
-    // Spec 237: create's own file is `1-description.md`, so its line
-    // opens the Description tab rather than the run's page.
-    expect(line).toContain('href="/specs/aide/116-landed?tab=description"');
+    // Spec 451: the phase name is plain text, not a link to any tab.
+    expect(line).not.toContain("<a ");
+    expect(line).toContain('<span class="phasefold">create</span>');
     expect(line).toContain("b-done");
     // The model it ran on shows as the select's pre-filled value when
     // choices are configured — no spelled-out text since 2026-08-19,

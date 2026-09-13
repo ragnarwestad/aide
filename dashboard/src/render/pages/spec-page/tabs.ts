@@ -116,26 +116,6 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
   return hasText ? "editor" : undefined;
 }
 
-/** Which tab a phase's own link opens (spec 237): the tab that shows
- *  what that phase MADE, or — for archive, which writes no file of its
- *  own — Checks, the spec's own remaining-work tab.
- *
- *  ONE map, exported and imported rather than copied: `specs-list.ts`
- *  is the only caller, and `development.md` names two copies of one
- *  shape as this repo's own recurring mistake often enough that a
- *  fifth would be a choice.
- *
- *  A step outside these four — `explore`, `manifest`, `reset`, or
- *  anything not in the fixed workflow — has no tab that speaks for it,
- *  so it is absent here and the caller keeps the job page it has always
- *  linked to. */
-export const PHASE_TAB: Partial<Record<string, SpecTab>> = {
-  create: "description",
-  analyze: "solution",
-  implement: "status",
-  archive: "checks",
-};
-
 /** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
  *  built once by `renderSpecPage()` and passed as the optional `mark`
  *  parameter into whichever of `documentPanel()`/`descriptionPanel()`/
