@@ -66,14 +66,17 @@ export function durationLabel(ms: number): string {
 //                 waiting: notice, not alarm.
 //   failed      — a real failure, so danger.
 //   interrupted — grouped with failed, as it always was.
-//   cancelled   — a deliberate ending someone chose, not a failure.
+//   cancelled   — a stop somebody chose, not a failure: the same amber
+//                 as stopped, because the step was started and did not
+//                 finish, and pressing again is what comes next. Grey
+//                 read as "never ran", which a cancelled step is not.
 export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   queued: "idle",
   running: "running",
   done: "done",
   stopped: "waiting",
   failed: "refused",
-  cancelled: "idle",
+  cancelled: "waiting",
   interrupted: "refused",
 };
 

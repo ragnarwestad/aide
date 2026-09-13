@@ -144,6 +144,6 @@ The row's first line is the verb for what is happening or the resting state and 
 its turn, off the same order the runner picks — or, held back, the reason; `done`
 as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — budget", "stopped — 45 min",
 "stopped — provider limit" or "stopped — job cap"; `failed` with `errorReason` as the conflict or the unlanded branch
-and the button that re-runs `archive`. `cancelled` is drawn as a deliberate ending, not a failure; `interrupted` is
+and the button that re-runs `archive`. `cancelled` is drawn amber like `stopped` — a step somebody stopped by hand, not a failure and not a step that never ran; `interrupted` is
 grouped with `failed`. The words themselves live in `src/render/ui/job-state/` and are described on
 [The specs list and the spec page](the-specs-list.md#how-the-list-reads).
