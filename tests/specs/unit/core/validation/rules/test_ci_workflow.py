@@ -103,6 +103,17 @@ class TestCiWorkflow:
                 assert runner.strip("'\"").startswith("macos"), \
                     f"Job '{name}' runs on {runner}, not a macOS runner"
 
+    def test_runs_on_pull_requests_only(self, workspace_root):
+        """A local merge is gated by the landing's own suite; CI is the
+        check a pull request gets before a person merges it. A `push`
+        trigger beside it was a second lamp nobody watched."""
+        text = _workflow_text(workspace_root)
+        m = re.search(r"^on:\s*(.*)$", text, re.MULTILINE)
+        assert m, "The workflow declares no top-level 'on:' trigger"
+        triggers = re.findall(r"[a-z_]+", m.group(1))
+        assert triggers == ["pull_request"], \
+            f"CI must run on pull_request alone, found {triggers}"
+
     def test_pytest_job_runs_venv_pytest(self, workspace_root):
         """Criterion 2: the root gate is the exact command CLAUDE.md names."""
         jobs = _jobs(_workflow_text(workspace_root))
@@ -128,8 +139,11 @@ class TestCiWorkflow:
         assert "cd dashboard && make test-e2e" in commands, \
             "The dashboard job never runs 'cd dashboard && make test-e2e' — " \
             "the browser tests would be red without anyone seeing it"
-        assert commands.index("cd dashboard && make test-e2e") > \
-            commands.index("cd dashboard && make test"), \
+        # The gate's own step may pipe its output (`| tee`) for the
+        # annotation step after it; the e2e step comes after whichever
+        # step starts with the gate command.
+        gate = next(i for i, c in enumerate(commands) if c.startswith("cd dashboard && make test ") or c == "cd dashboard && make test")
+        assert commands.index("cd dashboard && make test-e2e") > gate, \
             "make test-e2e must come after make test"
 
     def test_markdownlint_job_runs_correct_command(self, workspace_root):
