@@ -15,7 +15,7 @@
 
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { BOARD_PORTS, type BoardsContext } from "./lifecycle.ts";
+import { BOARD_PORTS, MAIN_BOARD_KEY, type BoardsContext } from "./lifecycle.ts";
 import type { BoardEntry } from "./store.ts";
 
 /** One worktree of a project's checkout, as `git worktree list
@@ -45,6 +45,14 @@ export function parseWorktrees(porcelain: string): WorktreeLine[] {
       out.push({ path, branch: line.slice("branch ".length).trim().replace(/^refs\/heads\//, ""), commit });
       path = undefined;
     }
+    // A detached worktree has no branch line; `""` is what says so. The
+    // Deploy tab's own test server is one: the round checks a branch
+    // that is already checked out (the serving checkout's own main) out
+    // detached, since git refuses it a second time.
+    if (line.trim() === "detached" && path) {
+      out.push({ path, branch: "", commit });
+      path = undefined;
+    }
   }
   return out;
 }
@@ -68,7 +76,7 @@ function resolved(path: string): string {
 function isRoundWorktree(wt: WorktreeLine): boolean {
   const dir = wt.path.split("/");
   return (
-    wt.branch.startsWith("aide/") &&
+    (wt.branch.startsWith("aide/") || wt.branch === "") &&
     dir[dir.length - 1] === "checkout" &&
     (dir[dir.length - 2] ?? "").startsWith("tmp.")
   );
@@ -84,6 +92,10 @@ function isRoundWorktree(wt: WorktreeLine): boolean {
  *  alone. */
 export async function recoverBoards(ctx: BoardsContext, projects: string[]): Promise<BoardEntry[]> {
   const known = new Map<string, { project: string } & WorktreeLine>();
+  // What each project's serving checkout has checked out: the branch a
+  // detached round worktree was cut from, and so the branch the main
+  // board serves.
+  const checkedOut = new Map<string, string>();
   for (const project of projects) {
     // A project the round cannot run on has never had a test server, so
     // there is nothing to find and no reason to ask git anything.
@@ -91,6 +103,7 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
     const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
+      if (resolved(wt.path) === resolved(ctx.aideCheckout(project)) && wt.branch) checkedOut.set(project, wt.branch);
       // The round's own shape, and nothing else. A project with none of
       // those has no test server running, and the ports are not worth
       // asking about.
@@ -107,8 +120,21 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
     const live = await ctx.boardOnPort(port);
     if (!live) continue;
     const wt = known.get(resolved(join(live.workDir, "checkout")));
-    if (!wt || !wt.branch.startsWith("aide/")) continue;
-    const specFolder = wt.branch.slice("aide/".length);
+    if (!wt) continue;
+    // A spec's board is keyed by its folder; the Deploy tab's own board
+    // (a detached worktree) by MAIN_BOARD_KEY, serving the branch the
+    // serving checkout has out — the one it was detached from.
+    let specFolder: string;
+    let branch: string;
+    if (wt.branch.startsWith("aide/")) {
+      specFolder = wt.branch.slice("aide/".length);
+      branch = wt.branch;
+    } else if (wt.branch === "") {
+      specFolder = MAIN_BOARD_KEY;
+      branch = checkedOut.get(wt.project) ?? "main";
+    } else {
+      continue;
+    }
     if (!specFolder) continue;
     // The round keeps its token beside the board's own files, and the
     // address is no use without it.
@@ -119,7 +145,7 @@ export async function recoverBoards(ctx: BoardsContext, projects: string[]): Pro
       token = "";
     }
     const entry: BoardEntry = {
-      branch: wt.branch,
+      branch,
       commit: wt.commit,
       port,
       // The round's wrapper is long gone: what is left is the board

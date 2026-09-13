@@ -60,6 +60,13 @@ BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/b
 BASE="http://127.0.0.1:$PORT"
 
 WORK="$(mktemp -d)"
+# Where a round's serve log outlives the round: a mismatch keeps its log
+# (the tail of this script), and so does a kept board that dies (the
+# watcher in stop()) — one file per event, named by time and board.
+KEPT_LOGS="${AIDE_ROUND_KEPT_LOGS:-$HOME/aide-dashboard/round-logs}"
+# The board's name in a kept log's file name: a branch like fix/x carries
+# a slash, which would name a directory the copy has no way to make.
+kept_log_name() { local n="${SPEC_FOLDER:-$(basename "$SERVE_FROM")}"; printf '%s-%s' "$(date +%Y%m%d-%H%M%S)" "${n//\//-}"; }
 echo "== building local origins in $WORK"
 
 SERVE_FROM="$AIDE"; WT=""; COMMIT=""
@@ -218,6 +225,10 @@ stop() {
       # branch — this watcher only adds cleanup for the worktree once
       # that same kill happens, whenever that turns out to be.
       ( while kill -0 "$SERVER" 2>/dev/null; do sleep 2; done
+        # The board is gone; its log says how, so it is kept before the
+        # rest is removed — a board that died unexplained on 2026-09-13
+        # had taken its own log with it.
+        mkdir -p "$KEPT_LOGS" && cp "$WORK/serve.log" "$KEPT_LOGS/$(kept_log_name).died.serve.log" 2>/dev/null || true
         git -C "$AIDE" worktree remove --force "$WT" >/dev/null 2>&1 || true
         git -C "$AIDE" worktree prune >/dev/null 2>&1 || true
         # And the board's own files with it (2026-09-08): the queue, the
@@ -436,10 +447,9 @@ fi
 # read it — which is how one archived-instead-of-failed round on
 # 2026-09-12 went unexplained. Copied to a place that outlives the
 # round, one file per round, oldest first to delete by hand.
-KEPT_LOGS="${AIDE_ROUND_KEPT_LOGS:-$HOME/aide-dashboard/round-logs}"
 if [ "$fails" -gt 0 ]; then
   mkdir -p "$KEPT_LOGS"
-  kept="$KEPT_LOGS/$(date +%Y%m%d-%H%M%S)-${SPEC_FOLDER:-$(basename "$SERVE_FROM")}.serve.log"
+  kept="$KEPT_LOGS/$(kept_log_name).serve.log"
   cp "$WORK/serve.log" "$kept" 2>/dev/null && echo "== log kept: $kept"
 fi
 echo "== log: $WORK/serve.log"
