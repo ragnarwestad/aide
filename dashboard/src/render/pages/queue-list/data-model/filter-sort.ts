@@ -134,9 +134,14 @@ export function matchesStateFilter(f: StateFilterEntry, g: SpecGroup): boolean {
  *  every open tab sits on, refreshing itself on every change event —
  *  must never pay for it. One exported rule rather than a second
  *  reading of the query string in `serve.ts`, so the gate and the
- *  filter can never disagree about which chips show what. */
+ *  filter can never disagree about which chips show what.
+ *
+ *  A closed spec lives in the same archive/ folder, so a chip that
+ *  shows closed rows needs the walk exactly as the Archived chip does —
+ *  without this, Closed counted two and listed none. */
 export function filterShowsArchived(state: string | undefined): boolean {
-  return matchesState(stateFilter(state), ARCHIVED_STATE);
+  const f = stateFilter(state);
+  return matchesState(f, ARCHIVED_STATE) || matchesState(f, CLOSED_STATE);
 }
 
 /** Whether a row is LOCKED — built by `readerGroup()` off the archive

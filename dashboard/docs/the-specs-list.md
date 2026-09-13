@@ -189,7 +189,8 @@ date with no duration span, the same "nothing recorded" rule the Cost cell gives
 **Building archived rows is gated on the chip** (`filterShowsArchived` in `data-model/filter-sort.ts`, beside the
 chips, so the gate and the chips cannot disagree). A row costs two small file reads, aide alone has archived well over
 a hundred specs, and this page rebuilds itself on every change event on every open tab — so a view whose chip cannot
-show an archived row builds nothing for one. ONE exception: an archived spec whose own branch is still on origin is
+show an archived row builds nothing for one (a closed spec's folder is under `archive/` too, so the Closed chip
+opens the same walk). ONE exception: an archived spec whose own branch is still on origin is
 built whatever the chip, because it has NOT finished and the reading view is where that has to be seen. That is also
 why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is archived to the Archived
 chip, failed to the Failed chip, and not-archived to the chip defined by excluding archived specs, and all three
