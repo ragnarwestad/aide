@@ -26,6 +26,28 @@ const WITH_CLOSED = {
   },
 };
 
+// The spec that built Close names the stamp in its own status table;
+// that mention is not the stamp, and the spec was archived (2026-09-13).
+const MENTIONS_FOLDER = "71-a-spec-about-closing";
+const WITH_A_MENTION = {
+  ...ARCHIVED,
+  [MENTIONS_FOLDER]: {
+    description: described("A spec about closing", "It builds the Close button."),
+    status:
+      `# Status\n\n| Task | Status | Notes |\n|---|---|---|\n` +
+      `| write the stamp | ✅ | writes \`**Closed:** <date> — <reason>\` into 4-status.md |\n\n` +
+      `**Archived:** 2026-09-05\n`,
+  },
+};
+
+describe("a status file that merely mentions the stamp", () => {
+  test("is archived, not closed: listed under Archived, absent under Closed", async () => {
+    const base = start({}, WITH_A_MENTION).base;
+    expect(order(await specsList(base, "?state=archived"))).toContain(MENTIONS_FOLDER);
+    expect(order(await specsList(base, "?state=closed"))).not.toContain(MENTIONS_FOLDER);
+  });
+});
+
 describe("spec 406, REQ-7: a closed spec's own row", () => {
   test("reads under the All chip, alongside the live and archived rows", async () => {
     const html = await specsList(start({}, WITH_CLOSED).base);

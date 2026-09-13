@@ -139,9 +139,15 @@ export function specArchivedDate(dir: string): string | null {
  *  the same stamp `core/scripts/lib/spec-state.sh`'s
  *  `_spec_state_closed_json` reads on the bash side. Last match wins,
  *  same rule as `specArchivedDate`. */
+// The stamp is the START of a line (optionally a list item), the same
+// way the Archived stamp is read — never a mention anywhere in the text,
+// which a spec about closing (406's own status table) made and was read
+// as closed by.
+const CLOSED_STAMP = /^[ \t]*-?[ \t]*\*\*Closed:\*\*/m;
+
 export function specClosed(dir: string): boolean {
   const status = specFileText(dir, "4-status.md");
-  return status ? /\*\*Closed:\*\*/.test(status) : false;
+  return status ? CLOSED_STAMP.test(status) : false;
 }
 
 /** WHEN this spec was closed, off the same `**Closed:**` stamp —
@@ -149,7 +155,7 @@ export function specClosed(dir: string): boolean {
 export function specClosedDate(dir: string): string | null {
   const status = specFileText(dir, "4-status.md");
   if (!status) return null;
-  const m = status.match(/^.*\*\*Closed:\*\*[ \t]*([0-9-]*)/m);
+  const m = status.match(/^[ \t]*-?[ \t]*\*\*Closed:\*\*[ \t]*([0-9-]*)/m);
   if (!m) return null;
   return m[1].trim() || null;
 }
@@ -160,7 +166,7 @@ export function specClosedDate(dir: string): string | null {
 export function specCloseReason(dir: string): string | null {
   const status = specFileText(dir, "4-status.md");
   if (!status) return null;
-  const m = status.match(/^.*\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/m);
+  const m = status.match(/^[ \t]*-?[ \t]*\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/m);
   if (!m) return null;
   return m[1].trim() || null;
 }
