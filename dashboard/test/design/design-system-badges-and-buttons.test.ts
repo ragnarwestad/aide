@@ -30,8 +30,8 @@ describe("the four states with no example on the design sheet", () => {
     expect(badgeOf("interrupted")).toBe("b-refused");
   });
 
-  test("cancelled is a deliberate ending, not a failure", () => {
-    expect(badgeOf("cancelled")).toBe("b-idle");
+  test("cancelled is a stop somebody chose: amber like stopped, never red, never grey", () => {
+    expect(badgeOf("cancelled")).toBe("b-waiting");
   });
 });
 

@@ -25,6 +25,14 @@ describe("the pip follows the badge", () => {
     expect([w.pip, w.badge?.variant]).toEqual(["refused", "refused"]);
   });
 
+  // A step somebody cancelled was started and did not finish: amber like
+  // stopped, never the grey of a step that never ran (2026-09-13).
+  test("cancelled: amber on both, not the grey of never-ran", () => {
+    const attempt = { state: "cancelled", stopReason: undefined } as never;
+    const w = wordPhase(false, undefined, attempt, {});
+    expect([w.pip, w.badge?.variant]).toEqual(["waiting", "waiting"]);
+  });
+
   test("done: green on both, and nothing attempted stays grey with no badge", () => {
     const done = wordPhase(true, undefined, noJob, {});
     expect([done.pip, done.badge?.variant]).toEqual(["past", "done"]);
