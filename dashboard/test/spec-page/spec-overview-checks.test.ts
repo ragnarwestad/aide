@@ -25,7 +25,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { specWriteInFlight } from "../../src/serve/handle-queue/spec-edit.ts";
+import { specWriteInFlight } from "../../src/serve/routes/spec-edit.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { PAGE, TICK, SAVE, TOKEN, FILE_SHA, DESCRIPTION, NEW_TEXT, auth, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
 import {

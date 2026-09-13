@@ -1,6 +1,6 @@
 // Landing a step's own branch into the default branch of every repo it
 // pushed to (specs 93, 136, 149) — pulled out of `createServer`'s
-// closure the same way `handleQueue` and the spec-view builders were
+// closure the same way `handleRoutes` and the spec-view builders were
 // (spec: split serve.ts, step 4). Split by theme into land-branch/
 // (split land-branch.ts by theme): types.ts (LandContext, the Landing
 // description), install.ts (installAfterMerge), merge.ts

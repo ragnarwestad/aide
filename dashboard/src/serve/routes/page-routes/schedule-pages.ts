@@ -12,10 +12,10 @@ import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } 
 import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render.ts";
 import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
 import { serveStatic } from "../../serve-helpers/static.ts";
-import type { HandleQueueContext } from "../../handle-queue.ts";
+import type { RoutesContext } from "../../routes.ts";
 
 export async function schedulePages(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

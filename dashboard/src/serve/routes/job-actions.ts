@@ -1,6 +1,6 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, and the two tail-edit routes (steps, model). Extracted
-// from handle-queue.ts (split of split serve.ts step 2).
+// from routes.ts (split of split serve.ts step 2).
 import { readFileSync } from "node:fs";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
@@ -9,7 +9,7 @@ import { readSpecState } from "../../project/parse-spec-state.ts";
 import { parseStatus } from "../../project/parse-status.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 // A spec analyzed before spec 355 landed carries no 4-status.json yet —
 // the same gap schedules.ts's own `proseSteps` falls back for
@@ -25,7 +25,7 @@ function proseSteps(dir: string): string[] {
 }
 
 export async function handleJobActionRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   path: string,
   wantsJson: boolean,

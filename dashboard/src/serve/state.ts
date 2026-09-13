@@ -5,7 +5,7 @@
 // mutable state without passing a getter/setter pair per field across
 // every boundary.
 //
-// Every existing context type downstream (`HandleQueueContext`,
+// Every existing context type downstream (`RoutesContext`,
 // `ScheduleContext`, `SseWatchersContext`, `SpecLookupContext`,
 // `LandContext`, `SpecViewsContext`) still takes plain getter/setter
 // functions, unchanged — this object is what those functions close

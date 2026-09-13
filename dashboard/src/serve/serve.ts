@@ -29,8 +29,8 @@ export * from "./serve-helpers.ts";
 export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
 import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
-import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
-import { DEFAULT_PDF_CACHE_DIR } from "./handle-queue/spec-pdf.ts";
+import { handleRoutes, type RoutesContext } from "./routes.ts";
+import { DEFAULT_PDF_CACHE_DIR } from "./routes/spec-pdf.ts";
 import { type SpecViewsContext } from "./spec-views.ts";
 import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
@@ -309,9 +309,9 @@ export function createServer(opts: ServerOptions) {
   const { archivedSpecRows, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
 
   // Built last, from every earlier stage's own pieces — see
-  // `HandleQueueContext`'s own doc comment for why `scan` rides as a
+  // `RoutesContext`'s own doc comment for why `scan` rides as a
   // getter/invalidator pair instead of a value.
-  const queueCtx: HandleQueueContext = setupQueueContext(state, {
+  const routesCtx: RoutesContext = setupQueueContext(state, {
     opts,
     nav,
     allowed,
@@ -365,7 +365,7 @@ export function createServer(opts: ServerOptions) {
       const path = url.pathname;
 
       const response = isQueuePath(path)
-        ? (queueGuard(req, url) ?? (await handleQueue(queueCtx, req, url, path)))
+        ? (queueGuard(req, url) ?? (await handleRoutes(routesCtx, req, url, path)))
         : await handleCore(coreCtx, req, url, path);
 
       return compressResponse(req, response);

@@ -39,15 +39,15 @@ ALLOWED_DASHBOARD_FILES = {
     # split (2026-09-04) the name lives in the small shared file its
     # families read it from, and the tick's own doc comment says which
     # two files a tick commits together.
-    "dashboard/src/serve/handle-queue/spec-edit/shared.ts",
-    "dashboard/src/serve/handle-queue/spec-edit/checks.ts",
+    "dashboard/src/serve/routes/spec-edit/shared.ts",
+    "dashboard/src/serve/routes/spec-edit/checks.ts",
     "dashboard/src/git/run-aide-write-spec.ts",    # spawns the script, in scratch space
     "dashboard/src/git/branch-file.ts",            # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/workflow-history.ts",       # spec 362: reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
     "dashboard/src/render/pages/specs-list/data-model/types.ts",  # doc comment on the stateMissing field
     "dashboard/src/queue/spec-transitions.ts",  # spec 356: doc comment only, reads through phaseFromState's own completedPhases/archived params
-    "dashboard/src/serve/handle-queue/job-actions.ts",  # spec 356 (REQ-9): reads via readSpecState (parse-spec-state.ts), never a second derivation
+    "dashboard/src/serve/routes/job-actions.ts",  # spec 356 (REQ-9): reads via readSpecState (parse-spec-state.ts), never a second derivation
 }
 
 

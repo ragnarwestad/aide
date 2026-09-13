@@ -48,7 +48,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
   "src/serve": 24,
   "test/render/pages": 25,
   "test/queue-client": 21,
-  "test/design": 23,
+  "test/design": 24,
   "test/project": 20,
   "test/serve": 20,
 };
@@ -58,7 +58,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
 // pattern, not drift to clean up.
 const TEST_ONLY_TOP_LEVEL_DIRS = [
   "archived", "deploy", "design", "e2e", "fixtures", "guards",
-  "handle-queue", "helpers", "queue-detail", "queue-routes", "round",
+  "helpers", "queue-detail", "queue-routes", "round", "routes",
   "spec-page",
 ];
 

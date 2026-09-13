@@ -10,11 +10,11 @@
 // start/stop routes: a test board serves exactly one thing, itself.
 import { getBoardInfo } from "../../render/ui/board-info.ts";
 import { stoppedPage } from "./spec-edit/board-waiting.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 /** `undefined` for a path that is not this route's own, so it joins the
- *  same `??`-chain `handleQueue()`'s dispatcher already is. */
-export function selfStopRoute(ctx: HandleQueueContext, req: Request, path: string): Response | null {
+ *  same `??`-chain `handleRoutes()`'s dispatcher already is. */
+export function selfStopRoute(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path !== "/api/self-stop") return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // REQ-5: an ordinary (prod) server never draws the Stop button, but a

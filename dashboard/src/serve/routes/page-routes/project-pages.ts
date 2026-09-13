@@ -15,10 +15,10 @@ import { MAIN_BOARD_KEY, refreshBoardStatus } from "../../boards/lifecycle.ts";
 import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../spec-edit/board-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, queueClientScript } from "../../serve-helpers.ts";
-import type { HandleQueueContext } from "../../handle-queue.ts";
+import type { RoutesContext } from "../../routes.ts";
 
 export async function projectPages(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

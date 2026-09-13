@@ -3,7 +3,7 @@
 // standing in the one behind it.
 
 import { describe, expect, test } from "bun:test";
-import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../../src/serve/handle-queue/spec-edit/board-waiting.ts";
+import { boardFailedPage, boardUrlFor, waitingForBoardPage } from "../../src/serve/routes/spec-edit/board-waiting.ts";
 
 const body = (r: Response) => r.text();
 

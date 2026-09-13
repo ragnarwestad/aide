@@ -9,12 +9,12 @@ import { resolveSchedule } from "../../project/discover.ts";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render.ts";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 /** The `git` seam every write route below hands to `schedule-admin.ts`
  *  (REQ-2) — the same `ctx.gitRun`/`ctx.branchStatus.defaultBranch` pair
  *  `spec-page.ts`/`checks.ts` already build for `saveSpecFiles`. */
-const scheduleGit = (ctx: HandleQueueContext): ScheduleGit => ({
+const scheduleGit = (ctx: RoutesContext): ScheduleGit => ({
   run: ctx.gitRun,
   resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root),
 });
@@ -27,7 +27,7 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
  *  create/edit is validated against, so a name the queue would refuse at
  *  fire time is refused here instead, while a person is looking at the
  *  form. */
-const knownModels = (ctx: HandleQueueContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
+const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -41,7 +41,7 @@ async function readJsonBody(req: Request): Promise<{ body: Record<string, unknow
 }
 
 export async function handleScheduleAdminRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

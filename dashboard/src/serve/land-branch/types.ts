@@ -13,9 +13,9 @@ import type { RestartHook } from "./restart.ts";
 import type { BoardsContext } from "../boards/lifecycle.ts";
 
 /** Everything `landBranch` and its helpers read off `createServer`'s
- *  closure, bundled the same way `HandleQueueContext` and
+ *  closure, bundled the same way `RoutesContext` and
  *  `SpecViewsContext` bundle theirs. `invalidateScan` is the same
- *  getter/invalidator shape as `HandleQueueContext.invalidateScan` —
+ *  getter/invalidator shape as `RoutesContext.invalidateScan` —
  *  both close over the same `scan` `let`. */
 export interface LandContext {
   machineryProjectDir: (project: string) => string;

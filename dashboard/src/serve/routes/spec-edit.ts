@@ -6,7 +6,7 @@ import { closeControlRoutes } from "./spec-edit/close-controls.ts";
 import { runControlRoutes } from "./spec-edit/run-controls.ts";
 import { specPageRoutes } from "./spec-edit/spec-page.ts";
 import { trackingRoutes } from "./spec-edit/tracking.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 // Its old home, so every caller keeps the import it has.
 export { specWriteInFlight } from "./spec-edit/shared.ts";
@@ -15,7 +15,7 @@ export { specWriteInFlight } from "./spec-edit/shared.ts";
  *  Each answers `null` for a path that is not its own, so the chain
  *  reads the way the one long function it replaces did. */
 export async function handleSpecEditRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

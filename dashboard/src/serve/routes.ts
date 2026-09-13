@@ -8,7 +8,7 @@
 // `createServer` itself.
 //
 // The dispatcher body below is a short `??`-chain over themed route
-// files under `handle-queue/` (split of split serve.ts, step 3). The
+// files under `routes/` (split of split serve.ts, step 3). The
 // chain order matches the ORIGINAL route-match order exactly — several
 // routes only work because a more specific route was tried first
 // (`job-detail.ts`'s single-segment id regex would otherwise swallow
@@ -38,18 +38,18 @@ import type {
 import type { createRootLock } from "./serve-helpers.ts";
 import type { ServerOptions } from "./options.ts";
 import type { BoardsContext } from "./boards/lifecycle.ts";
-import { handlePageRoutes } from "./handle-queue/page-routes.ts";
-import { handleQueueEvents } from "./handle-queue/sse.ts";
-import { handleQueueAdminRoutes } from "./handle-queue/queue-admin.ts";
-import { handleJobActionRoutes } from "./handle-queue/job-actions.ts";
-import { handleSpecEditRoutes } from "./handle-queue/spec-edit.ts";
-import { handleSpecPdfRoute } from "./handle-queue/spec-pdf.ts";
-import { handleScheduleAdminRoutes } from "./handle-queue/schedule-admin-routes.ts";
-import { handleJobDetailRoute } from "./handle-queue/job-detail.ts";
-import { selfStopRoute } from "./handle-queue/self-stop.ts";
-import { selfRunRoute } from "./handle-queue/self-run.ts";
+import { handlePageRoutes } from "./routes/page-routes.ts";
+import { handleQueueEvents } from "./routes/sse.ts";
+import { handleQueueAdminRoutes } from "./routes/queue-admin.ts";
+import { handleJobActionRoutes } from "./routes/job-actions.ts";
+import { handleSpecEditRoutes } from "./routes/spec-edit.ts";
+import { handleSpecPdfRoute } from "./routes/spec-pdf.ts";
+import { handleScheduleAdminRoutes } from "./routes/schedule-admin-routes.ts";
+import { handleJobDetailRoute } from "./routes/job-detail.ts";
+import { selfStopRoute } from "./routes/self-stop.ts";
+import { selfRunRoute } from "./routes/self-run.ts";
 
-/** Everything `handleQueue` used to read off `createServer`'s own
+/** Everything `handleRoutes` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`
  *  builds one of these once, from the exact same locals it always had,
  *  and hands it to every call. `scan` is the one piece of MUTABLE
@@ -58,7 +58,7 @@ import { selfRunRoute } from "./handle-queue/self-run.ts";
  *  as a getter/invalidator pair rather than a value — a plain field
  *  would have captured whatever `scan` was at context-build time and
  *  never seen a later refresh. */
-export interface HandleQueueContext {
+export interface RoutesContext {
   opts: ServerOptions;
   nav: () => NavEntry[];
   allowed: Set<string>;
@@ -137,7 +137,7 @@ export interface HandleQueueContext {
   selfStopExit: () => void;
 }
 
-export async function handleQueue(ctx: HandleQueueContext, req: Request, url: URL, path: string): Promise<Response> {
+export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
   const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
 
   return (

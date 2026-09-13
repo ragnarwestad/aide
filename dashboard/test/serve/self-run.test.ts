@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
-import { resetRoundState } from "../../src/serve/handle-queue/self-run.ts";
+import { resetRoundState } from "../../src/serve/routes/self-run.ts";
 
 const TOKEN = "s3cret-token";
 const auth = { headers: { "x-aide-token": TOKEN, accept: "application/json" } };

@@ -1,15 +1,15 @@
 // The job detail route: /api/queue/:id and /specs/:id. Extracted
-// from handle-queue.ts (split of split serve.ts step 2). Its regex
+// from routes.ts (split of split serve.ts step 2). Its regex
 // matches a single-segment id under /api/queue/ or /specs/, which
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
 import { json, languageChoice } from "../serve-helpers.ts";
 import { renderJobDetailPage, resolveBackHref } from "../../render.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 export async function handleJobDetailRoute(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

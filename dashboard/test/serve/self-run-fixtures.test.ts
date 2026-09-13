@@ -6,7 +6,7 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readFixtures } from "../../src/serve/handle-queue/self-run.ts";
+import { readFixtures } from "../../src/serve/routes/self-run.ts";
 
 test("a fixture's expect and timeoutSec are read; a fixture without them carries neither", () => {
   const dir = mkdtempSync(join(tmpdir(), "aide-round-fixtures-"));

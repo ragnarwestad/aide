@@ -18,10 +18,10 @@ import { STATUS_SPEC_FILE, specTabPath } from "../../../render.ts";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers.ts";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
 
-import type { HandleQueueContext } from "../../handle-queue.ts";
+import type { RoutesContext } from "../../routes.ts";
 
 export async function checkRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   _url: URL,
   path: string,

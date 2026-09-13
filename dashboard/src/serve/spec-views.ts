@@ -1,6 +1,6 @@
 // The view builders behind the Specs list's archived rows and a
 // spec's own page (spec: split serve.ts, step 3) — pulled out of
-// `createServer`'s closure the same way `handleQueue` was in step 2:
+// `createServer`'s closure the same way `handleRoutes` was in step 2:
 // an explicit context object stands in for the locals these functions
 // used to read directly.
 
@@ -12,9 +12,9 @@ import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
 import type { BoardsContext } from "./boards/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,
- *  bundled the same way `HandleQueueContext` bundles `handleQueue`'s.
+ *  bundled the same way `RoutesContext` bundles `handleRoutes`'s.
  *  `readScan` and `readPrOpen` are getters rather than values for the
- *  same reason `HandleQueueContext.readScan` is: both are `let`s that
+ *  same reason `RoutesContext.readScan` is: both are `let`s that
  *  `createServer`'s own scan/landing-check machinery reassigns after
  *  this context is built, and a snapshot taken at build time would
  *  never see a later refresh. */
@@ -50,12 +50,12 @@ export interface SpecViewsContext {
   specCreatedAt: SpecCreatedAtChecker;
   /** Whether `md-to-pdf` is resolvable on this host (spec 358, REQ-7) —
    *  the only new field `specPageView` itself reads; `pdfCacheDir`/
-   *  `pdfGeneratorBin` live only on `HandleQueueContext`, where the
+   *  `pdfGeneratorBin` live only on `RoutesContext`, where the
    *  route that actually spawns the script runs. */
   pdfToolAvailable: boolean;
   /** The board registry and `roundAvailable`/status-refresh primitives
    *  (spec 388) — the only new field `specPageView` itself reads;
-   *  the routes that start/stop a board live on `HandleQueueContext`. */
+   *  the routes that start/stop a board live on `RoutesContext`. */
   boards: BoardsContext;
 }
 

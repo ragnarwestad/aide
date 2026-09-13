@@ -22,7 +22,7 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 import { json } from "../serve-helpers/http.ts";
 
 /** What the spec's row is expected to show once the round is over
@@ -78,13 +78,13 @@ export function resetRoundState(): void {
  *  branch under test carries its own — the same `dashboard/test/round/
  *  specs` the script reads. `roundFixturesDir` overrides it (a test
  *  seam). */
-function fixturesDir(ctx: HandleQueueContext): string {
+function fixturesDir(ctx: RoutesContext): string {
   return ctx.opts.roundFixturesDir ?? join(import.meta.dir, "..", "..", "..", "test", "round", "specs");
 }
 
 /** `undefined` for a path that is not this route's own, so it joins the
- *  same `??`-chain `handleQueue()`'s dispatcher already is. */
-export function selfRunRoute(ctx: HandleQueueContext, req: Request, path: string): Response | null {
+ *  same `??`-chain `handleRoutes()`'s dispatcher already is. */
+export function selfRunRoute(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path !== "/api/self-run") return null;
   // An ordinary (prod) server never draws the Run button, but a request
   // can be sent by hand regardless of what the page draws.
@@ -109,7 +109,7 @@ export function selfRunRoute(ctx: HandleQueueContext, req: Request, path: string
   return wantsJson ? json({ ok: true, stage: "resetting" }) : new Response(null, { status: 303, headers: { location: "/" } });
 }
 
-async function runRound(ctx: HandleQueueContext): Promise<void> {
+async function runRound(ctx: RoutesContext): Promise<void> {
   current = { stage: "resetting", startedAt: new Date().toISOString(), specs: [] };
   try {
     const project = [...ctx.allowed][0];
@@ -151,7 +151,7 @@ async function runRound(ctx: HandleQueueContext): Promise<void> {
  *  ends one — the transition, then SIGTERM to the process group — and
  *  the round waits for the runner to let go of them before the repos
  *  are touched under a run's feet. */
-async function cancelLiveJobs(ctx: HandleQueueContext, project: string): Promise<void> {
+async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void> {
   for (const job of ctx.queue.list()) {
     if (job.project !== project) continue;
     if (job.state !== "queued" && job.state !== "running") continue;
@@ -174,7 +174,7 @@ async function cancelLiveJobs(ctx: HandleQueueContext, project: string): Promise
  *  own checkout sync fetches the owned clone on its own clock
  *  (`ensureCheckout`), and two fetches at once end with "cannot lock
  *  ref" for one of them — a moment later it goes through. */
-async function gitOrThrow(ctx: HandleQueueContext, at: string, args: string[], timeoutMs = 20_000): Promise<string> {
+async function gitOrThrow(ctx: RoutesContext, at: string, args: string[], timeoutMs = 20_000): Promise<string> {
   for (let attempt = 1; ; attempt++) {
     const r = await ctx.gitRun(at, args, timeoutMs);
     if (r.code === 0) return r.stdout;
@@ -192,7 +192,7 @@ async function gitOrThrow(ctx: HandleQueueContext, at: string, args: string[], t
  *  `git log --all`, and a remote-tracking `origin/aide/*` left behind
  *  by a branch deleted on origin still reaches every commit the last
  *  round made — which is how a fresh 01 read as already implemented. */
-async function dropRunBranches(ctx: HandleQueueContext, at: string): Promise<void> {
+async function dropRunBranches(ctx: RoutesContext, at: string): Promise<void> {
   const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, at, args, timeoutMs);
   const local = (await run(["branch", "--list", "--format=%(refname:short)", "aide/*"]))
     .split("\n")
@@ -211,7 +211,7 @@ async function dropRunBranches(ctx: HandleQueueContext, at: string): Promise<voi
 /** The dashboard's own clone (where the landings merge) set hard to
  *  origin's main, under the same per-root lock the landings take, so no
  *  landing merges into it while it is being put back. */
-async function resetOwned(ctx: HandleQueueContext, owned: string): Promise<void> {
+async function resetOwned(ctx: RoutesContext, owned: string): Promise<void> {
   if (!existsSync(join(owned, ".git"))) return;
   await ctx.mergeLock.run(owned, async () => {
     await gitOrThrow(ctx, owned, ["fetch", "-q", "--prune", "origin"], 30_000);
@@ -226,7 +226,7 @@ async function resetOwned(ctx: HandleQueueContext, owned: string): Promise<void>
  *  `main`, force-pushed, with every `aide/*` branch the runs left
  *  deleted on origin and here. `reset --hard` leaves ignored files
  *  alone, so the project's `.aide/config` stays. */
-async function resetRepo(ctx: HandleQueueContext, dir: string, base: string | null): Promise<void> {
+async function resetRepo(ctx: RoutesContext, dir: string, base: string | null): Promise<void> {
   const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, dir, args, timeoutMs);
   await run(["checkout", "-q", "main"]);
   const target = base ?? (await run(["rev-list", "--max-parents=0", "main"])).trim().split("\n").pop()!;
@@ -249,7 +249,7 @@ async function resetRepo(ctx: HandleQueueContext, dir: string, base: string | nu
  *  job of the project is live; a queued archive held for its own
  *  acceptance-criteria gate never leaves `queued` on its own and is not
  *  live. */
-async function followUntilDrained(ctx: HandleQueueContext, project: string, dirs: string[]): Promise<void> {
+async function followUntilDrained(ctx: RoutesContext, project: string, dirs: string[]): Promise<void> {
   const live = (): boolean =>
     ctx.queue.list().some(
       (j) =>
@@ -269,7 +269,7 @@ async function followUntilDrained(ctx: HandleQueueContext, project: string, dirs
 
 /** A fast-forward of the checkouts a person looks at; a checkout that
  *  cannot fast-forward is left as it is — the next pull may. */
-async function pullDisplay(ctx: HandleQueueContext, dirs: string[]): Promise<void> {
+async function pullDisplay(ctx: RoutesContext, dirs: string[]): Promise<void> {
   for (const dir of dirs) await ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000);
 }
 
@@ -307,7 +307,7 @@ export function readFixtures(dir: string): RoundSpec[] {
 /** Through the board's own HTTP API, the same two calls the script made
  *  — so a fixture reaches the queue exactly as a spec made on the New
  *  spec page does, refusals included. */
-async function queueFixtures(ctx: HandleQueueContext, project: string, specs: RoundSpec[], specsDir: string): Promise<void> {
+async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSpec[], specsDir: string): Promise<void> {
   const base = `http://127.0.0.1:${ctx.serverPort()}`;
   const headers: Record<string, string> = { "content-type": "application/json", accept: "application/json" };
   if (ctx.queueToken) headers["x-aide-token"] = ctx.queueToken;

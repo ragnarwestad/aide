@@ -1,6 +1,6 @@
 // The queue-creation and project-admin API routes: create, the
 // queue's model/budget defaults, and add/settings/deploy/remove
-// for a project. Extracted from handle-queue.ts (split of split
+// for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
@@ -14,10 +14,10 @@ import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin.ts";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { HandleQueueContext } from "../handle-queue.ts";
+import type { RoutesContext } from "../routes.ts";
 
 export async function handleQueueAdminRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   path: string,
   wantsJson: boolean,

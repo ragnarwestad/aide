@@ -6,10 +6,10 @@
 import { renderCloseSpecPage, specPagePath } from "../../../render.ts";
 import { bodyToObject, json, languageChoice, logRefusal, queueClientScript, readBounded, specsRedirect } from "../../serve-helpers.ts";
 
-import type { HandleQueueContext } from "../../handle-queue.ts";
+import type { RoutesContext } from "../../routes.ts";
 
 export async function closeControlRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   url: URL,
   path: string,

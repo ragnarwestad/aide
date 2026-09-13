@@ -1,26 +1,26 @@
 // The final assembly: every earlier stage's own pieces, gathered into
-// the one context `handleQueue` reads. Split out of serve.ts (split
+// the one context `handleRoutes` reads. Split out of serve.ts (split
 // serve.ts by theme, restructuring createServer into staged setup
 // functions to get it under 500 lines) — built last, since it is the
 // one stage that reads every other one.
 
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { setPendingRestart, type ServerState } from "./state.ts";
-import { type HandleQueueContext } from "./handle-queue.ts";
+import { type RoutesContext } from "./routes.ts";
 
-/** Everything `HandleQueueContext` needs, minus the handful of fields
+/** Everything `RoutesContext` needs, minus the handful of fields
  *  this stage builds itself off `state` and `branchFileSteps` — the
  *  same "the getters live here, the values arrive from every earlier
- *  stage" split `HandleQueueContext`'s own doc comment already
+ *  stage" split `RoutesContext`'s own doc comment already
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
-  HandleQueueContext,
+  RoutesContext,
   "readScan" | "invalidateScan" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "setPendingRestart" | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
 
-export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): HandleQueueContext {
+export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): RoutesContext {
   return {
     opts: inputs.opts,
     nav: inputs.nav,

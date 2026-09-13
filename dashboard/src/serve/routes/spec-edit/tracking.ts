@@ -16,10 +16,10 @@ import {
   resolveDependencyFolder, specsRedirect,
 } from "../../serve-helpers.ts";
 
-import type { HandleQueueContext } from "../../handle-queue.ts";
+import type { RoutesContext } from "../../routes.ts";
 
 export async function trackingRoutes(
-  ctx: HandleQueueContext,
+  ctx: RoutesContext,
   req: Request,
   _url: URL,
   path: string,

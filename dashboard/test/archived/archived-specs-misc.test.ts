@@ -31,12 +31,12 @@ describe("building the archived rows", () => {
   // elsewhere for the same reason — `queue.test.ts` reads two
   // `errorReason` declarations as text and asserts they agree.
   // The declaration and its body live in spec-views.ts; the one call
-  // site is handleQueue's, extracted into its own file since spec:
+  // site is handleRoutes's, extracted into its own file since spec:
   // split serve.ts, step 2. Both moved out of serve.ts itself in step 3.
-  // handleQueue's own body moved on again into handle-queue/page-routes.ts
+  // handleRoutes's own body moved on again into routes/page-routes.ts
   // (split of split serve.ts, step 3) — that is where the call site lives now.
   const specViewsSrc = sourceWithParts("serve/spec-views");
-  const pageRoutesSrc = sourceWithParts("serve/handle-queue/page-routes");
+  const pageRoutesSrc = sourceWithParts("serve/routes/page-routes");
 
   test("is asked for by the reader's own chip and by nothing else", () => {
     const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
