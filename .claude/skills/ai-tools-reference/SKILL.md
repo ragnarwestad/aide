@@ -142,6 +142,9 @@ to cover every tool of that server.
 
 `--permission-prompts none` (v2.1.259) denies anything that would prompt
 on a host nobody is watching; the permission mode still decides the rest.
+Verified on 2.1.270: `-p` already does exactly this without the flag — a
+tool that would prompt is denied and listed under `permission_denials`
+either way — so `aide-run-spec` leaves it out of its argv on purpose.
 `-p --resume <session-id>` continues a session the same run started.
 `defaultMode: "bypassPermissions"` is ignored in a project's
 `.claude/settings.json` (v2.1.257) — set it in user or managed settings.
