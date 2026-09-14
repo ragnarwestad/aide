@@ -7,7 +7,6 @@ description: >-
   Use when: checking AI news, wanting to know what's new in
   Claude Code/Copilot/Codex, updating the news log.
   Do NOT use for: general questions about AI tools (use web search directly).
-disable-model-invocation: true
 ---
 
 # AI news: Check and update
