@@ -6,15 +6,15 @@
 // `SpecViewsContext` already carries everything these three read — it
 // is `spec-views.ts`'s own type — so this stage is the thin wrapper
 // that closes each of the three impls over one built context, the same
-// shape `job-row.ts`'s own wrapper in `setup-land.ts` already is.
+// shape `job-row.ts`'s own wrapper in `setup/land.ts` already is.
 
-import type { Job } from "../queue/queue.ts";
+import type { Job } from "../../queue/queue.ts";
 import {
   archivedSpecRows as archivedSpecRowsImpl,
   specPageView as specPageViewImpl,
   jobDetailView as jobDetailViewImpl,
   type SpecViewsContext,
-} from "./spec-views";
+} from "../spec-views";
 
 export function setupSpecViews(ctx: SpecViewsContext) {
   function archivedSpecRows(state: string | undefined) {

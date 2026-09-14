@@ -343,7 +343,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
 // These three call `refreshSpecCaches` directly against a hand-built
 // `ScheduleContext`, twice in a row, rather than through the full HTTP
 // harness: `BranchStatusChecker`'s own `openSpecBranches` cache has a
-// FIXED 30-second TTL (`setup-project-resolution.ts` never overrides
+// FIXED 30-second TTL (`setup/project-resolution.ts` never overrides
 // it, and no `ServerOptions` field reaches it either), entirely
 // independent of `specCachePollMs` — so two ticks fired via the real
 // schedule, milliseconds apart in test time, would have the SECOND one

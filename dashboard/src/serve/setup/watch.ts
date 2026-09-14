@@ -2,15 +2,15 @@
 // them to look again.
 
 import { watch } from "node:fs";
-import { discoverProjects } from "../project/discover";
+import { discoverProjects } from "../../project/discover";
 import {
   writeTo as writeToImpl,
   notifyQueueChanged as notifyQueueChangedImpl,
   scheduleNotify as scheduleNotifyImpl,
   closeSpecWatchers as closeSpecWatchersImpl,
   type SseWatchersContext,
-} from "./sse-watchers.ts";
-import type { ServerState } from "./state.ts";
+} from "../sse-watchers.ts";
+import type { ServerState } from "../state.ts";
 
 export interface WatchSetup {
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
