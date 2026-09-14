@@ -229,7 +229,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     // — so the column says what comes next on both. Nothing has run
     // here, so the next phase is analyze.
     expect(line).toContain('class="badge b-ready"');
-    expect(line).toContain(">ready<");
+    expect(line).toContain(">Ready<");
     expect(line).not.toContain("not started");
     // It used to link to nothing — "a link to nothing is worse than no
     // link". Spec 150 gave every spec somewhere to point, so what must

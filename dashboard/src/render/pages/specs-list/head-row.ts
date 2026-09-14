@@ -4,6 +4,7 @@ import type { Language } from "../../../i18n";
 
 import { specPagePath } from "../spec-page";
 import { CHECKING, badge, stepLabel } from "../../ui/components";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
@@ -255,7 +256,7 @@ export function headStateBadge(g: SpecGroup, lang: Language): string {
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   return locked
-    ? badge("done", g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE)
+    ? badge("done", capitalizeFirst(g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE))
     : g.lead
       ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
       : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });

@@ -31,7 +31,7 @@ describe("a landing that fell is the landed step's own failure", () => {
     expect(per.archive![0]!.state).toBe("failed");
     expect(per.implement![0]!.state).toBe("done");
     const archive = wordPhase(false, undefined, per.archive![0], {});
-    expect([archive.pip, archive.badge?.variant, archive.badge?.label]).toEqual(["refused", "refused", "failed"]);
+    expect([archive.pip, archive.badge?.variant, archive.badge?.label]).toEqual(["refused", "refused", "Failed"]);
     const implement = wordPhase(true, undefined, per.implement![0], {});
     expect([implement.pip, implement.badge?.variant]).toEqual(["past", "done"]);
   });

@@ -228,7 +228,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     const html = await (
       await fetch(`${base2}/?open=aide/81-queue-and-runner`, auth)
     ).text();
-    expect(html).toContain("running (green)");
+    expect(html).toContain("Running (green)");
     expect(html).toContain('data-third="1"');
   });
 

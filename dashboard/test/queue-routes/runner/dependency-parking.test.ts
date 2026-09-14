@@ -309,7 +309,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     ).text();
     // The ordinary queued badge, with the reason underneath it — no
     // seventh badge variant and no new job state were introduced.
-    expect(html).toContain('badge b-idle">queued');
+    expect(html).toContain('badge b-idle">Queued');
     expect(html).toContain("held back: depends on 80, which is not archived yet");
   });
 

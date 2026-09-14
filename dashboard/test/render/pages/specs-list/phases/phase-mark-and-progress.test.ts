@@ -220,7 +220,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "impl", specFolder: "210-green", steps: ["implement"], state: "running", tddPhase: "green" })],
       [target("210-green")],
     );
-    expect(subRow(html, "implement")).toContain("running (green)");
+    expect(subRow(html, "implement")).toContain("Running (green)");
   });
 
   // Criterion 3.
@@ -229,7 +229,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "refactor" })],
       [target("210-ref")],
     );
-    expect(subRow(html, "implement")).toContain("running (refactor)");
+    expect(subRow(html, "implement")).toContain("Running (refactor)");
   });
 
   // Criterion 4: zero thirds complete renders identically to "no report
@@ -240,7 +240,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "impl", specFolder: "210-red", steps: ["implement"], state: "running", tddPhase: "red" })],
       [target("210-red")],
     );
-    expect(subRow(html, "implement")).toContain("running (red)");
+    expect(subRow(html, "implement")).toContain("Running (red)");
   });
 
   // Criterion 6: the report never arrived. Nothing throws, and the row
@@ -250,7 +250,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "impl", specFolder: "210-silent", steps: ["implement"], state: "running" })],
       [target("210-silent")],
     );
-    expect(subRow(html, "implement")).toContain("running");
+    expect(subRow(html, "implement")).toContain("Running");
     expect(subRow(html, "implement")).not.toContain("running (");
   });
 
@@ -265,7 +265,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "an", specFolder: "210-analyze", steps: ["analyze"], state: "running" })],
       [target("210-analyze")],
     );
-    expect(subRow(html, "analyze")).toContain("running");
+    expect(subRow(html, "analyze")).toContain("Running");
     expect(subRow(html, "analyze")).not.toContain("running (");
   });
 
@@ -277,7 +277,7 @@ describe("spec 210: a running implement says which third it is in", () => {
       [row({ id: "impl", specFolder: "210-waiting", steps: ["implement"], state: "queued", tddPhase: "green" })],
       [target("210-waiting")],
     );
-    expect(subRow(html, "implement")).toContain("queued");
+    expect(subRow(html, "implement")).toContain("Queued");
     expect(subRow(html, "implement")).not.toContain("(green)");
   });
 

@@ -66,7 +66,7 @@ describe("an archived spec's row", () => {
   });
 
   test("says what it is, in the column that says what every row is", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(">archived<");
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(">Archived<");
   });
 
   // Spec 224. `nextPhase` deletes `archive` from the done-set before it

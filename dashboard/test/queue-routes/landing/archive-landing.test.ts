@@ -423,7 +423,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     const html = await listUntil(base, "could not be deleted on origin", ARCHIVED_VIEW);
     const row = rowFor(html, FOLDER);
     // REQ-1: the State cell says only the bare word now.
-    expect(row).toContain('<span class="badge b-done">archived</span>');
+    expect(row).toContain('<span class="badge b-done">Archived</span>');
     expect(row).not.toContain("branch left behind");
     expect(row).toContain(BRANCH);
     const block = blockFor(html, FOLDER);
@@ -437,7 +437,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     // exactly as it always has — no reason recorded for it, so it falls
     // through to the plain mark rather than picking up FOLDER's.
     const siblingRow = rowFor(html, SIBLING);
-    expect(siblingRow).toContain('<span class="badge b-done">archived</span>');
+    expect(siblingRow).toContain('<span class="badge b-done">Archived</span>');
     const siblingBlock = blockFor(html, SIBLING);
     expect(siblingBlock).toContain("Its branch is still on origin — re-run archive");
     expect(siblingBlock).not.toContain("This spec merged, but its branch could not be deleted");

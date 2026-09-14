@@ -112,7 +112,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(row).toContain('class="fold');
     // Spec 339: the State cell says the bare word — the fact that
     // STAMPED's branch is still on origin is the notice line's to say.
-    expect(row).toContain('<span class="badge b-done">archived</span>');
+    expect(row).toContain('<span class="badge b-done">Archived</span>');
     expect(row).not.toContain(">archived, not landed<");
     expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
     const open = await listUntil(base, STILL_ON_ORIGIN, `${ARCHIVED_VIEW}${opened(STAMPED)}`);

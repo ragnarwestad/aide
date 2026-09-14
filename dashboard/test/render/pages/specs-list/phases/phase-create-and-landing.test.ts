@@ -106,7 +106,7 @@ describe("spec 116: create is the first phase line", () => {
     // nobody made — and the same dash the State, Created and Cost
     // columns already draw for "nothing here".
     expect(line).toContain(
-      '<td data-col="state"><span class="badge b-done">done</span></td>' +
+      '<td data-col="state"><span class="badge b-done">Done</span></td>' +
         '<td data-col="started"><span class="muted small">–</span></td>' +
         '<td class="num" data-col="cost"></td><td data-col="created"></td>',
     );
@@ -120,7 +120,7 @@ describe("spec 116: create is the first phase line", () => {
     const html = rows([createJob("116-landing", { state: "running" })], []);
     expect(order(html)).toEqual(["create", "analyze", "implement", "archive"]);
     const line = subRow(html, "create");
-    expect(line).toContain("running");
+    expect(line).toContain("Running");
     expect(line).not.toContain("b-done");
   });
 
@@ -250,7 +250,7 @@ describe("spec 116: create is the first phase line", () => {
         .replace(/<span class="dot"[^>]*><\/span>/g, "")
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
-    expect(said(withCreate)).toBe("ready");
+    expect(said(withCreate)).toBe("Ready");
     // The button is named for the phase a press would run (spec 157),
     // and `create` is not one of them whether it is done or not.
     expect(runLine(withCreate)).toContain(">Implement</button>");
@@ -526,8 +526,8 @@ describe("a landing marks only the step being landed, not every finished step", 
 
   test("the finished steps read done once the spec's own file names them", () => {
     const html = openRows([chained], ["create", "analyze", "implement"]);
-    expect(badgeLabel(html, "analyze")).toBe("done");
-    expect(badgeLabel(html, "implement")).toBe("done");
+    expect(badgeLabel(html, "analyze")).toBe("Done");
+    expect(badgeLabel(html, "implement")).toBe("Done");
   });
 
   test("the step being landed still reads running", () => {

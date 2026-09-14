@@ -84,7 +84,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     );
     // The badge says the state — the same "stopped" every other stop
     // the system made gets (2026-09-08) — and never the reason.
-    expect(stateCell(html)).toContain("stopped");
+    expect(stateCell(html)).toContain("Stopped");
     expect(stateCell(html)).not.toContain("archive held back");
     expect(stateCell(html)).not.toContain("hand ticks survive");
   });
@@ -127,7 +127,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     const archive = subRow(html, "archive");
-    expect(archive).toContain("held back");
+    expect(archive).toContain("Held back");
     expect(archive).not.toContain("last re-run failed");
     expect(archive).not.toContain("hand ticks survive");
     expect(panel(html)).toContain("hand ticks survive");

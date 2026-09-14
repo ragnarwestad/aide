@@ -62,13 +62,13 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
   });
 
   test("restingChip's resting-state words are Norwegian for nb", () => {
-    expect(restingChip("nb", { readyPhase: "implement" })).toContain("klar");
-    expect(restingChip("nb", {})).toContain("ferdig");
+    expect(restingChip("nb", { readyPhase: "implement" })).toContain("Klar");
+    expect(restingChip("nb", {})).toContain("Ferdig");
     // The badge says the STATE since 2026-09-08 — the same word every
     // other stop the system made gets — and the reason is the sentence
     // on the row's own notice line. The word itself was hardcoded
     // English until it took the key the held-back badge uses.
-    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("stoppet");
+    expect(restingChip("nb", { archiveHeldBack: "a reason" })).toContain("Stoppet");
   });
 
   test("English is unchanged (REQ-5)", () => {
@@ -90,19 +90,19 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
       row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
       "en",
     );
-    expect(html).toContain(">stopped<");
+    expect(html).toContain(">Stopped<");
     expect(html).not.toContain("Implementing");
     expect(html).not.toMatch(/\d+\/\d+/);
   });
 
   // Norwegian too: the word was hardcoded English for the sibling state
   // ("archive held back") until the two shared one key.
-  test("Norwegian says stoppet, not the English word", () => {
+  test("Norwegian says Stoppet, not the English word", () => {
     const html = specStateChip(
       row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
       "nb",
     );
-    expect(html).toContain(">stoppet<");
+    expect(html).toContain(">Stoppet<");
   });
 
   test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {
@@ -116,7 +116,7 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
     const badgeHtml = specStateChip(heldRow, "en");
     const notice = specNotice(heldRow);
 
-    expect(badgeHtml).toContain(">stopped<");
+    expect(badgeHtml).toContain(">Stopped<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
     // `<phase> <what happened>: <the longer sentence>` — the phase and
     // the state word as one phrase: "implement held back: …".

@@ -32,9 +32,9 @@ describe("an archived spec's row, opened", () => {
   // source for such a row to read.
   test("each line says what 4-status.md's own line claims happened", async () => {
     const lines = phaseLines(await openList(), STAMPED);
-    for (const step of STAMPED_STEPS) expect(lines[step]).toContain(">done<");
+    for (const step of STAMPED_STEPS) expect(lines[step]).toContain(">Done<");
     for (const step of STAMPED_NOT_RUN) {
-      expect(lines[step]).not.toContain(">done<");
+      expect(lines[step]).not.toContain(">Done<");
       // A dash since 2026-09-08: the queue has no job for a phase an
       // archived spec's own file does not name.
       expect(lines[step]).toContain("–");

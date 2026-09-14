@@ -186,6 +186,6 @@ describe("the page resolves a step its job's tables never named", () => {
     // `implement`'s own configured model and its own 90-minute limit —
     // not "as configured" and not "NaN min".
     expect(html).toContain("opus");
-    expect(html).toContain("stopped — 90 min");
+    expect(html).toContain("Stopped — 90 min");
   });
 });
