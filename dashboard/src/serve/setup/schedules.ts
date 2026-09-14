@@ -2,22 +2,22 @@
 // drift, the spec caches, and each project's own `schedule:` entries.
 //
 // `readRunner` stays a getter reading `state.runner`: the runner stage
-// runs AFTER this one (it needs the land functions setup-land.ts
+// runs AFTER this one (it needs the land functions setup/land.ts
 // builds, which in turn want nothing from here but `warmSpec`), so
 // `runner` genuinely does not exist yet when this stage runs — only
 // when a schedule timer actually fires, long afterwards.
 
-import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
-import { DEFAULT_TTL_MS } from "../git/branch-status.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import { DEFAULT_TTL_MS } from "../../git/branch-status.ts";
 import {
   DescriptionFreshnessChecker,
   SpecCreatedAtChecker,
   SpecFileCommitChecker,
-} from "../git/description-freshness.ts";
-import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
-import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
-import type { QueueStore } from "../queue/queue.ts";
-import type { SpecTarget } from "../render";
+} from "../../git/description-freshness.ts";
+import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { QueueStore } from "../../queue/queue.ts";
+import type { SpecTarget } from "../../render";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
@@ -25,9 +25,9 @@ import {
   refreshSchedules as refreshSchedulesImpl,
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
-} from "./schedules";
-import { createRootLock } from "./serve-helpers";
-import type { ServerState } from "./state.ts";
+} from "../schedules";
+import { createRootLock } from "../serve-helpers";
+import type { ServerState } from "../state.ts";
 
 export interface ScheduleSetupOptions {
   projectRoot?: string;

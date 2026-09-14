@@ -4,9 +4,9 @@
 // functions to get it under 500 lines) — built last, since it is the
 // one stage that reads every other one.
 
-import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
-import { setPendingRestart, type ServerState } from "./state.ts";
-import { type RoutesContext } from "./routes";
+import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import { setPendingRestart, type ServerState } from "../state.ts";
+import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
  *  this stage builds itself off `state` and `branchFileSteps` — the
