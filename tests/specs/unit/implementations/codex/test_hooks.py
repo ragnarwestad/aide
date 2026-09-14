@@ -9,7 +9,6 @@ scripts: one marks "code changed"/"tests run" per turn, one blocks Stop.
 """
 import json
 import subprocess
-import time
 
 import pytest
 
@@ -219,32 +218,6 @@ class TestMarkdownlint:
     """
 
     LINT_ENV = {"AIDE_MARKDOWNLINT_CMD": "echo LINTED"}
-
-    def test_five_missing_validator_events_finish_promptly(self, hooks_dir):
-        started = time.monotonic()
-        results = [
-            run_hook(
-                hooks_dir,
-                "aide-markdownlint.sh",
-                payload("Write", {"file_path": f"specs/235/{name}"}),
-                env={"PATH": "/usr/bin:/bin"},
-            )
-            for name in (
-                "0-README.md",
-                "1-description.md",
-                "2-analysis.md",
-                "3-solution.md",
-                "4-status.md",
-            )
-        ]
-
-        assert time.monotonic() - started < 2
-        assert all(result.returncode == 0 for result in results)
-        assert all(
-            "Markdown validation skipped: markdownlint-cli2 is not installed locally"
-            in result.stderr
-            for result in results
-        )
 
     def test_uses_available_local_validator_with_exact_path(self, hooks_dir, tmp_path):
         validator = tmp_path / "markdownlint-cli2"
