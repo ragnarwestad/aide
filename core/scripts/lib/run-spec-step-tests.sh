@@ -69,9 +69,10 @@ EOF_CMDS
         step_tests_rc=$?
         [ "$step_tests_rc" -ne 0 ] || break
         # The lines a reader looks for first — a runner's own failure
-        # markers — then the tail, so a suite that prints nothing of
+        # markers, never a bare "Error:" inside a line a PASSING test
+        # echoed — then the tail, so a suite that prints nothing of
         # that shape still shows what it said last.
-        step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR|Error:' "$work_dir/step-test-run.log" 2>/dev/null | head -8)"
+        step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR' "$work_dir/step-test-run.log" 2>/dev/null | head -8)"
         [ -n "$step_tests_failing" ] || step_tests_failing="$(tail -c 600 "$work_dir/step-test-run.log" 2>/dev/null)"
         # Another turn, or the end: the cap, a session the runner cannot
         # resume, and what the step has left of its budget and its time.
