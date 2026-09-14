@@ -2,7 +2,7 @@
 // them to look again.
 
 import { watch } from "node:fs";
-import { discoverProjects } from "../project/discover.ts";
+import { discoverProjects } from "../project/discover";
 import {
   writeTo as writeToImpl,
   notifyQueueChanged as notifyQueueChangedImpl,

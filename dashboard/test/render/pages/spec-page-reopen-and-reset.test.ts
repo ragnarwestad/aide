@@ -1,7 +1,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderResetSpecPage, type SpecPageView } from "../../../src/render.ts";
+import { renderResetSpecPage, type SpecPageView } from "../../../src/render";
 import { GENERATED, NAV, page, view } from "./spec-page-fixtures.ts";
 
 // --- spec 198: reopening a spec is one action -------------------------------

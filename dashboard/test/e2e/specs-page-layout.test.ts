@@ -8,8 +8,8 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
-import { CSS } from "../../src/render/ui/css.ts";
-import { badge } from "../../src/render/ui/components.ts";
+import { CSS } from "../../src/render/ui/css";
+import { badge } from "../../src/render/ui/components";
 import { t } from "../../src/i18n";
 
 setDefaultTimeout(20_000);

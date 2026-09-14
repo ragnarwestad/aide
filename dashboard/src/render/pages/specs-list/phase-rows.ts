@@ -1,12 +1,12 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { badge, phaseChip, stepLabel } from "../../ui/components.ts";
+import { badge, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { anyCostUnmeasured, wordPhase } from "../../ui/job-state.ts";
+import { anyCostUnmeasured, wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state/types.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
-import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import type { SpecsPageOptions } from "./";
+import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
 import { busyReason, chosenSteps, runFormId, specBusy } from "./row-state.ts";

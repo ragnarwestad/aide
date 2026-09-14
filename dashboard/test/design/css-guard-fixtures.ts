@@ -38,7 +38,7 @@ import { join } from "node:path";
 // the sentinels are. Every check below that reads css.ts's CONTENT
 // reads this string; the class-name checks further down still glob
 // the render files as text, which is a different question.
-export { CSS } from "../../src/render/ui/css.ts";
+export { CSS } from "../../src/render/ui/css";
 
 export const ROOT = join(import.meta.dir, "..", "..");
 

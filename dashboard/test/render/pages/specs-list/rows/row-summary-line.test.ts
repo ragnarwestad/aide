@@ -3,9 +3,9 @@ import {
   renderSpecsRows,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { openKeys, row } from "../../fixtures.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 // Split out of listing-and-units.test.ts by theme.
 describe("spec 101: one line per row for what is going on and what is next (criterion 11)", () => {

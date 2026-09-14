@@ -18,11 +18,11 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list.ts";
+import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
 
 export interface NewSpecPageOptions {

@@ -5,8 +5,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
-import { projectNameError } from "../project-admin.ts";
-import { parseStatus, type StatusInfo } from "../parse-status.ts";
+import { projectNameError } from "../project-admin";
+import { parseStatus, type StatusInfo } from "../parse-status";
 import { configSpecsPath } from "./config.ts";
 import { specDependsOn } from "./depends-on.ts";
 import { specClosed, specDescription, specTitle } from "./spec-files.ts";

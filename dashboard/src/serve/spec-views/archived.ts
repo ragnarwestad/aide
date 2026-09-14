@@ -2,11 +2,11 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover.ts";
-import { parseStatus } from "../../project/parse-status.ts";
+import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover";
+import { parseStatus } from "../../project/parse-status";
 import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
-import { filterShowsArchived, PHASE_LINES, type ArchivedSpecView } from "../../render.ts";
-import type { SpecViewsContext } from "../spec-views.ts";
+import { filterShowsArchived, PHASE_LINES, type ArchivedSpecView } from "../../render";
+import type { SpecViewsContext } from "./";
 
 export function archivedAt(ctx: SpecViewsContext, dir: string): { date: string | null; checking: boolean } {
   const stamped = specArchivedDate(dir);

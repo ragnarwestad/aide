@@ -29,11 +29,11 @@ export function sameRoot(a: string, b: string): boolean {
   return real(a) === real(b);
 }
 import type { Job } from "../../queue/queue.ts";
-import type { StepOutcome } from "../../queue/runner.ts";
+import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
-import { specFileText } from "../../project/discover.ts";
-import { STATUS_SPEC_FILE } from "../../render.ts";
+import { specFileText } from "../../project/discover";
+import { STATUS_SPEC_FILE } from "../../render";
 import { installAfterMerge } from "./install.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";

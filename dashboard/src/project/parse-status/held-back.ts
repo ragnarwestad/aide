@@ -7,7 +7,7 @@
 // status file stays there — this is what a caller ASKS about an
 // archive, and it needs none of that.
 
-import { parseStatusChecks } from "../parse-status.ts";
+import { parseStatusChecks } from "./";
 
 // --- spec 108: an archive run that declined -----------------------------------
 

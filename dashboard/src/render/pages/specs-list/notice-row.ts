@@ -7,12 +7,12 @@
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
 
-import { rowMessageParts, stepLabel } from "../../ui/components.ts";
+import { rowMessageParts, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { specNotice, wordPhase } from "../../ui/job-state.ts";
+import { specNotice, wordPhase } from "../../ui/job-state";
 import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
-import { isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { isArchivedRow, type SpecGroup } from "./data-model";
 import { LIST_COLUMNS } from "./row-shared.ts";
 
 /** The one phase whose own record disagrees with the files, worded for

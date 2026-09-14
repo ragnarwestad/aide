@@ -6,7 +6,7 @@
 // `overview.ts`), rather than a variation per tab.
 
 import { describe, expect, test } from "bun:test";
-import type { SpecCheckView, SpecPageView } from "../../../src/render.ts";
+import type { SpecCheckView, SpecPageView } from "../../../src/render";
 import { page, view } from "./spec-page-fixtures.ts";
 
 const CHECK_ROW: SpecCheckView = {

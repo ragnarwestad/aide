@@ -2,11 +2,11 @@
 // closure state, so moving it carries no risk the rest of that file's
 // wiring does.
 
-import type { NavEntry } from "../render.ts";
+import type { NavEntry } from "../render";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
-import type { RestartHook } from "./land-branch.ts";
+import type { RestartHook } from "./land-branch";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
 
 export interface ServerOptions {

@@ -1,7 +1,7 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of projects-page.ts by theme.
 
-import { ICON_WARN, rowMessage } from "../../ui/components.ts";
+import { ICON_WARN, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import type { ProjectView } from "./types.ts";
 

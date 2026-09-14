@@ -47,29 +47,29 @@
 // reset confirmation page). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
-import { badge, helpPopover, rowMessage } from "../ui/components.ts";
-import { gerund } from "../ui/job-state/resting.ts";
-import { esc } from "../ui/html.ts";
-import type { Language } from "../../i18n";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { landingRefusal, stepResults, tabBar, tabbedBody } from "./job-page.ts";
+import { badge, helpPopover, rowMessage } from "../../ui/components";
+import { gerund } from "../../ui/job-state/resting.ts";
+import { esc } from "../../ui/html.ts";
+import type { Language } from "../../../i18n";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
 import {
   archivedLine, testServerStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
   resetControl, resetCloseNote, trackingControl,
-} from "./spec-page/overview.ts";
-import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
+} from "./overview.ts";
+import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
   RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
-} from "./spec-page/tabs.ts";
-import type { SpecPageView } from "./spec-page/types.ts";
+} from "./tabs.ts";
+import type { SpecPageView } from "./types.ts";
 
-export type { SpecCheckView, SpecChecksView, SpecPageView } from "./spec-page/types.ts";
+export type { SpecCheckView, SpecChecksView, SpecPageView } from "./types.ts";
 export {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
   documentTabScript, specPagePath, specTabPath,
-} from "./spec-page/tabs.ts";
-export { renderResetSpecPage } from "./spec-page/reset-page.ts";
-export { renderCloseSpecPage } from "./spec-page/close-page.ts";
+} from "./tabs.ts";
+export { renderResetSpecPage } from "./reset-page.ts";
+export { renderCloseSpecPage } from "./close-page.ts";
 
 export function renderSpecPage(
   view: SpecPageView,

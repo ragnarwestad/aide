@@ -4,11 +4,11 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { discoverProjects } from "../../project/discover.ts";
+import { discoverProjects } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceStillOpen, parseStatus } from "../../project/parse-status.ts";
-import { GATED, resolveDependencyFolder } from "../serve-helpers.ts";
-import type { ScheduleContext } from "../schedules.ts";
+import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
+import { GATED, resolveDependencyFolder } from "../serve-helpers";
+import type { ScheduleContext } from "./";
 
 /** Which queued jobs are waiting on a dependency that is not archived
  *  yet (spec 122; spec 351) — job id → the folder it is waiting for.

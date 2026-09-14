@@ -15,7 +15,7 @@ import {
   renderProjectsPage,
   type ProjectView,
   type ProjectsPageOptions,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 
 export const AT = "2026-08-19T00:00:00Z";
 export const NAV = [{ label: "Projects", path: "/projects" }];

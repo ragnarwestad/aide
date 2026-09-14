@@ -1,7 +1,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderJobDetailPage, type SpecPageView } from "../../../src/render.ts";
+import { renderJobDetailPage, type SpecPageView } from "../../../src/render";
 import { GENERATED, NAV, NOW, file, lead, page, view } from "./spec-page-fixtures.ts";
 
 describe("spec 212: the Edit link that led to a second page is gone", () => {

@@ -7,9 +7,9 @@ import {
   suggestSpecsPath,
   suggestWorktreeLinksFromLockfile,
   updateProjectSettings,
-} from "../../../src/project/project-admin.ts";
+} from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { configValue, resolveCodeLanding } from "../../../src/project/discover.ts";
+import { configValue, resolveCodeLanding } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];

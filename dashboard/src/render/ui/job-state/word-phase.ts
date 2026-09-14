@@ -1,6 +1,6 @@
 // The one rule for what a phase shows (spec 108).
 
-import type { BadgeVariant, PipKind } from "../components.ts";
+import type { BadgeVariant, PipKind } from "../components";
 import { renderMessage } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import type { Language } from "../../../i18n";

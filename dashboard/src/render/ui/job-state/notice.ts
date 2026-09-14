@@ -1,10 +1,10 @@
 // The one long message a row has to say (spec 143).
 
-import { stepLabel, type MessageVariant } from "../components.ts";
+import { stepLabel, type MessageVariant } from "../components";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { currentStep, inFlight } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 

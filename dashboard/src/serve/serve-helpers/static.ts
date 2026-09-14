@@ -10,7 +10,7 @@ import {
   ABOUT_PAGE, OVERVIEW_PAGE,
   APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, SERVICE_WORKER, WEBMANIFEST,
   type NavEntry,
-} from "../../render.ts";
+} from "../../render";
 
 // Nav for a server started without `--root`: reconstruct the entries
 // from the generated site directory (the overview + every *.html except
@@ -40,7 +40,7 @@ export function navFromSite(siteDir: string): NavEntry[] {
 }
 
 // Page code is TypeScript, split across src/specs-client/*.ts and bundled
-// from its src/specs-client.ts entry point; the browser needs one flat
+// from its src/specs-client/index.ts entry point; the browser needs one flat
 // JavaScript file. Bundle once, on first use, and keep it — Bun has the
 // bundler in-process (`Bun.build`), so this needs no build step and no
 // bundle checked into the repo. `format: "iife"` is what makes that
@@ -51,7 +51,7 @@ let specsScript: Promise<string | undefined> | null = null;
 export function specsClientScript(): Promise<string | undefined> {
   if (specsScript !== null) return specsScript;
   specsScript = Bun.build({
-    entrypoints: [join(import.meta.dir, "../../specs-client.ts")],
+    entrypoints: [join(import.meta.dir, "../../specs-client/index.ts")],
     target: "browser",
     format: "iife",
   })

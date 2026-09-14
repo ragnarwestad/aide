@@ -23,7 +23,7 @@
 
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import { acceptanceCriteriaUnticked, parseStatus } from "../project/parse-status.ts";
+import { acceptanceCriteriaUnticked, parseStatus } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 

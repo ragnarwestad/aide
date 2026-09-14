@@ -170,7 +170,7 @@ describe("no state write outside the store (REQ-6b)", () => {
   // group-builders.ts's `SpecGroup.state: "not-started"|...`, neither of
   // which is a Job.state write.
   const PATTERN = new RegExp(`state:\\s*["'](${JOB_STATES.join("|")})["']`);
-  const ALLOWED = ["queue/store.ts", "queue/parse-request.ts"];
+  const ALLOWED = ["queue/store/index.ts", "queue/parse-request.ts"];
 
   function tsFiles(dir: string, out: string[] = []): string[] {
     for (const entry of readdirSync(dir)) {

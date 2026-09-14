@@ -4,7 +4,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.

@@ -1,7 +1,7 @@
 // The spec page's own view types.
 
-import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page.ts";
-import type { Phase, SpecTarget } from "../specs-list.ts";
+import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
+import type { Phase, SpecTarget } from "../specs-list";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
  *  182). `phase` and `line` are the row's identity: the checks form

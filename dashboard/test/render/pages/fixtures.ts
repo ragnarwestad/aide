@@ -7,7 +7,7 @@ import {
   type Page,
   type ProjectView,
   type QueueRowView,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published

@@ -6,7 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { renderJobDetailPage } from "../../src/render.ts";
+import { renderJobDetailPage } from "../../src/render";
 import { NAV, detail } from "../render/pages/fixtures.ts";
 import { page, view } from "../render/pages/spec-page-fixtures.ts";
 

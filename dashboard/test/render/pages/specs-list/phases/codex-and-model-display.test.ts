@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderJobDetailPage, renderSpecsRows, type SpecTarget } from "../../../../../src/render.ts";
+import { renderJobDetailPage, renderSpecsRows, type SpecTarget } from "../../../../../src/render";
 import { detail, NAV, openKeys } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.

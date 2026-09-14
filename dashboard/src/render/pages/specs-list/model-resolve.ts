@@ -2,8 +2,8 @@
 // `modelPicker`/`aiPicker`/`phaseCaptionCells` render, split out by
 // theme so the reasoning and the markup that reads it are not one file.
 
-import type { SpecsPageOptions } from "../specs-list.ts";
-import { groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import type { SpecsPageOptions } from "./";
+import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
 // 2026-08-19: "vi trenger jo bare å fylle inn den som er brukt"): a

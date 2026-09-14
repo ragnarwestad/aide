@@ -2,9 +2,9 @@
 // it does. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
 import { row, rows, target } from "./design-system-fixtures.ts";
-import type { SpecsPageOptions, QueueRowView } from "../../src/render.ts";
+import type { SpecsPageOptions, QueueRowView } from "../../src/render";
 import { wordPhase } from "../../src/render/ui/job-state/word-phase.ts";
-import { badge } from "../../src/render/ui/components.ts";
+import { badge } from "../../src/render/ui/components";
 import { restingChip, specStateChip } from "../../src/render/ui/job-state/resting.ts";
 
 // --- every state picks a badge -----------------------------------------------
@@ -37,7 +37,7 @@ describe("the four states with no example on the design sheet", () => {
 
 describe("refused and running are told apart by more than the word", () => {
   test("the refused badge carries a border the running one does not", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     const refused = CSS.match(/\.b-refused\s*\{([^}]*)\}/)?.[1] ?? "";
     const running = CSS.match(/\.b-running\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(refused).toContain("border-color: var(--danger)");
@@ -87,7 +87,7 @@ describe("REQ-5 — held back, queued and done pinned by name", () => {
 // the native `disabled` attribute — today only `.btn:disabled` is styled.
 describe("a control disabled via aria-disabled looks as inert as one disabled natively", () => {
   test("the .btn[aria-disabled=\"true\"] rule shares .btn:disabled's declarations", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     const rule = CSS.match(/\.btn:disabled[^{]*\{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toContain("opacity: 0.45");
     expect(rule).toContain("cursor: default");
@@ -233,7 +233,7 @@ describe("the status badge carries no mark of its own", () => {
   });
 
   test("and no rule left to draw one", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     expect(CSS).not.toContain(".badge .dot");
   });
 
@@ -241,7 +241,7 @@ describe("the status badge carries no mark of its own", () => {
   // edge "queued" read as plain text. "done" is green since 2026-09-11
   // — the same tones as ready, and as the pip beside it.
   test("the idle pill has an edge of its own, and done is the pip's green", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     expect(CSS).toMatch(/\.b-idle \{[^}]*border-color: var\(--line\)/);
     expect(CSS).toMatch(/\.b-done \{ background: var\(--ok-soft\); color: var\(--ok\); \}/);
   });

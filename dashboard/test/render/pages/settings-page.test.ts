@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSettingsPage, SETTINGS_STEPS } from "../../../src/render.ts";
+import { renderSettingsPage, SETTINGS_STEPS } from "../../../src/render";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 
 const MODELS = [

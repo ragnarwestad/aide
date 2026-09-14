@@ -10,7 +10,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../src/render.ts";
+} from "../../src/render";
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
 export const AT = "2026-08-18T12:00:00Z";

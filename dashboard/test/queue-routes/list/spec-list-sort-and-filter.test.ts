@@ -8,7 +8,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();

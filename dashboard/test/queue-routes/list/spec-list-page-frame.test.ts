@@ -3,8 +3,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { renderSpecsPage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render.ts";
-import { CSS } from "../../../src/render/ui/css.ts";
+import { renderSpecsPage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render";
+import { CSS } from "../../../src/render/ui/css";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import {
   TOKEN,

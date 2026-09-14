@@ -4,7 +4,7 @@ import {
   renderNewSpecPage,
   renderSpecsPage,
   type NewSpecPageOptions,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import {
   TOKEN,
   specHead,

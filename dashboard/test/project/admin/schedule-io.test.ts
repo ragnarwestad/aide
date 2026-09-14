@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeScheduleList } from "../../../src/project/project-admin.ts";
+import { writeScheduleList } from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import type { ScheduleEntry } from "../../../src/project/parse-manifest.ts";
 

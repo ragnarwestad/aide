@@ -1,6 +1,6 @@
 // The job page's own view types. Split out of job-page.ts by theme.
 
-import type { QueueRowView } from "../../ui/job-state.ts";
+import type { QueueRowView } from "../../ui/job-state";
 import type { StepCommand } from "../../../queue/parse-stream.ts";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 

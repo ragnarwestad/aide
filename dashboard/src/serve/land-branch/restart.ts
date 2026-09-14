@@ -9,7 +9,7 @@
 
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { RESTART_DEFER_TIMEOUT_MS, RESTART_JOBS_DEFER_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers.ts";
+import { RESTART_DEFER_TIMEOUT_MS, RESTART_JOBS_DEFER_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to

@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 import type { NotifyEvent } from "../../../src/integrations/notify.ts";
-import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../../../src/queue/runner.ts";
+import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../../../src/queue/runner";
 
 export const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,

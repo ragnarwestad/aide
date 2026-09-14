@@ -14,18 +14,18 @@ export {
   configValue, resolveWorktreeLinks, resolveCodeLanding, resolveSchedule,
   resolveInstallCmd, resolveTestCmd,
   type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
-} from "./discover/config.ts";
+} from "./config.ts";
 
 export {
   SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,
   specClosed, specClosedDate, specCloseReason,
-} from "./discover/spec-files.ts";
+} from "./spec-files.ts";
 
-export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./discover/depends-on.ts";
+export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-on.ts";
 
-export { specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./discover/acceptance.ts";
+export { specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
 export {
   discoverProjects, discoverUnclaimedDirectories, gitignoreCandidates, buildProjectViews,
   type SpecRef, type DiscoveredProject, type OwnedSpecsRoot, type SpecView, type ProjectView,
-} from "./discover/scan.ts";
+} from "./scan.ts";

@@ -164,7 +164,7 @@ unticked` gates: Close is legal from every phase Archive would refuse.
 
 ## Code health
 
-The dashboard's own source keeps four limits, checked by
+The dashboard's own source keeps five limits, checked by
 `test/design/code-health-limits.test.ts`:
 
 - A source file under `src/` stays at or under 500 lines. `messages.ts`,
@@ -173,9 +173,13 @@ The dashboard's own source keeps four limits, checked by
 - A test file stays at or under 800 lines.
 - A directory holds at most 15 `.ts` files directly inside it.
 - As a rule, a source file's tests live under the matching path in
-  `test/` — the test for `src/queue/store.ts` belongs under
+  `test/` — the test for `src/queue/store/index.ts` belongs under
   `test/queue/`. A small, tightly-coupled file may keep its test beside
   it instead, as `src/i18n/`'s own catalogue files already do.
+- A module split across several files is a directory named after the
+  module, holding an `index.ts` — never a file sitting beside a
+  directory of the same name. `src/render/pages/spec-page/index.ts`,
+  not `spec-page.ts` next to `spec-page/`.
 
 A file nearing a limit is split by responsibility, not by size — pull
 out the part that has its own name, not an arbitrary half. New

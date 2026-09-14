@@ -53,4 +53,4 @@ const SECTIONS = [
 ];
 
 export const CSS =
-  "\n" + SECTIONS.map((file) => readFileSync(join(import.meta.dir, "css", file), "utf-8")).join("");
+  "\n" + SECTIONS.map((file) => readFileSync(join(import.meta.dir, file), "utf-8")).join("");

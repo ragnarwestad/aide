@@ -4,7 +4,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 // --- spec 109: an expanded row reveals its controls BELOW the header ---------
@@ -182,7 +182,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // button share the page's own `row` container, which wraps — so a
   // long pairing becomes two lines instead of a wider column.
   test("the pairing they moved into wraps rather than widening the table", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     expect(CSS).not.toContain("data-more");
     expect(CSS).not.toContain("data-controls");
     expect(CSS).not.toContain("stackcell");
@@ -194,7 +194,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // two-line shape spec 117 exists to remove, rebuilt in CSS. They
   // have to sit BESIDE it, which is what `inline-flex` buys.
   test("the rarely-set fields sit beside the run form, not under it (spec 117)", async () => {
-    const { CSS } = await import("../../../../../src/render/ui/css.ts");
+    const { CSS } = await import("../../../../../src/render/ui/css");
     const rule = CSS.match(/\n\.extra \{[^}]*\}/)![0];
     expect(rule).toContain("display: inline-flex");
     expect(rule).toContain("font-size: var(--fs-s)");

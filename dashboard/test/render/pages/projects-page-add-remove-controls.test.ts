@@ -5,7 +5,7 @@ import {
   renderAddProjectPage,
   renderRemoveProjectPage,
   type ProjectsPageOptions,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import { AT, NAV, page, project } from "./projects-page-fixtures.ts";
 
 // --- the Add and Remove controls (2026-08-19: pages of their own) ------------

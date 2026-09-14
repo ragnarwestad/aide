@@ -36,34 +36,34 @@ export {
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
   removeProjectRoute,
-} from "./render/pages/projects-page.ts";
-export type { Page, ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./render/pages/projects-page.ts";
+} from "./pages/projects-page";
+export type { Page, ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 
-export { renderNewSpecPage } from "./render/pages/new-spec-page.ts";
-export type { NewSpecPageOptions } from "./render/pages/new-spec-page.ts";
+export { renderNewSpecPage } from "./pages/new-spec-page.ts";
+export type { NewSpecPageOptions } from "./pages/new-spec-page.ts";
 
-export type { NavEntry } from "./render/ui/shell.ts";
+export type { NavEntry } from "./ui/shell.ts";
 
-export { backLink, resolveBackHref } from "./render/ui/components.ts";
+export { backLink, resolveBackHref } from "./ui/components";
 
-export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
-export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
+export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS } from "./pages/settings-page.ts";
+export type { SettingsPageOptions } from "./pages/settings-page.ts";
 
 // /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
 // across every project, in one place.
-export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./render/pages/test-servers-page.ts";
-export type { TestServerRow, TestServersPageOptions } from "./render/pages/test-servers-page.ts";
+export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./pages/test-servers-page.ts";
+export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers-page.ts";
 
 // /schedule (spec 272): the aggregate page listing every allowed
 // project's `schedule:` entries.
 export {
   renderSchedulePage, renderScheduleDetailPage, renderNewSchedulePage, renderDeleteSchedulePage,
   SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, newSchedulePath, deleteSchedulePath,
-} from "./render/pages/schedule-page.ts";
+} from "./pages/schedule-page";
 export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, NewSchedulePageOptions,
   DeleteSchedulePageOptions, ScheduleHistoryRow, ScheduleTab,
-} from "./render/pages/schedule-page.ts";
+} from "./pages/schedule-page";
 
 // The five answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are
@@ -76,7 +76,7 @@ export {
   APP_ICON_MASKABLE,
   SERVICE_WORKER,
   WEBMANIFEST,
-} from "./render/ui/pwa.ts";
+} from "./ui/pwa.ts";
 
 
 // `stepBoxes` and `specSummary` used to be exported alongside these
@@ -89,15 +89,15 @@ export {
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
   filterShowsArchived, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
-} from "./render/pages/specs-list.ts";
+} from "./pages/specs-list";
 export type {
   ArchivedSpecView, Phase, SpecsFilter, SpecsPageOptions, SpecTarget,
-} from "./render/pages/specs-list.ts";
+} from "./pages/specs-list";
 
-export type { QueueRowView } from "./render/ui/job-state.ts";
+export type { QueueRowView } from "./ui/job-state";
 
-export { renderJobDetailPage } from "./render/pages/job-page.ts";
-export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/pages/job-page.ts";
+export { renderJobDetailPage } from "./pages/job-page";
+export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
 // 150). It shares the job page's tab bar and steps table rather than
@@ -114,5 +114,5 @@ export {
   renderCloseSpecPage,
   specPagePath,
   specTabPath,
-} from "./render/pages/spec-page.ts";
-export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/pages/spec-page.ts";
+} from "./pages/spec-page";
+export type { SpecCheckView, SpecChecksView, SpecPageView } from "./pages/spec-page";

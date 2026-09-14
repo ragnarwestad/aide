@@ -2,7 +2,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin.ts";
+import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 

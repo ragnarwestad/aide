@@ -5,7 +5,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of row-status-and-controls.test.ts by theme: the rest of

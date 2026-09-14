@@ -12,7 +12,7 @@
 // and that the worker behind them caches nothing.
 import { afterEach, describe, expect, test } from "bun:test";
 import { appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
-import { CSS } from "../../../src/render/ui/css.ts";
+import { CSS } from "../../../src/render/ui/css";
 import { APPLE_TOUCH_ICON, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 

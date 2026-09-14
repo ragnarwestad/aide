@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { navEntries } from "../../src/render.ts";
+import { navEntries } from "../../src/render";
 import { parseArgs } from "../../src/serve/serve.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { fakeGit } from "../helpers/fake-git.ts";

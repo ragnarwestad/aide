@@ -3,7 +3,7 @@
 // revalidated by ETag so a browser holding a copy asks "still this?"
 // instead of re-downloading ~770 KB.
 import { afterEach, describe, expect, test } from "bun:test";
-import { etagFor } from "../../src/serve/serve-helpers.ts";
+import { etagFor } from "../../src/serve/serve-helpers";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-spec-editor-asset-route-");

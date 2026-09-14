@@ -3,8 +3,8 @@
 // controls that choose WHICH rows show and in WHAT order; `cells.ts`
 // draws the rows themselves.
 
-import { NEW_SPEC_ROUTE } from "../projects-page.ts";
-import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
+import { NEW_SPEC_ROUTE } from "../projects-page";
+import { helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
@@ -24,8 +24,8 @@ import {
   stateFilterLabel,
   type SpecsFilter,
   type SpecGroup,
-} from "./data-model.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
+} from "./data-model";
+import type { SpecsPageOptions } from "./";
 
 // Links, not script: the filter lives in the URL, so it survives a
 // reload, can be shared, and works with JavaScript switched off. The

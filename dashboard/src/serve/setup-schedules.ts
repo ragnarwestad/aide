@@ -17,7 +17,7 @@ import {
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
 import type { QueueStore } from "../queue/queue.ts";
-import type { SpecTarget } from "../render.ts";
+import type { SpecTarget } from "../render";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
@@ -25,8 +25,8 @@ import {
   refreshSchedules as refreshSchedulesImpl,
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
-} from "./schedules.ts";
-import { createRootLock } from "./serve-helpers.ts";
+} from "./schedules";
+import { createRootLock } from "./serve-helpers";
 import type { ServerState } from "./state.ts";
 
 export interface ScheduleSetupOptions {

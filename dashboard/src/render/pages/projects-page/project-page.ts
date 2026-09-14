@@ -2,15 +2,15 @@
 // the schedule section.
 
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
-import type { ProjectReadiness } from "../../../project/project-admin.ts";
+import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";
+import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
-import { pickTab, tabBar, tabbedBody } from "../job-page.ts";
+import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";

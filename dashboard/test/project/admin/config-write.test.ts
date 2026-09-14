@@ -8,8 +8,8 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { addProject } from "../../../src/project/project-admin.ts";
-import { configValue, resolveWorktreeLinks } from "../../../src/project/discover.ts";
+import { addProject } from "../../../src/project/project-admin";
+import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];

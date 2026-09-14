@@ -8,13 +8,13 @@ import { fastForwardToOrigin } from "../../git/branch-merge.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { runningJobNames } from "../land-branch/restart.ts";
-import { resolveInstallCmd } from "../../project/discover.ts";
+import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin.ts";
-import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render.ts";
-import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers.ts";
-import type { RoutesContext } from "../routes.ts";
+import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
+import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render";
+import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
+import type { RoutesContext } from "./";
 
 export async function handleQueueAdminRoutes(
   ctx: RoutesContext,

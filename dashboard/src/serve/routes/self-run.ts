@@ -22,7 +22,7 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
-import type { RoutesContext } from "../routes.ts";
+import type { RoutesContext } from "./";
 import { json } from "../serve-helpers/http.ts";
 
 /** What the spec's row is expected to show once the round is over

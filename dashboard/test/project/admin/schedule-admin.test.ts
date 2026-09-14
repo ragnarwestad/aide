@@ -14,7 +14,7 @@ import {
   scheduleEntryError,
   setScheduleEnabled,
   updateScheduleEntry,
-} from "../../../src/project/project-admin.ts";
+} from "../../../src/project/project-admin";
 import type { ScheduleGit } from "../../../src/project/project-admin/schedule-admin.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { fakeGit, type Answer } from "../../helpers/fake-git.ts";

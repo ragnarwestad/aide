@@ -12,20 +12,20 @@
 // them a job page. Kept as a barrel at this path because most of the
 // render layer imports from it.
 
-import { esc, relTime, usdOrTokens } from "../ui/html.ts";
-import { capitalizeFirst } from "../../format/error-sentence.ts";
-import { renderSentence } from "../../i18n/message.ts";
-import type { Language } from "../../i18n";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { completedThirds, stateChip } from "../ui/job-state.ts";
-import { CHECKING, pips, stepLabel, type PipKind } from "../ui/components.ts";
-import { pickTab, tabBar, tabbedBody } from "../ui/tabs.ts";
-import { landingRefusal, stepResults, unitLabel } from "./job-page/steps-table.ts";
-import type { JobDetailView, SpecFileView } from "./job-page/types.ts";
+import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { renderSentence } from "../../../i18n/message.ts";
+import type { Language } from "../../../i18n";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { completedThirds, stateChip } from "../../ui/job-state";
+import { CHECKING, pips, stepLabel, type PipKind } from "../../ui/components";
+import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
+import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
+import type { JobDetailView, SpecFileView } from "./types.ts";
 
-export type { JobStepResultView, SpecFileView, JobDetailView } from "./job-page/types.ts";
-export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./job-page/steps-table.ts";
-export { pickTab, tabBar, tabbedBody } from "../ui/tabs.ts";
+export type { JobStepResultView, SpecFileView, JobDetailView } from "./types.ts";
+export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./steps-table.ts";
+export { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 
 // The page's tabs. The choice lives in the URL, not in script: the page
 // reloads itself every 10 seconds, and a tab held only in memory would

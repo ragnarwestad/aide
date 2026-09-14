@@ -5,7 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { SETTINGS_ROWS } from "../../../src/render.ts";
+import { SETTINGS_ROWS } from "../../../src/render";
 import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();

@@ -4,7 +4,7 @@
 // was to cut the job out of the queue file by hand. A create that FAILED
 // keeps its row: the reader re-runs it from there.
 import { describe, expect, test } from "bun:test";
-import { groupBySpec } from "../../../../src/render/pages/specs-list/data-model.ts";
+import { groupBySpec } from "../../../../src/render/pages/specs-list/data-model";
 import { row } from "../fixtures.ts";
 
 const targets = [{ project: "aide", specFolder: "81-a-known-spec" }];

@@ -94,7 +94,7 @@ dropdown could not stay current: the row refresh deliberately replaces the ROWS 
 wiped — and a spec created since the page loaded would be in the list and not in the dropdown.
 
 Every control here is a plain form first: ticking phases and pressing Run works with JavaScript switched off, and so do
-Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `specs-client.ts` is a
+Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/index.ts` is a
 layer ABOVE that floor, never the mechanism (see
 [what the script adds](#what-the-script-adds)). It cannot `import` anything: `specsClientScript()` runs
 `Bun.Transpiler.transformSync` over it and inlines the result into a plain `<script>` tag — that transpiles, it does not
@@ -139,7 +139,7 @@ it is alive" in the same mark instead of a second element. A pulse was rejected 
 not as work in progress. Every running row animates on one shared timing rather than each starting when its row was
 drawn, so several at once move together instead of shimmering at random. `phaseChip`'s `busy` option is gone along with
 `.phase.busy` in
-`css.ts` — `SPINNER` itself is used by `btn()`'s busy variant and by `specs-client.ts`'s in-flight-press
+`css/index.ts` — `SPINNER` itself is used by `btn()`'s busy variant and by `specs-client/index.ts`'s in-flight-press
 spinner, a different fact with a different lifetime (see [what the script adds](#what-the-script-adds)).
 
 `prefers-reduced-motion` is honoured here: `.pip.now` drops the animation and holds
@@ -224,7 +224,11 @@ the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spe
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
 reloads itself** (`<meta refresh>`, ten seconds): it is the one that moves while a step runs, and every other tab
 carries a form a timer would wipe. The price is a state chip only as fresh as the last time the page was asked for,
-with Update beside it.
+with Update beside it. Each step's raw log now sits behind a summary, drawn above it, never
+behind its own fold: the files that step's own commit changed (with lines added/removed), the
+commands it ran with their outcome, its full final message, and the same time/cost/token/result
+numbers shown elsewhere on the row. A step with no log file says so instead of showing an empty
+summary.
 
 **An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
 from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is
@@ -395,13 +399,13 @@ Three things the column then says, by row type:
 
 The live count is the one timer on this page, and it is deliberately the narrowest one there can be: a one-second
 `setInterval` in
-`src/specs-client.ts` that re-queries `[data-elapsed]` fresh each tick and rewrites `textContent`. Re-querying is what
+`src/specs-client/index.ts` that re-queries `[data-elapsed]` fresh each tick and rewrites `textContent`. Re-querying is what
 lets it survive
 `swapRows()` replacing `#jobrows` with no rebinding. It fetches nothing and touches no layout-affecting attribute, so
 the redraw rule above holds.
 
 **`formatElapsed` there is HAND-PAIRED with `durationLabel` in
-`src/render/ui/job-state.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
+`src/render/ui/job-state/index.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
 so the wording rule exists twice. `test/specs-client/live-redraw.test.ts`'s "the page words a duration exactly as the server does"
 runs a tick against the imported
 `durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the

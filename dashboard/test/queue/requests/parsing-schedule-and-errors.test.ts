@@ -9,7 +9,7 @@ import {
   parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-import { RUN_STEPS } from "../../../src/render/pages/specs-list.ts";
+import { RUN_STEPS } from "../../../src/render/pages/specs-list";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,

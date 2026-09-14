@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage } from "../../../../src/render/pages/projects-page/project-page.ts";
-import type { ProjectReadiness } from "../../../../src/project/project-admin.ts";
+import type { ProjectReadiness } from "../../../../src/project/project-admin";
 import type { ProjectView } from "../../../../src/render/pages/projects-page/types.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];

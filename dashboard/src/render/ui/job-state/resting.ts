@@ -1,7 +1,7 @@
 // What a row's chip says when nothing is running on it.
 
-import { badge, stepLabel } from "../components.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
+import { badge, stepLabel } from "../components";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";

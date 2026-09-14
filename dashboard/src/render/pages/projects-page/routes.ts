@@ -1,7 +1,7 @@
 // The site's nav and its routes' paths.
 
 import type { NavEntry } from "../../ui/shell.ts";
-import { SCHEDULE_ROUTE } from "../schedule-page.ts";
+import { SCHEDULE_ROUTE } from "../schedule-page";
 
 // The nav entries for a project set — shared by the generator and the
 // live server when it was started with a `--root` of its own.

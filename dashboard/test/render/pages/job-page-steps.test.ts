@@ -9,9 +9,9 @@ import {
   renderJobDetailPage,
   renderSpecsRows,
   type JobDetailView,
-} from "../../../src/render.ts";
-import { stateChip, stateLabel } from "../../../src/render/ui/job-state.ts";
-import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page.ts";
+} from "../../../src/render";
+import { stateChip, stateLabel } from "../../../src/render/ui/job-state";
+import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page";
 import {
   NAV,
   detail,

@@ -12,7 +12,7 @@
 // the first phase section with unchecked tasks.
 
 import { describe, expect, test } from "bun:test";
-import { archiveHeldBackReason, parseStatus } from "../../src/project/parse-status.ts";
+import { archiveHeldBackReason, parseStatus } from "../../src/project/parse-status";
 
 
 // Until now the dashboard GUESSED which workflow steps a spec had had,

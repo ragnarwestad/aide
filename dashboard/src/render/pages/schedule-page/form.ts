@@ -6,9 +6,9 @@
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, field, tokenField } from "../../ui/components.ts";
+import { btn, field, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list.ts";
+import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit

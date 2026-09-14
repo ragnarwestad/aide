@@ -5,7 +5,7 @@ import { CSS, RENDER_FILES, COLOUR, outsideTokens, tokensAfter } from "./css-gua
 
 describe("css.ts uses tokens and nothing else", () => {
   test("the stylesheet is where the test thinks it is", () => {
-    expect(RENDER_FILES).toContain("src/render/ui/css.ts");
+    expect(RENDER_FILES).toContain("src/render/ui/css/index.ts");
   });
 
   test("no colour literal outside the token block", () => {

@@ -15,11 +15,11 @@ import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
 
 const built = await Bun.build({
-  entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client.ts")],
+  entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client", "index.ts")],
   target: "browser",
   format: "iife",
 });
-if (!built.success) throw new AggregateError(built.logs, "specs-client.ts failed to bundle for the test harness");
+if (!built.success) throw new AggregateError(built.logs, "specs-client/index.ts failed to bundle for the test harness");
 export const SOURCE = await built.outputs[0]!.text();
 
 export interface Reply {

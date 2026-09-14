@@ -11,9 +11,9 @@
 // functions, unchanged — this object is what those functions close
 // over now instead of a bare local.
 
-import type { SpecTarget } from "../render.ts";
-import type { SpecRef } from "../project/discover.ts";
-import type { Runner } from "../queue/runner.ts";
+import type { SpecTarget } from "../render";
+import type { SpecRef } from "../project/discover";
+import type { Runner } from "../queue/runner";
 
 export interface Scan {
   at: number;

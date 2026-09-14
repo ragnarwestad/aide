@@ -7,8 +7,8 @@ import {
   type ArchivedSpecView,
   type QueueRowView,
   type SpecTarget,
-} from "../../../src/render.ts";
-import { durationLabel } from "../../../src/render/ui/job-state.ts";
+} from "../../../src/render";
+import { durationLabel } from "../../../src/render/ui/job-state";
 import { phaseDuration } from "../../../src/render/pages/specs-list/data-model/phases.ts";
 
 // --- spec 199: time becomes something worth reading -------------------------

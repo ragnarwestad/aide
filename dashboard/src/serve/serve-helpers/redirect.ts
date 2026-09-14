@@ -1,7 +1,7 @@
 // Where a no-JS form POST goes back to, and the two commit messages a
 // Save writes.
 
-import { FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render.ts";
+import { FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render";
 
 /** Why an archived spec refuses to be edited (spec 163). One sentence,
  *  in one place: the GET that would have rendered the form and the POST

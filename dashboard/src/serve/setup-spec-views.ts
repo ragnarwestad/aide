@@ -14,7 +14,7 @@ import {
   specPageView as specPageViewImpl,
   jobDetailView as jobDetailViewImpl,
   type SpecViewsContext,
-} from "./spec-views.ts";
+} from "./spec-views";
 
 export function setupSpecViews(ctx: SpecViewsContext) {
   function archivedSpecRows(state: string | undefined) {

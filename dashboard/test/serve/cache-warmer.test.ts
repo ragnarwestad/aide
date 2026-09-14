@@ -20,7 +20,7 @@ import { queueHarness } from "../helpers/queue-server.ts";
 import { type GitCall } from "../helpers/fake-git.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
-import { refreshSpecCaches, type ScheduleContext } from "../../src/serve/schedules.ts";
+import { refreshSpecCaches, type ScheduleContext } from "../../src/serve/schedules";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import type { CheckoutEnsurer } from "../../src/git/dashboard-checkout.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/git/workflow-history.ts";

@@ -1,6 +1,6 @@
 // The spec page's paths, its tabs, and which file/phase each one names.
 
-import { pickTab } from "../job-page.ts";
+import { pickTab } from "../job-page";
 import type { SpecPageView } from "./types.ts";
 
 /** The path this page lives at. One function, because the server routes

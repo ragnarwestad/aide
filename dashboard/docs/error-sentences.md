@@ -28,7 +28,7 @@ answer (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/redirect.ts` is the model
 intentionally impossible, not a gap).
 
 The row's own text starts with an uppercase letter. That happens once, at render time, in `rowMessage`/
-`rowMessageParts` (`src/render/ui/components.ts`) and the job detail page's own banner — after every part above is
+`rowMessageParts` (`src/render/ui/components/index.ts`) and the job detail page's own banner — after every part above is
 joined into the finished sentence — never in the message catalog (`src/i18n/messages.ts`), which stays lowercase
 because its entries are reused both on their own and glued behind a phase name.
 

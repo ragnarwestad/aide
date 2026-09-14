@@ -19,7 +19,7 @@ import {
   ensureDashboardCheckout,
 } from "../../../src/git/dashboard-checkout.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { configValue } from "../../../src/project/discover.ts";
+import { configValue } from "../../../src/project/discover";
 
 const run = createGitRunner();
 const dirs: string[] = [];

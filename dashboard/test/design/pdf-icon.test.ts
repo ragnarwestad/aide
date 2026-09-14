@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ICON_PDF } from "../../src/render/ui/components.ts";
+import { ICON_PDF } from "../../src/render/ui/components";
 
 const CSS = readFileSync(join(import.meta.dir, "../../src/render/ui/css/button.css"), "utf-8");
 

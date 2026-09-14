@@ -3,7 +3,7 @@
 // (the notice-line sentences an archived or live row's own fields can
 // carry).
 
-import { CHECKING, badge, pips, stepLabel } from "../../ui/components.ts";
+import { CHECKING, badge, pips, stepLabel } from "../../ui/components";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
@@ -15,8 +15,8 @@ import {
   type PhaseWord,
   type QueueRowView,
   type RestingState,
-} from "../../ui/job-state.ts";
-import { phaseDuration, type Phase, type SpecGroup } from "./data-model.ts";
+} from "../../ui/job-state";
+import { phaseDuration, type Phase, type SpecGroup } from "./data-model";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two

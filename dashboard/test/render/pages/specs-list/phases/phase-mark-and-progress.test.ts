@@ -6,7 +6,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import {
   row,
   openKeys,

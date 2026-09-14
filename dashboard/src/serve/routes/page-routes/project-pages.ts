@@ -6,16 +6,16 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { join, resolve } from "node:path";
-import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover.ts";
+import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
-import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin.ts";
-import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render.ts";
+import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
+import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import { languageChoice, specsClientScript } from "../../serve-helpers.ts";
-import type { RoutesContext } from "../../routes.ts";
+import { languageChoice, specsClientScript } from "../../serve-helpers";
+import type { RoutesContext } from "..";
 
 export async function projectPages(
   ctx: RoutesContext,

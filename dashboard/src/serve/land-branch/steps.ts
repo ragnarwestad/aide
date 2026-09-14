@@ -2,7 +2,7 @@
 // is built from.
 
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
-import type { StepOutcome } from "../../queue/runner.ts";
+import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch } from "./merge.ts";
 import type { LandContext } from "./types.ts";

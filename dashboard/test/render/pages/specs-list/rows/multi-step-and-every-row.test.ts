@@ -4,7 +4,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 /** What a phase that has not run draws in the State column: a dash,

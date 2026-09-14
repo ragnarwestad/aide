@@ -1,7 +1,7 @@
 // The `serve.ts serve ...` command line entry point.
 
 import { createServer } from "./serve.ts";
-import { parseArgs } from "./serve-helpers.ts";
+import { parseArgs } from "./serve-helpers";
 
 export function runCli() {
   const argv = process.argv.slice(2);

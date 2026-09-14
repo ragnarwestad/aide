@@ -22,7 +22,7 @@
 import { existsSync, statSync, realpathSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import { configValue, resolveWorktreeLinks } from "../discover.ts";
+import { configValue, resolveWorktreeLinks } from "../discover";
 import { SETTING_LABELS } from "../setting-labels.ts";
 import { worktreeLinksError } from "./manifest-io.ts";
 import type { ProjectReadiness, ReadinessCheck } from "./types.ts";

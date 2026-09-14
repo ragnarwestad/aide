@@ -18,7 +18,7 @@ import {
   type ArchivedSpecView,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 
 const NOW = "2026-09-02T12:00:00Z";
 

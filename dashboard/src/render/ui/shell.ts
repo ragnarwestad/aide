@@ -7,11 +7,11 @@ import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
 
-import { CSS } from "./css.ts";
+import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
+import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";

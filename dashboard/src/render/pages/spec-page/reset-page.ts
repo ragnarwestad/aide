@@ -1,6 +1,6 @@
 // The reset confirmation page.
 
-import { backLink, btn, rowMessage, tokenField } from "../../ui/components.ts";
+import { backLink, btn, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";

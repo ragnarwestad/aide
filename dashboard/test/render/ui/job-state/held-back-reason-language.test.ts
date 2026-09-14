@@ -6,7 +6,7 @@
 // from its catalogue entry; every other reason is shown as written.
 import { describe, expect, test } from "bun:test";
 import { heldBackReasonText, specNotice } from "../../../../src/render/ui/job-state/notice.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../src/project/parse-status.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../src/project/parse-status";
 
 describe("the acceptance-criteria hold-back reads in the reader's language", () => {
   test("the row's notice, in Norwegian, has no English in it", () => {

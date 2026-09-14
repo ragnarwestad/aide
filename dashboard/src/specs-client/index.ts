@@ -24,8 +24,8 @@
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
-import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./specs-client/ai-sync.ts";
-import { interceptCancelSubmit } from "./specs-client/cancel-confirm.ts";
+import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
+import { interceptCancelSubmit } from "./cancel-confirm.ts";
 import {
   bindProposals,
   formNote,
@@ -34,19 +34,19 @@ import {
   submitDeploy,
   submitProjectChange,
   syncDependsOn,
-} from "./specs-client/forms.ts";
-import { formatElapsed } from "./specs-client/elapsed.ts";
-import { connect, onVisibility } from "./specs-client/live.ts";
-import { navigate } from "./specs-client/navigation.ts";
-import { postPendingModel } from "./specs-client/pending-model.ts";
-import { postForm } from "./specs-client/press.ts";
-import { relabelRunButton } from "./specs-client/row-swap.ts";
+} from "./forms.ts";
+import { formatElapsed } from "./elapsed.ts";
+import { connect, onVisibility } from "./live.ts";
+import { navigate } from "./navigation.ts";
+import { postPendingModel } from "./pending-model.ts";
+import { postForm } from "./press.ts";
+import { relabelRunButton } from "./row-swap.ts";
 import {
   bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
-} from "./specs-client/schedule-actions.ts";
-import { NEW_SPEC_FORM } from "./specs-client/state.ts";
-import { postTailModel, postTailStep } from "./specs-client/tail-actions.ts";
-import { checkboxKey, chosen, chosenSteps, selectKey } from "./specs-client/state.ts";
+} from "./schedule-actions.ts";
+import { NEW_SPEC_FORM } from "./state.ts";
+import { postTailModel, postTailStep } from "./tail-actions.ts";
+import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
 
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;

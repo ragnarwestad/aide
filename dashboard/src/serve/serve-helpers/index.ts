@@ -12,27 +12,27 @@ export {
   MAX_BODY, MAX_SAVE_BODY, INSTALL_TIMEOUT_MS, QUEUE_DEFAULTS, createRootLock,
   DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, DEPENDENCY_GATED_STEPS, GATED,
   RESTART_POLL_MS, RESTART_DEFER_TIMEOUT_MS, RESTART_JOBS_DEFER_MS, LANDING_GATE_TIMEOUT_MS,
-} from "./serve-helpers/config.ts";
+} from "./config.ts";
 
 export {
   json, readBounded, tokenMatches, cookieValue, sortCookieName, sortChoice,
   stateCookieName, stateChoice, LANG_COOKIE, languageChoice, bodyToObject,
-} from "./serve-helpers/http.ts";
+} from "./http.ts";
 
 export {
   ARCHIVED_REFUSAL, editMessage, tickMessage, specsRedirect, logRefusal,
-} from "./serve-helpers/redirect.ts";
+} from "./redirect.ts";
 
 export {
   navFromSite, specsClientScript, specEditorClientScript, serveSpecEditorAsset,
   SPEC_EDITOR_ASSET_PATH, specViewerClientScript, serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
   etagFor, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
-} from "./serve-helpers/static.ts";
+} from "./static.ts";
 
-export { compressResponse } from "./serve-helpers/compression.ts";
+export { compressResponse } from "./compression.ts";
 
 export {
   resolveTimeoutSec, resolveStepPermissionMode, resolveStepModel, resolveStepEffort, runnerArgv,
-} from "./serve-helpers/runner-argv.ts";
+} from "./runner-argv.ts";
 
-export { resolveDependencyFolder, parseArgs } from "./serve-helpers/parse-args.ts";
+export { resolveDependencyFolder, parseArgs } from "./parse-args.ts";

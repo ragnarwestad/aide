@@ -6,9 +6,9 @@ import {
   PHASE_LINES,
   type NewSpecPageOptions,
   type SpecsPageOptions,
-} from "../../../src/render.ts";
+} from "../../../src/render";
 import { aiPicker, modelPicker } from "../../../src/render/pages/specs-list/model-picker.ts";
-import { type SpecGroup } from "../../../src/render/pages/specs-list/data-model.ts";
+import { type SpecGroup } from "../../../src/render/pages/specs-list/data-model";
 import {
   row,
 } from "./fixtures.ts";

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsPage, type SpecsPageOptions, type QueueRowView } from "../../../../../src/render.ts";
+import { renderSpecsPage, type SpecsPageOptions, type QueueRowView } from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 // Spec 289: the per-state filter chips became one dropdown, so this is

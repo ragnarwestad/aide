@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   discoverProjects, specDependsOn, specDescription, stripDependsOnLine, withDependsOnLine,
-} from "../../src/project/discover.ts";
+} from "../../src/project/discover";
 import { useDiscoverRoot } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();

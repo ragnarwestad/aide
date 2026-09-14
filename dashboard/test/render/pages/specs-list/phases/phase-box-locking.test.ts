@@ -4,7 +4,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 94: a spec's phases are ticked and run from its own row ------------

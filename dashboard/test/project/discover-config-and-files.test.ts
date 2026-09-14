@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   SPEC_FILES, configValue, discoverUnclaimedDirectories, gitignoreCandidates, markdownSection,
   resolveInstallCmd, resolveTestCmd, specFileText,
-} from "../../src/project/discover.ts";
+} from "../../src/project/discover";
 
 // Spec 96: `AIDE_SPECS_PATH` stopped being the only key this file reads
 // — the dashboard also asks a project what installing it means here.

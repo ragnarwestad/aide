@@ -2,8 +2,8 @@
 
 The one place the queue's state machine is written down: what a job's `state` can be, which piece of code moves it
 and when, and the three fields beside it that behave like a state without being one. The code is `JOB_STATES` and
-`TRANSITIONS` in `src/queue/steps.ts`, consulted through the one `QueueStore.transition()` in `src/queue/store.ts`
-that every caller — `src/queue/runner.ts`, the cancel route in `src/serve/routes/job-actions.ts`, and the
+`TRANSITIONS` in `src/queue/steps.ts`, consulted through the one `QueueStore.transition()` in `src/queue/store/index.ts`
+that every caller — `src/queue/runner/index.ts`, the cancel route in `src/serve/routes/job-actions.ts`, and the
 landing in `src/serve/land-branch/merge.ts` — asks instead of writing `state` itself. How a
 state reads on the page is on [The specs list and the spec page](the-specs-list.md); the level above — which of the four
 phases a SPEC has reached, and what moves it — is on [A spec's lifecycle](spec-lifecycle.md). What a job's own
@@ -122,7 +122,7 @@ Three fields say something the state alone does not, and each is read by the pag
   promise settles. While ANY job carries it the runner starts nothing, because a landing writes to the shared main
   checkout that no worktree isolates. It is never restored from the persisted mirror: a flag that survived a restart
   would hold the queue shut with nothing left to clear it. **An `onLanded` callback runs before its own job's flag is
-  cleared.** `Runner.complete()` in `src/queue/runner.ts` is synchronous: it starts the landing work (`onStepDone`,
+  cleared.** `Runner.complete()` in `src/queue/runner/index.ts` is synchronous: it starts the landing work (`onStepDone`,
   e.g. `landArchivedSpec` for `archive`), writes `landing: true` onto the job's own store row, and only clears that
   flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
   that reads `queue.list()` sees its own triggering job still marked `landing: true` even though the landing calling

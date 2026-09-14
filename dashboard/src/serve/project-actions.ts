@@ -3,9 +3,9 @@
 // earlier clusters were (spec: split serve.ts, step 6).
 
 import { persistQueueProjects } from "../queue/queue.ts";
-import type { ProjectReadiness, ProjectStep } from "../project/project-admin.ts";
-import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE } from "../render.ts";
-import { json, logRefusal, specsRedirect } from "./serve-helpers.ts";
+import type { ProjectReadiness, ProjectStep } from "../project/project-admin";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE } from "../render";
+import { json, logRefusal, specsRedirect } from "./serve-helpers";
 
 export interface ProjectActionsContext {
   queueConfigFile: string | undefined;

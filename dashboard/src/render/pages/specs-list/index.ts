@@ -29,10 +29,10 @@
 // one function that has to know about both a filtered/sorted list AND
 // a single row's markup.
 
-import { rowMessage } from "../ui/components.ts";
-import { pageShell, type NavEntry } from "../ui/shell.ts";
-import type { QueueRowView } from "../ui/job-state.ts";
-import { t, type Language } from "../../i18n";
+import { rowMessage } from "../../ui/components";
+import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import type { QueueRowView } from "../../ui/job-state";
+import { t, type Language } from "../../../i18n";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split
 // between this file and `specs-list/model-picker.ts` is invisible to
@@ -42,7 +42,7 @@ export {
   defaultModelForTool,
   modelOptions,
   resolveChosenModel,
-} from "./specs-list/model-picker.ts";
+} from "./model-picker.ts";
 import {
   applyFilter,
   groupBySpec,
@@ -53,7 +53,7 @@ import {
   type SpecsFilter,
   type SpecTarget,
   type SpecGroup,
-} from "./specs-list/data-model.ts";
+} from "./data-model";
 // Re-exported for `render.ts` and the pages/tests that import the data
 // model straight off this file's own historical path — some, like
 // `PHASE_LINES` and `Phase`, only for that; nothing here reads them.
@@ -67,7 +67,7 @@ export {
   filterShowsArchived,
   phasesFor,
   type Phase,
-} from "./specs-list/data-model.ts";
+} from "./data-model";
 export {
   isArchivedRow,
   type ArchivedSpecView,
@@ -75,11 +75,11 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { LIST_COLUMNS, phaseSubRows, phasePips, refusalFor, specHeadRow, specNoticeRow } from "./specs-list/cells.ts";
+import { LIST_COLUMNS, phaseSubRows, phasePips, refusalFor, specHeadRow, specNoticeRow } from "./cells.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
 export { phasePips };
-import { filterBar, sortableHead } from "./specs-list/filter-bar.ts";
+import { filterBar, sortableHead } from "./filter-bar.ts";
 
 export interface SpecsPageOptions {
   /** 81a ships no runner: the page says so rather than leaving jobs in

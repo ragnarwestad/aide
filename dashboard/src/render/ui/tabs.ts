@@ -7,7 +7,7 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring cost; a second tab bar would have been the fourth.
 
-import { backLink } from "./components.ts";
+import { backLink } from "./components";
 import { esc } from "./html.ts";
 
 /** A tab name off the query string, or the fallback. The list of tabs

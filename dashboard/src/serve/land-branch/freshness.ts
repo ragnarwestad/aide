@@ -2,7 +2,7 @@
 // spec over the same checkout.
 
 import { resolveWorkflowState } from "../../git/workflow-history.ts";
-import type { SpecTarget } from "../../render.ts";
+import type { SpecTarget } from "../../render";
 import type { LandContext } from "./types.ts";
 
 /** Everything about a spec that only git can answer, asked once per

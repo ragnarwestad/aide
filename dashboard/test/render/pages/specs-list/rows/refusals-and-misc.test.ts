@@ -6,7 +6,7 @@ import {
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
-} from "../../../../../src/render.ts";
+} from "../../../../../src/render";
 import { NAV, detail, row } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.

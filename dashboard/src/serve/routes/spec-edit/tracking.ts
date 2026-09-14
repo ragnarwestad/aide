@@ -8,15 +8,15 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
   discoverProjects, specFileText, withAcceptanceLine, withDependsOnLine,
-} from "../../../project/discover.ts";
-import { parseStatus } from "../../../project/parse-status.ts";
-import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, specPagePath } from "../../../render.ts";
+} from "../../../project/discover";
+import { parseStatus } from "../../../project/parse-status";
+import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, specPagePath } from "../../../render";
 import {
   ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded,
   resolveDependencyFolder, specsRedirect,
-} from "../../serve-helpers.ts";
+} from "../../serve-helpers";
 
-import type { RoutesContext } from "../../routes.ts";
+import type { RoutesContext } from "..";
 
 export async function trackingRoutes(
   ctx: RoutesContext,

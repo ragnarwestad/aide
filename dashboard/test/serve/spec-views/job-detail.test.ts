@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
 import { jobDetailView } from "../../../src/serve/spec-views/job-detail.ts";
-import type { SpecViewsContext } from "../../../src/serve/spec-views.ts";
+import type { SpecViewsContext } from "../../../src/serve/spec-views";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
@@ -71,7 +71,7 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
     specsRoot: async (dir) => dir,
     specCreatedAt: {} as never,
     pdfToolAvailable: false,
-    boards: {} as never,
+    testServers: {} as never,
     ...overrides,
   };
 }

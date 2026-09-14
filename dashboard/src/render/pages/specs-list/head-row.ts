@@ -2,12 +2,12 @@ import type { Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
 
-import { specPagePath } from "../spec-page.ts";
-import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
+import { specPagePath } from "../spec-page";
+import { CHECKING, badge, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { inFlight, restingChip } from "../../ui/job-state.ts";
-import type { SpecsPageOptions } from "../specs-list.ts";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, isFinishedGroup, type SpecGroup } from "./data-model.ts";
+import { inFlight, restingChip } from "../../ui/job-state";
+import type { SpecsPageOptions } from "./";
+import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, isFinishedGroup, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,

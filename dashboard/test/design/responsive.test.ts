@@ -9,13 +9,13 @@
 // page actually looks right at 390px — that is the Manual testing note
 // in 3-solution.md.
 import { describe, expect, test } from "bun:test";
-import { CSS } from "../../src/render/ui/css.ts";
+import { CSS } from "../../src/render/ui/css";
 import {
   renderSpecsRows,
   type SpecsPageOptions,
   type SpecTarget,
-} from "../../src/render.ts";
-import { stepResults } from "../../src/render/pages/job-page.ts";
+} from "../../src/render";
+import { stepResults } from "../../src/render/pages/job-page";
 
 /** The one narrow-width block, brace-matched rather than regex-guessed:
  *  it holds nested rules, so `[^}]*` would stop at the first one. Every

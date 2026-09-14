@@ -4,7 +4,7 @@
 // the newest row can link to it (Behavior delta, `3-solution.md`).
 import type { Job } from "../../../queue/types.ts";
 import { durationLabel } from "../../ui/job-state/format.ts";
-import { rowMessage } from "../../ui/components.ts";
+import { rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 
 export interface ScheduleHistoryRow {

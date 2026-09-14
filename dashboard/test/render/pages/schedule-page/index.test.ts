@@ -4,8 +4,8 @@ import {
   renderNewSchedulePage,
   renderScheduleDetailPage,
   renderSchedulePage,
-} from "../../../src/render.ts";
-import { renderScheduleList } from "../../../src/render/pages/schedule-page/list.ts";
+} from "../../../../src/render";
+import { renderScheduleList } from "../../../../src/render/pages/schedule-page/list.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 

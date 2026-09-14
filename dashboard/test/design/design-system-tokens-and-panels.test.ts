@@ -2,7 +2,7 @@
 // vocabularies stay distinct, and the row's message panel reuses the
 // existing component. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
-import { renderSpecsPage, renderSpecsRows } from "../../src/render.ts";
+import { renderSpecsPage, renderSpecsRows } from "../../src/render";
 import { AT, NAV, row, rows, target } from "./design-system-fixtures.ts";
 
 // --- dark mode is implemented, not merely declared ----------------------------
@@ -19,7 +19,7 @@ import { AT, NAV, row, rows, target } from "./design-system-fixtures.ts";
 // of this component.
 describe("the button component works on a link too (spec 121)", () => {
   const rules = async (): Promise<[string, string]> => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     return [
       CSS.match(/(?<![-.\w])\.btn \{[^}]*\}/)?.[0] ?? "",
       CSS.match(/\.btn:hover \{[^}]*\}/)?.[0] ?? "",
@@ -59,14 +59,14 @@ describe("every token has a dark-surface value (acceptance criterion 13)", () =>
   ];
 
   test("the dark block overrides every colour token", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     const dark = CSS.match(/@media \(prefers-color-scheme: dark\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
     expect(dark).not.toBe("");
     for (const token of PAIRED) expect(dark).toContain(`${token}:`);
   });
 
   test("the mark swaps to its dark-surface copy", async () => {
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     expect(CSS).toContain(".mark-d");
     expect(CSS).toContain(".mark-l");
   });
@@ -120,7 +120,7 @@ describe("the row's message panel is the component, not new markup", () => {
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(panel).toContain("rowmsg waiting");
-    const { CSS } = await import("../../src/render/ui/css.ts");
+    const { CSS } = await import("../../src/render/ui/css");
     expect(CSS.match(/\.rowmsg\.waiting\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
   });
 });
