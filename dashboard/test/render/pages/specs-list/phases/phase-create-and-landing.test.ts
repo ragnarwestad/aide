@@ -532,20 +532,22 @@ describe("a landing marks only the step being landed, not every finished step", 
 
   test("the step being landed still reads running", () => {
     const html = openRows([chained]);
-    expect(badgeLabel(html, "archive")).toBe("Archiving");
+    expect(badgeLabel(html, "archive")).toBe("Running");
   });
 
   // spec 395, REQ-2: the phase LINE's own badge, not only the row above
   // it, must say the step is still going while its work is landing —
-  // never "done" with a clock that has stopped.
-  test("the step being landed reads its own gerund, not done (spec 395, REQ-2)", () => {
+  // never "done" with a clock that has stopped. The word is "Running",
+  // as for any phase in flight: the landing is not a step the phase
+  // line names (2026-09-14).
+  test("the step being landed reads Running, not done and not its gerund (spec 395, REQ-2)", () => {
     const html = openRows([chained]);
-    expect(badgeLabel(html, "archive")).toBe("Archiving");
+    expect(badgeLabel(html, "archive")).toBe("Running");
   });
 
   // spec 395, REQ-5: the rule holds for every step that lands its own
   // work, not only archive.
-  test("a non-archive landing step reads its own gerund too (spec 395, REQ-5)", () => {
+  test("a non-archive landing step reads Running too (spec 395, REQ-5)", () => {
     const analyzing = row({
       id: "j375b",
       specFolder: "375-landing-pips",
@@ -556,6 +558,6 @@ describe("a landing marks only the step being landed, not every finished step", 
       results: [{ step: "analyze", ok: true, costUsd: 1 }],
     });
     const html = openRows([analyzing]);
-    expect(badgeLabel(html, "analyze")).toBe("Analyzing");
+    expect(badgeLabel(html, "analyze")).toBe("Running");
   });
 });

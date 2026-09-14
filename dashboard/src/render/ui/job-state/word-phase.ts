@@ -7,8 +7,7 @@ import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { BADGE_VARIANT, currentStep, inFlight, stateLabel } from "./format.ts";
-import { gerund } from "./resting.ts";
+import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The reasons a step declines, each as the sentence a reader can act
@@ -134,13 +133,13 @@ function decidePhase(
     // reader's chair while its work is being merged (spec 395, REQ-2):
     // `attempt.state` reads "done" the instant the process exits, well
     // before `attempt.landing` clears, and a badge built from `state`
-    // alone would say so. The word is the SAME gerund `specStateChip`
-    // already draws for the row above this line (`resting.ts`), so a
-    // reader never sees the row and the phase name the wait two ways.
+    // alone would say so. The word is "Running", the same as for any
+    // other phase in flight: the landing is part of the phase, not a
+    // step of its own the phase line names.
     if (attempt!.landing) {
       return {
         pip: "now",
-        badge: { variant: "running", label: gerund(lang, currentStep(attempt!)) },
+        badge: { variant: "running", label: capitalizeFirst(stateLabel({ ...attempt!, state: "running" }, lang)) },
         qualifier: filesDisagree,
       };
     }
