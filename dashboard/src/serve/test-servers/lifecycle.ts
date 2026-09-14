@@ -217,7 +217,7 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
   // comment) — the same trade-off `store.ts`'s own doc comment on `pid`
   // already makes for the field itself.
   if (entry?.status === "running" && !ctx.isAlive(entry.pid!)) {
-    stopTestServer(ctx, project, specFolder);
+    stopTestServer(ctx, project, specFolder, `its process (pid ${entry.pid}) is gone`);
     return undefined;
   }
   if (entry?.status !== "starting") return entry;
@@ -255,9 +255,16 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
  *  bun-serve process — see 3-solution.md's Risk analysis for the
  *  measured process-group fact this depends on). The round's own
  *  disowned watcher removes the worktree once that process dies. */
-export function stopTestServer(ctx: TestServersContext, project: string, specFolder: string): void {
+export function stopTestServer(ctx: TestServersContext, project: string, specFolder: string, reason: string): void {
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
+  // Said before the signal goes, with who asked and what is signalled:
+  // a board that died with nothing in the log to say why has cost
+  // hours of guessing (2026-09-14).
+  ctx.log?.(
+    `boards: stopping ${entry.branch} on :${entry.port} — ${reason} — ` +
+      `SIGTERM to ${entry.recovered ? "pid" : "group"} ${entry.wrapperPid}`,
+  );
   // The log this server made for the round goes with the board
   // (2026-09-08). Nothing reads it once the entry is gone — the page
   // shows what it said while the board was starting, and that is over —
@@ -289,6 +296,6 @@ export async function restartMainTestServer(
   project: string,
   branch: string,
 ): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
-  stopTestServer(ctx, project, MAIN_TEST_SERVER_KEY);
+  stopTestServer(ctx, project, MAIN_TEST_SERVER_KEY, `a new main board (${branch}) replaces it`);
   return startTestServer(ctx, project, MAIN_TEST_SERVER_KEY, { branch });
 }

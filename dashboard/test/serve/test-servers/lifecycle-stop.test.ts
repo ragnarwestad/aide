@@ -69,9 +69,9 @@ describe("stopTestServer", () => {
     store.set("aide", "spec-2", entry({ wrapperPid: 0 }));
     store.set("aide", "spec-3", entry({ wrapperPid: 1, recovered: true }));
     const ctx = makeCtx(store);
-    stopTestServer(ctx, "aide", "spec-1");
-    stopTestServer(ctx, "aide", "spec-2");
-    stopTestServer(ctx, "aide", "spec-3");
+    stopTestServer(ctx, "aide", "spec-1", "the test");
+    stopTestServer(ctx, "aide", "spec-2", "the test");
+    stopTestServer(ctx, "aide", "spec-3", "the test");
     expect(killed).toEqual([]);
     expect(store.all()).toEqual([]);
   });
@@ -79,7 +79,7 @@ describe("stopTestServer", () => {
   test("sends SIGTERM to the negated wrapper pid and clears the entry", () => {
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry());
-    stopTestServer(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1", "the test");
     expect(killed).toEqual([{ pid: -4242, signal: "SIGTERM" }]);
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
@@ -87,7 +87,7 @@ describe("stopTestServer", () => {
   test("still reaches the process group while the board is only 'starting', with no inner pid known yet", () => {
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ status: "starting", pid: undefined }));
-    stopTestServer(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1", "the test");
     expect(killed).toEqual([{ pid: -4242, signal: "SIGTERM" }]);
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
@@ -99,13 +99,13 @@ describe("stopTestServer", () => {
     });
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry());
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 
   test("nothing tracked for this spec is a no-op", () => {
     const store = new TestServerStore();
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
     expect(killed).toHaveLength(0);
   });
 });
@@ -119,7 +119,7 @@ describe("stopping a board takes its own files with it", () => {
     writeFileSync(join(dir, "board.log"), "== starting\n");
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ workDir: dir, logPath: join(dir, "board.log") }));
-    stopTestServer(makeCtx(store), "aide", "spec-1");
+    stopTestServer(makeCtx(store), "aide", "spec-1", "the test");
     expect(existsSync(dir)).toBe(false);
   });
 
@@ -127,7 +127,7 @@ describe("stopping a board takes its own files with it", () => {
   test("a work directory that is already gone stops the board anyway", () => {
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry({ workDir: "/tmp/aide-board-that-never-existed" }));
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1")).not.toThrow();
+    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 });

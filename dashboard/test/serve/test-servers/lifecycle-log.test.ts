@@ -2,19 +2,23 @@
 // come up (2026-09-10). Four presses of the start link had left four
 // empty work directories and nothing in the log to tell which of them
 // failed where, or whether the round was ever spawned at all.
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
-import { refreshTestServerStatus, startTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { refreshTestServerStatus, startTestServer, stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 
 let dir: string;
 let lines: string[];
+let kill: ReturnType<typeof spyOn>;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-board-log-"));
   lines = [];
+  // The fixtures' pids are made up: no signal here may reach a real process.
+  kill = spyOn(process, "kill").mockImplementation(() => true);
 });
+afterEach(() => kill.mockRestore());
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
@@ -75,5 +79,27 @@ describe("the board log says what a start did", () => {
     const ctx = makeCtx({ log: undefined });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
+  });
+});
+
+// A stop says who asked and what was signalled, before the signal goes
+// (2026-09-14): a board that died with nothing in the log to say why
+// had cost hours of guessing.
+describe("the board log says why a board was stopped", () => {
+  test("a stop names the board, the reason and the group it signals", async () => {
+    const ctx = makeCtx();
+    await startTestServer(ctx, "aide", "spec-1");
+    stopTestServer(ctx, "aide", "spec-1", "the Stop button on the spec row");
+    expect(lines.at(-1)).toBe("boards: stopping aide/spec-1 on :8801 — the Stop button on the spec row — SIGTERM to group 4242");
+    expect(kill).toHaveBeenCalledWith(-4242, "SIGTERM");
+  });
+
+  test("a running board whose process is gone is stopped with that as the reason", async () => {
+    const ctx = makeCtx();
+    await startTestServer(ctx, "aide", "spec-1");
+    writeFileSync(join(dir, "board.log"), "left running: pid 4300, http://127.0.0.1:8801/?token=t\n");
+    refreshTestServerStatus(ctx, "aide", "spec-1");
+    refreshTestServerStatus(ctx, "aide", "spec-1");
+    expect(lines.at(-1)).toBe("boards: stopping aide/spec-1 on :8801 — its process (pid 4300) is gone — SIGTERM to group 4242");
   });
 });

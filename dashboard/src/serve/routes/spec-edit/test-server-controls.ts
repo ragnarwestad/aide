@@ -46,7 +46,7 @@ export async function testServerControlRoutes(
     if (!ref) return new Response("not found", { status: 404 });
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
-    stopTestServer(ctx.testServers, project!, specFolder!);
+    stopTestServer(ctx.testServers, project!, specFolder!, "the Stop button on the spec row");
     return wantsJson ? json({ ok: true }) : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
   }
 

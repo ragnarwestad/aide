@@ -115,7 +115,9 @@ The manifest and the icons are served either way, and the tags on the page are i
 installs deps, renders a launchd plist and starts the job. No plist is committed:
 `deploy/render-plist.ts` builds it per invocation from the target's own
 `$HOME`, resolved over ssh at install time. Logs go to
-`~/Library/Logs/aide-dashboard/serve.log` on that host.
+`~/Library/Logs/aide-dashboard/serve.log` on that host. Every line there
+carries the moment it was written, and a test board that the dashboard
+stops gets a line saying who asked and which process group was signalled.
 
 **The repo it clones there is the dashboard's OWN checkout —
 `~/.aide/dashboard/checkouts/aide/code` — not a checkout a person edits.** That is the directory a code landing merges

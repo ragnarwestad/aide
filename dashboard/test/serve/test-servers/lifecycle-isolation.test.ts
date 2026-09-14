@@ -4,7 +4,7 @@
 // or any checkout path at all — this test is the regression guard for
 // that boundary: a real `QueueStore` sits alongside a start/stop
 // round-trip, and nothing about it may change.
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +15,13 @@ import { startTestServer, stopTestServer, type TestServersContext } from "../../
 let dir: string;
 let queue: QueueStore;
 
+// The fixture's pid (4242) is made up: no signal here may reach a real
+// process — before this spy, a stop here sent SIGTERM to whatever process
+// group 4242 happened to be on the machine.
+let kill: ReturnType<typeof spyOn>;
+afterEach(() => kill.mockRestore());
 beforeEach(() => {
+  kill = spyOn(process, "kill").mockImplementation(() => true);
   dir = mkdtempSync(join(tmpdir(), "aide-board-isolation-"));
   queue = new QueueStore({
     mirrorPath: join(dir, "queue.json"),
@@ -57,7 +63,7 @@ describe("a board's start/stop round-trip", () => {
     const before = queue.list();
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
-    stopTestServer(ctx, "aide", "spec-1");
+    stopTestServer(ctx, "aide", "spec-1", "the test");
     expect(queue.list()).toEqual(before);
   });
 
