@@ -54,7 +54,10 @@ evidence that the phase happened:
   the line is not extended.
 - `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
   `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
-  as when the refusal came before the session; otherwise `no-progress`.
+  as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
+  branch OPEN (`update_branch_to_base`) counts only if the branch contains that base tip afterwards — a session
+  that aborted the merge and still moved the folder ends `merge-unfinished`, since the landing would meet the same
+  conflict again.
 - `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
   line that it did not run.
 
