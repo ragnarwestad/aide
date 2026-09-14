@@ -4,7 +4,7 @@ word — the record on the branch is the runner's own.
 """
 
 import json
-from ..conftest import git, run
+from ..conftest import READ_SPECS, git, run
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import with_status
 
@@ -121,4 +121,89 @@ def test_a_step_with_no_budget_left_gets_no_follow_up_turn(runner, workspace, fa
     )
     rc, out, _ = run(runner, workspace, claude, command="implement", budget_usd="3")
     assert out["terminalReason"] == "tests-red", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 1
+
+
+# --- archive: the merge with main is the step's own result too -----------------
+
+
+def _base_moved_under_the_branch(workspace, filename="breaks.txt"):
+    """The spec's branch exists with implement's work on it, and main has
+    moved on since — a commit that adds `filename`. The archive step's
+    pull merges that commit into the branch, which is where a suite green
+    at implement time can turn red."""
+    project = workspace["project"]
+    git(project, "switch", "-q", "-c", BRANCH)
+    (project / "implemented.txt").write_text("real work\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "the step")
+    git(project, "switch", "-q", "main")
+    (project / filename).write_text("main moved on\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main side")
+
+
+def _archiving_claude(fake_claude, fix_on_retry=True):
+    """First turn: archives the folder. A follow-up turn — the prompt
+    names the red suite — removes breaks.txt when `fix_on_retry`, so the
+    runner's next run is green."""
+    fix = "git rm -q breaks.txt && git commit -q -m 'the fix'\n" if fix_on_retry else ":\n"
+    return fake_claude(
+        "prompt=\"$(cat)\"\n"
+        "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        f"  {fix}"
+        "else\n"
+        + READ_SPECS
+        + '  mkdir -p "$specs/archive" && git -C "$specs" mv 81-queue-and-runner archive/81-queue-and-runner '
+        + '&& git -C "$specs" commit -q -m "archive"\n'
+        "fi\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_an_archive_whose_merge_with_main_turns_the_suite_red_gets_it_back_and_fixes_it(
+    runner, workspace, fake_claude
+):
+    """Main moved after implement's green run; the archive's pull merges
+    it in and the suite is red on the merged result. The failing lines go
+    back to the archive session, it fixes them, and the step ends
+    completed with the runner's green record on the ARCHIVED folder."""
+    with_status(workspace, ["create", "analyze", "implement"])
+    _project_with_test_cmd(workspace, "test ! -f breaks.txt")
+    _base_moved_under_the_branch(workspace)
+    rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude), command="archive")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 2, calls
+    assert "--resume" in calls[1], calls[1]
+    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:archive/{workspace['folder']}/test-run.json"))
+    assert record["exitCode"] == 0, record
+
+
+def test_an_archive_still_red_after_the_rounds_ends_tests_red(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze", "implement"])
+    _project_with_test_cmd(workspace, "test ! -f breaks.txt")
+    _base_moved_under_the_branch(workspace)
+    rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude, fix_on_retry=False), command="archive")
+    assert out["terminalReason"] == "tests-red" and out["ok"] is False, out
+    assert len(fake_claude.calls.read_text().splitlines()) == 3
+
+
+def test_an_archive_whose_base_did_not_move_runs_no_suite(runner, workspace, fake_claude):
+    """Implement already ended on the runner's green run of this very
+    tree; with nothing merged in, an archive has nothing new to test —
+    a suite that would be red here is never run, and the step ends on
+    its first turn."""
+    with_status(workspace, ["create", "analyze", "implement"])
+    _project_with_test_cmd(workspace, "false")
+    project = workspace["project"]
+    git(project, "switch", "-q", "-c", BRANCH)
+    (project / "implemented.txt").write_text("real work\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "the step")
+    git(project, "switch", "-q", "main")
+    rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude), command="archive")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
     assert len(fake_claude.calls.read_text().splitlines()) == 1

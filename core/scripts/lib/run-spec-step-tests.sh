@@ -25,7 +25,22 @@
 # is left of the step's budget and time limit. Codex has no resume the
 # runner drives, so a red run there ends the step at once. The record
 # on the branch is always the runner's last run.
-if [ "$command_name" = "implement" ] && [ "$terminal_reason" = "completed" ]; then
+#
+# An `archive` is the other step whose result no green run has seen:
+# its pull merges main into the branch, and main has moved since
+# implement's own green run — the one place a suite green at implement
+# time turns red before the landing. So the same run, the same rounds,
+# on the merged result, with the record written into the folder where
+# the archive has just moved it. A pull that fast-forwarded brought the
+# branch nothing new, and nothing is run.
+step_tests_folder=""
+if [ "$terminal_reason" = "completed" ]; then
+  case "$command_name" in
+    implement) step_tests_folder="$spec_label" ;;
+    archive) [ "${base_merged_count:-0}" -gt 0 ] && step_tests_folder="archive/$spec_label" ;;
+  esac
+fi
+if [ -n "$step_tests_folder" ]; then
   step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
   if ! printf '%s' "$step_tests_resolved" | jq -e '.ok == true' >/dev/null 2>&1; then
     terminal_reason="tests-red"
@@ -47,9 +62,9 @@ EOF_CMDS
       step_fix_round=0
       step_cost_total="$cost"
       while :; do
-        echo "aide-run-spec: running the project's tests on implement's result ($step_test_count command(s))" >&2
+        echo "aide-run-spec: running the project's tests on $command_name's result ($step_test_count command(s))" >&2
         "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
-          --folder "$spec_label" "${step_test_args[@]}" \
+          --folder "$step_tests_folder" "${step_test_args[@]}" \
           --result-file "$work_dir/step-test-run.json" > "$work_dir/step-test-run.log" 2>&1
         step_tests_rc=$?
         [ "$step_tests_rc" -ne 0 ] || break
@@ -73,9 +88,13 @@ $step_tests_failing"
         fi
         step_fix_round=$((step_fix_round + 1))
         echo "aide-run-spec: the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)" >&2
+        if [ "$command_name" = "archive" ]; then
+          step_fix_ask="Fix it — the merge with main, or what that merge broke — and run the suite again through aide-record-test-run until it is green, then report done. Round $step_fix_round of $step_fix_rounds."
+        else
+          step_fix_ask="Fix it — your own tests and any existing test the change broke — and run the suite again through aide-record-test-run until it is green, tick the row, then report done. Round $step_fix_round of $step_fix_rounds."
+        fi
         printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
-          "Fix it — your own tests and any existing test the change broke — and run the suite again through aide-record-test-run until it is green, tick the row, then report done. Round $step_fix_round of $step_fix_rounds." \
-          > "$work_dir/prompt-fix-$step_fix_round"
+          "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
         # The same argv, resumed: the dashboard's minted id becomes the
         # session to continue, and the budget is what is left of it.
         step_retry_argv=()
