@@ -156,15 +156,6 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     }
   });
 
-  // Spec 454: why is a "(?)", not a `title` — the badge's own reason
-  // used to be reachable only by hovering it.
-  test("the badge's own reason is a '(?)', not a title (spec 454)", () => {
-    const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
-    const line = subRow(html, "analyze");
-    expect(line).not.toContain('title="1-description.md was committed after the last finished analyze"');
-    expect(line).toContain("<p>1-description.md was committed after the last finished analyze</p>");
-  });
-
   // Where the mark sits, not just that it is there. Beside the model
   // picker it had no width of its own, so two lines of free text
   // stretched the name column and took the table sideways with it

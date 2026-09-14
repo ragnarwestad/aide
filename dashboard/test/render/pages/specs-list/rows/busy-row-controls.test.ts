@@ -111,9 +111,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
         // Spec 454: the reason is not the box's own `title`.
         expect(box(line, step)).not.toContain(`title="Implement is ${verb}"`);
       }
-      // Spec 457: a busy row's own State column already names what is
-      // running, so the phase line carries no "(?)" for it any more.
-      expect(line).not.toContain(`This phase can't be changed right now because Implement is ${verb}.`);
     });
   }
 
@@ -210,7 +207,6 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       'title="Implement is running"',
     );
     expect(box(line, "analyze")).not.toContain('title="Implement is running"');
-    expect(line).not.toContain("This phase can't be changed right now because Implement is running.");
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----

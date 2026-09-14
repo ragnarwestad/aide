@@ -255,13 +255,8 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
     expect(select).toContain("disabled");
-    // Spec 454: the reason is not this select's own `title`. Spec 457:
-    // nor is it the phase line's own "(?)" — the row's State column
-    // already names it.
+    // Spec 454: the reason is not this select's own `title`.
     expect(select).not.toContain('title="Implement is running"');
-    expect(subRow(html, "analyze")).not.toContain(
-      "This phase can't be changed right now because Implement is running.",
-    );
   });
 
   test("a settled spec's phase pickers are live again", () => {

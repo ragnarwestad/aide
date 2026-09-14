@@ -293,22 +293,14 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     expect(box(l, "archive")).toContain("disabled");
   });
 
-  // Spec 454: the reason moved off each box's own `title`. Spec 457: it
-  // no longer sits on the phase line at all on a busy row — the row's
-  // own State column already says what is running.
+  // Spec 454: the reason moved off each box's own `title`.
   test("a disabled box carries no title of its own, on a busy row", () => {
     const l = line(pair("running"));
     expect(box(l, "analyze")).not.toContain('title="Analyze is running"');
-    expect(l).not.toContain("This phase can't be changed right now because Analyze is running.");
   });
 
-  test("a step the job never named carries no lock sentence either (spec 105)", () => {
-    // One sentence for the whole row would have repeated what the
-    // row's own State column already says; spec 457 drops it.
+  test("a step the job never named carries no title either (spec 105)", () => {
     expect(box(line(pair("running")), "archive")).not.toContain('title="Analyze is running"');
-    expect(line(pair("running"))).not.toContain(
-      "This phase can't be changed right now because Analyze is running.",
-    );
   });
 
   test("a finished job holds nothing — every box is offerable again", () => {

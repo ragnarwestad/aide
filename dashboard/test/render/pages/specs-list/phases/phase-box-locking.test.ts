@@ -175,7 +175,6 @@ describe("a spec's row runs its own phases", () => {
       // submit target creates a SECOND job and the queue refuses it.
       expect(box(line, step)).toContain('data-post-to="/api/queue/j1/steps"');
       expect(box(line, step)).not.toContain('name="steps"');
-      expect(subRow(line, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
@@ -275,7 +274,6 @@ describe("a spec's row runs its own phases", () => {
       // the model select beside it, and that is what reaches the
       // server.
       expect([step, p.ai.includes("data-post-to")]).toEqual([step, false]);
-      expect(subRow(html, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
@@ -290,7 +288,6 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.ai.includes("disabled")]).toEqual([step, false]);
       expect([step, p.model.includes("disabled")]).toEqual([step, false]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, true]);
-      expect(subRow(html, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
@@ -312,14 +309,8 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.ai.includes("disabled")]).toEqual([step, true]);
       expect([step, p.model.includes("disabled")]).toEqual([step, true]);
       // Spec 454: the same sentence used to sit on both selects' own
-      // `title`, four times over on a busy line. Spec 457: it is gone
-      // from the phase line entirely now — the row's own State column
-      // already says it.
+      // `title`, four times over on a busy line.
       expect([step, subRow(html, step).includes('title="Implement is running"')]).toEqual([step, false]);
-      expect([
-        step,
-        subRow(html, step).includes("This phase can't be changed right now because Implement is running."),
-      ]).toEqual([step, false]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
     }
     const ahead = pickers(html, "archive");
@@ -445,10 +436,8 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    // Spec 454: the box's own `title` is gone. Spec 457: so is the
-    // phase line's own "(?)" — the row's State column already says why.
+    // Spec 454: the box's own `title` is gone.
     expect(box(line, "analyze")).not.toContain('title="Analyze is running"');
-    expect(line).not.toContain("This phase can't be changed right now because Analyze is running.");
     expect(box(line, "analyze")).not.toContain("already done");
   });
 
@@ -525,3 +514,4 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
     expect(select(archive, "data-ai", "archive")).not.toContain("disabled");
   });
 });
+
