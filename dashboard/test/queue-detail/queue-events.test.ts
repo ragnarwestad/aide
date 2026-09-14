@@ -255,7 +255,7 @@ async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
 // first-ever check finds its branch still on origin — rather than a
 // stale-to-fresh FLIP: `BranchStatusChecker`'s `openSpecBranches` cache
 // carries a fixed 30-second TTL that no `ServerOptions` field reaches
-// (`setup-project-resolution.ts` builds it with none), so two ticks
+// (`setup/project-resolution.ts` builds it with none), so two ticks
 // fired through the real schedule, milliseconds apart in test time,
 // would have the second one answer straight out of cache without ever
 // asking git again — there is no way to force a second REAL check within

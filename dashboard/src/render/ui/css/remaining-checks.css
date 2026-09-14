@@ -12,6 +12,11 @@
   margin-top: var(--sp-2); }
 .checklist .checkphase:first-child { margin-top: 0; }
 .check { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+/* The criterion's text takes the room beside the box and wraps INSIDE
+   it. Without a basis of 0 a long criterion's own width is the flex
+   basis, wider than the line, and the wrap moves the whole text under
+   the box instead of breaking it (2026-09-14). */
+.check .checktask { flex: 1 1 0; min-width: 0; }
 .check.done .checktask { color: var(--muted); text-decoration: line-through; }
 /* The run's own note on the row, under the criterion rather than beside
    it: it is a sentence, not a label, and it must not squeeze the text

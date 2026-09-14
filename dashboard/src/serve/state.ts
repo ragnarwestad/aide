@@ -1,6 +1,6 @@
 // The handful of `let`s `createServer` used to hold directly, now on one
-// object so the staged setup functions it calls (setup-watch.ts,
-// setup-project-resolution.ts, setup-schedules.ts, setup-land.ts, and
+// object so the staged setup functions it calls (setup/watch.ts,
+// setup/project-resolution.ts, setup/schedules.ts, setup/land.ts, and
 // createServer's own remaining body) can all read and write the same
 // mutable state without passing a getter/setter pair per field across
 // every boundary.

@@ -9,18 +9,18 @@
 // earlier removes the one dependency the runner stage would otherwise
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
-import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
-import type { RepoMergeResult } from "../git/branch-merge.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,
-} from "../git/description-freshness.ts";
-import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
-import type { CodeLanding } from "../project/discover";
-import type { AideRunStore } from "../queue/aide-run-store.ts";
-import type { Job, QueueStore, WorkflowStep } from "../queue/queue.ts";
-import type { StepOutcome } from "../queue/runner";
-import type { SpecTarget } from "../render";
-import { jobRow as jobRowImpl, type JobRowContext } from "./job-row.ts";
+} from "../../git/description-freshness.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import type { CodeLanding } from "../../project/discover";
+import type { AideRunStore } from "../../queue/aide-run-store.ts";
+import type { Job, QueueStore, WorkflowStep } from "../../queue/queue.ts";
+import type { StepOutcome } from "../../queue/runner";
+import type { SpecTarget } from "../../render";
+import { jobRow as jobRowImpl, type JobRowContext } from "../job-row.ts";
 import {
   landNewSpec as landNewSpecImpl,
   landStepBranch as landStepBranchImpl,
@@ -32,9 +32,9 @@ import {
   withFreshness as withFreshnessImpl,
   type LandContext,
   type RestartHook,
-} from "./land-branch";
-import { setPendingRestart, type ServerState } from "./state.ts";
-import type { TestServersContext } from "./test-servers/lifecycle.ts";
+} from "../land-branch";
+import { setPendingRestart, type ServerState } from "../state.ts";
+import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 export interface LandSetupInputs {
   machineryProjectDir: (project: string) => string;
@@ -42,7 +42,7 @@ export interface LandSetupInputs {
   codeLanding: (project: string) => CodeLanding;
   queue: QueueStore;
   store: AideRunStore;
-  mergeLock: ReturnType<typeof import("./serve-helpers").createRootLock>;
+  mergeLock: ReturnType<typeof import("../serve-helpers").createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
   warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
