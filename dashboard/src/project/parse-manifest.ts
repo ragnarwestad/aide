@@ -30,6 +30,13 @@ export interface ScheduleEntry {
    *  and the configuration's own `schedule` default decides, which is
    *  what every entry written before this field did. */
   model?: string;
+  /** When the entry was created or last edited from the dashboard's own
+   *  Schedule forms (spec 461) — an ISO timestamp `isDue` treats as
+   *  already-used ground, the same way it treats a tracked job's own
+   *  `startedAt ?? createdAt`. Absent means an entry written by hand,
+   *  which keeps firing on its very first eligible window exactly as
+   *  every entry did before this field existed. */
+  since?: string;
 }
 
 export interface ManifestData {
@@ -205,9 +212,11 @@ export function parseManifest(text: string): ManifestResult {
       // checked here — whether the queue config actually grants it is
       // the queue's own answer, and it is given at enqueue time.
       const model = toStr(e.model)?.trim();
+      const since = toStr(e.since)?.trim();
       entries.push({
         name, cron, prompt, enabled: e.enabled !== false,
         ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
+        ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       });
     }
     if (entries.length > 0) data.schedule = entries;

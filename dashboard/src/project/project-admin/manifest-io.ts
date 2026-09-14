@@ -144,6 +144,10 @@ function serializeScheduleEntry(entry: ScheduleEntry): string[] {
   // default never gains a line pinning it to whatever that default
   // happened to be on the day it was saved.
   if (entry.model) lines.push(`    model: "${entry.model}"`);
+  // Written only when the entry carries one, matching `ScheduleEntry.since`'s
+  // absent-means-written-by-hand contract (spec 461): an entry with none
+  // never gains a line pinning it to a save time it never had.
+  if (entry.since) lines.push(`    since: "${entry.since}"`);
   return lines;
 }
 
@@ -186,6 +190,7 @@ export function scheduleListText(currentText: string, entries: readonly Schedule
     ? entries.map((e) => ({
         name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled !== false,
         ...(e.model ? { model: e.model } : {}),
+        ...(e.since ? { since: e.since } : {}),
       }))
     : undefined;
   const reparsed = parseManifest(output);

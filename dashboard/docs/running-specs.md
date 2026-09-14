@@ -333,6 +333,12 @@ scheduled window, that occurrence simply does not happen; nothing catches up ret
 A project's own page shows each entry's name, cron expression, prompt path and next computed fire time, and the projects
 overview names the soonest across a project's entries.
 
+**An entry saved from the New or Edit form records a `since` timestamp**, the time of that save. Any fire at or before
+`since` counts as already used, the same way a tracked job does — so a freshly created or freshly edited entry's first
+real run is its next fire after the save, not whatever the cron's most recent fire already was. An entry with no
+`since` — written by hand, or saved before this field existed — fires on its very first eligible window, exactly as
+every entry did before.
+
 **A cron expression is evaluated in the SERVING HOST's local timezone**, the same as an ordinary crontab — there is no
 `tz:` field. Check what
 "3am" means on the machine actually running the poll before relying on it across a daylight-saving transition.

@@ -238,4 +238,33 @@ describe("schedule (spec 259)", () => {
       expect(result.data.schedule?.[0].model).toBeUndefined();
     });
   });
+
+  describe("since (spec 461)", () => {
+    test("a parseable since is carried onto the entry", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n" +
+          "    since: \"2026-09-14T16:42:00.000Z\"\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].since).toBe("2026-09-14T16:42:00.000Z");
+    });
+
+    test("an entry that names none carries none — a hand-written entry behaves as before", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].since).toBeUndefined();
+    });
+
+    test("an unparseable since drops the FIELD, never the entry", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n" +
+          "    since: \"not a date\"\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule).toHaveLength(1);
+      expect(result.data.schedule?.[0].since).toBeUndefined();
+    });
+  });
 });
