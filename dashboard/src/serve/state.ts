@@ -87,14 +87,21 @@ export interface ServerState {
   pendingRestart: { jobs: string[] } | null;
 }
 
+/** The state whose pending-restart list the shell shows. `bun test`
+ *  runs many servers in one process, and a replaced server's
+ *  `restartAfterLanding` wait loop can still be polling — writing the
+ *  list every quarter second, after the newer server cleared it. Only
+ *  the newest state gets through. */
+let noticeOwner: ServerState | undefined;
+
 export function createServerState(): ServerState {
-  // Like `setBoardInfo`: `bun test` runs many servers in one process,
-  // and a notice left by an earlier one must not show on a later page.
   setPendingRestartNotice([]);
-  return {
+  const state: ServerState = {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null,
   };
+  noticeOwner = state;
+  return state;
 }
 
 /** The one place that decides what a running-job list means for
@@ -104,5 +111,5 @@ export function createServerState(): ServerState {
  *  can never disagree about the shape. */
 export function setPendingRestart(state: ServerState, jobs: string[]): void {
   state.pendingRestart = jobs.length > 0 ? { jobs } : null;
-  setPendingRestartNotice(jobs);
+  if (state === noticeOwner) setPendingRestartNotice(jobs);
 }
