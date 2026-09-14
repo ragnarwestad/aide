@@ -318,6 +318,21 @@ test("spec 379 REQ-5: the phone layout's row is not held to the desktop's fixed 
   await page.setViewportSize({ width: 1270, height: 800 });
 });
 
+// Spec 460: 800px is the width the bug's own description names — between
+// the 40rem phone step and the point where the row already had room for
+// the field's full 26rem, the row used to wrap New onto a line of its
+// own (measured on the unmodified code in 2-analysis.md).
+test("spec 460: New sits beside the search field at 800px width", async () => {
+  await page.setViewportSize({ width: 800, height: 800 });
+  await withTimeout(page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`), 10_000, "page.goto(/) at 800px");
+  const [field, newLink] = await Promise.all([
+    page.locator(".searchfield").first().evaluate((el) => el.getBoundingClientRect()),
+    page.locator(".specsearch > a.btn.primary").first().evaluate((el) => el.getBoundingClientRect()),
+  ]);
+  expect(Math.abs(field.y - newLink.y)).toBeLessThan(5);
+  await page.setViewportSize({ width: 1270, height: 800 });
+});
+
 // REQ-1: the worst-case badge/button pairing — the longest text this
 // column can draw ("updating the manifest for queued", the `manifest`
 // step's gerund, 2-analysis.md's Findings) beside a Cancel button, the
