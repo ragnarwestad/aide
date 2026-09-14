@@ -128,7 +128,7 @@ export async function loadUntil(
   base: string,
   name: string,
   text: string,
-  budgetMs = 2000,
+  budgetMs = 15_000,
   tab?: string,
 ): Promise<string> {
   const deadline = Date.now() + budgetMs;

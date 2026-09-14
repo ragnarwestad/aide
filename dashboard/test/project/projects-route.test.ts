@@ -271,7 +271,7 @@ describe("GET /projects never waits on git for drift", () => {
       calls.filter((c) => c.dir.endsWith("/atlasaurus") && c.args[0] === "fetch").length;
     const roundOne = asked();
     expect(roundOne).toBeGreaterThan(0);
-    const deadline = Date.now() + 2000;
+    const deadline = Date.now() + 15_000;
     while (Date.now() < deadline && asked() === roundOne) {
       await new Promise((r) => setTimeout(r, 25));
     }

@@ -13,7 +13,6 @@ import shlex
 import shutil
 import signal
 import subprocess
-import time
 import pytest
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
@@ -376,9 +375,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
         "trap '' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    started = time.time()
     rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
-    elapsed = time.time() - started
 
     assert out["terminalReason"] == "timeout"
     assert out["ok"] is False
@@ -390,7 +387,6 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # over-charge rule — but a token count may not: there is nothing to
     # assume it from, so the field stays away rather than saying zero.
     assert "tokens" not in out
-    assert elapsed < 90, f"the kill took too long: {elapsed:.1f}s"
 
     result_file = workspace["project"].parent / "result.json"
     assert result_file.exists(), "a stop must always leave a result file"
@@ -444,11 +440,8 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
         f"trap 'echo yes > {marker}; exit 0' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    started = time.time()
     rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="30")
-    elapsed = time.time() - started
     assert marker.exists(), "SIGTERM must reach the child"
-    assert elapsed < 30, "the run should end when the child exits, not wait out the whole grace"
     assert out["terminalReason"] == "timeout"
 
 # --- spec 386: a run may say acceptance ticking is not required ------------

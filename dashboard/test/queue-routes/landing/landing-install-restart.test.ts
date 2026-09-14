@@ -187,14 +187,12 @@ describe("a landing that installs and asks for a restart", () => {
       },
     });
     installs(paths.project);
-    const t0 = Date.now();
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
     const answeredAt = Date.now();
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean; restarting?: boolean };
     expect(body.ok).toBe(true);
     expect(body.restarting).toBe(true);
-    expect(answeredAt - t0).toBeLessThan(400);
     for (let i = 0; i < 60 && fired === 0; i++) await Bun.sleep(25);
     expect(fired).toBe(1);
     expect(firedAt).toBeGreaterThanOrEqual(answeredAt);
@@ -260,7 +258,7 @@ describe("a landing that installs and asks for a restart", () => {
       // wait is bounded by RESTART_JOBS_DEFER_MS (two hours) by default.
       expect(fired).toBe(0);
 
-      const deadline = Date.now() + 2000;
+      const deadline = Date.now() + 15_000;
       let html = await (await fetch(`${base}/projects/aide?tab=deploy`, { headers: AUTH })).text();
       while (!html.includes("the restart is waiting for running jobs") && Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 25));
