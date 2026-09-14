@@ -124,7 +124,9 @@ into and runs
 no rule for a safe moment held up. It logs that the served page runs older code than main, and the person restarts
 when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts, and so does
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. The button answers before the restart
-fires, says the dashboard is restarting, and reloads the page once the service answers again. Point the job anywhere else and a restart
+fires, says the dashboard is restarting, and reloads the page once the service answers again. While jobs are
+running the restart waits for them (two hours at most), and every page shows a warning line under the header naming
+them until it fires. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
 never refreshed — unauthenticated, so a restart check nobody set up a token for can still reach it. The path is written once in the Makefile (`MINI_REPO`) and once in

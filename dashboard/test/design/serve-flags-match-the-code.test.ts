@@ -16,7 +16,7 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const MAKEFILE = read("../../Makefile");
 const PARSE_ARGS = read("../../src/serve/serve-helpers/parse-args.ts");
 const INSTALL = read("../../deploy/install-after-merge.sh");
-const SHELL = read("../../src/render/ui/shell.ts");
+const SHELL = read("../../src/render/ui/header-notices.ts");
 
 describe("the serve job passes only options the code accepts", () => {
   test("every flag install-serve hands to serve is one parse-args accepts", () => {

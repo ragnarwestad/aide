@@ -11,6 +11,7 @@
 // functions, unchanged — this object is what those functions close
 // over now instead of a bare local.
 
+import { setPendingRestartNotice } from "../render/ui/pending-restart.ts";
 import type { SpecTarget } from "../render";
 import type { SpecRef } from "../project/discover";
 import type { Runner } from "../queue/runner";
@@ -87,6 +88,9 @@ export interface ServerState {
 }
 
 export function createServerState(): ServerState {
+  // Like `setBoardInfo`: `bun test` runs many servers in one process,
+  // and a notice left by an earlier one must not show on a later page.
+  setPendingRestartNotice([]);
   return {
     scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null,
@@ -100,4 +104,5 @@ export function createServerState(): ServerState {
  *  can never disagree about the shape. */
 export function setPendingRestart(state: ServerState, jobs: string[]): void {
   state.pendingRestart = jobs.length > 0 ? { jobs } : null;
+  setPendingRestartNotice(jobs);
 }
