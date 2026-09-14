@@ -19,6 +19,7 @@ export const en = {
   "shell.themeAuto": "Auto",
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",
+  "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem — see {path}",
   "shell.overlayDeploying": "deploying…",
   "shell.overlayResetting": "resetting…",

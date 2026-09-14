@@ -33,7 +33,6 @@ const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 576,
   "src/queue/store/index.ts": 595,
   "src/git/branch-merge.ts": 602,
-  "src/render/ui/shell.ts": 530,
   "src/render/pages/specs-list/data-model/types.ts": 510,
 };
 

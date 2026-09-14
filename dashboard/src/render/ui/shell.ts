@@ -11,39 +11,11 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components";
+import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
+import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
-
-const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
-
-// A tool the installer could not declare (spec 334) is otherwise
-// visible only in a log file nobody has a reason to open — read here so
-// it reaches every ordinary dashboard visit instead (REQ-5). Only the
-// LAST run's block matters: an old warning a later run already cleared
-// must not keep showing.
-function lastInstallWarning(lang: Language): string | undefined {
-  const path = process.env.AIDE_INSTALL_LOG ?? DEFAULT_INSTALL_LOG();
-  let text: string;
-  try {
-    text = readFileSync(path, "utf-8");
-  } catch {
-    return undefined;
-  }
-  const lastBlock = text.split(/^--- .* ---$/m).pop() ?? "";
-  // Two tagged warnings only: the declared-tools step's (`[aide tools]`,
-  // core/scripts/_install-bin.sh) and the serve job's (`[aide serve]`,
-  // deploy/install-after-merge.sh — the launchd job passing an option
-  // this build no longer accepts, which kills the board at its next
-  // restart). The installers also print ⚠️ for things a machine may
-  // legitimately not have — Codex, a browser MCP, a PATH line — and a
-  // banner that fired on any of those was on after every merge, which
-  // is the same as no banner.
-  return /⚠️\s+\[aide (tools|serve)\]/.test(lastBlock)
-    ? t(lang, "shell.installWarning", { path })
-    : undefined;
-}
 
 export interface NavEntry {
   label: string;
@@ -290,7 +262,7 @@ function aboutDialog(buildStamp?: string): string {
 // Stop control beside it (spec 424, REQ-1..5). `getBoardInfo()` is
 // process-lifetime state, read directly here rather than threaded
 // through `pageShell()`'s 17 call sites, the same shape
-// `lastInstallWarning()` above already uses for `AIDE_INSTALL_LOG`.
+// `lastInstallWarning()` (header-notices.ts) already uses for `AIDE_INSTALL_LOG`.
 //
 // The machine name reads `AIDE_DASH_HOST` before `hostname()` for the
 // same reason `main.ts generate` needs to at build time: the two
@@ -503,8 +475,6 @@ export function pageShell(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
-  const installWarning = lastInstallWarning(lang);
-  const installBanner = installWarning ? rowMessage("waiting", installWarning, { tag: "p" }) : "";
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -518,7 +488,7 @@ ${PWA_LINKS}
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
 ${pageHeader(lang, currentUrl)}
-${installBanner}
+${headerNotices(lang)}
 ${aboutDialog(opts.buildStamp)}
 ${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}
 <main>

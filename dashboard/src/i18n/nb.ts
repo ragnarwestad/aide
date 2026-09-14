@@ -18,6 +18,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.themeAuto": "Auto",
   "shell.tabSpecs": "Spesifikasjoner",
   "shell.tabProjects": "Prosjekter",
+  "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
   "shell.installWarning": "siste installasjon fant et problem — se {path}",
   "shell.overlayDeploying": "deployer…",
   "shell.overlayResetting": "nullstiller…",
