@@ -190,7 +190,8 @@ describe("an archived spec's row, opened", () => {
     });
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
     const line = lines["analyze"]!;
-    expect(line).toContain('title="an estimate: a step that was stopped is charged its whole budget');
+    expect(line).toContain('<summary title="why this is an estimate"');
+    expect(line).toContain("This is an estimate: a step that was stopped is charged its whole budget");
     expect(line).toContain(STAMPED_COST_LABEL);
   });
 
