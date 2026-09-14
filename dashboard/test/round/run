@@ -327,11 +327,14 @@ seed_from_script() {
       '{project:$p, title:$t, description:$d} + (if $dep == "" then {} else {dependsOn:($dep|split(","))} end)')"
     create_job="$(api /api/queue/create "$body" | jq -r '.job.id // empty')"
     # A create job's specFolder starts as a provisional "new-<8 hex>" and
-    # becomes the real "NN-slug" once the step has run and landed.
+    # becomes the real "NN-slug" while the step's work lands; the queue
+    # refuses a step for the spec until that landing has finished, the
+    # same way the board's own buttons stay locked, so the wait is for
+    # both: the real folder AND the landing flag gone.
     spec_folder=""
     for _ in $(seq 1 90); do
       spec_folder="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" \
-        | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | .specFolder // empty')"
+        | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | select(.landing != true) | .specFolder // empty')"
       case "$spec_folder" in new-????????) spec_folder="" ;; esac
       [ -n "$spec_folder" ] && break
       sleep 2
