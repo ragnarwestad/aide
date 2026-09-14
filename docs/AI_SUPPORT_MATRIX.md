@@ -65,7 +65,7 @@ everyone believed was an E is how rules break silently.
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------|
 | Rules (git, testing, workflows, …)                              | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                         |
 | Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                        |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust) |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0, 0.154.0 installed; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141) |
 | Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                        |
 | Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                  |
 
@@ -85,14 +85,13 @@ an allowlist test. See the frontmatter table in the ai-tools reference.
 
 ## Current models
 
-| Tool               | Default / recommended model                                 |
-|--------------------|-------------------------------------------------------------|
-| Claude Code        | Claude Opus 4.7 (also Fast mode and Auto on Max)            |
-| GitHub Copilot CLI | `auto` (chooses itself); Claude and GPT-5.3-Codex available |
-| OpenAI Codex CLI   | GPT-5.5 (recommended); GPT-5.4 mini for fast subagent tasks |
+| Tool               | Default / recommended model                                                              |
+|--------------------|------------------------------------------------------------------------------------------|
+| Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197)   |
+| GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, GPT-6 Astra and GPT-5.6 available |
+| OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                              |
 
 Release dates and history are in the [news log](./AI_NEWS_LOG.md).
-Opus 4.7 has a known change: sampling parameters (`temperature` etc.) now return 400 errors.
 
 ## Cross-tool capabilities
 
