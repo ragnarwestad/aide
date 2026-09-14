@@ -219,6 +219,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         // and a reopen left on its branch would show nowhere at all
         // — "reopening is one action" would then still end with
         // somebody in a terminal.
+        // A finished reset takes the round's phase choice with it, so
+        // the row's boxes and button start over from Analyze rather than
+        // from whatever was ticked for the round just discarded.
+        if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);
         if (step === "analyze" || step === "reopen" || step === "reset") {
           return ctx.landStepBranch(job, step, outcome);
         }
