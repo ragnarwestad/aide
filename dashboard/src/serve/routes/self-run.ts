@@ -24,6 +24,18 @@ import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
 import { json } from "../serve-helpers/http.ts";
+import type { Job } from "../../queue/queue.ts";
+
+/** The folder a create job's spec can be queued under: its real
+ *  "NN-slug", and only once the create's landing is over. The job
+ *  learns its folder before its checkout moves, so the name alone does
+ *  not say the landing has finished — and the queue refuses a step for
+ *  the spec while it has not. */
+export function settledCreateFolder(job: { specFolder: string; landing?: Job["landing"] }): string | undefined {
+  if (/^new-[0-9a-f]{8}$/.test(job.specFolder)) return undefined;
+  if (job.landing) return undefined;
+  return job.specFolder;
+}
 
 /** What the spec's row is expected to show once the round is over
  *  (`dashboard/test/round/run` reads it back and compares): the job's
@@ -339,12 +351,14 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     const jobId = (created.job as { id?: string } | undefined)?.id;
     if (!jobId) throw new Error(`create gave no job for ${spec.slug}`);
     // A create job's OWN specFolder starts as a provisional "new-<8 hex>"
-    // placeholder and only becomes the real "NN-slug" once the step has
-    // run and landed.
+    // placeholder and becomes the real "NN-slug" while the step's work
+    // lands; the queue refuses a step for that spec until the landing
+    // has finished, so the wait is for both.
     const until = Date.now() + 180_000;
     while (!spec.folder) {
       const job = ctx.queue.get(jobId);
-      if (job && !/^new-[0-9a-f]{8}$/.test(job.specFolder)) spec.folder = job.specFolder;
+      const folder = job && settledCreateFolder(job);
+      if (folder) spec.folder = folder;
       else if (job && (job.state === "failed" || job.state === "cancelled" || job.state === "stopped")) {
         throw new Error(`create ${job.state} for ${spec.slug}`);
       } else if (Date.now() > until) throw new Error(`create never landed for ${spec.slug}`);
