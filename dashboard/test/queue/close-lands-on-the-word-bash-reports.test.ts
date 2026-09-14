@@ -35,6 +35,16 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
 
   // A close whose branch never reached origin must not report `closed`:
   // the dashboard would then try to land a branch that is not there.
+  // A reset discards the round, and the phases ticked for it go with
+  // it: the wiring drops the spec's recorded choice on a finished reset,
+  // before the step's own landing, and only on a finished one.
+  test("a finished reset forgets the spec's phase choice, and nothing else does", () => {
+    const okBranch = /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
+    expect(okBranch).toContain('if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);');
+    expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("landStepBranch"));
+    expect(RUNNER_SETUP.split("forgetPendingSteps").length - 1).toBe(1);
+  });
+
   test("the word is decided after the push is confirmed, never before", () => {
     const closedAt = RUN_SPEC.indexOf('terminal_reason="closed"');
     const unpushedAt = RUN_SPEC.lastIndexOf('terminal_reason="unpushed"');

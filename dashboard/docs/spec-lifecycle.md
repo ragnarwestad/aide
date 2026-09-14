@@ -156,11 +156,10 @@ runner decides on its own.
   templates, and a headless `reset` step runs that script directly, the way a create with no AI already writes its
   spec — the step ends in seconds and reports its tool as `none`.
 
-A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs. Neither move touches
-a phase choice recorded earlier under this spec (`pending-steps.json`) — the row's boxes still follow it, exactly as
-they did before the round was discarded, since reopening or resetting is not the reader changing that choice
-themselves. A spec with no such choice on record falls back to every phase it has not had, same as anywhere else on
-the list.
+A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs. A reset also drops
+the phase choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded, so
+the row falls back to every phase the spec has not had and its button reads Analyze. A reopen keeps the choice as it
+was.
 
 ## Closing: a different terminal move from archive
 

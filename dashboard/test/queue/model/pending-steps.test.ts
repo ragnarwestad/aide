@@ -97,6 +97,17 @@ describe("QueueStore.setPendingSteps() (spec 439)", () => {
 describe("what records a phase choice, and what must not (spec 439)", () => {
   const allow = (project: string) => project === "brandnew";
 
+  test("forgetPendingSteps() drops the entry, on disk too, and is a no-op for a spec with none", () => {
+    const file = join(dir, "pending-steps.json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath: file });
+    store.setPendingSteps("aide", "81-queue-and-runner", ["implement", "archive"]);
+    store.forgetPendingSteps("aide", "81-queue-and-runner");
+    expect(store.pendingSteps["aide/81-queue-and-runner"]).toBeUndefined();
+    expect(JSON.parse(readFileSync(file, "utf-8"))).not.toHaveProperty("aide/81-queue-and-runner");
+    store.forgetPendingSteps("aide", "82-never-chosen");
+    expect(store.pendingSteps).not.toHaveProperty("aide/82-never-chosen");
+  });
+
   test("enqueueCreate() seeds the choice from the posted steps", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
     const result = store.enqueueCreate({

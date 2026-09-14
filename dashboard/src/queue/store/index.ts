@@ -454,6 +454,17 @@ export class QueueStore {
    *  `test/queue/store/store-core-fields.test.ts` — a second, unwanted
    *  fire here is what a naive `this.setPendingSteps(...)` call inside
    *  `enqueueCreate()` produced before this split). */
+  /** A reset discards the round, and the phases a reader had ticked for
+   *  that round go with it: the row falls back to every phase the spec
+   *  has not had, so its button names the next one — Analyze. */
+  forgetPendingSteps(project: string, specFolder: string): void {
+    const key = `${project}/${specFolder}`;
+    if (!(key in this.pendingSteps)) return;
+    delete this.pendingSteps[key];
+    this.persistPendingStepsTable();
+    this.changed();
+  }
+
   private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): void {
     const wanted = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
     this.pendingSteps[`${project}/${specFolder}`] = wanted;
