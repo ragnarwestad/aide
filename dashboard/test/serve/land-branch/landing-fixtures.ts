@@ -37,8 +37,9 @@ export function landingGit(over: Record<string, Answer> = {}) {
 export function landCtx(
   gitRun: ReturnType<typeof landingGit>["run"],
   extra: Record<string, unknown> = {},
-): { ctx: Record<string, unknown>; forgotten: { root: string; branch: string }[] } {
+): { ctx: Record<string, unknown>; forgotten: { root: string; branch: string }[]; remembered: { root: string; branch: string }[] } {
   const forgotten: { root: string; branch: string }[] = [];
+  const remembered: { root: string; branch: string }[] = [];
   const ctx: Record<string, unknown> = {
     queue: { get: () => undefined, update: () => {}, transition: () => ({ ok: true }), branchesFor: () => [] },
     gitRun,
@@ -53,10 +54,11 @@ export function landCtx(
       defaultBranch: async () => "master",
       invalidate: () => {},
       forgetOpenSpecBranch: (root: string, branch: string) => void forgotten.push({ root, branch }),
+      rememberOpenSpecBranch: (root: string, branch: string) => void remembered.push({ root, branch }),
     },
     ...extra,
   };
-  return { ctx, forgotten };
+  return { ctx, forgotten, remembered };
 }
 
 export const REPOS = [{ root: ROOT, url: "" }];

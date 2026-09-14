@@ -96,3 +96,32 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
     expect(result.assignedSpecFolder).toBe("02-a-brand-new-spec");
   });
 });
+
+describe("mergeBranchIntoDefault: the moment before the checkout moves", () => {
+  // The shared checkout's fast-forward is what makes a landed folder
+  // visible — the page's watcher rescans on it. Whatever has to be true
+  // BEFORE a reader can see the folder (the job's new key, the cached
+  // open-branch set) is the caller's to settle in this hook, which fires
+  // after the merge reached origin and before that fast-forward.
+  test("the hook fires after the push and before the checkout's own fast-forward, with the assigned folder", async () => {
+    const git = fakeGit({ ...REACHES_MERGE, reset: { code: 0 } });
+    const finalizeCreate: CreateFinalizer = async () => ({ ok: true, specFolder: "01-a-brand-new-spec" });
+    let firedAt = -1;
+    let assigned: string | undefined;
+    const hooks = {
+      beforeCheckoutMoves: (info: { assignedSpecFolder?: string }) => {
+        firedAt = git.calls.length;
+        assigned = info.assignedSpecFolder;
+      },
+    };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate, hooks);
+    expect(result.ok).toBe(true);
+    expect(assigned).toBe("01-a-brand-new-spec");
+    const pushIdx = argv(git.calls).indexOf("push -q origin HEAD:refs/heads/master");
+    const ffIdx = git.calls.findIndex((c) => c.dir === ROOT && c.args.join(" ") === "merge -q --ff-only origin/master");
+    expect(pushIdx).toBeGreaterThan(-1);
+    expect(ffIdx).toBeGreaterThan(pushIdx);
+    expect(firedAt).toBeGreaterThan(pushIdx);
+    expect(firedAt).toBeLessThanOrEqual(ffIdx);
+  });
+});
