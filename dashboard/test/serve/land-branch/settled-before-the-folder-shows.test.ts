@@ -71,3 +71,28 @@ describe("what is settled before the checkout moves", () => {
     expect(forgotten.some((f) => f.root === ROOT && f.branch === BRANCH && f.at <= ff)).toBe(true);
   });
 });
+
+describe("what is settled once the landing has moved the folder", () => {
+  test("both cached git answers for the spec are due for a fresh read, under either path", async () => {
+    const git = landingGit();
+    const history: [string, string][] = [];
+    const fileSteps: [string, string][] = [];
+    const { ctx } = landCtx(git.run, {
+      workflowHistory: { forget: (dir: string, folder: string) => void history.push([dir, folder]) },
+      branchFileSteps: { forget: (dir: string, folder: string) => void fileSteps.push([dir, folder]) },
+    });
+    await landBranch(
+      ctx as unknown as Parameters<typeof landBranch>[0],
+      { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
+      { branch: BRANCH },
+      {
+        step: "archive",
+        repos: REPOS,
+        failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
+      } as unknown as Parameters<typeof landBranch>[3],
+    );
+    const expected: [string, string][] = [[`${ROOT}/archive/150-spec`, "150-spec"], [`${ROOT}/150-spec`, "150-spec"]];
+    expect(history).toEqual(expected);
+    expect(fileSteps).toEqual(expected);
+  });
+});

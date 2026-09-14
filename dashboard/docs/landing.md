@@ -26,6 +26,12 @@ is still running. So while the spec's job is in flight the badge names what it i
 nothing is running it says what is open and why — the one window that still exists being the code after
 `implement` and before `archive`.
 
+**The page is settled before it can see the result.** The shared checkout's fast-forward is what makes a landed
+folder visible (the watcher rescans on it), so the merge calls back just before it: a create job takes its assigned
+folder as its key, and the cached open-branch set drops the branch (a delete that then fails puts it back). When the
+landing is over, the spec's cached git answers — its workflow history, the file steps on its branch — are marked
+due for a fresh read, as they are the moment any of its steps ends, so no row is drawn from what was true before.
+
 **Nothing here is merged by hand.** Every step lands its own work the moment it finishes: `create` and
 `analyze`
 merge the branch they pushed into that repo's default branch and delete it on origin; `implement` lands nothing, so the

@@ -51,6 +51,24 @@ export interface RunnerSetupContext {
    *  job field that may belong to a job created long before this one. */
   specDir: (project: string, specFolder: string) => string | undefined;
   peekMachinerySpecDir: (project: string, dir: string) => string;
+  /** Marks the spec's cached git answers (its workflow history, the
+   *  file steps on its branch) due for a fresh read — see
+   *  `forgetSpecCachesFor`. */
+  forgetSpecCaches: (dir: string, specFolder: string) => void;
+}
+
+/** A step that just ended rewrote the spec's files and pushed its
+ *  branch; the two answers the row is drawn from — what git history says
+ *  ran, what the file on the branch claims — are cached for 30 s, and a
+ *  row read from the old answers said "last run reported done, but
+ *  nothing reached the files" for those seconds (462, 2026-09-14). */
+export function forgetSpecCachesFor(
+  ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir" | "forgetSpecCaches">,
+  job: Pick<Job, "project" | "specFolder">,
+): void {
+  const found = ctx.specDir(job.project, job.specFolder);
+  if (!found) return;
+  ctx.forgetSpecCaches(ctx.peekMachinerySpecDir(job.project, found), job.specFolder);
 }
 
 /** Whether `analyze`'s own invocation of `job` should be told acceptance
@@ -210,6 +228,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     // The returned promise holds the queue for as long as the
     // landing takes; see `Runner.tick()`.
     onStepDone: (job, step, outcome) => {
+      forgetSpecCachesFor(ctx, job);
       if (outcome.ok) {
         if (step === "create") return ctx.landNewSpec(job, outcome);
         // `reopen` lands for exactly the reason `analyze` does, and

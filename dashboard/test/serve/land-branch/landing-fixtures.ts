@@ -49,6 +49,8 @@ export function landCtx(
     codeLanding: () => undefined,
     invalidateScan: () => {},
     warmSpec: async () => {},
+    workflowHistory: { forget: () => {} },
+    branchFileSteps: { forget: () => {} },
     rootsStillHolding: async () => [],
     branchStatus: {
       defaultBranch: async () => "master",

@@ -455,6 +455,13 @@ export async function landBranch(
         )
       : undefined;
     if (landedDir) await ctx.warmSpec({ dir: landedDir, specFolder: landedFolder });
+    // The landing moved the spec's history and its file: both cached
+    // answers are due for a fresh read, under whichever of the two
+    // paths the folder is read from now.
+    for (const dir of landedRoot ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)] : []) {
+      ctx.workflowHistory.forget(dir, landedFolder);
+      ctx.branchFileSteps.forget(dir, landedFolder);
+    }
     if (what.onLanded) {
       try {
         await what.onLanded();

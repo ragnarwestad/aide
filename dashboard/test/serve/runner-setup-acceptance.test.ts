@@ -8,7 +8,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { acceptanceNotRequiredForAnalyze } from "../../src/serve/runner-setup.ts";
+import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor } from "../../src/serve/runner-setup.ts";
 import type { Job } from "../../src/queue/queue.ts";
 
 const job = (over: Partial<Job> = {}): Job =>
@@ -60,5 +60,29 @@ describe("acceptanceNotRequiredForAnalyze", () => {
       peekMachinerySpecDir: (_project: string, found: string) => found,
     };
     expect(acceptanceNotRequiredForAnalyze(ctx, job())).toBe(false);
+  });
+});
+
+describe("forgetSpecCachesFor", () => {
+  test("names the spec's machinery dir and folder", () => {
+    const forgotten: [string, string][] = [];
+    const ctx = {
+      specDir: (_project: string, folder: string) => folder,
+      peekMachinerySpecDir: (_project: string, found: string) => `/machinery/${found}`,
+      forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
+    };
+    forgetSpecCachesFor(ctx, job());
+    expect(forgotten).toEqual([["/machinery/81-queue-and-runner", "81-queue-and-runner"]]);
+  });
+
+  test("a spec no scan knows forgets nothing", () => {
+    const forgotten: [string, string][] = [];
+    const ctx = {
+      specDir: () => undefined,
+      peekMachinerySpecDir: (_p: string, found: string) => found,
+      forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
+    };
+    forgetSpecCachesFor(ctx, job());
+    expect(forgotten).toEqual([]);
   });
 });

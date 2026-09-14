@@ -182,7 +182,7 @@ export class WorkflowHistoryChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; history: WorkflowHistory }>();
+  private readonly cache = new Map<string, { at: number; history: WorkflowHistory; stale?: boolean }>();
 
   constructor(opts: WorkflowHistoryOptions) {
     this.run = opts.run;
@@ -208,7 +208,7 @@ export class WorkflowHistoryChecker {
     const key = JSON.stringify([dir, specFolder, boundarySha ?? null]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.history;
+    if (hit && !hit.stale && at - hit.at < this.ttlMs) return hit.history;
 
     let history = EMPTY;
     try {
@@ -235,6 +235,18 @@ export class WorkflowHistoryChecker {
    *
    *  Keyed the same way `read` keys, boundary included: the boundary is
    *  part of the QUESTION (spec 198). */
+  /** A step for this spec just ended, or its landing did: every cached
+   *  answer for the spec is due for a fresh read, whatever reopen mark
+   *  it was read under. Marked, not dropped — `peekHistory` keeps
+   *  answering from it until `read` has replaced it, the same rule
+   *  `BranchFileStepsChecker.forget` follows and for the same reason. */
+  forget(dir: string, specFolder: string): void {
+    for (const [key, hit] of this.cache) {
+      const parsed = JSON.parse(key) as [string, string, string | null];
+      if (parsed[0] === dir && parsed[1] === specFolder) this.cache.set(key, { ...hit, stale: true });
+    }
+  }
+
   peekHistory(dir: string, specFolder: string, boundarySha?: string): {
     history: WorkflowHistory | null;
     checkedAt: number | null;
