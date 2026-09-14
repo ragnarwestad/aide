@@ -3,7 +3,7 @@
 // (the notice-line sentences an archived or live row's own fields can
 // carry).
 
-import { CHECKING, badge, pips, stepLabel } from "../../ui/components";
+import { CHECKING, badge, helpPopover, pips, stepLabel } from "../../ui/components";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
@@ -176,8 +176,12 @@ export const costCell = (
     spentTokens,
   );
   return unmeasured
-    ? `<span title="an estimate: a step that was stopped is charged its whole budget, ` +
-      `because a run that is killed reports nothing about what it used">${figure}</span>`
+    ? `<span>${figure}</span>` +
+      helpPopover(
+        "why this is an estimate",
+        "This is an estimate: a step that was stopped is charged its whole budget, because a run " +
+          "that is killed reports nothing about what it used.",
+      )
     : figure;
 };
 

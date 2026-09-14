@@ -220,11 +220,11 @@ describe("an unmeasured cost is marked where it is totalled", () => {
 
   // The row's own cell is a roll-up across every job the spec has had,
   // which is the "41.13 USD for 149" figure the incident was about. On
-  // the list the mark is the figure's own tooltip, not a word beside
-  // it: the Cost column is 4.5rem, and the word wrapped onto a line of
-  // its own where it read as belonging to the column beside it
-  // (2026-09-08).
-  const listMarker = 'title="an estimate: a step that was stopped is charged its whole budget';
+  // the list the mark used to be the figure's own tooltip; spec 454
+  // moved it into a "(?)" beside the figure instead — a click-to-open
+  // mark, since the Cost column is 4.5rem and has no room for the words
+  // themselves (2026-09-08).
+  const listMarker = "<p>This is an estimate: a step that was stopped is charged its whole budget";
   const spentRow = (extra: Partial<QueueRowView>): QueueRowView =>
     row({ state: "done", ...extra });
 

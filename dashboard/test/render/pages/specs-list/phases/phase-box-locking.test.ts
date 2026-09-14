@@ -308,10 +308,14 @@ describe("a spec's row runs its own phases", () => {
       const p = pickers(html, step);
       expect([step, p.ai.includes("disabled")]).toEqual([step, true]);
       expect([step, p.model.includes("disabled")]).toEqual([step, true]);
-      // The same sentence the boxes carry: why the row will not take a
-      // click, not a bare padlock.
-      expect([step, p.ai.includes('title="implement is running"')]).toEqual([step, true]);
-      expect([step, p.model.includes('title="implement is running"')]).toEqual([step, true]);
+      // Spec 454: the same sentence used to sit on both selects' own
+      // `title`, four times over on a busy line — one shared "(?)" now
+      // says it once for the whole phase line.
+      expect([step, subRow(html, step).includes('title="implement is running"')]).toEqual([step, false]);
+      expect([
+        step,
+        subRow(html, step).includes("This phase can't be changed right now because implement is running."),
+      ]).toEqual([step, true]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
     }
     const ahead = pickers(html, "archive");
@@ -437,7 +441,10 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    expect(box(line, "analyze")).toContain('title="analyze is running"');
+    // Spec 454: the box's own `title` is gone — the phase line's shared
+    // "(?)" says why, once, rather than four times.
+    expect(box(line, "analyze")).not.toContain('title="analyze is running"');
+    expect(line).toContain("This phase can't be changed right now because analyze is running.");
     expect(box(line, "analyze")).not.toContain("already done");
   });
 

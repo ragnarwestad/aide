@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, stepLabel, tokenField } from "../../ui/components";
+import { ICON_CHEVRON, btn, helpPopover, stepLabel, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -224,8 +224,14 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // turn on but never press.
     return (
       `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…"` +
-      (action.active ? "" : ` disabled title="${esc(action.label)} is not ticked"`) +
-      `>${esc(action.label)}</button>`
+      (action.active ? "" : " disabled") +
+      `>${esc(action.label)}</button>` +
+      (action.active
+        ? ""
+        : helpPopover(
+            "why this can't run",
+            esc(`The ${action.label} phase is not ticked, so there is nothing this button would run.`),
+          ))
     );
   })();
   // "Also touches" stood here until nobody could point at a press it

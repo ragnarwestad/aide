@@ -76,8 +76,8 @@ describe("renderScheduleForm", () => {
       modelChoices: TWO_TOOLS,
       defaultModels: { schedule: "claude-opus-5" },
     });
-    expect(html).toContain('value="codex-fast" data-tool="codex" title="$5 per step" selected');
-    expect(html).not.toContain('value="claude-opus-5" data-tool="claude" title="$15 per step" selected');
+    expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast — $5/step');
+    expect(html).not.toContain('value="claude-opus-5" data-tool="claude" selected>claude-opus-5 — $15/step');
   });
 
   test("an entry with no model of its own pre-fills with the schedule step's configured default", () => {
@@ -88,7 +88,7 @@ describe("renderScheduleForm", () => {
       modelChoices: TWO_TOOLS,
       defaultModels: { schedule: "codex-fast" },
     });
-    expect(html).toContain('value="codex-fast" data-tool="codex" title="$5 per step" selected');
+    expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast — $5/step');
   });
 
   test("the AI select is drawn only where there are two tools to tell apart", () => {

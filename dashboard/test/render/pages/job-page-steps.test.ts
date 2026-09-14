@@ -244,23 +244,26 @@ describe("red-suite presentation", () => {
   });
 });
 
-describe("the stopped badge carries its error as a tooltip", () => {
-  test("a stopped row with an error gets the error as the badge's title", () => {
+describe("the stopped badge carries its error behind a '(?)' (spec 454)", () => {
+  test("a stopped row with an error gets the error inside a helpPopover", () => {
     const error = "the job cap ($4) would be exceeded by the next step";
     const html = stateChip(row({ state: "stopped", stopReason: "job-cap", error } as never));
-    expect(html).toContain(`title="${error}"`);
+    expect(html).not.toContain(`title="${error}"`);
+    expect(html).toContain(`<p>${error}</p>`);
   });
 
-  test("a stopped row with no error gets no title attribute", () => {
+  test("a stopped row with no error gets no title attribute and no mark", () => {
     const html = stateChip(row({ state: "stopped", stopReason: "timeout" } as never));
     expect(html).not.toContain("title=");
+    expect(html).not.toContain("<details");
   });
 
-  test("a queued row parked with a held-back error gets no title attribute", () => {
+  test("a queued row parked with a held-back error gets no title attribute and no mark", () => {
     const html = stateChip(
       row({ state: "queued", error: "held back: the daily cap ($20) would be exceeded" } as never),
     );
     expect(html).not.toContain("title=");
+    expect(html).not.toContain("<details");
   });
 });
 

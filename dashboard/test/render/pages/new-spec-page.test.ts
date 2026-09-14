@@ -107,11 +107,12 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     );
     // Nothing but those three wrappers stands between them: the
     // acceptance switch's own `.frow`, then Depends on's. The label's
-    // own line carries a "(?)", and the head wrapper the field draws
+    // own line carries a "(?)" (spec 454: a `helpPopover()` after the
+    // chip, not a `title` on it), and the head wrapper the field draws
     // for that is markup, not order — the rule here is that no OTHER
     // field or control sits in the gap.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><\/span><span class="frow"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label>(<details class="intro">[\s\S]*?<\/details>)?<\/span><span class="frow"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label>(<details class="intro">[\s\S]*?<\/details>)?<\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -407,6 +408,18 @@ describe("spec 342: the phase table", () => {
     expect(box).toContain('form="new-spec-form"');
   });
 
+  // Spec 454: the field's own explanation moves off `title` into a "(?)".
+  test("spec 454: the acceptance switch's explanation is a '(?)', not a title", () => {
+    const html = newPage();
+    expect(html).not.toMatch(
+      /title="Analyze writes an acceptance-criteria table, and archive waits/,
+    );
+    expect(html).toContain(
+      "<p>Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
+        "Cleared, the requirements stay written down and nothing is left to tick.</p>",
+    );
+  });
+
   // Spec 433, AC-4: "let AI formulate acceptance criteria", checked by
   // default — the same "checked, and a sibling of the acceptance switch"
   // shape, said the positive way for the same reason: unticking it is
@@ -420,6 +433,13 @@ describe("spec 342: the phase table", () => {
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
     expect(html).toContain("let AI formulate acceptance criteria");
+    // Spec 454: the field's own explanation moves off `title` into a "(?)".
+    expect(html).not.toMatch(/title="Ticked, create runs a short AI session/);
+    expect(html).toContain(
+      "<p>Ticked, create runs a short AI session that drafts the acceptance criteria from this " +
+        "description. Cleared, create writes the spec directly from what is typed here — no AI " +
+        "session, done in seconds.</p>",
+    );
     // Its own line, right after the acceptance switch's.
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
     const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');

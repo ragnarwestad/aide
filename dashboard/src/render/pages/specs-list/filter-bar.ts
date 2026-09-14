@@ -153,10 +153,13 @@ function stateDropdown(
   const statesLabel = t(lang, "list.statesLabel");
   // The trigger shows the chosen option's own label and count, and
   // nothing else (REQ-1): the room the old "State:" prefix took is what
-  // lets a longer choice like "Running-analyzing (2)" fit.
+  // lets a longer choice like "Running-analyzing (2)" fit. Spec 454: the
+  // visible content beside it IS that choice, not the word "States" — so
+  // `aria-label` alone carries the name for assistive tech, without a
+  // `title` repeating it as a tooltip nobody asked to read twice.
   return (
     `<details class="menu state" data-filter="state">` +
-    `<summary title="${statesLabel}" aria-label="${statesLabel}">` +
+    `<summary aria-label="${statesLabel}">` +
     `${esc(stateFilterLabel(chosen.s.key, lang))} (${chosen.count})${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="radiogroup">${options}</div>` +
     `</details>`

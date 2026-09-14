@@ -92,11 +92,12 @@ describe("spec 169: one picker per phase", () => {
       // nothing is hidden, right above, is what keeps the two apart.
       expect([step, /<option value="gpt-fast" data-tool="codex"/.test(select)]).toEqual([step, true]);
       expect([step, /<option value="sonnet" data-tool="claude"/.test(select)]).toEqual([step, true]);
-      // The option's text is the model's name and nothing else — no
-      // "(codex)" suffix (spec 167); the group above it says the tool
-      // while the list is open, the name itself while it is closed.
+      // The option's text is the model's name and its budget (spec
+      // 454) — no "(codex)" suffix (spec 167); the group above it says
+      // the tool while the list is open, the name itself while it is
+      // closed.
       expect([step, select.includes("(codex)")]).toEqual([step, false]);
-      expect([step, /<option value="gpt-fast"[^>]*>gpt-fast<\/option>/.test(select)]).toEqual([step, true]);
+      expect([step, /<option value="gpt-fast"[^>]*>gpt-fast — \$5\/step<\/option>/.test(select)]).toEqual([step, true]);
     }
     // The grouping is in the configured tool order — Claude Code, then
     // Codex — not whichever tool `modelChoices` happens to lead with.
@@ -229,7 +230,10 @@ describe("spec 169: one picker per phase", () => {
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
-    expect(control).toContain('title="implement is running"');
+    // Spec 454: the reason is a shared phase-line "(?)" now, not the
+    // select's own `title`.
+    expect(control).not.toContain('title="implement is running"');
+    expect(html).toContain("This phase can't be changed right now because implement is running.");
   });
 
   // Asked of `archive`, not of the first select on the page: `create` is

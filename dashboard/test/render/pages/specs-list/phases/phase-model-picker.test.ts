@@ -21,9 +21,10 @@ import { row, openKeys } from "../../fixtures.ts";
 // before it.
 //
 // The choice belongs where the phase is: each phase line carries its
-// own picker, under a "Phase"/"Model" caption, and the budget figure
-// moves off the label into the option's own tooltip — the number still
-// reachable, no longer read out on every option.
+// own picker, under a "Phase"/"Model" caption. The budget figure sits
+// in the option's own visible label (spec 454) — an `<option>` cannot
+// host a "(?)", so the tooltip it used to carry is not an explanation
+// this dashboard can move behind one.
 describe("spec 123: each phase line picks its own model", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -118,16 +119,17 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
-  test("no option label reads out a budget figure", () => {
-    const html = rows([]);
-    for (const option of html.matchAll(/<option[^>]*>([^<]*)<\/option>/g)) {
-      expect(option[1]).not.toContain("$");
-    }
-  });
-
-  test("the figure is still reachable — it moved to the option's tooltip", () => {
+  // Spec 454: an `<option>` cannot host a "(?)" — a browser's native
+  // dropdown draws its content as plain text, running none of the
+  // page's markup — so the budget moves into the option's own visible
+  // label instead, the one exception AC-1's literal "replaced with a
+  // helpPopover" makes.
+  test("every option's own label carries its budget, and the option has no title", () => {
     const line = subRow(rows([]), "analyze");
-    expect(line).toContain('title="$12 per step"');
+    const modelSelect = line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    expect(modelSelect).not.toContain("title=");
+    expect(modelSelect).toContain(">fable — $12/step<");
+    expect(modelSelect).toContain(">sonnet — $3/step<");
   });
 
   // --- criterion 3 -----------------------------------------------------------
@@ -254,7 +256,12 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
     expect(select).toContain("disabled");
-    expect(select).toContain('title="implement is running"');
+    // Spec 454: the reason is the phase line's shared "(?)" now, not
+    // this select's own `title`.
+    expect(select).not.toContain('title="implement is running"');
+    expect(subRow(html, "analyze")).toContain(
+      "This phase can't be changed right now because implement is running.",
+    );
   });
 
   test("a settled spec's phase pickers are live again", () => {

@@ -38,9 +38,11 @@ describe("spec 406, REQ-1: the Close control", () => {
   test("disabled with its reason while busy, rather than absent or silently inert (REQ-11)", () => {
     const html = page(view({ closeAction: "/close-confirm", closeUnavailableReason: "a job is running" }));
     expect(html).toContain("Close");
-    expect(html).toContain("a job is running");
     expect(html).not.toContain('href="/close-confirm"');
     expect(html).toContain('aria-disabled="true"');
+    // Spec 454: the reason is a "(?)", not a `title`.
+    expect(html).not.toMatch(/title="a job is running"/);
+    expect(html).toContain("<p>This can't be closed right now because a job is running.</p>");
   });
 
   test("a live spec with no closeAction offers nothing of the sort", () => {

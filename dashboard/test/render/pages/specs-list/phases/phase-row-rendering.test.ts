@@ -293,18 +293,24 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     expect(box(l, "archive")).toContain("disabled");
   });
 
-  test("a disabled box says why, on the label the pointer is over", () => {
+  // Spec 454: the reason moved off each box's own `title` onto one
+  // shared "(?)" per phase line (`aiModel()`'s own `lockMark`) — a busy
+  // line no longer repeats the same sentence on up to four controls.
+  test("a disabled box says why, on the phase line's own shared mark", () => {
     const l = line(pair("running"));
-    expect(box(l, "analyze")).toContain('title="analyze is running"');
+    expect(box(l, "analyze")).not.toContain('title="analyze is running"');
     // The reason is about the JOB, so the step that has not started yet
     // carries the same sentence rather than a blank one.
-    expect(box(l, "implement")).toContain('title="analyze is running"');
+    expect(l).toContain("This phase can't be changed right now because analyze is running.");
   });
 
   test("a step the job never named carries the same reason (spec 105)", () => {
     // One sentence for the whole row: the reader is told what the SPEC
     // is doing, not which steps some job happens to list.
-    expect(box(line(pair("running")), "archive")).toContain('title="analyze is running"');
+    expect(box(line(pair("running")), "archive")).not.toContain('title="analyze is running"');
+    expect(line(pair("running"))).toContain(
+      "This phase can't be changed right now because analyze is running.",
+    );
   });
 
   test("a finished job holds nothing — every box is offerable again", () => {
@@ -313,6 +319,7 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
       expect(box(l, step)).not.toContain("disabled");
       expect(box(l, step)).not.toContain("title=\"analyze");
     }
+    expect(l).not.toContain("This phase can't be changed right now");
   });
 
   test("a job that failed, stopped or was cancelled holds nothing either", () => {

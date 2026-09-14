@@ -374,7 +374,11 @@ describe("every board-facing error sentence has a resolution or a named exemptio
 // as the panel row's own `title` attribute, dropped rather than
 // misattributed once more than one part shares the notice line.
 describe("a notice's raw detail reaches the row as hover text, never the sentence (spec 352, REQ-5)", () => {
-  test("a lone lead error's detail becomes the row's own title attribute", () => {
+  // Spec 454: the row's `<tr>` itself carries no `title` any more — the
+  // detail is reachable by clicking a "(?)" inside the row's own
+  // message cell instead, since a `<tr>` was one of the least
+  // discoverable hover targets on the page.
+  test("a lone lead error's detail becomes a '(?)' inside the row's own message cell", () => {
     const block = rowBlock(
       live("70-detail", {
         error: "git could not be run — check the checkout on the serving host (main in /repos/aide)",
@@ -382,7 +386,8 @@ describe("a notice's raw detail reaches the row as hover text, never the sentenc
       }),
       "70-detail",
     );
-    expect(block).toContain('title="ENOENT: no such file or directory"');
+    expect(block).not.toContain('title="ENOENT: no such file or directory"');
+    expect(block).toContain("<p>ENOENT: no such file or directory</p>");
   });
 
   test("more than one part in the notice drops the detail rather than misattribute it", () => {

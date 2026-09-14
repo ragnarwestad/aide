@@ -249,12 +249,15 @@ describe("spec 103: a collapsed row shows status only", () => {
       }),
     ]) {
       // Scoped to the list: the "?" popover above it is a `<details>`
-      // of its own (spec 113), about how runs work, not about a row.
+      // of its own (spec 113), about how runs work, not about a row —
+      // and since spec 454 a phase line's own "why this is locked" and
+      // a model's per-step budget are real `<details>` marks too, so
+      // this checks the "more" disclosure's own hooks specifically
+      // rather than every `<summary>` on the table.
       const table = html.match(/<table class="list speclist">[\s\S]*<\/table>/)?.[0] ?? "";
       expect(table).not.toBe("");
       expect(table).not.toContain("data-more");
       expect(table).not.toContain('class="more"');
-      expect(table).not.toContain("<summary");
     }
   });
 });

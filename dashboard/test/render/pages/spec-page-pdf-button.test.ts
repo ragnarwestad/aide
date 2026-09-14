@@ -17,7 +17,9 @@ describe("spec 358: the PDF button", () => {
   const actionsGroup = (html: string): string =>
     /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
 
-  const ARIA_LABEL = 'aria-label="open this spec as a PDF in a new tab"';
+  // Spec 454: trimmed to fit the design guard's word limit for a
+  // `title=` — the icon still opens the spec in a new tab, unchanged.
+  const ARIA_LABEL = 'aria-label="open this spec as a PDF"';
 
   test("it sits at the end of the title line, not in the actions row", () => {
     const html = withPdf({ resetAction: "/reset-confirm" });
@@ -54,12 +56,13 @@ describe("spec 358: the PDF button", () => {
   });
 
   // REQ-7, REQ-9b: disabled with the reason present, never absent.
-  // REQ-6: the same aria-label as the enabled branch, on both the
-  // "why" (title) and "what it does" (aria-label) axes.
+  // REQ-6: the same aria-label as the enabled branch names what it does;
+  // spec 454 moves the reason off `title` into its own "(?)".
   test("when the tool is unavailable the control is disabled with its reason, never absent", () => {
     const html = withPdf({ pdfUnavailableReason: "md-to-pdf is not installed on this host" });
     expect(html).toContain('aria-disabled="true"');
-    expect(html).toContain("md-to-pdf is not installed on this host");
+    expect(html).not.toMatch(/title="md-to-pdf is not installed on this host"/);
+    expect(html).toContain("<p>md-to-pdf is not installed on this host</p>");
     expect(html).not.toContain(`href="${PDF_ACTION}"`);
     expect(html).toContain(ARIA_LABEL);
     const span = html.match(/<span class="iconlink" aria-disabled="true"[\s\S]*?<\/span>/)?.[0] ?? "";

@@ -247,16 +247,22 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // quietly skipped its acceptance table could only be put right by
 // running the whole analysis again.
 function acceptanceField(formId: string): string {
-  return phaseChip({
-    dataAttr: "data-acceptance",
-    value: "1",
-    label: "acceptance ticking required",
-    name: "acceptanceRequired",
-    form: formId,
-    checked: true,
-    plain: true,
-    title: "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. Cleared, the requirements stay written down and nothing is left to tick.",
-  });
+  return (
+    phaseChip({
+      dataAttr: "data-acceptance",
+      value: "1",
+      label: "acceptance ticking required",
+      name: "acceptanceRequired",
+      form: formId,
+      checked: true,
+      plain: true,
+    }) +
+    helpPopover(
+      "what this does",
+      "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
+        "Cleared, the requirements stay written down and nothing is left to tick.",
+    )
+  );
 }
 
 // Spec 433 (AC-4/AC-5): whether create spends an AI session at all.
@@ -265,16 +271,23 @@ function acceptanceField(formId: string): string {
 // stumbles into. Ticked, create runs exactly as it always has: the only
 // path left to an AI session anywhere inside create.
 function aiFormulateAcceptanceField(formId: string): string {
-  return phaseChip({
-    dataAttr: "data-ai-formulate",
-    value: "1",
-    label: "let AI formulate acceptance criteria",
-    name: "aiFormulateAcceptance",
-    form: formId,
-    checked: true,
-    plain: true,
-    title: "Ticked, create runs a short AI session that drafts the acceptance criteria from this description. Cleared, create writes the spec directly from what is typed here — no AI session, done in seconds.",
-  });
+  return (
+    phaseChip({
+      dataAttr: "data-ai-formulate",
+      value: "1",
+      label: "let AI formulate acceptance criteria",
+      name: "aiFormulateAcceptance",
+      form: formId,
+      checked: true,
+      plain: true,
+    }) +
+    helpPopover(
+      "what this does",
+      "Ticked, create runs a short AI session that drafts the acceptance criteria from this " +
+        "description. Cleared, create writes the spec directly from what is typed here — no AI " +
+        "session, done in seconds.",
+    )
+  );
 }
 
 // The fields needed to make the spec: which project, its phase table,

@@ -129,8 +129,8 @@ export function renderSpecPage(
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
     `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
-    `<button class="btn" type="submit" title="pull the specs repository and show what it says now">` +
-    `Update</button></form>`;
+    `<button class="btn" type="submit">Update</button></form>` +
+    helpPopover("what Update does", "Update pulls the specs repository and shows what it says now.");
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
   // Every tab says what it is for (spec 311): a "(?)" at the right end of

@@ -105,10 +105,14 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   for (const state of ["queued", "running"] as const) {
     test(`a ${state} spec locks every phase box, not the ones its job named (criterion 2)`, () => {
       const line = openControls(spec(state));
+      const verb = state === "running" ? "running" : "queued";
       for (const step of ["analyze", "implement", "archive"]) {
         expect(box(line, step)).toContain("disabled");
-        expect(box(line, step)).toContain(`title="implement is ${state === "running" ? "running" : "queued"}"`);
+        // Spec 454: the reason is the phase line's shared "(?)" now,
+        // not the box's own `title`.
+        expect(box(line, step)).not.toContain(`title="implement is ${verb}"`);
       }
+      expect(line).toContain(`This phase can't be changed right now because implement is ${verb}.`);
     });
   }
 
@@ -194,16 +198,17 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
   });
 
-  // There is no disclosure left to carry the reason on a summary, so
-  // each of them says it itself — which is where the promise always
-  // actually lived.
-  test("each locked field carries the same reason (criterion 3)", () => {
+  // Spec 454: one shared "(?)" on the phase line carries the reason now
+  // — the model select and the box no longer each carry it in a `title`
+  // of their own.
+  test("every locked field on the line shares the same reason (criterion 3)", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     const line = controlsLine(html, "105-busy");
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain(
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain(
       'title="implement is running"',
     );
-    expect(box(line, "analyze")).toContain('title="implement is running"');
+    expect(box(line, "analyze")).not.toContain('title="implement is running"');
+    expect(line).toContain("This phase can't be changed right now because implement is running.");
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----

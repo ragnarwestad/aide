@@ -76,9 +76,14 @@ export function trackingControl(view: SpecPageView): string {
   // its ticking was told it does not.
   const required = !view.acceptanceNotRequired;
   const acceptance = acceptanceLocked
-    ? `<span class="row" aria-disabled="true" title="analyze has already decided whether to write the acceptance-criteria table — this cannot change now">` +
+    ? `<span class="row" aria-disabled="true">` +
       `<input type="checkbox" disabled${required ? " checked" : ""}>` +
-      `<span>acceptance ticking required</span></span>`
+      `<span>acceptance ticking required</span>` +
+      helpPopover(
+        "why this can't change",
+        "Analyze has already decided whether to write the acceptance-criteria table — this cannot change now.",
+      ) +
+      `</span>`
     : `<label class="row">` +
       `<input type="hidden" name="acceptanceEditable" value="1">` +
       `<input type="checkbox" name="acceptanceRequired" value="1"${required ? " checked" : ""}>` +
@@ -322,10 +327,12 @@ export function reopenControl(view: SpecPageView): string {
     `<input type="hidden" name="project" value="${esc(view.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(view.specFolder)}">` +
     `<input type="hidden" name="steps" value="reopen">` +
-    `<button class="btn" type="submit" ` +
-    `title="take this spec back into the active list for another round: ` +
-    `reset the analysis, the plan and the status, keep the description, and remove its branch">` +
-    `Reopen</button></form>`
+    `<button class="btn" type="submit">Reopen</button></form>` +
+    helpPopover(
+      "what Reopen does",
+      "Reopen takes this spec back into the active list for another round: it resets the analysis, " +
+        "the plan and the status, keeps the description, and removes its branch.",
+    )
   );
 }
 
@@ -342,11 +349,14 @@ export function reopenControl(view: SpecPageView): string {
  *  control, the way a file icon is. */
 export function pdfControl(view: SpecPageView): string {
   if (!view.pdfAction) return "";
-  const what = "open this spec as a PDF in a new tab";
+  // Trimmed from "...in a new tab" (spec 454): the design guard caps a
+  // title attribute at a few words, and the link's own target attribute
+  // already says where it opens.
+  const what = "open this spec as a PDF";
   if (view.pdfUnavailableReason) {
     return (
-      `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}" ` +
-      `title="${esc(view.pdfUnavailableReason)}">${ICON_PDF}</span>`
+      `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>` +
+      helpPopover("why this is unavailable", esc(view.pdfUnavailableReason))
     );
   }
   return (
@@ -414,11 +424,24 @@ export function resetControl(view: SpecPageView): string {
   // Shown disabled rather than hidden on an archived spec (2026-09-09):
   // a control that vanishes leaves the reader wondering where it went;
   // one that is greyed out says it exists and why it cannot be pressed.
-  const why = view.archived ? "an archived spec cannot be reset — reopen it first" : view.resetUnavailableReason;
-  if (why) {
-    return `<span class="btn" aria-disabled="true" title="${esc(why)}">Reset</span>`;
+  if (view.archived) {
+    // Already a full sentence, so it moves unchanged (spec 454, AC-2) —
+    // never patched onto the "can't be reset right now" wrapper below,
+    // which would garble it into two reasons stacked on each other.
+    return (
+      `<span class="btn" aria-disabled="true">Reset</span>` +
+      helpPopover("why this can't run", "an archived spec cannot be reset — reopen it first")
+    );
   }
-  return `<a class="btn" href="${esc(view.resetAction)}" title="start this active spec again from its description">Reset</a>`;
+  if (view.resetUnavailableReason) {
+    return (
+      `<span class="btn" aria-disabled="true">Reset</span>` +
+      helpPopover("why this can't run", esc(`This can't be reset right now because ${view.resetUnavailableReason}.`))
+    );
+  }
+  // `resetCloseNote()` already covers what a live Reset does, beside it
+  // on the same tab row — this button carries no title of its own.
+  return `<a class="btn" href="${esc(view.resetAction)}">Reset</a>`;
 }
 
 /** The other operation that ends a work round (spec 406, REQ-1), drawn
@@ -430,9 +453,14 @@ export function resetControl(view: SpecPageView): string {
 export function closeControl(view: SpecPageView): string {
   if (!view.closeAction || view.archived) return "";
   if (view.closeUnavailableReason) {
-    return `<span class="btn" aria-disabled="true" title="${esc(view.closeUnavailableReason)}">Close</span>`;
+    return (
+      `<span class="btn" aria-disabled="true">Close</span>` +
+      helpPopover("why this can't run", esc(`This can't be closed right now because ${view.closeUnavailableReason}.`))
+    );
   }
-  return `<a class="btn" href="${esc(view.closeAction)}" title="say this spec is not going to work, and archive the record">Close</a>`;
+  // `resetCloseNote()` already covers what a live Close does, beside it
+  // on the same tab row — this button carries no title of its own.
+  return `<a class="btn" href="${esc(view.closeAction)}">Close</a>`;
 }
 
 /** Drawn once, beside both controls — REQ-2's non-hover distinction: a

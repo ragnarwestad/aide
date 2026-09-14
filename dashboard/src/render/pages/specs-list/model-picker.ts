@@ -2,9 +2,8 @@ import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
-import { busyReason, runFormId } from "./cells.ts";
+import { runFormId } from "./cells.ts";
 import {
-  ALREADY_RUN_REASON,
   SHORT_TOOL_NAMES,
   TOOL_NAMES,
   defaultModelForTool,
@@ -35,9 +34,10 @@ export {
 // that drifts from the form's own silently runs the job on the
 // defaults instead.
 //
-// The figure each model is granted is in the option's TOOLTIP, not its
-// label — read out on every option, it was three lines of money on a
-// page about work.
+// The figure each model is granted is in the option's own visible
+// label (spec 454) — an `<option>` cannot host a "(?)", the one
+// exception to this dashboard's own rule that an explanation is never
+// a hover-only `title`.
 export function modelPicker(
   g: SpecGroup,
   opts: PickerOptions,
@@ -73,10 +73,6 @@ export function modelPicker(
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
   const locked = archived || (busy && !live) || alreadyRun;
-  // A lock the RUN put on says what the run is doing; a lock that is
-  // only "this phase cannot be run again" says that instead — the
-  // running job's own sentence would name a step this select is not on.
-  const why = !locked ? "" : busy || archived ? busyReason(g) : ALREADY_RUN_REASON;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
@@ -98,7 +94,10 @@ export function modelPicker(
     // which phases have run — derived from the same `used` the
     // pre-filled value is — is better than the browser re-deriving it.
     (used !== undefined ? ` data-ran="1"` : "") +
-    (locked ? ` disabled title="${esc(why)}"` : "") +
+    // Why it is locked, when it is, is said once for the whole phase
+    // line now (spec 454, `aiModel()`'s own shared "(?)") — not repeated
+    // on this select's own `title`.
+    (locked ? " disabled" : "") +
     `>` +
     modelOptions(models, chosen) +
     `</select>`
@@ -154,8 +153,13 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
         group
           .map(
             (m) =>
-              `<option value="${esc(m.name)}" data-tool="${esc(tool)}" title="$${m.budgetUsd} per step"` +
-              `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
+              `<option value="${esc(m.name)}" data-tool="${esc(tool)}"` +
+              // The figure sits in the option's own visible label since
+              // spec 454, not a `title`: a browser's native dropdown
+              // draws an `<option>`'s content as plain text, running
+              // none of the page's markup inside it, so a "(?)" cannot
+              // go here the way it can everywhere else on this line.
+              `${m.name === chosen ? " selected" : ""}>${esc(m.name)} — $${m.budgetUsd}/step</option>`,
           )
           .join("") +
         `</optgroup>`
@@ -327,10 +331,6 @@ export function aiPicker(
   // pick made on it reaches the server through the model select it
   // writes into.
   const locked = archived || (busy && !live) || alreadyRun;
-  // A lock the RUN put on says what the run is doing; a lock that is
-  // only "this phase cannot be run again" says that instead — the
-  // running job's own sentence would name a step this select is not on.
-  const why = !locked ? "" : busy || archived ? busyReason(g) : ALREADY_RUN_REASON;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: the same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
@@ -344,7 +344,9 @@ export function aiPicker(
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
-    (locked ? ` disabled title="${esc(why)}"` : "") +
+    // Why it is locked, when it is, is said once for the whole phase
+    // line now (spec 454) — not repeated on this select's own `title`.
+    (locked ? " disabled" : "") +
     `>` +
     tools
       .map(

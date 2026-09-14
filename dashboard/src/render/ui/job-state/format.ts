@@ -1,7 +1,8 @@
 // State labels, durations, the state chip, and "is this job still
 // going".
 
-import { badge, type BadgeVariant } from "../components";
+import { badge, helpPopover, type BadgeVariant } from "../components";
+import { esc } from "../html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import type { QueueRowView } from "./types.ts";
@@ -81,11 +82,9 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 };
 
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
-  return badge(
-    BADGE_VARIANT[r.state],
-    stateLabel(r, lang),
-    r.state === "stopped" ? renderSentence(lang, r.error) : undefined,
-  );
+  const b = badge(BADGE_VARIANT[r.state], stateLabel(r, lang));
+  const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
+  return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }
 
 /** A spec that exists and has never been run. It is this page's own

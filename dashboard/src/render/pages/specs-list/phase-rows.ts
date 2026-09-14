@@ -1,7 +1,7 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { badge, phaseChip, stepLabel } from "../../ui/components";
+import { badge, helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { anyCostUnmeasured, wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state/types.ts";
@@ -63,13 +63,13 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // `busy` beside it, and consulted where a line would otherwise offer a
   // press the server refuses.
   const locked = isArchivedRow(g);
-  // Row-level, all three: which phases a press would run and why the
-  // row will not take a click. Row-level facts, so they are asked once
-  // and consulted per phase — the same shape `busy` itself already had.
-  // Which step is being worked was a fourth until spec 168, read by
+  // Row-level, like `busy` beside it: which phases a press would run.
+  // Why the row will not take a click is asked per phase instead, in
+  // `aiModel()` below (spec 454) — a live box and a locked one differ on
+  // that question, and a row-level flag could not tell them apart.
+  // Which step is being worked was a third until spec 168, read by
   // nothing but the spinner that used to sit on that phase's box.
   const ticked = chosenSteps(g, opts);
-  const why = busy ? busyReason(g) : "";
   // Spec 160: the phases this run can still be given or relieved of.
   // The server worked it out from the job as it stands — the row does
   // not re-derive it, so a live box and the route that takes its tick
@@ -146,11 +146,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const stale =
         p.step === "analyze" && g.analyzeStale
           ? " " +
-            badge(
-              "waiting",
-              "description changed since",
-              "1-description.md was committed after the last finished analyze",
-            )
+            badge("waiting", "description changed since") +
+            helpPopover("why this is marked", "1-description.md was committed after the last finished analyze")
           : "";
       // The larger of what the queue remembers and what the phase's own
       // file has stamped (spec 341) — the queue wins while it still
@@ -271,14 +268,10 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // Inert, but not padlocked: the tick already says whether
             // this job will get to the step (spec 145).
             plain: true,
-            // A box the reader can still act on says what the tick
-            // WOULD do; the rest say why the row will not take a
-            // click.
-            title: live
-              ? `not started yet — ${g.lead?.steps.includes(p.step) ? "untick to drop it from this run" : "tick to add it to this run"}`
-              : busy
-                ? why
-                : undefined,
+            // What the tick would do, or why the row will not take a
+            // click, is said once for the whole phase line now — the
+            // shared "(?)" `aiModel()` draws below (spec 454) — rather
+            // than repeated on this box's own `title`.
           })
         : finishedPhaseChip(p.step); // `create`'s own arm, same shape
       // The three choices this line offers, in one cell (spec 192): the
@@ -407,19 +400,36 @@ function aiModel(
 ): string {
   const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
-  if (!model) return `<span class="aimodel">${ai}</span>`;
+  const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
+  // One "(?)" for the whole phase line (spec 454), replacing what used
+  // to be up to four separate `title`s repeating the same fact: this
+  // box's own tick hint, the locked `aimodelnow` span's reason, and the
+  // AI/model selects' own disabled reasons — all of them the same
+  // three-way distinction (live / locked-busy-or-archived / already-run)
+  // `locked` above already makes. Computed whether or not a model is
+  // configured to pick from: the phase's own box carries this same
+  // reason regardless, so the mark cannot live only on the branch below
+  // that draws a model select.
+  const lockNote = live
+    ? "This phase has not started yet. Tick it to add it to this run, or untick to drop it."
+    : locked
+      ? busy || isArchivedRow(g)
+        ? `This phase can't be changed right now because ${busyReason(g)}.`
+        : "This phase has already run and cannot be run again from this row."
+      : "";
+  const lockMark = lockNote ? helpPopover("why this is locked", esc(lockNote)) : "";
+  if (!model) return `<span class="aimodel">${ai}</span>${lockMark}`;
   const on = phaseAiModel(g, opts, step, used, recordedModel);
   const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
-  const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
   const button = locked
-    ? `<span class="aimodelnow" aria-disabled="true" title="${esc(busy || isArchivedRow(g) ? busyReason(g) : ALREADY_RUN_REASON)}">${esc(now)}</span>`
+    ? `<span class="aimodelnow" aria-disabled="true">${esc(now)}</span>`
     : `<input type="checkbox" class="aimodelopen" id="${esc(id)}">` +
-      `<label class="aimodelnow" for="${esc(id)}" title="${esc(now)}">${esc(now)}</label>`;
+      `<label class="aimodelnow" for="${esc(id)}">${esc(now)}</label>`;
   return (
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
     (ai ? `<label class="aimodelfield"><span>AI</span>${ai}</label>` : "") +
     `<label class="aimodelfield"><span>Model</span>${model}</label>` +
-    `</span></span>`
+    `</span></span>${lockMark}`
   );
 }

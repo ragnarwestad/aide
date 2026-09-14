@@ -125,11 +125,15 @@ describe("the state dropdown (spec 289)", () => {
     expect(allHref).toContain("state=all");
   });
 
-  test('the trigger keeps "States" as its accessible title, with no "State:"/"States:" prefix in its visible text (REQ-1)', () => {
+  // Spec 454: the visible content beside the trigger IS the current
+  // choice ("Running (2)"), not the word "States" — so `title` (which
+  // just repeated it as a tooltip nobody asked to read twice) is
+  // dropped, and `aria-label` alone carries the name for assistive tech.
+  test('the trigger keeps "States" as its accessible name, with no "State:"/"States:" prefix in its visible text (REQ-1)', () => {
     const html = page();
     const panel = panelOf(html);
     const trigger = triggerOf(panel);
-    expect(trigger).toContain('title="States"');
+    expect(trigger).not.toContain('title="States"');
     expect(trigger).toContain('aria-label="States"');
     expect(trigger).not.toContain("States:");
     expect(trigger).not.toContain("State:");

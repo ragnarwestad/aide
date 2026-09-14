@@ -40,9 +40,11 @@ describe("picking a model for a job", () => {
     expect(html).toContain('name="model.analyze"');
     expect(html).toContain('name="model.implement"');
     expect(html).toContain("fable");
-    // What each is granted is still said — in the option's tooltip
-    // since spec 123, not read out on every label.
-    expect(html).toContain('title="$12 per step"');
+    // What each is granted is still said — in the option's own visible
+    // label since spec 454 (an `<option>` cannot host a "(?)"), never a
+    // `title`.
+    expect(html).toContain("fable — $12/step");
+    expect(html).not.toContain('title="$12 per step"');
     // No "default" entry any more (2026-08-19): the select is pre-filled
     // with a real name, and only real names are offered.
     for (const step of ["analyze", "implement"]) {
@@ -52,9 +54,10 @@ describe("picking a model for a job", () => {
   });
 
   // The "default" option is gone (asked for 2026-08-19): the select is
-  // pre-filled with a real name instead, and every option's figure lives
-  // in its tooltip — never on the label.
-  test("no default option, no figure on any label; the tooltips keep them", () => {
+  // pre-filled with a real name instead, and every option's figure sits
+  // in its own visible label (spec 454) — no `<option>` ever carries a
+  // `title`.
+  test("no default option; every label carries its own figure", () => {
     const html = renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
@@ -66,8 +69,8 @@ describe("picking a model for a job", () => {
     // Scoped to the model select: spec 364's own effort select, drawn
     // beside it, DOES carry an empty "unset" option, on its own terms.
     expect(modelSelect).not.toContain('<option value=""');
-    expect(modelSelect).toMatch(/<option value="fable"[^>]*title="[^"]*\$12[^"]*"[^>]*>/);
-    expect(modelSelect).not.toMatch(/<option[^>]*>[^<]*\$/);
+    expect(modelSelect).not.toContain("title=");
+    expect(modelSelect).toMatch(/<option value="fable"[^>]*>fable — \$12\/step<\/option>/);
   });
 
   test("with nothing configured the page offers no model at all", () => {
