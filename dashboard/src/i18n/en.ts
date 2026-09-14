@@ -84,7 +84,7 @@ export const en = {
   "list.noPullRequestOpened":
     "its code is on a branch and no pull request was opened for it. — Open one by hand, " +
     "in the checkout on the serving host.",
-  "list.archiveHeldBack": "archive held back: {reason}",
+  "list.archiveHeldBack": "{step} held back: {reason}",
   "list.noSpecMatchesFilter": "No spec matches this filter.",
   "list.noSpecAtAll": "No spec to show — no project on this machine has one to run.",
   "list.noRunner":
@@ -92,7 +92,7 @@ export const en = {
     "and nothing here spends money.",
   "list.createdNotRegistered": "not registered",
   "list.ready": "ready",
-  "list.archiveHeldBackWord": "archive held back",
+  "list.archiveHeldBackWord": "{step} held back",
   "list.done": "done",
   "list.stateQueued": "{step} queued",
   "list.stateQueuedPosition": "{step} {n}/{total}",

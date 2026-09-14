@@ -73,7 +73,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [target("101-a")],
     );
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)![0];
-    expect(head).toContain(">analyzing<");
+    expect(head).toContain(">Analyzing<");
     expect(head).not.toContain("to follow");
     expect(hint(html)).toBe("");
   });

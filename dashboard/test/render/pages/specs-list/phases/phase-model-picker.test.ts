@@ -254,7 +254,7 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
     expect(select).toContain("disabled");
-    expect(select).toContain('title="implement is running"');
+    expect(select).toContain('title="Implement is running"');
   });
 
   test("a settled spec's phase pickers are live again", () => {

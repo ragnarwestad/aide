@@ -397,8 +397,8 @@ describe("refusing an enqueue while the spec's last job is still landing (spec 2
     expect(clash.ok).toBe(false);
     if (!clash.ok) {
       const text = sentence(clash.error);
-      expect(text).toContain("creating");
-      expect(text).not.toContain("analyzing");
+      expect(text).toContain("Creating");
+      expect(text).not.toContain("Analyzing");
     }
   });
 });

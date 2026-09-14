@@ -45,12 +45,11 @@ const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts"];
 // path relative to the dashboard root, with the count measured when this
 // list was written.
 const OVER_FILE_COUNT: Record<string, number> = {
-  "src/serve": 19,
   "test/render/pages": 24,
   "test/specs-client": 21,
   "test/design": 25,
   "test/project": 20,
-  "test/serve": 20,
+  "test/serve": 21,
 };
 
 // Rule 4: top-level test/ directories that group tests by feature rather

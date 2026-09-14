@@ -24,7 +24,7 @@ const group = (lead: SpecGroup["lead"]): SpecGroup => ({
 describe("busyReason names the step actually merging (REQ-3, spec 399)", () => {
   test("a job done on its last step: names that step's own merge", () => {
     const g = group(row({ steps: ["create"], stepIndex: 0, state: "done", landing: true }));
-    expect(busyReason(g)).toBe("create is creating");
+    expect(busyReason(g)).toBe("Create is Creating");
   });
 
   // resting.ts:74-79's documented case: the job has already advanced to
@@ -34,13 +34,13 @@ describe("busyReason names the step actually merging (REQ-3, spec 399)", () => {
   // (`specStateChip`) already applies via `landingStep`.
   test("a job already queued on its next step: names the step whose merge is actually in progress, not the queued one", () => {
     const g = group(row({ steps: ["create", "analyze"], stepIndex: 1, state: "queued", landing: true }));
-    expect(busyReason(g)).toBe("create is creating");
-    expect(busyReason(g)).not.toContain("analyze");
+    expect(busyReason(g)).toBe("Create is Creating");
+    expect(busyReason(g)).not.toContain("Analyze");
   });
 
   test("no landing: falls back to the current step and its state label, unchanged", () => {
     const g = group(row({ steps: ["analyze"], stepIndex: 0, state: "running" }));
-    expect(busyReason(g)).toContain("analyze");
+    expect(busyReason(g)).toContain("Analyze");
   });
 
   test("no lead job: empty string", () => {

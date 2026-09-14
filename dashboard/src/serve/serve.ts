@@ -9,7 +9,7 @@ import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 // CLI: serve --site DIR [--port N] [--mirror FILE]
 //
 // `createServer` is a staged assembly, not one long body: each of the
-// setup-*.ts files it calls builds one cluster of wiring that used to
+// setup/*.ts files it calls builds one cluster of wiring that used to
 // sit inline here, and `state.ts` holds the handful of mutable `let`s
 // (`scan`, `unlanded`, `prOpen`, `warming`, `notifySoon`, plus `server`
 // and `runner` themselves) that cross those stage boundaries. The
@@ -36,13 +36,13 @@ import { type SpecViewsContext } from "./spec-views";
 import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
-import { setupWatch } from "./setup-watch.ts";
-import { setupProjectResolution } from "./setup-project-resolution.ts";
-import { setupSchedules } from "./setup-schedules.ts";
-import { setupLand } from "./setup-land.ts";
-import { setupTestServers } from "./setup-test-servers.ts";
-import { setupSpecViews } from "./setup-spec-views.ts";
-import { setupQueueContext } from "./setup-queue-context.ts";
+import { setupWatch } from "./setup/watch.ts";
+import { setupProjectResolution } from "./setup/project-resolution.ts";
+import { setupSchedules } from "./setup/schedules.ts";
+import { setupLand } from "./setup/land.ts";
+import { setupTestServers } from "./setup/test-servers.ts";
+import { setupSpecViews } from "./setup/spec-views.ts";
+import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";

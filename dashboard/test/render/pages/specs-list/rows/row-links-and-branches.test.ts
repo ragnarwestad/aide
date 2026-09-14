@@ -49,7 +49,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: { open: "aide/81-queue-and-runner" },
     });
-    expect(html).toContain('<span class="phasefold">analyze</span>');
+    expect(html).toContain('<span class="phasefold">Analyze</span>');
     expect(html).not.toContain(`href="${SPEC_HREF}?tab=solution"`);
     expect(html).not.toContain('href="/specs/job-1234"');
   });

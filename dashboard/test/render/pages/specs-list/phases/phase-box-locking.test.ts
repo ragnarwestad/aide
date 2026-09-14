@@ -310,8 +310,8 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.model.includes("disabled")]).toEqual([step, true]);
       // The same sentence the boxes carry: why the row will not take a
       // click, not a bare padlock.
-      expect([step, p.ai.includes('title="implement is running"')]).toEqual([step, true]);
-      expect([step, p.model.includes('title="implement is running"')]).toEqual([step, true]);
+      expect([step, p.ai.includes('title="Implement is running"')]).toEqual([step, true]);
+      expect([step, p.model.includes('title="Implement is running"')]).toEqual([step, true]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
     }
     const ahead = pickers(html, "archive");
@@ -388,7 +388,7 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).toContain(
       '<label class="phase checked" data-phase="analyze">' +
         '<input type="checkbox" value="analyze" checked disabled ' +
-        'aria-label="analyze — already done, and not a step you can run"> ' +
+        'aria-label="Analyze — already done, and not a step you can run"> ' +
         "<span></span></label>",
     );
     expect(box(line, "analyze")).not.toContain('name="steps"');
@@ -437,7 +437,7 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    expect(box(line, "analyze")).toContain('title="analyze is running"');
+    expect(box(line, "analyze")).toContain('title="Analyze is running"');
     expect(box(line, "analyze")).not.toContain("already done");
   });
 

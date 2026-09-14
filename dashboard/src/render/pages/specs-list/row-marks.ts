@@ -3,7 +3,7 @@
 // an archive held back for unticked acceptance criteria. Split out of
 // cell-helpers.ts by theme.
 
-import { type BadgeVariant, type MessageVariant } from "../../ui/components";
+import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
@@ -124,7 +124,7 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     // got until 2026-09-08.
     const queueSaysIt = queueHeldForChecks(g);
     if (!queueSaysIt) {
-      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord"), sentence: heldBackReasonText(lang, heldBackReason) });
+      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason) });
     }
     marks.push({
       variant: "waiting",
