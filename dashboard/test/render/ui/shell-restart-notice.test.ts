@@ -48,3 +48,21 @@ describe("pageShell's waiting-Deploy notice", () => {
     expect(render()).not.toContain("restart-notice");
   });
 });
+
+describe("only the newest server's state writes the notice", () => {
+  // A server that has been replaced — a test file's harness, a process
+  // that lost the port — can still have restartAfterLanding's wait loop
+  // running, and that loop writes the pending list every poll. It must
+  // not overwrite what the server now serving has published.
+  test("an older state's writes are ignored once a newer state exists", () => {
+    const older = createServerState();
+    const newer = createServerState();
+    setPendingRestart(older, ["aide:81-queue-and-runner"]);
+    expect(render()).not.toContain("restart-notice");
+    setPendingRestart(newer, ["aide:459-a-spec"]);
+    setPendingRestart(older, []);
+    expect(render()).toContain("aide:459-a-spec");
+    setPendingRestart(newer, []);
+    expect(render()).not.toContain("restart-notice");
+  });
+});
