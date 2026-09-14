@@ -355,7 +355,7 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
     }
-    stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY);
+    stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY, "the Stop button on the Deploy tab");
     return wantsJson
       ? json({ ok: true })
       : new Response(null, {

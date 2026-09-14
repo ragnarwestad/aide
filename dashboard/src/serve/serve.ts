@@ -453,6 +453,8 @@ export function createServer(opts: ServerOptions) {
 }
 
 if (import.meta.main) {
+  const { installTimestampedConsole } = await import("./serve-helpers/timestamped-console.ts");
+  installTimestampedConsole();
   const { runCli } = await import("./cli.ts");
   runCli();
 }

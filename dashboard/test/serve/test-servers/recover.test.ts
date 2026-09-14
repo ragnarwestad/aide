@@ -219,7 +219,7 @@ describe("stopping a board that was found again", () => {
       signalled.push(pid);
     };
     try {
-      stopTestServer(makeCtx({ store }), "aide", "415-x");
+      stopTestServer(makeCtx({ store }), "aide", "415-x", "the test");
     } finally {
       process.kill = real;
     }
