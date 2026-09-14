@@ -55,8 +55,8 @@ describe("renderJobDetailPage", () => {
       NAV,
       { tab: "steps" },
     );
-    expect(html).toContain("analyze");
-    expect(html).toContain("implement");
+    expect(html).toContain("Analyze");
+    expect(html).toContain("Implement");
     expect(html).toContain("$0.42");
     expect(html).toContain("$1.07");
   });

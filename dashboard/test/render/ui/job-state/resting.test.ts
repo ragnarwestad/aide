@@ -30,9 +30,9 @@ describe("STEP_LABELS_NB", () => {
     }
   });
 
-  test("English falls back to the step's own id", () => {
-    expect(stepLabel("archive")).toBe("archive");
-    expect(stepLabel("archive", "nb")).toBe("arkivering");
+  test("phase names are capitalized, in both languages", () => {
+    expect(stepLabel("archive")).toBe("Archive");
+    expect(stepLabel("archive", "nb")).toBe("Arkivering");
   });
 });
 
@@ -52,13 +52,13 @@ const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
 describe("specStateChip/restingChip take lang (spec 350)", () => {
   test("a running row's badge reads the Norwegian table word, not stepLabel + ing", () => {
     const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "nb");
-    expect(html).toContain("analyserer");
-    expect(html).not.toContain("analyzing");
+    expect(html).toContain("Analyserer");
+    expect(html).not.toContain("Analyzing");
   });
 
   test("a queued row's badge reads '{Norwegian gerund} i kø'", () => {
     const html = specStateChip(row({ state: "queued", steps: ["implement"], stepIndex: 0 }), "nb");
-    expect(html).toContain("implementerer i kø");
+    expect(html).toContain("Implementerer i kø");
   });
 
   test("restingChip's resting-state words are Norwegian for nb", () => {
@@ -73,7 +73,7 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
 
   test("English is unchanged (REQ-5)", () => {
     const html = specStateChip(row({ state: "running", steps: ["analyze"], stepIndex: 0 }), "en");
-    expect(html).toContain("analyzing");
+    expect(html).toContain("Analyzing");
   });
 });
 
@@ -91,7 +91,7 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
       "en",
     );
     expect(html).toContain(">stopped<");
-    expect(html).not.toContain("implementing");
+    expect(html).not.toContain("Implementing");
     expect(html).not.toMatch(/\d+\/\d+/);
   });
 
@@ -120,6 +120,6 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
     // `<phase> <what happened>: <the longer sentence>` — the phase and
     // the state word as one phrase: "implement held back: …".
-    expect(notice?.text.startsWith("implement held back:")).toBe(true);
+    expect(notice?.text.startsWith("Implement held back:")).toBe(true);
   });
 });

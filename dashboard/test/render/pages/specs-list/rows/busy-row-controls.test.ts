@@ -107,7 +107,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       const line = openControls(spec(state));
       for (const step of ["analyze", "implement", "archive"]) {
         expect(box(line, step)).toContain("disabled");
-        expect(box(line, step)).toContain(`title="implement is ${state === "running" ? "running" : "queued"}"`);
+        expect(box(line, step)).toContain(`title="Implement is ${state === "running" ? "running" : "queued"}"`);
       }
     });
   }
@@ -201,9 +201,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     const line = controlsLine(html, "105-busy");
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain(
-      'title="implement is running"',
+      'title="Implement is running"',
     );
-    expect(box(line, "analyze")).toContain('title="implement is running"');
+    expect(box(line, "analyze")).toContain('title="Implement is running"');
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
@@ -337,7 +337,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
   test("a running row's dialog names the step and offers OK and Cancel (criteria 2, 3)", () => {
     const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
     expect(cell).toContain('<dialog class="confirmdialog">');
-    expect(cell).toContain("<h2>Cancel implement?</h2>");
+    expect(cell).toContain("<h2>Cancel Implement?</h2>");
     expect(cell).toContain('<p class="muted">');
     // Both the outer form and the dialog's own confirm form post to the
     // same route, by design (2-analysis.md, expanded-row-controls.test.ts).
@@ -366,7 +366,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
       }),
       "423-landing",
     );
-    expect(cell).toContain("<h2>Cancel analyze?</h2>");
+    expect(cell).toContain("<h2>Cancel Analyze?</h2>");
   });
 
   test("a spec merely queued for its next step names THAT step, not the one already landed (criterion 6b)", () => {
@@ -381,7 +381,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
       }),
       "423-queued",
     );
-    expect(cell).toContain("<h2>Cancel implement?</h2>");
+    expect(cell).toContain("<h2>Cancel Implement?</h2>");
   });
 
   test("in Norwegian, the dialog's title and both buttons are the Norwegian text (criterion 7)", () => {
@@ -390,7 +390,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
       "423-nb",
       { lang: "nb" },
     );
-    expect(cell).toContain("<h2>Avbryt implementering?</h2>");
+    expect(cell).toContain("<h2>Avbryt Implementering?</h2>");
     expect(cell).toContain(">OK</button>");
     expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Avbryt<\/button><\/form>/);
   });

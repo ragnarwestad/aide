@@ -307,7 +307,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       // looks like, no padlock over it (spec 145).
       expect(b).toContain('class="phase default"');
       expect(b).toContain("disabled");
-      expect(b).toContain('title="implement is running"');
+      expect(b).toContain('title="Implement is running"');
     }
     // Nothing is offered as ticked while nothing can be started.
     expect(html).not.toContain('value="analyze" checked');

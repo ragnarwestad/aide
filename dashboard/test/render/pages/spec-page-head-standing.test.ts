@@ -36,13 +36,13 @@ describe("the spec's own line says where it stands", () => {
   test("a running phase says what it is doing, in the reader's language", () => {
     const running = { lead: { runningStep: { step: "analyze", logs: [] } } } as never;
     const en = head(page(view({ phases: PHASES as never, done: [], ...(running as object) })));
-    expect(en).toContain("analyzing");
+    expect(en).toContain("Analyzing");
   });
 
   test("a spec with nothing running names no phase", () => {
     const line = head(page(view({ phases: PHASES as never, done: ["create"] })));
-    expect(line).not.toContain("analyzing");
-    expect(line).not.toContain("implementing");
+    expect(line).not.toContain("Analyzing");
+    expect(line).not.toContain("Implementing");
   });
 
   // The slot is the spec page's alone: every other tabbed page draws the

@@ -289,9 +289,9 @@ describe("a step whose merge was refused does not read ok", () => {
     const html = stepResults(REFUSED.results, undefined, {
       landingRefused: { step: "archive", word: "merge stopped", detail: REFUSED.errorDetail },
     });
-    expect(cellsFor(html, "archive")).toContain("merge stopped");
-    expect(cellsFor(html, "archive")).not.toContain(">ok<");
-    expect(cellsFor(html, "implement")).toContain("ok");
+    expect(cellsFor(html, "Archive")).toContain("merge stopped");
+    expect(cellsFor(html, "Archive")).not.toContain(">ok<");
+    expect(cellsFor(html, "Implement")).toContain("ok");
   });
 
   test("its open panel names the tests that failed", () => {
@@ -315,16 +315,16 @@ describe("a no-AI create reads distinctly from an AI-run one (spec 433)", () => 
     const html = stepResults([
       { step: "create", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "none" },
     ]);
-    expect(cellsFor(html, "create")).toContain("created (no AI)");
-    expect(cellsFor(html, "create")).not.toContain(">ok<");
+    expect(cellsFor(html, "Create")).toContain("created (no AI)");
+    expect(cellsFor(html, "Create")).not.toContain(">ok<");
   });
 
   test("an AI-run create still reads ok", () => {
     const html = stepResults([
       { step: "create", ok: true, costUsd: 0.4, costMeasured: true, terminalReason: "completed", tool: "claude" },
     ]);
-    expect(cellsFor(html, "create")).toContain(">ok<");
-    expect(cellsFor(html, "create")).not.toContain("no AI");
+    expect(cellsFor(html, "Create")).toContain(">ok<");
+    expect(cellsFor(html, "Create")).not.toContain("no AI");
   });
 });
 

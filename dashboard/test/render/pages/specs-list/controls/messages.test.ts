@@ -137,6 +137,22 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     expect([...panel(html).matchAll(/archive/gi)]).toHaveLength(1);
   });
 
+  // Same case, in Norwegian (AC-3): the old hardcoded `/^archive /` strip
+  // never matched "arkivering …", so the phase word used to appear
+  // twice in this exact sentence on the Norwegian board. `stepLabel`'s
+  // capitalized, language-correct strip fixes both at once.
+  test("the same pair, in Norwegian, has the duplicate phase word stripped too", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "failed" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+      true,
+      { lang: "nb" },
+    );
+    expect(panel(html)).toContain("Arkivering holdt tilbake");
+    expect(panel(html)).toContain("siste ny kjøring failed");
+    expect([...panel(html).matchAll(/arkivering/gi)]).toHaveLength(1);
+  });
+
   // The second producer, and the one the description names first: a run
   // that was refused or failed writes a full sentence into `error`.
   test("a job's error is written in the panel, not in the State cell (criterion 3)", () => {

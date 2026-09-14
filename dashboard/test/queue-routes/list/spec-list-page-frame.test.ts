@@ -44,7 +44,7 @@ describe("GET / (the spec list, HTML)", () => {
     expect(line).toContain(">Cancel</button>");
     for (const step of ["analyze", "implement", "archive"]) {
       expect(line).toContain(`name="steps" value="${step}"`);
-      expect(line).toContain(`aria-label="${step}"`);
+      expect(line).toContain(`aria-label="${step[0]!.toUpperCase()}${step.slice(1)}"`);
     }
     expect(html).not.toContain(">more</summary>");
     // 81a ships no runner: the page must say so rather than leave a

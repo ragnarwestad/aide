@@ -229,7 +229,7 @@ describe("spec 169: one picker per phase", () => {
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
-    expect(control).toContain('title="implement is running"');
+    expect(control).toContain('title="Implement is running"');
   });
 
   // Asked of `archive`, not of the first select on the page: `create` is

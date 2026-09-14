@@ -103,7 +103,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
       // checked for shape and not for the step's own word.
       expect([
         step,
-        /<span class="phasefold">[a-z-]+<\/span>$/.test(first),
+        /<span class="phasefold">[A-Za-z-]+<\/span>$/.test(first),
       ]).toEqual([step, true]);
       // And it is still a cell of its own: the merge is behind it, not
       // around it.

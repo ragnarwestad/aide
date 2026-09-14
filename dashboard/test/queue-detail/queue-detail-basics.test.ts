@@ -141,8 +141,8 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
     // A fresh server reloads the mirror.
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const html = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
-    expect(html).toContain("analyze");
-    expect(html).toContain("implement");
+    expect(html).toContain("Analyze");
+    expect(html).toContain("Implement");
     expect(html).toContain("$0.42");
     expect(html).toContain("$1.07");
   });

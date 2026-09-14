@@ -100,7 +100,7 @@ describe("the steps panel renders through the job page's own function", () => {
     );
     const onJob = panelOf(renderJobDetailPage(job, GENERATED, NAV, { tab: "steps", now: NOW }));
     expect(onSpec).not.toBe("NO PANEL");
-    for (const fact of ["Bash ls", "$0.42", "analyze"]) {
+    for (const fact of ["Bash ls", "$0.42", "Analyze"]) {
       expect(onSpec).toContain(fact);
       expect(onJob).toContain(fact);
     }
@@ -302,7 +302,7 @@ describe("spec 242: every attempt's steps in one flat list", () => {
     });
     const html = page(v, "steps");
     expect(html).toContain(">Attempt 2<");
-    expect(html.indexOf(">Attempt 2<")).toBeLessThan(html.indexOf(" implement</td>"));
+    expect(html.indexOf(">Attempt 2<")).toBeLessThan(html.indexOf(" Implement</td>"));
     expect(html).toMatch(/>Logs \(2\)</);
   });
 

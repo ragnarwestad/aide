@@ -192,10 +192,13 @@ export function specNotice(
     // archive, and a disagreement competing with a held-back note is
     // archive's own by construction — so the phase name it arrived with
     // comes off rather than being written twice in one sentence.
-    const detail = disagreement.replace(/^archive /, "");
-    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { reason: heldBackReason })} · ${detail}` };
+    const archiveWord = stepLabel("archive", lang);
+    const detail = disagreement.replace(`${archiveWord} `, "");
+    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { step: archiveWord, reason: heldBackReason })} · ${detail}` };
   }
-  if (heldBackReason) return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { reason: heldBackReason }) };
+  if (heldBackReason) {
+    return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { step: stepLabel("archive", lang), reason: heldBackReason }) };
+  }
   if (disagreement) return { variant: "waiting", text: disagreement };
   return undefined;
 }
