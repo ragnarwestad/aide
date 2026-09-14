@@ -108,6 +108,14 @@ export interface ServerOptions {
     job: { project: string; specFolder: string },
     branch: string,
   ) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  /** Landing's own finalize step for a `create` job (spec 453); the real
+   *  one calls `aide-create-spec --assign-number`. Tests pass a stub. */
+  finalizeCreateSpec?: (
+    work: string,
+    repoRoot: string,
+    specsRootAbs: string,
+    provisionalFolder: string,
+  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

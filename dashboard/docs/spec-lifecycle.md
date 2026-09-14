@@ -81,9 +81,13 @@ stateDiagram-v2
 ```
 
 **Into `create`.** `POST /api/queue/create` queues a job with the single step `create`, under a provisional key
-(`new-<id>`) that names its branch and worktree. `/aide-create` decides the number and the slug; `aide-run-spec`
-reports the folder that appeared as `specFolder`, and the dashboard lands the branch and renames the job to it. A
-spec exists once its folder is on the specs repo's default branch — that is what puts a row on the list.
+(`new-<id>`) that names its branch, its worktree and its folder on disk: `/aide-create` writes its five files under
+that literal name, choosing no number and no slug itself. The number and the slug are decided at landing instead,
+under the specs repo's own merge lock — the one place two landings for the same repo are already serialized by
+construction, so two `create` jobs for the same project can run at once with nothing to collide over. Landing counts
+the folders already there, assigns the next number, renames the job's folder to it and rewrites its own `Task:`
+lines, all before the merge is pushed. A spec exists once its folder is on the specs repo's default branch — that is
+what puts a row on the list.
 
 **`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row's boxes follow whatever was
 posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched

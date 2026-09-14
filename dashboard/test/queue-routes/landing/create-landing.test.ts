@@ -61,6 +61,15 @@ function gitFor({
   return { run, calls };
 }
 
+/** Spec 453: landing, never the step's own outcome, decides a create
+ *  job's real folder now — this is the finalize step's stand-in, the
+ *  same shape `aide-create-spec --assign-number` answers with. A test
+ *  that wants a different real name overrides it via `extra`. */
+const DEFAULT_FINALIZE_CREATE: ServerOptions["finalizeCreateSpec"] = async () => ({
+  ok: true,
+  specFolder: "94-a-new-spec",
+});
+
 function serverWithRunner(
   start: (options: Partial<ServerOptions>) => { base: string; dir: string },
   prefix: string,
@@ -74,6 +83,7 @@ function serverWithRunner(
     gitRun: git.run as never,
     queueRunnerBin: "/usr/bin/true",
     queueResultDir: results,
+    finalizeCreateSpec: DEFAULT_FINALIZE_CREATE,
     ...extra,
   });
   return { base, dir, results };

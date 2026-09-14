@@ -335,10 +335,14 @@ function text(raw: unknown, max: number, name: string, multiline = false): strin
 }
 
 /** The provisional key a create job carries in place of a spec folder,
- *  until `/aide-create` decides the real name. Obviously not a spec
+ *  until landing decides the real name (spec 453). Obviously not a spec
  *  folder, on purpose: nothing in this codebase may compute a spec's
- *  number or slug except the skill whose own steps 2 and 3 own that rule
- *  (spec 82's mistake was one rule written down twice). */
+ *  number or slug except the two shared shell functions
+ *  (`aide_next_spec_number`, `aide_slug_from_title` in
+ *  `_aide-spec-lib.sh`) that both an interactive `/aide-create` session
+ *  and landing's own `--assign-number` step call — never a second,
+ *  independent count (spec 82's mistake was one rule written down
+ *  twice). */
 const provisionalKey = (): string =>
   `new-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 

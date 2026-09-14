@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
+import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout. Replaces the python3 static
@@ -209,7 +210,21 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate: opts.landingGate ?? runProjectSuiteBeforePush,
+    landingGate:
+      opts.landingGate ??
+      ((root, job, branch) =>
+        runProjectSuiteBeforePush(root, job, branch, {
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
+        })),
+    // The script that numbers a landed create lives beside the runner
+    // this server was started with, so a board serving a branch numbers
+    // with that branch's own copy.
+    finalizeCreateSpec:
+      opts.finalizeCreateSpec ??
+      ((work, root, specs, folder) =>
+        assignSpecNumberAfterMerge(work, root, specs, folder, {
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
+        })),
     testServers: testServersCtx,
   });
 

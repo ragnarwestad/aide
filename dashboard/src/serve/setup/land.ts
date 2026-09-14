@@ -59,6 +59,7 @@ export interface LandSetupInputs {
   restartDeferTimeoutMs?: number;
   dashboardRoot?: string;
   landingGate?: LandContext["landingGate"];
+  finalizeCreateSpec?: LandContext["finalizeCreateSpec"];
   testServers: TestServersContext;
 }
 
@@ -101,6 +102,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     onJobsWaitChange: (jobs) => setPendingRestart(state, jobs),
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
+    finalizeCreateSpec: inputs.finalizeCreateSpec,
     testServers: inputs.testServers,
   };
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {

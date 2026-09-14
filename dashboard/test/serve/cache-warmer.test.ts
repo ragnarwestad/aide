@@ -291,6 +291,9 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
           specCachePollMs: 60_000,
           queueRunnerBin: "/usr/bin/true",
           queueResultDir: jobs,
+          // Landing, not the step, names a create's folder now — this
+          // stands in for `aide-create-spec --assign-number`.
+          finalizeCreateSpec: async () => ({ ok: true, specFolder: "94-a-new-spec" }),
         },
       });
       const made = (await (

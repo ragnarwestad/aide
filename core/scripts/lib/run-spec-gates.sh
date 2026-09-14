@@ -176,19 +176,110 @@ note_pull_error() {
   [ -z "$pull_error" ] && pull_error="$1" || pull_error="$pull_error; $1"
 }
 
+# Seconds slept between the tries of one fetch. Several runs of one
+# project share its main checkout, and two fetches that update the same
+# remote-tracking ref at once make git refuse the second one ("cannot
+# lock ref") for the moment the first holds the lock — a wait of a few
+# seconds is the whole cure, and a fetch that still fails after it is
+# reported with git's own words instead of being swallowed.
+FETCH_RETRY_WAITS=(1 2 4)
+
+# fetch_base_with_retry <root> <base>: `git fetch origin <base>` in
+# <root>, retried on FETCH_RETRY_WAITS. On failure sets
+# $fetch_retry_error to the last stderr, one line, and returns 1.
+fetch_base_with_retry() {
+  local root="$1" base="$2" wait_s
+  fetch_retry_error=""
+  if fetch_retry_error="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
+  for wait_s in "${FETCH_RETRY_WAITS[@]}"; do
+    sleep "$wait_s"
+    if fetch_retry_error="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
+  done
+  fetch_retry_error="$(printf '%s\n' "$fetch_retry_error" | grep -m1 . | sed -e 's/^error: //' | head -c 200)"
+  return 1
+}
+
+# --- per-root worktree lock --------------------------------------------
+# `git worktree add -b` is not one atomic step: it writes the branch ref,
+# then registers a new entry under the root's $GIT_DIR/worktrees/, named
+# from the checkout path's basename — and two specs against the same
+# project share that basename (`wt_dir` differs only in the spec folder).
+# Two runs racing that registration is what produced "cannot create
+# $branch in a worktree of $root" for one run while another ran
+# concurrently against the same checkout (spec 256).
+# `sync_branch_with_origin` and `branch_already_landed` share the same
+# exposure through a second, independent race: both fetch into a FIXED
+# ref name un-parameterized by branch (refs/aide-branch/tip,
+# refs/aide-branch/landed-base), so this lock covers them too, not only
+# the worktree add — it wraps the whole per-root loop body in
+# run-spec-branch.sh, and the pull loop below.
+#
+# mkdir is the primitive because this script has nowhere it can assume
+# flock(1) exists — it is not installed on this machine or the serving
+# host. Lives inside the root's own .git/ so it needs no hashing scheme
+# to stay unique per root, matching mergeLock's "one repo, one merge at a
+# time" scope (dashboard/src/serve.ts) reimplemented for a cross-process
+# caller mergeLock's in-memory Map cannot reach.
+#
+# A run SIGKILLed mid-section cannot release this the way remove_worktrees
+# etc. cannot run either — so a waiter checks the recorded owner's pid and
+# steals the lock the moment that pid is gone, the same next-run-cleans-up
+# shape sweep_worktree already uses for a killed run's leftover worktree.
+#
+# $worktree_lock is set ONLY once this process has actually created the
+# lock dir (the line right after mkdir succeeds, never before it): a
+# losing waiter that times out calls refuse (which exits 2, firing the
+# EXIT trap below) and must not delete the WINNER's still-live lock,
+# which is exactly what setting this variable early would do.
+worktree_lock=""
+acquire_worktree_lock() {
+  local root="$1" lock deadline owner_pid
+  lock="$root/.git/aide-run-spec-worktree.lock"
+  deadline=$(( $(date +%s) + 120 ))
+  while ! mkdir "$lock" 2>/dev/null; do
+    owner_pid="$(cat "$lock/pid" 2>/dev/null || true)"
+    if [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
+      rm -rf "$lock" 2>/dev/null || true
+      continue
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      worktree_lock=""
+      refuse "timed out waiting for the worktree lock on $root (pid ${owner_pid:-unknown} may be stuck)"
+    fi
+    sleep 0.2
+  done
+  echo $$ > "$lock/pid" 2>/dev/null || true
+  worktree_lock="$lock"
+}
+release_worktree_lock() {
+  [ -n "$worktree_lock" ] && rm -rf "$worktree_lock" 2>/dev/null
+  worktree_lock=""
+  return 0
+}
+
+# The pull below moves the shared checkout — switch, fetch, fast-forward —
+# and so takes the same per-root lock the branch phase takes for its
+# worktree add: a run pulling here while another cuts its worktree from
+# origin/<base> lost the ref lock ("cannot fetch") or the checkout under
+# its feet ("cannot create ... in a worktree"), seen with twelve creates
+# dispatched at once. Two sections under one lock, each consistent on its
+# own: a pull between them leaves the checkout on <base> and newer.
 for root in "${roots[@]}"; do
+  acquire_worktree_lock "$root"
   base="$(default_branch "$root")"
   [ -n "$base" ] || refuse "cannot work out the default branch in $root"
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
-    git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
+    switch_error="$(git -C "$root" switch -q "$base" 2>&1)" \
+      || refuse "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200))"
   fi
   if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
-    if git -C "$root" fetch -q origin "$base" 2>/dev/null; then
+    if fetch_base_with_retry "$root" "$base"; then
       git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
         || note_pull_error "cannot fast-forward $base (aide/$spec_label in $root)"
     else
-      note_pull_error "cannot fetch $base (aide/$spec_label in $root)"
+      note_pull_error "cannot fetch $base (aide/$spec_label in $root): $fetch_retry_error"
     fi
   fi
+  release_worktree_lock
 done
 

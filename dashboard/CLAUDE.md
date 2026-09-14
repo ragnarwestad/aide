@@ -34,6 +34,13 @@ should read this file by hand.
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
+- Every move of a shared checkout — the pull (switch, fetch,
+  fast-forward) and the worktree add — runs under the per-root lock
+  `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
+  `run-spec-gates.sh`). Runs of one project share its checkout, and a
+  git command that moves it outside the lock loses a ref lock or the
+  checkout under its feet when another run is in its own section.
+  A refusal from such a command quotes git's own first line.
 
 ## The hand-paired bash/TypeScript pairs
 
@@ -49,6 +56,15 @@ a test that reads two sides.
 `docs/bash-typescript-decisions.md` has the full table, the two known
 asymmetries in the readiness pair, and the three shared-source decisions
 with the tests and assertions that pin all of them.
+
+- **The landing runs aide's scripts from beside `--runner-bin`, never from
+  PATH alone** (`scriptFor` in `land-branch/run-script.ts`). A test board
+  serving a branch runs that branch's TypeScript, and the bash written
+  together with it lives in the same checkout; the copy under
+  `~/.local/bin` is main's, so a flag the branch added is "unknown" to
+  it. Prod's runner IS the installed one, so prod is unchanged.
+  `test/serve/land-branch/scripts-beside-the-runner.test.ts` pins the
+  lookup and the wiring.
 
 ## Landing
 

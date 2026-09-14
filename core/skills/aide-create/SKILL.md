@@ -69,6 +69,9 @@ Examples:
 
 ### Step 2: Find the next available number
 
+**Headless, with a literal folder name stated:** skip this step entirely
+— see "A headless run states its own folder name" below Step 4.
+
 - Find the highest number from the `NN-slug` format in the specs root
   AND in `<specs-root>/archive/` — archived specs keep their number,
   and a number must never be reused
@@ -80,6 +83,9 @@ Examples:
 
 ### Step 3: Generate a slug from the title
 
+**Headless, with a literal folder name stated:** skip this step
+entirely, for the same reason as Step 2.
+
 - Lowercase, spaces → hyphens
 - Transliterate non-ASCII letters to their ASCII equivalents
 - Remove special characters and double hyphens
@@ -89,6 +95,21 @@ Examples:
   description and that function ever need to be checked against each other.
 
 ### Step 4: Create the directory and 5 files
+
+**A headless run states its own folder name.** A prompt that says
+"create the spec folder under exactly this name — `<name>` — do not
+choose a number or a slug (skip Steps 2 and 3 of the skill)" means
+exactly that: Steps 2 and 3 above are skipped, and the call below passes
+`--folder-name "<name>"` instead of `--number`/`--slug`. The folder's
+real number and slug are not decided in this session at all — a landing
+step assigns both later, under the specs repo's own lock, which is the
+one place two creates running at once cannot both miss.
+Everything else in this step — the description, `--depends-on`, the
+acceptance flag — works exactly the same either way.
+
+
+A bare interactive `/aide-create`, typed in a session with no such line
+in the prompt, runs Steps 2-4 exactly as below, unchanged.
 
 **TODO mode, before composing the description below:** if the incoming
 description already contains a `## Acceptance criteria` section whose
@@ -123,6 +144,22 @@ aide-create-spec \
   --specs-root "<specs-root>" \
   --number "<NN>" \
   --slug "<slug>" \
+  --title "<title>" \
+  --description "$(cat <<'AIDE_DESC'
+<the description text, verbatim>
+AIDE_DESC
+)" \
+  --depends-on "<value>"   # omit this flag entirely when the prompt states none
+  --acceptance-not-required   # the default — see "Acceptance" below
+```
+
+Headless, with a literal folder name stated (Steps 2-3 skipped): the
+same call, with `--folder-name "<name>"` in place of `--number`/`--slug`:
+
+```bash
+aide-create-spec \
+  --specs-root "<specs-root>" \
+  --folder-name "<name>" \
   --title "<title>" \
   --description "$(cat <<'AIDE_DESC'
 <the description text, verbatim>
@@ -170,12 +207,13 @@ about the dependency and create the spec with `--depends-on` set the
 moment they say yes. Raising it afterwards leaves them to hold one spec
 back by hand, which is what the field exists to avoid.
 
-The script creates `<specs-root>/NN-slug/` and its 5 files, refuses
-(non-zero exit, `terminalReason: "refused"`) rather than overwriting an
-existing folder at that path, and prints one JSON line:
-`{"ok":true,"exitCode":0,"specFolder":"NN-slug","files":[...]}`. Read
-`specFolder` and `files` from that line for Steps 5 and 6 below — do
-not assume the 5 filenames.
+The script creates `<specs-root>/NN-slug/` (or, with `--folder-name`,
+`<specs-root>/<name>/` — literally, no number or slug computed) and its
+5 files, refuses (non-zero exit, `terminalReason: "refused"`) rather
+than overwriting an existing folder at that path, and prints one JSON
+line: `{"ok":true,"exitCode":0,"specFolder":"NN-slug","files":[...]}`.
+Read `specFolder` and `files` from that line for Steps 5 and 6 below —
+do not assume the 5 filenames.
 
 Markdown validation uses `markdownlint-cli2` only when it is installed locally.
 Rely on the automatic hook where present; otherwise check for the executable
