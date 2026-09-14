@@ -60,7 +60,7 @@ function editableDocumentForm(
     `<span class="frow">` +
     field(
       label,
-      // The mount point spec-editor-client.ts fills in. Hidden until the
+      // The mount point spec-editor/index.ts fills in. Hidden until the
       // client script sets data-mounted on it — a reader with JS off, or a
       // failed bundle, gets the raw textarea beside it, unchanged.
       `<div class="spec-editor-mount" id="spec-editor-host"></div>` +

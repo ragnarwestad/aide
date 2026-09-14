@@ -17,7 +17,7 @@
 // `input`/`change` a field inside the form fires is enough to enable
 // both controls, and nothing here re-reads a field's own content on
 // every later keystroke — which is what lets the mounted WYSIWYG
-// editor's own dirty signal (`spec-editor-client.ts`) stay a cheap,
+// editor's own dirty signal (`spec-editor/index.ts`) stay a cheap,
 // un-debounced re-dispatch rather than a call to its own
 // `getMarkdown()` on every edit.
 //
@@ -66,7 +66,7 @@
         else el.value = value;
       }
       // The WYSIWYG view a reader actually sees is a separate DOM tree
-      // spec-editor-client.ts's editor library owns — this is the only
+      // spec-editor/index.ts's editor library owns — this is the only
       // way to tell a mounted one "redraw from your textarea" from
       // outside it. A no-op where there is none (the Checks tab).
       form.querySelector(".spec-editor-raw")?.dispatchEvent(new Event("spec-cancel"));

@@ -305,8 +305,8 @@ describe("POST the Save action against an archived spec", () => {
 // fragile in a way a source-level one is not.
 
 describe("the editor client disables Toast UI Editor's telemetry", () => {
-  test("spec-editor-client.ts's own source sets usageStatistics: false", async () => {
-    const source = await Bun.file(new URL("../../src/spec-editor-client.ts", import.meta.url)).text();
+  test("spec-editor/index.ts's own source sets usageStatistics: false", async () => {
+    const source = await Bun.file(new URL("../../src/spec-editor/index.ts", import.meta.url)).text();
     expect(source).toContain("usageStatistics: false");
   });
 });
