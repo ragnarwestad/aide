@@ -309,9 +309,9 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       expect(b).toContain("disabled");
       // Spec 454: the reason is the phase line's shared "(?)" now, not
       // the box's own `title`.
-      expect(b).not.toContain('title="implement is running"');
+      expect(b).not.toContain('title="Implement is running"');
       expect(subRow(html, step)).toContain(
-        "This phase can't be changed right now because implement is running.",
+        "This phase can't be changed right now because Implement is running.",
       );
     }
     // Nothing is offered as ticked while nothing can be started.

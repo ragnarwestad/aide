@@ -311,10 +311,10 @@ describe("a spec's row runs its own phases", () => {
       // Spec 454: the same sentence used to sit on both selects' own
       // `title`, four times over on a busy line — one shared "(?)" now
       // says it once for the whole phase line.
-      expect([step, subRow(html, step).includes('title="implement is running"')]).toEqual([step, false]);
+      expect([step, subRow(html, step).includes('title="Implement is running"')]).toEqual([step, false]);
       expect([
         step,
-        subRow(html, step).includes("This phase can't be changed right now because implement is running."),
+        subRow(html, step).includes("This phase can't be changed right now because Implement is running."),
       ]).toEqual([step, true]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
     }
@@ -392,7 +392,7 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).toContain(
       '<label class="phase checked" data-phase="analyze">' +
         '<input type="checkbox" value="analyze" checked disabled ' +
-        'aria-label="analyze — already done, and not a step you can run"> ' +
+        'aria-label="Analyze — already done, and not a step you can run"> ' +
         "<span></span></label>",
     );
     expect(box(line, "analyze")).not.toContain('name="steps"');
@@ -443,8 +443,8 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).toContain("disabled");
     // Spec 454: the box's own `title` is gone — the phase line's shared
     // "(?)" says why, once, rather than four times.
-    expect(box(line, "analyze")).not.toContain('title="analyze is running"');
-    expect(line).toContain("This phase can't be changed right now because analyze is running.");
+    expect(box(line, "analyze")).not.toContain('title="Analyze is running"');
+    expect(line).toContain("This phase can't be changed right now because Analyze is running.");
     expect(box(line, "analyze")).not.toContain("already done");
   });
 

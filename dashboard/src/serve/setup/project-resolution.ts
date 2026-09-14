@@ -10,17 +10,17 @@
 // here, rather than inventing a forward-reference box for a cycle that
 // is entirely local to this one concern.
 
-import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
+import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import {
   BranchStatusChecker, createGitRunner, type GitRunner,
-} from "../git/branch-status.ts";
+} from "../../git/branch-status.ts";
 import {
   CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   ensureDashboardCheckout,
   type DashboardCheckout,
-} from "../git/dashboard-checkout.ts";
-import type { Job } from "../queue/queue.ts";
+} from "../../git/dashboard-checkout.ts";
+import type { Job } from "../../queue/queue.ts";
 import {
   displayProjectDir as displayProjectDirImpl,
   machineryProjectDir as machineryProjectDirImpl,
@@ -30,7 +30,7 @@ import {
   machinerySpecsRoot as machinerySpecsRootImpl,
   complain as complainImpl,
   type ProjectCheckoutContext,
-} from "./project-checkout.ts";
+} from "../project-checkout.ts";
 import {
   targets as targetsImpl,
   specRoots as specRootsImpl,
@@ -44,8 +44,8 @@ import {
   machinerySpecDir as machinerySpecDirImpl,
   peekMachinerySpecDir as peekMachinerySpecDirImpl,
   type SpecLookupContext,
-} from "./spec-lookup.ts";
-import type { ServerState } from "./state.ts";
+} from "../spec-lookup.ts";
+import type { ServerState } from "../state.ts";
 
 export interface ProjectResolutionOptions {
   queueProjectRoot?: string;

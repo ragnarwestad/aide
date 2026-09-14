@@ -70,7 +70,7 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
 
     const n = row.queuePosition?.n;
     const total = row.queuePosition?.total;
-    expect(html).toContain(`implementing ${n}/${total}`);
+    expect(html).toContain(`Implementing ${n}/${total}`);
   });
 });
 

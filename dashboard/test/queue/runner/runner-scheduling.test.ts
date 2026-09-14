@@ -144,40 +144,15 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  // Two specs numbered 416 on 2026-09-08: two `create` steps started
-  // together, both read the same highest number off disk, and both
-  // added one to it. Nothing about the number can fix that — the runs
-  // have to be ordered.
-  test("two create steps never run at once in the same project", () => {
+  // Spec 453: the number is no longer picked inside the create step at
+  // all — landing assigns it later, under the specs repo's own lock,
+  // the one place two concurrent creates cannot both miss. So nothing
+  // about two creates for the same project needs them ordered any more —
+  // both start in the same tick. (The round's own acceptance proof goes
+  // further, with three concurrent creates across a live board.)
+  test("two create steps for the same project both start in one tick", () => {
     const a = enqueue({ steps: ["create"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(a.id)?.state).toBe("running");
-    const held = store.get(b.id)!;
-    expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("another spec is being created in this project");
-  });
-
-  // And it waits for another CREATE alone: a create takes seconds, and
-  // holding one behind every other kind of step would be a queue that
-  // makes the board slower for a collision it cannot have.
-  test("a create waits only for another CREATE — an analyze beside it starts", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(2);
-    expect(store.get(a.id)?.state).toBe("running");
-    expect(store.get(b.id)?.state).toBe("running");
-  });
-
-  // Two projects are two number series, so a create in each is two
-  // creates that cannot collide.
-  test("a create in another project is not held", () => {
-    const a = enqueue({ steps: ["create"] });
-    const b = enqueue({ project: "other-project", specFolder: "91-parallel-spec-runs", steps: ["create"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(2);

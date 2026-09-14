@@ -281,21 +281,28 @@ case "$step" in
     specs_dir="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null)"
     "$SCRIPTS/aide-archive-spec" --project-dir . --spec "$spec" --specs-dir "$specs_dir" >/dev/null 2>&1 || true
     if [ "$slug" = "a-landing-that-conflicts" ]; then
-      # A COMPETING line on origin's main, landed behind this branch's
-      # back once the step has done its own work — as if someone landed
-      # by hand between the step and its landing. The step is clean; the
-      # LANDING finds a conflict, every time: the round's one
-      # deterministic failure, for the row's red to be seen (2026-09-11).
-      # During the step itself it would be the runner's own merge that
-      # met it, and that ends in `merge --abort` and "no progress".
+      # A COMPETING copy of this spec's own test file on origin's main,
+      # landed behind this branch's back once the step has done its own
+      # work — as if someone landed it by hand between the step and its
+      # landing. The step is clean; the LANDING finds a conflict, every
+      # time: the round's one deterministic failure, for the row's red to
+      # be seen. Both sides ADD the same path with different bodies, so
+      # the conflict does not depend on where in src/facts.ts the fact
+      # ended up — with the fixtures running side by side, a competing
+      # line in that file can land far enough from the branch's own
+      # line to merge cleanly. The rival's body looks for a fact the
+      # baseline already has, so main stays green for every fixture
+      # that lands after it. During the step itself it would be the
+      # runner's own merge that met it, and that ends in `merge --abort`
+      # and "no progress".
       rival="$(mktemp -d)"
       git clone -q "$(git remote get-url origin)" "$rival/main" \
         && ( cd "$rival/main" \
-             && awk -v f="someone landed this by hand, on the same line" '/^\];/ { print "  \"" f "\","; } { print }' src/facts.ts > src/facts.ts.new \
-             && mv src/facts.ts.new src/facts.ts \
-             && git -c user.name=rival -c user.email=rival@localhost commit -qam "land a competing fact by hand" \
+             && write_test "$slug" "aide-test exists to exercise the machinery, not the model" \
+             && git add "test/$slug.test.ts" \
+             && git -c user.name=rival -c user.email=rival@localhost commit -qm "land a competing test by hand" \
              && git push -q origin main ) \
-        || fail "claude-stub: could not land the rival fact on main"
+        || fail "claude-stub: could not land the rival test on main"
       rm -rf "$rival"
     fi
     ok "archived $folder"

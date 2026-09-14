@@ -232,8 +232,8 @@ describe("spec 169: one picker per phase", () => {
     expect(control).toContain("disabled");
     // Spec 454: the reason is a shared phase-line "(?)" now, not the
     // select's own `title`.
-    expect(control).not.toContain('title="implement is running"');
-    expect(html).toContain("This phase can't be changed right now because implement is running.");
+    expect(control).not.toContain('title="Implement is running"');
+    expect(html).toContain("This phase can't be changed right now because Implement is running.");
   });
 
   // Asked of `archive`, not of the first select on the page: `create` is

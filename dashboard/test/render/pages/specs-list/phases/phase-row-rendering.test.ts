@@ -298,18 +298,18 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   // line no longer repeats the same sentence on up to four controls.
   test("a disabled box says why, on the phase line's own shared mark", () => {
     const l = line(pair("running"));
-    expect(box(l, "analyze")).not.toContain('title="analyze is running"');
+    expect(box(l, "analyze")).not.toContain('title="Analyze is running"');
     // The reason is about the JOB, so the step that has not started yet
     // carries the same sentence rather than a blank one.
-    expect(l).toContain("This phase can't be changed right now because analyze is running.");
+    expect(l).toContain("This phase can't be changed right now because Analyze is running.");
   });
 
   test("a step the job never named carries the same reason (spec 105)", () => {
     // One sentence for the whole row: the reader is told what the SPEC
     // is doing, not which steps some job happens to list.
-    expect(box(line(pair("running")), "archive")).not.toContain('title="analyze is running"');
+    expect(box(line(pair("running")), "archive")).not.toContain('title="Analyze is running"');
     expect(line(pair("running"))).toContain(
-      "This phase can't be changed right now because analyze is running.",
+      "This phase can't be changed right now because Analyze is running.",
     );
   });
 
@@ -375,7 +375,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
       [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("implementing queued");
+    expect(chip(html)).toBe("Implementing queued");
   });
 
   // Spec 353, REQ-4/REQ-5: a row that carries its place in the queue
@@ -394,9 +394,9 @@ describe("spec 132: the State line says what is happening, or what is next", () 
       ],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("implementing 7/11");
+    expect(chip(html)).toBe("Implementing 7/11");
     expect(chipTitle(html)).toContain("7 of 11 queued");
-    expect(chipTitle(html)).toContain("implement");
+    expect(chipTitle(html)).toContain("Implement");
   });
 
   // Criterion 1: the one action that used to live outside the panel.

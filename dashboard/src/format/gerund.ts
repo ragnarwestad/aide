@@ -18,14 +18,14 @@ import { stepLabel } from "./step-label.ts";
  *  so an omission fails `make test` rather than surfacing only in
  *  production. */
 export const GERUND_EN: Record<string, string> = {
-  create: "creating", analyze: "analyzing", implement: "implementing", archive: "archiving",
-  explore: "exploring", manifest: "updating the manifest", reopen: "reopening", reset: "resetting",
-  schedule: "running the schedule", close: "closing",
+  create: "Creating", analyze: "Analyzing", implement: "Implementing", archive: "Archiving",
+  explore: "Exploring", manifest: "Updating the manifest", reopen: "Reopening", reset: "Resetting",
+  schedule: "Running the schedule", close: "Closing",
 };
 export const GERUND_NB: Record<string, string> = {
-  create: "oppretter", analyze: "analyserer", implement: "implementerer", archive: "arkiverer",
-  explore: "utforsker", manifest: "oppdaterer manifestet", reopen: "gjenåpner", reset: "tilbakestiller",
-  schedule: "kjører planen", close: "lukker",
+  create: "Oppretter", analyze: "Analyserer", implement: "Implementerer", archive: "Arkiverer",
+  explore: "Utforsker", manifest: "Oppdaterer manifestet", reopen: "Gjenåpner", reset: "Tilbakestiller",
+  schedule: "Kjører planen", close: "Lukker",
 };
 export function gerund(lang: Language, step: string): string {
   const table = lang === "nb" ? GERUND_NB : GERUND_EN;

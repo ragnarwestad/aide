@@ -34,8 +34,8 @@ describe("the Specs list in Norwegian (spec 350)", () => {
       [row({ id: "r1", specFolder: "1-x", steps: ["analyze"], stepIndex: 0, state: "running" })],
       { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-x" }], lang: "nb" },
     );
-    expect(html).toContain("analyserer");
-    expect(html).not.toContain("analyzing");
+    expect(html).toContain("Analyserer");
+    expect(html).not.toContain("Analyzing");
   });
 
   test("a mark: a row waiting on a pull request reads pull-forespørsel", () => {
@@ -116,7 +116,7 @@ describe("the row's message panel", () => {
   test("the phase's own line names it in Norwegian too", () => {
     const html = held();
     const line = html.match(/<tr class="subrow[^"]*"[^>]*data-step="archive">.*?<\/tr>/)?.[0] ?? "";
-    expect(line).toContain(">arkivering<");
+    expect(line).toContain(">Arkivering<");
     expect(line).not.toContain(">archive<");
   });
 });

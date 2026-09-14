@@ -10,11 +10,11 @@
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitRunner } from "../git/branch-status.ts";
-import { TestServerStore } from "./test-servers/store.ts";
-import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "./test-servers/lifecycle.ts";
-import { testServerOnPort } from "./test-servers/port-owner.ts";
-import type { ServerState } from "./state.ts";
+import type { GitRunner } from "../../git/branch-status.ts";
+import { TestServerStore } from "../test-servers/store.ts";
+import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
+import { testServerOnPort } from "../test-servers/port-owner.ts";
+import type { ServerState } from "../state.ts";
 
 export interface TestServersSetupInputs {
   testServersPath?: string;

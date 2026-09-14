@@ -260,7 +260,7 @@ place.
 
 The Deploy button's restart is not gated on `isDashboardRoot`. The automatic per-step landing
 (`land-branch/merge.ts`) only restarts this dashboard when the landed repo IS this dashboard's own
-checkout. The Deploy button's wrapped `installAfterMerge` (`setup-land.ts`) carries no equivalent
+checkout. The Deploy button's wrapped `installAfterMerge` (`setup/land.ts`) carries no equivalent
 check: pressing Deploy on any project with an install command, on a host where this dashboard's own
 launchd job is registered, triggers the same restart wait and fire. No current page depends on this
 being scoped further, since the Deploy tab's own `serving` comparison only ever exists for the

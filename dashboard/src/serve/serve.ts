@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
+import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 // The aide-dashboard server (spec 80): serves the generated static
 // site, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout. Replaces the python3 static
@@ -8,7 +9,7 @@ import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 // CLI: serve --site DIR [--port N] [--mirror FILE]
 //
 // `createServer` is a staged assembly, not one long body: each of the
-// setup-*.ts files it calls builds one cluster of wiring that used to
+// setup/*.ts files it calls builds one cluster of wiring that used to
 // sit inline here, and `state.ts` holds the handful of mutable `let`s
 // (`scan`, `unlanded`, `prOpen`, `warming`, `notifySoon`, plus `server`
 // and `runner` themselves) that cross those stage boundaries. The
@@ -35,13 +36,13 @@ import { type SpecViewsContext } from "./spec-views";
 import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
-import { setupWatch } from "./setup-watch.ts";
-import { setupProjectResolution } from "./setup-project-resolution.ts";
-import { setupSchedules } from "./setup-schedules.ts";
-import { setupLand } from "./setup-land.ts";
-import { setupTestServers } from "./setup-test-servers.ts";
-import { setupSpecViews } from "./setup-spec-views.ts";
-import { setupQueueContext } from "./setup-queue-context.ts";
+import { setupWatch } from "./setup/watch.ts";
+import { setupProjectResolution } from "./setup/project-resolution.ts";
+import { setupSchedules } from "./setup/schedules.ts";
+import { setupLand } from "./setup/land.ts";
+import { setupTestServers } from "./setup/test-servers.ts";
+import { setupSpecViews } from "./setup/spec-views.ts";
+import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
@@ -209,7 +210,21 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate: opts.landingGate ?? runProjectSuiteBeforePush,
+    landingGate:
+      opts.landingGate ??
+      ((root, job, branch) =>
+        runProjectSuiteBeforePush(root, job, branch, {
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
+        })),
+    // The script that numbers a landed create lives beside the runner
+    // this server was started with, so a board serving a branch numbers
+    // with that branch's own copy.
+    finalizeCreateSpec:
+      opts.finalizeCreateSpec ??
+      ((work, root, specs, folder) =>
+        assignSpecNumberAfterMerge(work, root, specs, folder, {
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
+        })),
     testServers: testServersCtx,
   });
 

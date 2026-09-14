@@ -22,6 +22,7 @@
 
 import type { BoardMessage, Sentence } from "../i18n/message.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
+import { finalizeCreateOnAttempt, type CreateFinalizer } from "./create-finalizer.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -74,6 +75,13 @@ export interface RepoMergeResult {
    *  would otherwise trigger: a root that never merged anything has
    *  nothing to report and nothing to install. */
   discarded?: boolean;
+  /** The real `NN-slug` a `create` job's folder was renamed to, set only
+   *  by `finalizeCreate` (spec 453) — landing's own finalize step,
+   *  which runs under this merge's own retry loop rather than once
+   *  outside it, since a `base` that moved between attempts changes the
+   *  folder count the next attempt has to see fresh. Present only when
+   *  a `finalizeCreate` was given and it succeeded. */
+  assignedSpecFolder?: string;
 }
 
 /** Every refusal names the repo AND the branch. A landing merges
@@ -178,6 +186,7 @@ export async function mergeBranchIntoDefault(
   base: string,
   wait: Wait = sleep,
   gate?: LandingGate,
+  finalizeCreate?: CreateFinalizer,
 ): Promise<RepoMergeResult> {
   // Declared out here so the `finally` can clear it whichever way this
   // returns: a refusal leaves a worktree behind exactly as readily as a
@@ -286,6 +295,10 @@ export async function mergeBranchIntoDefault(
     // `mergeBranchIntoDefault()` call — never module- or server-lifetime
     // — so no verdict outlives the landing it was reached for.
     const gateVerdicts = new Map<string, { ok: boolean; error?: Sentence; detail?: string }>();
+    // Set on the attempt that actually pushes — never on one whose push
+    // was rejected and dropped, so a retry's own rename (recomputed
+    // against the base that moved) is the one that survives.
+    let assignedSpecFolder: string | undefined;
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       // Spec 402, REQ-4: the tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
@@ -322,6 +335,13 @@ export async function mergeBranchIntoDefault(
           ),
           reason: "conflict",
         };
+      }
+      // A create job's folder is renumbered here, before the gate, on
+      // every attempt (create-finalizer.ts says why).
+      if (finalizeCreate) {
+        const finalized = await finalizeCreateOnAttempt(run, finalizeCreate, { work, root, branch, base });
+        if ("refused" in finalized) return finalized.refused;
+        assignedSpecFolder = finalized.specFolder;
       }
       // The tests run HERE, once per attempt, on what main is about to
       // become — not in every step that touched the branch, and never
@@ -457,6 +477,7 @@ export async function mergeBranchIntoDefault(
         // whether several repos are being reported at once.
         branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
         detail,
+        ...(assignedSpecFolder ? { assignedSpecFolder } : {}),
       };
     }
 
@@ -474,7 +495,7 @@ export async function mergeBranchIntoDefault(
     //    like the fetch at step 2 — this host may not even have the ref,
     //    and a cleanup must never turn a landed merge into a failure.
     await run(root, ["branch", "-d", branch]);
-    return { root, ok: true };
+    return { root, ok: true, ...(assignedSpecFolder ? { assignedSpecFolder } : {}) };
   } catch (err) {
     return refuse(
       root,

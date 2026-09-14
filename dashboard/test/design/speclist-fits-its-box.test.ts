@@ -88,8 +88,8 @@ describe("the specs table fits the box that scrolls it", () => {
     // The four steps a spec goes through — `PHASE_LINES` is the list of
     // them (`specs-list/data-model/types.ts`).
     const MEASURED_PX: Record<string, number> = {
-      create: 40, analyze: 48, implement: 66, archive: 46,
-      oppretting: 66, analyse: 48, implementering: 98, arkivering: 62,
+      Create: 38, Analyze: 45, Implement: 60, Archive: 43,
+      Oppretting: 62, Analyse: 45, Implementering: 89, Arkivering: 58,
     };
     const shown = PHASE_LINES.flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
       .filter((l): l is string => Boolean(l));

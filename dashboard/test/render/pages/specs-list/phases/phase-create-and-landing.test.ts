@@ -92,12 +92,12 @@ describe("spec 116: create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      new RegExp(`<td class="phasecell"><span class="phasefold">create</span></td>`),
+      new RegExp(`<td class="phasecell"><span class="phasefold">Create</span></td>`),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
         '<input type="checkbox" value="create" checked disabled ' +
-        'aria-label="create — already done, and not a step you can run"> ' +
+        'aria-label="Create — already done, and not a step you can run"> ' +
         "<span></span></label>",
     );
     // The Time cell is the exception to the emptiness: it always says
@@ -133,7 +133,7 @@ describe("spec 116: create is the first phase line", () => {
     const line = subRow(html, "create");
     // Spec 451: the phase name is plain text, not a link to any tab.
     expect(line).not.toContain("<a ");
-    expect(line).toContain('<span class="phasefold">create</span>');
+    expect(line).toContain('<span class="phasefold">Create</span>');
     expect(line).toContain("b-done");
     // The model it ran on shows as the select's pre-filled value when
     // choices are configured — no spelled-out text since 2026-08-19,
@@ -342,7 +342,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     // being merged is still creating. The merge is not a stage of its
     // own to a reader, and naming it as one asked them to act on a
     // division they have no move in.
-    expect(line).toContain("creating");
+    expect(line).toContain("Creating");
     expect(line).not.toContain('class="badge b-ready"');
     const cell = actionCell(controlsLine(html, "254-landing"));
     expect(cell).not.toContain(">Analyze</button>");
@@ -365,8 +365,8 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     );
     const line = head(html, "254-landing");
     expect(line).toContain('class="badge b-running"');
-    expect(line).toContain("analyzing");
-    expect(line).not.toContain("implementing");
+    expect(line).toContain("Analyzing");
+    expect(line).not.toContain("Implementing");
   });
 
   // Criterion 4, the regression guard: once `landing` has cleared (the
@@ -532,7 +532,7 @@ describe("a landing marks only the step being landed, not every finished step", 
 
   test("the step being landed still reads running", () => {
     const html = openRows([chained]);
-    expect(badgeLabel(html, "archive")).toBe("archiving");
+    expect(badgeLabel(html, "archive")).toBe("Archiving");
   });
 
   // spec 395, REQ-2: the phase LINE's own badge, not only the row above
@@ -540,7 +540,7 @@ describe("a landing marks only the step being landed, not every finished step", 
   // never "done" with a clock that has stopped.
   test("the step being landed reads its own gerund, not done (spec 395, REQ-2)", () => {
     const html = openRows([chained]);
-    expect(badgeLabel(html, "archive")).toBe("archiving");
+    expect(badgeLabel(html, "archive")).toBe("Archiving");
   });
 
   // spec 395, REQ-5: the rule holds for every step that lands its own
@@ -556,6 +556,6 @@ describe("a landing marks only the step being landed, not every finished step", 
       results: [{ step: "analyze", ok: true, costUsd: 1 }],
     });
     const html = openRows([analyzing]);
-    expect(badgeLabel(html, "analyze")).toBe("analyzing");
+    expect(badgeLabel(html, "analyze")).toBe("Analyzing");
   });
 });

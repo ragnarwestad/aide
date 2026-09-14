@@ -14,34 +14,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover/config.ts";
-
-/** Where the installer puts the scripts; launchd's PATH does not reach
- *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
-function installed(name: string, override: string | undefined): string {
-  if (override) return override;
-  const path = join(process.env.HOME || homedir(), ".local", "bin", name);
-  return existsSync(path) ? path : name;
-}
-
-async function runScript(
-  argv: string[],
-  cwd: string,
-  timeoutMs: number,
-): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
-  const proc = Bun.spawn({ cmd: argv, cwd, stdout: "pipe", stderr: "pipe" });
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    proc.kill();
-  }, timeoutMs);
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-  const code = await proc.exited;
-  clearTimeout(timer);
-  return { code, stdout, stderr, timedOut };
-}
+import { runScript, scriptFor } from "./run-script.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -76,6 +49,7 @@ export async function runProjectSuiteBeforePush(
   root: string,
   job: { project: string; specFolder: string },
   branch: string,
+  opts: { scriptDir?: string } = {},
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
   // The suite runs in a throwaway worktree of the merge commit, never in
   // the live checkout: a run's own git and a fast-forward of main moved
@@ -84,7 +58,7 @@ export async function runProjectSuiteBeforePush(
   // five tests failed that had nothing to do with the merge.
   const tree = await checkoutForGate(root);
   try {
-    return await runSuiteIn(tree.dir, root, job, branch);
+    return await runSuiteIn(tree.dir, root, job, branch, opts);
   } finally {
     await tree.remove();
   }
@@ -154,9 +128,11 @@ async function runSuiteIn(
   liveRoot: string,
   job: { project: string; specFolder: string },
   branch: string,
+  opts: { scriptDir?: string },
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
-  const resolver = installed("aide-resolve-test-cmd", process.env.AIDE_RESOLVE_TEST_CMD_BIN);
-  const recorder = installed("aide-record-test-run", process.env.AIDE_RECORD_TEST_RUN_BIN);
+  // Beside the runner first, never PATH alone: see `scriptFor`.
+  const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
+  const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
   const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
   let commands: string[] = [];
   try {

@@ -258,9 +258,9 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(select).toContain("disabled");
     // Spec 454: the reason is the phase line's shared "(?)" now, not
     // this select's own `title`.
-    expect(select).not.toContain('title="implement is running"');
+    expect(select).not.toContain('title="Implement is running"');
     expect(subRow(html, "analyze")).toContain(
-      "This phase can't be changed right now because implement is running.",
+      "This phase can't be changed right now because Implement is running.",
     );
   });
 
