@@ -15,6 +15,7 @@ It is further distilled into two documents:
   - [Sources](#sources)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-09-14](#2026-09-14)
   - [2026-05-23](#2026-05-23)
   - [2026-05-14](#2026-05-14)
   - [2026-03-28](#2026-03-28)
@@ -65,6 +66,96 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-09-14
+
+Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). Three Anthropic model launches, each becoming a Claude Code default: **Sonnet 5** (Jun 30), **Opus 5** (Jul 24), **Fable 5.1** (Sep 1). OpenAI shipped **GPT-6 Astra** as Codex's bundled default. For aide the two findings that matter: **`codex exec resume <thread-id> [prompt] --json` exists** (since v0.132, verified on the installed 0.154.0), and Claude Code's **`--permission-prompts none`** for unattended `-p` hosts.
+
+**Claude Code (May 23 – Sep 12, v2.1.150 → v2.1.270):**
+
+| Date   | Version       | News                                                                                                                                                                                              | Source                                                                    |
+|--------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Jun 15 | v2.1.178      | **Skills in nested `.claude/skills` directories load when working on files there** (`<dir>:<name>` on a clash); `Tool(param:value)` permission rules                                                  | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jun 26 | v2.1.195      | ⚠️ **Hook matchers now exact-match** — hyphenated identifiers (`code-reviewer`, `mcp__brave-search`) no longer substring-match; use `mcp__x__.*` for all                                            | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jun 30 | v2.1.197      | **Claude Sonnet 5 is the default model**, native 1M context, $2/$10 per Mtok promo through Aug 31                                                                                                  | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jul 1  | v2.1.198      | Subagents run in the background by default; `Notification` hook fires `agent_needs_input`/`agent_completed`; Explore agent inherits the main model                                                 | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jul 15 | v2.1.211      | `--forward-subagent-text` / `CLAUDE_CODE_FORWARD_SUBAGENT_TEXT` puts subagent text into stream-json; a PreToolUse hook `ask` now floors auto mode at a prompt                                        | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jul 19 | v2.1.215      | **`/verify` and `/code-review` are no longer run on Claude's own initiative** — invoke them explicitly                                                                                             | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jul 24 | v2.1.219      | **Claude Opus 5 (`claude-opus-5`) is the default Opus**; `DirectoryAdded` hook; `mcp_server_errors` in the headless init event                                                                     | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Aug 13 | v2.1.232      | Subagent forking on by default (`subagent_type: "fork"`); `@`-mention another session; `additionalMarketplaces`/`allowedMarketplaces` settings aliases                                            | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Aug 14 | v2.1.233      | Fixed bundled skill aliases (`/review`, `/checkup`) reporting "Unknown command" in `-p` mode when a project skill shadows them; skill argument re-expansion fixed                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Aug 28 | v2.1.251      | `PreModelSwitch`/`PostModelSwitch` hook events; `SessionStart` resume hooks get staleness and re-cache cost; prompt-cache line in `/cost`                                                            | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 1  | v2.1.257      | **Claude Fable 5.1 (`claude-fable-5-1`) is the default Fable**, 1M context, $10/$50 per Mtok; ⚠️ `defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is now ignored             | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 2  | v2.1.259      | ⭐ **`--permission-prompts none` for unattended headless hosts** (anything that would prompt is denied, the permission mode keeps deciding); `managedMcpServers`; `claude plugin validate --json`   | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 4  | v2.1.261      | **`/skill-doctor`** shows unused loaded skills and their context cost; `bashOutputMaxChars`/`taskOutputMaxChars` (up to 128K); `--append-subagent-system-prompt-file`                              | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 9  | v2.1.267      | `maxEffortLevel` setting; `-p --resume` after `/compact` no longer inserts a spurious turn; `cd` persists across turns in non-interactive sessions                                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 11 | v2.1.269      | **`claude plugin eval`** scores a plugin's eval suite (JSON + HTML report); `/output-style` in headless sessions; `bashEditDiffEnabled`                                                             | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+
+**GitHub Copilot CLI (May 28 – Sep 11, v1.0.55 → v1.0.84):**
+
+| Date   | Version         | News                                                                                                                                                                   | Source                                                          |
+|--------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| Jun 9  | v1.0.61         | Auto-loads MCP servers from `.github/mcp.json`; Claude Fable 5 support                                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Jun 24 | v1.0.65         | **`copilot skill` subcommand** (list/add/remove skills from a file, URL or directory); `userPromptSubmitted` hook `additionalContext` reaches the prompt                | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Jul 10 | v1.0.70         | **`preToolUse` hooks exiting 2 deny the call**; `--sandbox`/`--no-sandbox` per session (useful with `-p`); a trusted repo can pin model/effort and deny lists via `.github/copilot/settings.json` | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Jul 16 | v1.0.71         | `copilot -p --autopilot` honours `COPILOT_TASK_WAIT_TIMEOUT_SECONDS`; invalid `settings.json` warns on startup                                                          | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Jul 20 | v1.0.72         | `agentStop` hooks that always block end the turn after 8 blocks (`stop_hook_active` flag)                                                                              | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Jul 23 | v1.0.74         | **Open Plugin Spec v1 manifests and `mcp.json`** supported                                                                                                             | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Aug 3  | v1.0.78         | A stdin-piped run fires `sessionEnd` once per turn like `-p`; first-party plugins auto-update at session start                                                          | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Aug 27 | v1.0.81         | **Plugins dashboard for everyone** (`/plugin`, `/mcp`, `/skills`); MCP 2026-07-28 protocol; hooks receive OpenTelemetry trace context                                  | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 4  | v1.0.83–84      | Custom agents list several `model`s with fallback; `claude-fable-5.1`; GPT-6 Astra; `copilot instruction list` and `--json` on several commands (1.0.84-4)              | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+
+**GitHub Copilot Platform (Sep 1–11):**
+
+| Date  | News                                                                                          | Source                                                      |
+|-------|-----------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Sep 1 | Copilot code review can approve pull requests                                                 | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+| Sep 2 | Content exclusions GA in the Copilot app and CLI; enterprise-managed settings take any model | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+| Sep 9 | Enterprise-managed permissions for Copilot agent operations                                   | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
+
+**OpenAI Codex CLI (May 26 – Sep 9, v0.134 → v0.154):**
+
+| Date   | Version  | News                                                                                                                                                                                  | Source                                                  |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| May 26 | v0.134.0 | Search across local conversation history; `--profile` is the primary profile selector                                                                                                 | [GitHub](https://github.com/openai/codex/releases)      |
+| Jun 18 | v0.141.0 | **Hook trust bypass persists through `codex exec` thread start and resume**; blocking `PostToolUse` hooks reject code-mode calls                                                     | [GitHub](https://github.com/openai/codex/releases)      |
+| Jun 22 | v0.142.0 | **Configurable rollout token budgets** across agent threads, with reminders and abort when exhausted                                                                                  | [GitHub](https://github.com/openai/codex/releases)      |
+| Jul 21 | v0.145.0 | **`/import` migrates Claude Code settings, MCP servers, plugins, sessions, commands and memories**; paginated thread history with efficient resume                                    | [GitHub](https://github.com/openai/codex/releases)      |
+| Aug 7  | v0.147.0 | Import Cursor-managed skills; opt-in MCP 2026-07-28 protocol                                                                                                                          | [GitHub](https://github.com/openai/codex/releases)      |
+| Aug 18 | v0.148.0 | **`codex exec fork`**; **hooks can run asynchronously and invoke MCP tools**; resumed sessions restore cwd and approval policy                                                        | [GitHub](https://github.com/openai/codex/releases)      |
+| Aug 20 | v0.149.0 | `codex agents` dashboard; `codex queue` sends messages to existing sessions; resumed threads restore their permission profile                                                          | [GitHub](https://github.com/openai/codex/releases)      |
+| Aug 26 | v0.150.0 | **`Interrupt` hooks**; ⚠️ **untrusted projects no longer get project-level `AGENTS.md`**                                                                                              | [GitHub](https://github.com/openai/codex/releases)      |
+| Sep 1  | v0.152.0 | `codex exec` shows credential-refresh progress; per-tool MCP `output_token_limit`; resumed threads restore their saved cwd                                                             | [GitHub](https://github.com/openai/codex/releases)      |
+| Sep 4  | v0.153.4 | **GPT-6 Astra is the bundled default model** when none is configured                                                                                                                  | [GitHub](https://github.com/openai/codex/releases)      |
+| Sep 9  | v0.154.0 | Experimental `--worktree` / `/worktree` isolated checkouts; sessions pick up newly installed plugin tools, skills and hooks; Python SDK 0.154 `include_turns` on resume/fork          | [GitHub](https://github.com/openai/codex/releases)      |
+
+Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` takes `--json`, `-m`, `--dangerously-bypass-approvals-and-sandbox` and `--output-schema`, and the id is the `thread_id` the runner already reads from `thread.started`.
+
+**New models:**
+
+| Date   | Model                 | Details                                                                              | Source                                                                    |
+|--------|-----------------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Jun 30 | **Claude Sonnet 5**   | Claude Code default (v2.1.197), 1M context; Copilot CLI v1.0.67                       | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Jul 10 | **GPT-5.6**           | Copilot CLI v1.0.70                                                                  | [GitHub Releases](https://github.com/github/copilot-cli/releases)         |
+| Jul 24 | **Claude Opus 5**     | Claude Code default Opus (v2.1.219), 1M context, fast mode $10/$50 per Mtok           | [Anthropic](https://www.anthropic.com/news)                               |
+| Sep 1  | **Claude Fable 5.1**  | Claude Code default Fable (v2.1.257), $10/$50 per Mtok, $0.25/Mtok cache reads        | [Anthropic](https://www.anthropic.com/news)                               |
+| Sep 4  | **GPT-6 Astra**       | Codex bundled default (v0.153.4); Copilot CLI v1.0.84-1                              | [GitHub](https://github.com/openai/codex/releases)                        |
+
+**Relevance for aide:**
+
+- ⭐ **`codex exec resume <thread-id> [prompt] --json` (Codex, since v0.132; verified on 0.154.0)** — the runner's red-test loop (`run-spec-step-tests.sh`) ends a Codex step at once on the claim that Codex has no resume. It has one, and the runner already keeps the thread id. Action: resume Codex the same way claude is resumed; fix the sentence in `run-spec-invocation.sh`, `dashboard/docs/spec-lifecycle.md` and `dashboard/CLAUDE.md`.
+- ⭐ **`--permission-prompts none` (Claude Code v2.1.259)** — `aide-run-spec` runs `claude -p --permission-mode <mode>`; a prompt that can never be answered on a headless host now has an explicit off switch. Action: verify against the installed 2.1.270 and add it to the argv.
+- ⚠️ **Hook matchers exact-match (Claude Code v2.1.195)** — check every matcher in `implementations/claude-code/` settings for one that relied on substring matching.
+- ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — check aide's templates and installers for one that sets it at project scope.
+- ⚠️ **Untrusted projects get no project `AGENTS.md` (Codex v0.150)** — aide's Codex implementation depends on `AGENTS.md`; the dashboard's checkouts must be trusted, or the instructions never load. Verify on the serving host.
+- ⭐ **Three new default models** — `modelChoices` in the queue config, the README's model table and `docs/AI_SUPPORT_MATRIX.md` should name Sonnet 5, Opus 5, Fable 5.1 and GPT-6 Astra where they still name the 4.x/5.0 generation.
+- ✅ **`/skill-doctor` (v2.1.261) and `claude plugin eval` (v2.1.269)** — a way to measure what aide's skills cost in context and whether they are used; worth one run.
+- ✅ **Codex hooks run async and call MCP tools (v0.148), `Interrupt` hooks (v0.150), hook trust persists through `codex exec` resume (v0.141)** — the Codex hook implementation can grow; the trust flag matters for the resume above.
+- ✅ **Codex `/import` migrates Claude Code settings, skills and memories (v0.145, v0.147)** — an alternative to aide's own Codex installer for the parts that overlap; not adopted, noted.
+- ✅ **Copilot `copilot skill` subcommand, plugins dashboard, Open Plugin Spec v1, `preToolUse` exit 2 denies** — Copilot is parked (no subscription); logged for when it returns.
+- ℹ️ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no aide action.
+
+---
 
 ### 2026-05-23
 
