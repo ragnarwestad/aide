@@ -172,6 +172,8 @@ source "$SCRIPT_DIR/lib/run-spec-records.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-status-line.sh"
 # shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec-step-tests.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-specs-guard.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-boundary.sh"

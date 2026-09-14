@@ -7,8 +7,7 @@
   ],
   "expected": "not-archived",
   "expect": {
-    "state": "stopped",
-    "stopReason": "tests-red",
-    "message": "tests are red"
+    "state": "failed",
+    "message": "runner.testsRedImplement"
   }
 }

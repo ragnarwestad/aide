@@ -211,53 +211,14 @@ fi
 reset_no_ai=""
 [ "$command_name" = "reset" ] && reset_no_ai="yes"
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
-  # No child spawned: every variable the commit loop, the phase-outcome
-  # writer and the final JSON result read from a completed run is given
-  # the same zero/absent shape already_landed() already uses above for
-  # the same reason — a decline costs nothing.
-  stopped=""; exit_code=0; duration=0
-  session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
-  cost_known="true"; error_msg=""
-  if [ -n "$create_no_ai" ]; then
-    # Spec 453: this path is reached only from aide-run-spec, headless by
-    # construction — the same literal-name mode the AI-driven skill path
-    # now uses, never an auto-picked number. The real number is
-    # landing's own business now, under the one lock two concurrent
-    # creates cannot both miss.
-    create_args=(--specs-root "$specs_root_wt" --folder-name "$spec_arg"
-                  --title "$title" --description "$description")
-    [ -n "$depends_on" ] && create_args+=(--depends-on "$depends_on")
-    [ "$acceptance_not_required" = "yes" ] && create_args+=(--acceptance-not-required)
-    create_result="$("$SCRIPT_DIR/aide-create-spec" "${create_args[@]}" 2>/dev/null)"
-    if [ "$(jq -r '.ok // false' <<<"$create_result" 2>/dev/null)" = "true" ]; then
-      terminal_reason="completed"
-      cost_measured="true"
-      tool="none"
-      # No AI ran, so nothing chosen for --model/--effort means anything:
-      # run-spec-cleanup.sh's model_value="$tool${model:+ $model}" would
-      # otherwise read "none <configured-model>" for a create job whose
-      # config still names a default model for that step.
-      model=""; effort=""
-    else
-      terminal_reason="cli-error"
-      error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
-    fi
-  elif [ -n "$reset_no_ai" ]; then
-    reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"
-    if [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ]; then
-      terminal_reason="completed"
-      cost_measured="true"
-      tool="none"
-      model=""; effort=""
-    else
-      terminal_reason="cli-error"
-      error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
-    fi
-  else
-    terminal_reason="$archive_terminal_reason"; error_msg=""
-  fi
-else
+# One turn of the model: run `argv` on the prompt in $1, wait it out under
+# the step's deadline, and read the result back into the step's own
+# globals ($terminal_reason, $error_msg, $cost, $session_out, ...). A
+# function so run-spec-step-tests.sh can ask for another turn — the same
+# session resumed with the red suite's output — without a second copy of
+# any of this. The transcript is appended to, so every turn of one step
+# is in the one stream the dashboard shows.
+run_model_turn() {
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent
   # is not a bound. No pipeline here: with one, $! is the last command and
@@ -270,7 +231,7 @@ else
   # directory is the throwaway checkout, which is the tree this run will
   # commit from. `exec` keeps the pid, so $! is still the process group we
   # later signal.
-  ( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
+  ( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
   child=$!
   set +m
 
@@ -465,6 +426,56 @@ else
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
   error_msg="$error_msg — press $step_button again"
 fi
+}
+
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
+  # No child spawned: every variable the commit loop, the phase-outcome
+  # writer and the final JSON result read from a completed run is given
+  # the same zero/absent shape already_landed() already uses above for
+  # the same reason — a decline costs nothing.
+  stopped=""; exit_code=0; duration=0
+  session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
+  cost_known="true"; error_msg=""
+  if [ -n "$create_no_ai" ]; then
+    # Spec 453: this path is reached only from aide-run-spec, headless by
+    # construction — the same literal-name mode the AI-driven skill path
+    # now uses, never an auto-picked number. The real number is
+    # landing's own business now, under the one lock two concurrent
+    # creates cannot both miss.
+    create_args=(--specs-root "$specs_root_wt" --folder-name "$spec_arg"
+                  --title "$title" --description "$description")
+    [ -n "$depends_on" ] && create_args+=(--depends-on "$depends_on")
+    [ "$acceptance_not_required" = "yes" ] && create_args+=(--acceptance-not-required)
+    create_result="$("$SCRIPT_DIR/aide-create-spec" "${create_args[@]}" 2>/dev/null)"
+    if [ "$(jq -r '.ok // false' <<<"$create_result" 2>/dev/null)" = "true" ]; then
+      terminal_reason="completed"
+      cost_measured="true"
+      tool="none"
+      # No AI ran, so nothing chosen for --model/--effort means anything:
+      # run-spec-cleanup.sh's model_value="$tool${model:+ $model}" would
+      # otherwise read "none <configured-model>" for a create job whose
+      # config still names a default model for that step.
+      model=""; effort=""
+    else
+      terminal_reason="cli-error"
+      error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
+    fi
+  elif [ -n "$reset_no_ai" ]; then
+    reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"
+    if [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ]; then
+      terminal_reason="completed"
+      cost_measured="true"
+      tool="none"
+      model=""; effort=""
+    else
+      terminal_reason="cli-error"
+      error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
+    fi
+  else
+    terminal_reason="$archive_terminal_reason"; error_msg=""
+  fi
+else
+  run_model_turn "$work_dir/prompt"
 fi
 
 ok="false"

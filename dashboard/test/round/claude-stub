@@ -55,6 +55,14 @@ say() {
 . "$SCRIPTS/_aide-spec-lib.sh"
 BUN="${AIDE_ROUND_BUN:-$(command -v bun || echo "$HOME/.local/share/mise/shims/bun")}"
 
+# A follow-up turn: aide-run-spec found the suite red on implement's
+# result and hands the failing lines back (run-spec-step-tests.sh). The
+# one fixture whose suite is red on purpose stays red — the round is
+# about the cap holding and the step ending tests-red, not about a fix.
+if printf '%s' "$prompt" | grep -q "test suite is red"; then
+  ok "left the suite red on purpose"
+fi
+
 step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
 [ -n "$step" ] || fail "claude-stub: the prompt does not name a step: $prompt"
 

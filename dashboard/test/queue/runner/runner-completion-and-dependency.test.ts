@@ -169,6 +169,20 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
   });
 
+  test("an implement whose own test run is red is stored as the board's own message, the failing lines as detail", () => {
+    const bash =
+      "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Implement again for this step.\n(fail) the fact is on the list";
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "tests-red", error: bash }) });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id);
+    expect(after?.state).toBe("failed");
+    expect(after?.error).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
+    expect(after?.errorDetail).toBe(bash);
+    expect(renderSentence("nb", after?.error)).toContain("testene som feiler");
+  });
+
   test("an archive that dropped its open merge is stored as the board's own message too", () => {
     const bash =
       "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Archive again for this step.";
