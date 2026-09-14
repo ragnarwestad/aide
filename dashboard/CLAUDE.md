@@ -34,6 +34,11 @@ should read this file by hand.
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
+- **An `implement` ends only on a green test run the runner made itself**
+  (`run-spec-step-tests.sh`): the session's own record is never what
+  decides. Red is `terminalReason: tests-red` on the STEP — a failed job
+  with the failing lines as detail, and Implement offered again — unlike
+  the landing's `tests-red`, which STOPS the job.
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,

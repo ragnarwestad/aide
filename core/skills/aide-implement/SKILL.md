@@ -87,6 +87,16 @@ resume it at the first unticked task if it found it in progress.
 
 ### Phase 3: REFACTOR — Quality check
 
+The order is fixed: the full suite is run only once every test this
+step wrote is green (Phase 2). Red in the full suite is then something
+the change BROKE — an existing test that still expects the old
+behaviour, or a file another scope covers — and it is this step's to
+fix, back through Phase 2, before anything is reported. Never tick the
+full-suite row, and never report "done", with a red run on the record:
+`aide-run-spec` runs the same commands itself on the step's result
+afterwards, and a red run there ends the step `tests-red`, with
+`implement` not recorded as run.
+
 1. Run `aide-emit-run --phase refactor --spec <ID>`
 2. Resolve the full-suite command(s) with `aide-resolve-test-cmd
    --project-dir .` — the same script the archive gate calls, so the

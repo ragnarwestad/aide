@@ -96,6 +96,11 @@ export const MESSAGES = {
     nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
+  "runner.testsRedImplement": {
+    en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are in the detail. — Press {button} again; the step ends only on a green run.",
+    nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står i detaljene. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
+    resolve: "Press {button} again; the step ends only on a green run.",
+  },
   "runner.mergeUnfinishedArchive": {
     en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",
     nb: "arkivering meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge. — Trykk {button} igjen; økta må fullføre mergen.",

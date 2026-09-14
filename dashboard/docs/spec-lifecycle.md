@@ -51,7 +51,11 @@ a guess is not.
 evidence that the phase happened:
 
 - `implement` counts only if the project's HEAD moved or its tree changed. Otherwise the step ends `no-progress` and
-  the line is not extended.
+  the line is not extended. It also ends only on a green test run the runner made ITSELF
+  (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
+  on the step's result in its worktree, and the record on the branch is the runner's. Red ends the step `tests-red`
+  with the failing lines as its detail, and Implement is the button to press again. A change no test command covers
+  has nothing to run and passes as before.
 - `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
   `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
   as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
