@@ -19,7 +19,11 @@ import type { LandContext } from "./types.ts";
 export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step: "create",
-    landed: { specFolder: outcome.specFolder ?? job.specFolder },
+    // No `landed` here any more (spec 453): the real folder name is not
+    // known until the finalize step runs, under the specs repo's own
+    // merge lock — `landBranch` fills `landed.specFolder` in dynamically
+    // once that step reports it, off `outcome.specFolder`, which is now
+    // always just the provisional key.
     nothingToLand: { key: "landing.createNothingToLand" },
     // `why` (spec 352, REQ-5) is not this function's to show: it is the
     // raw text of whatever exception `landBranch` caught, and it never

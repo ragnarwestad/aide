@@ -318,7 +318,12 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     return answer;
   };
   const dir = fixturesDir(ctx);
-  for (const spec of specs) {
+
+  // One fixture's own create, then its own steps once its real folder is
+  // known — everything a fixture with no dependency needs is already in
+  // hand, so this reaches its own `/api/queue/create` call with nothing
+  // to wait for.
+  const runFixture = async (spec: RoundSpec): Promise<void> => {
     const dependsOn = spec.dependsOn.map((dep) => {
       const made = specs.find((s) => s.slug.startsWith(`${dep}-`))?.folder;
       if (!made) throw new Error(`no folder yet for dependency ${dep} of ${spec.slug}`);
@@ -355,5 +360,27 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
       steps: spec.steps,
       ...(spec.timeoutSec !== undefined ? { timeoutSec: spec.timeoutSec } : {}),
     });
+  };
+
+  // Every fixture with no dependency starts in the same tick — none
+  // waits on another fixture's folder before its own create is queued
+  // (the description's own acceptance proof). A fixture WITH a
+  // dependency waits, but only for the specific folder(s) it names, and
+  // queues its own create the moment they resolve — never before, and
+  // never behind an unrelated fixture that happens to precede it.
+  const withoutDeps = specs.filter((s) => s.dependsOn.length === 0);
+  const withDeps = specs.filter((s) => s.dependsOn.length > 0);
+  await Promise.all(withoutDeps.map(runFixture));
+  for (const spec of withDeps) {
+    for (const dep of spec.dependsOn) {
+      const depSpec = specs.find((s) => s.slug.startsWith(`${dep}-`));
+      if (!depSpec) throw new Error(`no fixture found for dependency ${dep} of ${spec.slug}`);
+      const until = Date.now() + 180_000;
+      while (!depSpec.folder) {
+        if (Date.now() > until) throw new Error(`no folder yet for dependency ${dep} of ${spec.slug}`);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    await runFixture(spec);
   }
 }

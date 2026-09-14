@@ -40,6 +40,22 @@ def specs_root(tmp_path):
     return d
 
 
+@pytest.fixture
+def git_specs_root(tmp_path):
+    """A specs root that is also a git checkout — `--assign-number` uses
+    `git mv`, the same as `aide-archive-spec`'s own stamp-and-move, since
+    in production it always runs inside a landing's merge worktree."""
+    d = tmp_path / "git-specs"
+    d.mkdir()
+    subprocess.run(["git", "-C", str(d), "init", "-q", "-b", "main"], check=True)
+    subprocess.run(["git", "-C", str(d), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(d), "config", "user.email", "test@example.com"], check=True)
+    (d / "README.md").write_text("start\n")
+    subprocess.run(["git", "-C", str(d), "add", "README.md"], check=True)
+    subprocess.run(["git", "-C", str(d), "commit", "-qm", "init"], check=True)
+    return d
+
+
 def run(script, specs_root, number, slug, title, description,
         depends_on=None, result_file=None, extra_args=None, acceptance_not_required=False):
     args = [
@@ -511,3 +527,211 @@ def test_two_creates_at_once_get_different_numbers(script, specs_root):
     assert numbers == ["01", "02", "03", "04"], folders
     for f in folders:
         assert (specs_root / f).is_dir()
+
+
+# --- --folder-name (spec 453): a headless create's literal name, no
+# number or slug computed at all — the folder is renumbered later, at
+# landing, under the specs repo's own lock.
+
+
+def run_folder_name(script, specs_root, name, title, description,
+                     depends_on=None, acceptance_not_required=False, result_file=None):
+    args = [
+        str(script),
+        "--specs-root", str(specs_root),
+        "--folder-name", name,
+        "--title", title,
+        "--description", description,
+    ]
+    if depends_on is not None:
+        args += ["--depends-on", depends_on]
+    if acceptance_not_required:
+        args += ["--acceptance-not-required"]
+    if result_file:
+        args += ["--result-file", str(result_file)]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    return proc.returncode, json.loads(line), proc.stdout
+
+
+def test_folder_name_creates_exactly_that_path_no_number_computed(script, specs_root):
+    (specs_root / "07-earlier").mkdir()
+    rc, out, _ = run_folder_name(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
+    assert rc == 0, out
+    assert out["ok"] is True
+    assert out["specFolder"] == "new-abcd1234"
+    folder = specs_root / "new-abcd1234"
+    assert folder.is_dir()
+    expected = {"0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"}
+    assert {p.name for p in folder.iterdir()} == expected
+    desc = (folder / "1-description.md").read_text()
+    assert "- **Task:** `new-abcd1234/`" in desc
+
+
+def test_folder_name_refuses_on_an_existing_name(script, specs_root):
+    (specs_root / "new-abcd1234").mkdir()
+    (specs_root / "new-abcd1234" / "marker.txt").write_text("keep me\n")
+    rc, out, _ = run_folder_name(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert [p.name for p in (specs_root / "new-abcd1234").iterdir()] == ["marker.txt"]
+
+
+def test_folder_name_refuses_an_invalid_name(script, specs_root):
+    rc, out, _ = run_folder_name(script, specs_root, "../escape", "A new spec", "Problem: X.")
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+
+
+def test_folder_name_two_calls_with_the_same_name_collide(script, specs_root):
+    """The literal-name mode has no lock and needs none — the caller's
+    own name is already unique per job — but a genuine collision (the
+    same name given twice) still refuses exactly like a duplicate
+    --number/no-number folder already does."""
+    rc1, out1, _ = run_folder_name(script, specs_root, "new-dupe0001", "First", "Problem: X.")
+    assert rc1 == 0, out1
+    rc2, out2, _ = run_folder_name(script, specs_root, "new-dupe0001", "Second", "Problem: Y.")
+    assert rc2 != 0
+    assert out2["ok"] is False
+    assert out2["terminalReason"] == "refused"
+
+
+def test_folder_name_needs_no_slug(script, specs_root):
+    rc, out, _ = run_folder_name(script, specs_root, "new-noslug01", "A new spec", "Problem: X.")
+    assert rc == 0, out
+
+
+def test_folder_name_still_validates_depends_on_and_acceptance(script, specs_root):
+    rc, out, _ = run_folder_name(
+        script, specs_root, "new-abcd5678", "A new spec", "Problem: X.",
+        depends_on="105", acceptance_not_required=True,
+    )
+    assert rc == 0, out
+    desc = (specs_root / "new-abcd5678" / "1-description.md").read_text()
+    assert "- **Depends on:** `105`" in desc
+    assert "- **Acceptance:** not required" in desc
+
+
+def test_folder_name_still_refuses_a_malformed_acceptance_criteria_line(script, specs_root):
+    description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: forgot the bold markers.\n"
+    rc, out, _ = run_folder_name(script, specs_root, "new-abcd9999", "A new spec", description)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert not (specs_root / "new-abcd9999").exists()
+
+
+# --- --assign-number (spec 453): landing's own finalize step, renaming
+# an existing (literally-named) folder to its real number and slug, and
+# rewriting every file's own Task: line to match.
+
+
+def run_assign_number(script, specs_root, folder, result_file=None):
+    args = [str(script), "--specs-root", str(specs_root), "--assign-number", "--folder", folder]
+    if result_file:
+        args += ["--result-file", str(result_file)]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    return proc.returncode, json.loads(line), proc.stdout
+
+
+def commit_all(repo, message="add spec"):
+    """`--assign-number` uses `git mv`, which refuses on an untracked
+    directory — exactly what a create step's own folder is until this
+    commits it, the same as a real landing worktree, whose merge has
+    already committed the branch being renamed."""
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", message], check=True)
+
+
+def test_assign_number_renumbers_and_rewrites_all_four_task_lines(script, git_specs_root):
+    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    assert rc == 0, out
+    commit_all(git_specs_root)
+
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
+    assert rc == 0, out
+    assert out["ok"] is True
+    assert out["terminalReason"] == "assigned"
+    assert out["specFolder"] == "01-a-brand-new-spec"
+
+    folder = git_specs_root / "01-a-brand-new-spec"
+    assert folder.is_dir()
+    assert not (git_specs_root / "new-abcd1234").exists()
+    for name in ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]:
+        text = (folder / name).read_text()
+        assert "- **Task:** `01-a-brand-new-spec/`" in text, (name, text)
+        assert "new-abcd1234" not in text, (name, text)
+    # The rename and the Task: line rewrites land as one commit, not left
+    # as an uncommitted working-tree change a landing's own push would
+    # never see.
+    status = subprocess.run(
+        ["git", "-C", str(git_specs_root), "status", "--porcelain"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    assert status.strip() == "", status
+    log = subprocess.run(
+        ["git", "-C", str(git_specs_root), "log", "--format=%s"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    assert "01-a-brand-new-spec" in log.splitlines()[0], log
+
+
+def test_assign_number_counts_existing_folders_on_disk(script, git_specs_root):
+    (git_specs_root / "07-earlier").mkdir()
+    (git_specs_root / "archive").mkdir()
+    (git_specs_root / "archive" / "12-gone").mkdir()
+    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    assert rc == 0, out
+    commit_all(git_specs_root)
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
+    assert rc == 0, out
+    assert out["specFolder"] == "13-a-brand-new-spec"
+
+
+def test_assign_number_refuses_on_a_missing_folder(script, git_specs_root):
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-does-not-exist")
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+
+
+def test_assign_number_refuses_when_a_task_line_is_missing(script, git_specs_root):
+    """A hand-edited Tracking info section (spec 453's own risk analysis):
+    refuse loudly rather than leave a stale Task: line behind."""
+    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    assert rc == 0, out
+    analysis = git_specs_root / "new-abcd1234" / "2-analysis.md"
+    text = analysis.read_text().replace("- **Task:** `new-abcd1234/`", "- **Task:** `something-else/`")
+    analysis.write_text(text)
+    commit_all(git_specs_root)
+
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    # Nothing moved: the refusal happens before the git mv.
+    assert (git_specs_root / "new-abcd1234").is_dir()
+
+
+def test_assign_number_reads_the_title_off_1_description_mds_h1(script, git_specs_root):
+    rc, out, _ = run_folder_name(
+        script, git_specs_root, "new-abcd1234", "Clean up the console log output", "Problem: X.",
+    )
+    assert rc == 0, out
+    commit_all(git_specs_root)
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
+    assert rc == 0, out
+    assert out["specFolder"] == "01-clean-up-the-console-log-output"
+
+
+def test_assign_number_result_file_mirrors_stdout(script, git_specs_root, tmp_path):
+    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    assert rc == 0, out
+    commit_all(git_specs_root)
+    result_file = tmp_path / "assign-result.json"
+    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234", result_file=result_file)
+    assert rc == 0, out
+    assert json.loads(result_file.read_text().strip()) == out

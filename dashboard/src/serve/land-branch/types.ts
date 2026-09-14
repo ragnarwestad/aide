@@ -54,6 +54,19 @@ export interface LandContext {
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
   landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  /** Landing's own finalize step for a `create` job (spec 453): renames
+   *  the folder off its literal provisional key to its real `NN-slug`
+   *  inside the merge worktree, under the specs repo's own merge lock.
+   *  `repoRoot`/`specsRootAbs` are both absolute paths in the ORIGINAL
+   *  checkout — the fixed offset between them is how the real
+   *  implementation finds the specs root inside `work`. Absent means no
+   *  finalize step (tests, and any step but `create`). */
+  finalizeCreateSpec?: (
+    work: string,
+    repoRoot: string,
+    specsRootAbs: string,
+    provisionalFolder: string,
+  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
   /** The board registry (spec 388, REQ-7): `landArchivedSpec` stops
    *  whatever is tracked for a spec once its archive actually lands. */
   testServers: TestServersContext;

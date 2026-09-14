@@ -56,18 +56,20 @@ Two things about it are worth knowing:
   page is about a spec that exists; this one is about a project whose FIRST spec may not, and such a project appears in
   no other list here.
   `/api/queue` is unchanged and still refuses a project with no discovered spec.
-- **Nothing here names the spec.** The job carries a provisional key (`new-abc123de`) which names its branch and its
-  worktree and nothing else; the number and the slug are decided inside the `/aide-create`
-  run, whose own steps own that rule. `aide-run-spec` then reports the folder that actually appeared, as `specFolder` in
-  its result — read off the disk, and left unreported when zero or several appeared rather than guessed at.
+- **Nothing here names the spec.** The job carries a provisional key (`new-abc123de`) which names its branch, its
+  worktree and its folder on disk — the `create` step writes its five files under that literal name, choosing no
+  number and no slug. `aide-run-spec` reports that same folder as `specFolder` in its result.
 
-When the step succeeds the dashboard **lands the branch itself** and renames the job to the real folder. That is not a
-convenience: the list shows what is on disk in the main checkout, which every run
-keeps on its default branch, so a created spec that is only pushed to a branch appears nowhere at all. A job that
-ticked further phases runs its next step under that real folder name, never the provisional one. A landing that
-fails leaves the provisional key in place and says which repo and why. **While any job is landing the scheduler starts
-nothing at all**, whatever the concurrency is set to: a landing merges into the shared main checkout, which worktree
-isolation does not cover.
+When the step succeeds the dashboard **lands the branch itself**, and it is landing — not the step — that decides the
+spec's real number and slug: under the specs repo's own merge lock, the one point where two landings for the same
+repo are already serialized, it counts the folders already there, assigns the next number, and renames the job's
+provisional folder to it before the merge is pushed. That is not a convenience: the list shows what is on disk in the
+main checkout, which every run keeps on its default branch, so a created spec that is only pushed to a branch appears
+nowhere at all. A job that ticked further phases runs its next step under that real folder name, never the
+provisional one. A landing that fails leaves the provisional key in place and says which repo and why. Two `create`
+jobs for the same project start in the same tick — nothing holds one behind the other any more, since there is no
+longer a number for them to collide over. **While any job is landing the scheduler starts nothing at all**, whatever
+the concurrency is set to: a landing merges into the shared main checkout, which worktree isolation does not cover.
 
 The list holds SPECS, not the machine's whole run history: a spec that has been archived leaves the page along with the
 jobs it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A

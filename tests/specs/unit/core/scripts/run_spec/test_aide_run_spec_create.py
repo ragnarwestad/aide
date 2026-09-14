@@ -59,6 +59,22 @@ def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, works
     # spec does not have yet.
     assert f"/aide-create {CREATE_KEY}" not in prompt
 
+def test_create_states_the_provisional_key_and_skips_steps_2_and_3(runner, workspace, fake_claude):
+    """Spec 453: the real number and slug are landing's business now, not
+    this session's — stated to the skill the same way depends_line and
+    accept_line already are, so it knows to call aide-create-spec
+    --folder-name instead of picking a number itself."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, dry_run=True)
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert (
+        f'create the spec folder under exactly this name — {CREATE_KEY} — do not choose a '
+        "number or a slug (skip Steps 2 and 3 of the skill)"
+    ) in prompt, prompt
+    assert f'--folder-name "{CREATE_KEY}"' in prompt, prompt
+
+
 def test_create_states_the_depends_on_value_the_form_chose(runner, workspace, fake_claude):
     """Spec 110: the `Depends on:` line has had a reader since spec 92 and
     no writer but a person at a shell. The value is STATED in the prompt,
@@ -172,9 +188,12 @@ def test_create_with_no_ai_formulate_reports_zero_measured_cost_and_tool_none(ru
     assert out["terminalReason"] == "completed", out
 
 
-def test_create_with_no_ai_formulate_makes_the_next_numbered_folder(runner, workspace, fake_claude):
-    """AC-3: the next free number, and the same 5 files a real
-    aide-create-spec call would write for the same inputs."""
+def test_create_with_no_ai_formulate_makes_the_provisional_named_folder(runner, workspace, fake_claude):
+    """AC-3 (spec 453): the literal provisional key, never a computed
+    number — the no-AI path is headless by construction, exactly like
+    the AI-driven skill path, and the real number and slug are landing's
+    business now, assigned under the specs repo's own lock. Same 5 files
+    a real aide-create-spec call would write for the same inputs."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(
         runner, workspace, claude,
@@ -182,14 +201,14 @@ def test_create_with_no_ai_formulate_makes_the_next_numbered_folder(runner, work
         no_ai_formulate=True,
     )
     assert rc == 0, out
-    assert out["specFolder"] == "82-a-new-spec", out
+    assert out["specFolder"] == CREATE_KEY, out
     # The commit landed on the branch the step reported — read straight
     # off the object store, the same way the existing
     # test_create_reports_the_folder_the_step_actually_made does, rather
     # than off a checkout no push_mode="none" run ever updates.
     branch_log = git(workspace["specs"], "log", "--stat", "--oneline", f"aide/{CREATE_KEY}")
     for name in ["0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]:
-        assert f"82-a-new-spec/{name}" in branch_log, branch_log
+        assert f"{CREATE_KEY}/{name}" in branch_log, branch_log
 
 
 def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, workspace, fake_claude):

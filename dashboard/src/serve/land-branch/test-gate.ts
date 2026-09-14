@@ -14,34 +14,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover/config.ts";
-
-/** Where the installer puts the scripts; launchd's PATH does not reach
- *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
-function installed(name: string, override: string | undefined): string {
-  if (override) return override;
-  const path = join(process.env.HOME || homedir(), ".local", "bin", name);
-  return existsSync(path) ? path : name;
-}
-
-async function runScript(
-  argv: string[],
-  cwd: string,
-  timeoutMs: number,
-): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
-  const proc = Bun.spawn({ cmd: argv, cwd, stdout: "pipe", stderr: "pipe" });
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    proc.kill();
-  }, timeoutMs);
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-  const code = await proc.exited;
-  clearTimeout(timer);
-  return { code, stdout, stderr, timedOut };
-}
+import { installed, runScript } from "./run-script.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green

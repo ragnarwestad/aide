@@ -192,12 +192,20 @@ export async function landBranch(
       const gate = codeRoots.has(repo.root) && ctx.landingGate
         ? (root: string) => ctx.landingGate!(root, job, branch)
         : undefined;
+      // Spec 453: a `create` job's folder exists only under its literal
+      // provisional key until this runs, under the SAME per-repo lock
+      // `merge` below already takes — the one place two landings for
+      // this repo cannot both be renaming a folder at once.
+      const specsRootAbs = what.step === "create" ? ctx.machinerySpecsRoot(job.project) : undefined;
+      const finalizeCreate = ctx.finalizeCreateSpec && specsRootAbs
+        ? (work: string) => ctx.finalizeCreateSpec!(work, repo.root, specsRootAbs, job.specFolder)
+        : undefined;
       const merge = () =>
         ctx.mergeLock.run(
           repo.root,
           () => discard(repo.root)
             ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
-            : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate),
+            : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, gate, finalizeCreate),
         );
       let result = await merge();
       // A red suite is an answer, not a hiccup: never re-run it here.
@@ -208,6 +216,11 @@ export async function landBranch(
       }
       if (!result.ok) result = pickRefusal(first, result);
       if (result.ok) {
+        // Spec 453: the real folder name, reported by the finalize step
+        // that just ran under this repo's own merge — never guessed
+        // from `outcome`, which still carries the provisional key a
+        // create step wrote its files under.
+        if (result.assignedSpecFolder) what.landed = { ...what.landed, specFolder: result.assignedSpecFolder };
         ctx.branchStatus.invalidate(repo.root, branch);
         // The open-branch cache is the other half of the same
         // correction, and it is what the archived row reads. Only when

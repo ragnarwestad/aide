@@ -74,6 +74,13 @@ export interface RepoMergeResult {
    *  would otherwise trigger: a root that never merged anything has
    *  nothing to report and nothing to install. */
   discarded?: boolean;
+  /** The real `NN-slug` a `create` job's folder was renamed to, set only
+   *  by `finalizeCreate` (spec 453) — landing's own finalize step,
+   *  which runs under this merge's own retry loop rather than once
+   *  outside it, since a `base` that moved between attempts changes the
+   *  folder count the next attempt has to see fresh. Present only when
+   *  a `finalizeCreate` was given and it succeeded. */
+  assignedSpecFolder?: string;
 }
 
 /** Every refusal names the repo AND the branch. A landing merges
@@ -171,6 +178,16 @@ async function pushWithRetry(run: GitRunner, root: string, base: string, wait: W
 
 export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 
+/** Landing's own finalize step for a `create` job (spec 453): renames
+ *  the folder off its literal provisional key to its real `NN-slug` and
+ *  rewrites its own `Task:` lines, run inside the merge worktree —
+ *  `work`, the same argument `LandingGate` receives — right after the
+ *  merge succeeds and before the push, so the rename lands in the same
+ *  commit the merge is about to push. */
+export type CreateFinalizer = (work: string) => Promise<
+  { ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }
+>;
+
 export async function mergeBranchIntoDefault(
   run: GitRunner,
   root: string,
@@ -178,6 +195,7 @@ export async function mergeBranchIntoDefault(
   base: string,
   wait: Wait = sleep,
   gate?: LandingGate,
+  finalizeCreate?: CreateFinalizer,
 ): Promise<RepoMergeResult> {
   // Declared out here so the `finally` can clear it whichever way this
   // returns: a refusal leaves a worktree behind exactly as readily as a
@@ -286,6 +304,10 @@ export async function mergeBranchIntoDefault(
     // `mergeBranchIntoDefault()` call — never module- or server-lifetime
     // — so no verdict outlives the landing it was reached for.
     const gateVerdicts = new Map<string, { ok: boolean; error?: Sentence; detail?: string }>();
+    // Set on the attempt that actually pushes — never on one whose push
+    // was rejected and dropped, so a retry's own rename (recomputed
+    // against the base that moved) is the one that survives.
+    let assignedSpecFolder: string | undefined;
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       // Spec 402, REQ-4: the tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
@@ -322,6 +344,28 @@ export async function mergeBranchIntoDefault(
           ),
           reason: "conflict",
         };
+      }
+      // Spec 453: renumber the folder off its literal provisional key
+      // BEFORE the gate — recomputed on every attempt, since a `base`
+      // that moved between attempts means the folder count taken on a
+      // dropped attempt may already be stale. The rename becomes an
+      // ordinary part of the tree this attempt is about to push; a
+      // refusal here behaves exactly like a merge conflict — the local
+      // merge is dropped and the branch is untouched.
+      if (finalizeCreate) {
+        const finalized = await finalizeCreate(work);
+        if (!finalized.ok) {
+          await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
+          return {
+            root,
+            ok: false,
+            error: finalized.error,
+            ...(finalized.detail
+              ? { detail: `${finalized.detail}\n${branch} in ${root}` }
+              : { detail: `${branch} in ${root}` }),
+          };
+        }
+        assignedSpecFolder = finalized.specFolder;
       }
       // The tests run HERE, once per attempt, on what main is about to
       // become — not in every step that touched the branch, and never
@@ -457,6 +501,7 @@ export async function mergeBranchIntoDefault(
         // whether several repos are being reported at once.
         branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
         detail,
+        ...(assignedSpecFolder ? { assignedSpecFolder } : {}),
       };
     }
 
@@ -474,7 +519,7 @@ export async function mergeBranchIntoDefault(
     //    like the fetch at step 2 — this host may not even have the ref,
     //    and a cleanup must never turn a landed merge into a failure.
     await run(root, ["branch", "-d", branch]);
-    return { root, ok: true };
+    return { root, ok: true, ...(assignedSpecFolder ? { assignedSpecFolder } : {}) };
   } catch (err) {
     return refuse(
       root,

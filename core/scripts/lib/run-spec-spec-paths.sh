@@ -117,17 +117,24 @@ specs_ref_before="${head_before[0]}"
 
 # --- which folder a create step actually made --------------------------------
 # Read off the disk, before and after, rather than computed: the rule
-# that decides a spec's number and its slug is /aide-create's own (Step 2
-# and Step 3 of its skill), and a second copy of that rule here is
-# precisely the mistake spec 82 was about. A directory listing is also
-# robust in a way parsing `git status` is not — the step may or may not
-# have committed its own work by the time we look.
+# that decides a spec's number and its slug is landing's own, under the
+# specs repo's merge lock, and a second copy of that rule here is
+# precisely the mistake spec 82 was about (spec 453 moved WHERE that
+# rule runs, never re-derived it a second time). A directory listing is
+# also robust in a way parsing `git status` is not — the step may or may
+# not have committed its own work by the time we look.
+#
+# Two shapes count as a spec folder: the numbered `NN-slug` an
+# interactive session still makes on its own (AC-7), and the literal
+# `new-<8 hex>` provisional key every headless create now makes instead
+# — the same pattern `parse-request.ts`'s own `provisionalKey()` and
+# `self-run.ts`'s dispatcher already match.
 spec_folders_now() {
   local d base
   for d in "$specs_root_wt"/*/; do
     [ -d "$d" ] || continue
     base="$(basename "$d")"
-    [[ "$base" =~ ^[0-9]+- ]] && printf '%s\n' "$base"
+    [[ "$base" =~ ^([0-9]+-|new-[0-9a-f]{8}$) ]] && printf '%s\n' "$base"
   done
   return 0
 }
@@ -213,8 +220,12 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
   session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
   cost_known="true"; error_msg=""
   if [ -n "$create_no_ai" ]; then
-    slug="$(aide_slug_from_title "$title")"
-    create_args=(--specs-root "$specs_root_wt" --slug "$slug"
+    # Spec 453: this path is reached only from aide-run-spec, headless by
+    # construction — the same literal-name mode the AI-driven skill path
+    # now uses, never an auto-picked number. The real number is
+    # landing's own business now, under the one lock two concurrent
+    # creates cannot both miss.
+    create_args=(--specs-root "$specs_root_wt" --folder-name "$spec_arg"
                   --title "$title" --description "$description")
     [ -n "$depends_on" ] && create_args+=(--depends-on "$depends_on")
     [ "$acceptance_not_required" = "yes" ] && create_args+=(--acceptance-not-required)

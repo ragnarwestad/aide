@@ -147,9 +147,17 @@ Record this spec's Tracking info with an explicit acceptance-not-required line (
     accept_line="
 Acceptance ticking IS required for this spec: do not pass --acceptance-not-required, and write no acceptance line into Tracking info (Step 4)."
   fi
+  # Spec 453: the folder's real number and slug are no longer this
+  # session's to compute — landing assigns both once this branch merges,
+  # under the one lock two concurrent creates cannot both miss. Stated
+  # to the skill the same way depends_line/accept_line already are, so
+  # Steps 2 and 3 (the number, the slug) are skipped and Step 4 creates
+  # the folder under exactly this name instead of picking one.
+  folder_line="
+This is a headless run: create the spec folder under exactly this name — $spec_arg — do not choose a number or a slug (skip Steps 2 and 3 of the skill); pass --folder-name \"$spec_arg\" to aide-create-spec in Step 4."
   prompt="/aide-create TODO-$title_slug $description
 
-Use exactly this title for the spec: $title$depends_line$accept_line
+Use exactly this title for the spec: $title$depends_line$accept_line$folder_line
 $headless_note"
 fi
 if [ "$tool" = "codex" ]; then

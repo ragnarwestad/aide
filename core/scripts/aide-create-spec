@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# aide-create-spec — two Bash-only modes on the same file, both keeping
+# aide-create-spec — four Bash-only modes on the same file, all keeping
 # specs-repo writes off the Write/Edit tool (see below): the mechanical
 # step of /aide-create's Step 4 (spec 248), creating a spec's directory
 # and its 5 files given specs-root/number/slug/title/description/
-# depends-on; and, with --stamp-outcome, /aide-create's Step 5 patching
-# an already-created 1-description.md's Tracking info with that phase's
+# depends-on; --folder-name, the same creation with no number or slug
+# computed at all — a caller-given literal folder name, for a headless
+# run whose real number is assigned later, at landing (spec 453);
+# --assign-number, landing's own finalize step that renumbers such a
+# folder in place once it is known to be the only one landing (spec
+# 453); and --stamp-outcome, /aide-create's Step 5 patching an
+# already-created 1-description.md's Tracking info with that phase's
 # own Model/Time spent for an interactive run (spec 274) — the
 # counterpart to aide-run-spec's own "outcome record" block, which only
 # ever runs for a headless create.
@@ -20,12 +25,17 @@
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?, files?}
 #
-# terminalReason: refused | created | stamped
+# terminalReason: refused | created | stamped | assigned
 #
 # Usage:
 #   aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
 #                     --title <title> --description <text>
 #                     [--depends-on <value>] [--result-file <path>]
+#   aide-create-spec --specs-root <path> --folder-name <name>
+#                     --title <title> --description <text>
+#                     [--depends-on <value>] [--result-file <path>]
+#   aide-create-spec --specs-root <path> --assign-number --folder <name>
+#                     [--result-file <path>]
 #   aide-create-spec --specs-root <path> --stamp-outcome --folder <NN-slug>
 #                     --start-epoch <epoch-seconds> [--model <text>]
 #                     [--result-file <path>]
@@ -41,6 +51,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
 stamp_outcome="no"; folder=""; start_epoch=""; model=""
+folder_name=""; assign_number="no"
 # Whether this spec's Tracking info should say acceptance ticking is not
 # required (spec 394). A bare flag, like --pull/--dry-run elsewhere:
 # there is nothing to validate, and its absence is the byte-for-byte
@@ -61,6 +72,8 @@ while [ $# -gt 0 ]; do
     --folder) folder="${2:-}"; shift 2 ;;
     --start-epoch) start_epoch="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
+    --folder-name) folder_name="${2:-}"; shift 2 ;;
+    --assign-number) assign_number="yes"; shift ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -148,13 +161,78 @@ if [ "$stamp_outcome" = "yes" ]; then
   emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
 fi
 
+if [ "$assign_number" = "yes" ]; then
+  # Landing's own finalize step (spec 453): a create job's folder exists
+  # only under its literal provisional key (`new-<8 hex>`) until this
+  # runs, under the specs repo's own merge lock, where two landings for
+  # the same repo are already serialized by construction — the one place
+  # two concurrent creates cannot collide over a number. Reuses
+  # aide_next_spec_number/aide_slug_from_title, the same two functions
+  # every other caller in this file already shares (spec 82's invariant:
+  # one rule, one place) — never a second, hand-rolled count.
+  [ -n "$folder" ] || refuse "missing --folder"
+  src="$specs_root/$folder"
+  [ -d "$src" ] || refuse "no such spec folder: $src"
+  desc_file="$src/1-description.md"
+  [ -f "$desc_file" ] || refuse "missing $desc_file"
+  title_line="$(head -1 "$desc_file")"
+  case "$title_line" in
+    "# "*" - Description") title="${title_line#\# }"; title="${title% - Description}" ;;
+    *) refuse "cannot read a title from $desc_file's first line: $title_line" ;;
+  esac
+  declare -f aide_next_spec_number >/dev/null 2>&1 \
+    || refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
+  number="$(aide_next_spec_number "$specs_root")"
+  slug="$(aide_slug_from_title "$title")"
+  new_folder="${number}-${slug}"
+  dest="$specs_root/$new_folder"
+  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+
+  # Refuse loudly rather than leave a stale Task: line behind (the risk
+  # a hand-edited Tracking info section would otherwise create): every
+  # file that is supposed to carry the line is checked BEFORE anything
+  # moves, so a refusal here leaves the folder exactly where it was.
+  old_task_line="- **Task:** \`${folder}/\`"
+  new_task_line="- **Task:** \`${new_folder}/\`"
+  for name in 1-description.md 2-analysis.md 3-solution.md 4-status.md; do
+    f="$src/$name"
+    [ -f "$f" ] || continue
+    grep -qF -- "$old_task_line" "$f" \
+      || refuse "no '$old_task_line' line in $f — refusing rather than leave a stale Task: line after the rename"
+  done
+
+  git -C "$specs_root" mv "$folder" "$new_folder" || refuse "could not git mv $folder to $new_folder"
+
+  for name in 1-description.md 2-analysis.md 3-solution.md 4-status.md; do
+    f="$dest/$name"
+    [ -f "$f" ] || continue
+    awk -v old="$old_task_line" -v new="$new_task_line" \
+      '{ if ($0 == old) print new; else print }' "$f" > "$f.assign-tmp" && mv "$f.assign-tmp" "$f"
+  done
+
+  # One commit, landing together with the merge that triggered it: the
+  # rename alone (from `git mv`, already staged) plus the Task: line
+  # rewrites above, which are not.
+  git -C "$specs_root" add -- "$new_folder" \
+    && git -C "$specs_root" commit -q -m "Assign $new_folder its number" \
+    || refuse "could not commit the rename of $folder to $new_folder"
+
+  emit_ok "$(jq -cn --arg f "$new_folder" '{terminalReason:"assigned", specFolder:$f}')"
+fi
+
 # --number is OPTIONAL: given, it is used as stated; omitted, this
 # script picks it, and picking it HERE is what lets two creates run at
 # once. Read-then-write from two sessions reads the same highest number
 # and writes the same folder — which is why the round had to send its
 # fixture specs one at a time. `mkdir` settles it instead: the loser of
 # the race takes the next free number and tries again.
-[ -n "$slug" ] || refuse "missing --slug"
+#
+# --folder-name is a THIRD shape, for a headless run whose real number
+# is not decided here at all any more (spec 453): the caller already
+# has a unique name (the job's own provisional key), so there is
+# nothing to race over and no lock to take — `--number`'s validation
+# and the auto-pick lock below are both skipped entirely.
+[ -n "$folder_name" ] || [ -n "$slug" ] || refuse "missing --slug"
 [ -n "$title" ] || refuse "missing --title"
 [ -n "$description" ] || refuse "missing --description"
 
@@ -180,7 +258,12 @@ done <<AC_CHECK_EOF
 $description
 AC_CHECK_EOF
 
-if [ -n "$number" ]; then
+if [ -n "$folder_name" ]; then
+  [[ "$folder_name" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --folder-name: $folder_name"
+  folder="$folder_name"
+  dest="$specs_root/$folder"
+  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+elif [ -n "$number" ]; then
   # A number handed in must lie above every number already there — a
   # spec number is never reused, and a caller
   # that counted wrong — a session that sorted the archive's folder
