@@ -136,7 +136,8 @@ Hook types: `command`, `http`, `prompt`, `agent`.
 Hooks support an `if` field with permission rule syntax for conditional execution.
 Matchers match the whole identifier, never a substring (v2.1.195): a
 hyphenated name such as `mcp__brave-search` needs `mcp__brave-search__.*`
-to cover every tool of that server.
+to cover every tool of that server. aide's own matchers (`Edit|Write`,
+`Bash`, `""`) name whole tools already — verified 2026-09-14.
 
 ### Headless runs (`-p`)
 
@@ -148,6 +149,8 @@ either way — so `aide-run-spec` leaves it out of its argv on purpose.
 `-p --resume <session-id>` continues a session the same run started.
 `defaultMode: "bypassPermissions"` is ignored in a project's
 `.claude/settings.json` (v2.1.257) — set it in user or managed settings.
+aide installs `defaultMode: "default"` at user scope and nothing at
+project scope, so nothing there is affected — verified 2026-09-14.
 
 ### Skill/Agent frontmatter
 
@@ -253,10 +256,14 @@ Key sections: `model`, `approval_policy`, `sandbox_mode`,
 `thread.started` event carries the thread id. `codex exec resume <id>
 [prompt]` continues that thread and `codex exec fork <id>` branches it
 (v0.148); both take `--json`, `-m`, `--output-schema` and
-`--dangerously-bypass-approvals-and-sandbox`. Hook trust granted once
-persists through `codex exec` thread start and resume (v0.141). An
-untrusted project gets no project-level `AGENTS.md` (v0.150): a checkout
-the runner works in must be trusted, or the instructions never load.
+`--dangerously-bypass-approvals-and-sandbox`, but neither `--sandbox`
+nor `--add-dir` (verified on 0.154.0) — a resumed thread keeps what it
+started with. Hook trust granted once persists through `codex exec`
+thread start and resume (v0.141). An untrusted project gets no
+project-level `AGENTS.md` (v0.150). aide's own instructions are global
+(`~/.codex/AGENTS.md`), which trust does not gate; a project that ships
+its own `AGENTS.md` needs the checkouts and worktrees the runner works
+in listed under `[projects]` in `~/.codex/config.toml`.
 
 ### Plugins (v0.117.0+)
 
