@@ -45,10 +45,13 @@ describe("what is settled before the checkout moves", () => {
     expect(renamed!.at).toBeLessThanOrEqual(ff);
   });
 
-  test("the open-branch set forgets the branch before the checkout moves", async () => {
+  test("the open-branch set forgets the branch before the checkout moves, under every root the cache is keyed by", async () => {
     const git = landingGit();
     const forgotten: { at: number; root: string; branch: string }[] = [];
     const { ctx } = landCtx(git.run, {
+      // The specs path sits below the repo root the merge is about — the
+      // key the archived row's own check asks the cache under.
+      machinerySpecsRoot: () => `${ROOT}/aide`,
       branchStatus: {
         defaultBranch: async () => "master",
         invalidate: () => {},
@@ -69,6 +72,8 @@ describe("what is settled before the checkout moves", () => {
     const ff = ffIndex(git.calls);
     expect(ff).toBeGreaterThan(-1);
     expect(forgotten.some((f) => f.root === ROOT && f.branch === BRANCH && f.at <= ff)).toBe(true);
+    expect(forgotten.some((f) => f.root === `${ROOT}/aide` && f.branch === BRANCH && f.at <= ff)).toBe(true);
+    expect(forgotten.some((f) => f.root === "/repos/aide-code")).toBe(false);
   });
 });
 

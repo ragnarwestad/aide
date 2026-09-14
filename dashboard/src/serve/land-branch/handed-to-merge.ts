@@ -10,11 +10,42 @@
 // and the cached open-branch set still named the branch (the archived
 // row read "still on origin — re-run archive").
 
+import { resolve, sep } from "node:path";
+
 import type { CreateFinalizer } from "../../git/create-finalizer.ts";
 import type { LandingGate } from "../../git/branch-merge.ts";
 import type { MergeHooks } from "../../git/merge-hooks.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { LandContext, Landing } from "./types.ts";
+
+/** The roots the open-branch cache is keyed by that this repo holds:
+ *  the cache is asked per spec root — the project dir, and the specs
+ *  path, which for a specs repo with a project subfolder sits BELOW the
+ *  repo root the merge is about — so a forget under the repo root alone
+ *  never reached the cached answer the archived row reads. */
+export function cacheRootsWithin(
+  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot">,
+  project: string,
+  root: string,
+): string[] {
+  const top = resolve(root);
+  const inside = (d: string): boolean => resolve(d) === top || resolve(d).startsWith(top + sep);
+  const candidates = [root, ctx.machineryProjectDir(project), ctx.machinerySpecsRoot(project)].filter(
+    (d): d is string => !!d,
+  );
+  return [...new Set(candidates.filter(inside))];
+}
+
+/** A branch whose delete failed IS still on origin: put it back under
+ *  the same roots it was forgotten under before the checkout moved. */
+export function rememberUnderRoots(
+  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus">,
+  project: string,
+  root: string,
+  branch: string,
+): void {
+  for (const r of cacheRootsWithin(ctx, project, root)) ctx.branchStatus.rememberOpenSpecBranch(r, branch);
+}
 
 export function handedToMerge(
   ctx: LandContext,
@@ -42,7 +73,7 @@ export function handedToMerge(
       // next thing. A delete that then fails is reported through
       // `branchDeleteError` on the job, and the landing's own fresh
       // origin check repopulates this set with the truth.
-      ctx.branchStatus.forgetOpenSpecBranch(root, branch);
+      for (const r of cacheRootsWithin(ctx, job.project, root)) ctx.branchStatus.forgetOpenSpecBranch(r, branch);
     },
   };
   return { gate, finalizeCreate, hooks };

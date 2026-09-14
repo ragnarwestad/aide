@@ -36,7 +36,7 @@ import { specFileText } from "../../project/discover";
 import { STATUS_SPEC_FILE } from "../../render";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
 import { installAfterMerge } from "./install.ts";
-import { handedToMerge } from "./handed-to-merge.ts";
+import { handedToMerge, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 
@@ -224,7 +224,7 @@ export async function landBranch(
         // a branch still on origin because its delete failed IS open,
         // so it is taken back here, and spec 319's own sentence for that
         // case is written from `deleteErrors` below.
-        if (result.branchDeleteError) ctx.branchStatus.rememberOpenSpecBranch(repo.root, branch);
+        if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
         // spec 406: a discarded root never merged anything — nothing to
         // install. The block below is `mergeBranchIntoDefault`'s own
         // success handling, which `deleteBranchOnly` never earns.
