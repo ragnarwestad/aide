@@ -434,7 +434,7 @@
      line at rest, and let it reclaim the row on focus - "New spec" is
      what gives, per the description, never "Search". */
   .specsearch { flex-wrap: nowrap; }
-  .searchfield { width: 7rem; flex: 0 1 7rem; }
+  .searchfield { width: 7rem; flex: 0 1 7rem; min-width: 0; }
   .searchfield:focus-within { flex: 1 1 auto; width: auto; }
   .specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }
 

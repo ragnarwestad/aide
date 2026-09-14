@@ -550,6 +550,31 @@ describe("the search row stays on one line at phone width", () => {
   });
 });
 
+// --- spec 460: New no longer wraps onto its own line between 40rem and
+// the row's own full-width point -------------------------------------
+
+describe("the search row also stays on one line above phone width", () => {
+  // AC-1/AC-2: above the 40rem phone step, the row must still not wrap,
+  // and the field — not Search, "?", State or New — is what gives up
+  // the room. Scoped to #jobrows via :where() so it never reaches
+  // /schedule's own copy of this row and never outranks the phone
+  // step's own bare `.searchfield` rule by specificity.
+  test("the desktop CSS keeps the row on one line and lets the field shrink", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toMatch(/:where\(#jobrows\) \.specsearch \{[^}]*flex-wrap:\s*nowrap/);
+    expect(desktop).toMatch(
+      /:where\(#jobrows\) \.searchfield \{[^}]*flex:\s*1 1[^}]*max-width:\s*26rem/,
+    );
+  });
+
+  // AC-3: the phone step's own resting width (7rem) must not grow just
+  // because the new desktop-side rule now sets a floor of its own —
+  // the phone block needs its own reset back to 0.
+  test("the phone step resets the new min-width floor", () => {
+    expect(NARROW).toContain(".searchfield { width: 7rem; flex: 0 1 7rem; min-width: 0; }");
+  });
+});
+
 // Spec 325: on the Specs page, `body:has(#jobrows)` (spec 320) makes
 // `body` a flex column, and a flex item whose cross-axis margins are
 // both `auto` is never stretched to the container's width — it shrinks

@@ -435,6 +435,19 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    The field keeps room on its right for the control, so a long term
    does not run underneath it. */
 .searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
+/* Spec 460: above the 40rem phone step (its own harder rule, narrow.css,
+   wins there by source order — see the min-width reset added there),
+   the row must not wrap either. --speclist-width above steps down at
+   the same widths the table drops a column at, and past that point the
+   fixed controls (Search, "?", State, New) plus a fixed 26rem field no
+   longer fit — New wraps onto its own line. The field is what gives up
+   the room (AC-2): flexible rather than a second guessed breakpoint,
+   since how much room the fixed controls need moves with the State
+   dropdown's own chosen label. :where() adds no specificity, so this
+   still loses to the phone step below and never reaches /schedule's own
+   copy of this row (no #jobrows there) — this file's own note above. */
+:where(#jobrows) .specsearch { flex-wrap: nowrap; }
+:where(#jobrows) .searchfield { width: auto; flex: 1 1 12rem; min-width: 8rem; max-width: 26rem; }
 /* Rounder than the shared ".field input" rule gives it (var(--r-s), 4px)
    — the same one-field exception ".field.wide" already makes for width
    (design handoff, 2026-08-25). */
