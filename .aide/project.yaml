@@ -68,3 +68,8 @@ docs:
   - dashboard/docs/deploying.md
   - .claude/rules/development.md
   - .claude/rules/ai-tools-reference.md
+schedule:
+  - name: "Nyhetssjekk"
+    cron: "0 7 * * 1"
+    prompt: "docs/prompts/check-news.md"
+    model: "sonnet"
