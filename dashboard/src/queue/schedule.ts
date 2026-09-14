@@ -60,15 +60,22 @@ export interface ScheduleJobRef {
  *  window already spent. That single comparison is also what keeps a
  *  duplicate from being enqueued while one is still queued or running:
  *  such a job's own `startedAt ?? createdAt` already sits after the
- *  fire time that started it. */
+ *  fire time that started it.
+ *
+ *  `entry.since` (spec 461) is folded in as the floor's starting value
+ *  rather than `-Infinity`: a brand-new entry has no tracked job yet,
+ *  so without it a cron whose most recent fire already lies in the past
+ *  reads as due the instant the entry is saved. An entry with no
+ *  `since` — every hand-written one — computes exactly as before. */
 export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJobRef[]): boolean {
   if (!entry.enabled) return false;
   const fire = mostRecentFireTime(entry.cron, now);
   if (!fire) return false;
   const key = scheduleTrackingKey(entry.name);
+  const since = Date.parse(entry.since ?? "") || -Infinity;
   const newest = jobs
     .filter((j) => j.specFolder === key)
-    .reduce((latest, j) => Math.max(latest, Date.parse(j.startedAt ?? j.createdAt) || 0), -Infinity);
+    .reduce((latest, j) => Math.max(latest, Date.parse(j.startedAt ?? j.createdAt) || 0), since);
   return fire.getTime() > newest;
 }
 

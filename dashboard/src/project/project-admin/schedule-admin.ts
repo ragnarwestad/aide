@@ -132,6 +132,11 @@ export async function createScheduleEntry(
   const model = req.model?.trim();
   const entry: ScheduleEntry = {
     name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
+    // Stamped on every save (spec 461): a fire at or before this floor
+    // reads as already used, so a fresh entry's first real run is its
+    // next fire after the save, not whatever the cron's most recent
+    // fire already was.
+    since: new Date().toISOString(),
     ...(model ? { model } : {}),
   };
   return saveEntries(git, projectDir, [...existing, entry], `Add schedule entry "${entry.name}" from the dashboard`);
@@ -157,6 +162,10 @@ export async function updateScheduleEntry(
     e.name === currentName
       ? {
           name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: e.enabled,
+          // Reset on every save, a bare rename included (spec 461): the
+          // description's own "laget eller endret" does not condition
+          // this on which field changed.
+          since: new Date().toISOString(),
           // An edit that posts no model at all CLEARS the entry's own
           // pick, rather than keeping a value the form no longer shows:
           // the form always posts the select it drew, so an absent field

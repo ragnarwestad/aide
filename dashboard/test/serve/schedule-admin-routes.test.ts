@@ -23,6 +23,16 @@ function writeManifest(dir: string, project: string, text: string): void {
   writeFileSync(manifestPath(dir, project), text);
 }
 
+// `since` (spec 461) is `new Date().toISOString()` at call time, so no
+// test can hard-code it — only bracket it between a `before`/`after`
+// taken around the request.
+function expectFreshSince(since: string | undefined, before: number, after: number): void {
+  expect(since).toBeDefined();
+  const parsed = Date.parse(since!);
+  expect(parsed).toBeGreaterThanOrEqual(before);
+  expect(parsed).toBeLessThanOrEqual(after);
+}
+
 function readSchedule(dir: string, project: string) {
   const result = parseManifest(readFileSync(manifestPath(dir, project), "utf-8"));
   if (!result.ok) throw new Error(result.error);
@@ -46,16 +56,18 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
+    const before = Date.now();
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
+    const after = Date.now();
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = readSchedule(dir, "aide");
+    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
   });
 
   // Every route in this file used to write to `displayProjectDir` (the
@@ -76,18 +88,20 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
     // The reader's own checkout carries no such file at all — proving
     // the write did not fall back to it.
     writeManifest(dir, "aide", "name: aide\n");
+    const before = Date.now();
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
+    const after = Date.now();
     expect(res.status).toBe(200);
     const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
     if (!ownedManifest.ok) throw new Error(ownedManifest.error);
-    expect(ownedManifest.data.schedule).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = ownedManifest.data.schedule ?? [];
+    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
     expect(readSchedule(dir, "aide")).toEqual([]);
   });
 
@@ -100,16 +114,18 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
+    const before = Date.now();
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
+    const after = Date.now();
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = readSchedule(dir, "aide");
+    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
   });
 
   // Spec 400, REQ-1/REQ-5: a commit or push that fails is refused with
@@ -216,33 +232,37 @@ describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", ()
         "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
         "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
     );
+    const before = Date.now();
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({ name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md" }),
     });
+    const after = Date.now();
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md", enabled: true },
-      { name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [nightly, weekly] = readSchedule(dir, "aide");
+    expect(nightly).toMatchObject({ name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(nightly?.since, before, after);
+    expect(weekly).toEqual({ name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true });
   });
 
   test("renaming an entry is accepted (criterion 17)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const before = Date.now();
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
       body: JSON.stringify({ name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
+    const after = Date.now();
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = readSchedule(dir, "aide");
+    expect(entry).toMatchObject({ name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
   });
 });
 

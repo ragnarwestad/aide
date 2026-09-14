@@ -100,6 +100,18 @@ describe("isDue (acceptance criteria 1-3)", () => {
     const disabled: ScheduleEntry = { ...ENTRY, enabled: false };
     expect(isDue(disabled, now, [])).toBe(false);
   });
+
+  test("since (spec 461): a fire at or before since reads as already used, with no job at all", () => {
+    const now = new Date("2026-08-26T05:00:00Z"); // most recent fire: 03:00 today
+    const entry: ScheduleEntry = { ...ENTRY, since: "2026-08-26T04:00:00Z" };
+    expect(isDue(entry, now, [])).toBe(false);
+  });
+
+  test("since (spec 461): a real fire after since is due again, with no job at all", () => {
+    const entry: ScheduleEntry = { ...ENTRY, since: "2026-08-26T04:00:00Z" };
+    const laterNow = new Date("2026-08-27T05:00:00Z"); // most recent fire: 03:00 the next day, after since
+    expect(isDue(entry, laterNow, [])).toBe(true);
+  });
 });
 
 // Acceptance criterion 1 (the path half): the write side

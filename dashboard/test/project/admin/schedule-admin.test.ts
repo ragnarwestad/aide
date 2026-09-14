@@ -33,6 +33,16 @@ afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
+// `since` (spec 461) is `new Date().toISOString()` at call time, so no
+// test can hard-code it — only bracket it between a `before`/`after`
+// taken around the call.
+function expectFreshSince(since: string | undefined, before: number, after: number): void {
+  expect(since).toBeDefined();
+  const parsed = Date.parse(since!);
+  expect(parsed).toBeGreaterThanOrEqual(before);
+  expect(parsed).toBeLessThanOrEqual(after);
+}
+
 const manifestOf = (dir: string) => join(dir, ".aide", "project.yaml");
 const schedule = (dir: string) => {
   const result = parseManifest(readFileSync(manifestOf(dir), "utf-8"));
@@ -139,11 +149,13 @@ describe("createScheduleEntry", () => {
   test("a valid entry is appended, enabled by default, and committed and pushed (criteria 1, 2)", async () => {
     const dir = projectDir();
     const { git, calls } = scheduleGit(dir);
+    const before = Date.now();
     const result = await createScheduleEntry(git, dir, { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" });
+    const after = Date.now();
     expect(result.ok).toBe(true);
-    expect(schedule(dir)).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = schedule(dir);
+    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
     const names = calls.map((c) => c.args[0]);
     expect(names).toContain("add");
     expect(names).toContain("commit");
@@ -152,6 +164,16 @@ describe("createScheduleEntry", () => {
     expect(push?.args).toEqual(["push", "-q", "origin", "HEAD"]);
     // Nothing left staged or uncommitted after a successful save.
     expect(calls.some((c) => c.args[0] === "reset")).toBe(false);
+  });
+
+  test("stamps a fresh since (spec 461) on every save", async () => {
+    const dir = projectDir();
+    const { git } = scheduleGit(dir);
+    const before = Date.now();
+    const result = await createScheduleEntry(git, dir, { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" });
+    const after = Date.now();
+    expect(result.ok).toBe(true);
+    expectFreshSince(schedule(dir)[0]?.since, before, after);
   });
 
   test("the picked model is stored on the entry", async () => {
@@ -241,6 +263,7 @@ describe("updateScheduleEntry (including a rename, acceptance criterion 17)", ()
         "    model: claude-opus-5\n",
     );
     const { git } = scheduleGit(dir);
+    const before = Date.now();
     const result = await updateScheduleEntry(
       git,
       dir,
@@ -248,10 +271,13 @@ describe("updateScheduleEntry (including a rename, acceptance criterion 17)", ()
       { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" },
       ["claude-opus-5", "codex-fast"],
     );
+    const after = Date.now();
     expect(result.ok).toBe(true);
-    expect(schedule(dir)).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true, model: "codex-fast" },
-    ]);
+    const [entry] = schedule(dir);
+    expect(entry).toMatchObject({
+      name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true, model: "codex-fast",
+    });
+    expectFreshSince(entry?.since, before, after);
   });
 
   test("a valid edit commits and pushes (criteria 1, 2)", async () => {
@@ -287,12 +313,14 @@ describe("updateScheduleEntry (including a rename, acceptance criterion 17)", ()
         "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
     );
     const { git } = scheduleGit(dir);
+    const before = Date.now();
     const result = await updateScheduleEntry(git, dir, "nightly", { name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md" });
+    const after = Date.now();
     expect(result.ok).toBe(true);
-    expect(schedule(dir)).toEqual([
-      { name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md", enabled: true },
-      { name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [nightly, weekly] = schedule(dir);
+    expect(nightly).toMatchObject({ name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(nightly?.since, before, after);
+    expect(weekly).toEqual({ name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true });
   });
 
   test("renaming an entry is accepted and the entry keeps its position (criterion 17)", async () => {
@@ -300,11 +328,25 @@ describe("updateScheduleEntry (including a rename, acceptance criterion 17)", ()
       "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
     );
     const { git } = scheduleGit(dir);
+    const before = Date.now();
     const result = await updateScheduleEntry(git, dir, "nightly", { name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md" });
+    const after = Date.now();
     expect(result.ok).toBe(true);
-    expect(schedule(dir)).toEqual([
-      { name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    const [entry] = schedule(dir);
+    expect(entry).toMatchObject({ name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
+    expectFreshSince(entry?.since, before, after);
+  });
+
+  test("stamps a fresh since (spec 461) even when only the name changes (the rename case)", async () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
+    );
+    const { git } = scheduleGit(dir);
+    const before = Date.now();
+    const result = await updateScheduleEntry(git, dir, "nightly", { name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md" });
+    const after = Date.now();
+    expect(result.ok).toBe(true);
+    expectFreshSince(schedule(dir)[0]?.since, before, after);
   });
 
   test("renaming to a name already used by ANOTHER entry is refused", async () => {

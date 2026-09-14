@@ -126,6 +126,17 @@ describe("writeScheduleList (acceptance criteria 3, 4)", () => {
     expect(result.data.schedule).toEqual([{ ...NIGHTLY, model: "claude-opus-5" }, WEEKLY]);
   });
 
+  test("an entry's since round-trips, and an entry without one never gains a since: line (spec 461)", () => {
+    const file = manifest("name: alpha\n");
+    writeScheduleList(file, [{ ...NIGHTLY, since: "2026-09-14T16:42:00.000Z" }, WEEKLY]);
+    const text = readFileSync(file, "utf-8");
+    expect(text).toContain('    since: "2026-09-14T16:42:00.000Z"\n');
+    expect(text.match(/since:/g)).toHaveLength(1);
+    const result = parseManifest(text);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toEqual([{ ...NIGHTLY, since: "2026-09-14T16:42:00.000Z" }, WEEKLY]);
+  });
+
   test("throws rather than write when the intended entries would not reparse (guard)", () => {
     // A name containing a double quote would break the always-quoted
     // serialization; the write-time guard must catch it before disk.
