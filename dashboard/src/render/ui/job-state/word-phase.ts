@@ -139,7 +139,7 @@ function decidePhase(
     if (attempt!.landing) {
       return {
         pip: "now",
-        badge: { variant: "running", label: capitalizeFirst(stateLabel({ ...attempt!, state: "running" }, lang)) },
+        badge: { variant: "running", label: t(lang, "list.state.running") },
         qualifier: filesDisagree,
       };
     }
