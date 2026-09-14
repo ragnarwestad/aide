@@ -209,6 +209,13 @@ This is the one place the suite runs for a change on its way to main. `implement
 model's TDD loop, not the gate; `aide-archive-spec` checks the person's boxes and moves the folder, and runs no tests.
 A code root only: the specs root has nothing to run.
 
+## A root that is no longer on disk
+
+A landing carries every root the spec's older jobs ever named (`branchesFor`), and a root recorded before the
+dashboard's files moved is not on disk any more. With another root still to land, the gone one is skipped with a
+line in the serve log rather than failing the whole landing; a landing whose only root is gone still fails, since
+nothing at all would land.
+
 ## A project can ask for its code branch to stay open
 
 `codeLanding: pr` in the COMMITTED `.aide/project.yaml` says this project's code is reviewed before it reaches the
