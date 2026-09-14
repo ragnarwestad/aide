@@ -94,7 +94,9 @@ behaviour, or a file another scope covers — and it is this step's to
 fix, back through Phase 2, before anything is reported. Never tick the
 full-suite row, and never report "done", with a red run on the record:
 `aide-run-spec` runs the same commands itself on the step's result
-afterwards, and a red run there ends the step `tests-red`, with
+afterwards. A red run there comes back to this session as a follow-up
+turn with the failing lines — fix them and run the suite again — and
+only a run still red after that ends the step `tests-red`, with
 `implement` not recorded as run.
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`

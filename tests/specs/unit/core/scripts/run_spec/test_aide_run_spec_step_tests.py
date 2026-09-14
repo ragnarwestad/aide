@@ -61,3 +61,64 @@ def test_an_implement_whose_tests_are_green_carries_the_runners_record_on_the_br
     assert out["terminalReason"] == "completed", out
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0 and record["command"] == "true", record
+
+
+def _fixing_claude(fake_claude, fix_on_retry=True):
+    """First turn: implements, leaving the tests red (fixed.txt missing).
+    A follow-up turn — the prompt names the red suite — writes fixed.txt
+    when `fix_on_retry`, so the runner's next run is green."""
+    fix = "printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n" if fix_on_retry else ":\n"
+    return fake_claude(
+        "prompt=\"$(cat)\"\n"
+        "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        f"  {fix}"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "fi\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_red_suite_goes_back_to_the_session_and_a_fix_ends_the_step_completed(
+    runner, workspace, fake_claude
+):
+    """The runner's own run is red, the failing lines go back to the SAME
+    session as a follow-up turn (`--resume`), the session fixes it, and
+    the runner's next run is green: the step ends completed, with the
+    runner's green record on the branch."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude), command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 2, calls
+    assert "--resume" in calls[1] and "--session-id" not in calls[1], calls[1]
+    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
+    assert record["exitCode"] == 0, record
+
+
+def test_a_suite_still_red_after_the_rounds_ends_tests_red(runner, workspace, fake_claude):
+    """Two follow-up turns and no fix: the cap holds, the step ends
+    tests-red, and the session was asked exactly 1 + 2 times."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 3
+
+
+def test_a_step_with_no_budget_left_gets_no_follow_up_turn(runner, workspace, fake_claude):
+    """The rounds live inside the step's own budget: a first turn that
+    spent all of it ends tests-red at once, with no second turn."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    spent = dict(RESULT_OK, total_cost_usd=3)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"echo '{json.dumps(spent)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", budget_usd="3")
+    assert out["terminalReason"] == "tests-red", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 1

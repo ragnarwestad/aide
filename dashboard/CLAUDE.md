@@ -36,9 +36,14 @@ should read this file by hand.
   `mapfile`, build arrays with `array+=(...)`.
 - **An `implement` ends only on a green test run the runner made itself**
   (`run-spec-step-tests.sh`): the session's own record is never what
-  decides. Red is `terminalReason: tests-red` on the STEP — a failed job
+  decides. Red goes back to the same session first, as a follow-up turn
+  with the failing lines — at most `AIDE_TEST_FIX_ROUNDS` (2) more, each
+  within what is left of the step's budget and time limit, claude only.
+  Still red is `terminalReason: tests-red` on the STEP — a failed job
   with the failing lines as detail, and Implement offered again — unlike
-  the landing's `tests-red`, which STOPS the job.
+  the landing's `tests-red`, which STOPS the job. `run_model_turn`
+  (`run-spec-spec-paths.sh`) is the one turn; every turn of a step
+  appends to the same transcript.
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
