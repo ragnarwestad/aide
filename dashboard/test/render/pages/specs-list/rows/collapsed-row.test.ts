@@ -92,7 +92,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     // Spec 132: the badge says the resting state — one word since
     // 2026-08-24; the button beside it is what names the next phase.
     expect(line).toContain('class="badge b-ready"');
-    expect(line).toContain(">ready<");
+    expect(line).toContain(">Ready<");
     // The button left the head line on 2026-09-08 — the phase it would
     // run next is one click in. The pips are back since 2026-09-11, in
     // the State cell over the badge (beside it on a phone), never in

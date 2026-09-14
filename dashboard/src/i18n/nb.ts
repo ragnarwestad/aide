@@ -92,9 +92,9 @@ export const nb: Record<TranslationKey, string> = {
     "Ingen kjøretjeneste er installert på denne maskinen ennå (del 81b) — køede jobber blir " +
     "stående i kø, og ingenting her koster penger.",
   "list.createdNotRegistered": "ikke registrert",
-  "list.ready": "klar",
+  "list.ready": "Klar",
   "list.archiveHeldBackWord": "{step} holdt tilbake",
-  "list.done": "ferdig",
+  "list.done": "Ferdig",
   "list.stateQueued": "{step} i kø",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} av {total} i kø — venter på en ledig plass til å kjøre {step}",

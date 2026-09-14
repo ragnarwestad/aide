@@ -91,9 +91,9 @@ export const en = {
     "No runner is installed on this machine yet (slice 81b) — queued jobs stay queued, " +
     "and nothing here spends money.",
   "list.createdNotRegistered": "not registered",
-  "list.ready": "ready",
+  "list.ready": "Ready",
   "list.archiveHeldBackWord": "{step} held back",
-  "list.done": "done",
+  "list.done": "Done",
   "list.stateQueued": "{step} queued",
   "list.stateQueuedPosition": "{step} {n}/{total}",
   "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",

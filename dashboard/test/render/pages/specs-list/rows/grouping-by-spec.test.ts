@@ -79,7 +79,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // the badge when there is one, and on "not run yet" when the files
     // say nothing happened, as here: two attempts, both failed, and the
     // spec's own file still names none of them.
-    expect(analyze).toMatch(/title="2 attempts">done \(2\)<\/span>/);
+    expect(analyze).toMatch(/title="2 attempts">Done \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
@@ -104,7 +104,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // is next, so it wears `b-ready` here. What it must not read is the
     // OLDER job's outcome, which would still be the bare word "failed".
     expect(head).toContain('class="badge b-ready"');
-    expect(head).toContain(">ready<");
+    expect(head).toContain(">Ready<");
     expect(head).not.toContain('class="badge b-refused"');
   });
 

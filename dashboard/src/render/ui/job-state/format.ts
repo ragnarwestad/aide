@@ -5,6 +5,7 @@ import { badge, helpPopover, type BadgeVariant } from "../components";
 import { esc } from "../html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { QueueRowView } from "./types.ts";
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -82,7 +83,7 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 };
 
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
-  const b = badge(BADGE_VARIANT[r.state], stateLabel(r, lang));
+  const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateLabel(r, lang)));
   const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }

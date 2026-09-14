@@ -3,6 +3,7 @@
 import { badge, stepLabel } from "../components";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 import { GERUND_EN, GERUND_NB, gerund, landingStepIndex } from "../../../format/gerund.ts";
@@ -74,7 +75,7 @@ export function restingChip(lang: Language, resting: RestingState = {}): string 
   // row's own notice line, where the held-back reason already is in
   // full. "archive held back" said the phase as well, which the button
   // beside it already names.
-  if (resting.archiveHeldBack) return badge("waiting", t(lang, "state.stopped"));
+  if (resting.archiveHeldBack) return badge("waiting", capitalizeFirst(t(lang, "state.stopped")));
   if (resting.readyPhase) return badge("ready", t(lang, "list.ready"));
   return badge("done", t(lang, "list.done"));
 }
@@ -111,7 +112,7 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     // The same word every other stop the system made gets: the step is
     // already named on the line, and the reason — which is the half a
     // reader acts on — is the sentence on the row's own notice line.
-    if (r.errorReason === "held-back") return badge("waiting", t(lang, "state.stopped"));
+    if (r.errorReason === "held-back") return badge("waiting", capitalizeFirst(t(lang, "state.stopped")));
     const pos = r.queuePosition;
     return badge(
       "idle",
@@ -131,6 +132,6 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   // verified always populated for every stopReason). `stateChip` still
   // carries the full text, for the job DETAIL page's own big badge
   // (`job-page.ts`, out of REQ-7's scope).
-  return badge(BADGE_VARIANT[r.state], r.state);
+  return badge(BADGE_VARIANT[r.state], capitalizeFirst(r.state));
 }
 

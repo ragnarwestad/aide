@@ -78,7 +78,7 @@ describe("REQ-5 — held back, queued and done pinned by name", () => {
 
   test("held back is the same amber as stopped (b-waiting)", () => {
     const word = wordPhase(false, { reason: "depends on 1-x, which is not archived yet" }, undefined, {});
-    expect(word.badge).toEqual({ variant: "waiting", label: "held back" });
+    expect(word.badge).toEqual({ variant: "waiting", label: "Held back" });
   });
 });
 

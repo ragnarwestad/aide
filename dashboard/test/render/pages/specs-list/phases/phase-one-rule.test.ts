@@ -127,7 +127,7 @@ describe("spec 108: one rule per phase", () => {
       ],
     );
     const archive = subRow(html, "archive");
-    expect(archive).toContain("held back");
+    expect(archive).toContain("Held back");
     // Spec 143: the REASON is the row's panel's, said once for the
     // whole row. The phase line keeps the word that is its own answer.
     expect(archive).not.toContain("the Slack webhook (Phase 4, still unchecked)");
@@ -213,7 +213,7 @@ describe("spec 108: one rule per phase", () => {
       [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
     );
     const archive = subRow(html, "archive");
-    expect(archive).toContain("stopped");
+    expect(archive).toContain("Stopped");
     expect(archive).not.toContain("acceptance-criteria-unticked");
     // The reason is a sentence with a move in it, not the script's own
     // token: a reader should not have to know what the token means.
@@ -343,7 +343,7 @@ describe("a phase that ran never draws the not-run dash", () => {
   // files — and the row's own message says which of the two it is.
   test("its work on the branch: a word, green, and no dash", () => {
     const cell = state(render(true), "implement");
-    expect(cell).toContain("done");
+    expect(cell).toContain("Done");
     expect(cell).toContain("b-done");
     expect(cell).not.toContain(PHASE_NOT_RUN);
   });

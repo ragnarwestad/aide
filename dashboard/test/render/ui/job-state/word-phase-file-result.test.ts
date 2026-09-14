@@ -14,7 +14,7 @@ const noJob = undefined;
 describe("what a phase's own file says, where nothing else knows", () => {
   test("a file saying completed reads done", () => {
     const w = wordPhase(false, undefined, noJob, { fileResult: "completed" });
-    expect([w.badge?.variant, w.badge?.label]).toEqual(["done", "done"]);
+    expect([w.badge?.variant, w.badge?.label]).toEqual(["done", "Done"]);
   });
 
   // One word, like every other stop the system made: the reason the
@@ -22,7 +22,7 @@ describe("what a phase's own file says, where nothing else knows", () => {
   // row's own notice line.
   test("a file saying stopped reads stopped", () => {
     const w = wordPhase(false, undefined, noJob, { fileResult: "stopped" });
-    expect([w.badge?.variant, w.badge?.label]).toEqual(["waiting", "stopped"]);
+    expect([w.badge?.variant, w.badge?.label]).toEqual(["waiting", "Stopped"]);
   });
 
   test("a file with no Result at all still reads as nothing", () => {
@@ -35,11 +35,11 @@ describe("what a phase's own file says, where nothing else knows", () => {
   test("a job the queue still has outranks the file", () => {
     const attempt = { state: "failed", stopReason: undefined } as never;
     const w = wordPhase(false, undefined, attempt, { fileResult: "completed" });
-    expect(w.badge?.label).toBe("failed");
+    expect(w.badge?.label).toBe("Failed");
   });
 
   test("the git-verified history outranks it too", () => {
     const w = wordPhase(true, undefined, noJob, { fileResult: "stopped" });
-    expect(w.badge?.label).toBe("done");
+    expect(w.badge?.label).toBe("Done");
   });
 });

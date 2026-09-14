@@ -165,7 +165,7 @@ describe("spec 154: what has run is what has been committed", () => {
     const line = specControls(await listPage(base), "81-queue-and-runner");
     const implement =
       line.match(/<tr class="subrow[^"]*"[^>]*data-step="implement">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(implement).toContain("stopped");
+    expect(implement).toContain("Stopped");
     expect(implement).not.toContain("stopped: timeout");
     expect(line).toContain("stopped: timeout");
     expect(implement).not.toContain("not run yet");

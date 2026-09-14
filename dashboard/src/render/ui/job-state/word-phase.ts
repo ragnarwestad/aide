@@ -6,6 +6,7 @@ import type { MessageKey } from "../../../i18n/messages.ts";
 import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { BADGE_VARIANT, currentStep, inFlight, stateLabel } from "./format.ts";
 import { gerund } from "./resting.ts";
 import type { QueueRowView } from "./types.ts";
@@ -159,8 +160,8 @@ function decidePhase(
         // leftover report as if it were live.
         label:
           attempt!.tddPhase && attempt!.state === "running"
-            ? `${stateLabel(attempt!, lang)} (${attempt!.tddPhase})`
-            : stateLabel(attempt!, lang),
+            ? `${capitalizeFirst(stateLabel(attempt!, lang))} (${attempt!.tddPhase})`
+            : capitalizeFirst(stateLabel(attempt!, lang)),
       },
       qualifier: filesDisagree,
     };
@@ -168,7 +169,7 @@ function decidePhase(
   if (happened) {
     return {
       pip: running ? "now" : "past",
-      badge: { variant: "done", label: "done" },
+      badge: { variant: "done", label: "Done" },
       qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
@@ -182,7 +183,7 @@ function decidePhase(
       // The sixth variant, not a seventh: "held back" is a common,
       // healthy outcome — notice, not alarm — which is the same reason
       // `stopped` takes this amber.
-      badge: { variant: "waiting", label: "held back" },
+      badge: { variant: "waiting", label: "Held back" },
       // Not the reason: it is a sentence, and the row's panel says it
       // once for the whole row (spec 143). Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
@@ -214,7 +215,7 @@ function decidePhase(
       // The word alone in the badge; the reason is the row's error line
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
-      badge: { variant: "waiting", label: "stopped" },
+      badge: { variant: "waiting", label: "Stopped" },
       qualifier: `${t(lang, "state.stopped")}: ${stopSentence(history.stopped, lang)}`,
     };
   }
@@ -227,10 +228,10 @@ function decidePhase(
   // its own file says ran.
   if (!attempt) {
     if (history.fileResult === "completed") {
-      return { pip: "past", badge: { variant: "done", label: "done" }, qualifier: filesDisagree };
+      return { pip: "past", badge: { variant: "done", label: "Done" }, qualifier: filesDisagree };
     }
     if (history.fileResult === "stopped") {
-      return { pip: "todo", badge: { variant: "waiting", label: "stopped" }, qualifier: filesDisagree };
+      return { pip: "todo", badge: { variant: "waiting", label: "Stopped" }, qualifier: filesDisagree };
     }
     return { pip: "todo", qualifier: filesDisagree };
   }
@@ -247,7 +248,7 @@ function decidePhase(
       // later step's, not a reason to colour this one. Amber only when
       // nothing reached the files at all, and the row's own message
       // says so (2026-09-11).
-      badge: { variant: history.historyDone ? "done" : "waiting", label: stateLabel(attempt, lang) },
+      badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateLabel(attempt, lang)) },
       qualifier: renderMessage(lang, {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
       }),
@@ -255,7 +256,7 @@ function decidePhase(
   }
   return {
     pip: running ? "now" : "todo",
-    badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt, lang) },
+    badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateLabel(attempt, lang)) },
   };
 }
 
