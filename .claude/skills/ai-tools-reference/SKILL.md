@@ -134,6 +134,17 @@ Configured in settings.json. Events: `PreToolUse`, `PostToolUse`,
 `CwdChanged`, `FileChanged`, `TaskCreated`, `StopFailure` and more.
 Hook types: `command`, `http`, `prompt`, `agent`.
 Hooks support an `if` field with permission rule syntax for conditional execution.
+Matchers match the whole identifier, never a substring (v2.1.195): a
+hyphenated name such as `mcp__brave-search` needs `mcp__brave-search__.*`
+to cover every tool of that server.
+
+### Headless runs (`-p`)
+
+`--permission-prompts none` (v2.1.259) denies anything that would prompt
+on a host nobody is watching; the permission mode still decides the rest.
+`-p --resume <session-id>` continues a session the same run started.
+`defaultMode: "bypassPermissions"` is ignored in a project's
+`.claude/settings.json` (v2.1.257) — set it in user or managed settings.
 
 ### Skill/Agent frontmatter
 
@@ -232,6 +243,17 @@ Max 32 KiB total (`project_doc_max_bytes`).
 Key sections: `model`, `approval_policy`, `sandbox_mode`,
 `project_doc_fallback_filenames`. Supports profiles via
 `[profiles.<name>]`.
+
+### Headless runs (`codex exec`)
+
+`codex exec --json` reads the prompt from stdin and prints JSONL; the
+`thread.started` event carries the thread id. `codex exec resume <id>
+[prompt]` continues that thread and `codex exec fork <id>` branches it
+(v0.148); both take `--json`, `-m`, `--output-schema` and
+`--dangerously-bypass-approvals-and-sandbox`. Hook trust granted once
+persists through `codex exec` thread start and resume (v0.141). An
+untrusted project gets no project-level `AGENTS.md` (v0.150): a checkout
+the runner works in must be trusted, or the instructions never load.
 
 ### Plugins (v0.117.0+)
 
