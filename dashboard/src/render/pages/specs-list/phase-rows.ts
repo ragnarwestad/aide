@@ -120,7 +120,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   g.phases
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult });
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step });
       // The phase's own name, plain text: a phase line used to open the
       // tab the phase wrote (spec 237), but the mapping did not hold for
       // every phase — archive writes no file of its own, and a step

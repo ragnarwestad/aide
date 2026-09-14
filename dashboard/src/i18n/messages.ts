@@ -337,11 +337,13 @@ export const MESSAGES = {
     resolve: "run archive again",
   },
   "wordPhase.filesDisagree": {
-    en: "the files disagree with what has run",
-    nb: "filene stemmer ikke med det som faktisk har kjørt",
-    // States a fact with no action attached, the same shape as
-    // ARCHIVED_REFUSAL (docs/error-sentences.md).
-    exempt: "a bookkeeping mismatch report, not an action the reader takes",
+    // The spec's files and the run record (4-status.json, or git where
+    // there is none) do not agree on whether this phase ran — a status
+    // line claiming a phase no counted run made, or a run the file never
+    // caught up with. Running the phase again brings the two in line.
+    en: "the files and the run record disagree about whether {phase} ran — press {button} to run it again",
+    nb: "filene og kjøringsloggen er uenige om {phase} har kjørt — trykk {button} for å kjøre det på nytt",
+    resolve: "press {button} to run it again",
   },
   "wordPhase.attemptQualifierUnlanded": {
     // Read behind the phase's own name ("archive merge failed: …"), so
