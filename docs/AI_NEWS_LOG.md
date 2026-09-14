@@ -90,6 +90,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 | Sep 4  | v2.1.261      | **`/skill-doctor`** shows unused loaded skills and their context cost; `bashOutputMaxChars`/`taskOutputMaxChars` (up to 128K); `--append-subagent-system-prompt-file`                              | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
 | Sep 9  | v2.1.267      | `maxEffortLevel` setting; `-p --resume` after `/compact` no longer inserts a spurious turn; `cd` persists across turns in non-interactive sessions                                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
 | Sep 11 | v2.1.269      | **`claude plugin eval`** scores a plugin's eval suite (JSON + HTML report); `/output-style` in headless sessions; `bashEditDiffEnabled`                                                             | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
+| Sep 12 | v2.1.270      | ⭐ Fixed read-only git commands in Bash unexpectedly asking for permission after a session had been running for a while (regression in 2.1.269)                                                     | [GitHub Releases](https://github.com/anthropics/claude-code/releases)     |
 
 **GitHub Copilot CLI (May 28 – Sep 11, v1.0.55 → v1.0.84):**
 
@@ -104,6 +105,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 | Aug 3  | v1.0.78         | A stdin-piped run fires `sessionEnd` once per turn like `-p`; first-party plugins auto-update at session start                                                          | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Aug 27 | v1.0.81         | **Plugins dashboard for everyone** (`/plugin`, `/mcp`, `/skills`); MCP 2026-07-28 protocol; hooks receive OpenTelemetry trace context                                  | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 4  | v1.0.83–84      | Custom agents list several `model`s with fallback; `claude-fable-5.1`; GPT-6 Astra; `copilot instruction list` and `--json` on several commands (1.0.84-4)              | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
+| Sep 11 | v1.0.84-5 (pre) | Shell completions generated from the CLI's own parser grammar; subagent launches honor explicit `model`, reasoning-effort and context-tier preferences                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 
 **GitHub Copilot Platform (Sep 1–11):**
 
@@ -131,6 +133,8 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 
 Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` takes `--json`, `-m`, `--dangerously-bypass-approvals-and-sandbox` and `--output-schema`, and the id is the `thread_id` the runner already reads from `thread.started`.
 
+**Python SDK 0.154.0 (Sep 10):** `max`/`ultra` reasoning-effort values, `ExternalMessage` support for sync/async calls, `include_turns` on resume/fork with per-turn `service_tier`. aide drives the CLI, not this SDK — informative only.
+
 **New models:**
 
 | Date   | Model                 | Details                                                                              | Source                                                                    |
@@ -146,7 +150,7 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 - ⭐ **`codex exec resume <thread-id> [prompt] --json` (Codex, since v0.132; verified on 0.154.0)** — the runner's red-test loop (`run-spec-step-tests.sh`) ends a Codex step at once on the claim that Codex has no resume. It has one, and the runner already keeps the thread id. Action: resume Codex the same way claude is resumed; fix the sentence in `run-spec-invocation.sh`, `dashboard/docs/spec-lifecycle.md` and `dashboard/CLAUDE.md`.
 - ⭐ **`--permission-prompts none` (Claude Code v2.1.259)** — `aide-run-spec` runs `claude -p --permission-mode <mode>`; a prompt that can never be answered on a headless host now has an explicit off switch. Action: verify against the installed 2.1.270 and add it to the argv.
 - ⚠️ **Hook matchers exact-match (Claude Code v2.1.195)** — check every matcher in `implementations/claude-code/` settings for one that relied on substring matching.
-- ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — check aide's templates and installers for one that sets it at project scope.
+- ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — check aide's templates and installers for one that sets it at project scope. **Confirmed hands-on on 2026-09-14 (installed 2.1.270):** this repo's own `.claude/settings.json` sets it, but a headless run on this checkout still hit approval prompts on `git pull`, `git add`, `git commit`, `scripts/stamp-versions` and `npx markdownlint-cli2` — all blocked with no one able to answer, so this run's own `stamp-versions`/lint/commit/push steps could not run. `--permission-prompts none` (the item above) is the documented replacement; needs wiring into whatever launches a headless Claude Code session on this repo (`aide-run-spec` already tracks this).
 - ⚠️ **Untrusted projects get no project `AGENTS.md` (Codex v0.150)** — aide's Codex implementation depends on `AGENTS.md`; the dashboard's checkouts must be trusted, or the instructions never load. Verify on the serving host.
 - ⭐ **Three new default models** — `modelChoices` in the queue config, the README's model table and `docs/AI_SUPPORT_MATRIX.md` should name Sonnet 5, Opus 5, Fable 5.1 and GPT-6 Astra where they still name the 4.x/5.0 generation.
 - ✅ **`/skill-doctor` (v2.1.261) and `claude plugin eval` (v2.1.269)** — a way to measure what aide's skills cost in context and whether they are used; worth one run.
@@ -154,6 +158,11 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 - ✅ **Codex `/import` migrates Claude Code settings, skills and memories (v0.145, v0.147)** — an alternative to aide's own Codex installer for the parts that overlap; not adopted, noted.
 - ✅ **Copilot `copilot skill` subcommand, plugins dashboard, Open Plugin Spec v1, `preToolUse` exit 2 denies** — Copilot is parked (no subscription); logged for when it returns.
 - ℹ️ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no aide action.
+- ⭐ **Read-only git commands no longer misfire a permission prompt (Claude Code v2.1.270, fixes a v2.1.269 regression)** — aide's headless runs (`aide-run-spec`, `/check-news` itself) depend on `git status`/`git log` never blocking on approval; confirmed fixed on the installed 2.1.270.
+- ✅ **Copilot CLI v1.0.84-5: grammar-generated shell completions, subagent launches honor explicit model/effort/context-tier** — Copilot is parked; logged for when it returns.
+- ℹ️ **Codex Python SDK 0.154.0: `max`/`ultra` reasoning effort, `ExternalMessage`** — aide drives the Codex CLI directly, not this SDK; no action.
+
+No changes proposed to `AI_SUPPORT_MATRIX.md` or `ai-tools-reference/SKILL.md` beyond the version stamp — nothing above changes a config path, a mechanism, or a fidelity grade.
 
 ---
 
