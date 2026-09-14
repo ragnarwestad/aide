@@ -207,3 +207,36 @@ def test_an_archive_whose_base_did_not_move_runs_no_suite(runner, workspace, fak
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     assert len(fake_claude.calls.read_text().splitlines()) == 1
+
+
+def test_the_lines_handed_back_are_the_failures_not_every_line_with_error_in_it(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A suite prints "Error:" inside lines that belong to tests that
+    PASS (a fake git's stderr echoed by a passing test, say). Those are
+    not what failed, and a session handed them looks for a fault that is
+    not there. Only the runner's own failure markers reach the prompt."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    suite.write_text(
+        "#!/bin/sh\n"
+        "echo 'queue: the checkout — Error: git is not on this machine'\n"
+        "echo '(pass) a test that echoed that error and passed'\n"
+        "echo '(fail) the one that really failed'\n"
+        "exit 1\n"
+    )
+    suite.chmod(0o755)
+    _project_with_test_cmd(workspace, str(suite))
+    seen = tmp_path / "prompt-seen.txt"
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"printf '%s' \"$prompt\" >> {seen}\n"
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step' 2>/dev/null\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    prompt = seen.read_text()
+    assert "(fail) the one that really failed" in prompt
+    assert "git is not on this machine" not in prompt
+    assert "(pass)" not in prompt
