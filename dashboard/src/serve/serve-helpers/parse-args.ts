@@ -38,7 +38,7 @@ export function resolveDependencyFolder(
 }
 
 export function parseArgs(argv: string[]): ServerOptions {
-  const opts: ServerOptions = { siteDir: join(homedir(), "aide-dashboard", "site"), port: 8788 };
+  const opts: ServerOptions = { siteDir: join(homedir(), ".aide", "dashboard", "site"), port: 8788 };
   let root: string | undefined;
   let tokenFile: string | undefined;
   let queueConfigFile: string | undefined;
@@ -63,7 +63,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--pdf-bin" && v) opts.pdfGeneratorBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
     // Where the dashboard keeps the clones it works in (spec 205).
-    // `~/aide-dashboard/checkouts` unless a host wants them elsewhere.
+    // `~/.aide/dashboard/checkouts` unless a host wants them elsewhere.
     else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
     // The token is read from a FILE, never an argument: `ps` shows
@@ -74,11 +74,11 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");
-  if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), "aide-dashboard", "aide-queue.json");
-  if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), "aide-dashboard", "pending-models.json");
-  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), "aide-dashboard", "pending-effort.json");
-  if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), "aide-dashboard", "pending-steps.json");
+  if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
+  if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), ".aide", "dashboard", "aide-queue.json");
+  if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), ".aide", "dashboard", "pending-models.json");
+  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), ".aide", "dashboard", "pending-effort.json");
+  if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), ".aide", "dashboard", "pending-steps.json");
   if (tokenFile) {
     // A missing or unreadable token file must not crash the server:
     // launchd would restart it in a loop and take the whole dashboard

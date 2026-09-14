@@ -76,7 +76,7 @@ export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJo
  *  survives past the run — keyed on the same (project, tracking key)
  *  identity `scheduleTrackingKey` already uses, so the URL a reader
  *  bookmarks never moves between runs (spec 272). */
-export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), "aide-dashboard", "schedule-output");
+export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard", "schedule-output");
 
 /** The one function both the write side (`runner-setup.ts`'s spawn) and
  *  the read side (the serving route, the Schedule page) import — never a

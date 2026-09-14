@@ -367,7 +367,7 @@ pushes from the same tree, while a person edits it meanwhile. The per-repo lock 
 itself; nothing serializes it against a person's own git client, and nothing can.
 
 So the dashboard keeps clones of its own, under
-`~/aide-dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
+`~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
 project, never one per run;
 `--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the person's
 checkout's own `origin`, and reused ever after. Everything that MUTATES goes there: `aide-run-spec
@@ -411,7 +411,7 @@ repos that actually changed (`branchUrls` in the result; `branchUrl` keeps the s
 movement is the test, not `changedFiles`** — that field counts only what the run's own commit loop found uncommitted,
 and a step that commits its own work (archive does) leaves it at `0` with real commits on the branch.
 
-**It branches them in `git worktree` checkouts of its own**, under `$HOME/aide-dashboard/worktrees/<project>/<spec>/`. The real
+**It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
 can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a person can use the
 checkout meanwhile. Two consequences worth knowing before changing anything here:
@@ -443,7 +443,7 @@ available.** Anything added to this script that wants an array built from multip
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line of JSON on stdin (claude-usage's contract,
 copied so one wrapper can serve both). It is spawn-and-forget, SIGTERM at 10 s and SIGKILL a second later, and absent
 unless configured. `deploy/notify-slack.sh` is the wrapper we use: it reads the payload and posts one line to a Slack
-incoming webhook, whose URL lives in `~/aide-dashboard/slack-webhook`
+incoming webhook, whose URL lives in `~/.aide/dashboard/slack-webhook`
 (a secret — never in either repo).
 
 The line reads, for example:
@@ -493,7 +493,7 @@ once more, because the token cookie belongs to the origin it was set on.
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
-mirrored to `~/aide-dashboard/aide-runs.json` so restarts keep them.
+mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
 
 ## What a finished step publishes
 

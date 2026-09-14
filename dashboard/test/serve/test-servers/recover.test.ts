@@ -279,7 +279,7 @@ describe("the worktrees of test servers that are gone", () => {
     expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
   });
 
-  // A run's own worktree lives at `~/aide-dashboard/worktrees/<project>/<spec>/code`
+  // A run's own worktree lives at `~/.aide/dashboard/worktrees/<project>/<spec>/code`
   // and is a job in progress, not a leftover.
   test("nothing but a round's own worktree is touched", async () => {
     const ctx = makeCtx({

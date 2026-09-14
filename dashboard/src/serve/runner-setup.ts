@@ -77,7 +77,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     projectDir: ctx.machineryProjectDir,
     specsRoot: ctx.machinerySpecsRoot,
     runnerBin,
-    resultDir: ctx.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
+    resultDir: ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs"),
     maxConcurrent: ctx.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,
     now: () => new Date().toISOString(),
     today: () => new Date().toISOString().slice(0, 10),
