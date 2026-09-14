@@ -405,7 +405,7 @@ function aiModel(
   // reason regardless, so the mark cannot live only on the branch below
   // that draws a model select.
   const lockNote = live
-    ? "This phase has not started yet. Tick it to add it to this run, or untick to drop it."
+    ? ""
     : locked
       ? isArchivedRow(g)
         ? `This phase can't be changed right now because ${busyReason(g)}.`

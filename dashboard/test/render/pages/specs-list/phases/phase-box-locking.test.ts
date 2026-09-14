@@ -175,6 +175,7 @@ describe("a spec's row runs its own phases", () => {
       // submit target creates a SECOND job and the queue refuses it.
       expect(box(line, step)).toContain('data-post-to="/api/queue/j1/steps"');
       expect(box(line, step)).not.toContain('name="steps"');
+      expect(subRow(line, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
@@ -274,6 +275,7 @@ describe("a spec's row runs its own phases", () => {
       // the model select beside it, and that is what reaches the
       // server.
       expect([step, p.ai.includes("data-post-to")]).toEqual([step, false]);
+      expect(subRow(html, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
@@ -288,6 +290,7 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.ai.includes("disabled")]).toEqual([step, false]);
       expect([step, p.model.includes("disabled")]).toEqual([step, false]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, true]);
+      expect(subRow(html, step)).not.toContain('aria-label="why this is locked"');
     }
   });
 
