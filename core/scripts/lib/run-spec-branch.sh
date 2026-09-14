@@ -95,8 +95,8 @@ for root in "${roots[@]}"; do
     update_branch_to_base "$wt" "$base_ref" "$root"
   else
     if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
-      git -C "$root" fetch -q origin "$base" 2>/dev/null \
-        || refuse "cannot fetch $base from origin in $root — refusing rather than cutting $branch from this checkout's own tip"
+      fetch_base_with_retry "$root" "$base" \
+        || refuse "cannot fetch $base from origin in $root ($fetch_retry_error) — refusing rather than cutting $branch from this checkout's own tip"
       base_ref_for "$root" "$base"
     fi
     git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>/dev/null \

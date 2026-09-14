@@ -50,6 +50,15 @@ a test that reads two sides.
 asymmetries in the readiness pair, and the three shared-source decisions
 with the tests and assertions that pin all of them.
 
+- **The landing runs aide's scripts from beside `--runner-bin`, never from
+  PATH alone** (`scriptFor` in `land-branch/run-script.ts`). A test board
+  serving a branch runs that branch's TypeScript, and the bash written
+  together with it lives in the same checkout; the copy under
+  `~/.local/bin` is main's, so a flag the branch added is "unknown" to
+  it. Prod's runner IS the installed one, so prod is unchanged.
+  `test/serve/land-branch/scripts-beside-the-runner.test.ts` pins the
+  lookup and the wiring.
+
 ## Landing
 
 `docs/landing.md`, and `docs/job-states.md` for the job's side of it.

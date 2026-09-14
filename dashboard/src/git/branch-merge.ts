@@ -22,6 +22,7 @@
 
 import type { BoardMessage, Sentence } from "../i18n/message.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
+import { finalizeCreateOnAttempt, type CreateFinalizer } from "./create-finalizer.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -177,16 +178,6 @@ async function pushWithRetry(run: GitRunner, root: string, base: string, wait: W
 
 
 export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
-
-/** Landing's own finalize step for a `create` job (spec 453): renames
- *  the folder off its literal provisional key to its real `NN-slug` and
- *  rewrites its own `Task:` lines, run inside the merge worktree —
- *  `work`, the same argument `LandingGate` receives — right after the
- *  merge succeeds and before the push, so the rename lands in the same
- *  commit the merge is about to push. */
-export type CreateFinalizer = (work: string) => Promise<
-  { ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }
->;
 
 export async function mergeBranchIntoDefault(
   run: GitRunner,
@@ -345,26 +336,11 @@ export async function mergeBranchIntoDefault(
           reason: "conflict",
         };
       }
-      // Spec 453: renumber the folder off its literal provisional key
-      // BEFORE the gate — recomputed on every attempt, since a `base`
-      // that moved between attempts means the folder count taken on a
-      // dropped attempt may already be stale. The rename becomes an
-      // ordinary part of the tree this attempt is about to push; a
-      // refusal here behaves exactly like a merge conflict — the local
-      // merge is dropped and the branch is untouched.
+      // A create job's folder is renumbered here, before the gate, on
+      // every attempt (create-finalizer.ts says why).
       if (finalizeCreate) {
-        const finalized = await finalizeCreate(work);
-        if (!finalized.ok) {
-          await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-          return {
-            root,
-            ok: false,
-            error: finalized.error,
-            ...(finalized.detail
-              ? { detail: `${finalized.detail}\n${branch} in ${root}` }
-              : { detail: `${branch} in ${root}` }),
-          };
-        }
+        const finalized = await finalizeCreateOnAttempt(run, finalizeCreate, { work, root, branch, base });
+        if ("refused" in finalized) return finalized.refused;
         assignedSpecFolder = finalized.specFolder;
       }
       // The tests run HERE, once per attempt, on what main is about to

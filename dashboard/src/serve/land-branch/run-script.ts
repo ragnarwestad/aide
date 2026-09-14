@@ -9,8 +9,20 @@ import { join } from "node:path";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
-export function installed(name: string, override: string | undefined): string {
-  if (override) return override;
+/** Which copy of an aide script the landing runs. BESIDE THE RUNNER
+ *  first: the board is started with `--runner-bin`, and the scripts in
+ *  that same directory are the ones written together with this server's
+ *  own code — a test board started from a branch serves that branch's
+ *  TypeScript and must call that branch's bash, or a flag the branch
+ *  added is "unknown" to the copy installed from main (2026-09-14).
+ *  Then the installed copy under ~/.local/bin, then the bare name. An
+ *  explicit override (a test's fake) wins over all three. */
+export function scriptFor(name: string, opts: { beside?: string; override?: string } = {}): string {
+  if (opts.override) return opts.override;
+  if (opts.beside) {
+    const sibling = join(opts.beside, name);
+    if (existsSync(sibling)) return sibling;
+  }
   const path = join(process.env.HOME || homedir(), ".local", "bin", name);
   return existsSync(path) ? path : name;
 }

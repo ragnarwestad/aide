@@ -13,7 +13,7 @@
 
 import { join, relative } from "node:path";
 import type { Sentence } from "../../i18n/message.ts";
-import { installed, runScript } from "./run-script.ts";
+import { runScript, scriptFor } from "./run-script.ts";
 import { failingLines } from "./test-gate.ts";
 
 export type FinalizeCreateResult =
@@ -32,10 +32,13 @@ export async function assignSpecNumberAfterMerge(
   repoRoot: string,
   specsRootAbs: string,
   provisionalFolder: string,
+  opts: { scriptDir?: string } = {},
 ): Promise<FinalizeCreateResult> {
   const rel = relative(repoRoot, specsRootAbs);
   const specsRootInWork = rel && !rel.startsWith("..") ? join(work, rel) : work;
-  const script = installed("aide-create-spec", process.env.AIDE_CREATE_SPEC_BIN);
+  // The runner's own directory first (`--runner-bin`), never PATH alone:
+  // see `scriptFor`.
+  const script = scriptFor("aide-create-spec", { beside: opts.scriptDir, override: process.env.AIDE_CREATE_SPEC_BIN });
   const result = await runScript(
     [script, "--specs-root", specsRootInWork, "--assign-number", "--folder", provisionalFolder],
     work,

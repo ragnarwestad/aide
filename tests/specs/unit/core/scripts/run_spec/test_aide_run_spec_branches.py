@@ -14,8 +14,8 @@ import shlex
 import shutil
 import signal
 import subprocess
+import threading
 import time
-import pytest
 import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import conflicting_race_claude, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
@@ -423,3 +423,60 @@ def test_extra_project_dir_is_no_longer_an_argument(runner, workspace, fake_clau
     assert out["terminalReason"] == "refused"
     assert "unknown argument" in out["error"]
     assert "--extra-project-dir" in out["error"]
+
+
+def _origin_main_moves_on(project):
+    """Put a commit on origin's main that this checkout has not fetched,
+    so the run's fetch has to WRITE refs/remotes/origin/main — an
+    up-to-date ref is never locked, and a lock on it would prove nothing."""
+    before = git(project, "rev-parse", "HEAD")
+    (project / "moved-on-origin.txt").write_text("landed on origin by another run\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "another run's landing")
+    git(project, "push", "-q", "origin", "main")
+    git(project, "reset", "-q", "--hard", before)
+    git(project, "update-ref", "refs/remotes/origin/main", before)
+
+
+def test_a_fetch_that_loses_a_momentary_ref_lock_is_retried(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """Several runs of one project share its main checkout, and two of
+    them fetching main at once make git refuse the second for the moment
+    the first holds `refs/remotes/origin/main.lock`. A run that gave up
+    on that first answer was refused with "cannot fetch main from origin"
+    — seen with twelve creates dispatched together. The fetch is retried
+    for a few seconds, and only a lock that never lifts refuses."""
+    project = workspace["project"]
+    _origin_main_moves_on(project)
+    lock = project / ".git" / "refs" / "remotes" / "origin" / "main.lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text("held by a concurrent fetch\n")
+
+    def lift_the_lock():
+        time.sleep(1.5)
+        lock.unlink()
+
+    threading.Thread(target=lift_the_lock, daemon=True).start()
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, pull=True)
+    assert rc == 0, out
+    assert "cannot fetch" not in (out.get("pullError") or ""), out
+
+
+def test_a_fetch_that_never_gets_the_ref_refuses_with_gits_own_words(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The refusal names what git said, so a lock that never lifts — or
+    any other reason the fetch fails — is diagnosable from the row."""
+    project = workspace["project"]
+    _origin_main_moves_on(project)
+    lock = project / ".git" / "refs" / "remotes" / "origin" / "main.lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text("held for good\n")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, pull=True)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "cannot fetch main from origin" in out["error"], out["error"]
+    assert "lock" in out["error"], out["error"]
