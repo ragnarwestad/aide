@@ -107,7 +107,7 @@ checkout. Start-up clears those too: a worktree the test run made, on a branch i
 that no live server answers for.
 
 A kept test server that dies on its own keeps its log: the watcher copies the server's own log to
-`~/aide-dashboard/round-logs/` (one file per event, named by time and board) before it removes the
+`~/.aide/dashboard/round-logs/` (one file per event, named by time and board) before it removes the
 rest, so a server that is gone can still say how it went.
 
 ## Which commit it serves

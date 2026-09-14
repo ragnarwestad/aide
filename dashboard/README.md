@@ -63,7 +63,7 @@ AIDE_DASH_HOST=<host> make publish  # generate + rsync out/ to that host
 ```
 
 `AIDE_DASH_HOST` is required and has no default, for the same reason as `MINI` above. The remote
-site directory (`~/aide-dashboard/site` on the serving host) must remain exclusively the
+site directory (`~/.aide/dashboard/site` on the serving host) must remain exclusively the
 dashboard's: publish syncs with `--delete`, so anything else placed there is removed on the next
 publish.
 

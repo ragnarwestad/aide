@@ -12,7 +12,7 @@ import type { RoutesContext } from "./";
 
 /** Homedir, sibling of `queueResultDir`'s own default — never inside a
  *  checkout, which is the exact bug REQ-4 exists to prevent. */
-export const DEFAULT_PDF_CACHE_DIR = join(homedir(), "aide-dashboard", "pdf-cache");
+export const DEFAULT_PDF_CACHE_DIR = join(homedir(), ".aide", "dashboard", "pdf-cache");
 
 export async function handleSpecPdfRoute(
   ctx: RoutesContext,

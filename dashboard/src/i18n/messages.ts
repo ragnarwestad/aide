@@ -337,7 +337,7 @@ export const MESSAGES = {
     resolve: "run archive again",
   },
   "wordPhase.filesDisagree": {
-    // The spec's files and the run record (4-status.json, or git where
+    // The spec's files and the run record (the state file, or git where
     // there is none) do not agree on whether this phase ran — a status
     // line claiming a phase no counted run made, or a run the file never
     // caught up with. Running the phase again brings the two in line.
