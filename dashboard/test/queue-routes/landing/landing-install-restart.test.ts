@@ -255,7 +255,7 @@ describe("a landing that installs and asks for a restart", () => {
       // by a person, and a short id names nothing to them.
       expect(body.restartWaiting).toEqual([`${job.project}:${job.specFolder}`]);
       // The restart hook never fires within this test's own window — the
-      // wait is bounded by RESTART_JOBS_DEFER_MS (two hours) by default.
+      // wait is bounded by RESTART_DEFER_TIMEOUT_MS (two hours) by default.
       expect(fired).toBe(0);
 
       const deadline = Date.now() + 15_000;
