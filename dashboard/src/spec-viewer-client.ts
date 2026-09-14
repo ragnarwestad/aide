@@ -1,4 +1,4 @@
-// The read-only counterpart of spec-editor-client.ts (spec 333,
+// The read-only counterpart of spec-editor/index.ts (spec 333,
 // finishing the split spec 315 started): a locked document tab's own
 // bundle, built from @toast-ui/editor's dedicated Viewer export rather
 // than the full Editor class, so REQ-4/REQ-5 hold because there is no
@@ -15,7 +15,7 @@
 // (`types/toastui-editor-viewer.d.ts`) and passes both tools cleanly.
 import viewerCss from "@toast-ui/editor/dist/toastui-editor-viewer.css" with { type: "text" };
 // REQ-5: the light stylesheet carries no `.toastui-editor-dark` rule at
-// all — the dark theme is a SEPARATE file, same as spec-editor-client.ts's
+// all — the dark theme is a SEPARATE file, same as spec-editor/index.ts's
 // own two-stylesheet import.
 import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" with { type: "text" };
 import Viewer from "@toast-ui/editor/dist/toastui-editor-viewer";
@@ -31,7 +31,7 @@ if (host && raw) {
   new Viewer({ el: host, initialValue: raw.textContent ?? "", usageStatistics: false });
   host.dataset.mounted = "true";
 
-  // REQ-5: the same live light/dark/auto wiring spec-editor-client.ts
+  // REQ-5: the same live light/dark/auto wiring spec-editor/index.ts
   // carries for the editable path — but the class lands on `host`
   // itself here, since the Viewer renders no `.toastui-editor-defaultUI`
   // wrapper to put it on instead.

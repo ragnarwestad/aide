@@ -1,5 +1,5 @@
 // REQ-1/REQ-2/REQ-3/REQ-5: the read-only mount, spec-viewer-client.ts —
-// the read-only counterpart spec-editor-client.ts's dead branch used to
+// the read-only counterpart spec-editor/index.ts's dead branch used to
 // be, now built on the vendor's own dedicated Viewer entry point
 // (`@toast-ui/editor/dist/toastui-editor-viewer`) instead of
 // `Editor.factory({ viewer: true })`.

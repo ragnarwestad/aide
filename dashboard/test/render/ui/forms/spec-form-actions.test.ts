@@ -53,9 +53,9 @@ function checksForm(): { form: HTMLFormElement; tick: HTMLInputElement } {
 }
 
 /** A document-tab-shaped form: a textarea, plus the same pair, plus the
- *  raw editor textarea `spec-editor-client.ts` would sync — dispatching
+ *  raw editor textarea `spec-editor/index.ts` would sync — dispatching
  *  "spec-cancel" on it is the redraw hook this script owns; whether an
- *  editor is actually mounted is spec-editor-client.ts's own concern
+ *  editor is actually mounted is spec-editor/index.ts's own concern
  *  (spec-editor-viewer-and-theme.test.ts). */
 function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTextAreaElement } {
   document.body.innerHTML =
@@ -192,7 +192,7 @@ describe("REQ-4/REQ-10: Cancel restores every field and re-disables both control
   });
 
   test("a spec-cancel listener that itself fires a change event does not leave the controls dirty", () => {
-    // Reproduces spec-editor-client.ts's own addition: instance.setMarkdown()
+    // Reproduces spec-editor/index.ts's own addition: instance.setMarkdown()
     // inside the "spec-cancel" handler may re-dispatch a bubbling "input"
     // on the raw textarea. The Cancel handler's own setDirty(false) has
     // to be the LAST word regardless of what a listener in between did.

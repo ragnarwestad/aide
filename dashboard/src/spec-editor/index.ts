@@ -27,7 +27,7 @@ import editorCss from "@toast-ui/editor/dist/toastui-editor.css" with { type: "t
 // would style nothing.
 import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" with { type: "text" };
 import Editor from "@toast-ui/editor";
-import { unescapeMarkdown } from "./spec-editor/unescape-markdown.ts";
+import { unescapeMarkdown } from "./unescape-markdown.ts";
 import type { ToMdConvertorMap } from "@toast-ui/editor";
 
 // REQ-4: the library exposes no constructor option for the mode

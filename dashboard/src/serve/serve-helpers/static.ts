@@ -87,7 +87,7 @@ function toastUiEditorResolveFix(): import("bun").BunPlugin {
 // `specsClientScript()` above — cached, `format: "iife"`, fail-open on
 // a build error — so a failed build degrades to the plain textarea
 // rather than breaking the page. Its own CSS travels inside this same
-// bundle (see `spec-editor-client.ts`'s own comment on why), so this
+// bundle (see `spec-editor/index.ts`'s own comment on why), so this
 // one string is genuinely the whole payload. `minify: true` because the
 // unminified payload is ~900 KB — nothing `specsClientScript()` bundles
 // is remotely this size, so it has never needed this.
@@ -95,7 +95,7 @@ let specEditorScript: Promise<string | undefined> | null = null;
 export function specEditorClientScript(): Promise<string | undefined> {
   if (specEditorScript !== null) return specEditorScript;
   specEditorScript = Bun.build({
-    entrypoints: [join(import.meta.dir, "../../spec-editor-client.ts")],
+    entrypoints: [join(import.meta.dir, "../../spec-editor/index.ts")],
     target: "browser",
     format: "iife",
     minify: true,
