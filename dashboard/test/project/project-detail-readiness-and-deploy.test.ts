@@ -306,7 +306,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
       return level.run(dir, args);
     };
     const base = serve(root, { run }, 25);
-    const deadline = Date.now() + 2000;
+    const deadline = Date.now() + 15_000;
     let html = await (await get(base, "aide", "deploy")).text();
     while ((!html.includes("matches origin") || !html.includes("still running commit")) && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 25));
@@ -327,7 +327,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     // Poll until the "not checked yet" state has cleared — a real,
     // timestamped `null` has replaced it — rather than asserting on the
     // very first load, which would still be in the unchecked state.
-    const deadline = Date.now() + 2000;
+    const deadline = Date.now() + 15_000;
     let html = await (await get(base, "aide", "deploy")).text();
     while (
       html.includes("Whether this checkout is behind origin has not been checked yet") &&

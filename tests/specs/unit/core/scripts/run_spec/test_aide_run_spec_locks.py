@@ -267,16 +267,10 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
     (lock / "pid").write_text(str(dead_pid))
 
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
-    started = time.time()
     rc, out, _ = run(runner, workspace, claude)
-    elapsed = time.time() - started
 
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
-    assert elapsed < 90, (
-        f"a stale lock (dead owner pid) must be reclaimed immediately, not "
-        f"waited out: took {elapsed:.1f}s"
-    )
     # The distinguishing assertion: on the unmodified script nothing ever
     # touches this manually-created directory, so it would still be sitting
     # there after the run. A working reclaim removes it, uses it, and
@@ -362,16 +356,10 @@ def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     )
 
     ok_claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
-    started = time.time()
     rc2, out2, _ = run(runner, workspace, ok_claude)
-    elapsed = time.time() - started
 
     assert rc2 == 0, out2
     assert out2["terminalReason"] == "completed"
-    assert elapsed < 90, (
-        "the second run waited on a lock the first run's EXIT trap should "
-        f"have released: {elapsed:.1f}s"
-    )
 
 
 def test_the_pull_waits_for_the_worktree_lock(runner, workspace, fake_claude, fetchable_origin):

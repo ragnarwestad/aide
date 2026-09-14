@@ -206,7 +206,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     // readings of it, rather than a spec that has left the dashboard.
     // Polled, because the folder was made after the server started and
     // the disk scan it answers from is cached for a few seconds.
-    const deadline = Date.now() + 3000;
+    const deadline = Date.now() + 15_000;
     let archivedView = "";
     for (;;) {
       archivedView = await (

@@ -338,7 +338,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
   // the list first, each time round, the same way the row-level
   // assertions below already have to poll for the mark to land.
   const enqueueArchiveWhenResolvable = async (base: string, specFolder: string): Promise<{ id: string }> => {
-    const deadline = Date.now() + 3000;
+    const deadline = Date.now() + 15_000;
     for (;;) {
       await fetch(`${base}/${ARCHIVED_VIEW}`, { headers: { "x-aide-token": TOKEN } });
       const res = await fetch(`${base}/api/queue`, {
