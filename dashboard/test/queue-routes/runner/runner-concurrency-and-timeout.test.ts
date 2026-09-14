@@ -390,14 +390,12 @@ describe("an over-charged cost survives the row mapping", () => {
     return mirror;
   }
 
-  // The figure's explanation sits behind a (?) button beside it (spec
-  // 454), never in a title= tooltip.
   const MARKER = '<summary title="why this is an estimate"';
 
-  test("the spec row marks a total it could not measure", async () => {
+  test("the spec row's total carries no (?) marker even when it could not be measured", async () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(false) });
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(specHead(html, "81-queue-and-runner")).toContain(MARKER);
+    expect(specHead(html, "81-queue-and-runner")).not.toContain(MARKER);
   });
 
   test("a measured total through the same seam carries no mark", async () => {

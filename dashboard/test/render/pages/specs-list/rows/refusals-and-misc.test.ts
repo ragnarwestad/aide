@@ -228,7 +228,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
   const spentRow = (extra: Partial<QueueRowView>): QueueRowView =>
     row({ state: "done", ...extra });
 
-  test("the spec row's total is marked when any job under it was over-charged", () => {
+  test("the spec row's total still sums an over-charged job, with no (?) marker", () => {
     const html = renderSpecsRows(
       [
         spentRow({
@@ -244,7 +244,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
     expect(html).toContain("$41.13");
-    expect(html).toContain(listMarker);
+    expect(html).not.toContain(listMarker);
   });
 
   test("a spec whose every step was measured renders no marker", () => {
@@ -264,7 +264,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
 
   // The phase lines answer for their OWN attempt, so the marker has to
   // be decided per line rather than inherited from the row above them.
-  test("an expanded phase line marks its own attempt, and a measured one beside it does not", () => {
+  test("an expanded phase line carries no marker, over-charged or not", () => {
     const rows = [
       spentRow({
         id: "j1", steps: ["analyze"], spentUsd: 6.13,
@@ -282,7 +282,7 @@ describe("an unmeasured cost is marked where it is totalled", () => {
     );
     const implementLine = html.slice(html.indexOf('data-step="implement"'));
     const analyzeLine = html.slice(html.indexOf('data-step="analyze"'), html.indexOf('data-step="implement"'));
-    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).toContain(listMarker);
+    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).not.toContain(listMarker);
     expect(analyzeLine).toContain("$6.13");
     expect(analyzeLine).not.toContain(listMarker);
   });

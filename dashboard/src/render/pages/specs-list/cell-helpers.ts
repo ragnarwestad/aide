@@ -3,7 +3,7 @@
 // (the notice-line sentences an archived or live row's own fields can
 // carry).
 
-import { CHECKING, badge, helpPopover, pips, stepLabel } from "../../ui/components";
+import { CHECKING, badge, pips, stepLabel } from "../../ui/components";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import {
@@ -141,16 +141,6 @@ export function phaseDurationCell(latest: QueueRowView | undefined, step: string
 // distinction is the whole reason this takes a parameter the shared
 // formatter does not — everything else about the cell is `usdOrTokens`,
 // which is where the dollar/token pair is decided for the whole site.
-// `unmeasured` marks a figure that includes a stand-in: a stopped step
-// is charged its whole budget because a SIGKILLed run prints no usage,
-// and a total that says nothing about it reads as money spent (spec
-// 152).
-//
-// Said in the figure's own tooltip, not beside it (2026-09-08). The
-// word "est." stood next to the number until then, and the Cost column
-// is 4.5rem — "14.0M est." does not fit, so the mark wrapped onto a
-// line of its own and read as belonging to the column beside it. The
-// job page's Steps table has the width for it and keeps the word.
 // `settled` (spec 433): this figure is a real answer, not merely
 // unrecorded — a finished step whose own record genuinely says $0, which
 // reads exactly like "nothing here yet" without it. Opt-in and
@@ -160,7 +150,6 @@ export const costCell = (
   spentUsd: number,
   spentTokens: number | undefined,
   blank: string,
-  unmeasured?: boolean,
   settled?: boolean,
 ): string => {
   if (!(spentUsd > 0 || (spentTokens ?? 0) > 0 || settled)) return blank;
@@ -171,18 +160,10 @@ export const costCell = (
   // rather than fall through to that same undefined — but only when
   // there is no token figure either: a settled Codex step still owes
   // spec 260's guarantee, tokens over an invented $0.00.
-  const figure = usdOrTokens(
+  return usdOrTokens(
     spentUsd > 0 ? spentUsd : settled && !((spentTokens ?? 0) > 0) ? 0 : undefined,
     spentTokens,
   );
-  return unmeasured
-    ? `<span>${figure}</span>` +
-      helpPopover(
-        "why this is an estimate",
-        "This is an estimate: a step that was stopped is charged its whole budget, because a run " +
-          "that is killed reports nothing about what it used.",
-      )
-    : figure;
 };
 
 /** One pip per phase: green for a phase that has run, the accent for the

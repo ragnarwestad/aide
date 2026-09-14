@@ -173,13 +173,12 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  // Spec 247, criterion 4: the same mark a live row's own unmeasured
-  // cost already carries, now on a locked phase's cost too. It is the
-  // figure's own tooltip on this list since 2026-09-08 — the word
-  // beside it did not fit the 4.5rem column and wrapped. Its own
-  // fixture, so the plain-cost assertion above stays a single-value
-  // check rather than one cost doing double duty.
-  test("marks a cost recorded as unmeasured (spec 247, criterion 4)", async () => {
+  // Spec 247, criterion 4: an unmeasured cost, recorded on a locked
+  // phase — the figure still renders, but carries no (?) explaining the
+  // estimate (spec 459). Its own fixture, so the plain-cost assertion
+  // above stays a single-value check rather than one cost doing double
+  // duty.
+  test("a cost recorded as unmeasured renders with no (?) marker (spec 247, criterion 4)", async () => {
     const folder = "155-a-locked-unmeasured-cost";
     const { base } = start({}, {
       [folder]: {
@@ -190,8 +189,8 @@ describe("an archived spec's row, opened", () => {
     });
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
     const line = lines["analyze"]!;
-    expect(line).toContain('<summary title="why this is an estimate"');
-    expect(line).toContain("This is an estimate: a step that was stopped is charged its whole budget");
+    expect(line).not.toContain('<summary title="why this is an estimate"');
+    expect(line).not.toContain("This is an estimate: a step that was stopped is charged its whole budget");
     expect(line).toContain(STAMPED_COST_LABEL);
   });
 

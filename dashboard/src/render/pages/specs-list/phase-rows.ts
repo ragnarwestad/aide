@@ -3,7 +3,7 @@
 
 import { badge, helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { anyCostUnmeasured, wordPhase } from "../../ui/job-state";
+import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state/types.ts";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
@@ -340,22 +340,16 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // settled $0.
           `<td class="num" data-col="cost">${
             locked
-              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.costUnmeasured, p.cost !== undefined)
+              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.cost !== undefined)
               : latest
-                ? costCell(
-                    latest.spentUsd,
-                    latest.spentTokens,
-                    "",
-                    anyCostUnmeasured(latest.results),
-                    latest.state === "done",
-                  )
+                ? costCell(latest.spentUsd, latest.spentTokens, "", latest.state === "done")
                 // No queue job for this phase, but its own file carries
                 // a stamped record: it ran, and — when the file's own
                 // Cost: line is present — its cost is genuinely $0
                 // rather than unattempted, never a blank indistinguishable
                 // from "not run".
                 : ranWithNoCost
-                  ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured, p.cost !== undefined)
+                  ? costCell(p.cost ?? 0, p.tokens, "–", p.cost !== undefined)
                   : ""
           }</td>` +
           // Blank, and LAST since 2026-09-08: a phase line has no
