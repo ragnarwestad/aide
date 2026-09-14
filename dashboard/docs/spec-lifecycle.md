@@ -152,7 +152,9 @@ runner decides on its own.
   `3-solution.md` and `4-status.md` while keeping `0-README.md` and `1-description.md`. The sha is the boundary
   `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the line.
 - **Reset** does the same for an active spec whose current round must not count, keeping the description, the commits
-  and the earlier job history.
+  and the earlier job history. It needs no model: `core/scripts/aide-reset-spec` writes the three files from the
+  templates, and a headless `reset` step runs that script directly, the way a create with no AI already writes its
+  spec — the step ends in seconds and reports its tool as `none`.
 
 A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs. Neither move touches
 a phase choice recorded earlier under this spec (`pending-steps.json`) — the row's boxes still follow it, exactly as

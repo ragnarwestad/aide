@@ -291,7 +291,7 @@ def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root)
         "workflow-history.ts still declares HISTORY_STEPS_RETIRED as a literal array"
     )
 
-    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
+    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status" / "index.ts").read_text()
     assert not re.search(r"const WORKFLOW_STEPS = \[.*?\];", parse_status_ts, re.S), (
         "parse-status.ts still declares WORKFLOW_STEPS as a literal array"
     )
