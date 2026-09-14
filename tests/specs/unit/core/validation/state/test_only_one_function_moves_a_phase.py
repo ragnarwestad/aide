@@ -62,7 +62,7 @@ class TestDashboardNeverWritesAPhaseOrStamp:
     that way."""
 
     def test_spec_edit_never_writes_the_workflow_steps_line_or_the_stamps(self, workspace_root):
-        text = (workspace_root / "dashboard/src/serve/routes/spec-edit.ts").read_text()
+        text = (workspace_root / "dashboard/src/serve/routes/spec-edit/index.ts").read_text()
         assert "Workflow steps completed" not in text
         assert "**Archived:**" not in text
         assert "**Reopened:**" not in text

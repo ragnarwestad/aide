@@ -197,8 +197,14 @@ create_no_ai=""
 if [ "$command_name" = "create" ] && [ "$no_ai_formulate" = "yes" ]; then
   create_no_ai="yes"
 fi
+# A reset needs no model at all: three files back to their templates
+# (aide-reset-spec), and the boundary mark this script stamps afterwards.
+# A model turn here was refused its commands under a permission mode
+# with nobody to ask, and left the files as they were (2026-09-14).
+reset_no_ai=""
+[ "$command_name" = "reset" ] && reset_no_ai="yes"
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ]; then
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
   # the same zero/absent shape already_landed() already uses above for
@@ -225,6 +231,17 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ]; then
     else
       terminal_reason="cli-error"
       error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
+    fi
+  elif [ -n "$reset_no_ai" ]; then
+    reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" 2>/dev/null)"
+    if [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ]; then
+      terminal_reason="completed"
+      cost_measured="true"
+      tool="none"
+      model=""; effort=""
+    else
+      terminal_reason="cli-error"
+      error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
     fi
   else
     terminal_reason="$archive_terminal_reason"; error_msg=""
