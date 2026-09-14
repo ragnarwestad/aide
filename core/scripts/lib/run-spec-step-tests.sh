@@ -57,7 +57,28 @@ if [ -n "$step_tests_folder" ]; then
     done <<EOF_CMDS
 $(printf '%s' "$step_tests_resolved" | jq -r '.commands[]?' 2>/dev/null)
 EOF_CMDS
-    if [ "$step_test_count" -gt 0 ]; then
+    # The session was told to run these same commands through
+    # aide-record-test-run, and that script writes the hash of the tree
+    # it ran against into the record. A green record for EXACTLY the
+    # tree the step delivered, naming exactly the commands resolved
+    # here, is a run of this result — running it again would cost the
+    # suite's whole duration to learn nothing. Anything else — no
+    # record, a record without a tree (written by hand), another tree
+    # (the session changed something after the run), other commands,
+    # red — and the runner runs.
+    step_tests_spared="no"
+    step_record="$specs_root_wt/$step_tests_folder/test-run.json"
+    if [ -f "$step_record" ] && declare -f aide_tree_hash >/dev/null 2>&1; then
+      step_tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
+      if [ -n "$step_tree" ] && jq -e --arg tree "$step_tree" --argjson resolved "$step_tests_resolved" '
+           .exitCode == 0 and .tree == $tree
+           and (((.commands // [{command: .command}]) | map(.command) | sort) == ($resolved.commands | sort))
+         ' "$step_record" >/dev/null 2>&1; then
+        step_tests_spared="yes"
+        echo "aide-run-spec: the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
+      fi
+    fi
+    if [ "$step_test_count" -gt 0 ] && [ "$step_tests_spared" = "no" ]; then
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"

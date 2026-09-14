@@ -30,6 +30,9 @@
 #     [--cmd "<command>" ...] [--result-file <path>]
 
 set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=_aide-spec-lib.sh
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 project_dir=""; specs_root=""; folder=""; result_file=""
 cmds=()
@@ -64,6 +67,11 @@ target_dir="$specs_root/$folder"
 [ -d "$target_dir" ] || refuse "no such spec folder: $folder"
 
 commit="$(git -C "$project_dir" rev-parse HEAD 2>/dev/null || echo "")"
+# The tree the commands are about to run against — what aide-run-spec
+# compares its own view of the step's result with before deciding
+# whether this record already covers it.
+tree=""
+declare -f aide_tree_hash >/dev/null 2>&1 && tree="$(aide_tree_hash "$project_dir" 2>/dev/null || echo "")"
 record_file="$target_dir/test-run.json"
 
 if [ "${#cmds[@]}" -le 1 ]; then
@@ -79,10 +87,11 @@ if [ "${#cmds[@]}" -le 1 ]; then
   fi
 
   tmp_record="$(mktemp)"
-  if ! jq -cn --arg cmd "$cmd" --arg commit "$commit" \
+  if ! jq -cn --arg cmd "$cmd" --arg commit "$commit" --arg tree "$tree" \
        --argjson exitCode "${exit_code:-null}" --arg note "$note" \
        '{command: ($cmd | if . == "" then null else . end), exitCode: $exitCode,
-         commit: $commit, note: ($note | if . == "" then null else . end)}' \
+         commit: $commit, tree: ($tree | if . == "" then null else . end),
+         note: ($note | if . == "" then null else . end)}' \
        > "$tmp_record" || ! mv "$tmp_record" "$record_file"; then
     rm -f "$tmp_record"
     refuse "failed to write test-run.json"
@@ -110,8 +119,9 @@ for c in "${cmds[@]}"; do
 done
 
 tmp_record="$(mktemp)"
-if ! jq -cn --arg commit "$commit" --argjson exitCode "$agg_exit" --argjson commands "$results_json" \
-     '{command: null, exitCode: $exitCode, commit: $commit, note: null, commands: $commands}' \
+if ! jq -cn --arg commit "$commit" --arg tree "$tree" --argjson exitCode "$agg_exit" --argjson commands "$results_json" \
+     '{command: null, exitCode: $exitCode, commit: $commit, tree: ($tree | if . == "" then null else . end),
+       note: null, commands: $commands}' \
      > "$tmp_record" || ! mv "$tmp_record" "$record_file"; then
   rm -f "$tmp_record"
   refuse "failed to write test-run.json"

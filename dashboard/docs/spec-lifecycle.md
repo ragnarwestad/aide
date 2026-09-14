@@ -57,7 +57,9 @@ evidence that the phase happened:
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
   budget and time limit (`AIDE_TEST_FIX_ROUNDS`; claude only, Codex has no resume the runner drives). Still red after
   that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
-  A change no test command covers has nothing to run and passes as before.
+  A change no test command covers has nothing to run and passes as before. A record the session wrote through
+  `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
+  accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
 - `archive` ends on the same green run when its pull merged main into the branch (a fast-forward brought
   nothing new, and nothing is run): the suite runs on the merged result, red goes back to the archive session the
   same way, and still red ends the step `tests-red` with Archive as the button. The record is written into the
