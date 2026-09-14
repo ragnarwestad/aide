@@ -1,7 +1,7 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { badge, helpPopover, phaseChip, stepLabel } from "../../ui/components";
+import { badge, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state/types.ts";
@@ -9,7 +9,7 @@ import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
-import { busyReason, chosenSteps, runFormId, specBusy } from "./row-state.ts";
+import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
 
@@ -146,8 +146,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const stale =
         p.step === "analyze" && g.analyzeStale
           ? " " +
-            badge("waiting", "description changed since") +
-            helpPopover("why this is marked", "1-description.md was committed after the last finished analyze")
+            badge("waiting", "description changed since")
           : "";
       // The larger of what the queue remembers and what the phase's own
       // file has stamped (spec 341) — the queue wins while it still
@@ -395,26 +394,10 @@ function aiModel(
   const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
-  // One "(?)" for the whole phase line (spec 454), replacing what used
-  // to be up to four separate `title`s repeating the same fact: this
-  // box's own tick hint, the locked `aimodelnow` span's reason, and the
-  // AI/model selects' own disabled reasons — all of them the same
-  // three-way distinction (live / locked-busy-or-archived / already-run)
-  // `locked` above already makes. Computed whether or not a model is
-  // configured to pick from: the phase's own box carries this same
-  // reason regardless, so the mark cannot live only on the branch below
-  // that draws a model select.
-  const lockNote = live
-    ? ""
-    : locked
-      ? isArchivedRow(g)
-        ? `This phase can't be changed right now because ${busyReason(g)}.`
-        : busy
-          ? ""
-          : "This phase has already run and cannot be run again from this row."
-      : "";
-  const lockMark = lockNote ? helpPopover("why this is locked", esc(lockNote)) : "";
-  if (!model) return `<span class="aimodel">${ai}</span>${lockMark}`;
+  // No "(?)" on a phase line: the State column already says what is
+  // running, and an archived or already-run phase needs no sentence to
+  // say it cannot run again. The column has no room for a mark.
+  if (!model) return `<span class="aimodel">${ai}</span>`;
   const on = phaseAiModel(g, opts, step, used, recordedModel);
   const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
@@ -426,6 +409,6 @@ function aiModel(
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
     (ai ? `<label class="aimodelfield"><span>AI</span>${ai}</label>` : "") +
     `<label class="aimodelfield"><span>Model</span>${model}</label>` +
-    `</span></span>${lockMark}`
+    `</span></span>`
   );
 }

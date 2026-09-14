@@ -230,11 +230,8 @@ describe("spec 169: one picker per phase", () => {
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
-    // Spec 454: the reason is not the select's own `title`. Spec 457:
-    // nor is it a shared phase-line "(?)" any more — the row's own
-    // State column already says it.
+    // Spec 454: the reason is not the select's own `title`.
     expect(control).not.toContain('title="Implement is running"');
-    expect(html).not.toContain("This phase can't be changed right now because Implement is running.");
   });
 
   // Asked of `archive`, not of the first select on the page: `create` is
