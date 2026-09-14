@@ -122,9 +122,11 @@ describe("spec 231: the Reset control", () => {
     const archived = page(view({ archived: true, resetAction: "/reset-confirm" }));
     expect(archived).not.toContain('href="/reset-confirm"');
     expect(archived).toMatch(/<span class="btn" aria-disabled="true">Reset<\/span>/);
-    // Spec 454: the disabled reason moves off `title` into its own "(?)".
+    // Spec 454: the disabled reason is not `title`. Spec 457: nor is it
+    // Reset's own "(?)" any more — it is one sentence inside the action
+    // row's single shared mark.
     expect(archived).not.toMatch(/title="an archived spec cannot be reset/);
-    expect(archived).toContain("<p>an archived spec cannot be reset — reopen it first</p>");
+    expect(archived).toContain("An archived spec cannot be reset — reopen it first.");
     const html = page(view({ resetAction: "/reset-confirm", resetUnavailableReason: "a job is running" }));
     expect(html).toContain("Reset");
     expect(html).toContain("a job is running");
@@ -132,9 +134,11 @@ describe("spec 231: the Reset control", () => {
     // Spec 321: the markup already says aria-disabled, but nothing
     // styled it until button.css gained the matching selector.
     expect(html).toContain('aria-disabled="true"');
-    // Spec 454: the disabled reason is a "(?)", not a `title`.
+    // Spec 454: the disabled reason is not a `title`. Spec 457: it is
+    // one sentence inside the action row's single shared mark, naming
+    // Reset by name.
     expect(html).not.toMatch(/title="a job is running"/);
-    expect(html).toContain("<p>This can't be reset right now because a job is running.</p>");
+    expect(html).toContain("Reset can't run right now because a job is running.");
   });
 
   // The page asks the question in a sentence and offers the two

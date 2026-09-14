@@ -11,7 +11,7 @@ import { specPagePath } from "./tabs.ts";
 
 /** The one sentence stated wherever a reader meets Close or Reset
  *  (REQ-2): on this confirmation page's own body text, and again — via
- *  `overview.ts`'s `resetCloseNote` — beside the two controls on the
+ *  `overview.ts`'s `actionsHelp` — beside the two controls on the
  *  spec's own page. One string, so the two places can never say it
  *  differently. */
 export const CLOSE_VS_RESET_SENTENCE =

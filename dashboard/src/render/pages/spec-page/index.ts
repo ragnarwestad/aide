@@ -54,8 +54,8 @@ import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
 import {
-  archivedLine, testServerStatus, checklist, closedLine, closeControl, pdfControl, reopenControl,
-  resetControl, resetCloseNote, trackingControl,
+  actionsHelp, archivedLine, testServerStatus, checklist, closedLine, closeControl, pdfControl,
+  reopenControl, resetControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
@@ -119,18 +119,16 @@ export function renderSpecPage(
   // Update that slid left whenever a spec was archived would be a
   // button moving because something else appeared.
   // Every "(?)" first, then every button: a mark between two buttons
-  // reads as belonging to the one before it, and the group's shape
-  // changed with whichever marks the spec's state happened to draw.
+  // reads as belonging to the one before it.
   const actions =
-    resetCloseNote(view) +
+    actionsHelp(view) +
     (view.archived ? reopenControl(view) : "") +
     resetControl(view) +
     closeControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
     `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
-    `<button class="btn" type="submit">Update</button></form>` +
-    helpPopover("what Update does", "Update pulls the specs repository and shows what it says now.");
+    `<button class="btn" type="submit">Update</button></form>`;
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
   // Every tab says what it is for (spec 311): a "(?)" at the right end of

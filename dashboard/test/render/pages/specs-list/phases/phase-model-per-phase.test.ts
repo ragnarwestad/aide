@@ -92,12 +92,12 @@ describe("spec 169: one picker per phase", () => {
       // nothing is hidden, right above, is what keeps the two apart.
       expect([step, /<option value="gpt-fast" data-tool="codex"/.test(select)]).toEqual([step, true]);
       expect([step, /<option value="sonnet" data-tool="claude"/.test(select)]).toEqual([step, true]);
-      // The option's text is the model's name and its budget (spec
-      // 454) — no "(codex)" suffix (spec 167); the group above it says
-      // the tool while the list is open, the name itself while it is
-      // closed.
+      // The option's text is only the model's name (spec 457 drops the
+      // budget suffix spec 454 had added) — no "(codex)" suffix (spec
+      // 167); the group above it says the tool while the list is open,
+      // the name itself while it is closed.
       expect([step, select.includes("(codex)")]).toEqual([step, false]);
-      expect([step, /<option value="gpt-fast"[^>]*>gpt-fast — \$5\/step<\/option>/.test(select)]).toEqual([step, true]);
+      expect([step, /<option value="gpt-fast"[^>]*>gpt-fast<\/option>/.test(select)]).toEqual([step, true]);
     }
     // The grouping is in the configured tool order — Claude Code, then
     // Codex — not whichever tool `modelChoices` happens to lead with.
@@ -230,10 +230,11 @@ describe("spec 169: one picker per phase", () => {
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
-    // Spec 454: the reason is a shared phase-line "(?)" now, not the
-    // select's own `title`.
+    // Spec 454: the reason is not the select's own `title`. Spec 457:
+    // nor is it a shared phase-line "(?)" any more — the row's own
+    // State column already says it.
     expect(control).not.toContain('title="Implement is running"');
-    expect(html).toContain("This phase can't be changed right now because Implement is running.");
+    expect(html).not.toContain("This phase can't be changed right now because Implement is running.");
   });
 
   // Asked of `archive`, not of the first select on the page: `create` is

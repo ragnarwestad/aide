@@ -244,7 +244,7 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<select name="model"');
-    expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast — $5/step');
+    expect(html).toContain('value="codex-fast" data-tool="codex" selected>codex-fast');
     // And stated above the form, beside the cron and the prompt file.
     expect(html).toContain("<dt>Model</dt>");
   });

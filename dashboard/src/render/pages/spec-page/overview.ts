@@ -327,12 +327,7 @@ export function reopenControl(view: SpecPageView): string {
     `<input type="hidden" name="project" value="${esc(view.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(view.specFolder)}">` +
     `<input type="hidden" name="steps" value="reopen">` +
-    `<button class="btn" type="submit">Reopen</button></form>` +
-    helpPopover(
-      "what Reopen does",
-      "Reopen takes this spec back into the active list for another round: it resets the analysis, " +
-        "the plan and the status, keeps the description, and removes its branch.",
-    )
+    `<button class="btn" type="submit">Reopen</button></form>`
   );
 }
 
@@ -424,56 +419,57 @@ export function resetControl(view: SpecPageView): string {
   // Shown disabled rather than hidden on an archived spec (2026-09-09):
   // a control that vanishes leaves the reader wondering where it went;
   // one that is greyed out says it exists and why it cannot be pressed.
-  if (view.archived) {
-    // Already a full sentence, so it moves unchanged (spec 454, AC-2) —
-    // never patched onto the "can't be reset right now" wrapper below,
-    // which would garble it into two reasons stacked on each other.
-    return (
-      `<span class="btn" aria-disabled="true">Reset</span>` +
-      helpPopover("why this can't run", "an archived spec cannot be reset — reopen it first")
-    );
-  }
-  if (view.resetUnavailableReason) {
-    return (
-      `<span class="btn" aria-disabled="true">Reset</span>` +
-      helpPopover("why this can't run", esc(`This can't be reset right now because ${view.resetUnavailableReason}.`))
-    );
-  }
-  // `resetCloseNote()` already covers what a live Reset does, beside it
-  // on the same tab row — this button carries no title of its own.
+  // The reason itself is `actionsHelp()`'s, the row's one shared mark —
+  // this button carries no popover of its own.
+  if (view.archived) return `<span class="btn" aria-disabled="true">Reset</span>`;
+  if (view.resetUnavailableReason) return `<span class="btn" aria-disabled="true">Reset</span>`;
   return `<a class="btn" href="${esc(view.resetAction)}">Reset</a>`;
 }
 
 /** The other operation that ends a work round (spec 406, REQ-1), drawn
- *  beside Reset. Same disabled-with-`title` shape as `resetControl` for
- *  "possible in principle, not right now" (REQ-11) — `view.archived`
- *  hides it for an archived OR a closed spec alike, the same one flag
- *  `resetControl` already checks, since neither move applies once a
- *  spec has left the active list. */
+ *  beside Reset. Same disabled shape as `resetControl` for "possible in
+ *  principle, not right now" (REQ-11) — `view.archived` hides it for an
+ *  archived OR a closed spec alike, the same one flag `resetControl`
+ *  already checks, since neither move applies once a spec has left the
+ *  active list. */
 export function closeControl(view: SpecPageView): string {
   if (!view.closeAction || view.archived) return "";
-  if (view.closeUnavailableReason) {
-    return (
-      `<span class="btn" aria-disabled="true">Close</span>` +
-      helpPopover("why this can't run", esc(`This can't be closed right now because ${view.closeUnavailableReason}.`))
-    );
-  }
-  // `resetCloseNote()` already covers what a live Close does, beside it
-  // on the same tab row — this button carries no title of its own.
+  // The reason itself is `actionsHelp()`'s, the row's one shared mark —
+  // this button carries no popover of its own.
+  if (view.closeUnavailableReason) return `<span class="btn" aria-disabled="true">Close</span>`;
   return `<a class="btn" href="${esc(view.closeAction)}">Close</a>`;
 }
 
-/** Drawn once, beside both controls — REQ-2's non-hover distinction: a
- *  reader meets Close and Reset differently only in a `title` attribute
- *  otherwise, which REQ-2 explicitly says is not enough. Shares its
- *  exact wording with the close confirmation page's own prose
- *  (`CLOSE_VS_RESET_SENTENCE`, close-page.ts) so the two places can
- *  never say it differently. */
-export function resetCloseNote(view: SpecPageView): string {
-  if (!view.resetAction && !view.closeAction) return "";
-  if (view.archived) return "";
-  // A "(?)", not a `<p>`: this sits in the tab row beside the two
-  // buttons it distinguishes, and a block element there makes the whole
-  // action group wrap below the tabs and stacks the buttons.
-  return helpPopover("Reset or Close", esc(CLOSE_VS_RESET_SENTENCE));
+/** One "(?)" for the whole action row (spec 457), replacing what used
+ *  to be up to four separate ones: Reopen's own, Reset's and Close's
+ *  own disabled reasons, the Reset/Close distinction (REQ-2 — a reader
+ *  meets Close and Reset differently only in a `title` attribute
+ *  otherwise, which REQ-2 explicitly says is not enough; shares its
+ *  exact wording with the close confirmation page's own prose,
+ *  `CLOSE_VS_RESET_SENTENCE` in close-page.ts, so the two places can
+ *  never say it differently), and Update's own. Drawn once, before the
+ *  row's own buttons — covering what each button does and, where one
+ *  will not take a click right now, why. */
+export function actionsHelp(view: SpecPageView): string {
+  const sentences: string[] = [];
+  if (view.archived) {
+    sentences.push(
+      "Reopen takes this spec back into the active list for another round: it resets the " +
+        "analysis, the plan and the status, keeps the description, and removes its branch.",
+    );
+  } else if (view.resetAction || view.closeAction) {
+    sentences.push(CLOSE_VS_RESET_SENTENCE);
+  }
+  if (view.resetAction) {
+    if (view.archived) {
+      sentences.push("An archived spec cannot be reset — reopen it first.");
+    } else if (view.resetUnavailableReason) {
+      sentences.push(`Reset can't run right now because ${view.resetUnavailableReason}.`);
+    }
+  }
+  if (view.closeAction && !view.archived && view.closeUnavailableReason) {
+    sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);
+  }
+  sentences.push("Update pulls the specs repository and shows what it says now.");
+  return helpPopover("what these buttons do", esc(sentences.join(" ")));
 }

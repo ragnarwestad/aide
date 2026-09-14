@@ -293,22 +293,20 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     expect(box(l, "archive")).toContain("disabled");
   });
 
-  // Spec 454: the reason moved off each box's own `title` onto one
-  // shared "(?)" per phase line (`aiModel()`'s own `lockMark`) — a busy
-  // line no longer repeats the same sentence on up to four controls.
-  test("a disabled box says why, on the phase line's own shared mark", () => {
+  // Spec 454: the reason moved off each box's own `title`. Spec 457: it
+  // no longer sits on the phase line at all on a busy row — the row's
+  // own State column already says what is running.
+  test("a disabled box carries no title of its own, on a busy row", () => {
     const l = line(pair("running"));
     expect(box(l, "analyze")).not.toContain('title="Analyze is running"');
-    // The reason is about the JOB, so the step that has not started yet
-    // carries the same sentence rather than a blank one.
-    expect(l).toContain("This phase can't be changed right now because Analyze is running.");
+    expect(l).not.toContain("This phase can't be changed right now because Analyze is running.");
   });
 
-  test("a step the job never named carries the same reason (spec 105)", () => {
-    // One sentence for the whole row: the reader is told what the SPEC
-    // is doing, not which steps some job happens to list.
+  test("a step the job never named carries no lock sentence either (spec 105)", () => {
+    // One sentence for the whole row would have repeated what the
+    // row's own State column already says; spec 457 drops it.
     expect(box(line(pair("running")), "archive")).not.toContain('title="Analyze is running"');
-    expect(line(pair("running"))).toContain(
+    expect(line(pair("running"))).not.toContain(
       "This phase can't be changed right now because Analyze is running.",
     );
   });

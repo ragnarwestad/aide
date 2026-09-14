@@ -177,9 +177,12 @@ describe("the spec's actions stay on the tab row", () => {
     }
   });
 
+  // Spec 457: the sentence moved from its own "(?)" (resetCloseNote)
+  // into the row's single shared one (actionsHelp) — still a "(?)",
+  // never a paragraph under the row.
   test("the Reset-or-Close sentence is a (?) in the row, not a paragraph under it", () => {
     const html = page(view({ resetAction: "/specs/aide/x/reset", closeAction: "/specs/aide/x/close" }));
-    expect(html).toContain("Reset or Close");
+    expect(html).toContain("Reset starts this spec over and keeps it active");
     expect(trailing(html)).toContain('<details class="intro">');
     expect(html).not.toMatch(/<p class="small muted">Reset/);
   });

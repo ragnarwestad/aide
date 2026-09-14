@@ -181,7 +181,10 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     // that reason, and by counting the analyze job's one step. A page
     // that had taken the decoy as lead would offer Reset and know
     // nothing of a landing.
-    expect(html).toContain("be reset right now because a merge is in progress.");
+    // Spec 457: the disabled reason names the button now ("Reset can't
+    // run right now"), reworded when its own "(?)" was folded into the
+    // action row's single shared one.
+    expect(html).toContain("Reset can't run right now because a merge is in progress.");
     expect(html).toContain("Logs (1)");
     expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 

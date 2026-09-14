@@ -413,9 +413,11 @@ function aiModel(
   const lockNote = live
     ? "This phase has not started yet. Tick it to add it to this run, or untick to drop it."
     : locked
-      ? busy || isArchivedRow(g)
+      ? isArchivedRow(g)
         ? `This phase can't be changed right now because ${busyReason(g)}.`
-        : "This phase has already run and cannot be run again from this row."
+        : busy
+          ? ""
+          : "This phase has already run and cannot be run again from this row."
       : "";
   const lockMark = lockNote ? helpPopover("why this is locked", esc(lockNote)) : "";
   if (!model) return `<span class="aimodel">${ai}</span>${lockMark}`;

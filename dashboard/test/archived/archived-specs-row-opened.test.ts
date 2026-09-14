@@ -98,7 +98,7 @@ describe("an archived spec's row, opened", () => {
       expect(line).toContain(`name="model.${step}"`);
       expect(line).toContain(" disabled");
       expect(line).toContain(
-        '<option value="sonnet" data-tool="claude" selected>sonnet — $3/step</option>',
+        '<option value="sonnet" data-tool="claude" selected>sonnet</option>',
       );
     }
   });
@@ -116,7 +116,7 @@ describe("an archived spec's row, opened", () => {
     expect([...line.matchAll(/<select\b/g)]).toHaveLength(2);
     expect(line).toContain(" disabled");
     expect(line).toContain(
-      '<option value="sonnet" data-tool="claude" selected>sonnet — $3/step</option>',
+      '<option value="sonnet" data-tool="claude" selected>sonnet</option>',
     );
     expect(line).not.toContain(STAMPED_MODEL);
     expect(line).not.toContain("claude sonnet");

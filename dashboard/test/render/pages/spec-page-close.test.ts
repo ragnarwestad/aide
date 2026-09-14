@@ -40,9 +40,11 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(html).toContain("Close");
     expect(html).not.toContain('href="/close-confirm"');
     expect(html).toContain('aria-disabled="true"');
-    // Spec 454: the reason is a "(?)", not a `title`.
+    // Spec 454: the reason is not a `title`. Spec 457: nor is it Close's
+    // own "(?)" any more — it is one sentence inside the action row's
+    // single shared mark, naming Close by name.
     expect(html).not.toMatch(/title="a job is running"/);
-    expect(html).toContain("<p>This can't be closed right now because a job is running.</p>");
+    expect(html).toContain("Close can't run right now because a job is running.");
   });
 
   test("a live spec with no closeAction offers nothing of the sort", () => {

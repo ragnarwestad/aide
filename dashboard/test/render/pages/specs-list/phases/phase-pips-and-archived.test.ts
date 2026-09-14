@@ -75,7 +75,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
     const line = openLine({ analyze: "claude sonnet" }, "analyze");
     expect(line).toContain(" disabled");
     expect(line).toContain(
-      '<option value="sonnet" data-tool="claude" selected>sonnet — $3/step</option>',
+      '<option value="sonnet" data-tool="claude" selected>sonnet</option>',
     );
     expect(line).not.toContain("claude sonnet");
   });
@@ -88,7 +88,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
     expect(line).toContain("<select");
     expect(line).toContain(" disabled");
     expect(line).toContain(
-      '<option value="sonnet" data-tool="claude" selected>sonnet — $3/step</option>',
+      '<option value="sonnet" data-tool="claude" selected>sonnet</option>',
     );
   });
 
@@ -112,7 +112,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
     const line = openLine({ analyze: "claude" }, "analyze");
     expect(line).toContain(" disabled");
     expect(line).toContain(
-      '<option value="sonnet" data-tool="claude" selected>sonnet — $3/step</option>',
+      '<option value="sonnet" data-tool="claude" selected>sonnet</option>',
     );
   });
 });

@@ -119,17 +119,16 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
-  // Spec 454: an `<option>` cannot host a "(?)" — a browser's native
-  // dropdown draws its content as plain text, running none of the
-  // page's markup — so the budget moves into the option's own visible
-  // label instead, the one exception AC-1's literal "replaced with a
-  // helpPopover" makes.
-  test("every option's own label carries its budget, and the option has no title", () => {
+  // Spec 457: the per-step budget is dropped from the option's own
+  // label — it already stands, read-only, wherever the budget is
+  // configured, and repeating it on every option read as a price.
+  test("every option's own label carries only the model's name, and no title", () => {
     const line = subRow(rows([]), "analyze");
     const modelSelect = line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
     expect(modelSelect).not.toContain("title=");
-    expect(modelSelect).toContain(">fable — $12/step<");
-    expect(modelSelect).toContain(">sonnet — $3/step<");
+    expect(modelSelect).not.toContain("/step");
+    expect(modelSelect).toContain(">fable<");
+    expect(modelSelect).toContain(">sonnet<");
   });
 
   // --- criterion 3 -----------------------------------------------------------
@@ -256,10 +255,11 @@ describe("spec 123: each phase line picks its own model", () => {
     );
     const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
     expect(select).toContain("disabled");
-    // Spec 454: the reason is the phase line's shared "(?)" now, not
-    // this select's own `title`.
+    // Spec 454: the reason is not this select's own `title`. Spec 457:
+    // nor is it the phase line's own "(?)" — the row's State column
+    // already names it.
     expect(select).not.toContain('title="Implement is running"');
-    expect(subRow(html, "analyze")).toContain(
+    expect(subRow(html, "analyze")).not.toContain(
       "This phase can't be changed right now because Implement is running.",
     );
   });

@@ -154,12 +154,11 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
           .map(
             (m) =>
               `<option value="${esc(m.name)}" data-tool="${esc(tool)}"` +
-              // The figure sits in the option's own visible label since
-              // spec 454, not a `title`: a browser's native dropdown
-              // draws an `<option>`'s content as plain text, running
-              // none of the page's markup inside it, so a "(?)" cannot
-              // go here the way it can everywhere else on this line.
-              `${m.name === chosen ? " selected" : ""}>${esc(m.name)} — $${m.budgetUsd}/step</option>`,
+              // Spec 457: the option's own label is the model's name
+              // alone — the per-step budget it used to carry (spec 454)
+              // already stands, read-only, wherever the budget is
+              // configured, and repeating it here read as a price.
+              `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
           )
           .join("") +
         `</optgroup>`

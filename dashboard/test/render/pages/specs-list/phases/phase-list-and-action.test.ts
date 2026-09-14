@@ -307,10 +307,11 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       // looks like, no padlock over it (spec 145).
       expect(b).toContain('class="phase default"');
       expect(b).toContain("disabled");
-      // Spec 454: the reason is the phase line's shared "(?)" now, not
-      // the box's own `title`.
+      // Spec 454: the reason is not the box's own `title`. Spec 457: nor
+      // is it the phase line's own "(?)" any more — the row's own State
+      // column already says it.
       expect(b).not.toContain('title="Implement is running"');
-      expect(subRow(html, step)).toContain(
+      expect(subRow(html, step)).not.toContain(
         "This phase can't be changed right now because Implement is running.",
       );
     }

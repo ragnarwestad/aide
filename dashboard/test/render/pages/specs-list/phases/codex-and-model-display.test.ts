@@ -52,7 +52,7 @@ describe("a job run by Codex", () => {
 // second time while the list is open. A model name that does not say
 // which tool it starts is a name to fix in queue-config.json, not a
 // label to patch.
-describe("the model picker shows the model's name and its budget, never a tool suffix", () => {
+describe("the model picker shows only the model's name, never a tool suffix", () => {
   const codexTarget: SpecTarget = { project: "aide", specFolder: "125-codex" };
 
   test("a codex entry's option text is exactly its name, with no suffix", () => {
@@ -72,9 +72,9 @@ describe("the model picker shows the model's name and its budget, never a tool s
       },
       Date.parse("2026-08-20T12:00:00Z"),
     );
-    // Spec 454: the label carries its budget now, not a suffix naming
-    // the tool.
-    expect(html).toMatch(/<option value="gpt-fast"[^>]*>gpt-fast — \$5\/step<\/option>/);
+    // Spec 457: the label is the model's name alone, no suffix naming
+    // the tool and no budget either (spec 454's own suffix, dropped).
+    expect(html).toMatch(/<option value="gpt-fast"[^>]*>gpt-fast<\/option>/);
     // Nothing on the option says the tool to a READER: the option's
     // group says it while the list is open, the name itself while it
     // is closed. `data-tool` is there for the phase's AI select to
@@ -83,7 +83,7 @@ describe("the model picker shows the model's name and its budget, never a tool s
     expect(html).toMatch(/<option value="gpt-fast" data-tool="codex"/);
     expect(html).not.toContain("(codex)");
     expect(html).not.toContain("(codex)");
-    // The claude entries are left exactly as they were, budget included.
-    expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet — \$3\/step<\/option>/);
+    // The claude entries are left exactly as they were, name only.
+    expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet<\/option>/);
   });
 });
