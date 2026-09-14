@@ -253,9 +253,15 @@ branch_already_landed() {
 open_merge_wt=()
 open_merge_base_sha=()
 open_merge_count=0
+# How many times the PROJECT's base was merged into the branch — as
+# opposed to fast-forwarded, which brings the branch nothing it has not
+# already been tested on. An archive whose pull merged main in has a
+# result no green run has seen (run-spec-step-tests.sh).
+base_merged_count=0
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
+  [ "$root" != "$project_root" ] || base_merged_count=$((base_merged_count + 1))
   if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
     if [ "$command_name" = "archive" ]; then
       # spec 280: a conflict confined to THIS spec's own 4-status.md is

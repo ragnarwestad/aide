@@ -43,7 +43,9 @@ should read this file by hand.
   with the failing lines as detail, and Implement offered again — unlike
   the landing's `tests-red`, which STOPS the job. `run_model_turn`
   (`run-spec-spec-paths.sh`) is the one turn; every turn of a step
-  appends to the same transcript.
+  appends to the same transcript. An `archive` whose pull MERGED main
+  into the branch (`base_merged_count`, `run-spec-worktree.sh`) ends the
+  same way, on the merged result; a fast-forward runs nothing.
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
