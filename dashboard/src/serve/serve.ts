@@ -249,6 +249,10 @@ export function createServer(opts: ServerOptions) {
     landStoppedStepBranch: land.landStoppedStepBranch,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
+    forgetSpecCaches: (dir, folder) => {
+      schedules.workflowHistory.forget(dir, folder);
+      schedules.branchFileSteps.forget(dir, folder);
+    },
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

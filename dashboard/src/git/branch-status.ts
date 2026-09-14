@@ -425,6 +425,17 @@ export class BranchStatusChecker {
     this.openCache.set(root, { at: hit.at, open: hit.open });
   }
 
+  /** The reverse correction: a branch forgotten ahead of its delete
+   *  (`land-branch/handed-to-merge.ts`) whose delete then failed IS still
+   *  on origin, and the archived row's "still on origin" sentence exists
+   *  for exactly that case. Same `checkedAt` rule as `forgetOpenSpecBranch`. */
+  rememberOpenSpecBranch(root: string, branch: string): void {
+    const hit = this.openCache.get(root);
+    if (!hit?.open) return;
+    hit.open.add(branch);
+    this.openCache.set(root, { at: hit.at, open: hit.open });
+  }
+
   /** Drop one cached answer. A merge performed by this process changes
    *  the answer it just cached, and a reader who presses Merge and
    *  reloads must not be told "not merged" for the rest of the TTL. */

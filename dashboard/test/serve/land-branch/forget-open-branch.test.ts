@@ -19,29 +19,33 @@ const LANDING = {
 };
 
 async function land(over: Record<string, Answer> = {}) {
-  const { ctx, forgotten } = landCtx(landingGit(over).run);
+  const { ctx, forgotten, remembered } = landCtx(landingGit(over).run);
   await landBranch(
     ctx as unknown as Parameters<typeof landBranch>[0],
     JOB as unknown as Parameters<typeof landBranch>[1],
     { branch: BRANCH },
     LANDING as unknown as Parameters<typeof landBranch>[3],
   );
-  return forgotten;
+  return { forgotten, remembered };
 }
 
 describe("a landing forgets the branch it deleted", () => {
   test("names the root it merged and the branch it deleted", async () => {
-    expect(await land()).toEqual([{ root: ROOT, branch: BRANCH }]);
+    expect(await land()).toEqual({ forgotten: [{ root: ROOT, branch: BRANCH }], remembered: [] });
   });
 
   // Spec 319: the merge succeeded and only the delete failed, so the
-  // branch IS still on origin. Forgetting it here would hide the one
-  // case the archived row's own sentence exists for.
-  test("a delete that failed leaves the cached answer alone", async () => {
-    expect(await land({ "push -q origin --delete": { code: 1, stderr: "remote rejected" } })).toEqual([]);
+  // branch IS still on origin. It was forgotten before the checkout
+  // moved, so it is taken back — the one case the archived row's own
+  // sentence exists for must still read as open.
+  test("a delete that failed puts the branch back into the cached answer", async () => {
+    expect(await land({ "push -q origin --delete": { code: 1, stderr: "remote rejected" } })).toEqual({
+      forgotten: [{ root: ROOT, branch: BRANCH }],
+      remembered: [{ root: ROOT, branch: BRANCH }],
+    });
   });
 
   test("a merge that never went through forgets nothing", async () => {
-    expect(await land({ "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } })).toEqual([]);
+    expect(await land({ "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } })).toEqual({ forgotten: [], remembered: [] });
   });
 });

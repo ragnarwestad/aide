@@ -269,3 +269,31 @@ describe("BranchStatusChecker.forgetOpenSpecBranch", () => {
     expect(checker.peekOpenSpecBranches("/repos/aide").open!.size).toBe(2);
   });
 });
+
+describe("BranchStatusChecker.rememberOpenSpecBranch", () => {
+  const LISTED_ONE = "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
+
+  async function warm(): Promise<BranchStatusChecker> {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_ONE } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    await checker.openSpecBranches("/repos/aide");
+    return checker;
+  }
+
+  test("puts a branch back into the cached set, leaving checkedAt where it was", async () => {
+    const checker = await warm();
+    const before = checker.peekOpenSpecBranches("/repos/aide").checkedAt;
+    checker.forgetOpenSpecBranch("/repos/aide", "aide/178-nobody-waits");
+    checker.rememberOpenSpecBranch("/repos/aide", "aide/178-nobody-waits");
+    const peek = checker.peekOpenSpecBranches("/repos/aide");
+    expect([...peek.open!]).toEqual(["aide/178-nobody-waits"]);
+    expect(peek.checkedAt).toBe(before);
+  });
+
+  test("a root nobody has asked about is left unanswered", () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_ONE } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    checker.rememberOpenSpecBranch("/repos/never-asked", "aide/178-nobody-waits");
+    expect(checker.peekOpenSpecBranches("/repos/never-asked").open).toBeNull();
+  });
+});

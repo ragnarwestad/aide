@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
-import { resetRoundState } from "../../src/serve/routes/self-run.ts";
+import { resetRoundState, settledCreateFolder } from "../../src/serve/routes/self-run.ts";
 
 const TOKEN = "s3cret-token";
 const auth = { headers: { "x-aide-token": TOKEN, accept: "application/json" } };
@@ -198,5 +198,21 @@ describe("POST /api/self-run", () => {
     repoWithHistory(specs, join(dir, "specs-origin.git"), false);
     expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(200);
     expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(409);
+  });
+});
+
+// The round queues a spec's steps only once its create has LANDED —
+// the job carries its real folder before that, and the queue refuses a
+// step for a spec whose create is still landing.
+describe("a create's folder counts once its landing is over", () => {
+  test("a provisional key is not a folder", () => {
+    expect(settledCreateFolder({ specFolder: "new-0a1b2c3d", landing: true })).toBeUndefined();
+    expect(settledCreateFolder({ specFolder: "new-0a1b2c3d" })).toBeUndefined();
+  });
+  test("the real folder, while the create still lands, is not one either", () => {
+    expect(settledCreateFolder({ specFolder: "07-a-fact", landing: true })).toBeUndefined();
+  });
+  test("the real folder with the landing over is", () => {
+    expect(settledCreateFolder({ specFolder: "07-a-fact" })).toBe("07-a-fact");
   });
 });

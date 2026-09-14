@@ -23,6 +23,7 @@
 import type { BoardMessage, Sentence } from "../i18n/message.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
 import { finalizeCreateOnAttempt, type CreateFinalizer } from "./create-finalizer.ts";
+import type { MergeHooks } from "./merge-hooks.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -187,6 +188,7 @@ export async function mergeBranchIntoDefault(
   wait: Wait = sleep,
   gate?: LandingGate,
   finalizeCreate?: CreateFinalizer,
+  hooks?: MergeHooks,
 ): Promise<RepoMergeResult> {
   // Declared out here so the `finally` can clear it whichever way this
   // returns: a refusal leaves a worktree behind exactly as readily as a
@@ -426,6 +428,7 @@ export async function mergeBranchIntoDefault(
     //     Not fatal on failure. The merge is on origin, which is what
     //     "landed" means; a checkout that could not fast-forward is a
     //     local state the next landing's own pull settles.
+    await hooks?.beforeCheckoutMoves?.(assignedSpecFolder ? { assignedSpecFolder } : {});
     await run(root, ["fetch", "-q", "origin", base]);
     //     A gate's own record left dirty here — `test-run.json`, never
     //     committed — blocks a fast-forward with "local changes would

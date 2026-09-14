@@ -32,7 +32,7 @@ const TEST = join(ROOT, "test");
 const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 576,
   "src/queue/store/index.ts": 595,
-  "src/git/branch-merge.ts": 602,
+  "src/git/branch-merge.ts": 605,
   "src/render/pages/specs-list/data-model/types.ts": 510,
 };
 
