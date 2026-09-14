@@ -78,7 +78,7 @@ EOF_CMDS
         # resume, and what the step has left of its budget and its time.
         step_budget_left="$(jq -n --arg b "$budget_usd" --arg c "$step_cost_total" '(($b|tonumber) - ($c|tonumber)) | if . > 0 then . else 0 end')"
         step_time_left=$(( started_at + ${timeout_sec%.*} - $(date +%s) ))
-        if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ "$tool" != "claude" ] || [ -z "$session_out" ] \
+        if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
            || [ "$step_budget_left" = "0" ] || [ "$step_time_left" -le 0 ]; then
           terminal_reason="tests-red"
           ok="false"
@@ -98,6 +98,12 @@ $step_tests_failing"
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
         # The same argv, resumed: the dashboard's minted id becomes the
         # session to continue, and the budget is what is left of it.
+        # Codex resumes through `codex exec resume <thread> -` (the
+        # prompt on stdin, as before): the thread id is the one its
+        # first turn named, and `resume` takes the bypass flag and the
+        # model but neither `--sandbox` nor `--add-dir` (verified on
+        # 0.154.0) — the thread keeps what it started with, so those
+        # pairs are dropped rather than refused.
         step_retry_argv=()
         step_argv_skip="no"
         step_resumes="no"
@@ -106,10 +112,16 @@ $step_tests_failing"
           case "$step_arg" in
             --session-id|--resume) step_retry_argv+=(--resume "$session_out"); step_resumes="yes"; step_argv_skip="yes" ;;
             --max-budget-usd) step_retry_argv+=(--max-budget-usd "$step_budget_left"); step_argv_skip="yes" ;;
+            --sandbox|--add-dir) step_argv_skip="yes" ;;
+            exec) step_retry_argv+=(exec resume); step_resumes="yes" ;;
             *) step_retry_argv+=("$step_arg") ;;
           esac
         done
-        [ "$step_resumes" = "yes" ] || step_retry_argv+=(--resume "$session_out")
+        if [ "$tool" = "codex" ]; then
+          step_retry_argv+=("$session_out" -)
+        else
+          [ "$step_resumes" = "yes" ] || step_retry_argv+=(--resume "$session_out")
+        fi
         argv=("${step_retry_argv[@]}")
         run_model_turn "$work_dir/prompt-fix-$step_fix_round"
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
