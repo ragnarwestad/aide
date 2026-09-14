@@ -34,6 +34,13 @@ should read this file by hand.
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
+- Every move of a shared checkout — the pull (switch, fetch,
+  fast-forward) and the worktree add — runs under the per-root lock
+  `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,
+  `run-spec-gates.sh`). Runs of one project share its checkout, and a
+  git command that moves it outside the lock loses a ref lock or the
+  checkout under its feet when another run is in its own section.
+  A refusal from such a command quotes git's own first line.
 
 ## The hand-paired bash/TypeScript pairs
 

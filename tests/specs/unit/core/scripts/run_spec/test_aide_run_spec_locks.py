@@ -14,12 +14,13 @@ import shlex
 import shutil
 import signal
 import subprocess
+import threading
 import time
-import pytest
 import pytest
 from ..conftest import READ_SPECS, git, init_repo, run
 from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate
 from .run_spec_invoking import create, wait_until, worktrees
+from .run_spec_origins import fetchable_origin
 from .run_spec_origins import origin
 from .run_spec_results import RESULT_OK
 
@@ -440,3 +441,40 @@ def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
         "the second run waited on a lock the first run's EXIT trap should "
         f"have released: {elapsed:.1f}s"
     )
+
+
+def test_the_pull_waits_for_the_worktree_lock(runner, workspace, fake_claude, fetchable_origin):
+    """The pull moves the shared checkout — switch, fetch, fast-forward —
+    and used to do so outside the per-root lock the branch phase takes,
+    so a run pulling while another cut its worktree lost the ref lock or
+    the checkout under its feet. Seen with twelve creates dispatched at
+    once. Held by another process, the lock now holds the pull too."""
+    project = workspace["project"]
+    before = git(project, "rev-parse", "HEAD")
+    (project / "landed-elsewhere.txt").write_text("a commit origin has and this checkout lacks\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "landed elsewhere")
+    ahead = git(project, "rev-parse", "HEAD")
+    git(project, "push", "-q", "origin", "main")
+    git(project, "reset", "-q", "--hard", before)
+    git(project, "update-ref", "refs/remotes/origin/main", before)
+
+    lock = project / ".git" / "aide-run-spec-worktree.lock"
+    lock.mkdir()
+    (lock / "pid").write_text(f"{os.getpid()}\n")  # a live owner: never stolen
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    result = {}
+
+    def run_it():
+        result["rc"], result["out"], _ = run(runner, workspace, claude, pull=True)
+
+    worker = threading.Thread(target=run_it)
+    worker.start()
+    time.sleep(2)
+    assert git(project, "rev-parse", "HEAD") == before, \
+        "the pull moved the checkout while another run held the worktree lock"
+    assert worker.is_alive(), "the run must wait for the lock, not refuse"
+    shutil.rmtree(lock)
+    worker.join(timeout=60)
+    assert result["rc"] == 0, result.get("out")
+    assert git(project, "rev-parse", "HEAD") == ahead, "released, the pull brings the checkout up to origin"

@@ -89,8 +89,8 @@ for root in "${roots[@]}"; do
     sync_branch_with_origin "$root" "$branch"
   fi
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
-    git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
-      || refuse "cannot check out $branch in a worktree of $root"
+    wt_error="$(git -C "$root" worktree add -q "$wt" "$branch" 2>&1)" \
+      || refuse "cannot check out $branch in a worktree of $root ($(printf '%s\n' "$wt_error" | grep -m1 . | head -c 200))"
     created_wt+=("$wt"); created_wt_root+=("$root")
     update_branch_to_base "$wt" "$base_ref" "$root"
   else
@@ -99,8 +99,8 @@ for root in "${roots[@]}"; do
         || refuse "cannot fetch $base from origin in $root ($fetch_retry_error) — refusing rather than cutting $branch from this checkout's own tip"
       base_ref_for "$root" "$base"
     fi
-    git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>/dev/null \
-      || refuse "cannot create $branch in a worktree of $root"
+    wt_error="$(git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>&1)" \
+      || refuse "cannot create $branch in a worktree of $root ($(printf '%s\n' "$wt_error" | grep -m1 . | head -c 200))"
     created_wt+=("$wt"); created_wt_root+=("$root")
   fi
   link_worktree_deps "$root" "$wt"
