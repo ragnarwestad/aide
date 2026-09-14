@@ -169,6 +169,20 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(renderSentence("nb", after?.error)).toContain("arkivering meldte ferdig");
   });
 
+  test("an archive that dropped its open merge is stored as the board's own message too", () => {
+    const bash =
+      "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Archive again for this step.";
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id);
+    expect(after?.state).toBe("failed");
+    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedArchive", values: { button: "Archive" } });
+    expect(after?.errorDetail).toBe(bash);
+    expect(renderSentence("nb", after?.error)).toContain("kastet mergen");
+  });
+
   test("any other failure keeps the sentence the script wrote", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });

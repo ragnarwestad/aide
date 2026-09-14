@@ -38,6 +38,18 @@ from the project — the specs repo has a branch of its own and can
 conflict independently of the project, and the script only checks the
 directories it is given.
 
+**Before branching on the answer: a merge that is OPEN in the project
+worktree (`git rev-parse -q --verify MERGE_HEAD` succeeds, conflict
+markers in files) is this step's own work, whatever the script said.**
+`aide-run-spec` hands the conflict with the default branch to `archive`
+open on purpose, and it is never leftover dirty state from an earlier
+run: aborting it, resetting the tree or committing over it throws the
+resolution away, the branch stays behind the default branch, and the
+run ends `merge-unfinished` rather than archived. Resolve it first, per
+[references/resolve-conflict.md](./references/resolve-conflict.md), then
+come back here — an `already-archived` answer from the script does not
+change that.
+
 Branch on the JSON's `terminalReason`:
 
 - **`refused`:** report the script's own `error` message and stop.
@@ -47,7 +59,7 @@ Branch on the JSON's `terminalReason`:
   spawning this very session), treat that exactly like a fresh
   `archived` result below and continue to Step 2. Otherwise this is a
   plain re-run against work that was already finished long ago: say so
-  and stop.
+  and stop — after finishing any merge left open, as above.
 - **`conflict-open`:** the branch would not merge cleanly with the
   default branch. Follow
   [references/resolve-conflict.md](./references/resolve-conflict.md) in

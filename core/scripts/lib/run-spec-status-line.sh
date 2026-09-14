@@ -69,7 +69,28 @@ if [ -n "$status_file" ]; then
     # ends exactly as the pre-session refusal does (ok, held back),
     # rather than as a red no-progress beside a held-back row.
     case "$status_file" in
-      "$specs_root_wt/archive/"*) : ;;
+      "$specs_root_wt/archive/"*)
+        # The folder moved — and every merge this step was handed open
+        # has to be finished too: a branch that still lacks the base tip
+        # it was being merged with had its open merge dropped, and lands
+        # on that same conflict again. (An open merge the session left
+        # untouched was aborted by run-spec-cleanup.sh before the commit
+        # loop, so HEAD is the pre-merge tip here.)
+        # $open_merge_count rather than ${#open_merge_wt[@]}: bash 3.2's
+        # `set -u` calls an empty array unbound.
+        i=0
+        while [ "$i" -lt "$open_merge_count" ]; do
+          if [ -n "${open_merge_base_sha[$i]}" ] \
+             && ! git -C "${open_merge_wt[$i]}" merge-base --is-ancestor "${open_merge_base_sha[$i]}" HEAD >/dev/null 2>&1; then
+            terminal_reason="merge-unfinished"
+            ok="false"
+            suffix=" (stopped: merge-unfinished)"
+            error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press $step_button again for this step."
+            break
+          fi
+          i=$((i + 1))
+        done
+        ;;
       *)
         archive_refusal=""
         if declare -f may_apply_spec_transition >/dev/null 2>&1 \

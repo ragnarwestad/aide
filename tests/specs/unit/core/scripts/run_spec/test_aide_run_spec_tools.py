@@ -332,3 +332,29 @@ def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
     assert out["terminalReason"] == "refused"
     assert "invalid --command" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(
+    runner, workspace, fake_claude, origin
+):
+    """An archive session that aborts the merge it was handed open —
+    read as "leftover dirty state" — and still moves the folder used to
+    end `completed`, and the landing then met the same conflict again
+    (454, 2026-09-14). The branch still lacks the base tip it was being
+    merged with, and that is the tell: `merge-unfinished`, not done."""
+    project = workspace["project"]
+    with_status(workspace, ["create", "analyze", "implement"])
+    branch = conflicting_branch(workspace, published=True)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "git merge --abort\n"
+        + READ_SPECS
+        + 'mkdir -p "$specs/archive" && git -C "$specs" mv 81-queue-and-runner archive/81-queue-and-runner '
+        + '&& git -C "$specs" commit -q -m "archive"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "merge-unfinished", out
+    assert "still behind main" in out["error"], out["error"]
+    assert not is_ancestor(project, "main", branch), "the branch was left as the step found it"

@@ -29,6 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import { specNumber } from "../../project/spec-folder.ts";
+import { noProgressMessage } from "./cross-check-message.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
@@ -573,13 +574,3 @@ export class Runner {
   }
 }
 
-/** The bash cross-check's `no-progress` verdict (run-spec-status-line.sh),
- *  as the board's own message for the step it was about — so the row
- *  reads it in the reader's language rather than in the script's
- *  English. Every other failure keeps the sentence the script wrote. */
-function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
-  if (outcome.terminalReason !== "no-progress") return undefined;
-  if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
-  if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
-  return undefined;
-}

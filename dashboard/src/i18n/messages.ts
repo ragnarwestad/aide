@@ -96,6 +96,11 @@ export const MESSAGES = {
     nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/. — Trykk {button} igjen.",
     resolve: "Press {button} again.",
   },
+  "runner.mergeUnfinishedArchive": {
+    en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",
+    nb: "arkivering meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge. — Trykk {button} igjen; økta må fullføre mergen.",
+    resolve: "Press {button} again; the session has to finish that merge.",
+  },
   "runner.serverRestarted": {
     en: "the server restarted while this step was running, and it left no result. — Press {button} again.",
     nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk {button} igjen.",

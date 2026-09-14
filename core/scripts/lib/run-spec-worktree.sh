@@ -243,6 +243,16 @@ branch_already_landed() {
   return "$landed"
 }
 
+# The worktrees `update_branch_to_base` handed to an archive session with
+# the merge OPEN, and the tip of the base each was being merged with:
+# the status cross-check (run-spec-status-line.sh) asks afterwards
+# whether the branch came to contain that tip. A session that dropped
+# the open merge instead of finishing it leaves the branch behind the
+# base, and its "completed" is then a merge left unfinished, not an
+# archive.
+open_merge_wt=()
+open_merge_base_sha=()
+open_merge_count=0
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
@@ -270,6 +280,9 @@ update_branch_to_base() {
           git -C "$wt" merge --abort >/dev/null 2>&1 || true
         fi
       fi
+      open_merge_wt+=("$wt")
+      open_merge_base_sha+=("$(git -C "$wt" rev-parse "$ref" 2>/dev/null)")
+      open_merge_count=$((open_merge_count + 1))
       return 0
     fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
