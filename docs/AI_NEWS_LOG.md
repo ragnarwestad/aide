@@ -144,7 +144,7 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 **Relevance for aide:**
 
 - ⭐ **`codex exec resume <thread-id> [prompt] --json` (Codex, since v0.132; verified on 0.154.0)** — the runner's red-test loop (`run-spec-step-tests.sh`) ends a Codex step at once on the claim that Codex has no resume. It has one, and the runner already keeps the thread id. Action: resume Codex the same way claude is resumed; fix the sentence in `run-spec-invocation.sh`, `dashboard/docs/spec-lifecycle.md` and `dashboard/CLAUDE.md`.
-- ⭐ **`--permission-prompts none` (Claude Code v2.1.259)** — `aide-run-spec` runs `claude -p --permission-mode <mode>`; a prompt that can never be answered on a headless host now has an explicit off switch. Action: verify against the installed 2.1.270 and add it to the argv.
+- ⭐ **`--permission-prompts none` (Claude Code v2.1.259)** — `aide-run-spec` runs `claude -p --permission-mode <mode>`; a prompt that can never be answered on a headless host now has an explicit off switch. Verified 2026-09-14 on 2.1.270: identical to `-p`'s default, which already denies such a prompt — left out of the argv on purpose.
 - ⚠️ **Hook matchers exact-match (Claude Code v2.1.195)** — check every matcher in `implementations/claude-code/` settings for one that relied on substring matching.
 - ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — check aide's templates and installers for one that sets it at project scope.
 - ⚠️ **Untrusted projects get no project `AGENTS.md` (Codex v0.150)** — aide's Codex implementation depends on `AGENTS.md`; the dashboard's checkouts must be trusted, or the instructions never load. Verify on the serving host.
