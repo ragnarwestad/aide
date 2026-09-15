@@ -97,7 +97,10 @@ full-suite row, and never report "done", with a red run on the record:
 afterwards. A red run there comes back to this session as a follow-up
 turn with the failing lines — fix them and run the suite again — and
 only a run still red after that ends the step `tests-red`, with
-`implement` not recorded as run.
+`implement` not recorded as run. The runner accepts your own green
+record instead of running again when it was made on exactly the tree
+you deliver — so run the suite LAST, after every edit and before the
+commit; a file touched after the run means the whole suite runs twice.
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`
 2. Resolve the full-suite command(s) with `aide-resolve-test-cmd

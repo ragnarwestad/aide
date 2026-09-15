@@ -240,3 +240,75 @@ def test_the_lines_handed_back_are_the_failures_not_every_line_with_error_in_it(
     assert "(fail) the one that really failed" in prompt
     assert "git is not on this machine" not in prompt
     assert "(pass)" not in prompt
+
+
+# --- the session's own green record spares the runner's run ------------------
+
+
+def _recording_claude(fake_claude, runner, record_cmd, after_record=""):
+    """Implements, then records a run of `record_cmd` through the real
+    aide-record-test-run (the runner's own sibling script), then commits.
+    `after_record` runs after the record — a change that makes the
+    delivered tree differ from the recorded one."""
+    record = runner.parent / "aide-record-test-run"
+    return fake_claude(
+        "cat > /dev/null\n"
+        "printf 'real work\\n' > implemented.txt\n"
+        + 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
+        + f'"{record}" --project-dir . --specs-root "$specs" --folder 81-queue-and-runner --cmd "{record_cmd}" > /dev/null\n'
+        + after_record
+        + "git add -A && git commit -q -m 'the step'\n"
+        + '(cd "$specs" && git add -A && git commit -q -m "the record")\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def _counting_cmd(tmp_path):
+    marker = tmp_path / "runs.txt"
+    return marker, f"echo run >> {marker}"
+
+
+def test_a_green_record_for_the_delivered_tree_spares_the_runners_own_run(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The session ran the resolved command through aide-record-test-run
+    on exactly the tree it delivered, and it was green: the runner
+    accepts that record instead of running the same command again."""
+    with_status(workspace, ["create", "analyze"])
+    marker, cmd = _counting_cmd(tmp_path)
+    _project_with_test_cmd(workspace, cmd)
+    rc, out, _ = run(runner, workspace, _recording_claude(fake_claude, runner, cmd), command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert marker.read_text().count("run") == 1, "the runner ran the suite again on an unchanged tree"
+
+
+def test_a_record_for_an_older_tree_does_not_count(runner, workspace, fake_claude, tmp_path):
+    """The session recorded a green run, then changed the project again:
+    the delivered tree is not the recorded one, and the runner runs."""
+    with_status(workspace, ["create", "analyze"])
+    marker, cmd = _counting_cmd(tmp_path)
+    _project_with_test_cmd(workspace, cmd)
+    claude = _recording_claude(fake_claude, runner, cmd, after_record="printf 'more\\n' > later.txt\n")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert marker.read_text().count("run") == 2, "a record for another tree must not spare the runner's run"
+
+
+def test_a_record_written_by_hand_does_not_count(runner, workspace, fake_claude, tmp_path):
+    """A record that names no tree — written by the session itself rather
+    than by aide-record-test-run — is the session's word, and the runner
+    never takes that."""
+    with_status(workspace, ["create", "analyze"])
+    marker, cmd = _counting_cmd(tmp_path)
+    _project_with_test_cmd(workspace, cmd)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "printf 'real work\\n' > implemented.txt\n"
+        + 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
+        + f'printf \'{{"command":"{cmd}","exitCode":0,"commit":"x","note":null}}\' > "$specs/81-queue-and-runner/test-run.json"\n'
+        + "git add -A && git commit -q -m 'the step'\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert marker.exists() and marker.read_text().count("run") == 1, "the runner must run when the record carries no tree"

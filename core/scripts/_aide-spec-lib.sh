@@ -484,3 +484,24 @@ Estimate: [X hours/days]
 - Waiting
 AIDE_EOF
 }
+
+# The content hash of a working tree as it stands — tracked and untracked
+# files alike, ignored ones left out — independent of what is committed
+# or staged. Two trees with the same hash hold the same files, so a test
+# run recorded against one is a run against the other. Built in a
+# throwaway index so the caller's own index is never touched.
+aide_tree_hash() {
+  local dir="$1" idx
+  idx="$(mktemp)" || return 1
+  rm -f "$idx"
+  (
+    cd "$dir" || exit 1
+    export GIT_INDEX_FILE="$idx"
+    git read-tree HEAD >/dev/null 2>&1 || true
+    git add -A . >/dev/null 2>&1 || exit 1
+    git write-tree
+  )
+  local rc=$?
+  rm -f "$idx"
+  return "$rc"
+}
