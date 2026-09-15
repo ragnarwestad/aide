@@ -104,6 +104,10 @@ export async function specsPages(
       // other list on this page stays derived, because every other
       // control is about a spec that already exists.
       createProjects: [...ctx.allowed].sort(),
+      // Spec 466, AC-3: the bare function reference, the same one
+      // `spec-page.ts:198` and `project-pages.ts:280` already call —
+      // never a wrapper or a re-derived copy.
+      testServerAvailable: ctx.testServers.roundAvailable,
       // Straight from the query string: how the list is cut and
       // ordered lives in the URL, so it survives a reload and can be
       // sent to someone else. Nothing here is trusted — the renderer

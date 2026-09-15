@@ -47,13 +47,19 @@ function phaseDisagreement(g: SpecGroup, lang: Language): string | undefined {
   return earliest && `${stepLabel(earliest.step, lang)} ${earliest.qualifier}`;
 }
 
-export function specNoticeRow(g: SpecGroup, refusal: string | undefined, now: number, lang: Language): string {
+export function specNoticeRow(
+  g: SpecGroup,
+  refusal: string | undefined,
+  now: number,
+  lang: Language,
+  testServerAvailable: (project: string) => boolean,
+): string {
   const notice = specNotice(
     g.lead,
     g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
     refusal,
     phaseDisagreement(g, lang),
-    isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang),
+    isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable),
     lang,
   );
   if (!notice) return "";
