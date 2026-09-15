@@ -51,7 +51,7 @@ why, the open questions. Then offer the handoff:
 ```text
 Ready to make this a task?
 
-/aide-create TODO <the sharpened one-line description>
+/aide-create <the sharpened one-line description>
 
 Or leave it here — nothing has been created.
 ```

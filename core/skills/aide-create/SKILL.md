@@ -7,7 +7,7 @@ description: >-
   documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
   code review.
-argument-hint: "[TODO <description> | TODO-<name> <description>]"
+argument-hint: "<description> | TODO-<name> <description>"
 effort: medium
 ---
 
@@ -24,13 +24,15 @@ Parse `$ARGUMENTS`:
 then be referred to by that key in every later command. Nothing is
 fetched from anywhere: the description is what the arguments say.
 
-**TODO mode (with name):** If the first word starts with `TODO-` (but is not just `TODO`)
-- Example: `/aide-create TODO-redux-form-migration Move all forms`
-- Title: `TODO-redux-form-migration`, description: the rest of the arguments
+**A description, and nothing else:** the whole argument is the
+description, and the title is made from it.
+- Example: `/aide-create Move forms to React Hook Form`
 
-**TODO mode (auto-generated):** If the first word is just `TODO`
-- Example: `/aide-create TODO Move forms to React Hook Form`
-- Title: generated automatically from the description
+**A named folder:** if the first word starts with `TODO-`, the name after
+it is the folder name and the rest is the description. This is the form
+the dashboard's queue uses, stating the title on a line of its own.
+- Example: `/aide-create TODO-redux-form-migration Move all forms`
+- A leading `TODO` on its own is ignored, for the older habit.
 
 **Error handling:** If the argument is missing or has an invalid format, show:
 
@@ -38,12 +40,12 @@ fetched from anywhere: the description is what the arguments say.
 Missing argument
 
 Usage:
-/aide-create TODO-<name> <description>       # TODO with name
-/aide-create TODO <description>              # TODO auto-generated
+/aide-create <description>                   # the title is made from it
+/aide-create TODO-<name> <description>       # with a folder name of your own
 
 Examples:
+/aide-create Implement dark mode
 /aide-create TODO-redux-form-migration Move forms from Redux Form
-/aide-create TODO Implement dark mode
 ```
 
 ---
@@ -107,7 +109,7 @@ acceptance flag — works exactly the same either way.
 A bare interactive `/aide-create`, typed in a session with no such line
 in the prompt, runs Steps 2-4 exactly as below, unchanged.
 
-**TODO mode, before composing the description below:** if the incoming
+**Before composing the description below:** if the incoming
 description already contains a `## Acceptance criteria` section whose
 lines already match `^- \*\*AC-\d+:\*\*` (spec-structure rule §
 1-description), pass it through into `--description` exactly as

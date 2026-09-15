@@ -82,7 +82,7 @@ This project is inspired by [Lakshman Oruganti's Generative AI Design Patterns](
 **Example:**
 ```bash
 # Claude Code creates the document structure
-/aide-create TODO Move the forms off Redux Form
+/aide-create Move the forms off Redux Form
   ↓
 AI fills in 1-description.md with the title and the description
 ```
