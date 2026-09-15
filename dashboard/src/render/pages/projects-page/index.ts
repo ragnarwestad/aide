@@ -33,8 +33,6 @@ import {
 import { esc } from "../../ui/html.ts";
 import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language } from "../../../i18n";
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
-import { nextFireTime } from "../../../queue/schedule.ts";
 import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath } from "./routes.ts";
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
@@ -204,12 +202,6 @@ export interface ProjectsPageOptions {
    *  with no script at all; with several, the map rides on the form and
    *  the pick fills them in. */
   proposalsByCheckout?: Record<string, { specsPath: string; worktreeLinks: string }>;
-  /** Each project's own recurring jobs (spec 259), keyed the same way
-   *  `driftByProject` is — a project named by no key here has none, and
-   *  the row shows no badge for it. Straight off the manifest, which
-   *  needs no schedule of its own to stay current: `nextFireTime` is
-   *  pure arithmetic, not a network question. */
-  scheduleByProject?: Record<string, readonly ScheduleEntry[]>;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
@@ -227,24 +219,6 @@ export interface ProjectsPageOptions {
  *  shared prefix. */
 const driftNote = (behind: number, checkedAt: number, now: number): string =>
   `${driftPrefix(behind, checkedAt, now)} — deploy is a hand step`;
-
-/** The soonest of a project's own recurring jobs, as a badge — or none,
- *  for a project with no entries whose cron actually parses. Unlike
- *  `driftNote`, this needs no background schedule of its own to stay
- *  current: `nextFireTime` is arithmetic against the page's own clock,
- *  not a question that costs a network round trip.
- *
- *  Stated as the fire time itself, not `relTimeLabel`'s "N ago" —
- *  that ladder clamps a negative gap (a time still in the FUTURE) to
- *  "just now", which would read as due when it is hours off yet. */
-const nextScheduledNote = (entries: readonly ScheduleEntry[], now: number): string | undefined => {
-  const times = entries
-    .map((e) => nextFireTime(e.cron, new Date(now)))
-    .filter((d): d is Date => d !== null)
-    .map((d) => d.getTime());
-  if (times.length === 0) return undefined;
-  return `next scheduled run ${new Date(Math.min(...times)).toISOString()}`;
-};
 
 export function renderProjectsPage(
   projects: ProjectView[],
@@ -285,14 +259,10 @@ export function renderProjectsPage(
         // Three states, not two: nothing asked yet says so, an
         // unanswerable answer says nothing (fail-open), and a real
         // count carries how old it is.
-        const note =
-          !drift ? undefined
+        return !drift ? undefined
           : drift.checkedAt === null ? UNCHECKED_NOTE
           : drift.behind ? driftNote(drift.behind, drift.checkedAt, now)
           : undefined;
-        const schedule = opts.scheduleByProject?.[name];
-        const scheduleNote = schedule ? nextScheduledNote(schedule, now) : undefined;
-        return [note, scheduleNote].filter(Boolean).join(" — ") || undefined;
       },
       // Spec 369: the sentence itself lives on the Config tab now (moved
       // off the Health tab by spec 378) — the list carries only a link

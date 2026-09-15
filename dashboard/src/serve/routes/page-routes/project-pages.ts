@@ -7,7 +7,6 @@
 // three be asked one after another exactly as the chain read before.
 import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover";
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render";
@@ -326,14 +325,6 @@ export async function projectPages(
         driftByProject[p.name] = ctx.branchStatus.peekDrift(root);
       }
     }
-    // Spec 259: straight off each project's already-parsed manifest —
-    // no read of its own, and no schedule to keep it current, since
-    // `nextFireTime` below is pure arithmetic against the page's own
-    // clock rather than a network question.
-    const scheduleByProject: Record<string, readonly ScheduleEntry[]> = {};
-    for (const p of projects) {
-      if (p.manifest.ok && p.manifest.data.schedule?.length) scheduleByProject[p.name] = p.manifest.data.schedule;
-    }
     // Spec 184: whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who
@@ -367,7 +358,6 @@ export async function projectPages(
       ctx.nav(),
       {
         driftByProject,
-        scheduleByProject,
         readinessByProject,
         token: ctx.queueToken,
         // The RAW allowlist, like the New-spec dropdown: a project

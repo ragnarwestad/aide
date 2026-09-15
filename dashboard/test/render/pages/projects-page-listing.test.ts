@@ -50,6 +50,10 @@ describe("the listing on /projects", () => {
     expect(html).not.toContain(AT);
     expect(html).not.toContain("<h1>Projects</h1>");
   });
+
+  test("no next-scheduled-run text on a row (AC-1)", () => {
+    expect(page([project("aide")]).toLowerCase()).not.toContain("next scheduled run");
+  });
 });
 
 // Spec 142: code merged outside the dashboard never runs the project's
@@ -148,37 +152,5 @@ describe("the drift banner on /projects", () => {
       driftByProject: { brokenproj: checkedAgo(7, 5) },
     });
     expect(html).toContain("7 commits behind origin, checked just now");
-  });
-});
-
-// Spec 259: a project's own recurring jobs get a "next scheduled run"
-// badge on its overview row, following the drift banner's own pattern
-// — read off what was passed in, no clock or network of the render's
-// own.
-describe("the next-scheduled-run badge on /projects (spec 259)", () => {
-  test("a project with a schedule entry shows its next fire time", () => {
-    const html = page([project("aide")], {
-      scheduleByProject: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }] },
-    });
-    // AT is 2026-08-19T00:00:00Z; the next 3am UTC fire is the same day.
-    expect(html).toContain("Next scheduled run 2026-08-19T03:00:00.000Z");
-  });
-
-  test("the soonest of several entries is the one shown", () => {
-    const html = page([project("aide")], {
-      scheduleByProject: {
-        aide: [
-          { name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
-          { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-        ],
-      },
-    });
-    expect(html).toContain("Next scheduled run 2026-08-19T03:00:00.000Z");
-    expect(html).not.toContain("next scheduled run 2026-08-2");
-  });
-
-  test("a project the schedule map does not name gets no badge", () => {
-    expect(page([project("aide")], { scheduleByProject: {} })).not.toContain("next scheduled run");
-    expect(page([project("aide")], {})).not.toContain("next scheduled run");
   });
 });
