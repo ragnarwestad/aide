@@ -9,9 +9,6 @@
 # Where this project's specs are kept, if not <project>/specs.
 # AIDE_SPECS_PATH=/somewhere/central-specs
 
-# JIRA root — issue links become <url>/browse/<KEY>.
-# AIDE_JIRA_BASE_URL=https://jira.mycompany.com
-
 # Overrides the detected test/lint/build commands. AIDE_TEST_CMD and
 # AIDE_INSTALL_CMD are also readable from the committed manifest's
 # testCmd:/installCmd: — this file wins when both set the same key,

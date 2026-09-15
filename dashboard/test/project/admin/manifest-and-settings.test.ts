@@ -393,7 +393,7 @@ describe("changing a project's settings after it was added (spec 184)", () => {
 // Spec 255: two more `.aide/config` keys join `specsPath` on the same
 // route, gated on presence in `req` the way `codeLanding` already is —
 // a caller that never mentions one of these must not blank it.
-describe("saving AIDE_INSTALL_CMD and AIDE_JIRA_BASE_URL (spec 255)", () => {
+describe("saving AIDE_INSTALL_CMD (spec 255)", () => {
   /** A project already added, with a manifest but no `.aide/config` yet
    *  — the state `checkoutFor` alone leaves a project in. */
   function withManifest(name: string): string {
@@ -415,17 +415,6 @@ describe("saving AIDE_INSTALL_CMD and AIDE_JIRA_BASE_URL (spec 255)", () => {
     expect(result.steps.map((s) => s.step)).toContain("installCmd");
   });
 
-  test("a changed jiraBaseUrl is written to .aide/config", async () => {
-    const dir = withManifest("jirasave");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      specsPath: "",
-      worktreeLinks: "",
-      jiraBaseUrl: "https://jira.example.com",
-    });
-    expect(result.ok).toBe(true);
-    expect(configValue(dir, "AIDE_JIRA_BASE_URL")).toBe("https://jira.example.com");
-  });
-
   test("an unchanged installCmd rewrites nothing", async () => {
     const dir = withManifest("installsame");
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=make install\n");
@@ -441,10 +430,10 @@ describe("saving AIDE_INSTALL_CMD and AIDE_JIRA_BASE_URL (spec 255)", () => {
   });
 
   // The presence-check pattern `codeLanding` already uses: a caller that
-  // never mentions `jiraBaseUrl` at all must not be read as clearing it.
-  test("neither field is touched when the request never mentions them", async () => {
+  // never mentions `installCmd` at all must not be read as clearing it.
+  test("the field is not touched when the request never mentions it", async () => {
     const dir = withManifest("neithermentioned");
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=make install\nAIDE_JIRA_BASE_URL=https://jira.example.com\n");
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=make install\n");
     const before = readFileSync(join(dir, ".aide", "config"), "utf-8");
     const result = await updateProjectSettings(fakeGit({}).run, dir, { specsPath: "", worktreeLinks: "" });
     expect(result.ok).toBe(true);

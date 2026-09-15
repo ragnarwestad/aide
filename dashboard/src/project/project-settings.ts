@@ -84,7 +84,6 @@ export const SETTING_KEYS = [
   "AIDE_LINT_CMD",
   "AIDE_BUILD_CMD",
   "AIDE_INSTALL_CMD",
-  "AIDE_JIRA_BASE_URL",
 ] as const;
 
 const PURPOSE: Record<string, string> = {
@@ -94,7 +93,6 @@ const PURPOSE: Record<string, string> = {
   AIDE_LINT_CMD: "the project's own lint command",
   AIDE_BUILD_CMD: "the project's own build command",
   AIDE_INSTALL_CMD: "what installing this project means on this machine, run after its code merges",
-  AIDE_JIRA_BASE_URL: "the JIRA root that turns an issue key into a link",
 };
 
 /** The three keys a lockfile can answer, and which command each is.

@@ -86,7 +86,7 @@ Done in August 2026:
       "Project commands" in `core/skills/tools-and-scripts/SKILL.md`. The pnpm
       blocks in skills are labeled examples.
 - [x] **Per-project setup.** Optional `.aide/config` in the project root
-      (KEY=value): `AIDE_JIRA_BASE_URL`, `AIDE_SPECS_PATH` (spec 73) plus
+      (KEY=value): `AIDE_SPECS_PATH` (spec 73) plus
       `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/`AIDE_BUILD_CMD` overrides. Shell
       scripts read it via `aide_config_get` in `_aide-spec-lib.sh`. No init
       step — the file is created the first time a skill needs a value it

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# aide-generate-pdf - Generate PDF from JIRA or TODO documentation
+# aide-generate-pdf - Generate PDF from a spec
 # Combines all markdown files into a single PDF document
 
 set -e
@@ -19,7 +19,7 @@ if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   echo "  aide-generate-pdf 35                    # Shorthand: finds 35-todo-ai-nyheter"
   echo "  aide-generate-pdf todo-35               # Alternative shorthand"
   echo "  aide-generate-pdf 35-todo-ai-nyheter    # Full ID"
-  echo "  aide-generate-pdf 45-proj-7637          # JIRA-based task"
+  echo "  aide-generate-pdf 45-proj-7637          # by the folder name"
   echo "  aide-generate-pdf 35 /tmp/out.pdf       # Explicit output path"
   echo ""
   echo "Configuration:"
@@ -58,7 +58,6 @@ fi
 # Use the folder BASENAME for file names — FULL_ID may carry an archive/ prefix,
 # and a slash in a file name breaks mktemp and the output path.
 ISSUE_ID="${FULL_ID##*/}"
-DOC_TYPE="$(aide_doc_type "$FULL_ID")"
 
 # Check that md-to-pdf is installed
 if ! command -v md-to-pdf &> /dev/null; then
@@ -72,7 +71,7 @@ if ! command -v md-to-pdf &> /dev/null; then
   exit 1
 fi
 
-echo -e "${GREEN}📄 Generating PDF for $DOC_TYPE: $ISSUE_ID${NC}"
+echo -e "${GREEN}📄 Generating PDF for spec: $ISSUE_ID${NC}"
 echo ""
 
 # Create temporary combined markdown file in the system TMP area

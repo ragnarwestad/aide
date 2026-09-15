@@ -17,7 +17,6 @@ export type ProjectStepName =
   | "worktreeLinks"
   | "codeLanding"
   | "installCmd"
-  | "jiraBaseUrl"
   | "allowlist"
   | "confirm";
 

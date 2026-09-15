@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# aide-generate-html - Generate HTML from JIRA or TODO documentation
+# aide-generate-html - Generate HTML from a spec
 # Combines all markdown files into a single HTML document with navigation
 
 set -e
@@ -16,7 +16,7 @@ if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   echo "📄 Usage: aide-generate-html <ISSUE_ID>"
   echo ""
   echo "Examples:"
-  echo "  generate-html PROJ-7637                        # JIRA (key in the slug)"
+  echo "  generate-html PROJ-7637                        # by the issue key in the slug"
   echo "  generate-html 27                                  # number shorthand"
   echo "  generate-html 27-step-ts-conversion-analysis      # full folder ID"
   echo ""
@@ -56,7 +56,6 @@ fi
 # Use the folder BASENAME for file names — FULL_ID may carry an archive/ prefix,
 # and a slash in a file name breaks mktemp and the output path.
 ISSUE_ID="${FULL_ID##*/}"
-DOC_TYPE="$(aide_doc_type "$FULL_ID")"
 
 # Check that pandoc is installed
 if ! command -v pandoc &> /dev/null; then
@@ -67,7 +66,7 @@ if ! command -v pandoc &> /dev/null; then
   exit 1
 fi
 
-echo -e "${GREEN}📄 Generating HTML for $DOC_TYPE: $ISSUE_ID${NC}"
+echo -e "${GREEN}📄 Generating HTML for spec: $ISSUE_ID${NC}"
 echo ""
 
 # Get readable name for the title

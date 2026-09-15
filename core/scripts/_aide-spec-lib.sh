@@ -5,7 +5,7 @@
 #   source "$SCRIPT_DIR/_aide-spec-lib.sh"
 #
 # Flat structure: all issues live as <NN>-slug/ directly under the specs root
-# (same for JIRA and TODO; the JIRA key is part of the slug).
+# (an issue key in the title stays part of the slug).
 
 # Find the specs root for a project (spec 73: per-project config, no
 # global state).
@@ -36,7 +36,7 @@ _aide_find_spec() {
 # Resolve input to a folder name under the specs root. Echoes the folder
 # name (possibly prefixed "archive/"), or nothing. Active specs win over
 # archived ones with the same number.
-# Input: NN | todo-NN | <JIRA-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
+# Input: NN | todo-NN | <ISSUE-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
 aide_resolve_spec() {
   local input="$1" root="$2" dir="" flag="" pattern="" num
   if [ -d "$root/$input" ]; then
@@ -47,7 +47,7 @@ aide_resolve_spec() {
     num=$(echo "$input" | sed 's/^[Tt][Oo][Dd][Oo]-//')
     flag="-name"; pattern="$(printf '%02d' "$((10#$num))")-*"
   elif echo "$input" | grep -qE '^[A-Z][A-Z0-9]*-[0-9]+$'; then
-    # JIRA key (any project prefix): the key is part of the slug
+    # Issue key (any project prefix): the key is part of the slug
     flag="-iname"; pattern="*${input}*"
   else
     echo "$input"                                         # assume full folder ID
@@ -100,19 +100,6 @@ aide_slug_from_title() {
     | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
   [ -n "$slug" ] || slug="new-spec"
   printf '%s\n' "$slug"
-}
-
-# JIRA issue vs TODO plan based on the folder name (works for archived
-# folders too, which arrive as "archive/<NN>-slug").
-# JIRA folders are <NN>-<jira-key>-slug, so a key (letters, hyphen, digits)
-# right after the number means JIRA. Keys deeper in the slug do not count —
-# a folder like 13-upgrade-react-17-to-react-18 is a TODO plan.
-aide_doc_type() {
-  if echo "$1" | grep -qiE '^(archive/)?[0-9]+-[A-Za-z][A-Za-z0-9]*-[0-9]+(-|$)'; then
-    echo "JIRA issue"
-  else
-    echo "TODO plan"
-  fi
 }
 
 # Read a key from the per-project config file <project-root>/.aide/config
