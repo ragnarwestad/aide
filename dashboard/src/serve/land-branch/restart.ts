@@ -9,7 +9,7 @@
 
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { RESTART_DEFER_TIMEOUT_MS, RESTART_JOBS_DEFER_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
+import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -69,8 +69,10 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
 /** A running job's process is a child of this server: killing the server
  *  kills the job, and the queue goes on saying "running" about a step
  *  nothing is running any more (four jobs, 2026-09-03 00:13). So the
- *  restart also waits until no job but the landing one is running —
- *  bounded by `restartJobsDeferMs`, long enough for an implement. */
+ *  restart waits until no job but the landing one is running AND no
+ *  landing is in flight — in one loop, under one bound
+ *  (`restartDeferTimeoutMs`), so a landing that starts while the jobs
+ *  drain is covered by the same wait and never by a second one. */
 /** Every job the restart is waiting on, by short id — the one check both
  *  this loop and the deploy route (spec 385) need to make, so the two
  *  can never disagree about what "running" means. */
@@ -94,7 +96,6 @@ export async function restartAfterLanding(ctx: {
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
-  restartJobsDeferMs?: number;
   queue?: { list(): { id: string; state: string }[] };
   exceptJobId?: string;
   /** Called with the current running-job list whenever it changes, and
@@ -108,13 +109,13 @@ export async function restartAfterLanding(ctx: {
   }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
   const running = (): string[] => runningJobNames(ctx.queue, ctx.exceptJobId);
-  const jobsDeadline = Date.now() + (ctx.restartJobsDeferMs ?? RESTART_JOBS_DEFER_MS);
+  const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
   let waiting = running();
   if (waiting.length > 0) {
     console.error(`queue: a code change landed; the restart waits for running jobs: ${waiting.join(", ")}`);
     ctx.onJobsWaitChange?.(waiting);
   }
-  while (waiting.length > 0 && Date.now() < jobsDeadline) {
+  while ((waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, pollMs));
     waiting = running();
     ctx.onJobsWaitChange?.(waiting);
@@ -123,10 +124,6 @@ export async function restartAfterLanding(ctx: {
     console.error(
       `queue: restarting the dashboard while jobs are still running: ${waiting.join(", ")} — they will have to be run again`,
     );
-  }
-  const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
-  while (ctx.mergeLock.size > 0 && Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, pollMs));
   }
   if (ctx.mergeLock.size > 0) {
     console.error(

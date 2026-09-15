@@ -133,7 +133,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
-      restartJobsDeferMs: 500,
+      restartDeferTimeoutMs: 500,
       queue: { list: () => jobs },
       exceptJobId: "landing-job",
     });
@@ -150,7 +150,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
-      restartJobsDeferMs: 500,
+      restartDeferTimeoutMs: 500,
       queue: { list: () => [{ id: "landing-job", state: "running" }] },
       exceptJobId: "landing-job",
     });
@@ -169,7 +169,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
         mergeLock: createRootLock(),
         restart: hook,
         restartPollMs: 5,
-        restartJobsDeferMs: 30,
+        restartDeferTimeoutMs: 30,
         queue: { list: () => [{ id: "never-done-job", state: "running" }] },
       });
     } finally {
@@ -195,6 +195,31 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     }
     expect(count()).toBe(1);
     expect(logged.some((l) => l.includes("/repos/never-clears"))).toBe(true);
+    void held;
+  });
+
+  test("one bound covers jobs and landings together: a stuck job and a stuck landing wait once, not twice", async () => {
+    const lock = createRootLock();
+    const held = lock.run("/repos/never-clears", () => new Promise(() => {}));
+    const { hook, count } = restartSpy();
+    const realError = console.error;
+    console.error = () => {};
+    const started = Date.now();
+    try {
+      await restartAfterLanding({
+        mergeLock: lock,
+        restart: hook,
+        restartPollMs: 5,
+        restartDeferTimeoutMs: 60,
+        queue: { list: () => [{ id: "never-done-job", state: "running" }] },
+      });
+    } finally {
+      console.error = realError;
+    }
+    expect(count()).toBe(1);
+    // Two bounds in a row would have waited about 120ms here; one bound
+    // is over well before that.
+    expect(Date.now() - started).toBeLessThan(110);
     void held;
   });
 
@@ -370,7 +395,7 @@ describe("onJobsWaitChange (spec 385)", () => {
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
-      restartJobsDeferMs: 500,
+      restartDeferTimeoutMs: 500,
       queue: { list: () => jobs },
       exceptJobId: "landing-job",
       onJobsWaitChange: (j) => seen.push(j),
@@ -402,7 +427,7 @@ describe("onJobsWaitChange (spec 385)", () => {
       mergeLock: createRootLock(),
       restart: hook,
       restartPollMs: 5,
-      restartJobsDeferMs: 30,
+      restartDeferTimeoutMs: 30,
       queue: { list: () => [{ id: "never-done-job", state: "running" }] },
       onJobsWaitChange: (j) => seen.push(j),
     });

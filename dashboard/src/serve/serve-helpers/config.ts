@@ -99,16 +99,13 @@ export function createRootLock() {
  *  the dashboard server. */
 export const RESTART_POLL_MS = 250;
 
-/** Comfortably above the worst realistic `mergeBranchIntoDefault` run:
- *  up to 3 attempts (`branch-merge.ts`'s own retry) of up to ~8 git
- *  subcommands at up to `DEFAULT_TIMEOUT_MS` (4s) each. Bounded, not
- *  indefinite — a restart that waited forever for a landing that will
- *  never finish would just trade one silent failure for a dashboard
- *  that never comes back. */
-export const RESTART_DEFER_TIMEOUT_MS = 90_000;
-/** How long a restart waits for RUNNING JOBS to finish first: an implement
- *  step can take an hour and a half. */
-export const RESTART_JOBS_DEFER_MS = 2 * 60 * 60_000;
+/** How long a restart waits, in all, for running jobs and in-flight
+ *  landings to clear — one bound for the one wait. An implement step can
+ *  take an hour and a half, and a landing after it is minutes. Bounded,
+ *  not indefinite — a restart that waited forever for a job or a landing
+ *  that will never finish would just trade one silent failure for a
+ *  dashboard that never comes back. */
+export const RESTART_DEFER_TIMEOUT_MS = 2 * 60 * 60_000;
 /** The landing's test gate: both of aide's suites take about ten minutes
  *  on the serving host, plus the wait for the machine's test lock. */
 export const LANDING_GATE_TIMEOUT_MS = 60 * 60_000;
