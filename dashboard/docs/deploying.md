@@ -284,9 +284,9 @@ mails only when something happened. On an always-on host, every two minutes:
 **Point it at specs, not at code.** Merging code and installing it belong together (`AIDE_INSTALL_CMD`), and a
 background pull would move the code under a server that goes on running the old version — merged, but not deployed,
 and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every project that has
-an install command configured, `/projects` compares the checkout against `origin` on each load and says "N commits
-behind origin — deploy is a hand step" on that project's row. It only ever looks; nothing on that page fetches more
-than the default branch, and nothing merges, pulls or moves a checkout.
+an install command configured, the project's Deploy tab compares the checkout against `origin` and says how many
+commits behind it is, and which commit the service runs. It only ever looks; nothing there fetches more than the
+default branch, and nothing merges, pulls or moves a checkout.
 
 ## Known gaps
 
