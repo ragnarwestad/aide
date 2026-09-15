@@ -1,6 +1,7 @@
 // The one long message a row has to say (spec 143).
 
 import { stepLabel, type MessageVariant } from "../components";
+import { stepButton } from "../../../format/step-label.ts";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
@@ -46,7 +47,7 @@ export interface RowNotice {
   parts?: { text: string; href?: string }[];
 }
 
-/** Which of the four applies, if any. The order is the row's own: the
+/** Which of the five applies, if any. The order is the row's own: the
  *  queue's refusal of the press just made comes first, then a job that
  *  failed saying why it failed, then the spec's standing note about an
  *  archive that declined, and last a phase whose own record disagrees
@@ -101,7 +102,15 @@ export interface RowNotice {
  *  not upstage the retry that may be clearing it. It needs no job at
  *  all, for the same reason `wordPhase` shows "held back" without an
  *  attempt — a spec archived by hand, or one whose archive job has
- *  aged out of the queue, still has its file saying why. */
+ *  aged out of the queue, still has its file saying why.
+ *
+ *  The fifth, `readyToArchive` (spec 467), ranks lowest of all: it is
+ *  reachable only once every case above has already declined to apply,
+ *  mutually exclusive with `archiveHeldBack` by construction (the
+ *  caller only ever sets it once the held-back reason has cleared) —
+ *  but still ranked after it rather than assumed, so a future producer
+ *  added above it always outranks it the same way the existing four
+ *  already outrank each other. */
 export function specNotice(
   lead: QueueRowView | undefined,
   archiveHeldBack?: string,
@@ -120,6 +129,10 @@ export function specNotice(
    *  runs). */
   marks: { variant: MessageVariant; text: string; href?: string }[] = [],
   lang: Language = "en",
+  /** Nothing else applies, no job is in flight on this spec, and archive
+   *  is the one phase left (spec 467) — see this function's own header
+   *  comment for its rank. */
+  readyToArchive?: boolean,
 ): RowNotice | undefined {
   if (refusal) return { variant: "failed", text: refusal, hook: "refused" };
   const parts: { variant: MessageVariant; text: string; title?: string; href?: string }[] = [];
@@ -199,6 +212,9 @@ export function specNotice(
     return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { step: stepLabel("archive", lang), reason: heldBackReason }) };
   }
   if (disagreement) return { variant: "waiting", text: disagreement };
+  if (readyToArchive) {
+    return { variant: "waiting", text: t(lang, "list.readyToArchive", { button: stepButton("archive") }) };
+  }
   return undefined;
 }
 

@@ -13,6 +13,7 @@ import { specNotice, wordPhase } from "../../ui/job-state";
 import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup } from "./data-model";
+import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 
 /** The one phase whose own record disagrees with the files, worded for
@@ -54,13 +55,15 @@ export function specNoticeRow(
   lang: Language,
   testServerAvailable: (project: string) => boolean,
 ): string {
+  const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const notice = specNotice(
     g.lead,
-    g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+    archiveHeldBack,
     refusal,
     phaseDisagreement(g, lang),
     isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable),
     lang,
+    !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
   );
   if (!notice) return "";
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";

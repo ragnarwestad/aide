@@ -89,7 +89,7 @@ describe("the specs table fits the box that scrolls it", () => {
     // them (`specs-list/data-model/types.ts`).
     const MEASURED_PX: Record<string, number> = {
       Create: 38, Analyze: 45, Implement: 60, Archive: 43,
-      Oppretting: 62, Analyse: 45, Implementering: 89, Arkivering: 58,
+      Opprett: 49, Analyser: 54, Implementer: 78, Arkiver: 45,
     };
     const shown = PHASE_LINES.flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
       .filter((l): l is string => Boolean(l));

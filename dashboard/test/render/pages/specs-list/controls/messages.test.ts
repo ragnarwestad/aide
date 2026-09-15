@@ -148,9 +148,9 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       true,
       { lang: "nb" },
     );
-    expect(panel(html)).toContain("Arkivering holdt tilbake");
+    expect(panel(html)).toContain("Arkiver holdt tilbake");
     expect(panel(html)).toContain("siste ny kjøring failed");
-    expect([...panel(html).matchAll(/arkivering/gi)]).toHaveLength(1);
+    expect([...panel(html).matchAll(/arkiver/gi)]).toHaveLength(1);
   });
 
   // The second producer, and the one the description names first: a run

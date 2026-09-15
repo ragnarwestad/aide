@@ -12,7 +12,7 @@ describe("the acceptance-criteria hold-back reads in the reader's language", () 
   test("the row's notice, in Norwegian, has no English in it", () => {
     const notice = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], "nb");
     expect(notice?.text).toBe(
-      "Arkivering holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
+      "Arkiver holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
     );
   });
 

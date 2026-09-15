@@ -393,7 +393,7 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
       "423-nb",
       { lang: "nb" },
     );
-    expect(cell).toContain("<h2>Avbryt Implementering?</h2>");
+    expect(cell).toContain("<h2>Avbryt Implementer?</h2>");
     expect(cell).toContain(">OK</button>");
     expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Avbryt<\/button><\/form>/);
   });

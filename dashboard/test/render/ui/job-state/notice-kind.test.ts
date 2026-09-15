@@ -59,3 +59,20 @@ describe("specNotice's held-back branch tells self-resolving reasons from ones a
     expect(notice?.variant).toBe("waiting");
   });
 });
+
+// Spec 467: once every Acceptance row is ticked, the held-back sentence
+// goes away and nothing told the reader the next move was theirs —
+// pressing Archive. `readyToArchive` is the lowest-priority case, checked
+// last, so every existing producer here still outranks it.
+describe("specNotice's readyToArchive case (spec 467)", () => {
+  test("readyToArchive alone renders the ready-to-archive sentence", () => {
+    const notice = specNotice(undefined, undefined, undefined, undefined, [], "en", true);
+    expect(notice).toEqual({ variant: "waiting", text: "All checks ticked — press Archive to merge it" });
+  });
+
+  test("a held-back reason still wins over readyToArchive", () => {
+    const notice = specNotice(undefined, "the Slack webhook", undefined, undefined, [], "en", true);
+    expect(notice?.text).toContain("held back");
+    expect(notice?.text).not.toContain("All checks ticked");
+  });
+});

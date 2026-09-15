@@ -651,3 +651,80 @@ describe("no status mark renders inside the Spec cell (REQ-1, REQ-7)", () => {
     expect(specCell(html, folder)).not.toContain('class="badge');
   });
 });
+
+// --- spec 467: the row says what to do once every check is ticked ----------
+//
+// The held-back sentence goes away the moment every Acceptance row is
+// ticked, and nothing took its place: the row read "Ready" with nothing
+// telling the reader the next move was theirs — pressing Archive.
+describe("the row says what to do once every check is ticked (spec 467)", () => {
+  const FOLDER = "150-ready-to-archive";
+  const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
+    project: "aide",
+    specFolder: FOLDER,
+    ...extra,
+  });
+
+  // AC-1 (regression): the held-back sentence is unchanged while a check
+  // is still unticked.
+  test("AC-1: an unticked spec still shows the held-back sentence", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
+    });
+    expect(noticeCellHtml(html, FOLDER)).toContain("Acceptance criteria are not all ticked");
+  });
+
+  // AC-2: every check ticked, archive next, nothing in flight — the row
+  // names the one thing left to do.
+  test("AC-2: every check ticked and no job in flight shows the ready-to-archive sentence", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"] })],
+    });
+    expect(noticeCellHtml(html, FOLDER)).toContain("All checks ticked — press Archive to merge it");
+  });
+
+  // AC-3, queued: the same spec, but archive is already queued — the
+  // sentence must not tell the reader to do what is already under way.
+  test("AC-3: an archive job queued suppresses the ready-to-archive sentence", () => {
+    const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"] })],
+    });
+    expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
+  });
+
+  // AC-3, running: the same suppression while the job is actually going.
+  test("AC-3: an archive job running suppresses the ready-to-archive sentence", () => {
+    const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "running" })], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"] })],
+    });
+    expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
+  });
+
+  // Guard: `nextPhase()` cannot itself tell "archive is next" from
+  // "archive already ran and this row is what is left of it a moment
+  // before the folder moves" — an archived row must never show the
+  // sentence either.
+  test("an archived row never shows the ready-to-archive sentence", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      archived: [`aide/${FOLDER}`],
+      archivedSpecs: [
+        {
+          project: "aide",
+          folder: FOLDER,
+          archivedAt: "2026-09-15",
+          done: ["create", "analyze", "implement", "archive"],
+          models: {},
+          phaseOutcomes: {},
+        },
+      ],
+      filter: { state: "archived" },
+    });
+    expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
+  });
+});
