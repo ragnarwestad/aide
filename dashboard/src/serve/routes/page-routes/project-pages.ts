@@ -27,11 +27,9 @@ export async function projectPages(
     const langResult = languageChoice(url, req);
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+        name, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
-      budgetUsd: ctx.queue.defaults.budgetUsd,
-      jobCapUsd: ctx.queue.defaults.jobCapUsd,
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
       script: await specsClientScript(),
@@ -272,7 +270,7 @@ export async function projectPages(
         // construction `schedule-pages.ts` already builds for the
         // aggregate page's own routes.
         modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([modelName, choice]) => ({
-          name: modelName, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+          name: modelName, ...(choice.tool ? { tool: choice.tool } : {}),
         })),
         defaultModels: ctx.queue.defaults.model,
         worktreeLinkCandidates: gitignoreCandidates(dir),

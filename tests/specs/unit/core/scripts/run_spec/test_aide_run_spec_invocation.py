@@ -17,7 +17,7 @@ import pytest
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import BRANCH, _standalone_runner_copy
-from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_BUDGET, RESULT_ERROR, RESULT_OK, emits
+from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, emits
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # dry run: must not be called
@@ -45,7 +45,7 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     claude = fake_claude("exit 1")  # would fail loudly if it were called
     rc, out, _ = run(
         runner, workspace, claude,
-        command="implement", budget_usd="3", timeout_sec="1200",
+        command="implement", timeout_sec="1200",
         permission_mode="bypassPermissions", dry_run=True,
     )
     assert rc == 0
@@ -57,7 +57,7 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     # real CLI 2026-08-16, version 2.1.233).
     assert argv[argv.index("--output-format") + 1] == "stream-json"
     assert "--verbose" in argv
-    assert argv[argv.index("--max-budget-usd") + 1] == "3"
+    assert "--max-budget-usd" not in argv
     assert argv[argv.index("--permission-mode") + 1] == "bypassPermissions"
     # The spec ID is the folder's numeric prefix, and the prompt SAYS the
     # run is headless rather than leaving it in the environment.
@@ -128,7 +128,6 @@ def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude
 @pytest.mark.parametrize(
     "kwargs,fragment",
     [
-        ({"budget_usd": None}, "budget"),
         ({"permission_mode": None}, "permission"),
         ({"timeout_sec": None}, "timeout"),
         ({"result_file": None}, "result-file"),
@@ -329,16 +328,6 @@ def test_a_run_starts_from_the_default_branch_not_the_last_job_s(runner, workspa
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert stale in git(workspace["project"], "branch", "--list", stale)
 
-def test_budget_exhausted_is_stopped_not_a_generic_failure(runner, workspace, fake_claude):
-    """A cap-stop is a common, healthy outcome under tight caps. It must
-    be distinguishable from an agent that broke."""
-    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_BUDGET)}'; exit 1")
-    rc, out, _ = run(runner, workspace, claude)
-    assert out["terminalReason"] == "budget"
-    assert out["subtype"] == "error_max_budget_usd"
-    assert out["costUsd"] == pytest.approx(0.2030)
-    assert out["costMeasured"] is True
-
 def test_the_result_file_is_written_as_well_as_stdout(runner, workspace, fake_claude):
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
     result_file = workspace["project"].parent / "result.json"
@@ -380,12 +369,9 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     assert out["terminalReason"] == "timeout"
     assert out["ok"] is False
     # A SIGKILLed claude prints nothing, so the cost cannot be measured.
-    # The accounting must over-charge what it could not measure.
-    assert out["costUsd"] == pytest.approx(3.0)
+    assert out["costUsd"] == pytest.approx(0)
     assert out["costMeasured"] is False
-    # And no token figure at all. A cost may be assumed — that is the
-    # over-charge rule — but a token count may not: there is nothing to
-    # assume it from, so the field stays away rather than saying zero.
+    # And no token figure at all — there is nothing to derive one from.
     assert "tokens" not in out
 
     result_file = workspace["project"].parent / "result.json"
@@ -409,11 +395,11 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     assert "committed" in out["error"]
     assert "killed" not in out["error"], "a limit we set is not something that happened to us"
 
-def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, workspace, fake_claude):
+def test_a_stopped_run_reports_unmeasured_cost_even_when_it_flushes_json(runner, workspace, fake_claude):
     """Measured on the mini 2026-08-16: a SIGTERM'd `claude -p` DOES
     flush its result JSON — but with subtype error_during_execution and
     total_cost_usd 0. Trusting that number would under-charge exactly
-    the runs that ran longest, so a stop is charged its full budget
+    the runs that ran longest, so a stop reports its cost as unmeasured
     whether or not a result was written."""
     flushed = {
         "type": "result", "subtype": "error_during_execution",
@@ -429,7 +415,7 @@ def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, w
     )
     rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="5")
     assert out["terminalReason"] == "timeout"
-    assert out["costUsd"] == pytest.approx(3.0), "the flushed $0 must not be believed"
+    assert out["costUsd"] == pytest.approx(0), "the flushed $0 must not be believed as a MEASURED figure"
     assert out["costMeasured"] is False
     assert "tokens" not in out, "a stopped run's flushed usage is no more measured than its cost"
 

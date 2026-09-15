@@ -63,8 +63,8 @@ describe("renderScheduleForm", () => {
   // The model pair. One picker for the whole entry, not one per phase:
   // a scheduled job is a single `schedule` step.
   const TWO_TOOLS = [
-    { name: "claude-opus-5", budgetUsd: 15 },
-    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "claude-opus-5" },
+    { name: "codex-fast",  tool: "codex" as const },
   ];
 
   test("the model select offers every configured model, grouped by tool", () => {
@@ -111,7 +111,7 @@ describe("renderScheduleForm", () => {
     expect(two).toContain('data-default="codex-fast"');
     const one = renderScheduleForm({
       action: "/api/queue/schedule",
-      modelChoices: [{ name: "claude-opus-5", budgetUsd: 15 }],
+      modelChoices: [{ name: "claude-opus-5" }],
     });
     expect(one).not.toContain("data-ai=");
     expect(one).toContain('<select name="model"');

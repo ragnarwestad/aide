@@ -23,10 +23,9 @@ const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
-/** Every model name the queue config grants a budget to — what a
- *  create/edit is validated against, so a name the queue would refuse at
- *  fire time is refused here instead, while a person is looking at the
- *  form. */
+/** Every model name the queue config lists — what a create/edit is
+ *  validated against, so a name the queue would refuse at fire time is
+ *  refused here instead, while a person is looking at the form. */
 const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {

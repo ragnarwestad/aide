@@ -101,7 +101,6 @@ export function runnerArgv(
     "--project-dir", o.projectDir,
     "--command", step,
     "--spec", job.specFolder,
-    "--budget-usd", String(job.budgetUsd),
     "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),
     "--permission-mode", resolveStepPermissionMode(job, step, o.permissionMode ?? {}),
     "--result-file", resultFile,

@@ -78,7 +78,7 @@ export function scheduleEntryError(
   req: { name?: string; cron?: string; prompt?: string; model?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
-  /** Every model name the queue config grants a budget to. Passed by the
+  /** Every model name the queue config lists. Passed by the
    *  route, which is where that table is read; absent (a caller with no
    *  config to hand) checks the name's SHAPE only. A model the queue
    *  would refuse is refused here instead, while a person is looking at

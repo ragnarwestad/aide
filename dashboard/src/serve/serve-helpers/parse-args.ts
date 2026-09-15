@@ -96,9 +96,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     // write the allowlist back here, and a first install has no such
     // file yet (spec 112).
     opts.queueConfigFile = queueConfigFile;
-    // A missing or broken config leaves the built-in caps in place —
-    // the tight ones. Failing towards "spends less" is the only safe
-    // direction here.
+    // A missing or broken config leaves the built-in defaults in place.
     try {
       const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
       opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
@@ -127,7 +125,7 @@ export function parseArgs(argv: string[]): ServerOptions {
         else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
       }
     } catch {
-      console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
+      console.error(`cannot read ${queueConfigFile} — keeping the built-in defaults`);
     }
   }
   if (root) {

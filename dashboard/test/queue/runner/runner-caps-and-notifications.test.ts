@@ -4,15 +4,6 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dir, events, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
-
-/** What a reader would see: since spec 380 a message is stored as
- *  its key and the values that fill its blanks, and composed when
- *  the page is drawn. */
-function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
-}
-
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -54,7 +45,6 @@ describe("a step's token usage", () => {
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.state).toBe("done");
-    expect(runner.spentToday()).toBeCloseTo(1);
     expect(runner.spentTokensToday()).toBe(1000);
   });
 
@@ -64,40 +54,6 @@ describe("a step's token usage", () => {
     expect(runner.spentTokensToday()).toBe(4000);
     runner.setToday("2026-08-17");
     expect(runner.spentTokensToday()).toBe(0);
-  });
-});
-
-describe("caps are checked before a step starts", () => {
-  test("the daily cap holds a job back, and says so", () => {
-    const job = enqueue();
-    const runner = makeRunner();
-    runner.addSpentToday(18); // 18 + 3 > 20
-    runner.tick();
-    expect(spawns.length).toBe(0);
-    const after = store.get(job.id)!;
-    expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain("daily cap");
-  });
-
-  test("the per-job cap parks the job instead of starting another step", () => {
-    const job = enqueue({ steps: ["analyze", "implement", "archive"], jobCapUsd: 4 });
-    const runner = makeRunner({ readResult: () => okResult(3) });
-    runner.tick();
-    runner.poll(); // spent 3 of 4; the next step would need 3 more
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    const after = store.get(job.id)!;
-    expect(after.state).toBe("stopped");
-    expect(sentence(after.error)).toContain("job cap");
-    expect(after.stopReason).toBe("job-cap");
-  });
-
-  test("a day boundary clears the daily total", () => {
-    const runner = makeRunner();
-    runner.addSpentToday(18);
-    expect(runner.spentToday()).toBeCloseTo(18);
-    runner.setToday("2026-08-17");
-    expect(runner.spentToday()).toBe(0);
   });
 });
 
@@ -182,12 +138,12 @@ describe("notifications (criterion 7)", () => {
   test("a stop notifies with its reason — the 02:00 case", () => {
     enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "budget" }),
+      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "timeout" }),
     });
     runner.tick();
     runner.poll();
     expect(events.map((e) => e.event)).toEqual(["stopped"]);
-    expect(events[0]!.reason).toBe("budget");
+    expect(events[0]!.reason).toBe("timeout");
   });
 
   test("a failure notifies too", () => {
@@ -199,23 +155,5 @@ describe("notifications (criterion 7)", () => {
     runner.poll();
     expect(events.map((e) => e.event)).toEqual(["failed"]);
     expect(events[0]!.reason).toContain("dirty");
-  });
-
-  test("a job stopped by its own cap notifies as well — nothing ends in silence", () => {
-    enqueue({ steps: ["analyze", "implement"], jobCapUsd: 4 });
-    const runner = makeRunner({ readResult: () => okResult(3) });
-    runner.tick();
-    runner.poll();
-    runner.tick(); // the next step would breach the job cap
-    expect(events.map((e) => e.event)).toEqual(["stopped"]);
-    expect(events[0]!.reason).toContain("job cap");
-  });
-
-  test("a job held back by the daily cap is not an ending, and does not notify", () => {
-    enqueue();
-    const runner = makeRunner();
-    runner.addSpentToday(18);
-    runner.tick();
-    expect(events).toEqual([]);
   });
 });

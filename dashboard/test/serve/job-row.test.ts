@@ -15,9 +15,6 @@ function makeStore(): QueueStore {
   return new QueueStore({
     mirrorPath: undefined,
     defaults: {
-      budgetUsd: 3,
-      jobCapUsd: 10,
-      dailyCapUsd: 20,
       timeoutSec: { default: 1200 },
       permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
       model: { implement: "opus", default: "sonnet" },

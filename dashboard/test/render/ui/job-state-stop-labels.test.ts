@@ -13,9 +13,7 @@ describe("why a job stopped, in the reader's own language", () => {
   test("each reason has its own words in both languages", () => {
     expect(stateLabel(stopped("provider-limit"), "en")).toBe("stopped — provider limit");
     expect(stateLabel(stopped("provider-limit"), "nb")).toBe("stoppet — grense hos leverandøren");
-    expect(stateLabel(stopped("job-cap"), "nb")).toBe("stoppet — jobbtak");
     expect(stateLabel(stopped("tests-red"), "nb")).toBe("stoppet — røde tester");
-    expect(stateLabel(stopped("budget"), "nb")).toBe("stoppet — budsjett");
   });
 
   // The one with a number in it: the minutes are the job's own timeout,
@@ -32,6 +30,6 @@ describe("why a job stopped, in the reader's own language", () => {
   });
 
   test("English is what a caller that names no language gets", () => {
-    expect(stateLabel(stopped("job-cap"))).toBe("stopped — job cap");
+    expect(stateLabel(stopped("tests-red"))).toBe("stopped — tests red");
   });
 });

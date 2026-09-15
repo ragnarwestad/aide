@@ -62,11 +62,11 @@ describe("the model picker shows only the model's name, never a tool suffix", ()
         runnerAvailable: true,
         targets: [codexTarget],
         modelChoices: [
-          { name: "sonnet", budgetUsd: 3 },
+          { name: "sonnet" },
           // Deliberately a name that does NOT contain "codex": a name
           // that did would pass this test whether or not the suffix is
           // still being appended.
-          { name: "gpt-fast", budgetUsd: 5, tool: "codex" },
+          { name: "gpt-fast",  tool: "codex" },
         ],
         filter: { open: openKeys([], [codexTarget]) },
       },
@@ -94,8 +94,8 @@ describe("the model picker shows only the model's name, never a tool suffix", ()
 // it named codex-sol on the analyze line that ran on Sonnet.
 describe("each phase line shows what that step ran on", () => {
   const choices = [
-    { name: "Sonnet", budgetUsd: 15 },
-    { name: "gpt-5.6-sol", budgetUsd: 35, tool: "codex" as const },
+    { name: "Sonnet" },
+    { name: "gpt-5.6-sol",  tool: "codex" as const },
   ];
   const job = {
     id: "j32",

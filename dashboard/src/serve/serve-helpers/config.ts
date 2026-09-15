@@ -20,13 +20,7 @@ export const MAX_SAVE_BODY = 65536;
  *  handler, whatever the server's idle timeout is set to. */
 export const INSTALL_TIMEOUT_MS = 60_000;
 
-// The caps decided in spec 81: deliberately tight. An `analyze` step
-// fits; an `implement` on Opus will stop early, on purpose, until the
-// per-step value is raised from a measurement.
 export const QUEUE_DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152. 1200 is unchanged for everything else;
   // `implement` gets 5400 because 149's was killed at the 45-minute
   // mark with RED and GREEN done and its tests green, mid-way through

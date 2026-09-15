@@ -19,7 +19,7 @@ from ..conftest import READ_SPECS, git, init_repo, run
 from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate, probing_claude, specs_only_claude, writing_claude
 from .run_spec_invoking import BRANCH, create, wait_until, worktrees
 from .run_spec_origins import is_ancestor
-from .run_spec_results import RESULT_BUDGET, RESULT_OK
+from .run_spec_results import RESULT_OK
 
 def test_the_main_checkout_never_leaves_its_default_branch(runner, workspace, fake_claude):
     """The whole point. Two runs on the same repo pair are independent
@@ -136,12 +136,6 @@ def test_no_worktree_survives_a_completed_run(runner, workspace, fake_claude):
         assert worktrees(repo) == [str(repo)], "only the main worktree may remain"
     assert not list(workspace["wtbase"].glob("*/*/*")), "and nothing is left on disk"
 
-def test_no_worktree_survives_a_budget_stop(runner, workspace, fake_claude):
-    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_BUDGET)}'; exit 1")
-    rc, out, _ = run(runner, workspace, claude)
-    assert out["terminalReason"] == "budget"
-    assert worktrees(workspace["project"]) == [str(workspace["project"])]
-
 def test_no_worktree_survives_a_deadline_kill(runner, workspace, fake_claude):
     claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
     rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
@@ -208,9 +202,9 @@ def test_a_run_that_stops_early_deletes_its_empty_branches_too(runner, workspace
     the step wrote anything leaves an empty branch in BOTH roots, which
     is the worst version of the leftover — two repositories to clean by
     hand for one spec."""
-    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_BUDGET)}'; exit 1")
-    rc, out, _ = run(runner, workspace, claude)
-    assert out["terminalReason"] == "budget", out
+    claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
+    assert out["terminalReason"] == "timeout", out
     for repo in (workspace["project"], workspace["specs"]):
         assert git(repo, "branch", "--list", BRANCH) == "", \
             f"{repo} kept an empty branch after a run that stopped early"

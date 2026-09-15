@@ -78,11 +78,11 @@ describe("the line a phone shows at 02:00", () => {
     }
   });
 
-  test("a stop names its reason — a cap-stop must not read as a crash", async () => {
+  test("a stop names its reason — a time-stop must not read as a crash", async () => {
     const hook = webhook();
     try {
-      await run({ ...FINISHED, event: "stopped", reason: "budget" }, { webhookUrl: hook.url });
-      expect(hook.posted[0]!.text).toContain("stopped: budget");
+      await run({ ...FINISHED, event: "stopped", reason: "timeout" }, { webhookUrl: hook.url });
+      expect(hook.posted[0]!.text).toContain("stopped: timeout");
       expect(hook.posted[0]!.text).not.toContain("failed");
     } finally {
       await hook.stop();

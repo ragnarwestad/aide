@@ -210,9 +210,7 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
       }
       if (Object.keys(picked).length) out.timeoutSec = picked;
     }
-    for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
-      if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
-    }
+    if (typeof out.timeoutSec === "string") out.timeoutSec = Number(out.timeoutSec);
     return out;
   }
   return JSON.parse(text) as unknown;

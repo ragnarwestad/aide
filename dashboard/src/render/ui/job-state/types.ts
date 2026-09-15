@@ -51,7 +51,7 @@ export interface QueueRowView {
    *  no step actually running right now — including while merely `queued`
    *  for its next one. */
   stepStartedAt?: string;
-  stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap" | "tests-red";
+  stopReason?: "timeout" | "provider-limit" | "tests-red";
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  (spec 220). Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing
@@ -141,8 +141,8 @@ export interface StepResultView {
    *  not for the job's running total. */
   tokens?: number;
   /** Whether `costUsd` was READ off the tool's own output or stood in
-   *  for it. A killed step is charged its whole budget, because a
-   *  SIGKILLed run prints no usage — a ceiling, not a measurement.
+   *  for it. A killed step reports 0, because a SIGKILLed run prints no
+   *  usage and there is nothing to measure it from.
    *  Absent means measured: every record written before the flag
    *  existed came from a run that printed its own figure. */
   costMeasured?: boolean;

@@ -374,10 +374,7 @@ export class QueueStore {
    *  The name is checked against the SAME table `parseJobRequest` reads
    *  at job creation, in the same words — a small duplication, chosen
    *  over extracting a shared helper out of a working, tested path
-   *  nothing here asked to change. What it does NOT do is re-grant a
-   *  budget: the caps are the config's to give at job creation, and a
-   *  job started on a modest model does not buy a hungrier one's
-   *  headroom by being re-pointed at it mid-run. */
+   *  nothing here asked to change. */
   editTailModel(id: string, step: string, model: string): ParseResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, error: invalidRequest("no such job") };
@@ -469,9 +466,8 @@ export class QueueStore {
 
   /** The sibling of `setPendingModel()`, for an effort level (spec 364).
    *  Checked against `WORKFLOW_STEPS` and `EFFORT_LEVELS` directly —
-   *  there is no config table to look a grant up in, since effort
-   *  levels carry no budget of their own (2-analysis.md, "Config-vs-
-   *  code precedence tables are for THINGS THAT COST MONEY"). */
+   *  there is no config table to look an effort level up in, unlike a
+   *  model name. */
   setPendingEffort(project: string, specFolder: string, step: string, effort: string): PendingEffortResult {
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
     if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step an effort level can be chosen for`) };

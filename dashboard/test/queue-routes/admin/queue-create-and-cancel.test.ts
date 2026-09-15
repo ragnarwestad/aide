@@ -85,7 +85,7 @@ test("cancel refuses a job that has already finished, and leaves its state alone
     const id = `fin-${state}`;
     writeFileSync(join(site, "queue.json"), JSON.stringify([{
       id, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0, state,
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
+        timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
       createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
     }]));
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: join(site, "queue.json") });

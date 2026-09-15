@@ -31,7 +31,7 @@
 import { specNumber } from "../../project/spec-folder.ts";
 import { noProgressMessage } from "./cross-check-message.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { stepRepoRanges, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
@@ -42,7 +42,6 @@ export class Runner {
   private readonly o: RunnerOptions;
   private readonly maxConcurrent: number;
   private day: string;
-  private spent = 0;
   private spentTokens = 0;
 
   constructor(opts: RunnerOptions) {
@@ -53,21 +52,8 @@ export class Runner {
 
   // --- the day's total ------------------------------------------------------
 
-  spentToday(): number {
-    this.rollDay();
-    return this.spent;
-  }
-
-  addSpentToday(usd: number): void {
-    this.rollDay();
-    this.spent += usd;
-  }
-
-  /** The same day's total in the unit a subscription meters (spec 118).
-   *  Its own accumulator beside the cost, because the two are not
-   *  convertible: a step reports one, both or neither. Only the caps are
-   *  in dollars, so nothing here gates on this — it is a figure the page
-   *  shows. */
+  /** The day's total in the unit a subscription meters (spec 118) —
+   *  it is a figure the page shows, nothing here gates on it. */
   spentTokensToday(): number {
     this.rollDay();
     return this.spentTokens;
@@ -81,7 +67,6 @@ export class Runner {
   /** Test seam for the midnight boundary. */
   setToday(day: string): void {
     this.day = day;
-    this.spent = 0;
     this.spentTokens = 0;
   }
 
@@ -89,7 +74,6 @@ export class Runner {
     const today = this.o.today();
     if (today !== this.day) {
       this.day = today;
-      this.spent = 0;
       this.spentTokens = 0;
     }
   }
@@ -200,11 +184,10 @@ export class Runner {
         hold(job, { key: "runner.notAnalyzed" });
         continue;
       }
-      // Held back, not failed — the same shape `startOne`'s daily-cap
-      // check uses one call down: the reason is written, the state is
-      // left alone, no slot is taken, and the next tick tries again. It
-      // used to start, be refused by `aide-run-spec` and land in
-      // `failed`, which nothing retries.
+      // Held back, not failed: the reason is written, the state is left
+      // alone, no slot is taken, and the next tick tries again. It used
+      // to start, be refused by `aide-run-spec` and land in `failed`,
+      // which nothing retries.
       const dependency = blocked?.get(job.id);
       if (dependency !== undefined) {
         // The NUMBER, not the folder: the row already says "depends on:
@@ -230,8 +213,7 @@ export class Runner {
     this.clearStaleHolds(held);
   }
 
-  /** Every job this pass held, by id — `startOne`'s own daily-cap hold
-   *  included, which is why this is a field and not a local. */
+  /** Every job this pass held, by id. */
   private heldThisPass = new Set<string>();
 
   /** Hold one job with the reason it is held for RIGHT NOW. Written
@@ -262,38 +244,11 @@ export class Runner {
     }
   }
 
-  /** Start one job's next step, unless a cap holds it back. Returns
-   *  whether a slot was taken — a job the daily cap stops must not
-   *  consume one, and must not block a cheaper job behind it either. */
+  /** Start one job's next step. Returns whether a slot was taken. */
   private startOne(job: Job): boolean {
     const step = job.steps[job.stepIndex];
     if (!step) {
       this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now() });
-      return false;
-    }
-
-    // Both caps are checked BEFORE the step starts: a cap that only
-    // stops you afterwards is a report, not a cap.
-    if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
-      const reason: BoardMessage = {
-        key: "runner.jobCapExceeded",
-        values: { cap: job.jobCapUsd, button: stepButton(step) },
-      };
-      const result = this.o.store.transition(job.id, "cap-hit", {
-        stopReason: "job-cap",
-        finishedAt: this.o.now(),
-        error: reason,
-      });
-      this.announce(result.ok ? result.job : job, "stopped", step, renderMessage("en", reason));
-      return false;
-    }
-    // The budgets of jobs ALREADY IN FLIGHT count. `spentToday()` is the
-    // sum of what has been recorded, and recording happens at
-    // completion — so with N slots, N jobs could each pass this check on
-    // the same numbers and the cap be exceeded by (N-1) budgets before
-    // anything noticed.
-    if (this.reservedUsd() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
-      this.hold(job, { key: "runner.dailyCapExceeded", values: { cap: this.o.store.defaults.dailyCapUsd } });
       return false;
     }
 
@@ -327,13 +282,6 @@ export class Runner {
       error: undefined,
     });
     return true;
-  }
-
-  /** Today's spend plus the budgets of the steps currently in flight.
-   *  Derived, never stored: a job that dies is resolved by `poll()` or
-   *  `reconcile()`, and its reservation disappears with its state. */
-  private reservedUsd(): number {
-    return this.runningJobs().reduce((sum, j) => sum + j.budgetUsd, this.spentToday());
   }
 
   // --- finishing work -------------------------------------------------------
@@ -402,7 +350,6 @@ export class Runner {
   private complete(job: Job, outcome: Partial<StepOutcome>): void {
     const step = job.steps[job.stepIndex];
     const cost = typeof outcome.costUsd === "number" ? outcome.costUsd : 0;
-    this.addSpentToday(cost);
     // Read as defensively as the cost above, and with one more question
     // asked: a cost that is missing defaults to 0, a token count that is
     // missing stays missing. There is nothing to default it to.
@@ -521,13 +468,10 @@ export class Runner {
       stepStartedAt: undefined,
     };
 
-    // A cap or the clock ending a run is `stopped` — never `failed`.
-    // Under tight caps this is a common, healthy outcome, and a reader
-    // who cannot tell it from a broken agent will ignore both.
-    if (
-      outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
-      outcome.terminalReason === "provider-limit"
-    ) {
+    // The clock ending a run is `stopped` — never `failed`. Under tight
+    // timeouts this is a common, healthy outcome, and a reader who
+    // cannot tell it from a broken agent will ignore both.
+    if (outcome.terminalReason === "timeout" || outcome.terminalReason === "provider-limit") {
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,

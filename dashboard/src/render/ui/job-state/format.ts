@@ -9,17 +9,15 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { QueueRowView } from "./types.ts";
 
 // A stopped job is NOT a failed one, and the two must never render as
-// the same string: with tight caps a cap-stop is a common, healthy
-// outcome, and a reader who cannot tell them apart ignores both.
+// the same string: with a tight timeout a time-stop is a common,
+// healthy outcome, and a reader who cannot tell them apart ignores both.
 export function stateLabel(r: QueueRowView, lang: Language = "en"): string {
   if (r.state === "stopped") {
     if (r.stopReason === "timeout") {
       return t(lang, "state.stoppedTimeout").replace("{minutes}", String(Math.round(r.timeoutSec / 60)));
     }
     if (r.stopReason === "provider-limit") return t(lang, "state.stoppedProviderLimit");
-    if (r.stopReason === "job-cap") return t(lang, "state.stoppedJobCap");
-    if (r.stopReason === "tests-red") return t(lang, "state.stoppedTestsRed");
-    return t(lang, "state.stoppedBudget");
+    return t(lang, "state.stoppedTestsRed");
   }
   return r.state;
 }

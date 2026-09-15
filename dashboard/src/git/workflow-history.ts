@@ -79,7 +79,7 @@ export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workfl
 //   of the subject and would otherwise swallow it.
 // - ` (stopped: <reason>)` is present only when the run did NOT
 //   complete, and carries `terminal_reason` verbatim (`timeout`,
-//   `budget_exhausted`, …). Such a step has RUN but is not DONE.
+//   `provider-limit`, …). Such a step has RUN but is not DONE.
 // - The newest commit for a step is the one that speaks for it: a
 //   re-run supersedes whatever the attempt before it said.
 // - Anything else with the same words in it — a revert, a merge, a

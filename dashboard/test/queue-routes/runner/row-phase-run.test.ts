@@ -23,13 +23,10 @@ afterEach(() => harness.cleanup());
 describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   const auth = { headers: { "x-aide-token": TOKEN } };
   const CHOICES = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   /** Exactly what the row's form posts: no target, no caps. */
@@ -87,9 +84,8 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       model: "",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ implement: "opus" });
-    expect(body.job.budgetUsd).toBe(3);
   });
 
   // Spec 181, criterion 7: the review of the plan runs inside analyze

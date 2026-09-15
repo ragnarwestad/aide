@@ -255,13 +255,12 @@ export const opened = (folder: string, project = "aide"): string => `&open=${pro
  *  choice" assertions have something that WOULD have been drawn. Two
  *  tools, because `aiPicker` draws nothing at all below two. */
 export const TWO_TOOLS = {
-  budgetUsd: 5,
   timeoutSec: { default: 1200 },
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
   modelChoices: {
-    sonnet: { budgetUsd: 3 },
-    "codex-fast": { budgetUsd: 5, tool: "codex" },
+    sonnet: { },
+    "codex-fast": {  tool: "codex" },
   },
 };
 
@@ -269,7 +268,7 @@ export const TWO_TOOLS = {
  *  model has to land as a KNOWN choice rather than the synthetic,
  *  no-longer-configured one `modelOptions` draws for anything else
  *  (spec 265). */
-export const modelChoicesWith = (extra: Record<string, { budgetUsd: number; tool?: string }>) => ({
+export const modelChoicesWith = (extra: Record<string, { }>) => ({
   ...TWO_TOOLS,
   modelChoices: { ...TWO_TOOLS.modelChoices, ...extra },
 });

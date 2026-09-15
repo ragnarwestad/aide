@@ -67,12 +67,8 @@ export async function specsPages(
       currentUrl: langResult.currentUrl,
       archivedSpecs,
       script: await specsClientScript(),
-      // Only what the config granted a budget to is offerable: a
-      // dropdown naming a model the machine has not agreed to pay for
-      // would be a way around the caps.
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, c]) => ({
         name,
-        budgetUsd: c.budgetUsd,
         // Carried so the option can SAY which CLI it starts: two
         // entries that differ only in that would otherwise be two
         // identical-looking names in the same dropdown.
@@ -204,7 +200,6 @@ export async function specsPages(
       script: await specsClientScript(),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name,
-        budgetUsd: choice.budgetUsd,
         ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,

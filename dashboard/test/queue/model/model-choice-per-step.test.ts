@@ -17,9 +17,6 @@ import {
 import { resolveStepModel } from "../../../src/serve/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
@@ -47,33 +44,20 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 
-// Reserving the heaviest model for the heaviest jobs (per-job model
-// choice). Two rules do the work here:
-//   * the CONFIG lists which models may be picked, so a request can
-//     never invent one
-//   * the budget follows the model FROM THE CONFIG, so picking a
-//     hungrier model grants the headroom it needs without a request
-//     ever setting a number itself
-
 // Spec 123: the model is chosen ON THE PHASE LINE, so one Run press can
 // carry a DIFFERENT model for each phase it ticks. The whole-job string
 // above is kept working unchanged; this is the shape the per-phase
-// dropdowns post. Two rules carry over from the whole-job path and one
-// is new:
+// dropdowns post. Two rules apply:
 //   * every NAME is still looked up in the config, so a request can
 //     never invent a model — checked once per entry now
 //   * a step named here must be one this job is actually running
-//   * the budget is the LARGEST any one chosen model was granted, never
-//     the sum: `queue.ts`'s own rule is that a request may only TIGHTEN
-//     a cap, and two picks together may not buy more headroom than the
-//     more generous of them already had.
 describe("per-step model choice", () => {
   const WITH_CHOICES: QueueDefaults = {
     ...DEFAULTS,
     modelChoices: {
-      sonnet: { budgetUsd: 3 },
-      opus: { budgetUsd: 3 },
-      fable: { budgetUsd: 12, jobCapUsd: 30 },
+      sonnet: {},
+      opus: {},
+      fable: {},
     },
   };
 
@@ -90,31 +74,6 @@ describe("per-step model choice", () => {
     expect(r.job.modelChoice).toBeUndefined();
   });
 
-  test("the budget is the MAX across the chosen models, never their sum", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" } },
-      { resolve, defaults: WITH_CHOICES },
-    );
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    // sonnet grants 3, fable grants 12 — the job gets 12, not 15.
-    expect(r.job.budgetUsd).toBe(12);
-    // Same rule for the job cap: fable's 30, not 30 + sonnet's.
-    expect(r.job.jobCapUsd).toBe(30);
-  });
-
-  test("a map naming only cheap models buys no more headroom than they were granted", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "opus" } },
-      { resolve, defaults: WITH_CHOICES },
-    );
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.budgetUsd).toBe(3);
-    // Neither names a job cap of its own, so the configured one stands.
-    expect(r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
-  });
-
   // Skipped, not refused (2026-08-19): the phase lines' selects are
   // always pre-filled, so every Run posts a name for all four steps —
   // only the ticked ones may apply.
@@ -126,9 +85,6 @@ describe("per-step model choice", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.job.model).toEqual({ analyze: "sonnet" });
-    // And the skipped step's grant buys no headroom: fable's jobCapUsd
-    // must not leak into a job that will never run it.
-    expect(r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
   });
 
   test("an unlisted model in the map is refused, exactly as a whole-job one is", () => {
@@ -172,22 +128,6 @@ describe("per-step model choice", () => {
     expect(r.job.model).toEqual({ analyze: "fable", implement: "opus" });
   });
 
-  test("the request still cannot raise the budget past what the map was granted", () => {
-    const raised = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" }, budgetUsd: 40 },
-      { resolve, defaults: WITH_CHOICES },
-    );
-    expect(raised.ok).toBe(false);
-
-    const tightened = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" }, budgetUsd: 5 },
-      { resolve, defaults: WITH_CHOICES },
-    );
-    expect(tightened.ok).toBe(true);
-    if (!tightened.ok) return;
-    expect(tightened.job.budgetUsd).toBe(5);
-  });
-
   test("a list is not a map — it is refused rather than half-read", () => {
     const r = parseJobRequest(
       { ...REQ, model: ["fable"] },
@@ -207,7 +147,6 @@ describe("per-step model choice", () => {
     if (!r.ok) return;
     expect(r.job.model).toEqual({ analyze: "fable", implement: "fable" });
     expect(r.job.modelChoice).toBe("fable");
-    expect(r.job.budgetUsd).toBe(12);
   });
 
   // An empty string has always meant "use the configuration" rather
@@ -222,7 +161,6 @@ describe("per-step model choice", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.job.model).toEqual({ analyze: "sonnet", implement: "opus" });
-    expect(r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
   });
 
   test("an empty map is 'use the configuration' too", () => {
@@ -234,7 +172,6 @@ describe("per-step model choice", () => {
     if (!r.ok) return;
     expect(r.job.model).toEqual({ analyze: "sonnet", implement: "opus" });
     expect(r.job.modelChoice).toBeUndefined();
-    expect(r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
   });
 });
 // --- spec 225: the model a phase still ahead will run on ----------------------
@@ -247,7 +184,7 @@ describe("per-step model choice", () => {
 describe("editing a running job's model for a step still ahead (spec 225)", () => {
   const CHOICES: QueueDefaults = {
     ...DEFAULTS,
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   let made_ = 0;
@@ -366,17 +303,5 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
       model: Record<string, string>;
     }[];
     expect(stored.find((j) => j.id === job.id)!.model.implement).toBe("fable");
-  });
-
-  // The caps are the config's to grant, and this route grants none: a
-  // job created on a modest model does not buy a hungrier one's
-  // headroom by being re-pointed at it mid-run.
-  test("the job's own budget is left exactly where it was", () => {
-    const job = running(["analyze", "implement"]);
-    const before = job.store.get(job.id)!;
-    expect(job.store.editTailModel(job.id, "implement", "fable").ok).toBe(true);
-    const after = job.store.get(job.id)!;
-    expect(after.budgetUsd).toBe(before.budgetUsd);
-    expect(after.jobCapUsd).toBe(before.jobCapUsd);
   });
 });

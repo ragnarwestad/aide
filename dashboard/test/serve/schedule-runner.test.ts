@@ -96,10 +96,10 @@ describe("refreshSchedules (spec 259)", () => {
       extra: {
         queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
         queueDefaults: {
-          budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+            
           timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
           model: { default: "sonnet" },
-          modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+          modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" as const } },
         },
       },
     });

@@ -162,15 +162,15 @@ $headless_note"
 fi
 if [ "$tool" = "codex" ]; then
   # `codex exec --json` is the same idea one CLI over: JSONL on stdout,
-  # one event per line as it happens, the prompt read from stdin. Two
-  # things are deliberately NOT here. There is no budget flag — Codex
-  # has no native dollar cap, so the wall-clock timeout is the whole of
-  # what stops a runaway step (`dashboard/README.md` says so where a
-  # reader picking a model can see it). And there is no session
-  # argument: the id the dashboard mints is fresh every time, so passing
-  # it would ask Codex to resume a thread that has never existed. Codex
-  # names its own thread and the result parser reads that back, exactly
-  # as claude's session id is read back today.
+  # one event per line as it happens, the prompt read from stdin. One
+  # thing is deliberately NOT here: there is no session argument. The id
+  # the dashboard mints is fresh every time, so passing it would ask
+  # Codex to resume a thread that has never existed. Codex names its own
+  # thread and the result parser reads that back, exactly as claude's
+  # session id is read back today. Neither tool takes a dollar-cap flag —
+  # the wall-clock timeout is the whole of what stops a runaway step, for
+  # both (`dashboard/README.md` says so where a reader picking a model
+  # can see it).
   codex_safety_flags "$permission_mode" \
     || refuse "invalid --permission-mode for codex: $permission_mode"
   argv=("$codex_bin" exec --json)
@@ -185,7 +185,7 @@ else
   # --output-format=stream-json requires --verbose") — verified
   # 2026-08-16, version 2.1.233.
   argv=("$claude_bin" -p --output-format stream-json --verbose
-        --max-budget-usd "$budget_usd" --permission-mode "$permission_mode")
+        --permission-mode "$permission_mode")
   [ -n "$model" ] && argv+=(--model "$model")
   [ -n "$effort" ] && argv+=(--effort "$effort")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")

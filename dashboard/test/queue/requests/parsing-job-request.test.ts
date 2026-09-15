@@ -13,9 +13,6 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
@@ -43,7 +40,7 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("persistQueueSettings", () => {
-  test("changes only owned step/budget/job-cap/timeout values in JSONC and keeps fallback, unknown entries and other text", () => {
+  test("changes only owned step/timeout values in JSONC and keeps fallback, unknown entries and other text", () => {
     const file = join(dir, "queue-config.json");
     const before = `{
   // keep this comment
@@ -62,15 +59,13 @@ describe("persistQueueSettings", () => {
       ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, 1800]),
     );
 
-    expect(persistQueueSettings(file, { model, budgetUsd: 7, jobCapUsd: 20, timeoutSec })).toBeNull();
+    expect(persistQueueSettings(file, { model, timeoutSec })).toBeNull();
     const after = readFileSync(file, "utf-8");
     expect(after).toContain("// keep this comment");
     expect(after).toContain('"concurrency": 2');
     expect(after).toContain('"default": "sonnet"');
     expect(after).toContain('"future": "leave-me"');
     for (const step of Object.keys(model)) expect(after).toContain(`"${step}": "codex-fast"`);
-    expect(after).toContain('"budgetUsd": 7');
-    expect(after).toContain('"jobCapUsd": 20');
     for (const step of Object.keys(timeoutSec)) expect(after).toContain(`"${step}": 1800`);
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
@@ -85,8 +80,6 @@ describe("parseJobRequest", () => {
     expect(r.job.specFolder).toBe("81-queue-and-runner");
     expect(r.job.steps).toEqual(["analyze", "implement"]);
     expect(r.job.state).toBe("queued");
-    expect(r.job.budgetUsd).toBe(3);
-    expect(r.job.jobCapUsd).toBe(10);
     expect(r.job.timeoutSec).toEqual({ analyze: 1200, implement: 5400 });
     expect(r.job.spentUsd).toBe(0);
     expect(r.job.stepIndex).toBe(0);
@@ -188,18 +181,6 @@ describe("parseJobRequest", () => {
     expect(alone.ok && alone.job.timeoutSec).toEqual({ implement: 3000 });
   });
 
-  test("an override may tighten a cap but never loosen it", () => {
-    const tighter = parseJobRequest({ ...REQ, budgetUsd: 1, timeoutSec: 60 }, { resolve, defaults: DEFAULTS });
-    expect(tighter.ok).toBe(true);
-    if (tighter.ok) {
-      expect(tighter.job.budgetUsd).toBe(1);
-      expect(tighter.job.timeoutSec).toEqual({ analyze: 60 });
-    }
-    const looser = parseJobRequest({ ...REQ, budgetUsd: 50 }, { resolve, defaults: DEFAULTS });
-    expect(looser.ok).toBe(false);
-    if (!looser.ok) expect(looser.error).toContain("budgetUsd");
-  });
-
   // --- spec 394 (REQ-8): the ongoing-job parser no longer reads this --------
   //
   // The choice is recorded on the spec itself now (`specAcceptanceNotRequired`)
@@ -293,13 +274,8 @@ describe("parseJobRequest", () => {
 describe("mergeQueueDefaults", () => {
   test("a config file overrides what it names and keeps the rest", () => {
     const merged = mergeQueueDefaults(DEFAULTS, {
-      budgetUsd: 15,
-      jobCapUsd: 50,
       model: { implement: "opus", archive: "sonnet" },
     });
-    expect(merged.budgetUsd).toBe(15);
-    expect(merged.jobCapUsd).toBe(50);
-    expect(merged.dailyCapUsd).toBe(20); // untouched
     expect(merged.timeoutSec).toEqual(DEFAULTS.timeoutSec);
     expect(merged.model.archive).toBe("sonnet");
     expect(merged.permissionMode.implement).toBe("bypassPermissions");
@@ -319,10 +295,8 @@ describe("mergeQueueDefaults", () => {
     expect(merged.timeoutSec).toEqual(DEFAULTS.timeoutSec);
   });
 
-  test("nonsense is ignored rather than obeyed — failing towards spending less", () => {
-    const merged = mergeQueueDefaults(DEFAULTS, { budgetUsd: -5, dailyCapUsd: "lots", model: 7 });
-    expect(merged.budgetUsd).toBe(3);
-    expect(merged.dailyCapUsd).toBe(20);
+  test("a malformed model table is ignored rather than obeyed", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, { model: 7 });
     expect(merged.model).toEqual(DEFAULTS.model);
   });
 });

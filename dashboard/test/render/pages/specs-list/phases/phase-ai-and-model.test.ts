@@ -34,19 +34,19 @@ describe("spec 179: an AI and a model on every phase line", () => {
   const target = (specFolder = "179-ai-per-phase"): SpecTarget => ({ project: "aide", specFolder });
 
   const BOTH = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
-    { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "sonnet" },
+    { name: "fable" },
+    { name: "gpt-fast",  tool: "codex" as const },
   ];
   /** Codex FIRST, so a fallback that took `modelChoices`'s head can be
    *  told from one that took a literal "claude". */
   const CODEX_FIRST = [
-    { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const },
-    { name: "sonnet", budgetUsd: 3 },
+    { name: "gpt-fast",  tool: "codex" as const },
+    { name: "sonnet" },
   ];
   const ONE_TOOL = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
+    { name: "sonnet" },
+    { name: "fable" },
   ];
 
   const rows = (

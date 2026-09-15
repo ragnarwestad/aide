@@ -38,7 +38,7 @@ should read this file by hand.
   (`run-spec-step-tests.sh`): the session's own record is never what
   decides. Red goes back to the same session first, as a follow-up turn
   with the failing lines — at most `AIDE_TEST_FIX_ROUNDS` (2) more, each
-  within what is left of the step's budget and time limit — claude through
+  within what is left of the step's time limit — claude through
   `-p --resume`, codex through `codex exec resume <thread> -`.
   Still red is `terminalReason: tests-red` on the STEP — a failed job
   with the failing lines as detail, and Implement offered again — unlike

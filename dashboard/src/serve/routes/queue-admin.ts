@@ -1,5 +1,5 @@
 // The queue-creation and project-admin API routes: create, the
-// queue's model/budget defaults, and add/settings/deploy/remove
+// queue's model defaults, and add/settings/deploy/remove
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
 import { join } from "node:path";
@@ -73,20 +73,14 @@ export async function handleQueueAdminRoutes(
       next[step] = value;
     }
 
-    // budgetUsd/jobCapUsd/timeoutSec: the ceilings a per-job request
-    // can only tighten (`tighten()` above), never loosen — these
-    // ranges catch an operator's typo well above the highest value
-    // already live in production (spec 250's own analysis: $35).
+    // timeoutSec: the ceiling a per-job request can only tighten
+    // (`tighten()` above), never loosen — this range catches an
+    // operator's typo.
     const numField = (v: unknown, name: string, min: number, max: number): number | { error: string } => {
       if (typeof v !== "number" || !Number.isFinite(v)) return { error: `invalid ${name}` };
       if (v < min || v > max) return { error: `${name} must be between ${min} and ${max}` };
       return v;
     };
-    const budgetUsd = numField(asked?.budgetUsd, "budgetUsd", 0.01, 100);
-    if (typeof budgetUsd !== "number") return refuse(budgetUsd.error);
-    const jobCapUsd = numField(asked?.jobCapUsd, "jobCapUsd", 0.01, 300);
-    if (typeof jobCapUsd !== "number") return refuse(jobCapUsd.error);
-    if (jobCapUsd < budgetUsd) return refuse("jobCapUsd may not be lower than budgetUsd");
 
     const askedTimeout = asked?.timeoutSec;
     if (!askedTimeout || typeof askedTimeout !== "object" || Array.isArray(askedTimeout)) {
@@ -105,14 +99,12 @@ export async function handleQueueAdminRoutes(
     }
 
     const merged = { ...ctx.queue.defaults.model, ...next };
-    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: next, budgetUsd, jobCapUsd, timeoutSec });
+    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: next, timeoutSec });
     if (error) return refuse(error);
     ctx.queue.defaults.model = merged;
-    ctx.queue.defaults.budgetUsd = budgetUsd;
-    ctx.queue.defaults.jobCapUsd = jobCapUsd;
     ctx.queue.defaults.timeoutSec = { ...ctx.queue.defaults.timeoutSec, ...timeoutSec };
     return wantsJson
-      ? json({ ok: true, model: next, budgetUsd, jobCapUsd, timeoutSec })
+      ? json({ ok: true, model: next, timeoutSec })
       : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?notice=${encodeURIComponent("Defaults saved")}` } });
   }
 

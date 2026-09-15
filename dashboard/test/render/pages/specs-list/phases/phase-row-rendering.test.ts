@@ -80,7 +80,7 @@ describe("a spec's row runs its own phases", () => {
   // a real name instead.
   test("the row offers the configured models, pre-filled and nothing else", () => {
     const html = rows([], [target("94-never-run")], {
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      modelChoices: [{ name: "sonnet" }, { name: "fable" }],
       defaultModels: { default: "sonnet" },
     });
     const line = subRow(html, "analyze");

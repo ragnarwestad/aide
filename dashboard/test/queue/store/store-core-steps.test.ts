@@ -7,9 +7,6 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },

@@ -34,19 +34,19 @@ describe("spec 169: one picker per phase", () => {
   const target = (specFolder = "169-one-picker"): SpecTarget => ({ project: "aide", specFolder });
 
   const BOTH = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
-    { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "sonnet" },
+    { name: "fable" },
+    { name: "gpt-fast",  tool: "codex" as const },
   ];
   /** Codex FIRST, so a fallback that took `modelChoices`'s head can be
    *  told from one that took the row's old resting tool. */
   const CODEX_FIRST = [
-    { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const },
-    { name: "sonnet", budgetUsd: 3 },
+    { name: "gpt-fast",  tool: "codex" as const },
+    { name: "sonnet" },
   ];
   const ONE_TOOL = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
+    { name: "sonnet" },
+    { name: "fable" },
   ];
 
   const rows = (
@@ -278,8 +278,8 @@ describe("spec 169: one picker per phase", () => {
 import { resolveChosenModel } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
 describe("a phase that has run keeps what it ran on across a rename of the choices", () => {
   const models = [
-    { name: "Sonnet", budgetUsd: 15 },
-    { name: "gpt-5.6-sol", budgetUsd: 35, tool: "codex" as const },
+    { name: "Sonnet" },
+    { name: "gpt-5.6-sol",  tool: "codex" as const },
   ];
   test("a job's choice name that is still offered wins as before", () => {
     expect(resolveChosenModel(models, "Sonnet", "gpt-5.6-sol", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");

@@ -27,7 +27,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.         |
 | `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set. |
 | `done`        | Every step succeeded and, for a step that lands, the landing succeeded too.                     |
-| `stopped`     | A cap ended the run before or during a step. `stopReason` says which cap.                       |
+| `stopped`     | The wall clock or a provider limit ended a step. `stopReason` says which.                       |
 | `failed`      | A step reported failure, or a landing after a successful step did not finish.                   |
 | `cancelled`   | A person pressed Cancel.                                                                        |
 | `interrupted` | The step's process died without leaving a result.                                               |
@@ -41,11 +41,10 @@ it: the same step may be queued again for the same spec, and the duplicate guard
 stateDiagram-v2
     [*] --> queued: POST /api/queue, /create, schedule
     queued --> running: tick — a slot is free
-    queued --> stopped: tick — the job cap would be exceeded
     queued --> done: tick — no step left
     running --> queued: step ok, more steps
     running --> done: step ok, last step
-    running --> stopped: budget, timeout, provider limit
+    running --> stopped: timeout, provider limit
     running --> failed: step failed
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
@@ -76,16 +75,12 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   looks at the acceptance section at all, so the step is left to start and end with the reason that is actually
   true — "nothing is implemented yet — run implement first". Held here instead, the row asked a person to tick rows
   for work nobody had done.
-- Leaves a job `queued` the same way when the daily cap would be exceeded, counting the budgets of the steps already
-  in flight. A cheaper job behind it may take the slot.
-- Moves a job to `stopped` (`stopReason: "job-cap"`) when its NEXT step's budget would exceed the job cap. The cap is
-  checked before the step starts, so the step never runs.
 - Moves a job with no step left to `done`.
 - Otherwise spawns the step and writes `running`, with the process and file fields.
 
 **When a step ends** (`Runner.complete()`, reached from `poll()` when the result file appears):
 
-- `budget`, `timeout` or `provider-limit` as the run's terminal reason gives `stopped`, with that `stopReason`.
+- `timeout` or `provider-limit` as the run's terminal reason gives `stopped`, with that `stopReason`.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
@@ -130,8 +125,8 @@ Three fields say something the state alone does not, and each is read by the pag
   as ever. The step's own phase line follows the same flag: its badge reads "Running", not "done", and its
   own duration keeps counting until the landing settles — the row's state and the phase line never disagree about
   whether the step is still going.
-- **`stopReason`** is `budget`, `timeout`, `provider-limit` or `job-cap`, set with `stopped` and nowhere else.
-  `stopped` is deliberately not `failed`: under tight caps a cap-stop is a common, healthy outcome.
+- **`stopReason`** is `timeout` or `provider-limit`, set with `stopped` and nowhere else.
+  `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome.
 - **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running
   `archive` resolves both. It is declared in `src/queue/types.ts` and again in `src/render/ui/job-state/types.ts`,
   which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree. `error` beside it is
@@ -142,8 +137,8 @@ Three fields say something the state alone does not, and each is read by the pag
 The row's first line is the verb for what is happening or the resting state and what is next — never the bare word.
 `running` reads as the phase's own verb ("analyzing"); `queued` as "<phase> n/total" — its place among every job waiting
 its turn, off the same order the runner picks — or, held back, the reason; `done`
-as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — budget", "stopped — 45 min",
-"stopped — provider limit" or "stopped — job cap"; `failed` with `errorReason` as the conflict or the unlanded branch
+as "ready for <next phase>" or "done — nothing waiting on you"; `stopped` as "stopped — 45 min" or
+"stopped — provider limit"; `failed` with `errorReason` as the conflict or the unlanded branch
 and the button that re-runs `archive`. `cancelled` is drawn amber like `stopped` — a step somebody stopped by hand, not a failure and not a step that never ran; `interrupted` is
 grouped with `failed`. The words themselves live in `src/render/ui/job-state/` and are described on
 [The specs list and the spec page](the-specs-list.md#how-the-list-reads).

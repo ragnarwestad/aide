@@ -173,7 +173,7 @@ export type JobState = (typeof JOB_STATES)[number];
 // own suite on the merged result and it went red, so nothing was pushed.
 // The step did its work and the machinery did its job — the code is not
 // green yet, and the answer is to run implement again.
-export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap" | "tests-red";
+export type StopReason = "timeout" | "provider-limit" | "tests-red";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.
@@ -192,12 +192,11 @@ export const UNFINISHED = new Set<string>(["queued", "running"]);
 export type TransitionEvent =
   | "start" // queued -> running: tick, a slot is free
   | "no-step-left" // queued -> done: tick, nothing left to run
-  | "cap-hit" // queued -> stopped: the next step would exceed the job cap
   | "cancel" // queued|running -> cancelled: a person pressed Cancel
   | "step-succeeded" // running -> queued: step ok, more steps left
   | "step-succeeded-last" // running -> done: step ok, last step
   | "step-failed" // running -> failed: the step reported failure
-  | "run-stopped" // running -> stopped: budget, timeout or provider limit
+  | "run-stopped" // running -> stopped: timeout or provider limit
   | "process-gone" // running -> interrupted: the process died with no result
   | "landing-failed" // done -> failed: a landing did not finish
   | "landing-held"; // done -> stopped: the landing's suite went red
@@ -210,7 +209,6 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
   queued: {
     start: "running",
     "no-step-left": "done",
-    "cap-hit": "stopped",
     cancel: "cancelled",
   },
   running: {

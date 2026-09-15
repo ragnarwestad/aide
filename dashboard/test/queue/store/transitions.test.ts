@@ -11,9 +11,6 @@ import { join } from "node:path";
 import { JOB_STATES, QueueStore, TRANSITIONS, type QueueDefaults, type TransitionEvent } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   timeoutSec: { default: 1200 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -87,18 +84,18 @@ describe("QueueStore.transition (REQ-3, REQ-5)", () => {
     const store = makeStore();
     const r = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "queued" });
+    store.update(r.job.id, { state: "running" });
 
-    const result = store.transition(r.job.id, "cap-hit" as TransitionEvent, {
-      stopReason: "job-cap",
+    const result = store.transition(r.job.id, "run-stopped" as TransitionEvent, {
+      stopReason: "timeout",
       finishedAt: "2026-09-02T00:00:00Z",
-      error: "the job cap would be exceeded",
+      error: "the step ran out of time",
     });
     expect(result.ok).toBe(true);
     const job = store.get(r.job.id)!;
     expect(job.state).toBe("stopped");
-    expect(job.stopReason).toBe("job-cap");
-    expect(job.error).toBe("the job cap would be exceeded");
+    expect(job.stopReason).toBe("timeout");
+    expect(job.error).toBe("the step ran out of time");
   });
 
   test("an unknown job id is refused rather than throwing", () => {

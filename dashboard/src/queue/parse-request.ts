@@ -167,13 +167,11 @@ export function parseJobRequest(
   // the request either way; everything it is granted comes from the
   // config, looked up in exactly the same table.
   let modelChoice: string | undefined;
-  let choice: ModelChoice | undefined;
   let stepModels: Record<string, string> | undefined;
   if (typeof r.model === "string" && r.model !== "") {
     if (!NAME_RE.test(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = lookUpModel(defaults, r.model);
     if ("error" in found) return { ok: false, error: found.error };
-    choice = found;
     modelChoice = r.model;
   } else if (r.model !== undefined && r.model !== null && r.model !== "") {
     // The per-step shape. An empty string keeps meaning "use the
@@ -182,7 +180,6 @@ export function parseJobRequest(
     // malformed object.
     if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     stepModels = {};
-    const grants: ModelChoice[] = [];
     for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
       // A phase left on "default" posts nothing to apply. Skipped, not
       // refused: the config's own per-step choice is the answer.
@@ -195,19 +192,6 @@ export function parseJobRequest(
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
       stepModels[step] = name;
-      grants.push(found);
-    }
-    // Two picks together may not buy more headroom than the more
-    // generous of them already had on its own: the file's rule is that
-    // a request may only TIGHTEN a cap, so the ceiling is the LARGEST
-    // single grant, never the sum.
-    if (grants.length) {
-      choice = {
-        budgetUsd: Math.max(...grants.map((c) => c.budgetUsd)),
-        jobCapUsd: grants.some((c) => c.jobCapUsd !== undefined)
-          ? Math.max(...grants.map((c) => c.jobCapUsd ?? c.budgetUsd))
-          : undefined,
-      };
     }
   }
 
@@ -255,10 +239,6 @@ export function parseJobRequest(
     closeReason = r.closeReason.trim();
   }
 
-  const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
-  if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
-  const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
-  if (jobCapUsd instanceof Error) return { ok: false, error: jobCapUsd.message };
   // Per step, each against its OWN ceiling: an override that would be a
   // tightening for implement can be a loosening for analyze, and the
   // job holding both may not buy the one by naming the other.
@@ -279,8 +259,6 @@ export function parseJobRequest(
       steps,
       stepIndex: 0,
       state: "queued",
-      budgetUsd,
-      jobCapUsd,
       timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
       // A whole-job pick applies to EVERY step: "reserve the heavy
@@ -472,8 +450,6 @@ export function parseCreateRequest(
       steps,
       stepIndex: 0,
       state: "queued",
-      budgetUsd: defaults.budgetUsd,
-      jobCapUsd: defaults.jobCapUsd,
       timeoutSec: defaults.timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
       // The config's own default for every step this job runs,

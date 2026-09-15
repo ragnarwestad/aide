@@ -96,7 +96,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     return cells(caption)[2] ?? "";
   };
 
-  const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
+  const CHOICES = [{ name: "sonnet" }];
 
   // --- the structural invariant, before any behaviour ------------------------
 

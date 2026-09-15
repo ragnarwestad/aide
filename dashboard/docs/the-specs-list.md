@@ -384,7 +384,7 @@ is the whole job's span and belongs to no one step of it — reaching for that i
 prevent. Instead, **the queue stamps each step's own start** (`Job.stepStartedAt`, set fresh the instant the runner
 actually spawns it) and carries it onto that step's own result once it ends (`StepResult.startedAt`) — a step's
 duration is that result's own end minus its own recorded start. A job merely `queued` between two steps — held back
-for a landing, a dependency, an open acceptance row, a full concurrency slot, or the daily cap — has not started its
+for a landing, a dependency, an open acceptance row, or a full concurrency slot — has not started its
 next step yet and shows no duration for it at all, however long the previous step's own end sits in the past: none of
 that waiting is ever inside the figure. A result written before this stamp existed falls back to the boundary the
 page always used — the step before it ending, or the job's own start for the first one.

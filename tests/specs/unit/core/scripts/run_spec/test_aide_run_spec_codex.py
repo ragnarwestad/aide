@@ -22,9 +22,8 @@ from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD
 
 def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake_codex):
     """Criterion 1. Codex reports tokens and NO dollar figure anywhere in
-    its output, so `costUsd` is absent — not zero, and not Claude's
-    over-charge-to-budget fallback, which has nothing to approximate
-    from here."""
+    its output, so `costUsd` is absent — not zero, and not a stand-in for
+    a cost that was never there to measure."""
     codex = fake_codex(emits(CODEX_STREAM_OK))
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert rc == 0, out

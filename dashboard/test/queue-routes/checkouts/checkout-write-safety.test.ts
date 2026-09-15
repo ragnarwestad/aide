@@ -48,7 +48,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
   test("the runner is pointed at the dashboard's own checkout, never the person's", () => {
     const job = {
       id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
-      budgetUsd: 5, model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+       model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
@@ -63,7 +63,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
   test("--effort reaches argv only when the job named one for this step", () => {
     const job = {
       id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
-      budgetUsd: 5, model: {}, effort: { analyze: "high" }, timeoutSec: {}, permissionMode: {},
+       model: {}, effort: { analyze: "high" }, timeoutSec: {}, permissionMode: {},
       state: "queued", createdAt: "", results: [],
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "analyze", "/tmp/r.json", {

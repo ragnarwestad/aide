@@ -110,8 +110,6 @@ export interface Job {
   steps: WorkflowStep[];
   stepIndex: number;
   state: JobState;
-  budgetUsd: number;
-  jobCapUsd: number;
   /** Per step, resolved at creation like `permissionMode`/`model` (spec
    *  152). A job persisted before that change still holds a bare
    *  number; `resolveTimeoutSec` in serve.ts is what reads either. */
@@ -274,13 +272,7 @@ export interface Job {
   errorDetail?: string;
 }
 
-/** What one pickable model is granted. The budget lives HERE, not in
- *  the request: a hungrier model needs more headroom per step, and the
- *  only place allowed to grant headroom is the config file on the
- *  machine that runs the jobs. */
 export interface ModelChoice {
-  budgetUsd: number;
-  jobCapUsd?: number;
   /** Which CLI runs a step picked on this entry (spec 125). Absent
    *  means claude — every config written before the second tool existed
    *  keeps meaning exactly what it meant. `fake-claude` names the
@@ -295,9 +287,6 @@ export interface ModelChoice {
 }
 
 export interface QueueDefaults {
-  budgetUsd: number;
-  jobCapUsd: number;
-  dailyCapUsd: number;
   /** Per step, with a `default` fallback — the same shape as
    *  `permissionMode`/`model`, because an implement is not an analyze
    *  and one number for both stopped spec 149 mid-sentence with its

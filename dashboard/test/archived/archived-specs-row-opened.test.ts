@@ -223,7 +223,7 @@ describe("an archived spec's row, opened", () => {
     const oldModel = "claude claude-sonnet-5";
     const newModel = "claude claude-opus-5";
     const { base } = start(
-      { queueDefaults: modelChoicesWith({ "claude-opus-5": { budgetUsd: 15 } }) },
+      { queueDefaults: modelChoicesWith({ "claude-opus-5": { } }) },
       {
         [folder]: {
           description: described("A locked model merge", "One archived spec, two model records."),

@@ -25,14 +25,6 @@ RESULT_OK = {
 }
 
 
-RESULT_BUDGET = {
-    "type": "result", "subtype": "error_max_budget_usd", "is_error": True,
-    "session_id": "f632eed3-5d7a-40f2-bb40-e3ad6139b8d7",
-    "total_cost_usd": 0.2030, "terminal_reason": "budget_exhausted",
-    "errors": ["Reached maximum budget ($0.2)"],
-}
-
-
 # What a real result event carries beside the cost, read off an actual
 # transcript on this machine (2026-08-19, `claude` 2.1.x): `modelUsage`
 # is the SESSION's total, keyed by model and named in camelCase, while

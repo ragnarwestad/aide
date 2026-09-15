@@ -23,10 +23,10 @@ function writeSchedule(dir: string, project: string, yaml: string): void {
 const NIGHTLY = 'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n';
 /** A queue config with two models, for the pages that draw the picker. */
 const DEFAULTS = {
-  budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+    
   timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
-  modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+  modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" as const } },
 };
 const TRAFFIC = 'name: other\nschedule:\n  - name: traffic-analysis\n    cron: "0 0 * * *"\n    prompt: docs/traffic.md\n';
 

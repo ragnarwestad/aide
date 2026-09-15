@@ -30,7 +30,7 @@ export interface SpecTarget {
    *  (spec 154). Marked, never forbidden. */
   done?: string[];
   /** Steps whose latest commit STOPPED, by step, with the reason —
-   *  `timeout`, `budget_exhausted`. Such a step has run and has not
+   *  `timeout`, `provider-limit`. Such a step has run and has not
    *  finished, and the row says so instead of "not run yet" even once
    *  the queue's own memory of that attempt is gone. */
   stopped?: Record<string, string>;

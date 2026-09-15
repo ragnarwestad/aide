@@ -139,9 +139,9 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // chosen. Same two controls the phase lines draw, same helpers, same
   // single-tool rule.
   const TWO_TOOLS: NonNullable<NewSpecPageOptions["modelChoices"]> = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
-    { name: "codex-fast", budgetUsd: 5, tool: "codex" },
+    { name: "sonnet" },
+    { name: "fable" },
+    { name: "codex-fast",  tool: "codex" },
   ];
 
   /** The value both selects have to agree on for `applyAiPick` to find
@@ -225,7 +225,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // has nothing to offer.
   test("one tool configured: the AI is named beside the model, not hidden", () => {
     const html = newPage({
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      modelChoices: [{ name: "sonnet" }, { name: "fable" }],
       defaultModels: { default: "sonnet" },
     });
     expect(html).toContain('name="model.create"');
@@ -347,7 +347,7 @@ describe("spec 342: the phase table", () => {
   // derive one from, so every select has to carry `formIdOverride`
   // explicitly.
   test("every picker's form attribute is the page's own form id", () => {
-    const html = table(newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12, tool: "codex" }] }));
+    const html = table(newPage({ modelChoices: [{ name: "sonnet" }, { name: "fable",  tool: "codex" }] }));
     const forms = [...html.matchAll(/<select[^>]*\bform="([^"]*)"/g)].map((m) => m[1]);
     expect(forms.length).toBeGreaterThan(0);
     expect(forms.every((f) => f === "new-spec-form")).toBe(true);
@@ -358,7 +358,7 @@ describe("spec 342: the phase table", () => {
   // already used, since the page passes no `pendingModels` at all.
   test("REQ-6: analyze/implement/archive pre-fill from the configured default, same as create", () => {
     const html = newPage({
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      modelChoices: [{ name: "sonnet" }, { name: "fable" }],
       defaultModels: { analyze: "fable", default: "sonnet" },
     });
     const line = subRow(html, "analyze");
@@ -371,7 +371,7 @@ describe("spec 342: the phase table", () => {
   // `aiPicker`/`modelPicker` return when called directly — proof the
   // page draws it by calling them, not by a parallel hand-rolled copy.
   test("REQ-8: the create row's pickers are produced by aiPicker/modelPicker themselves", () => {
-    const models = [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12, tool: "codex" as const }];
+    const models = [{ name: "sonnet" }, { name: "fable",  tool: "codex" as const }];
     const html = newPage({ modelChoices: models, defaultModels: { default: "sonnet" } });
     const line = subRow(html, "create");
     const row: SpecGroup = {
@@ -485,7 +485,7 @@ describe("spec 342: the phase table", () => {
   // helper's 4 list-only cells had nothing under them and nothing
   // sizing them, which read as a stray blank field beside the picker.
   test("spec 415 REQ-2: the caption row and phase rows both have exactly 2 <td>s", () => {
-    const html = newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }] });
+    const html = newPage({ modelChoices: [{ name: "sonnet" }] });
     const captionRow = html.match(/<tr class="subrow" data-caption="1">.*?<\/tr>/)?.[0] ?? "";
     expect(captionRow).not.toBe("");
     expect(captionRow.match(/<td/g)?.length).toBe(2);
@@ -502,7 +502,7 @@ describe("spec 342: the phase table", () => {
   // for columns that do not exist here" — the actual rendered width
   // needs a real browser, covered by the e2e check instead.
   test("spec 415 REQ-3: the table's HTML carries no list-only column markers", () => {
-    const html = table(newPage({ modelChoices: [{ name: "sonnet", budgetUsd: 3 }] }));
+    const html = table(newPage({ modelChoices: [{ name: "sonnet" }] }));
     expect(html).not.toContain('data-col="created"');
     expect(html).not.toContain('data-col="started"');
     expect(html).not.toContain('data-col="cost"');

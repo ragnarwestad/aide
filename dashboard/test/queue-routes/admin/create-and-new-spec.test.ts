@@ -32,7 +32,7 @@ describe("a run reaches its own project and no other", () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
       project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+       timeoutSec: 2700, permissionMode: {}, model: {},
       // A job mirrored before the removal still has the key.
       extraProjects: ["aide-dashboard"],
     } as unknown as Parameters<typeof runnerArgv>[0];
@@ -51,7 +51,7 @@ describe("--effort reaches the runner only when a step actually named one", () =
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
       project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {}, effort: { implement: "xhigh" },
+       timeoutSec: 2700, permissionMode: {}, model: {}, effort: { implement: "xhigh" },
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
@@ -73,7 +73,7 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
       project: "aide", specFolder: "new-abc123de", steps: ["create"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+       timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       createNoAiFormulate: true,
     } as unknown as Parameters<typeof runnerArgv>[0];
@@ -93,7 +93,7 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
       project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+       timeoutSec: 2700, permissionMode: {}, model: {},
       createNoAiFormulate: true,
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "implement", "/tmp/r.json", {
@@ -109,7 +109,7 @@ describe("a chosen dependency reaches the runner and the page", () => {
   const createJob = (dependsOn?: string[]) =>
     ({
       project: "aide", specFolder: "new-abcd1234", steps: ["create"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+       timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       ...(dependsOn ? { createDependsOn: dependsOn } : {}),
     }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
@@ -329,13 +329,10 @@ describe("POST /api/queue/create (spec 93)", () => {
     const { base } = start({
       queueToken: TOKEN,
       queueDefaults: {
-        budgetUsd: 3,
-        jobCapUsd: 10,
-        dailyCapUsd: 20,
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" },
-        modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+        modelChoices: { sonnet: { }, fable: {  } },
       },
     });
     const res = await fetch(`${base}/api/queue/create`, {
@@ -372,13 +369,10 @@ describe("POST /api/queue/create (spec 93)", () => {
     const { base } = start({
       queueToken: TOKEN,
       queueDefaults: {
-        budgetUsd: 3,
-        jobCapUsd: 10,
-        dailyCapUsd: 20,
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" },
-        modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" } },
+        modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" } },
       },
     });
     const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();

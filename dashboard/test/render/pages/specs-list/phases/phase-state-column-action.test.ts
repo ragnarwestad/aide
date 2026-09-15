@@ -208,7 +208,7 @@ describe("spec 157: the row draws one action, on its caption line", () => {
   test("the phase line leads with its own cell, and still fills the table (criterion 14)", () => {
     const html = rows([], [target("157-one-action")], {
       open: true,
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+      modelChoices: [{ name: "sonnet" }],
     });
     const subs = [...html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
     for (const sub of subs) {

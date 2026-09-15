@@ -110,9 +110,7 @@ export const en = {
   // the badge is wide.
   "state.stoppedTimeout": "stopped — {minutes} min",
   "state.stoppedProviderLimit": "stopped — provider limit",
-  "state.stoppedJobCap": "stopped — job cap",
   "state.stoppedTestsRed": "stopped — tests red",
-  "state.stoppedBudget": "stopped — budget",
 
   "project.deployRestartWaiting":
     "This checkout matches origin, but the service is still running commit {sha} — " +

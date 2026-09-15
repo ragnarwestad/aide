@@ -124,7 +124,7 @@ export async function schedulePages(
       error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+        name, ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,

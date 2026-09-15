@@ -16,7 +16,7 @@ import subprocess
 import time
 import pytest
 from ..conftest import run
-from .run_spec_results import RESULT_BUDGET, RESULT_OK, STREAM_NOISE, stream_body
+from .run_spec_results import RESULT_OK, STREAM_NOISE, stream_body
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
     stream = tmp_path / "job.stream.jsonl"
@@ -125,15 +125,6 @@ def test_a_truncated_last_line_does_not_lose_the_result(runner, workspace, fake_
     assert out["terminalReason"] == "completed"
     assert out["costUsd"] == pytest.approx(0.5357)
 
-def test_the_stream_is_kept_when_the_budget_stops_the_run(runner, workspace, fake_claude, tmp_path):
-    stream = tmp_path / "job.stream.jsonl"
-    claude = fake_claude(stream_body(RESULT_BUDGET, exit_code=1))
-    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
-    assert rc == 0, out
-    assert out["terminalReason"] == "budget"
-    assert stream.exists()
-    assert '"error_max_budget_usd"' in stream.read_text()
-
 def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, fake_claude, tmp_path):
     """The longest runs are exactly the ones whose transcript is worth
     keeping, and they are the ones that get killed."""
@@ -174,7 +165,6 @@ def test_the_stream_is_readable_while_the_run_is_still_going(
             "--project-dir", str(workspace["project"]),
             "--command", "analyze",
             "--spec", workspace["folder"],
-            "--budget-usd", "3",
             "--timeout-sec", "30",
             "--permission-mode", "acceptEdits",
             "--result-file", str(workspace["project"].parent / "result.json"),

@@ -122,7 +122,7 @@ and no control on the page draws off `errorReason`.
 
 **`archive` is therefore the one step that can touch the worktree and fail to finish, and the generic commit loop
 guards against that.** Every other step either succeeds or refuses before touching the tree. `archive` is handed an
-open merge and can be interrupted (crash, cancellation, a budget stop) after the merge opens but before the skill
+open merge and can be interrupted (crash, cancellation, a timeout) after the merge opens but before the skill
 commits or aborts it. Left alone, the script's generic `git add -A` + commit loop would stage the conflict markers and
 commit them as the resolution. `core/scripts/aide-run-spec` aborts an unfinished merge before that loop runs, but only
 when `command_name` is `archive` — every other step is unaffected. The "leaves the branch as it found it" contract for

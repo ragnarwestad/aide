@@ -155,9 +155,9 @@ export function modelOptions(models: NonNullable<SpecsPageOptions["modelChoices"
             (m) =>
               `<option value="${esc(m.name)}" data-tool="${esc(tool)}"` +
               // Spec 457: the option's own label is the model's name
-              // alone — the per-step budget it used to carry (spec 454)
-              // already stands, read-only, wherever the budget is
-              // configured, and repeating it here read as a price.
+              // alone — the per-step dollar figure it used to carry
+              // (spec 454) read as a price, and spec 473 dropped it
+              // from the config entirely.
               `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
           )
           .join("") +

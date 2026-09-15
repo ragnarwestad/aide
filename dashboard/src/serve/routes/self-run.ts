@@ -40,7 +40,7 @@ export function settledCreateFolder(job: { specFolder: string; landing?: Job["la
 /** What the spec's row is expected to show once the round is over
  *  (`dashboard/test/round/run` reads it back and compares): the job's
  *  state, its stop reason when stopped, and the message — a message
- *  KEY when the board wrote one (`runner.jobCapExceeded`), or a piece
+ *  KEY when the board wrote one (`runner.notAnalyzed`), or a piece
  *  of the sentence when the runner script's own English is the text. */
 export interface RoundExpect {
   state?: string;

@@ -194,14 +194,13 @@ describe("spec 395: a step still landing renders no timestamp, not undefined", (
   });
 });
 
-// --- spec 152: a figure that was over-charged says so wherever it is summed ---
+// --- spec 152: a figure that could not be measured says so wherever it is summed ---
 //
-// A killed step is charged its whole budget, because a SIGKILLed run
-// prints no usage and the accounting must over-charge what it could not
-// measure. `costMeasured: false` records that, and the job page's Steps
-// table has marked it "est." per step since spec 118 — but the two
-// TOTALS built on top of those steps had no access to the flag, so
-// 149's spec total read "41.13 USD" as if it were money spent.
+// A killed step reports its cost as unmeasured (0), because a SIGKILLed
+// run prints no usage. `costMeasured: false` records that, and the job
+// page's Steps table has marked it "est." per step since spec 118 — but
+// the two TOTALS built on top of those steps had no access to the flag,
+// so 149's spec total read "41.13 USD" as if it were money spent.
 describe("provider-limit presentation", () => {
   test("the stopped label identifies the provider limit", () => {
     expect(stateLabel(row({ state: "stopped", stopReason: "provider-limit" } as never))).toBe(
@@ -222,22 +221,14 @@ describe("provider-limit presentation", () => {
 // capitalizes job.error's rendered sentence directly.
 describe("the job detail page's banner capitalizes job.error (spec 442)", () => {
   test("a lowercase-starting error renders with an uppercase first letter", () => {
-    const stopped = row({ state: "stopped", stopReason: "job-cap", error: "the job cap ($4) would be exceeded" } as never);
+    const stopped = row({ state: "stopped", stopReason: "timeout", error: "stopped at its own time limit" } as never);
     const html = renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV);
-    expect(html).toContain("The job cap ($4) would be exceeded");
-  });
-});
-
-describe("job-cap presentation", () => {
-  test("the stopped label identifies the job cap, distinct from a budget stop", () => {
-    expect(stateLabel(row({ state: "stopped", stopReason: "job-cap" } as never))).toBe(
-      "stopped — job cap",
-    );
+    expect(html).toContain("Stopped at its own time limit");
   });
 });
 
 describe("red-suite presentation", () => {
-  test("the stopped label identifies the red suite, distinct from a budget stop", () => {
+  test("the stopped label identifies the red suite, distinct from a timeout stop", () => {
     expect(stateLabel(row({ state: "stopped", stopReason: "tests-red" } as never))).toBe(
       "stopped — tests red",
     );
@@ -246,8 +237,8 @@ describe("red-suite presentation", () => {
 
 describe("the stopped badge carries its error behind a '(?)' (spec 454)", () => {
   test("a stopped row with an error gets the error inside a helpPopover", () => {
-    const error = "the job cap ($4) would be exceeded by the next step";
-    const html = stateChip(row({ state: "stopped", stopReason: "job-cap", error } as never));
+    const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
+    const html = stateChip(row({ state: "stopped", stopReason: "provider-limit", error } as never));
     expect(html).not.toContain(`title="${error}"`);
     expect(html).toContain(`<p>${error}</p>`);
   });
@@ -260,7 +251,7 @@ describe("the stopped badge carries its error behind a '(?)' (spec 454)", () => 
 
   test("a queued row parked with a held-back error gets no title attribute and no mark", () => {
     const html = stateChip(
-      row({ state: "queued", error: "held back: the daily cap ($20) would be exceeded" } as never),
+      row({ state: "queued", error: "held back: not analyzed yet — run /aide-analyze first" } as never),
     );
     expect(html).not.toContain("title=");
     expect(html).not.toContain("<details");

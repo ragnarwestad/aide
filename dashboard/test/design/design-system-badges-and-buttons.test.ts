@@ -19,7 +19,7 @@ describe("the four states with no example on the design sheet", () => {
   };
 
   test("stopped is a notice, not a failure — the same amber as waiting", () => {
-    expect(badgeOf("stopped", { stopReason: "budget" })).toBe("b-waiting");
+    expect(badgeOf("stopped", { stopReason: "timeout" })).toBe("b-waiting");
   });
 
   test("failed is danger", () => {

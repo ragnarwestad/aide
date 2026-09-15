@@ -36,8 +36,6 @@ function makeJob(overrides: Partial<Job> = {}): Job {
     steps: ["implement"],
     stepIndex: 0,
     state: "done",
-    budgetUsd: 5,
-    jobCapUsd: 5,
     timeoutSec: {},
     permissionMode: {},
     model: {},

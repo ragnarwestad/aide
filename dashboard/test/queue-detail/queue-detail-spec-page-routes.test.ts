@@ -55,13 +55,10 @@ describe("a Codex step's job page", () => {
   /** The one config difference these tests need: a pickable entry that
    *  names Codex. Everything else is the server's own defaults. */
   const CODEX_CHOICE: QueueDefaults = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
-    modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },
+    modelChoices: { "codex-fast": {  tool: "codex" } },
   };
 
   const CODEX_STREAM = [

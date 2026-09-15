@@ -299,13 +299,10 @@ describe("landing a created spec (spec 93)", () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(start, "aide-create-results-", git, {
       queueDefaults: {
-        budgetUsd: 3,
-        jobCapUsd: 10,
-        dailyCapUsd: 20,
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" },
-        modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+        modelChoices: { sonnet: { }, fable: {  } },
       },
     });
     const made = (await (

@@ -120,7 +120,7 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   if (currentStep(r) !== step || !inFlight(r)) return null;
   // A step only has a start once the runner has actually spawned it
   // (`stepStartedAt`, spec 384). A job merely QUEUED for this step — held
-  // back for a landing, the daily cap, a dependency, an open acceptance
+  // back for a landing, a dependency, an open acceptance
   // row, or a full concurrency slot — has not started it yet and owes it
   // no duration at all, however long the previous step's own end sits in
   // the past. `running` with no recorded `stepStartedAt` (a step spawned

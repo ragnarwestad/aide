@@ -43,10 +43,10 @@ describe("spec 192: the phase line's controls share one cell", () => {
   });
 
   const BOTH = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "sonnet" },
+    { name: "codex-fast",  tool: "codex" as const },
   ];
-  const ONE = [{ name: "sonnet", budgetUsd: 3 }];
+  const ONE = [{ name: "sonnet" }];
 
   const rows = (
     list: QueueRowView[] = [],

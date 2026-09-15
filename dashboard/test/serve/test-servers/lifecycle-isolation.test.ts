@@ -26,9 +26,6 @@ beforeEach(() => {
   queue = new QueueStore({
     mirrorPath: join(dir, "queue.json"),
     defaults: {
-      budgetUsd: 1,
-      jobCapUsd: 5,
-      dailyCapUsd: 50,
       timeoutSec: { default: 600 },
       permissionMode: { default: "bypassPermissions" },
       model: { default: "script" },

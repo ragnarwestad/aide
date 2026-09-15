@@ -11,7 +11,7 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
 - [The token](#the-token)
-- [Caps](#caps)
+- [The time limit](#the-time-limit)
 - [Which AI runs a step](#which-ai-runs-a-step)
 - [Global defaults for the AI and model](#global-defaults-for-the-ai-and-model)
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
@@ -38,8 +38,8 @@ builds on, a title, a description, a phase table, and two actions — Create, wh
 `POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. The phase table has
 one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a model choice, drawn by
 the same pickers the spec row on the list uses. `create`'s tick is always checked and cannot be unchecked; the other
-three are checked by default too, so a form submitted without touching them queues all four phases in order, guarded,
-budgeted and timed exactly like any other job. Unticking a box before pressing Create still works, and is how a
+three are checked by default too, so a form submitted without touching them queues all four phases in order, guarded
+and timed exactly like any other job. Unticking a box before pressing Create still works, and is how a
 `create`-only job is queued. Whatever was ticked here is recorded against the spec this job makes, and is what the
 row's own phase boxes on the list show once the spec has a row — not re-derived from scratch on the next render, and
 not lost the moment this one job finishes. It sticks until the reader re-ticks the row itself and presses Run, which
@@ -81,8 +81,8 @@ Nothing is guessed at across a restart: the runner spawns detached, in its own p
 `launchctl bootout`), and **the result file is the contract** — the scheduler polls the pid and the file, and a job left
 `running` is reconciled from both.
 
-A run that hits a cap is **stopped**, never **failed**. With caps this tight a cap-stop is a common, healthy outcome,
-and a reader who cannot tell it from a broken agent will start ignoring both.
+A run that hits its own time limit is **stopped**, never **failed**. With tight timeouts a time-stop is a common,
+healthy outcome, and a reader who cannot tell it from a broken agent will start ignoring both.
 
 ## The token
 
@@ -104,16 +104,13 @@ same-site. Tightening it again breaks the installed app and nothing will say so 
 `POST /api/aide-run` and the static site are unaffected: the run emitter sends no credential and swallows the answer,
 so a 401 there would silently empty `/live`.
 
-## Caps
+## The time limit
 
-Four, all checked BEFORE a step starts — a cap that only stops you afterwards is a report, not a cap. They live in the
-queue config (`--queue-config`), so a wrong number costs a config edit and a restart:
+The one cap, checked BEFORE a step starts — a cap that only stops you afterwards is a report, not a cap. It lives in
+the queue config (`--queue-config`), so a wrong number costs a config edit and a restart:
 
 ```json
 {
-  "budgetUsd": 3,
-  "jobCapUsd": 10,
-  "dailyCapUsd": 20,
   "timeoutSec": {
     "implement": 5400,
     "analyze": 2400,
@@ -139,10 +136,9 @@ queue config (`--queue-config`), so a wrong number costs a config edit and a res
 }
 ```
 
-A job may only TIGHTEN a cap, and cannot set the permission mode at all. A timed-out step is charged its full budget:
-the accounting over-charges what it could not measure, never the other way round. That over-charge is a ceiling, not a
-measurement, so every figure it is summed into carries an `est.` beside it — the step's own row, the job's total and the
-spec's.
+A job may only TIGHTEN the timeout, and cannot set the permission mode at all. A timed-out step reports its cost as
+unmeasured, never assumed: a SIGKILLed run prints no usage, so the figure is `0` with an `est.` marker beside it —
+the step's own row, the job's total and the spec's — rather than a guessed number standing in for one.
 
 `timeoutSec` is a table per step, read the same way `permissionMode` and
 `model` below are: a step the table does not name falls to `default`. It is per step because a plain `analyze` is
@@ -152,11 +148,6 @@ three-reviewer-perspective routine runs inside it. A tightening
 override is checked against each step's OWN ceiling, so a job holding both steps cannot buy `analyze` more time by
 naming `implement`. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand,
 the same direction every other malformed key here fails in.
-
-The daily cap counts the budgets of the steps **already in flight**, not only what has been recorded. Recording happens
-at completion, so with several slots N jobs would otherwise each pass the same check on the same numbers, and the cap be
-exceeded by (N−1) budgets before anything noticed. A job the daily cap holds back does not block the queue either:
-a cheaper job behind it may take the free slot.
 
 `projects` is the odd one out in that file: it is the only key the server WRITES as well as reads. It is the queue's
 allowlist, and the Projects panel on `/` rewrites it on every Add and Remove — which is what makes those take
@@ -174,16 +165,12 @@ picker offers, and each entry may name a `tool` and a `model` of its own:
 {
   "modelChoices": {
     "Sonnet": {
-      "budgetUsd": 3,
       "model": "sonnet"
     },
     "Opus": {
-      "budgetUsd": 15,
-      "jobCapUsd": 30,
       "model": "opus"
     },
     "gpt-5.6-luna": {
-      "budgetUsd": 5,
       "tool": "codex",
       "model": "gpt-5.6-luna"
     }
@@ -239,13 +226,10 @@ Reloading the page, opening the spec in a different browser, or coming back anot
 a run started afterwards uses it. A phase that has since actually run shows what it ran on instead: a record of what
 happened outranks an earlier choice about what was to come.
 
-The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools. Three things
-differ, and all three are visible on the page rather than papered over:
+The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools — **the wall
+clock (`timeoutSec`) is the only thing that stops a runaway step**, for either tool, and it is mandatory for every
+step either way. Two things differ, and both are visible on the page rather than papered over:
 
-- **A Codex step's budget is not enforced while it runs.** Claude Code takes a `--max-budget-usd` and stops itself;
-  Codex has no equivalent flag, so for a Codex entry `budgetUsd` feeds the dashboard's own grant-and-tighten arithmetic
-  before the step starts and nothing else. **The wall clock (`timeoutSec`) is the only thing that stops a runaway Codex
-  step**, and it is mandatory for every step either way.
 - **A Codex step reports tokens, never dollars.** No dollar figure exists anywhere in Codex's output, so the Cost column
   shows the token count and a dash where the money would be — never `$0.00`, which would add up as though the step had
   been free. A job mixing both tools has a
@@ -455,7 +439,7 @@ with the same guards:
 
 ```bash
 aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
-              --budget-usd 3 --timeout-sec 1200 \
+              --timeout-sec 1200 \
               --permission-mode acceptEdits \
               --result-file /tmp/step.json [--push none|branch|pr] [--pull]
               [--worktree-base ~/.aide/dashboard/worktrees]

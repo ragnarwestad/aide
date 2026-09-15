@@ -39,8 +39,8 @@ describe("spec 210: pips() marks the completed thirds", () => {
 // not shape as precisely — a recorded model string with no space at all.
 describe("spec 265: an archived phase line looks like a live one", () => {
   const TOOLS: NonNullable<SpecsPageOptions["modelChoices"]> = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "codex-fast", budgetUsd: 5, tool: "codex" },
+    { name: "sonnet" },
+    { name: "codex-fast",  tool: "codex" },
   ];
 
   const archivedFixture = (folder: string, models: Record<string, string>): ArchivedSpecView => ({

@@ -60,15 +60,14 @@ const projectsIn = (file: string): string[] =>
 
 describe("Settings routes (spec 232)", () => {
   const DEFAULTS = {
-    budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
     timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+    modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
   };
   const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const validModel = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"]));
   const validTimeoutSec = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, 30]));
-  const validBody = { model: validModel, budgetUsd: 5, jobCapUsd: 15, timeoutSec: validTimeoutSec };
+  const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
   test("GET is guarded and renders the live defaults", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
@@ -77,8 +76,6 @@ describe("Settings routes (spec 232)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('name="model.implement"');
-    expect(html).toContain('value="3"');
-    expect(html).toContain('value="10"');
     // implement's own 5400s (90 min) differs from every other step's
     // 1200s (20 min) fallback (job-state.ts:145's minutes convention).
     const implementRow = html.match(/<tr[^>]*data-step="implement"[\s\S]*?<\/tr>/)?.[0] ?? "";
@@ -136,7 +133,7 @@ describe("Settings routes (spec 232)", () => {
     const first = (await accepted.json()) as { job: { model: Record<string, string> } };
     const model = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "codex-fast"]));
     const saved = await fetch(`${base}/api/queue/settings`, {
-      method: "POST", headers: AUTH, body: JSON.stringify({ model, budgetUsd: 6, jobCapUsd: 18, timeoutSec: validTimeoutSec }),
+      method: "POST", headers: AUTH, body: JSON.stringify({ model, timeoutSec: validTimeoutSec }),
     });
     expect(saved.status).toBe(200);
     expect(first.job.model.analyze).toBe("sonnet");
@@ -149,22 +146,9 @@ describe("Settings routes (spec 232)", () => {
       method: "POST", headers: AUTH, body: JSON.stringify({ project: "aide", title: "Later", description: "Later job" }),
     });
     expect(later.status).toBe(400);
-    const createdBody = (await created.json()) as { job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number } };
+    const createdBody = (await created.json()) as { job: { model: Record<string, string> } };
     expect(createdBody.job.model.create).toBe("codex-fast");
-    expect(createdBody.job.budgetUsd).toBe(6);
-    expect(createdBody.job.jobCapUsd).toBe(18);
     expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
-  });
-
-  test("a save with jobCapUsd below budgetUsd is refused and changes nothing", async () => {
-    const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
-    const res = await fetch(`${base}/api/queue/settings`, {
-      method: "POST", headers: AUTH,
-      body: JSON.stringify({ ...validBody, budgetUsd: 20, jobCapUsd: 10 }),
-    });
-    expect(res.status).toBe(400);
-    expect(readFileSync(file, "utf-8")).not.toContain('"budgetUsd": 20');
   });
 
   // REQ-2, criterion 4: a save that includes model.default and
@@ -209,14 +193,8 @@ describe("Settings routes (spec 232)", () => {
       });
       expect(res.status).toBe(400);
     }
-    // Out-of-range / non-numeric budgetUsd, jobCapUsd and per-step timeout.
+    // Out-of-range / non-numeric per-step timeout.
     for (const overrides of [
-      { budgetUsd: 0 },
-      { budgetUsd: -1 },
-      { budgetUsd: "nope" },
-      { budgetUsd: 101 },
-      { jobCapUsd: 0 },
-      { jobCapUsd: 301 },
       { timeoutSec: { ...validTimeoutSec, analyze: 0 } },
       { timeoutSec: { ...validTimeoutSec, analyze: 361 } },
       { timeoutSec: {} },

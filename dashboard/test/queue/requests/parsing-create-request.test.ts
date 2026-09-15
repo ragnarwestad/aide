@@ -7,9 +7,6 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
@@ -78,10 +75,8 @@ describe("parseCreateRequest", () => {
     }
   });
 
-  test("the caps come from the config, exactly as every other job's do", () => {
+  test("the time limit comes from the config, exactly as every other job's does", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
-    expect(r.ok && r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
-    expect(r.ok && r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
     expect(r.ok && r.job.timeoutSec).toEqual(DEFAULTS.timeoutSec);
   });
 });
@@ -160,7 +155,7 @@ describe("parseCreateRequest — model", () => {
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
   const WITH_CHOICES: QueueDefaults = {
     ...DEFAULTS,
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   // Criterion 4.
@@ -255,7 +250,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
   const WITH_CHOICES: QueueDefaults = {
     ...DEFAULTS,
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   // REQ-3, REQ-8: an untouched form posts no `steps` field at all, and

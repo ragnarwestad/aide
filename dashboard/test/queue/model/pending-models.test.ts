@@ -10,13 +10,10 @@ import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   timeoutSec: { default: 1200 },
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
-  modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12 } },
+  modelChoices: { sonnet: { }, fable: { } },
 };
 
 const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null);

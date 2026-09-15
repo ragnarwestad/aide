@@ -43,7 +43,7 @@ One line in the Tracking info of `4-status.md` is the whole record:
 **The runner writes it, not the model.** After every step, `completed_steps_for` in `core/scripts/aide-run-spec`
 rebuilds the line from the specs repo's own history: the commits whose subject reads `Run /aide-<step> for <folder>`
 since the current work round began, plus the step that has just completed. A step that ended `stopped` or `failed`
-is committed with the reason in its subject (`(stopped: budget)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
+is committed with the reason in its subject (`(stopped: timeout)`) and is not counted. A spec made by hand, with no runner commit behind it, has no line and
 reads as having had nothing — deliberately, because a spec that reads as unfinished is fixed by running the step, where
 a guess is not.
 
@@ -55,7 +55,7 @@ evidence that the phase happened:
   (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
   on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
-  budget and time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
+  time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
   that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
   A change no test command covers has nothing to run and passes as before. A record the session wrote through
   `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
@@ -145,7 +145,6 @@ until `archive` is run again — see [Branches and landing](landing.md).
   tick; a run started by hand is refused. `create` and `analyze` run regardless.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **A landing in progress, anywhere.** Nothing starts while any job has `landing` set.
-- **The caps.** A job cap stops the job before the step; the daily cap parks it — [A job's states](job-states.md).
 - **An archived or closed spec.** The server refuses every step but `reopen` for it (`ARCHIVE_ONLY_STEP`).
 
 ## Where the work is between phases

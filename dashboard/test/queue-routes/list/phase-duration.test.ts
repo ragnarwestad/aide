@@ -512,8 +512,8 @@ describe("an archived row reads a still-remembered queue job the same way a live
 // the runner actually spawned that step — over the previous step's own
 // end. The in-flight branch stops treating a job merely `queued` for its
 // next step as though that step were already running: held back for a
-// dependency, an open acceptance row, a landing, a full concurrency slot
-// or the daily cap, it owes no duration until it is actually spawned.
+// dependency, an open acceptance row, a landing, or a full concurrency
+// slot, it owes no duration until it is actually spawned.
 //
 // Every existing test above sets neither `startedAt` nor
 // `stepStartedAt` on its fixtures, which is exactly REQ-3's own

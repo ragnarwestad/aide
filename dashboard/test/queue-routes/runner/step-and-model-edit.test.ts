@@ -226,13 +226,10 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
 describe("POST /api/queue/:id/model (spec 225)", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const DEFAULTS = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: { }, fable: {  } },
   };
 
   /** One job in the mirror, RUNNING the step at `stepIndex`, served by
@@ -350,13 +347,10 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
 describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const DEFAULTS = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: { }, fable: {  } },
   };
 
   const pick = (base: string, project: string, folder: string, step: string, model: string, body?: BodyInit) =>
@@ -422,13 +416,10 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
 describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const DEFAULTS = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 } },
+    modelChoices: { sonnet: { } },
   };
 
   const pick = (base: string, project: string, folder: string, step: string, effort: string, body?: BodyInit) =>

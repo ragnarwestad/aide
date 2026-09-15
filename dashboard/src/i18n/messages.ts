@@ -59,24 +59,6 @@ export const MESSAGES = {
     nb: "holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset ennå — kryss dem av på Sjekker-fanen",
     resolve: "tick them on the Checks tab",
   },
-  "runner.jobCapExceeded": {
-    // The literal "$" is part of the fixed text, immediately before the
-    // "{cap}" placeholder — `renderMessage`'s substitution only replaces
-    // the "{cap}" substring, so the "$" survives untouched either side
-    // of it.
-    en: "the job cap (${cap}) would be exceeded by the next step. — Raise the job cap in the project's " +
-      ".aide/config, then press {button} again.",
-    nb: "jobbtaket (${cap}) ville blitt overskredet av neste steg. — Øk jobbtaket i prosjektets .aide/config, " +
-      "og trykk {button} igjen.",
-    resolve: "Raise the job cap",
-  },
-  "runner.dailyCapExceeded": {
-    en: "held back: the daily cap (${cap}) would be exceeded. — Raise the daily cap in the project's " +
-      ".aide/config, or wait for it to reset tomorrow.",
-    nb: "holdt tilbake: dagstaket (${cap}) ville blitt overskredet. — Øk dagstaket i prosjektets .aide/config, " +
-      "eller vent til det nullstilles i morgen.",
-    resolve: "Raise the daily cap",
-  },
   "runner.runVanished": {
     en: "the run vanished without leaving a result. — Press {button} again.",
     nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",

@@ -141,21 +141,6 @@ def test_a_suite_still_red_after_the_rounds_ends_tests_red(runner, workspace, fa
     assert len(fake_claude.calls.read_text().splitlines()) == 3
 
 
-def test_a_step_with_no_budget_left_gets_no_follow_up_turn(runner, workspace, fake_claude):
-    """The rounds live inside the step's own budget: a first turn that
-    spent all of it ends tests-red at once, with no second turn."""
-    with_status(workspace, ["create", "analyze"])
-    _project_with_test_cmd(workspace, "false")
-    spent = dict(RESULT_OK, total_cost_usd=3)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
-        f"echo '{json.dumps(spent)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="implement", budget_usd="3")
-    assert out["terminalReason"] == "tests-red", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 1
-
 
 # --- archive: the merge with main is the step's own result too -----------------
 

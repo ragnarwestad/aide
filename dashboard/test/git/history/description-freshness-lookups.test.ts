@@ -103,7 +103,7 @@ describe("lastAnalyzeCommit", () => {
     const git = gitFor(
       null,
       [
-        analyzeLine("2026-08-18T09:00:00+02:00", `${SUBJECT} (stopped: budget)`),
+        analyzeLine("2026-08-18T09:00:00+02:00", `${SUBJECT} (stopped: timeout)`),
         analyzeLine("2026-08-18T08:00:00+02:00"),
       ].join("\n"),
     );

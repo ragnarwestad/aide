@@ -120,7 +120,7 @@ describe("Started and Cost fold away at phone width", () => {
   test("an opened row's own phase lines carry it on every line", () => {
     const html = rows(
       { open: "aide/155-x" },
-      { modelChoices: [{ name: "opus", budgetUsd: 10 }] },
+      { modelChoices: [{ name: "opus" }] },
     );
     const subrows = [...html.matchAll(/<tr class="subrow[\s\S]*?<\/tr>/g)].map((m) => m[0]);
     // Four phase lines plus the caption line above them.
@@ -260,7 +260,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("each select in the panel is under a word of its own", () => {
     expect(NARROW).toContain("table.list tr.subrow .aimodelfield { display: flex; flex-direction: column;");
     expect(NARROW).toContain("table.list tr.subrow .aimodelfield > span { display: block;");
-    const html = rows({ open: "aide/155-x" }, { modelChoices: [{ name: "opus", budgetUsd: 10 }] });
+    const html = rows({ open: "aide/155-x" }, { modelChoices: [{ name: "opus" }] });
     expect(html).toContain('<label class="aimodelfield"><span>AI</span>');
     expect(html).toContain('<label class="aimodelfield"><span>Model</span>');
   });
@@ -270,7 +270,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the box names the line's own AI and model", () => {
     const html = rows(
       { open: "aide/155-x" },
-      { modelChoices: [{ name: "opus", budgetUsd: 10 }, { name: "codex-luna", budgetUsd: 5, tool: "codex" }] },
+      { modelChoices: [{ name: "opus" }, { name: "codex-luna",  tool: "codex" }] },
     );
     expect(html).toContain(">Claude/opus</label>");
   });

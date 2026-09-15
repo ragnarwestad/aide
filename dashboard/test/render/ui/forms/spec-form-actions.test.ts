@@ -79,13 +79,13 @@ function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTe
 function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
   document.body.innerHTML =
     `<form id="settings-form" class="settingsform" method="post">` +
-    `<input type="number" name="budgetUsd" value="3">` +
+    `<input type="number" name="timeoutSec.default" value="20">` +
     `<button id="settingsform-save" type="submit">Save</button>` +
     `<button id="settingsform-cancel" type="button" disabled>Cancel</button>` +
     `</form>`;
   return {
     form: document.querySelector("form.settingsform") as HTMLFormElement,
-    input: document.querySelector('input[name="budgetUsd"]') as HTMLInputElement,
+    input: document.querySelector('input[name="timeoutSec.default"]') as HTMLInputElement,
   };
 }
 
@@ -254,7 +254,7 @@ describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
     expect(cancel.disabled).toBe(false);
 
     cancel.dispatchEvent(new Event("click", { bubbles: true }));
-    expect(input.value).toBe("3");
+    expect(input.value).toBe("20");
     expect(save.disabled).toBe(true);
     expect(cancel.disabled).toBe(true);
   });

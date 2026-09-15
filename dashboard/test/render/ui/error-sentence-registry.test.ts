@@ -246,22 +246,12 @@ const PHASE_2_BATCH_1: RegistryEntry[] = [
 ];
 
 // Phase 3, batch 2 (3-solution.md): the "no guidance at all" group —
-// `runner.ts`'s cap/vanished/restarted sentences, `store.ts`'s
+// `runner.ts`'s vanished/restarted sentences, `store.ts`'s
 // landing-clash sentence, and the remaining `land-branch/steps.ts`
 // `failedNote`s (which now embed a generic resolve alongside the raw
 // `why` they still carry — REQ-5's move of that raw text into a hover
 // `title` is Phase 4 work, tracked in `4-status.md`, not done here).
 const PHASE_3_BATCH_2: RegistryEntry[] = [
-  {
-    name: "the job cap would be exceeded (queue/runner.ts, startOne)",
-    text: "the job cap ($5) would be exceeded by the next step. — Raise the job cap in the project's .aide/config, then press Implement again.",
-    resolve: "Raise the job cap in the project's .aide/config, then press Implement again.",
-  },
-  {
-    name: "the daily cap would be exceeded (queue/runner.ts, startOne)",
-    text: "held back: the daily cap ($50) would be exceeded. — Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
-    resolve: "Raise the daily cap in the project's .aide/config, or wait for it to reset tomorrow.",
-  },
   {
     name: "the run vanished (queue/runner.ts, poll)",
     text: "the run vanished without leaving a result. — Press Implement again.",

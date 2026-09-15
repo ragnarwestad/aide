@@ -282,8 +282,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       // with the first.
       //
       // The wall clock and a provider limit both stop after the
-      // runner has committed the work. A cost cap and a CLI error
-      // have no such safe landing promise.
+      // runner has committed the work. A CLI error has no such safe
+      // landing promise.
       if (
         !step ||
         (outcome.terminalReason !== "timeout" && outcome.terminalReason !== "provider-limit")

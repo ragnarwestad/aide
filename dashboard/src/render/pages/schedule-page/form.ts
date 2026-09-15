@@ -31,11 +31,11 @@ export interface ScheduleFormOptions {
    *  off the POST body (`schedule-admin-routes.ts`), so the value still
    *  has to be sent. Never set together with `projects`. */
   fixedProject?: string;
-  /** Every model the config granted a budget to, and which CLI each
-   *  starts — the same view the spec list's phase lines and the
-   *  New-spec form are given, built by the same helper in `serve.ts` so
-   *  no two pages come to offer different lists. Absent or empty draws
-   *  no picker at all, exactly as the New-spec form does. */
+  /** Every model the config lists, and which CLI each starts — the
+   *  same view the spec list's phase lines and the New-spec form are
+   *  given, built by the same helper in `serve.ts` so no two pages come
+   *  to offer different lists. Absent or empty draws no picker at all,
+   *  exactly as the New-spec form does. */
   modelChoices?: SpecsPageOptions["modelChoices"];
   /** What the configuration would give each step. Only `schedule`'s own
    *  entry (or the table's `default`) can matter here: a scheduled job

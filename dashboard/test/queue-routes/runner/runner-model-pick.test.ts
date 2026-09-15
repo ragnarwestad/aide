@@ -8,19 +8,14 @@ const { harness, start } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-// Reserving the heaviest model for the heaviest jobs. The page offers
-// exactly what the config lists — a dropdown that could name a model
-// the server has not granted a budget to would be a way to spend more
-// than the machine agreed to.
+// The page offers exactly what the config lists — a dropdown never
+// names a model the server has not configured.
 describe("picking a model for a job", () => {
   const CHOICES = {
-    budgetUsd: 3,
-    jobCapUsd: 10,
-    dailyCapUsd: 20,
     timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   // The choice belongs to a row the reader has opened (spec 103), so
@@ -33,8 +28,8 @@ describe("picking a model for a job", () => {
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
       modelChoices: [
-        { name: "sonnet", budgetUsd: 3 },
-        { name: "fable", budgetUsd: 12 },
+        { name: "sonnet" },
+        { name: "fable" },
       ],
     });
     expect(html).toContain('name="model.analyze"');
@@ -61,7 +56,7 @@ describe("picking a model for a job", () => {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
-      modelChoices: [{ name: "fable", budgetUsd: 12 }],
+      modelChoices: [{ name: "fable" }],
       defaultModels: { default: "fable" },
     });
     const modelSelect = html.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
@@ -94,14 +89,14 @@ describe("picking a model for a job", () => {
       [{ label: "Overview", path: "projects.html" }],
       {
         runnerAvailable: true, targets: [], filter: OPEN,
-        modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+        modelChoices: [{ name: "sonnet" }, { name: "fable" }],
         defaultModels: { default: "sonnet" },
       },
     );
     expect(html).toMatch(/<select name="model\.implement"[^>]*>[^]*?<option value="fable"[^>]*selected/);
   });
 
-  test("posting a chosen model runs every step on it, with the config's budget", async () => {
+  test("posting a chosen model runs every step on it", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -117,10 +112,8 @@ describe("picking a model for a job", () => {
       }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number } };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ implement: "fable" });
-    expect(body.job.budgetUsd).toBe(12);
-    expect(body.job.jobCapUsd).toBe(30);
   });
 
   test("an empty model field means 'use the configuration', not an error", async () => {
@@ -139,9 +132,8 @@ describe("picking a model for a job", () => {
       }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ implement: "opus" });
-    expect(body.job.budgetUsd).toBe(3);
   });
 
   // Spec 123: the choice moved onto the phase lines, so a form now
@@ -167,13 +159,8 @@ describe("picking a model for a job", () => {
       }).toString() + "&steps=implement&model.implement=fable",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number };
-    };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ analyze: "sonnet", implement: "fable" });
-    // The more generous of the two grants, not the two added together.
-    expect(body.job.budgetUsd).toBe(12);
-    expect(body.job.jobCapUsd).toBe(30);
   });
 
   // Every select on the page posts, including the ones left alone —
@@ -210,9 +197,8 @@ describe("picking a model for a job", () => {
       body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ implement: "opus" });
-    expect(body.job.budgetUsd).toBe(3);
   });
 
   test("a per-phase field naming a model the config does not list is refused", async () => {

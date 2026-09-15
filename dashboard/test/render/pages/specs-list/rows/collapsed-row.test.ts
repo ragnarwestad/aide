@@ -201,7 +201,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     const html = rows([], [target("103-idle")], {
       ...open("103-idle"),
       projects: ["aide", "paceup"],
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+      modelChoices: [{ name: "sonnet" }],
     });
     const line = controlsLine(html, "103-idle");
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
@@ -245,7 +245,7 @@ describe("spec 103: a collapsed row shows status only", () => {
       rows([], [target("103-idle")], {
         ...open("103-idle"),
         projects: ["aide", "paceup"],
-        modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+        modelChoices: [{ name: "sonnet" }],
       }),
     ]) {
       // Scoped to the list: the "?" popover above it is a `<details>`

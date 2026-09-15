@@ -238,8 +238,8 @@ describe("a spec's row runs its own phases", () => {
   // the box on its own line can never disagree about where the tail
   // starts.
   const CHOICES_225 = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "sonnet" },
+    { name: "codex-fast",  tool: "codex" as const },
   ];
   /** The two selects on one phase's line, as their opening tags: what
    *  a test about `disabled` and `data-post-to` is actually asking. */
@@ -474,8 +474,8 @@ describe("a spec's row runs its own phases", () => {
 // reporting: the picks are a record of what ran.
 describe("a phase whose box is locked has its AI and model locked too", () => {
   const TOOLS: SpecsPageOptions["modelChoices"] = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "gpt-5", budgetUsd: 3, tool: "codex" },
+    { name: "sonnet" },
+    { name: "gpt-5",  tool: "codex" },
   ];
   const render = (done: string[]): string =>
     renderSpecsRows(

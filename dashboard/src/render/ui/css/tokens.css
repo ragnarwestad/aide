@@ -117,8 +117,7 @@
    — and exactly one is shown. Dollars is the ABSENCE of the attribute,
    like Auto above, so a page whose script never ran reads the way it
    always did; the :not() is what makes that work without a
-   data-unit="usd" nobody sets. A budget CAP is money either way and
-   goes through neither span. */
+   data-unit="usd" nobody sets. */
 :root[data-unit="tokens"] .u-usd { display: none; }
 :root:not([data-unit="tokens"]) .u-tok { display: none; }
 

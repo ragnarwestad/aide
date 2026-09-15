@@ -241,8 +241,6 @@ export function persistPendingSteps(file: string, table: Record<string, string[]
 
 export interface QueueSettingsUpdate {
   model: Record<string, string>;
-  budgetUsd: number;
-  jobCapUsd: number;
   timeoutSec: Record<string, number>;
 }
 
@@ -261,8 +259,6 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     for (const [step, model] of Object.entries(next.model)) {
       source = applyEdits(source, modify(source, ["model", step], model, opts));
     }
-    source = applyEdits(source, modify(source, ["budgetUsd"], next.budgetUsd, opts));
-    source = applyEdits(source, modify(source, ["jobCapUsd"], next.jobCapUsd, opts));
     for (const [step, sec] of Object.entries(next.timeoutSec)) {
       source = applyEdits(source, modify(source, ["timeoutSec", step], sec, opts));
     }
@@ -282,8 +278,6 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
 export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefaults {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
   const r = raw as Record<string, unknown>;
-  const num = (v: unknown, fallback: number) =>
-    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback;
   // The numeric sibling of `table` below: `timeoutSec` is per step since
   // spec 152, and a file still carrying the old flat number is dropped
   // in favour of the built-in defaults rather than crashing — the same
@@ -304,27 +298,16 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     }
     return out;
   };
-  // A malformed entry is DROPPED, not defaulted: a model whose budget
-  // is a typo would otherwise silently inherit the general one, and the
-  // whole point of listing it is that its number is different.
+  // A malformed `tool` or `model` drops that FIELD, not the whole
+  // entry: an entry that loses its tool falls back to claude — which
+  // is the default every other entry already has.
   const choices = (v: unknown): Record<string, ModelChoice> | undefined => {
     if (v === null || typeof v !== "object" || Array.isArray(v)) return base.modelChoices;
     const out: Record<string, ModelChoice> = {};
     for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
       if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
       const e = entry as Record<string, unknown>;
-      if (typeof e.budgetUsd !== "number" || !Number.isFinite(e.budgetUsd) || e.budgetUsd <= 0) continue;
-      const cap =
-        typeof e.jobCapUsd === "number" && Number.isFinite(e.jobCapUsd) && e.jobCapUsd > 0
-          ? e.jobCapUsd
-          : undefined;
-      // A malformed `tool` or `model` drops that FIELD, not the whole
-      // entry: the budget is still a real grant, and an entry that
-      // loses its tool falls back to claude — which is the default
-      // every other entry already has.
-      const choice: ModelChoice = cap === undefined
-        ? { budgetUsd: e.budgetUsd }
-        : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
+      const choice: ModelChoice = {};
       if (e.tool === "claude" || e.tool === "codex" || e.tool === "fake-claude") choice.tool = e.tool;
       if (typeof e.model === "string" && e.model) choice.model = e.model;
       out[name] = choice;
@@ -333,9 +316,6 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   };
 
   return {
-    budgetUsd: num(r.budgetUsd, base.budgetUsd),
-    jobCapUsd: num(r.jobCapUsd, base.jobCapUsd),
-    dailyCapUsd: num(r.dailyCapUsd, base.dailyCapUsd),
     timeoutSec: numTable(r.timeoutSec, base.timeoutSec),
     permissionMode: table(r.permissionMode, base.permissionMode),
     model: table(r.model, base.model),

@@ -142,7 +142,7 @@ export function specNotice(
   const said = (text: string) => marks.some((m) => m.text.endsWith(text));
   // A queued job the scheduler is holding ("held back: depends on …",
   // "… not analyzed yet", "… another archive is running", "… the
-  // Acceptance criteria are not all ticked yet", the daily cap) is
+  // Acceptance criteria are not all ticked yet") is
   // waiting, not broken — the same amber "archive held back" takes
   // below, never the red a refusal or a failed step gets. Read off
   // `errorReason` (spec 372), which the scheduler sets alongside the

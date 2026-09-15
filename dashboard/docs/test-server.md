@@ -143,7 +143,7 @@ Each sample spec is a pair in `dashboard/test/round/specs/`: `<NN-slug>.md` is t
 spec is created from, and `<NN-slug>.json` says which steps it runs and how it must come out —
 `expected` (`archived` or `not-archived`), and optionally `expect`, what its row on the board must
 show at the end: the job's `state`, its `stopReason`, and its `message` (the message key when the
-board wrote one, `runner.jobCapExceeded`, or a piece of the sentence when the runner script's own
+board wrote one, `runner.notAnalyzed`, or a piece of the sentence when the runner script's own
 English is the text). A fixture can also tighten its own time limit with `timeoutSec`, which is how
 the round has a row the clock stopped. The script grades every field and names the one that was
 off, so a message that changes on the board is caught here before anyone reads it on the real one.

@@ -7,7 +7,7 @@ import type { Job } from "../../../../src/queue/types.ts";
 function job(overrides: Partial<Job>): Job {
   return {
     id: "j1", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0,
-    state: "done", budgetUsd: 1, jobCapUsd: 1, timeoutSec: {}, permissionMode: {}, model: {},
+    state: "done", timeoutSec: {}, permissionMode: {}, model: {},
     createdAt: "2026-08-01T03:00:00Z",
     ...overrides,
   } as Job;

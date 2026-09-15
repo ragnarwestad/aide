@@ -104,9 +104,7 @@ export const nb: Record<TranslationKey, string> = {
   "state.stopped": "stoppet",
   "state.stoppedTimeout": "stoppet — {minutes} min",
   "state.stoppedProviderLimit": "stoppet — grense hos leverandøren",
-  "state.stoppedJobCap": "stoppet — jobbtak",
   "state.stoppedTestsRed": "stoppet — røde tester",
-  "state.stoppedBudget": "stoppet — budsjett",
 
   "project.deployRestartWaiting":
     "Det lokale repoet er oppdatert mot origin, men tjenesten kjører fortsatt commit {sha} — " +

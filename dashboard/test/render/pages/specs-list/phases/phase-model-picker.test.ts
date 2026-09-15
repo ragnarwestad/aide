@@ -33,8 +33,8 @@ describe("spec 123: each phase line picks its own model", () => {
   });
 
   const CHOICES = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12 },
+    { name: "sonnet" },
+    { name: "fable" },
   ];
 
   const rows = (
@@ -161,7 +161,7 @@ describe("spec 123: each phase line picks its own model", () => {
   test("with two tools configured the caption names the AI column too", () => {
     const cap = caption(
       rows([], [target("123-picks")], {
-        modelChoices: [...CHOICES, { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const }],
+        modelChoices: [...CHOICES, { name: "gpt-fast",  tool: "codex" as const }],
       }),
     );
     expect(cap).toContain(">Phase<");
@@ -327,8 +327,8 @@ describe("spec 123: each phase line picks its own model", () => {
 // functions draw.
 describe("spec 342: formIdOverride replaces the derived form id", () => {
   const models = [
-    { name: "sonnet", budgetUsd: 3 },
-    { name: "fable", budgetUsd: 12, tool: "codex" as const },
+    { name: "sonnet" },
+    { name: "fable",  tool: "codex" as const },
   ];
   const g: SpecGroup = {
     project: "", specFolder: "new", named: false, state: "not-started",
@@ -379,13 +379,13 @@ describe("a row running the scripted stand-in says so", () => {
     );
 
   test("the page names it Fake-Claude, not Claude Code", () => {
-    const html = render([{ name: "script", budgetUsd: 1, tool: "fake-claude" }]);
+    const html = render([{ name: "script",  tool: "fake-claude" }]);
     expect(html).toContain("Fake-Claude");
     expect(html).not.toContain("Claude Code");
   });
 
   test("a choice that names no tool still reads as Claude Code", () => {
-    const html = render([{ name: "sonnet", budgetUsd: 3 }]);
+    const html = render([{ name: "sonnet" }]);
     expect(html).not.toContain("Fake-Claude");
   });
 });

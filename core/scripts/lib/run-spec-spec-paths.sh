@@ -373,13 +373,12 @@ fi
 
 if [ -n "$stopped" ]; then
   terminal_reason="timeout"
-  # A SIGKILLed run prints nothing, so the cost cannot be measured. The
-  # accounting must over-charge what it could not measure, never under.
-  cost="$budget_usd"; cost_measured="false"
+  # A SIGKILLed run prints nothing, so the cost cannot be measured.
+  cost="0"; cost_measured="false"
   # A SIGTERM'd run DOES flush a result, usage block and all — and it is
-  # no more trustworthy than the $0 beside it. The cost is over-charged
-  # because it must land somewhere; the token count has no such duty, so
-  # it is dropped rather than half-reported.
+  # no more trustworthy than the cost above. Neither is charged for what
+  # could not be measured; the token count is dropped rather than
+  # half-reported.
   tokens_json=""
   # A limit WE set, not something that happened to us — and spec 146's
   # commit below has already put the work on the branch, so the step
@@ -398,10 +397,7 @@ elif [ -n "${provider_limit_json:-}" ]; then
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
-  if [ "$subtype" = "error_max_budget_usd" ]; then
-    terminal_reason="budget"
-    error_msg="the step's budget was reached — raise the job cap in the project's .aide/config, then press $step_button again"
-  elif [ "$is_error" = "true" ]; then
+  if [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
     [ -n "$error_msg" ] || error_msg="provider reported an error"
@@ -421,7 +417,7 @@ elif [ "$have_result" = "true" ]; then
   fi
 else
   terminal_reason="cli-error"
-  cost="$budget_usd"; cost_measured="false"
+  cost="0"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
   error_msg="$error_msg — press $step_button again"

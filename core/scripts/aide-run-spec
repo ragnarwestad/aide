@@ -33,11 +33,11 @@
 # A measured run adds `tokens` (spec 118): {input, output, cacheRead,
 # cacheCreation, total}, read off claude's own usage block. Same rule as
 # `specFolder` — absent, never zeroed, when there was nothing to
-# measure. Unlike the cost, it is never assumed: a killed run is charged
-# its full budget and reports no token count at all.
+# measure. Unlike the cost, it is never assumed: a killed run reports a
+# cost of 0 and no token count at all.
 #
 # terminalReason is this script's own vocabulary, not the CLI's:
-#   completed | budget | timeout | provider-limit | refused | spawn-failed | cli-error
+#   completed | timeout | provider-limit | refused | spawn-failed | cli-error
 #   | already-landed
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
@@ -218,7 +218,7 @@ commit_and_push_roots
 
 # --- REQ-1/REQ-2/REQ-3: only a step that would land on the line at all ------
 # is asked whether origin confirmed it — no-progress/scope-violation/
-# cli-error/timeout/budget/provider-limit runs were never going to be added
+# cli-error/timeout/provider-limit runs were never going to be added
 # to the line regardless of push outcome (completed_steps_for's own guard,
 # below, already excludes them), so they are not asked this question
 # either. This IS the last git operation performed against a root that

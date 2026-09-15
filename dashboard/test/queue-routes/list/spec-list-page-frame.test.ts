@@ -161,11 +161,11 @@ describe("renderSpecsPage state labels", () => {
   };
 
   test("stopped is never rendered as failed", () => {
-    const budgetRow = row("stopped", { stopReason: "budget", error: "stopped — budget" });
+    const providerLimitRow = row("stopped", { stopReason: "provider-limit", error: "stopped — provider limit" });
     const timeoutRow = row("stopped", { stopReason: "timeout", error: "stopped — 20 min" });
     const html = renderSpecsPage(
       [
-        budgetRow,
+        providerLimitRow,
         timeoutRow,
         row("failed", { error: "boom" }),
         row("queued"),
@@ -179,10 +179,10 @@ describe("renderSpecsPage state labels", () => {
       { runnerAvailable: false, targets: [] },
     );
     // REQ-1: the State cell says only the bare word.
-    expect(specHead(html, budgetRow.specFolder)).not.toContain("stopped — budget");
+    expect(specHead(html, providerLimitRow.specFolder)).not.toContain("stopped — provider limit");
     expect(specHead(html, timeoutRow.specFolder)).not.toContain("stopped — 20 min");
     // REQ-2/REQ-9: the reason moves to the notice line, in full.
-    expect(specPanel(html, budgetRow.specFolder)).toContain("Stopped — budget");
+    expect(specPanel(html, providerLimitRow.specFolder)).toContain("Stopped — provider limit");
     expect(specPanel(html, timeoutRow.specFolder)).toContain("Stopped — 20 min");
     expect(html).toContain("Failed");
     expect(html).not.toContain("stopped — failed");

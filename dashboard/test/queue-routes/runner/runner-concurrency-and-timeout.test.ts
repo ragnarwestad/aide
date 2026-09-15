@@ -89,7 +89,6 @@ describe("a model choice's tool reaches the runner", () => {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: ["implement"],
-      budgetUsd: 15,
       timeoutSec: 2700,
       permissionMode: { implement: "bypassPermissions" },
       model,
@@ -101,7 +100,7 @@ describe("a model choice's tool reaches the runner", () => {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
       push: "branch",
-      modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex", model: "gpt-5.6" } },
+      modelChoices: { "codex-fast": {  tool: "codex", model: "gpt-5.6" } },
     });
     expect(argv[argv.indexOf("--tool") + 1]).toBe("codex");
     // The real model, not the picker's display key.
@@ -115,7 +114,7 @@ describe("a model choice's tool reaches the runner", () => {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
       push: "branch",
-      modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },
+      modelChoices: { "codex-fast": {  tool: "codex" } },
     });
     expect(argv[argv.indexOf("--model") + 1]).toBe("codex-fast");
   });
@@ -126,7 +125,7 @@ describe("a model choice's tool reaches the runner", () => {
     const before = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", o);
     const after = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
       ...o,
-      modelChoices: { opus: { budgetUsd: 15 } },
+      modelChoices: { opus: { } },
     });
     expect(after).not.toContain("--tool");
     expect(after).toEqual(before);
@@ -151,7 +150,6 @@ describe("a chosen effort reaches the runner", () => {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: ["implement"],
-      budgetUsd: 15,
       timeoutSec: 2700,
       permissionMode: { implement: "bypassPermissions" },
       model: {},
@@ -185,7 +183,6 @@ describe("the acceptance-not-required switch reaches the runner", () => {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: ["analyze"],
-      budgetUsd: 15,
       timeoutSec: 2700,
       permissionMode: { analyze: "bypassPermissions" },
       model: {},
@@ -235,8 +232,8 @@ describe("the acceptance-not-required switch reaches the runner", () => {
 // --- spec 152: the wall clock is per step, and a stand-in cost says so -------
 //
 // 149's implement was killed at its own 45-minute limit with its tests
-// already green, and was booked at the full budget because a SIGKILLed
-// run prints no usage. Two seams in this file carried that: the argv the
+// already green, and its cost was reported as unmeasured because a
+// SIGKILLed run prints no usage. Two seams in this file carried that: the argv the
 // runner is started with (one number for every step), and the `Job` →
 // `QueueRowView` mapping, which dropped `costMeasured` on the floor so
 // the totals built on it could not tell a measurement from a ceiling.
@@ -244,7 +241,7 @@ describe("a step's own time limit reaches the runner", () => {
   const jobWith = (timeoutSec: unknown, steps: string[] = ["analyze", "implement"]) =>
     ({
       project: "aide", specFolder: "81-queue-and-runner", steps,
-      budgetUsd: 3, timeoutSec, permissionMode: {}, model: {},
+       timeoutSec, permissionMode: {}, model: {},
     }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
 
   const timeoutArg = (argv: string[]): string => argv[argv.indexOf("--timeout-sec") + 1]!;
@@ -314,7 +311,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   const jobWith = (over: Record<string, unknown> = {}) =>
     ({
       project: "aide", specFolder: "81-queue-and-runner",
-      steps: ["analyze", "implement"], budgetUsd: 3,
+      steps: ["analyze", "implement"], 
       timeoutSec: { analyze: 1200 }, permissionMode: { analyze: "acceptEdits" },
       model: { analyze: "sonnet" },
       ...over,

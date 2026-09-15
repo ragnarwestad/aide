@@ -43,7 +43,7 @@ EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev
 # test_the_two_copies_of_the_worktree_link_denylist_agree pins them.
 WORKTREE_LINK_DENYLIST="build target dist .gradle"
 
-project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
+project_dir=""; command_name=""; spec_arg=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; effort=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # Which AI actually runs the step (spec 125). Defaults to claude, so
@@ -122,7 +122,6 @@ while [ $# -gt 0 ]; do
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
     --no-ai-formulate) no_ai_formulate="yes"; shift ;;
     --prompt-file) prompt_file="${2:-}"; shift 2 ;;
-    --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
@@ -162,7 +161,7 @@ refuse() {
 # name that does not exist. Saying so is success — ok:true, exit 0 — so
 # the dashboard treats the step as any other step with nothing left to
 # do (Runner.complete's only two non-success branches key on
-# terminalReason budget/timeout and on ok:false; neither applies here).
+# terminalReason timeout/provider-limit and on ok:false; neither applies here).
 already_landed() {
   local folder="$1" note line
   note="spec $folder is already archived and its branch is gone from origin — nothing to do"
@@ -179,14 +178,12 @@ is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && (( $(echo "$1 > 0" 
 [ -n "$project_dir" ] || refuse "missing --project-dir"
 [ -n "$command_name" ] || refuse "missing --command"
 [ -n "$spec_arg" ] || refuse "missing --spec"
-[ -n "$budget_usd" ] || refuse "missing --budget-usd"
 [ -n "$timeout_sec" ] || refuse "missing --timeout-sec"
 # Never defaulted: the most dangerous knob in the stage is typed out by
 # whoever starts the run, or the run does not start.
 [ -n "$permission_mode" ] || refuse "missing --permission-mode"
 [ -n "$result_file" ] || refuse "missing --result-file"
 
-is_positive_number "$budget_usd" || refuse "invalid --budget-usd: $budget_usd"
 is_positive_number "$timeout_sec" || refuse "invalid --timeout-sec: $timeout_sec"
 
 case " $WORKFLOW_STEPS " in

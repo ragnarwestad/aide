@@ -167,9 +167,7 @@ fi
 TOKEN="$(cat "$WORK/token")"
 # `concurrency` matches the serving board's own, so the queue behaves the
 # way it does there: how many rows run at once, and which are held back,
-# is the whole of what a round is watched for. The caps below are
-# deliberately NOT the serving board's — they only stop a fixture spec
-# costing real money, and cap nothing a reader looks at.
+# is the whole of what a round is watched for.
 # `model` names every step, not `default` alone: the dashboard merges
 # this table key by key over its own built-in one (QUEUE_DEFAULTS.model,
 # src/serve/serve-helpers/config.ts), so a step named there and not here
@@ -177,12 +175,11 @@ TOKEN="$(cat "$WORK/token")"
 # the stand-in performed.
 cat > "$WORK/queue-config.json" <<CFG
 {
-  "budgetUsd": 1, "jobCapUsd": 5, "dailyCapUsd": 50,
   "timeoutSec": { "default": 600 },
   "permissionMode": { "default": "bypassPermissions" },
   "model": { "default": "script", "create": "script", "analyze": "script",
              "implement": "script", "archive": "script" },
-  "modelChoices": { "script": { "budgetUsd": 1, "tool": "fake-claude" } },
+  "modelChoices": { "script": { "tool": "fake-claude" } },
   "push": "branch", "concurrency": 6,
   "projects": ["aide-test"]
 }

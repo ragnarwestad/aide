@@ -46,10 +46,10 @@ export interface NewSpecPageOptions {
    *  after a no-JS form POST. It goes at the top: the spec it named was
    *  never made, so there is no row for it to land on. */
   error?: string;
-  /** Every model the config granted a budget to, and which CLI each
-   *  starts — the same view the spec list's phase lines are given, built
-   *  by the same helper in `serve.ts` so the two pages cannot come to
-   *  offer different lists (spec 228). */
+  /** Every model the config lists, and which CLI each starts — the
+   *  same view the spec list's phase lines are given, built by the same
+   *  helper in `serve.ts` so the two pages cannot come to offer
+   *  different lists (spec 228). */
   modelChoices?: SpecsPageOptions["modelChoices"];
   /** What the configuration would give each step. Only `create`'s entry
    *  (or the table's `default`) can matter here: a create job runs that

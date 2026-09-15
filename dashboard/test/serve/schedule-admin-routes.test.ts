@@ -45,10 +45,10 @@ const asJson = { headers: { accept: "application/json", "x-aide-token": TOKEN } 
 /** A queue config with two models to choose between, for the tests about
  *  an entry's own model pick. */
 const DEFAULTS = {
-  budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+    
   timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
-  modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+  modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" as const } },
 };
 
 describe("POST /api/queue/schedule — create, project read from the body (spec 278, criteria 5, 6, 7, 13, 14)", () => {

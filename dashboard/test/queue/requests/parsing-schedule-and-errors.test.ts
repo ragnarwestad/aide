@@ -12,9 +12,6 @@ import {
 import { RUN_STEPS } from "../../../src/render/pages/specs-list";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
@@ -133,8 +130,8 @@ describe("errorReason", () => {
 // `stopReason` is the same shape of pair, and for the same reason: the
 // stored union lives in `queue/steps.ts` and the row's own copy in
 // `render/ui/job-state/types.ts`, which do not import each other. A
-// member added to one side alone leaves `stateLabel` falling through to
-// "stopped — budget" for a stop that was nothing of the sort.
+// member added to one side alone leaves `stateLabel` with no branch for
+// it at all.
 describe("stopReason", () => {
   const membersOf = (file: string, pattern: RegExp): string[] => {
     const src = readFileSync(join(import.meta.dir, "..", "..", "..", "src", file), "utf-8");
@@ -153,9 +150,9 @@ describe("stopReason", () => {
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `tests-red` is the landing's own suite
     // going red on the merged result, which pushes nothing and asks for
-    // implement to run again — the only one of the five that is not the
+    // implement to run again — the only one of the three that is not the
     // run itself being cut short.
-    expect(stored).toEqual(["budget", "job-cap", "provider-limit", "tests-red", "timeout"]);
+    expect(stored).toEqual(["provider-limit", "tests-red", "timeout"]);
   });
 });
 

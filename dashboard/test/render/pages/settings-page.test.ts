@@ -3,9 +3,9 @@ import { renderSettingsPage, SETTINGS_STEPS } from "../../../src/render";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 
 const MODELS = [
-  { name: "sonnet", budgetUsd: 3, tool: "claude" as const },
-  { name: "opus", budgetUsd: 8, tool: "claude" as const },
-  { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+  { name: "sonnet", tool: "claude" as const },
+  { name: "opus", tool: "claude" as const },
+  { name: "codex-fast", tool: "codex" as const },
 ];
 
 const TIMEOUT_SEC = { default: 1200, implement: 5400 };
@@ -14,12 +14,12 @@ describe("Settings page", () => {
   test("keeps the form with no model choices, but drops the AI/model columns", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toContain("No model choices are configured");
     expect(html).toContain('action="/api/queue/settings"');
-    expect(html).toContain('name="budgetUsd"');
-    expect(html).toContain('name="jobCapUsd"');
+    expect(html).not.toContain('name="budgetUsd"');
+    expect(html).not.toContain('name="jobCapUsd"');
     for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
       expect(html).toContain(`name="timeoutSec.${step}"`);
     }
@@ -30,7 +30,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet", implement: "codex-fast" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
 
     for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
@@ -46,8 +46,6 @@ describe("Settings page", () => {
     expect(implement).toContain('name="timeoutSec.implement" value="90"');
     const analyze = html.match(/<tr[^>]*data-step="analyze"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(analyze).toContain('name="timeoutSec.analyze" value="20"');
-    expect(html).toContain('name="budgetUsd" value="3"');
-    expect(html).toContain('name="jobCapUsd" value="10"');
     expect(html).toContain('action="/api/queue/settings"');
     expect(html).toContain('href="/"');
   });
@@ -60,7 +58,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet", implement: "codex-fast" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     const row = html.match(/<tr[^>]*data-step="default"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(row).toContain('data-ai="model.default"');
@@ -86,7 +84,7 @@ describe("Settings page", () => {
   test("has exactly one <h1>Settings</h1>, inside .backhead right after ← Back, with no model choices", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
     expect(html).toContain(
@@ -98,7 +96,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
     expect(html).toContain(
@@ -113,7 +111,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
       backHref: "/projects/aide",
     });
     expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
@@ -127,7 +125,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     const actions = html.match(/<div class="configactions">[\s\S]*?<\/div>/)?.[0] ?? "";
     expect(actions).toContain('id="settingsform-save"');
@@ -142,7 +140,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toMatch(/<form[^>]*class="settingsform"/);
   });
@@ -151,7 +149,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
@@ -162,7 +160,7 @@ describe("Settings page", () => {
     for (const lang of ["en", "nb"] as const) {
       const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
         modelChoices: [], defaultModels: { default: "sonnet" },
-        budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+        timeoutSec: TIMEOUT_SEC,
         lang,
       });
       expect(html).not.toContain('<nav class="tabbar');
@@ -174,7 +172,7 @@ describe("Settings page", () => {
   test("lang: \"nb\" renders <html lang=\"nb\"> and a Norwegian header string", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
       lang: "nb",
     });
     expect(html).toContain('<html lang="nb">');
@@ -187,7 +185,7 @@ describe("Settings page wording and layout (spec 409)", () => {
   test("REQ-4: the first header column reads Phase, never Step", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toContain("<th>Phase</th>");
     expect(html).not.toContain("<th>Step</th>");
@@ -196,7 +194,7 @@ describe("Settings page wording and layout (spec 409)", () => {
   test("REQ-5: the table has a close row, labelled Close", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     const row = html.match(/<tr[^>]*data-step="close"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(row).toContain(">Close<");
@@ -207,7 +205,7 @@ describe("Settings page wording and layout (spec 409)", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toContain("<th>AI</th>");
     expect(html).toContain("<th>Model</th>");
@@ -218,7 +216,7 @@ describe("Settings page wording and layout (spec 409)", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     const explore = html.match(/<tr[^>]*data-step="explore"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(explore).toMatch(/<td><select[^>]*data-ai="model\.explore"[\s\S]*?<\/select><\/td>/);
@@ -228,7 +226,7 @@ describe("Settings page wording and layout (spec 409)", () => {
   test("REQ-7: the table carries the settingstable class, sized to its own content", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toMatch(/<table class="settingstable">/);
   });
@@ -243,7 +241,7 @@ describe("Settings page wording and layout (spec 409)", () => {
   test("REQ-1 (spec 436): the settings form no longer renders a Units block", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS, defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
     const formOpen = html.indexOf('<form id="settings-form"');
     const formClose = html.indexOf("</form>", formOpen) + "</form>".length;
@@ -252,19 +250,18 @@ describe("Settings page wording and layout (spec 409)", () => {
     expect(form).not.toContain('<span class="lbl">Units</span>');
   });
 
-  // Spec 414, REQ-2: Budget per job and Job cap use the .row/.lbl shape.
-  // Units' own .row (spec 414) left with the block itself (spec 436).
-  test("REQ-2: Budget per job and Job cap are each a .row with a .lbl label", () => {
+  // Spec 473: the cost budgets are gone — time limits are the only ones
+  // the queue still enforces, so Settings has nothing left to ask for
+  // a per-job budget or a job cap.
+  test("spec 473: no Budget per job or Job cap field is rendered", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
-      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
+      timeoutSec: TIMEOUT_SEC,
     });
-    expect(html).toMatch(
-      /<p class="row"><label class="lbl" for="budgetUsd">Budget per job \(USD\)<\/label><input id="budgetUsd"[^>]*name="budgetUsd"[^>]*><\/p>/,
-    );
-    expect(html).toMatch(
-      /<p class="row"><label class="lbl" for="jobCapUsd">Job cap \(USD\)<\/label><input id="jobCapUsd"[^>]*name="jobCapUsd"[^>]*><\/p>/,
-    );
+    expect(html).not.toContain("Budget per job");
+    expect(html).not.toContain("Job cap");
+    expect(html).not.toContain('name="budgetUsd"');
+    expect(html).not.toContain('name="jobCapUsd"');
   });
 });
 
@@ -273,12 +270,10 @@ describe("Settings page wording and layout (spec 409)", () => {
 // Code's name. Fake-Claude exists precisely so a run it did is not
 // mistaken for a real Claude run, and this page is where a reader picks.
 describe("the AI column names the tool it is actually offering", () => {
-  const settings = (modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[]) =>
+  const settings = (modelChoices: { name: string; tool?: "claude" | "codex" | "fake-claude" }[]) =>
     renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices,
       defaultModels: { default: modelChoices[0]!.name },
-      budgetUsd: 3,
-      jobCapUsd: 10,
       timeoutSec: TIMEOUT_SEC,
     });
 
@@ -286,12 +281,12 @@ describe("the AI column names the tool it is actually offering", () => {
     html.match(/<select aria-label="AI for Default"[\s\S]*?<\/select>/)?.[0] ?? "";
 
   test("the scripted stand-in is offered as Fake-Claude, never as Claude Code", () => {
-    const ai = aiSelect(settings([{ name: "script", budgetUsd: 1, tool: "fake-claude" }]));
+    const ai = aiSelect(settings([{ name: "script", tool: "fake-claude" }]));
     expect(ai).toContain(">Fake-Claude<");
     expect(ai).not.toContain(">Claude Code<");
   });
 
   test("a choice that names no tool is still offered as Claude Code", () => {
-    expect(aiSelect(settings([{ name: "sonnet", budgetUsd: 3 }]))).toContain(">Claude Code<");
+    expect(aiSelect(settings([{ name: "sonnet" }]))).toContain(">Claude Code<");
   });
 });

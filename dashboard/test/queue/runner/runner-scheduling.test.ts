@@ -302,32 +302,6 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("done");
   });
 
-  test("the daily cap counts the budget of work already in flight", () => {
-    // $20 cap, $15 spent, two $3 jobs. Both would pass a check that only
-    // looks at what is already RECORDED — addSpentToday runs at
-    // completion, so a running job's budget is counted nowhere.
-    const a = enqueue();
-    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.addSpentToday(15);
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(a.id)?.state).toBe("running");
-    const held = store.get(b.id)!;
-    expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("daily cap");
-  });
-
-  test("a job held by the daily cap does not block a cheaper one behind it", () => {
-    const dear = enqueue();
-    const cheap = enqueue({ specFolder: "91-parallel-spec-runs", budgetUsd: 1 });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.addSpentToday(18); // 18 + 3 > 20, but 18 + 1 is not
-    runner.tick();
-    expect(store.get(dear.id)?.state).toBe("queued");
-    expect(sentence(store.get(dear.id)?.error)).toContain("daily cap");
-    expect(store.get(cheap.id)?.state).toBe("running");
-  });
 });
 
 // Spec 353: a quick step (create/archive) jumps a queued slow step
@@ -379,21 +353,6 @@ describe("steps and cost", () => {
     expect(after.spentUsd).toBeCloseTo(1.5);
     expect(after.state).toBe("queued");
     expect(after.results.length).toBe(1);
-  });
-
-  test("a step stopped by its budget ends the job as stopped, not failed", () => {
-    const job = enqueue({ steps: ["analyze", "implement"] });
-    const runner = makeRunner({
-      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "budget" }),
-    });
-    runner.tick();
-    runner.poll();
-    const after = store.get(job.id)!;
-    expect(after.state).toBe("stopped");
-    expect(after.stopReason).toBe("budget");
-    expect(after.stepIndex).toBe(0);
-    runner.tick();
-    expect(spawns.length).toBe(1); // no further step
   });
 
   test("a timeout is a stop too, with the reason kept", () => {

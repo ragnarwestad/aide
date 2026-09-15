@@ -17,9 +17,6 @@ import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const DEFAULTS: QueueDefaults = {
-  budgetUsd: 3,
-  jobCapUsd: 10,
-  dailyCapUsd: 20,
   timeoutSec: { default: 1200 },
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },

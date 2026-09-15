@@ -42,7 +42,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
         targets,
         filter: { open: openKeys(list, targets) },
         projects: ["aide", "paceup"],
-        modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+        modelChoices: [{ name: "sonnet" }],
         ...opts,
       },
       Date.parse("2026-08-19T12:00:00Z"),

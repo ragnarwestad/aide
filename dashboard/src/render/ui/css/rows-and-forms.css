@@ -12,12 +12,6 @@
    it in the banner brings one. This declares the space to the tab bar
    below so the line keeps the banner's rhythm. */
 .row.desc { margin-bottom: var(--sp-4); }
-/* Budget per job, Job cap and Units (spec 414): three .row/.lbl rows on
-   one page whose labels are different lengths ("Budget per job (USD)",
-   "Job cap (USD)", "Units") — a fixed floor puts every row's control at
-   the same x. Scoped to .settingsform alone: other .row/.lbl users
-   (new-spec-page.ts's "Selected:" row) keep their own unscoped look. */
-.settingsform .row .lbl { min-width: 11rem; }
 /* State and the action are two boxes of their own, each an exact width,
    and the cell is the sum of them (spec 379's REQ-1/REQ-4, corrected
    2026-09-04). A column has ONE width for every row, so whatever box is

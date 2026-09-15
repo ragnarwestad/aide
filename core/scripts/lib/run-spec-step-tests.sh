@@ -22,7 +22,7 @@
 # same session (claude: `--resume <session id>`, the step's own
 # transcript appended to), which fixes what it broke and runs the suite
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
-# is left of the step's budget and time limit. Codex has no resume the
+# is left of the step's time limit. Codex has no resume the
 # runner drives, so a red run there ends the step at once. The record
 # on the branch is always the runner's last run.
 #
@@ -96,11 +96,10 @@ EOF_CMDS
         step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR' "$work_dir/step-test-run.log" 2>/dev/null | head -8)"
         [ -n "$step_tests_failing" ] || step_tests_failing="$(tail -c 600 "$work_dir/step-test-run.log" 2>/dev/null)"
         # Another turn, or the end: the cap, a session the runner cannot
-        # resume, and what the step has left of its budget and its time.
-        step_budget_left="$(jq -n --arg b "$budget_usd" --arg c "$step_cost_total" '(($b|tonumber) - ($c|tonumber)) | if . > 0 then . else 0 end')"
+        # resume, and what the step has left of its time.
         step_time_left=$(( started_at + ${timeout_sec%.*} - $(date +%s) ))
         if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
-           || [ "$step_budget_left" = "0" ] || [ "$step_time_left" -le 0 ]; then
+           || [ "$step_time_left" -le 0 ]; then
           terminal_reason="tests-red"
           ok="false"
           suffix=" (stopped: tests-red)"
@@ -118,7 +117,7 @@ $step_tests_failing"
         printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
         # The same argv, resumed: the dashboard's minted id becomes the
-        # session to continue, and the budget is what is left of it.
+        # session to continue.
         # Codex resumes through `codex exec resume <thread> -` (the
         # prompt on stdin, as before): the thread id is the one its
         # first turn named, and `resume` takes the bypass flag and the
@@ -132,7 +131,6 @@ $step_tests_failing"
           if [ "$step_argv_skip" = "yes" ]; then step_argv_skip="no"; continue; fi
           case "$step_arg" in
             --session-id|--resume) step_retry_argv+=(--resume "$session_out"); step_resumes="yes"; step_argv_skip="yes" ;;
-            --max-budget-usd) step_retry_argv+=(--max-budget-usd "$step_budget_left"); step_argv_skip="yes" ;;
             --sandbox|--add-dir) step_argv_skip="yes" ;;
             exec) step_retry_argv+=(exec resume); step_resumes="yes" ;;
             *) step_retry_argv+=("$step_arg") ;;
@@ -148,7 +146,7 @@ $step_tests_failing"
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"
         # A turn that did not end cleanly keeps its own verdict (timeout,
-        # budget, cli-error): nothing to test.
+        # cli-error): nothing to test.
         [ "$terminal_reason" = "completed" ] || break
       done
     fi

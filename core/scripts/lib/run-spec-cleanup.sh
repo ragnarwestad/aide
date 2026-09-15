@@ -46,7 +46,7 @@ amend_note="${model_suffix}${suffix}"
 # Merge fail in a directory that no longer exists.
 # An `archive` step is the only one that can be interrupted MID-MERGE:
 # it is the one started with the conflict open (see update_branch_to_base
-# above), and a crash, a cancellation or a budget stop between opening it
+# above), and a crash, a cancellation or a timeout between opening it
 # and deciding leaves MERGE_HEAD set with the markers still in the files.
 # The generic loop below would then `git add -A` those markers and commit
 # them as the merge — the half-merged tree the rest of this script exists

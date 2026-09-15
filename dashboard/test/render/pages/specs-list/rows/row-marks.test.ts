@@ -374,8 +374,8 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
 // Every reason the scheduler leaves a job queued starts "held back:", but
 // they are not all the same: three resolve on their own (another landing
 // or archive finishing, a dependency being archived) and take the info
-// kind; three wait on a person (not analyzed, acceptance rows unticked,
-// the daily cap) and keep the amber "archive held back" warning triangle.
+// kind; two wait on a person (not analyzed, acceptance rows unticked)
+// and keep the amber "archive held back" warning triangle.
 describe("a job the scheduler is holding is info when it resolves on its own, waiting when a person must act", () => {
   const FOLDER = "81-queue-and-runner";
   const notice = (error: QueueRowView["error"], errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
@@ -394,7 +394,7 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
   });
 
   test("a held-back reason that waits on a person is drawn waiting, not info or failed", () => {
-    for (const key of ["runner.notAnalyzed", "runner.acceptanceCriteriaUnticked", "runner.dailyCapExceeded"] as const) {
+    for (const key of ["runner.notAnalyzed", "runner.acceptanceCriteriaUnticked"] as const) {
       const html = notice({ key }, "held-back");
       expect(html).toMatch(/class="[^"]*rowmsg waiting/);
       expect(html).not.toMatch(/class="[^"]*rowmsg info/);

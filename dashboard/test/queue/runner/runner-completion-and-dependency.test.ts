@@ -275,8 +275,9 @@ describe("spec 93: the completion hook and the landing window", () => {
 // be refused by `aide-run-spec`, and land in `failed` — a state nothing
 // retries, so somebody had to notice and press Run again (97 was pressed
 // three times, 102 twice, against dependencies that merged minutes
-// later). The job now waits instead, in exactly the shape the daily cap
-// already waits in: `error` set, `state` untouched, no slot taken.
+// later). The job now waits instead, in exactly the shape a job held
+// back for not being analyzed yet already waits in: `error` set,
+// `state` untouched, no slot taken.
 //
 // `Runner` stays policy-free and synchronous. WHICH jobs are held back
 // is decided by the caller (`serve.ts`, which owns the git answer) and

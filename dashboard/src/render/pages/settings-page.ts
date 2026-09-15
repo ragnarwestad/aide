@@ -17,10 +17,8 @@ export const SETTINGS_STEPS = WORKFLOW_STEPS;
 export const SETTINGS_ROWS = [...SETTINGS_STEPS, "default"] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" | "fake-claude" }[];
+  modelChoices: { name: string; tool?: "claude" | "codex" | "fake-claude" }[];
   defaultModels: Record<string, string>;
-  budgetUsd: number;
-  jobCapUsd: number;
   timeoutSec: Record<string, number>;
   script?: string;
   error?: string;
@@ -53,9 +51,9 @@ const toMinutes = (sec: number): number => Math.round(sec / 60);
 export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
   const models = opts.modelChoices;
   const back = backLink(opts.backHref ?? "/", "Settings");
-  // budgetUsd/jobCapUsd/timeoutSec are meaningful and already enforced
-  // (runner.ts) even on a server with no modelChoices configured — only
-  // the AI/model columns depend on a choice actually being offered.
+  // timeoutSec is meaningful and already enforced (runner.ts) even on a
+  // server with no modelChoices configured — only the AI/model columns
+  // depend on a choice actually being offered.
   const rows = SETTINGS_ROWS.map((step) => {
     const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
     const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${rowLabel(step)}" ` +
@@ -86,10 +84,6 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
   const body = `<main>${back}<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(message)}</p>` +
-    `<p class="row"><label class="lbl" for="budgetUsd">Budget per job (USD)</label><input id="budgetUsd" type="number" min="0.01" max="100" step="0.01" ` +
-    `name="budgetUsd" value="${opts.budgetUsd}"></p>` +
-    `<p class="row"><label class="lbl" for="jobCapUsd">Job cap (USD)</label><input id="jobCapUsd" type="number" min="0.01" max="300" step="0.01" ` +
-    `name="jobCapUsd" value="${opts.jobCapUsd}"></p>` +
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="configactions">` +

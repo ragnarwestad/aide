@@ -103,11 +103,11 @@ describe("readWorkflowSubjects", () => {
 
   test("and a stop AFTER a completed run is what the step now reads as", () => {
     const history = readWorkflowSubjects(
-      [subject("implement", { stopped: "budget_exhausted" }), subject("implement")],
+      [subject("implement", { stopped: "timeout" }), subject("implement")],
       FOLDER,
     );
     expect(history.done).toEqual([]);
-    expect(history.stopped).toEqual({ implement: "budget_exhausted" });
+    expect(history.stopped).toEqual({ implement: "timeout" });
   });
 
   // Spec 217, AC7: the grammar gained a `(model: ...)` suffix, and this

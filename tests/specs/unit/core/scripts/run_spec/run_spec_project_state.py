@@ -241,11 +241,6 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "press $step_button again",
     },
     {
-        "name": "the step's own budget was reached",
-        "pattern": r"the step's budget was reached.*",
-        "resolve": "press $step_button again",
-    },
-    {
         "name": "the provider reported an error with no message of its own (is_error)",
         "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press \$step_button again"',
         "resolve": "press $step_button again",
