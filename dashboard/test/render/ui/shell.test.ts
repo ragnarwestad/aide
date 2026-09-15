@@ -3,8 +3,8 @@
 // command to run and no extra page to open. pageShell() is the ONE
 // function every page already renders through, so the banner lives
 // there — reading AIDE_INSTALL_LOG's last block for a warning mark.
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -169,8 +169,8 @@ describe("pageShell header controls (spec 436)", () => {
   test("AC-1: the unit control's own panel offers $ and Tokens as two radio choices", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
     const unit = html.match(/<details class="menu unit">[\s\S]*?<\/details>/)![0];
-    expect(unit).toContain('<input type="radio" name="unit" value="usd" data-unit-choice="usd" checked>');
-    expect(unit).toContain('<input type="radio" name="unit" value="tokens" data-unit-choice="tokens">');
+    expect(unit).toContain('<input type="radio" name="unit-menu" value="usd" data-unit-choice="usd" checked>');
+    expect(unit).toContain('<input type="radio" name="unit-menu" value="tokens" data-unit-choice="tokens">');
   });
 
   test("AC-2: the \"…\" menu's panel carries a morerows block with the theme, language and unit choices", () => {
@@ -184,6 +184,78 @@ describe("pageShell header controls (spec 436)", () => {
     expect(menu).toContain('href="/settings"');
     expect(menu).toContain('href="/test-servers"');
     expect(menu).toContain("data-about");
+  });
+});
+
+// Spec 469: the desktop "$" menu never showed which of $/Tokens was
+// chosen, because both on-page copies of the radio pair shared one
+// native `name="unit"` — the browser's own radio grouping collapses
+// them into a single four-radio group, and only the copy `mark()` sets
+// LAST (the "…" menu's) ends up actually checked. This runs the real
+// `unit-script.ts` against the real, full two-copy markup in a real DOM
+// (happy-dom), the only way to see the browser's own grouping collide.
+describe("pageShell header unit control - desktop checked state (spec 469)", () => {
+  let scriptText: string;
+
+  beforeAll(async () => {
+    const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
+    GlobalRegistrator.register();
+    scriptText = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+      readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "unit-script.ts"), "utf-8"),
+    );
+  });
+
+  afterAll(async () => {
+    const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
+    await GlobalRegistrator.unregister();
+  });
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  /** Renders the real page, runs the real script against it (never
+   *  `document.write`, so the page's own embedded `<script>` never
+   *  auto-executes — this is the only copy that runs), and fires a real
+   *  `DOMContentLoaded`. */
+  function render(stored: string | null): void {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
+    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)![1]!;
+    document.body.innerHTML = body;
+
+    const store: Record<string, string> = {};
+    if (stored !== null) store["unit"] = stored;
+    const localStorage = {
+      getItem: (key: string): string | null => store[key] ?? null,
+      setItem: (key: string, value: string): void => void (store[key] = value),
+    };
+    // eslint-disable-next-line no-new-func -- the file under test IS a script
+    new Function("document", "localStorage", scriptText)(document, localStorage);
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+  }
+
+  function desktopRadio(choice: string): HTMLInputElement {
+    return document.querySelector(`.menu.unit .menupanel input[data-unit-choice="${choice}"]`) as HTMLInputElement;
+  }
+
+  test("AC-1: with no stored choice, the desktop menu's own $ radio shows checked", () => {
+    render(null);
+    expect(desktopRadio("usd").checked).toBe(true);
+    expect(desktopRadio("tokens").checked).toBe(false);
+  });
+
+  test("AC-1: with Tokens stored, the desktop menu's own Tokens radio shows checked", () => {
+    render("tokens");
+    expect(desktopRadio("tokens").checked).toBe(true);
+    expect(desktopRadio("usd").checked).toBe(false);
+  });
+
+  test("AC-2: picking Tokens in the desktop menu still switches the Tokens/Cost column", () => {
+    render(null);
+    const tokensRadio = desktopRadio("tokens");
+    tokensRadio.checked = true;
+    tokensRadio.dispatchEvent(new Event("change"));
+    expect(document.documentElement.dataset.unit).toBe("tokens");
   });
 });
 
