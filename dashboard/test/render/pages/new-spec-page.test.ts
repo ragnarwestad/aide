@@ -103,16 +103,18 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(betweenProjectAndTable).not.toContain('<span class="frow">');
     const betweenTableAndDepends = html.slice(
       html.indexOf("</table>"),
-      html.indexOf('<span>Depends on</span>'),
+      html.indexOf('<span class="lbl">Depends on</span>'),
     );
     // Nothing but those three wrappers stands between them: the
     // acceptance switch's own `.frow`, then Depends on's. Spec 472: each
     // switch's own line now carries the same `field wide`/`fieldhead`/
     // `fieldend` shell "Depends on" already uses, so its "(?)" stays on
     // screen — the rule here is still that no OTHER field or control
-    // sits in the gap.
+    // sits in the gap. Spec 474: Depends on's own shell is now
+    // `field wide depends-pair` around two `.depends-col`s, the first
+    // one opening with `.fieldhead` (its "(?)") and its `.lbl` label.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+      /^<\/table><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide depends-pair"><span class="depends-col"><span class="fieldhead">$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -515,7 +517,7 @@ describe("spec 342: the phase table", () => {
   test("spec 426: the acceptance switch is drawn on its own line, above Depends on", () => {
     const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
-    const dependsIdx = html.indexOf("<span>Depends on</span>");
+    const dependsIdx = html.indexOf('<span class="lbl">Depends on</span>');
     expect(acceptIdx).toBeGreaterThan(-1);
     expect(dependsIdx).toBeGreaterThan(-1);
     expect(acceptIdx).toBeLessThan(dependsIdx);
@@ -528,6 +530,67 @@ describe("spec 342: the phase table", () => {
     // and the acceptance row.
     const between = html.slice(html.indexOf("</table>"), acceptIdx);
     expect(between).not.toContain("data-step=");
+  });
+});
+
+// Spec 474: the New-spec page's own Depends-on field lays the picked
+// box and the pick list side by side, both framed alike, each with its
+// own translated label — instead of one stacked field with a "Selected:"
+// caption and a "none" placeholder above an uncapped, unframed box.
+describe("spec 474: Depends on is two same-styled fields side by side", () => {
+  const newPage = (opts: Partial<NewSpecPageOptions> = {}) =>
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-19T00:00:00Z", {
+      createProjects: ["aide"],
+      targets: [{ project: "aide", specFolder: "80-earlier" }],
+      ...opts,
+    });
+
+  // AC-1, AC-2: one shared field, two columns, picked/"Depends on" before
+  // pick-list/"Select".
+  test("the picked box and the pick list sit in one field, side by side, picked column first", () => {
+    const html = newPage();
+    const fieldIdx = html.indexOf('<span class="field wide depends-pair">');
+    expect(fieldIdx).toBeGreaterThan(-1);
+    const dependsOnColIdx = html.indexOf('<span class="lbl">Depends on</span>', fieldIdx);
+    const selectColIdx = html.indexOf('<span class="lbl">Select</span>', fieldIdx);
+    expect(dependsOnColIdx).toBeGreaterThan(fieldIdx);
+    expect(selectColIdx).toBeGreaterThan(dependsOnColIdx);
+    expect((html.match(/<span class="depends-col">/g) ?? []).length).toBe(2);
+  });
+
+  // AC-4: nothing is ever pre-ticked on this page, so the picked box is
+  // always the empty case AC-4 talks about — still a framed
+  // `.phases.picked`, with no "Selected:"/"none" text anywhere.
+  test("the picked box renders empty and framed, with no 'Selected:' or 'none' text", () => {
+    const html = newPage();
+    const formStart = html.indexOf('<form method="post"');
+    const form = html.slice(formStart, html.indexOf("</form>", formStart));
+    expect(form).toContain('<span class="phases picked"></span>');
+    expect(form).not.toContain('<span class="lbl">Selected:</span>');
+    expect(form).not.toContain("none</span>");
+    expect(form).not.toContain("data-none");
+  });
+
+  // AC-5: labels translated per `opts.lang`, defaulting to English.
+  test("the labels are 'Depends on'/'Select' in English, 'Avhenger av'/'Velg' in Norwegian", () => {
+    const en = newPage();
+    expect(en).toContain('<span class="lbl">Depends on</span>');
+    expect(en).toContain('<span class="lbl">Select</span>');
+    const nb = newPage({ lang: "nb" });
+    expect(nb).toContain('<span class="lbl">Avhenger av</span>');
+    expect(nb).toContain('<span class="lbl">Velg</span>');
+  });
+
+  // AC-6: no separate "Depends on" section title — the left column's own
+  // label is the only place the words "Depends on" appear in the FORM
+  // (the inlined stylesheet's own comments, e.g. phase-chip.css's, say
+  // "Depends on" too, and are not this AC's concern).
+  test("'Depends on' appears exactly once in the form, as the left column's own label", () => {
+    const html = newPage();
+    const formStart = html.indexOf('<form method="post"');
+    const form = html.slice(formStart, html.indexOf("</form>", formStart));
+    expect((form.match(/Depends on/g) ?? []).length).toBe(1);
+    expect(form).toContain('<span class="lbl">Depends on</span>');
   });
 });
 

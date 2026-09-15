@@ -20,7 +20,7 @@
 
 import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components";
 import { esc } from "../ui/html.ts";
-import type { Language } from "../../i18n";
+import { t, type Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } from "./specs-list";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
@@ -103,7 +103,13 @@ export function dependsOnField(
   // itself, after the "(?)". The spec page's tracking form has this
   // field as its only real control, and its buttons belong beside the
   // label rather than under a list tall enough to push them off screen.
-  o: { wide?: boolean; locked?: string[]; project?: string; actions?: string } = {},
+  o: {
+    wide?: boolean; locked?: string[]; project?: string; actions?: string;
+    /** New-spec page only (spec 474): draw the picked box and the pick
+     *  list as two same-styled fields side by side, each with its own
+     *  label, no outer title and no "none" placeholder. */
+    sideBySide?: { dependsOnLabel: string; selectLabel: string };
+  } = {},
 ): string {
   const specs = [...targets].sort(
     (a, b) =>
@@ -143,6 +149,33 @@ export function dependsOnField(
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
   const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
+  const help = helpPopover(
+    "what a dependency does",
+    "A dependency applies from this spec's next gated step (implement, resolve, archive) — " +
+      "never to a step already running.",
+  );
+  // Spec 474: the New-spec page's own shape — picked box and pick list
+  // side by side, both framed the same way (AC-3), no outer title
+  // (AC-6, the left column's own label is it) and no "none" placeholder
+  // (AC-4). One shared `.field` still wraps both: depends-lift.ts walks
+  // up to the nearest `.field` from a ticked box and queries DOWN for
+  // `.phases.picked` / `.phases:not(.picked)` — both have to still be
+  // found from one shared ancestor, never two.
+  if (o.sideBySide) {
+    return (
+      `<span class="field${o.wide ? " wide" : ""} depends-pair">` +
+        `<span class="depends-col">` +
+          `<span class="fieldhead"><span class="lbl">${esc(o.sideBySide.dependsOnLabel)}</span>` +
+          `<span class="fieldend">${help}</span></span>` +
+          phases(lockedBlock + picked.map(chip).join(""), "picked") +
+        `</span>` +
+        `<span class="depends-col">` +
+          `<span class="lbl">${esc(o.sideBySide.selectLabel)}</span>` +
+          phases(rest.map(chip).join("")) +
+        `</span>` +
+      `</span>`
+    );
+  }
   // "Selected:" is drawn whether or not anything is: an empty picked
   // block was no block at all, so a spec that depends on nothing looked
   // exactly like one whose dependencies the page had failed to show,
@@ -157,16 +190,7 @@ export function dependsOnField(
   return field(
     "Depends on",
     selected + phases(rest.map(chip).join("")),
-    {
-      group: true,
-      wide: o.wide,
-      help: helpPopover(
-        "what a dependency does",
-        "A dependency applies from this spec's next gated step (implement, resolve, archive) — " +
-          "never to a step already running.",
-      ),
-      actions: o.actions,
-    },
+    { group: true, wide: o.wide, help, actions: o.actions },
   );
 }
 
@@ -333,7 +357,13 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     aiFormulateAcceptanceField(formId) +
     `</span>` +
     `<span class="frow">` +
-    dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
+    dependsOnField(opts.targets ?? [], new Set(), {
+      wide: true,
+      sideBySide: {
+        dependsOnLabel: t(opts.lang ?? "en", "newSpec.dependsOn"),
+        selectLabel: t(opts.lang ?? "en", "newSpec.select"),
+      },
+    }) +
     `</span>` +
     field(
       "Title",

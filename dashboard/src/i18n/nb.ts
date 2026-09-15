@@ -119,4 +119,7 @@ export const nb: Record<TranslationKey, string> = {
   "project.testServerButton": "Start testserver",
   "project.testServerUnavailable":
     "Dette prosjektet inneholder ikke dashbordets egen kode, så en testserver kan ikke starte herfra.",
+
+  "newSpec.dependsOn": "Avhenger av",
+  "newSpec.select": "Velg",
 };

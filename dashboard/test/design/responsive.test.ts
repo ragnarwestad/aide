@@ -677,3 +677,24 @@ describe("the Depends on field caps its height and scrolls its own overflow", ()
     expect(NARROW).not.toContain(".phases");
   });
 });
+
+// Spec 474: the New-spec page's own Depends-on field, side by side.
+describe("spec 474: the New-spec page's Depends-on columns sit side by side, framed alike", () => {
+  test("AC-1: .field.depends-pair lays its two columns out as a row", () => {
+    const rule = /\.field\.depends-pair \{([^}]*)\}/.exec(CSS)?.[1] ?? "";
+    expect(rule).toMatch(/flex-direction:\s*row/);
+  });
+
+  test("AC-3: the picked column matches the pick list's own framed look", () => {
+    const picked = /\.depends-pair \.phases\.picked \{([^}]*)\}/.exec(CSS)?.[1] ?? "";
+    const rest = /\.phases:not\(\.picked\) \{([^}]*)\}/.exec(CSS)?.[1] ?? "";
+    for (const prop of ["border", "background", "height", "padding", "box-sizing"]) {
+      const value = (block: string) => new RegExp(`${prop}:\\s*([^;]+);`).exec(block)?.[1];
+      expect(value(picked)).toBe(value(rest));
+    }
+  });
+
+  test("the narrow-width block collapses the two columns to one", () => {
+    expect(NARROW).toMatch(/\.depends-pair \{[^}]*flex-direction:\s*column/);
+  });
+});
