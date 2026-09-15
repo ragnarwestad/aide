@@ -269,3 +269,30 @@ describe("spec 169: one picker per phase", () => {
     expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 });
+
+// A phase that has run shows what it ran on, whatever the choices are
+// called today. Renaming the entries in queue-config.json (2026-09-15)
+// made every finished phase on an active row fall back to the default,
+// because the job's choice name no longer matched an entry — while the
+// phase's own file still named the model.
+import { resolveChosenModel } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
+describe("a phase that has run keeps what it ran on across a rename of the choices", () => {
+  const models = [
+    { name: "Sonnet", budgetUsd: 15 },
+    { name: "gpt-5.6-sol", budgetUsd: 35, tool: "codex" as const },
+  ];
+  test("a job's choice name that is still offered wins as before", () => {
+    expect(resolveChosenModel(models, "Sonnet", "gpt-5.6-sol", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
+  });
+  test("a renamed-away choice name falls back to the model the file recorded", () => {
+    expect(resolveChosenModel(models, "Sonnet", "codex-sol", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
+  });
+  test("with neither offered any more, the name it ran on stands as it is — never the default", () => {
+    expect(resolveChosenModel(models, "Sonnet", "codex-sol", undefined, "codex-sol")).toBe("codex-sol");
+    expect(resolveChosenModel(models, "Sonnet", "codex-sol")).toBe("codex-sol");
+  });
+  test("a phase that has not run still resolves pending, then the default", () => {
+    expect(resolveChosenModel(models, "Sonnet", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
+    expect(resolveChosenModel(models, "Sonnet", undefined)).toBe("Sonnet");
+  });
+});
