@@ -173,17 +173,19 @@ picker offers, and each entry may name a `tool` and a `model` of its own:
 ```json
 {
   "modelChoices": {
-    "sonnet": {
-      "budgetUsd": 3
+    "Sonnet": {
+      "budgetUsd": 3,
+      "model": "sonnet"
     },
-    "opus": {
+    "Opus": {
       "budgetUsd": 15,
-      "jobCapUsd": 30
+      "jobCapUsd": 30,
+      "model": "opus"
     },
-    "codex-fast": {
+    "gpt-5.6-luna": {
       "budgetUsd": 5,
       "tool": "codex",
-      "model": "gpt-5.6"
+      "model": "gpt-5.6-luna"
     }
   }
 }
@@ -191,10 +193,9 @@ picker offers, and each entry may name a `tool` and a `model` of its own:
 
 `tool` is `claude` (the default, and what an entry that says nothing means) or `codex`. `model` is the literal value
 handed to the CLI when it differs from the entry's own key — the key is what the picker shows and what a request posts,
-so a readable name can front a model string nobody wants to read. No entry carries a `(codex)` suffix in the dropdown:
-the entries are called `codex-sol` and `codex-luna`, so the name says it, and each option
-sits under a group named after its tool, which says it a second time while the list is open. A model name that does NOT
-say which tool it starts is a name to fix here, not something to patch in the label.
+so the key can be the name the tool itself shows for the model — `Sonnet`, `Opus`, `Fable` as Claude Code names them,
+`gpt-5.6-sol` and the rest exactly as Codex's own picker lists them. No entry carries a `(codex)` suffix in the
+dropdown: each option sits under a group named after its tool, which says it while the list is open.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped
 in an
