@@ -9,7 +9,7 @@ description: >-
   early, a shipped change has to be redone from its own description.
   Do NOT use for: creating a new spec (use aide-create), analysis (use
   aide-analyze), archiving (use aide-archive).
-argument-hint: "[<JIRA-KEY> or task number]"
+argument-hint: "[spec number]"
 effort: medium
 ---
 
@@ -18,7 +18,7 @@ folder back among the active specs, and reset three of its four files.
 `aide-run-spec` writes the mark that makes everything counting steps
 start over, once this step finishes.
 
-**Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID)
+**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
 
 ---
 

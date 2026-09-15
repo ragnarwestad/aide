@@ -15,7 +15,6 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 - [Choose your AI tool](#choose-your-ai-tool)
 - [General setup (all AI tools)](#general-setup-all-ai-tools)
   - [Step 1: Clone the AI workspace](#step-1-clone-the-ai-workspace)
-  - [Step 2: JIRA data](#step-2-jira-data)
 - [AI-tool-specific installation](#ai-tool-specific-installation)
   - [Install everything at once](#install-everything-at-once)
   - [Claude Code](#claude-code)
@@ -32,8 +31,8 @@ This workspace supports several AI tools. Choose the one that suits you best:
 
 | AI tool            | Advantages                                       | Best for                                   | Installation documentation                                               |
 |--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents, 200K context | Complex JIRA analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
-| **Codex (OpenAI)** | Prompt templates, manual workflow                | JIRA/TODO analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| **Claude Code**    | Slash commands, specialized agents, 200K context | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
+| **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
 | **GitHub Copilot** | Native VS Code, Agent Mode, fast responses       | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
@@ -49,7 +48,6 @@ These steps apply regardless of which AI tool you use.
 **You must have:**
 
 - ✅ Git installed
-- ✅ Access to NAV's JIRA: https://jira.example.com
 - ✅ Your projects cloned and working
 
 **Directory structure after setup:**
@@ -88,15 +86,7 @@ ls -la ~/develop/
 
 ---
 
-### Step 2: JIRA data
-
-JIRA data is fetched manually from https://jira.example.com and pasted in when the AI tool asks for it.
-
-**No scripts or API integration required** - you copy the relevant info directly from the JIRA browser.
-
----
-
-### Step 3: (Optional) Configure environment variables
+### Step 2: (Optional) Configure environment variables
 
 These are **optional** but recommended for a better workflow. They apply to **all AI tools**.
 
@@ -266,7 +256,7 @@ The sections below describe what each individual installer does.
 **Key features:**
 
 - ✅ Slash commands (`/aide-create`, `/aide-analyze`, `/aide-implement`)
-- ✅ Specialized agents (`@agent-jira-analyzer`, `@agent-tdd-implementer`)
+- ✅ Specialized agents (`@agent-task-analyzer`, `@agent-tdd-implementer`)
 - ✅ Automatic reading of CLAUDE.md at startup
 - ✅ 200K token context window
 - ✅ Automatic git staging
@@ -327,17 +317,14 @@ The sections below describe what each individual installer does.
     - Reuse the `core/rules/` rules
 
 3. **Use the generic workflows:**
-    - Read `core/skills/workflows/SKILL.md` for JIRA/TODO workflows
+    - Read `core/skills/workflows/SKILL.md` for the spec workflow
     - Follow `core/rules/testing.md` for TDD
     - Follow `core/rules/git.md` for git operations
 
-4. **Manual JIRA creation:**
+4. **Create a spec:**
    ```bash
-   # Create the directory
-   mkdir -p specs/<NN>-PROJ-7637-slug/
-
-   # Fill in the documentation based on the templates in core/templates/todo/
-   # (Ask your AI tool for help - paste in the JIRA data manually)
+   # Ask your AI tool to run /aide-create with a title and a description
+   # — never write the spec's files by hand
    ```
 
 **Key features:**
@@ -459,7 +446,7 @@ Once the setup is complete:
     - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)
     - [core/skills/documentation/SKILL.md](../core/skills/documentation/SKILL.md)
 
-3. **Test with a real JIRA issue:**
+3. **Test with a real spec:**
     - Create the documentation
     - Analyze the codebase
     - Implement with TDD (optional)

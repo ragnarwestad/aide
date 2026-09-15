@@ -10,7 +10,6 @@
 - [Test structure](#test-structure)
 - [Fixtures](#fixtures)
     - [`mock_workspace`](#mock_workspace)
-    - [`mock_jira_response`](#mock_jira_response)
     - [`clean_env`](#clean_env)
     - [`workspace_root`](#workspace_root)
     - [`e2e_workspace`](#e2e_workspace)
@@ -135,10 +134,10 @@ pytest -m copilot -v           # Copilot-specific
 ### Specific test file
 
 ```bash
-pytest tests/specs/unit/core/test_jira_opprett.py -v
+pytest tests/specs/unit/core/validation/installer/test_spec_lib.py -v
 
 # Single test
-pytest tests/specs/unit/core/test_jira_opprett.py::TestFetchJiraData::test_fetch_jira_data_success -v
+pytest tests/specs/unit/core/validation/installer/test_spec_lib.py::TestResolveSpec -v
 ```
 
 ## Test structure
@@ -151,8 +150,6 @@ tests/
 │   │   │   ├── validation/                   # Output validation
 │   │   │   │   ├── test_documentation_structure.py
 │   │   │   │   └── test_templates.py
-│   │   │   ├── test_jira_opprett.py
-│   │   │   └── test_todo_opprett.py
 │   │   │
 │   │   └── implementations/                  # Implementation-specific tests
 │   │       ├── claude-code/
@@ -185,16 +182,6 @@ Creates a complete mock workspace structure with templates.
 def test_something(mock_workspace):
     # mock_workspace is a tmp_path with the full structure
     assert (mock_workspace / "core" / "templates").exists()
-```
-
-### `mock_jira_response`
-
-Mock JIRA API response data.
-
-```python
-def test_jira_parsing(mock_jira_response):
-    # mock_jira_response contains typical JIRA JSON
-    assert mock_jira_response["key"] == "PROJ-TEST-001"
 ```
 
 ### `clean_env`

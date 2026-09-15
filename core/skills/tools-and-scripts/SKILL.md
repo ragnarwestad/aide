@@ -29,7 +29,7 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 Available skills:
 
 - `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
-- `/aide-create` - Create JIRA/TODO documentation
+- `/aide-create` - Create a spec
 - `/aide-analyze` - Analyze the codebase, then review the plan (feasibility, scope, coherence)
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD

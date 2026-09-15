@@ -27,7 +27,7 @@ export async function handleSpecPdfRoute(
   if (!found) return new Response("not found", { status: 404 });
   if (!ctx.pdfToolAvailable) return new Response("md-to-pdf is not installed on this host", { status: 503 });
   // `aide_resolve_spec`'s `archive/` fallback only fires for a bare
-  // number or a JIRA key — a full folder slug (the only shape this route
+  // number or an issue key — a full folder slug (the only shape this route
   // ever has) hits its "assume full folder ID" branch, which cannot find
   // an archived spec on its own (verified empirically, spec 358's plan
   // review). An archived spec's real path IS `archive/<folder>`, which

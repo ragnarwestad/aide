@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Normalize TODO/JIRA specs according to DOCUMENTATION_STANDARD.md
+Normalize specs according to DOCUMENTATION_STANDARD.md
 
 Fixes:
 1. 2-level TOC (h2 + h3)

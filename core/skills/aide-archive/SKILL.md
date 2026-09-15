@@ -4,12 +4,12 @@ description: >-
   Archive a finished spec and feed its durable knowledge back into the
   project's living documentation — resolving the branch's merge conflict
   with the default branch first, if there is one.
-  Use when: a JIRA issue or TODO plan is done, closing out a spec,
+  Use when: a spec is done, closing it out,
   cleaning up the specs root, a spec's branch conflicts with the default
   branch.
   Do NOT use for: creating specs (use aide-create), unfinished work,
   deleting specs.
-argument-hint: "[<JIRA-KEY> or task number]"
+argument-hint: "[spec number]"
 effort: medium
 ---
 
@@ -17,7 +17,7 @@ Archive a finished spec: settle any merge conflict on its branch, stamp
 it, move it to `archive/`, and merge what should outlive it into the
 project's living documentation.
 
-**Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID)
+**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
 
 ## Workflow
 

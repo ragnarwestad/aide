@@ -11,7 +11,7 @@ description: >-
   Do NOT use for: finished work (use aide-archive), starting a work
   round over on the same spec (use aide-reset), unfinished work that is
   still worth finishing.
-argument-hint: "[<JIRA-KEY> or task number] [reason]"
+argument-hint: "[spec number] [reason]"
 effort: medium
 ---
 
@@ -19,7 +19,7 @@ Close a spec that turned out not to work: stamp the reason, move it to
 `archive/`, and let the code branch it never used be deleted rather than
 merged.
 
-**Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID,
+**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with,
 plus the reason the person closing it typed)
 
 ## Workflow

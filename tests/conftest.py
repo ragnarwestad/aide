@@ -25,24 +25,13 @@ def mock_workspace(tmp_path):
     workspace.mkdir()
 
     # Create directory structure
-    (workspace / "core" / "templates" / "jira").mkdir(parents=True)
     (workspace / "core" / "templates" / "todo").mkdir(parents=True)
     (workspace / "core" / "scripts").mkdir(parents=True)
-    (workspace / "specs" / "jira").mkdir(parents=True)
     (workspace / "specs" / "todo").mkdir(parents=True)
 
     # Copy templates from actual workspace
     # Use __file__ to find the actual workspace root (tests/conftest.py -> aide/)
     actual_workspace = Path(__file__).parent.parent
-
-    # Copy JIRA templates if they exist
-    jira_templates = actual_workspace / "core" / "templates" / "jira"
-    if jira_templates.exists():
-        for template_file in jira_templates.glob("*.template"):
-            shutil.copy(template_file, workspace / "core" / "templates" / "jira")
-    else:
-        # Print warning if templates not found
-        print(f"Warning: JIRA templates not found at {jira_templates}")
 
     # Copy TODO templates if they exist
     todo_templates = actual_workspace / "core" / "templates" / "todo"
@@ -54,25 +43,6 @@ def mock_workspace(tmp_path):
         print(f"Warning: TODO templates not found at {todo_templates}")
 
     return workspace
-
-
-@pytest.fixture
-def mock_jira_response():
-    """Mock JIRA API response with typical structure."""
-    return {
-        "key": "PROJ-1234",
-        "fields": {
-            "summary": "Test JIRA Issue",
-            "description": "This is a test description for testing purposes",
-            "status": {"name": "Open"},
-            "issuetype": {"name": "Story"},
-            "priority": {"name": "Medium"},
-            "reporter": {"displayName": "Test Reporter"},
-            "assignee": {"displayName": "Test Assignee"},
-            "created": "2025-11-01T10:00:00.000+0100",
-            "updated": "2025-11-16T10:00:00.000+0100"
-        }
-    }
 
 
 @pytest.fixture
@@ -137,7 +107,6 @@ def e2e_workspace(tmp_path, workspace_root):
 
     # Create spec directories
     (workspace / "specs" / "todo").mkdir(parents=True)
-    (workspace / "specs" / "jira").mkdir(parents=True)
     (workspace / "test-output").mkdir(parents=True)
 
     # Copy Claude Code commands (direct sources)

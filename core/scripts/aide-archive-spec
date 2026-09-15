@@ -112,8 +112,8 @@ if declare -f aide_resolve_spec >/dev/null 2>&1; then
   spec_folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
 fi
 # aide_resolve_spec's own "assume a full folder ID" branch (the one a
-# spelled-out `NN-slug` falls into, as opposed to a bare number or a JIRA
-# key) never checks archive/ — it only ever echoes the input back. A
+# spelled-out `NN-slug` falls into, as opposed to a bare number or an
+# issue key) never checks archive/ — it only ever echoes the input back. A
 # folder that exists only under archive/, given by its full name, comes
 # out here as a guess that does not exist, so it is checked and — for
 # exactly this case — looked up under archive/ directly, the same way

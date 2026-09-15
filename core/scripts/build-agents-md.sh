@@ -91,7 +91,7 @@ mkdir -p "$(dirname "$SPEC_STRUCTURE_SKILL")"
 name: spec-structure
 description: >-
   The 4-file spec structure (1-description, 2-analysis, 3-solution,
-  4-status) for JIRA issues and TODO plans: what belongs in each file,
+  4-status): what belongs in each file,
   the required sections, and the Tracking info fields.
   Use when: creating, analyzing, reviewing, implementing or archiving a
   spec; deciding which of the four files a piece of content belongs in.

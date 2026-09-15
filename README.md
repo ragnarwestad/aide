@@ -30,7 +30,7 @@ code, it writes a specification — four plain-Markdown files
 can read, review and continue identically, committed to git alongside
 the code it describes. That structure is what lets **any AI assistant**:
 
-- Understand complex JIRA issues and analyze the codebase automatically
+- Understand a spec and analyze the codebase automatically
 - Suggest concrete solutions with file references and line numbers,
   reviewable as a diff before a line of code changes
 - Implement changes using Test-Driven Development (TDD)
@@ -49,7 +49,7 @@ The four spec-workflow skills, in the order a spec moves through them:
 
 | Skill              | Does                                                                                  |
 |---------------------|----------------------------------------------------------------------------------------|
-| `/aide-create`      | Creates the 4-file spec structure (description, analysis, solution, status) for a JIRA issue or TODO plan |
+| `/aide-create`      | Creates a spec from a title and a description: the 4-file structure (description, analysis, solution, status) |
 | `/aide-analyze`     | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan |
 | `/aide-implement`   | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution |
 | `/aide-archive`     | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
@@ -104,7 +104,7 @@ export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 
 ### AIDE_SPECS_PATH (optional, per project)
 
-Store specs (JIRA analyses, TODO plans) outside a project — set the key
+Store specs outside a project — set the key
 in `.aide/config` in that project's root:
 
 ```text
@@ -125,9 +125,9 @@ and belongs in git.
 All AI tools follow the same basic workflow:
 
 ```text
-1. CREATE document structure
+1. CREATE the spec
    ↓
-   Fetches JIRA issue → Creates 4 files (description/analysis/solution/status)
+   A title and a description → 4 files (description/analysis/solution/status)
 
 2. ANALYZE codebase
    ↓
@@ -145,10 +145,10 @@ All AI tools follow the same basic workflow:
 **Example (Claude Code):**
 
 ```bash
-/aide-create PROJ-7890    # Create document structure
-/aide-analyze PROJ-7890   # Analyze codebase
-/aide-implement PROJ-7890 # Implement with TDD
-/aide-archive PROJ-7890   # Archive, feed knowledge back into the docs
+/aide-create TODO Move the forms off Redux Form   # Create the spec: number 55, say
+/aide-analyze 55                                  # Analyze codebase
+/aide-implement 55                                # Implement with TDD
+/aide-archive 55                                  # Archive, feed knowledge back into the docs
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
@@ -158,5 +158,5 @@ All AI tools follow the same basic workflow:
 ## Resources
 
 - [DEVELOPING.md](DEVELOPING.md) - Developer guide for Aide
-- [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - JIRA/TODO workflows
+- [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - The spec workflow
 - [core/rules/git.md](core/rules/git.md) - Git rules

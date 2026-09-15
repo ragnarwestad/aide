@@ -1,22 +1,18 @@
-# The spec workflows: JIRA issues and TODO plans
+# The spec workflow
 
 ## Table of contents
 
-- [JIRA issue workflow](#jira-issue-workflow)
+- [The workflow](#the-workflow)
   - [Overall flow](#overall-flow)
   - [Phase 1: Create document structure](#phase-1-create-document-structure)
   - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
   - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
   - [Phase 4: Verify](#phase-4-verify)
   - [Phase 5: Archive](#phase-5-archive)
-- [TODO plan workflow](#todo-plan-workflow)
-  - [Overall flow](#overall-flow-1)
-  - [Phase 1: Create document structure](#phase-1-create-document-structure-1)
-  - [Phase 2-5: Analyze, Solve, Verify and Archive](#phase-2-5-analyze-solve-verify-and-archive)
 
 ---
 
-## JIRA issue workflow
+## The workflow
 
 ### Overall flow
 ```text
@@ -30,9 +26,9 @@ the idea or scope is not ready for `/aide-create` yet.
 ### Phase 1: Create document structure
 
 **What is done:**
-1. Fetches the issue from the JIRA API (validation)
-2. Assigns the next available number and creates the directory: `specs/<NN>-PROJ-XXXX-slug/`
-3. Fills in `1-description.md` with JIRA metadata
+1. Takes the title and the description
+2. Assigns the next available number and creates the directory: `specs/<NN>-slug/`
+3. Fills in `1-description.md` with them
 4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stages all new files in git (automatically)
 
@@ -97,33 +93,3 @@ When the work is done, run `/aide-archive <ID>`:
    `<specs-root>/archive/` — the number is never reused
 
 ---
-
-## TODO plan workflow
-
-### Overall flow
-```text
-Create - Analyze - Solve - Verify - Archive
-```
-
-### Phase 1: Create document structure
-
-**What is done:**
-1. Assigns a number (next available)
-2. Creates the directory: `specs/<NN>-slug-name/`
-3. Fills in `1-description.md` with metadata
-4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
-5. Stages all new files in git (automatically)
-
-**Output:**
-```text
-specs/17-clean-up-console-log/
-├── 0-README.md            (reading order)
-├── 1-description.md       (done)
-├── 2-analysis.md           (⏳ empty)
-├── 3-solution.md           (⏳ empty)
-└── 4-status.md            (⏳ empty)
-```
-
-### Phase 2-5: Analyze, Solve, Verify and Archive
-
-Same as the [JIRA issue workflow](#jira-issue-workflow).

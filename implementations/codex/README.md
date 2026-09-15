@@ -12,7 +12,7 @@
   - [AGENTS.md](#agentsmd-persistent-instructions)
   - [Hooks](#hooks)
 - [Usage](#usage)
-  - [JIRA workflow](#jira-workflow)
+  - [The spec workflow](#the-spec-workflow)
   - [TDD workflow](#tdd-workflow)
 - [Slash commands](#slash-commands)
 - [Tips and tricks](#tips-and-tricks)
@@ -238,9 +238,9 @@ approval exists. Note that repo-level `.codex/hooks.json` did not load in
 
 ## Usage
 
-### JIRA workflow
+### The spec workflow
 
-#### 1. Create JIRA documentation
+#### 1. Create the spec
 
 **Instead of:** `/aide-create PROJ-7890` (Claude Code)
 
@@ -251,14 +251,12 @@ approval exists. Note that repo-level `.codex/hooks.json` did not load in
 codex
 
 # Or as a direct command
-codex "Create structured documentation for JIRA issue PROJ-7890:
+codex "Create a spec titled 'Move the forms off Redux Form' with this description: ...
 
-1. Create directory: specs/<NN>-PROJ-7890-slug/
-2. Follow core/skills/documentation/SKILL.md
-3. Use templates from core/templates/todo/
-4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
-5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
-6. Stage all new files in git"
+1. Run aide-create-spec (never write the files by hand)
+2. It creates specs/<NN>-slug/ with 1-description.md filled in
+   and 2-analysis.md, 3-solution.md, 4-status.md ready
+3. Stage all new files in git"
 ```
 
 #### 2. Analyze the codebase
@@ -268,9 +266,9 @@ codex "Create structured documentation for JIRA issue PROJ-7890:
 **With Codex:**
 
 ```bash
-codex "Analyze the codebase for JIRA issue PROJ-7890:
+codex "Analyze the codebase for spec 55:
 
-1. Read specs/<NN>-PROJ-7890-slug/1-description.md
+1. Read specs/55-slug/1-description.md
 2. Search the codebase for relevant files
 3. Identify affected components (file:line)
 4. Check API impact (frontend ↔ backend)
@@ -383,7 +381,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 ### Codex does NOT have:
 - ❌ Native slash commands (uses natural language instead)
 - ❌ Automatic reading of CLAUDE.md at startup (use `AGENTS.md`)
-- ❌ Built-in agents like `@agent-jira-analyzer`
+- ❌ Built-in agents like `@agent-task-analyzer`
 - ❌ A free tier (requires Plus/Pro/Enterprise)
 
 ### Codex DOES have:
@@ -414,7 +412,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 |------------------------|---------------------------------|--------------------------------|
 | **Commands**           | Slash commands (`/aide-create`) | Natural language prompts       |
 | **Instructions**       | CLAUDE.md (auto-read)           | AGENTS.md (~/.codex/AGENTS.md) |
-| **Agents**             | `@agent-jira-analyzer`          | General agent                  |
+| **Agents**             | `@agent-task-analyzer`          | General agent                  |
 | **TDD**                | Built-in RED→GREEN→REFACTOR     | Supports the TDD cycle         |
 | **Codebase analysis**  | ✅                              | ✅                             |
 | **Tool calling**       | ✅                              | ✅                             |
@@ -429,7 +427,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 
 | Scenario                  | Recommendation                     |
 |---------------------------|------------------------------------|
-| **Complex JIRA analysis** | Claude Code (larger context, free) |
+| **Complex analysis**      | Claude Code (larger context, free) |
 | **Parallel tasks**        | Codex (native support)             |
 | **TDD implementation**    | Both work well                     |
 | **GitHub workflows**      | Codex (native integration)         |
@@ -443,7 +441,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 1. ✅ Install the Codex CLI
 2. ✅ Authenticate with your OpenAI API key
 3. ✅ Copy the custom instructions
-4. ✅ Test with a simple JIRA issue
+4. ✅ Test with a simple spec
 5. ✅ Read [docs/AI_DEVELOPMENT_GUIDE.md](../../docs/AI_DEVELOPMENT_GUIDE.md) for the full documentation
 
 ---

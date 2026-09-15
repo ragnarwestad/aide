@@ -35,7 +35,7 @@
 
 ### Example
 
-**JIRA issue:** "Add a 'processing status' field to the case overview"
+**The spec:** "Add a 'processing status' field to the case overview"
 
 **Analysis:**
 1. Frontend uses: `GET /api/case/{caseId}`

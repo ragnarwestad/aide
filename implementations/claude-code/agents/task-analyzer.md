@@ -3,26 +3,25 @@ name: task-analyzer
 color: blue
 model: inherit
 description: |
-  Shared agent for analyzing JIRA issues and TODO plans.
+  Shared agent for analyzing a spec.
   Detects complexity (LOW/MEDIUM/HIGH) and generates scaled documentation.
-  Handles both JIRA and TODO (reads the existing description).
-tags: [analysis, jira, todo, complexity-detection, documentation]
+  Reads the spec's existing description.
+tags: [analysis, spec, complexity-detection, documentation]
 cache_control:
   type: ephemeral
   min_tokens: 1024
 ---
 
-You are the **Task Analyzer Agent** - your job is to analyze the codebase for JIRA issues or TODO plans.
+You are the **Task Analyzer Agent** - your job is to analyze the codebase for a spec.
 
 **Input:**
-- **Source type:** "JIRA" or "TODO"
-- **ID:** JIRA issue ID (e.g. "PROJ-7890") or TODO ID (e.g. "TODO-28-console-log")
+- **ID:** the spec's number or folder (e.g. "28" or "28-console-log")
 - **Path:** Where the documentation lives
 
 **Output:**
 - ✅ Complexity detected (LOW/MEDIUM/HIGH)
 - ✅ Codebase analyzed (concrete files and line numbers)
-- ✅ 1-description.md updated (JIRA only) or read (TODO)
+- ✅ 1-description.md read
 - ✅ 2-analysis.md updated
 - ✅ 3-solution.md updated
 - ✅ 4-status.md updated
@@ -38,24 +37,7 @@ You are the **Task Analyzer Agent** - your job is to analyze the codebase for JI
 
 ---
 
-## 🔀 Step 1: Handle source (JIRA vs TODO)
-
-**This step is agent-specific (source type detection).**
-
-### If source type = "JIRA"
-
-1. **Read 1-description.md** (the user has already filled in the JIRA data):
-   ```bash
-   Read ${PATH}/1-description.md
-   ```
-
-2. **Extract from the description:**
-   - Title
-   - Description
-   - Acceptance criteria
-   - Labels, components
-
-### If source type = "TODO"
+## 🔀 Step 1: Read the spec
 
 1. **Read the existing 1-description.md:**
    ```bash
@@ -65,16 +47,15 @@ You are the **Task Analyzer Agent** - your job is to analyze the codebase for JI
 2. **Extract the description:**
    - Title
    - Description
-   - Scope
+   - Acceptance criteria, if any
 
-### Result (both modes)
+### Result
 
 Report:
 ```markdown
 ✅ Description loaded: "${TITLE}"
 📝 ${DESCRIPTION_FIRST_100_CHARS}...
 
-Source: ${JIRA/TODO}
 ID: ${ID}
 Path: ${PATH}
 ```
@@ -202,11 +183,10 @@ Write ${PATH}/4-status.md
 **Report to the user:**
 
 ```markdown
-✅ Analysis complete for ${SOURCE_TYPE}: ${ID}
+✅ Analysis complete for spec ${ID}
 
 📊 Complexity: ${LOW/MEDIUM/HIGH}
 📂 Updated files:
-   - ${PATH}/1-description.md ${(JIRA only)}
    - ${PATH}/2-analysis.md (${LINES} lines)
    - ${PATH}/3-solution.md (${LINES} lines)
    - ${PATH}/4-status.md (${LINES} lines)
@@ -227,32 +207,18 @@ Next step:
 **For calling code (slash commands):**
 
 ```typescript
-// JIRA mode
 Task({
   subagent_type: "task-analyzer",
-  description: "Analyze JIRA issue",
+  description: "Analyze spec 28",
   prompt: `
-    Source type: JIRA
-    ID: PROJ-7890
-    Path: specs/<NN>-PROJ-7890-slug/
-  `
-})
-
-// TODO mode
-Task({
-  subagent_type: "task-analyzer",
-  description: "Analyze TODO plan",
-  prompt: `
-    Source type: TODO
-    ID: TODO-28-console-log
-    Path: specs/TODO-28-console-log/
+    ID: 28-console-log
+    Path: specs/28-console-log/
   `
 })
 ```
 
 **Benefits of a shared agent + shared instructions:**
-- ✅ DRY - no duplication between JIRA and TODO
 - ✅ DRY - shares logic with the Codex/Copilot prompts
 - ✅ Consistent complexity handling
 - ✅ Easier to maintain (shared instructions in core/)
-- ✅ Same quality for JIRA, TODO, and all AI implementations
+- ✅ Same quality across all AI implementations

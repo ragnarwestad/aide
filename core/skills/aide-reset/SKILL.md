@@ -5,7 +5,7 @@ description: >-
   description, commits and earlier job history. Use when an active spec's
   analysis, plan or status belongs to a work round that must not count.
   Do NOT use for archived specs (use aide-reopen).
-argument-hint: "[<JIRA-KEY> or task number]"
+argument-hint: "[spec number]"
 effort: medium
 ---
 

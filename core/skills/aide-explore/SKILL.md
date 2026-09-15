@@ -52,7 +52,6 @@ why, the open questions. Then offer the handoff:
 Ready to make this a task?
 
 /aide-create TODO <the sharpened one-line description>
-/aide-create <JIRA-KEY>          # if it belongs to a JIRA issue
 
 Or leave it here — nothing has been created.
 ```

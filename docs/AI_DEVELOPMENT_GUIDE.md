@@ -77,16 +77,14 @@ This project is inspired by [Lakshman Oruganti's Generative AI Design Patterns](
 
 **Our implementation:**
 - Claude Code slash commands: `/aide-create`, `/aide-analyze`, `/aide-implement`
-- AI tools call scripts and read JIRA data from the user → Generate documentation
+- AI tools call scripts and take the title and description from the user → Generate documentation
 
 **Example:**
 ```bash
 # Claude Code creates the document structure
-/aide-create PROJ-7890
+/aide-create TODO Move the forms off Redux Form
   ↓
-User pastes in JIRA data  # Data is copied manually from the JIRA browser
-  ↓
-AI fills in 1-description.md with metadata and problem description
+AI fills in 1-description.md with the title and the description
 ```
 
 **Why:** Gives AI tools access to external systems (git, codebase) via tool calling.
@@ -127,7 +125,7 @@ pnpm test -- validateApplication  # Test passes (GREEN)
 **Concept:** Specialized single-purpose agents organized in hierarchical structures.
 
 **Our implementation (Claude Code):**
-- `task-analyzer` - Analyzes JIRA issues and TODO plans, detects complexity
+- `task-analyzer` - Analyzes a spec, detects complexity
 - `tdd-implementer` - Implements solutions with TDD (RED → GREEN → REFACTOR)
 - `test-coverage-improver` - Creates missing unit tests
 - `react-class-to-functional-converter` - Converts React class components to functional components
@@ -273,7 +271,7 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 - Pattern 6: Basic RAG (API mapping, documentation)
 - Pattern 13: Chain of Thought (Explore → Plan → Code)
 - Pattern 17: Reflection (iterative improvement of the analysis)
-- Pattern 21: Tool Calling (JIRA API, git, scripts)
+- Pattern 21: Tool Calling (git, scripts)
 - Pattern 22: Code Execution (TDD testing)
 - Pattern 23: Multi-agent Collaboration (specialized agents)
 
@@ -401,6 +399,6 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 ## See also
 
 - [README.md](../README.md) - The project's main page
-- [workflows.md](../core/skills/workflows/SKILL.md) - JIRA issue and TODO plan workflows
+- [workflows.md](../core/skills/workflows/SKILL.md) - The spec workflow
 - [documentation.md](../core/skills/documentation/SKILL.md) - Documentation standard
 - [implementations/claude-code/README.md](../implementations/claude-code/README.md) - Claude Code implementation

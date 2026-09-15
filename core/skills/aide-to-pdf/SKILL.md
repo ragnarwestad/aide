@@ -1,14 +1,14 @@
 ---
 name: aide-to-pdf
 description: >-
-  Generate PDF from JIRA or TODO documentation.
+  Generate PDF from a spec.
   Use when: exporting documentation to PDF, generating a print-friendly spec.
   Do NOT use for: creating documentation (use aide-create)
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---
 
-You will help the user **generate a PDF** from JIRA or TODO documentation.
+You will help the user **generate a PDF** from a spec.
 
 ## Input
 
@@ -18,13 +18,14 @@ The user has run:
 ```
 
 **Examples:**
-- `/aide-to-pdf PROJ-7637` - JIRA issue
-- `/aide-to-pdf 17-fix-validation` - TODO plan
+- `/aide-to-pdf 17` - by number
+- `/aide-to-pdf 17-fix-validation` - by folder
+- `/aide-to-pdf PROJ-7637` - by the issue key the title began with
 
 ## Your task
 
 1. **Validate input:**
-   - If the input matches `PROJ-<number>`: JIRA issue (the key is part of the slug)
+   - If the input matches an issue key (`PROJ-<number>`): the key is part of the slug
    - If the input is a number only (`NN`): number shorthand
    - Anything else: full directory ID (`NN-slug`)
    - If no input: Ask the user for a number or full ID
@@ -40,7 +41,7 @@ The user has run:
 3. **Resolve to the full directory ID** (flat structure: everything lives as `<NN>-slug/` directly under REPORTS_ROOT):
    ```bash
    if echo "$INPUT" | grep -qE '^PROJ-[0-9]+$'; then
-     # JIRA: find the directory containing the key
+     # Issue key: find the directory containing it
      DIR=$(find "$REPORTS_ROOT" -maxdepth 1 -type d -name "*${INPUT}*" | head -1 | xargs basename)
    elif echo "$INPUT" | grep -qE '^[0-9]+$'; then
      # Number shorthand: find <NN>-*
@@ -59,7 +60,7 @@ The user has run:
    ```
 
 4. **Check that documentation exists:**
-   - `$REPORTS_ROOT/<NN-slug>/` (flat structure for both JIRA and TODO)
+   - `$REPORTS_ROOT/<NN-slug>/` (flat structure)
    - If not: Inform the user that they must run `/aide-create` first
 
 5. **Generate PDF:**
@@ -105,7 +106,7 @@ Have you run the create command first?
 
 ## Notes
 
-- **Automatic JIRA/TODO detection:** Same logic as `/aide-create`
+- **Input detection:** Same logic as `/aide-analyze`
 - **Output location:** Same directory as the markdown files (keeps everything together)
 - **AIDE_SPECS_PATH:** read from `.aide/config` in the project root (no environment variable)
 - **Styling:** The PDF includes a header with the issue number and a footer with page numbers

@@ -1,7 +1,7 @@
 ---
 name: aide-implement
 description: >-
-  Implement the solution for a JIRA issue or TODO plan with Test-Driven
+  Implement the solution for a spec with Test-Driven
   Development (RED → GREEN → REFACTOR). Reads the existing analysis and plan,
   writes tests first, implements, and runs the quality check.
   Use when: implementing a solution with TDD, having a completed analysis and
@@ -12,7 +12,7 @@ argument-hint: "[PROJ-XXXX or task number]"
 effort: high
 ---
 
-Implement the solution for a JIRA issue or TODO plan with TDD.
+Implement the solution for a spec with TDD.
 
 **Input:** $ARGUMENTS (all arguments after the command)
 
@@ -20,10 +20,7 @@ Implement the solution for a JIRA issue or TODO plan with TDD.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
-- Example: `/aide-implement PROJ-7890`
-
-**TODO mode:** If the first word is a number or starts with `TODO-`
+**The spec:** the first word is its number, its `TODO-<name>` folder, or an issue key its title began with
 - Example: `/aide-implement 55` or `/aide-implement TODO-01`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
@@ -32,9 +29,8 @@ Parse `$ARGUMENTS`:
 Missing argument
 
 Usage:
-/aide-implement PROJ-XXXX     # For JIRA issue
-/aide-implement 55               # For task (number)
-/aide-implement TODO-01           # For TODO plan
+/aide-implement 55               # the spec's number
+/aide-implement TODO-01           # or its folder
 ```
 
 ---
