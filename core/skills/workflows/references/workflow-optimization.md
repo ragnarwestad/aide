@@ -22,7 +22,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 - Prevents earlier context from distracting
 
 **When to use /clear:**
-- After completing a JIRA issue or TODO plan
+- After completing a spec
 - When switching between independent tasks
 
 ### Course correction

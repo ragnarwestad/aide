@@ -4,8 +4,8 @@ description: >-
   The workflow for AI-assisted development: complexity detection
   (LOW/MEDIUM/HIGH), problem-type routing, branch strategy across
   repositories, and the create - analyze - review - solve - verify -
-  archive flow for JIRA issues and TODO plans.
-  Use when: starting work on a JIRA issue or TODO plan, deciding how much
+  archive flow for a spec.
+  Use when: starting work on a spec, deciding how much
   analysis a task needs, planning a change that spans several projects,
   checking which branch belongs where.
   Do NOT use for: the spec files' own layout (use the spec-structure
@@ -123,7 +123,7 @@ documents.
 | **Cross-project**     | Backend first - Test - Frontend - Full stack test |
 | **Refactoring**       | Secure tests - Refactor - Verify green tests      |
 | **Test generation**   | Read code - Identify edge cases - Write tests     |
-| **New functionality** | Read JIRA/TODO - Analyze scope - TDD              |
+| **New functionality** | Read the spec - Analyze scope - TDD               |
 | **Database change**   | Identify ripple effects - Migration script - Test |
 | **Performance**       | Profile - Find root cause - Benchmark - Optimize  |
 
@@ -176,7 +176,6 @@ in the same style as the other fields:
 ```markdown
 ## Tracking info
 
-- **JIRA:** [PROJ-7637](https://jira.example.com/browse/PROJ-7637)
 - **Last analyzed:** `2025-11-07`
 - **Repo:** `my-app/feature/PROJ-7637 @ abc123de`
 - **Repo:** `my-api/feature/PROJ-7637 @ def456ab`
@@ -190,8 +189,7 @@ be recorded where the solution lives.
 
 ## The spec workflows
 
-Both the JIRA issue workflow and the TODO plan workflow run the same
-linear flow, and the phases are written out in full in
+The phases are written out in full in
 [references/spec-workflows.md](./references/spec-workflows.md):
 
 ```text
@@ -209,7 +207,7 @@ The rest of the detail lives beside this file:
 
 | Reference | What it covers |
 |-----------|----------------|
-| [references/spec-workflows.md](./references/spec-workflows.md) | Every phase of the JIRA and TODO workflows: what each one does, what it produces, when to re-run it |
+| [references/spec-workflows.md](./references/spec-workflows.md) | Every phase of the spec workflow: what each one does, what it produces, when to re-run it |
 | [references/api-impact.md](./references/api-impact.md) | Assessing API impact, and the order to implement a change that spans several projects |
 | [references/workflow-optimization.md](./references/workflow-optimization.md) | Context management, course correction, Explore - Plan - Code, checklists for large migrations |
 

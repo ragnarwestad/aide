@@ -10,7 +10,7 @@
 - [Configuration](#configuration)
 - [Usage](#usage)
   - [Slash commands in Copilot CLI](#slash-commands-in-copilot-cli)
-  - [JIRA workflow](#jira-workflow)
+  - [The spec workflow](#the-spec-workflow)
   - [TDD workflow](#tdd-workflow)
 - [Tips and tricks](#tips-and-tricks)
 - [Limitations](#limitations)
@@ -174,7 +174,7 @@ Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
 
 | Command           | Function                  |
 |-------------------|---------------------------|
-| `/aide-create`    | Create JIRA documentation |
+| `/aide-create`    | Create a spec             |
 | `/aide-analyze`   | Analyze codebase          |
 | `/aide-implement` | Implement with TDD        |
 
@@ -182,23 +182,21 @@ Type the command in a `copilot` session, just like in Claude Code.
 
 ---
 
-### JIRA workflow
+### The spec workflow
 
-#### 1. Create JIRA documentation
+#### 1. Create the spec
 
 **Instead of:** `/aide-create PROJ-7890` (Claude Code)
 
 **With Copilot (Agent Mode):**
 
 ```text
-Create structured documentation for JIRA issue PROJ-7890:
+Create a spec titled "Move the forms off Redux Form" with this description: ...
 
-1. Create directory: specs/<NN>-PROJ-7890-slug/
-2. Follow core/skills/documentation/SKILL.md
-3. Use templates from core/templates/todo/
-4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
-5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
-6. Stage all new files in git
+1. Run aide-create-spec (never write the files by hand)
+2. It creates specs/<NN>-slug/ with 1-description.md filled in
+   and 2-analysis.md, 3-solution.md, 4-status.md ready
+3. Stage all new files in git
 ```
 
 #### 2. Analyze codebase
@@ -208,9 +206,9 @@ Create structured documentation for JIRA issue PROJ-7890:
 **With Copilot (Agent Mode):**
 
 ```text
-Analyze the codebase for JIRA issue PROJ-7890:
+Analyze the codebase for spec 55:
 
-1. Read specs/<NN>-PROJ-7890-slug/1-description.md
+1. Read specs/55-slug/1-description.md
 2. Search the codebase for relevant files
 3. Identify affected components (file:line)
 4. Check API impact (frontend ↔ backend)
@@ -360,7 +358,7 @@ copilot --yolo                            # Allow everything without prompts
 
 ### Copilot CLI does NOT have:
 
-- ❌ Built-in agents like `@agent-jira-analyzer` (uses general agents)
+- ❌ Built-in agents like `@agent-task-analyzer` (uses general agents)
 
 ---
 
@@ -372,7 +370,7 @@ copilot --yolo                            # Allow everything without prompts
 | **Instructions**          | CLAUDE.md (auto-read)           | CLAUDE.md + copilot-instructions.md                |
 | **Plan mode**             | ✅ Native                       | ✅ Native (Shift+Tab)                              |
 | **Autopilot mode**        | ✅ (via permissions)            | ✅ Native (`--yolo`)                               |
-| **Agents**                | `@agent-jira-analyzer`          | Specialized (Explore, Task, Code Review)           |
+| **Agents**                | `@agent-task-analyzer`          | Specialized (Explore, Task, Code Review)           |
 | **Skills**                | ✅ `.claude/skills/`            | ✅ Reads `~/.claude/commands/` + `.claude/skills/` |
 | **TDD**                   | Built-in RED→GREEN→REFACTOR     | Agent Mode iterates                                |
 | **Codebase analysis**     | ✅                              | ✅                                                 |
@@ -397,7 +395,7 @@ copilot --yolo                            # Allow everything without prompts
 
 | Scenario                  | Recommendation                          |
 |---------------------------|-----------------------------------------|
-| **Complex JIRA analysis** | Claude Code (better skills/agents)      |
+| **Complex analysis**      | Claude Code (better skills/agents)      |
 | **Quick edits**           | Copilot (faster in VS Code)             |
 | **TDD implementation**    | Both work well                          |
 | **Refactoring**           | Copilot (native VS Code integration)    |
@@ -410,7 +408,7 @@ copilot --yolo                            # Allow everything without prompts
 
 1. ✅ Install Copilot and enable Agent Mode
 2. ✅ Copy custom instructions
-3. ✅ Test with a simple JIRA issue
+3. ✅ Test with a simple spec
 
 ---
 

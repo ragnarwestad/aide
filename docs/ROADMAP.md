@@ -78,8 +78,8 @@ reference only — do not develop there.
 The content is generic, but some behavior was still shaped by its origin.
 Done in August 2026:
 
-- [x] **JIRA keys need no configuration.** Skills and scripts now recognize
-      any JIRA key by pattern (`[A-Z][A-Z0-9]*-[0-9]+`) instead of the
+- [x] **Issue keys need no configuration.** Skills and scripts recognize
+      any issue key by pattern (`[A-Z][A-Z0-9]*-[0-9]+`) instead of the
       `PROJ-` example prefix. `PROJ-` remains in illustrative examples only.
 - [x] **Project-agnostic commands.** Test/lint/build commands are detected
       from what the project ships (lockfiles, gradlew, pom.xml, …) — see

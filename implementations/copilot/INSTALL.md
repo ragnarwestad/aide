@@ -28,7 +28,6 @@ This guide shows how to install the GitHub Copilot integration for the Aide work
 
 - GitHub Copilot subscription (Individual, Business, Pro or Enterprise)
 - Node.js 22+ (for Copilot CLI via npm) or Homebrew
-- Access to your JIRA instance (optional)
 - Git clone of `aide` (and optionally `my-app`, `my-api`, etc.)
 - `AIDE_PROJECTS_PATH` environment variable set (see Quick Start)
 
@@ -263,7 +262,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 - `README.md` - User guide for Copilot
 - `../../COPILOT.md` - Quick start guide (workspace root)
-- `../../core/skills/workflows/SKILL.md` - JIRA/TODO workflows
+- `../../core/skills/workflows/SKILL.md` - The spec workflow
 - `../../DEVELOPING.md` - Developer guide for Aide
 
 ---

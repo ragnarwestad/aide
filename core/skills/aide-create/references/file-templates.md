@@ -38,10 +38,9 @@ Structure - follow the spec structure § 1-description:
   (always) for an interactive run instead — same fields, same
   absence-not-guess rule for `Model`, no `Repo`/`Result`/`Cost` either
   way
-- **Description:** DESC + editable note — TODO mode's DESC may include an
-  optional `## Acceptance criteria` section with AC-n SHALL statements,
-  per aide-create's own Step 4 (never for JIRA, where Problem is
-  external/verbatim)
+- **Description:** DESC + editable note — DESC may include an optional
+  `## Acceptance criteria` section with AC-n SHALL statements, per
+  aide-create's own Step 4
 - NO criteria for done-ness here — they are part of the solution (3-solution.md)
 - NO affected files or estimate here — they are commitments about the
   solution (3-solution.md)

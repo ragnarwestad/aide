@@ -27,7 +27,6 @@ claude
 
 - **Claude Code CLI** installed (the `claude` command works)
 - **Python 3.8+** (for scripts)
-- **Access to JIRA** (https://jira.example.com)
 - **Mac/Linux** or **Windows with WSL** (bash scripts require a Unix shell)
 
 > **Windows users:** The scripts are bash scripts and require [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) or Git Bash. Run `wsl --install` in PowerShell to install WSL.
@@ -54,7 +53,7 @@ Skills are expertise modules that Claude Code activates automatically based on c
 ```text
 .claude/skills/
 ├── tdd-coach/SKILL.md               # Test-Driven Development
-├── task-workflow-assistant/SKILL.md # JIRA/TODO analysis
+├── task-workflow-assistant/SKILL.md # Spec analysis
 ```
 
 **Example:** When you are about to implement new functionality, `tdd-coach` is activated automatically and guides Claude Code through RED → GREEN → REFACTOR.
@@ -78,7 +77,7 @@ The root directory where your projects live.
 AIDE_SPECS_PATH=$HOME/develop/my-specs-repo
 ```
 
-Where that project's JIRA documentation and TODO plans are stored. If not
+Where that project's specs are stored. If not
 set, `specs/` in the project root is used. Per-project configuration —
 not an environment variable.
 
@@ -107,21 +106,14 @@ claude plugin install kotlin-lsp@claude-plugins-official
 claude plugin install jdtls-lsp@claude-plugins-official
 ```
 
-### JIRA MCP (alternative to cookies)
-
-If you have a JIRA MCP server, it can be used instead of cookie-based authentication.
-
----
-
 ## Available skills
 
 ### Slash commands (skills in Claude Code)
 
 | Command                              | Description               |
 |--------------------------------------|---------------------------|
-| `/aide-create PROJ-XXXX`             | Create JIRA documentation |
-| `/aide-create todo-name Description` | Create TODO plan          |
-| `/aide-analyze PROJ-XXXX`            | Analyze codebase          |
+| `/aide-create TODO <description>`    | Create a spec             |
+| `/aide-analyze <number>`             | Analyze codebase          |
 | `/aide-implement PROJ-XXXX`          | Implement with TDD        |
 
 ### Terminal scripts

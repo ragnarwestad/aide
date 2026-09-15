@@ -2,7 +2,7 @@
 name: spec-structure
 description: >-
   The 4-file spec structure (1-description, 2-analysis, 3-solution,
-  4-status) for JIRA issues and TODO plans: what belongs in each file,
+  4-status): what belongs in each file,
   the required sections, and the Tracking info fields.
   Use when: creating, analyzing, reviewing, implementing or archiving a
   spec; deciding which of the four files a piece of content belongs in.
@@ -12,7 +12,7 @@ effort: medium
 ---
 
 
-# Spec structure for JIRA and TODO
+# Spec structure
 
 ## Table of contents
 
@@ -24,7 +24,6 @@ effort: medium
   - [4-status](#4-status)
     - [Workflow steps completed](#workflow-steps-completed)
 - [Separation of content](#separation-of-content)
-- [Differences JIRA vs TODO](#differences-jira-vs-todo)
 - [Templates](#templates)
 - [See also](#see-also)
 
@@ -35,8 +34,8 @@ effort: medium
 4 standardized files per issue/plan:
 
 ```text
-specs/<NN>-slug/          # flat structure, same for JIRA and TODO
-├── 1-description.md        # (JIRA: the PROJ key is part of the slug)
+specs/<NN>-slug/          # flat structure
+├── 1-description.md        # (an issue key in the title is part of the slug)
 ├── 2-analysis.md
 ├── 3-solution.md
 └── 4-status.md
@@ -76,8 +75,7 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 ## Metadata
 
-**JIRA:** Table with type, status, priority, reporter, assignee
-**TODO:** Number, created date, expected duration
+Number, created date, expected duration
 
 ---
 
@@ -92,7 +90,7 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 ## Problem
 
-[Description copied from JIRA or written by the developer]
+[The description as given]
 
 ---
 
@@ -105,7 +103,7 @@ written or read by a model. `aide-archive-spec`'s move step already
 
 **Key points:**
 - Table of contents for quick navigation
-- Metadata table (JIRA/TODO-specific)
+- Metadata table
 - The Description section is editable for manual additional information
 - The Problem section is copied verbatim (do not rewrite)
 - No code examples (they belong in 3-solution.md)
@@ -117,7 +115,7 @@ written or read by a model. `aide-archive-spec`'s move step already
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
-  resolver, which also takes `TODO-NN` and a JIRA key). `aide-run-spec`
+  resolver, which also takes `TODO-NN` and an issue key). `aide-run-spec`
   refuses to start while any named spec's `aide/<NN-slug>` branch on
   origin has commits not on the default branch — unmerged, not merely
   present — because a run cuts its branch from origin/main and would
@@ -138,9 +136,6 @@ written or read by a model. `aide-archive-spec`'s move step already
 - AC-n ids are additive only: once written, never renumbered or
   reused, even if later dropped — same philosophy as 4-status.md's
   `Workflow steps completed` line
-- JIRA mode never adds an Acceptance criteria section — the Problem
-  text is external and verbatim. TODO mode authors it from scratch
-  alongside the Problem text (see the aide-create skill)
 - A description already carrying a matching `## Acceptance criteria`
   section is passed through unchanged — no rewriting, no second
   section appended. Only a description with no such section gets one
@@ -562,25 +557,6 @@ archives exactly as it did before this section existed.
 | Testing strategy        | 3-solution.md    |
 | Progress                | 4-status.md      |
 | Acceptance criteria — tick checklist (AC-tagged, optional) | 4-status.md |
-
----
-
-## Differences JIRA vs TODO
-
-JIRA issues and TODO plans have an **identical structure**, but differ in content:
-
-| Aspect          | JIRA issues                      | TODO plans               |
-|-----------------|----------------------------------|--------------------------|
-| **Location**    | `specs/<NN>-PROJ-XXXX-slug/`     | `specs/<NN>-slug/`       |
-| **Source**      | JIRA API (external)              | Created manually         |
-| **Description** | Copied from JIRA                 | Written by the developer |
-| **Metadata**    | JIRA fields (type, status, etc.) | Number, date             |
-
-**In common:**
-- 4 files: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
-- Same structure and formatting
-- Same notation (⬜ 🔄 ✅ ❌ ⚠️)
-- Same TDD approach in 3-solution.md
 
 ---
 

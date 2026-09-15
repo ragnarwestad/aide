@@ -333,7 +333,7 @@ class TestRequirementsTracingIsDocumented:
         assert "AC-" in block and "SHALL" in block, \
             "the Acceptance criteria example must use AC-n ids and SHALL statements"
 
-    def test_rule_key_points_state_additive_ids_and_jira_never_adds(self, workspace_root):
+    def test_rule_key_points_state_additive_ids(self, workspace_root):
         content = self._rule(workspace_root)
         start = content.index("\n### 1-description\n")
         end = content.index("\n### 2-analysis\n", start)
@@ -343,8 +343,6 @@ class TestRequirementsTracingIsDocumented:
             "Key points must say Requirements is optional"
         assert "additive" in lowered, \
             "Key points must state the additive, never-renumbered id rule"
-        assert "jira" in lowered and "never" in lowered, \
-            "Key points must state JIRA mode never adds a Requirements section"
 
     # Criterion 2
     def test_rule_separation_table_has_acceptance_criteria_row_for_description(self, workspace_root):
@@ -373,15 +371,13 @@ class TestRequirementsTracingIsDocumented:
             "3-solution's Acceptance criteria intro/example must mention the AC-id prefix"
 
     # Criterion 5
-    def test_create_step_4_asks_before_guessing_and_skips_jira(self, workspace_root):
+    def test_create_step_4_asks_before_guessing(self, workspace_root):
         step = self._step(self._skill(workspace_root, "aide-create"), "Step 4:")
         lowered = step.lower()
         assert "ac-n" in lowered, \
             "aide-create Step 4 must instruct formulating AC-n statements"
         assert "ask" in lowered, \
             "aide-create Step 4 must ask for clarification when the description is too thin"
-        assert "jira" in lowered and "skip" in lowered, \
-            "aide-create Step 4 must state JIRA mode skips REQ-n formulation entirely"
 
     # Criterion 6
     def test_create_step_6_states_no_preview_and_review_responsibility(self, workspace_root):

@@ -1,7 +1,7 @@
 ---
 name: aide-analyze
 description: >-
-  Analyze the codebase for a JIRA issue or TODO plan.
+  Analyze the codebase for a spec.
   Detects complexity (LOW/MEDIUM/HIGH), maps affected files with
   file:line references, and creates an implementation plan with TDD.
   Use when: analyzing the codebase for an existing task,
@@ -13,7 +13,7 @@ argument-hint: "[PROJ-XXXX or task number]"
 effort: xhigh
 ---
 
-Analyze the codebase for a JIRA issue or TODO plan.
+Analyze the codebase for a spec.
 
 **Input:** $ARGUMENTS (all arguments after the command)
 
@@ -21,10 +21,7 @@ Analyze the codebase for a JIRA issue or TODO plan.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
-- Example: `/aide-analyze PROJ-7890`
-
-**TODO mode:** If the first word is a number or starts with `TODO-`
+**The spec:** the first word is its number, its `TODO-<name>` folder, or an issue key its title began with
 - Example: `/aide-analyze 55` or `/aide-analyze TODO-01`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
@@ -33,12 +30,10 @@ Parse `$ARGUMENTS`:
 Missing argument
 
 Usage:
-/aide-analyze PROJ-XXXX     # For JIRA issue
-/aide-analyze 55               # For task (number)
-/aide-analyze TODO-01           # For TODO plan
+/aide-analyze 55               # the spec's number
+/aide-analyze TODO-01           # or its folder
 
 Examples:
-/aide-analyze PROJ-7890
 /aide-analyze 55
 ```
 

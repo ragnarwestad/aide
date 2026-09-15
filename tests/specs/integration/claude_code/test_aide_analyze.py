@@ -8,8 +8,8 @@ from pathlib import Path
 import os
 
 
-class TestAideAnalyserJira:
-    """Tests for JIRA analysis."""
+class TestAideAnalyserSpec:
+    """Tests for spec analysis."""
 
     def test_analysis_updates_2_analyse_md(self, mock_workspace, monkeypatch):
         """Verify that 2-analysis.md is updated with analysis results."""
@@ -100,8 +100,8 @@ Grepped for the validation helpers, then read each caller.
 class TestAideAnalyserTodo:
     """Tests for TODO analysis."""
 
-    def test_todo_analysis_same_structure_as_jira(self, mock_workspace, monkeypatch):
-        """Verify TODO analysis follows same structure as JIRA."""
+    def test_todo_analysis_same_structure(self, mock_workspace, monkeypatch):
+        """Verify a TODO-named spec's analysis follows the same structure."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
 
         todo_dir = mock_workspace / "todo" / "01-test-todo"
@@ -121,7 +121,7 @@ Read the component and its single test.
 
         content = (todo_dir / "2-analysis.md").read_text()
 
-        # Same required sections as JIRA
+        # Same required sections
         assert "## Mapping" in content
         assert "## Affected files" in content
         assert "## Complexity" not in content

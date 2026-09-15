@@ -212,7 +212,7 @@ Desired result:
 ### Related resources and URLs
 
 **Include links to external resources:**
-- JIRA issues: `https://jira.example.com/browse/PROJ-XXXX`
+- Issue trackers: `https://jira.example.com/browse/PROJ-XXXX`
 - Confluence documentation
 - Design documents (Figma, Sketch)
 - API documentation (Swagger, OpenAPI)
@@ -255,5 +255,5 @@ Avoid mocks for validation - use real test data.
 
 ## See also
 
-- The spec-structure skill - 4-file structure for JIRA/TODO reports
+- The spec-structure skill - the 4-file spec structure
 - The markdown-linting skill - Markdown linting rules

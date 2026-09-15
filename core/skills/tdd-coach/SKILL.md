@@ -197,5 +197,5 @@ it('should handle API errors', async () => {
 ## References
 
 - `the testing rules` - Complete testing ruleset
-- `the workflow rules` - The TDD workflow in the context of JIRA/TODO
+- `the workflow rules` - The TDD workflow in the context of a spec
 - Frontend coding standard

@@ -1,8 +1,8 @@
 ---
 name: task-workflow-assistant
 description: >-
-  Structured analysis and planning of JIRA issues and TODO plans.
-  Use when: analyzing a JIRA issue, creating a TODO plan, identifying affected files.
+  Structured analysis and planning of a spec.
+  Use when: analyzing a spec, planning its solution, identifying affected files.
   Do NOT use for: pure code implementation, TDD cycle, code review
 effort: high
 ---
@@ -11,8 +11,8 @@ effort: high
 
 ## When to use this skill
 
-- You are analyzing a JIRA issue
-- You are creating a TODO plan
+- You are analyzing a spec
+- You are planning its solution
 - You are identifying affected files
 - You are estimating complexity
 
@@ -23,7 +23,7 @@ effort: high
 ### 1. description.md
 
 **Content:**
-- JIRA data (title, description, acceptance criteria)
+- The spec (title, description, acceptance criteria)
 - The problem as reported
 - Prerequisites and dependencies
 

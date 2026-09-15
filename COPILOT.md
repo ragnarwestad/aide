@@ -99,9 +99,9 @@ Copilot checks:
 
 Copilot's Agent Mode can follow multi-step workflows autonomously:
 
-**Example: Analyze a JIRA issue**
+**Example: Analyze a spec**
 ```text
-@workspace Analyze PROJ-7890 in Agent Mode.
+@workspace Analyze spec 55 in Agent Mode.
 Follow "Autonomous workflows" from the custom instructions.
 ```
 
@@ -125,10 +125,9 @@ Instead of slash commands (like Claude Code), use natural language:
 
 ## 📁 Documentation structure
 
-- **JIRA tickets:** `specs/<NN>-{ISSUE_ID}-slug/`
+- **Specs:** `specs/<NN>-slug/`
   - `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
   - **NOTE:** If `.aide/config` sets `AIDE_SPECS_PATH`, specs are written there instead
-- **Todo plans:** `specs/`
 - **Generic workflows:** `core/skills/workflows/`
 
 ---
@@ -150,7 +149,6 @@ Instead of slash commands (like Claude Code), use natural language:
 ### MCP Servers (Model Context Protocol)
 
 If available via Copilot extensions:
-- MCP server for JIRA - fetch JIRA data
 - MCP server for Confluence - documentation lookups
 
 ---
@@ -160,10 +158,10 @@ If available via Copilot extensions:
 **Via Copilot Chat (natural language):**
 
 ```text
-# JIRA workflow
-"Create documentation for PROJ-7890"
-"Analyze PROJ-7890"
-"Implement PROJ-7890 with TDD"
+# The spec workflow
+"Create a spec titled ... with this description: ..."
+"Analyze spec 55"
+"Implement spec 55 with TDD"
 
 # TODO workflow
 "Create a TODO plan for the Redux Form migration"
@@ -180,7 +178,7 @@ If available via Copilot extensions:
 ## 🔗 Further reading
 
 **Must read before use:**
-- ✅ [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - JIRA/TODO workflows
+- ✅ [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - The spec workflow
 - ✅ [core/rules/git.md](core/rules/git.md) - Git best practices
 - ✅ [core/rules/testing.md](core/rules/testing.md) - Testing rules
 

@@ -1,17 +1,17 @@
 ---
 name: aide-create
 description: >-
-  Create the document structure for a JIRA issue or TODO plan with the 4-file
-  spec structure (description, analysis, solution, status).
-  Use when: creating a new task, a new JIRA issue, a new TODO plan,
-  starting new work that needs documentation.
+  Create a spec — a title and a description — as the 4-file spec
+  structure (description, analysis, solution, status).
+  Use when: creating a new spec, starting new work that needs
+  documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
   code review.
-argument-hint: "[PROJ-XXXX or TODO <description>]"
+argument-hint: "[TODO <description> | TODO-<name> <description>]"
 effort: medium
 ---
 
-Create the document structure for a JIRA issue or TODO plan.
+Create a spec: a title and a description, as the 4-file structure.
 
 **Input:** $ARGUMENTS (all arguments after the command)
 
@@ -19,12 +19,10 @@ Create the document structure for a JIRA issue or TODO plan.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
-- Example: `/aide-create PROJ-7890`
-- Title: JIRA key, description: fetch from JIRA if possible
-- JIRA base URL: read `AIDE_JIRA_BASE_URL` from `.aide/config` in the project
-  root. If the file or key is missing, ask the user once and offer to save it
-  there. Never guess the URL.
+**A title may begin with an issue key** (`[A-Z][A-Z0-9]*-[0-9]+`, e.g.
+`PROJ-7890`). The key becomes part of the folder name, and the spec can
+then be referred to by that key in every later command. Nothing is
+fetched from anywhere: the description is what the arguments say.
 
 **TODO mode (with name):** If the first word starts with `TODO-` (but is not just `TODO`)
 - Example: `/aide-create TODO-redux-form-migration Move all forms`
@@ -40,12 +38,10 @@ Parse `$ARGUMENTS`:
 Missing argument
 
 Usage:
-/aide-create PROJ-XXXX                    # For JIRA issue
 /aide-create TODO-<name> <description>       # TODO with name
 /aide-create TODO <description>              # TODO auto-generated
 
 Examples:
-/aide-create PROJ-7890
 /aide-create TODO-redux-form-migration Move forms from Redux Form
 /aide-create TODO Implement dark mode
 ```
@@ -125,9 +121,7 @@ spec-structure rule § 1-description) — every line exactly
 `- **AC-n:** ...`, bold included. If the description is too thin for
 confident SHALL statements, ask the user for the necessary
 clarifications now, before creating the spec — never write an
-Acceptance criteria section you had to guess at. JIRA mode: skip this
-entirely — the Problem text is external and verbatim, and formalizing
-someone else's issue puts words in their mouth.
+Acceptance criteria section you had to guess at.
 
 `aide-create-spec` refuses when an Acceptance-criteria-looking line does
 not match the bold format exactly. If it refuses for that reason, fix
@@ -319,6 +313,5 @@ IMPORTANT:
 ## Next step
 
 ```text
-/aide-analyze PROJ-XXXX   # For JIRA issue
-/aide-analyze 55              # For TODO (use the task number)
+/aide-analyze 55              # the spec's number
 ```

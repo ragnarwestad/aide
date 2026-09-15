@@ -1,7 +1,7 @@
 """Behaviour tests for core/scripts/_aide-spec-lib.sh.
 
-The library must work with ANY JIRA project key, not just the PROJ- example
-prefix it was extracted with. A JIRA key is uppercase letters/digits, a
+The library must work with ANY issue key, not just the PROJ- example
+prefix it was extracted with. An issue key is uppercase letters/digits, a
 hyphen, and a number: PROJ-7637, MEL-123, AB2-9.
 """
 import subprocess
@@ -24,7 +24,7 @@ def _call(workspace_root, snippet, env=None):
 
 @pytest.fixture
 def specs_root(tmp_path):
-    """A specs root with one JIRA folder per prefix style and one TODO."""
+    """A specs root with one keyed folder per prefix style and one plain."""
     for folder in [
         "05-proj-7894-class-to-functional",
         "17-clean-up-console-log",
@@ -95,7 +95,7 @@ class TestSpecsRoot:
 
 @pytest.mark.validation
 class TestResolveSpec:
-    """aide_resolve_spec must find folders for any JIRA key."""
+    """aide_resolve_spec must find folders for any issue key."""
 
     def test_resolves_example_prefix(self, workspace_root, specs_root):
         out = _call(

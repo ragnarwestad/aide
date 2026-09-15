@@ -117,7 +117,7 @@ else
   # token for that parser and NOT the spec's folder slug — which is why
   # the title is also stated on a line of its own: a title is not
   # something to recover from a slug, and free text that happens to look
-  # like a JIRA key would otherwise steer the skill's smart detection
+  # like an issue key would otherwise steer the skill's smart detection
   # somewhere nobody asked for.
   title_slug="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' \
     | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"

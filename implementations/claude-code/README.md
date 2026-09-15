@@ -1,4 +1,4 @@
-# JIRA integration for Claude Code
+# Claude Code implementation
 
 ## Table of Contents
 
@@ -7,8 +7,7 @@
   - [Environment variables](#step-0-optional-configure-environment-variables)
   - [Install script](#step-1-run-the-install-script)
 - [Daily use](#daily-use)
-  - [JIRA issue](#starting-work-on-a-new-jira-issue)
-  - [TODO plan](#starting-work-on-a-todo-plan)
+  - [Starting work on a spec](#starting-work-on-a-spec)
 - [Troubleshooting](#troubleshooting)
 - [Files and structure](#files-and-structure)
 - [How it works](#how-it-works)
@@ -29,7 +28,7 @@ This directory contains the Claude Code implementation with configuration files,
 
 ## Overview
 
-The JIRA integration lets you automatically:
+The skills let you:
 - Create structured documentation in the `specs/` directory
 - Analyze the codebase and generate solution proposals
 - Implement with a TDD workflow (RED → GREEN → REFACTOR)
@@ -38,46 +37,40 @@ The JIRA integration lets you automatically:
 
 **Available skills:**
 ```bash
-# JIRA workflow (detected automatically from the PROJ-* prefix)
-/aide-create PROJ-7637           # Create document structure
-/aide-analyze PROJ-7637          # Analyze codebase
-/aide-implement PROJ-7637               # Implement with TDD
+/aide-create TODO Move forms off Redux Form   # Create the spec (a title and a description)
+# → specs/55-move-forms-off-redux-form/, say
 
-# TODO workflow (with todo- prefix)
-/aide-create todo-redux-form-migration Move forms off Redux Form
-# → Generates: todo-01-redux-form-migration
+/aide-create TODO-redux-form-migration Move all forms off Redux Form
+# → specs/55-redux-form-migration/ — the name given, not one made from the description
 
-/aide-create todo Move forms      # Auto-generated slug
-# → Generates: todo-01-move-forms
-
-/aide-analyze todo-01               # Analyze (shorthand - searches for todo-01-*)
-/aide-implement todo-01                    # Implement (shorthand)
+/aide-analyze 55                  # Analyze the codebase
+/aide-implement 55                # Implement with TDD
 
 # Utility
-/aide-to-pdf PROJ-7637            # Generate PDF document
+/aide-to-pdf 55                   # Generate PDF document
 ```
 
-**Result of /aide-create (JIRA mode):**
-- ✅ Document structure created in specs/<NN>-PROJ-7637-slug/
-- ✅ 1-description.md filled in with JIRA metadata + description
+**Result of /aide-create:**
+- ✅ Document structure created in specs/<NN>-slug/
+- ✅ 1-description.md filled in with the title and the description
 - ✅ Empty files: 2-analysis.md, 3-solution.md, 4-status.md
 
 **Result of /aide-analyze:**
-- ✅ Codebase analyzed (via @agent-jira-analyzer or @agent-todo-analyzer)
+- ✅ Codebase analyzed (via @agent-task-analyzer)
 - ✅ All 4 document files updated with analysis and solution proposals
 - ✅ Concrete files and line numbers identified
 
 **Architecture:**
 ```text
-/aide-create PROJ-7637 → Creates document structure
+/aide-create TODO <description> → Creates the spec
     ↓
-/aide-analyze PROJ-7637 → @agent-jira-analyzer
+/aide-analyze 55 → @agent-task-analyzer
     ↓
     Analyzes codebase (Explore agent)
     ↓
     Updates documentation
     ↓
-/aide-implement PROJ-7637 → @agent-tdd-implementer
+/aide-implement 55 → @agent-tdd-implementer
     ↓
     RED → GREEN → REFACTOR (with user confirmation)
 ```
@@ -139,69 +132,45 @@ Run `./install.sh` again to update after changes.
 
 ## Daily use
 
-### Starting work on a new JIRA issue
+### Starting work on a spec
 
-1. **Find the JIRA issue number** (e.g. PROJ-7637)
+1. **Start Claude Code** (in any project: my-app, Aide, my-api, etc.)
 
-2. **Start Claude Code** (in any project: my-app, Aide, my-api, etc.)
-
-3. **Run the slash command:**
+2. **Create the spec** — a title and a description:
    ```bash
-   /aide-create PROJ-7637
+   /aide-create TODO Move all forms from Redux Form to React Hook Form
+   ```
+   → Generates `specs/55-move-all-forms-from-redux-form-to-react-hook-form/`, say.
+
+   With a name of your own instead of one made from the description:
+   ```bash
+   /aide-create TODO-redux-form-migration Move all forms from Redux Form to React Hook Form
+   ```
+   → Generates `specs/55-redux-form-migration/`.
+
+   A title that begins with an issue key (`PROJ-7637 …`) keeps the key in
+   the folder name, and every later command accepts that key in place of
+   the number.
+
+3. **Claude will automatically:**
+   - Create the document structure
+   - Fill in `1-description.md` with the title and the description
+   - Commit and push the new folder
+
+4. **Analyze the codebase:**
+   ```bash
+   /aide-analyze 55
    ```
 
-4. **Claude will automatically:**
-   - Create the document structure: `../aide/specs/<NN>-PROJ-7637-slug/`
-   - Fill in `1-description.md` with JIRA metadata
-   - Give you a summary
-
-5. **Analyze the codebase:**
+5. **Read the documentation:**
    ```bash
-   /aide-analyze PROJ-7637
+   cat specs/55-*/2-analysis.md
+   cat specs/55-*/3-solution.md
    ```
 
-6. **Read the documentation:**
+6. **Implement the solution (optional):**
    ```bash
-   cat ../aide/specs/<NN>-PROJ-7637-slug/2-analysis.md
-   cat ../aide/specs/<NN>-PROJ-7637-slug/3-solution.md
-   ```
-
-7. **Implement the solution (optional):**
-   ```bash
-   /aide-implement PROJ-7637
-   ```
-
-### Starting work on a TODO plan
-
-1. **Start Claude Code** (in any project)
-
-2. **Create the TODO plan:**
-
-   With an explicit name:
-   ```bash
-   /aide-create todo-redux-form-migration Move all forms from Redux Form to React Hook Form
-   ```
-   → Generates: `todo-01-redux-form-migration`
-
-   Or auto-generated from the description:
-   ```bash
-   /aide-create todo Move forms to React Hook Form
-   ```
-   → Generates: `todo-01-move-forms-to-react-hook-form`
-
-3. **Analyze (use shorthand):**
-   ```bash
-   /aide-analyze todo-01
-   ```
-
-   Or with the full ID:
-   ```bash
-   /aide-analyze todo-01-redux-form-migration
-   ```
-
-4. **Implement (use shorthand):**
-   ```bash
-   /aide-implement todo-01
+   /aide-implement 55
    ```
 
 ---
@@ -316,12 +285,12 @@ my-docs/
 
 ```text
 aide/specs/
-├── PROJ-7637/
+├── 55-move-forms-off-redux-form/
 │   ├── 1-description.md     # Generated by /aide-create
 │   ├── 2-analysis.md         # Generated by /aide-analyze
 │   ├── 3-solution.md         # Generated by /aide-analyze
 │   └── 4-status.md          # Generated by /aide-analyze
-└── PROJ-XXXX/
+└── 56-<slug>/
     └── [same structure]
 ```
 
@@ -331,31 +300,31 @@ aide/specs/
 
 ### 1. Unified /aide-* skills
 
-**`/aide-create PROJ-XXXX`** (detects JIRA mode from the format)
+**`/aide-create TODO <description>`**
 1. Creates the document structure (4 files)
-2. Fills in 1-description.md with JIRA metadata (the user pastes in JIRA data manually)
+2. Fills in 1-description.md with the title and the description
 
-**`/aide-analyze PROJ-XXXX`**
-1. Analyzes the codebase with the Explore agent (@agent-jira-analyzer)
+**`/aide-analyze <number>`**
+1. Analyzes the codebase with the Explore agent (@agent-task-analyzer)
 2. Identifies affected files (with line numbers)
 3. Updates all 4 document files
 
-**`/aide-implement PROJ-XXXX`**
+**`/aide-implement <number>`**
 1. Reads 2-analysis.md and 3-solution.md
 2. Implements with TDD (RED → GREEN → REFACTOR)
 3. Updates 4-status.md along the way
 
-**`/aide-to-pdf PROJ-XXXX`**
+**`/aide-to-pdf <number>`**
 1. Combines all markdown files (1-4) into one document
 2. Adds a cover page with metadata
 3. Converts to PDF with header/footer
-4. Output: `<docs-folder>/PROJ-XXXX.pdf`
+4. Output: `<docs-folder>/<NN-slug>.pdf`
 
 ---
 
 ## Tips and tricks
 
-### See all JIRA issues you have worked on
+### See all specs you have worked on
 
 ```bash
 ls -lt ../aide/specs/
@@ -365,7 +334,7 @@ ls -lt ../aide/specs/
 
 ```bash
 # If the codebase has changed since the last analysis
-/aide-analyze PROJ-7890
+/aide-analyze 55
 ```
 
 ---
@@ -373,30 +342,30 @@ ls -lt ../aide/specs/
 ## Example flow
 
 ```bash
-# 1. Create documentation (auto-detects JIRA from the PROJ format)
-/aide-create PROJ-7890
+# 1. Create the spec
+/aide-create TODO Move all forms from Redux Form to React Hook Form
 
-# Claude fetches the issue and creates the document structure
+# Claude creates the document structure — number 55, say
 
 # 2. Analyze the codebase
-/aide-analyze PROJ-7890
+/aide-analyze 55
 
 # Claude analyzes the codebase and updates the documentation
 
 # 3. Read the documentation
-cat ../aide/specs/<NN>-PROJ-7890-slug/2-analysis.md
-cat ../aide/specs/<NN>-PROJ-7890-slug/3-solution.md
+cat ../aide/specs/55-*/2-analysis.md
+cat ../aide/specs/55-*/3-solution.md
 
 # 4. Implement the solution (optional - TDD-assisted)
-/aide-implement PROJ-7890
+/aide-implement 55
 
 # Or code manually based on the documentation
 
 # 5. Generate a PDF for sharing/archiving (optional)
-/aide-to-pdf PROJ-7890
+/aide-to-pdf 55
 
 # Open the PDF
-open ../aide/specs/<NN>-PROJ-7890-slug/PROJ-7890.pdf
+open ../aide/specs/55-*/55-*.pdf
 ```
 
 ---
