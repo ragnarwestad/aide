@@ -3,7 +3,7 @@ name: check-news
 description: >-
   Check AI tool news from Anthropic, GitHub and OpenAI.
   Fetches changelogs and news from official sources, assesses relevance
-  for aide, and updates the news log.
+  for Aide, and updates the news log.
   Use when: checking AI news, wanting to know what's new in
   Claude Code/Copilot/Codex, updating the news log.
   Do NOT use for: general questions about AI tools (use web search directly).
@@ -11,8 +11,8 @@ description: >-
 
 # AI news: Check and update
 
-The news log lives in the aide repo: `docs/AI_NEWS_LOG.md`. This skill
-is repo-local and runs when you are working in aide.
+The news log lives in the Aide repo: `docs/AI_NEWS_LOG.md`. This skill
+is repo-local and runs when you are working in Aide.
 
 ## Step 1: Find the news log
 
@@ -47,10 +47,10 @@ Check these sources for news **since the last review**:
 
 For each news item, assess:
 
-- **Is it relevant for aide?** (skills, hooks, agents, MCP, config)
+- **Is it relevant for Aide?** (skills, hooks, agents, MCP, config)
 - **Does it require action?** (update ai-tools-reference.md, change install.sh, new skills)
 - **How important is it?** Use the icons:
-  - ⭐ Direct impact on aide (requires action)
+  - ⭐ Direct impact on Aide (requires action)
   - ✅ Useful, but no immediate action
   - ℹ️ Informative, low relevance
   - ⚠️ Breaking change or something that must be verified

@@ -192,7 +192,7 @@ confirm = [
 
 ### AGENTS.md (persistent instructions)
 
-Codex's instruction file is `AGENTS.md`. aide generates `core/AGENTS.md` from `core/rules/`, and `install.sh` installs it as `~/.codex/AGENTS.md`. Codex additionally reads an `AGENTS.md` in the project root via directory walk (git root → cwd), so projects can add their own rules:
+Codex's instruction file is `AGENTS.md`. Aide generates `core/AGENTS.md` from `core/rules/`, and `install.sh` installs it as `~/.codex/AGENTS.md`. Codex additionally reads an `AGENTS.md` in the project root via directory walk (git root → cwd), so projects can add their own rules:
 
 ```markdown
 # AGENTS.md
@@ -231,7 +231,7 @@ the hook's message.
 session after installing asks you to approve them once; headless automation
 (`codex exec`) must pass `--dangerously-bypass-hook-trust` until that
 approval exists. Note that repo-level `.codex/hooks.json` did not load in
-`codex exec` during verification — aide's hooks are global
+`codex exec` during verification — Aide's hooks are global
 (`~/.codex/hooks.json`), so this does not affect them.
 
 ---
@@ -324,7 +324,7 @@ Codex supports the TDD cycle:
 ## Slash commands
 
 Codex reads skills from `~/.agents/skills/`. `install.sh` copies every skill
-in `core/skills/` there, so the aide workflows (`/aide-create`,
+in `core/skills/` there, so the Aide workflows (`/aide-create`,
 `/aide-analyze`, …) are available as skills in a `codex` session.
 
 ---

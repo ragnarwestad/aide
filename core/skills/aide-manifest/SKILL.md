@@ -5,7 +5,7 @@ description: >-
   project IS: stack, dependencies, deployment, logging, statistics,
   reports, docs. Drafts from the codebase, ASKS about what it cannot
   derive, never guesses.
-  Use when: setting up aide in a project, the manifest is stale, an
+  Use when: setting up Aide in a project, the manifest is stale, an
   analysis needs project context that is missing.
   Do NOT use for: per-user settings (.aide/config), creating specs
   (use aide-create), analyzing a task (use aide-analyze).

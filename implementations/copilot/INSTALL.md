@@ -10,7 +10,7 @@
   - [Step 2: Slash commands](#step-2-slash-commands)
 - [Verification](#verification)
 - [Updating the configuration](#updating-the-configuration)
-- [For aide developers](#for-aide-developers)
+- [For Aide developers](#for-aide-developers)
 - [Important limitations](#important-limitations)
 - [Comparison with Claude Code](#comparison-with-claude-code)
 - [Troubleshooting](#troubleshooting)
@@ -20,7 +20,7 @@
 
 ## Overview
 
-This guide shows how to install the GitHub Copilot integration for the aide workspace **for the first time**.
+This guide shows how to install the GitHub Copilot integration for the Aide workspace **for the first time**.
 
 **Time required:** ~5 minutes
 
@@ -184,13 +184,13 @@ cd implementations/copilot
 # Close and reopen VS Code for the changes to take effect
 ```
 
-**⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the aide team and committed to git.
+**⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the Aide team and committed to git.
 
 ---
 
-## For aide developers
+## For Aide developers
 
-**If YOU work on aide and need to update the Copilot instructions:**
+**If YOU work on Aide and need to update the Copilot instructions:**
 
 ```bash
 # 1. Edit the source (shared rules or the Copilot sections)
@@ -264,7 +264,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 - `README.md` - User guide for Copilot
 - `../../COPILOT.md` - Quick start guide (workspace root)
 - `../../core/skills/workflows/SKILL.md` - JIRA/TODO workflows
-- `../../DEVELOPING.md` - Developer guide for aide
+- `../../DEVELOPING.md` - Developer guide for Aide
 
 ---
 

@@ -6,7 +6,7 @@ This file is the entry point for GitHub Copilot when working in this repository.
 
 ## 📍 Where you are now
 
-You are in **aide**. This is an AI tooling workspace for AI-assisted development.
+You are in **Aide**. This is an AI tooling workspace for AI-assisted development.
 
 ---
 

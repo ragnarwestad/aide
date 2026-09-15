@@ -1,9 +1,9 @@
 # AI Dev Tools — News Log
 
-Living changelog for the three AI dev tools aide supports:
+Living changelog for the three AI dev tools Aide supports:
 Claude Code, GitHub Copilot CLI and OpenAI Codex CLI.
 
-The log is the research feed that drives continuous improvement of aide.
+The log is the research feed that drives continuous improvement of Aide.
 It is further distilled into two documents:
 
 - [AI_SUPPORT_MATRIX.md](./AI_SUPPORT_MATRIX.md) — distilled current state (versions, mechanisms, follow-up items)
@@ -32,13 +32,13 @@ It is further distilled into two documents:
 ## Maintenance
 
 Run the `/check-news` skill to update the log. It fetches changelogs from
-the sources below, assesses relevance for aide, adds a new dated
+the sources below, assesses relevance for Aide, adds a new dated
 section at the top of the [News log](#news-log), and **flags proposed** changes
 to `AI_SUPPORT_MATRIX.md` and `ai-tools-reference.md` that you approve before they
 are written.
 
 The skill lives in `.claude/skills/check-news/SKILL.md` — it is repo-local and runs
-only when you are working in aide.
+only when you are working in Aide.
 
 ### Sources
 
@@ -58,7 +58,7 @@ Relevance markers in each review's `Relevance for aide` section:
 
 | Symbol | Meaning                                            |
 |--------|----------------------------------------------------|
-| ⭐     | Direct impact on aide (requires action)            |
+| ⭐     | Direct impact on Aide (requires action)            |
 | ✅     | Useful, but no immediate action                    |
 | ℹ️      | Informative, low relevance                         |
 | ⚠️     | Breaking change or something that must be verified |
@@ -69,7 +69,7 @@ Relevance markers in each review's `Relevance for aide` section:
 
 ### 2026-09-14
 
-Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). Three Anthropic model launches, each becoming a Claude Code default: **Sonnet 5** (Jun 30), **Opus 5** (Jul 24), **Fable 5.1** (Sep 1). OpenAI shipped **GPT-6 Astra** as Codex's bundled default. For aide the two findings that matter: **`codex exec resume <thread-id> [prompt] --json` exists** (since v0.132, verified on the installed 0.154.0), and Claude Code's **`--permission-prompts none`** for unattended `-p` hosts.
+Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). Three Anthropic model launches, each becoming a Claude Code default: **Sonnet 5** (Jun 30), **Opus 5** (Jul 24), **Fable 5.1** (Sep 1). OpenAI shipped **GPT-6 Astra** as Codex's bundled default. For Aide the two findings that matter: **`codex exec resume <thread-id> [prompt] --json` exists** (since v0.132, verified on the installed 0.154.0), and Claude Code's **`--permission-prompts none`** for unattended `-p` hosts.
 
 **Claude Code (May 23 – Sep 12, v2.1.150 → v2.1.270):**
 
@@ -141,19 +141,19 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 | Sep 1  | **Claude Fable 5.1**  | Claude Code default Fable (v2.1.257), $10/$50 per Mtok, $0.25/Mtok cache reads        | [Anthropic](https://www.anthropic.com/news)                               |
 | Sep 4  | **GPT-6 Astra**       | Codex bundled default (v0.153.4); Copilot CLI v1.0.84-1                              | [GitHub](https://github.com/openai/codex/releases)                        |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **`codex exec resume <thread-id> [prompt] --json` (Codex, since v0.132; verified on 0.154.0)** — the runner's red-test loop (`run-spec-step-tests.sh`) ends a Codex step at once on the claim that Codex has no resume. It has one, and the runner already keeps the thread id. Action: resume Codex the same way claude is resumed; fix the sentence in `run-spec-invocation.sh`, `dashboard/docs/spec-lifecycle.md` and `dashboard/CLAUDE.md`.
 - ⭐ **`--permission-prompts none` (Claude Code v2.1.259)** — `aide-run-spec` runs `claude -p --permission-mode <mode>`; a prompt that can never be answered on a headless host now has an explicit off switch. Verified 2026-09-14 on 2.1.270: identical to `-p`'s default, which already denies such a prompt — left out of the argv on purpose.
-- ⚠️ **Hook matchers exact-match (Claude Code v2.1.195)** — verified 2026-09-14: aide's matchers (`Edit|Write`, `Bash`, `""`) name whole tools; nothing relied on substring matching.
-- ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — verified 2026-09-14: aide installs `defaultMode: "default"` at user scope only; nothing sets it at project scope.
-- ⚠️ **Untrusted projects get no project `AGENTS.md` (Codex v0.150)** — verified 2026-09-14: aide's instructions are the global `~/.codex/AGENTS.md`, which trust does not gate, and aide ships no project `AGENTS.md`. The serving host's `~/.codex/config.toml` still trusts the old checkout paths (`~/aide-dashboard-checkouts/…`), not `~/.aide/dashboard/checkouts/…` — only matters for a project with its own `AGENTS.md`.
+- ⚠️ **Hook matchers exact-match (Claude Code v2.1.195)** — verified 2026-09-14: Aide's matchers (`Edit|Write`, `Bash`, `""`) name whole tools; nothing relied on substring matching.
+- ⚠️ **`defaultMode: "bypassPermissions"` in a project's `.claude/settings.json` is ignored (v2.1.257)** — verified 2026-09-14: Aide installs `defaultMode: "default"` at user scope only; nothing sets it at project scope.
+- ⚠️ **Untrusted projects get no project `AGENTS.md` (Codex v0.150)** — verified 2026-09-14: Aide's instructions are the global `~/.codex/AGENTS.md`, which trust does not gate, and Aide ships no project `AGENTS.md`. The serving host's `~/.codex/config.toml` still trusts the old checkout paths (`~/aide-dashboard-checkouts/…`), not `~/.aide/dashboard/checkouts/…` — only matters for a project with its own `AGENTS.md`.
 - ⭐ **Three new default models** — `modelChoices` in the queue config, the README's model table and `docs/AI_SUPPORT_MATRIX.md` should name Sonnet 5, Opus 5, Fable 5.1 and GPT-6 Astra where they still name the 4.x/5.0 generation.
-- ✅ **`/skill-doctor` (v2.1.261) and `claude plugin eval` (v2.1.269)** — a way to measure what aide's skills cost in context and whether they are used; worth one run.
+- ✅ **`/skill-doctor` (v2.1.261) and `claude plugin eval` (v2.1.269)** — a way to measure what Aide's skills cost in context and whether they are used; worth one run.
 - ✅ **Codex hooks run async and call MCP tools (v0.148), `Interrupt` hooks (v0.150), hook trust persists through `codex exec` resume (v0.141)** — the Codex hook implementation can grow; the trust flag matters for the resume above.
-- ✅ **Codex `/import` migrates Claude Code settings, skills and memories (v0.145, v0.147)** — an alternative to aide's own Codex installer for the parts that overlap; not adopted, noted.
+- ✅ **Codex `/import` migrates Claude Code settings, skills and memories (v0.145, v0.147)** — an alternative to Aide's own Codex installer for the parts that overlap; not adopted, noted.
 - ✅ **Copilot `copilot skill` subcommand, plugins dashboard, Open Plugin Spec v1, `preToolUse` exit 2 denies** — Copilot is parked (no subscription); logged for when it returns.
-- ℹ️ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no aide action.
+- ℹ️ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no Aide action.
 
 ---
 
@@ -214,16 +214,16 @@ Platform: **Codex app 26.519** (May 21) — Appshots (send the frontmost app win
 | May 19 | **Gemini 3.5 Flash**     | GA for GitHub Copilot                                       | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
 | May 14 | **Opus 4.7 (Fast mode)** | Fast mode in Claude Code now defaults to Opus 4.7 (was 4.6) | [Changelog](https://code.claude.com/docs/en/changelog)      |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⚠️ **`/simplify` renamed to `/code-review` (Claude Code v2.1.147)** — `core/rules/llm-discipline.md:57` (and the generated `implementations/copilot/AGENTS.md:537`) refer to "the `/simplify` skill" for "Simplicity first". The reference to the built-in skill is now outdated. Should be verified against the local Claude Code version and updated
-- ⭐ **Plugins with a root `SKILL.md` shown as skills (Claude Code v2.1.142) + unified `@`-mentions for skills (Codex v0.131)** — several tools are making skill distribution easier; relevant to how aide is packaged and distributed
+- ⭐ **Plugins with a root `SKILL.md` shown as skills (Claude Code v2.1.142) + unified `@`-mentions for skills (Codex v0.131)** — several tools are making skill distribution easier; relevant to how Aide is packaged and distributed
 - ⭐ **`/security-review` (Copilot v1.0.51) + `/code-review` (Claude Code)** — both tools now have a built-in review command; complements `/ultrareview` from the previous period. Can be used on the projects
 - ✅ **`/memory` in the Copilot CLI + Copilot Memory for Pro/Pro+** — the memory convergence continues; all tools are maturing persistent memory
 - ✅ **Goals default in Codex (v0.133) + `/goal` in Claude Code** — the `/goal` primitive is maturing in both tools
-- ✅ **`claude agents --json` (v2.1.145)** — scripting-friendly agent execution, relevant if aide automates agent workflows
-- ✅ **Fast mode → Opus 4.7 (Claude Code v2.1.142)** — Fast usage in aide now hits Opus 4.7
-- ℹ️ **Codex Appshots/computer use, Copilot for Eclipse, Gemini surgical edits** — product/UX expansions, low priority for aide
+- ✅ **`claude agents --json` (v2.1.145)** — scripting-friendly agent execution, relevant if Aide automates agent workflows
+- ✅ **Fast mode → Opus 4.7 (Claude Code v2.1.142)** — Fast usage in Aide now hits Opus 4.7
+- ℹ️ **Codex Appshots/computer use, Copilot for Eclipse, Gemini surgical edits** — product/UX expansions, low priority for Aide
 
 ---
 
@@ -296,23 +296,23 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Apr 23  | **GPT-5.5**               | OpenAI's new frontier model — launched in the API, ChatGPT and Codex the same day. GPT-5.5 Pro too. Recommended default in Codex                                                                                                                                                                     | [OpenAI](https://openai.com/index/introducing-gpt-5-5/)                                                                     |
 | May 7   | **Gemini 3.1 Flash-Lite** | GA — fastest and most cost-effective Gemini 3 model                                                                                                                                                                                                                                                  | [Google Cloud](https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-1-flash-lite-is-now-generally-available) |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⚠️ **Opus 4.7 breaking changes** — sampling parameters (`temperature` etc.) now return 400 errors, extended thinking budgets removed. Check whether `aide-*` scripts or SDK calls set these. The new tokenizer means ~1–1.35x token usage
 - ⭐ **Opus 4.7 + `xhigh` effort** — new default model on Max. The `effort` frontmatter (from March) can now be set to `xhigh` for heavy analysis skills
 - ⭐ **`/ultrareview` (Claude Code) + Codex automatic reviews + Copilot Critic agent** — all three tools now have cloud-based/automatic code review. Can be used on the projects
-- ⭐ **`/goal` command in both Claude Code and Codex** — new workflow primitive with completion conditions. Consider it for long-running aide tasks (migrations, todo plans)
-- ⭐ **`gh skill` command** — portable skills across Copilot/Claude Code/Cursor with version pinning and supply chain security. Directly relevant to how aide distributes skills
-- ⭐ **Enterprise-managed plugins (Copilot)** — admins can distribute plugins (agents, skills, hooks, MCP) to the whole org via a `.github-private` repo. A possible distribution model for aide in larger organizations
-- ⭐ **Plugins from `.zip`/URL (Claude Code v2.1.128+)** — easier distribution of aide as a plugin without a marketplace
+- ⭐ **`/goal` command in both Claude Code and Codex** — new workflow primitive with completion conditions. Consider it for long-running Aide tasks (migrations, todo plans)
+- ⭐ **`gh skill` command** — portable skills across Copilot/Claude Code/Cursor with version pinning and supply chain security. Directly relevant to how Aide distributes skills
+- ⭐ **Enterprise-managed plugins (Copilot)** — admins can distribute plugins (agents, skills, hooks, MCP) to the whole org via a `.github-private` repo. A possible distribution model for Aide in larger organizations
+- ⭐ **Plugins from `.zip`/URL (Claude Code v2.1.128+)** — easier distribution of Aide as a plugin without a marketplace
 - ⭐ **Subagents in the Gemini CLI** — now all four tools have subagents with isolated context windows
-- ✅ **HTTP hooks + `defer`/conditional hooks + `type: "mcp_tool"` (Claude Code)** — more powerful hook configuration for the aide install.sh/settings.json
+- ✅ **HTTP hooks + `defer`/conditional hooks + `type: "mcp_tool"` (Claude Code)** — more powerful hook configuration for the Aide install.sh/settings.json
 - ✅ **Codex hooks now stable** — all four tools now have stable hooks
 - ✅ **Windows PowerShell without Git Bash (Claude Code) + PowerShell 7+ fallback (Copilot)** — better Windows support
 - ✅ **BYOK + local models + `COPILOT_OFFLINE` (Copilot CLI)** — air-gapped use, potentially relevant under strict security requirements
 - ✅ **Native binary architecture (Claude Code v2.1.113)** — faster startup, lower memory usage
 - ✅ **Memory convergence** — Claude Code recap, Codex memory reset, Gemini Auto Memory Inbox — all tools are maturing persistent memory
-- ℹ️ **Claude Design, Codex for Chrome, Gemini voice mode** — product expansions, low priority for aide
+- ℹ️ **Claude Design, Codex for Chrome, Gemini voice mode** — product expansions, low priority for Aide
 
 ---
 
@@ -363,9 +363,9 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Mar 24 | v0.35.0 | **Customizable keyboard shortcuts** with the Kitty protocol. Vim mode expanded (X, ~, r, f/F/t/T, yank/paste). **Tool sandbox** with `SandboxManager` and Linux bubblewrap. JIT context discovery for filesystem tools. `--admin-policy` flag | [GitHub](https://github.com/google-gemini/gemini-cli/releases) |
 | Mar 17 | v0.34.0 | **Plan Mode default**. Native gVisor (runsc) and experimental LXC container sandboxing                                                                                                                                                        | [Gemini CLI](https://geminicli.com/docs/changelogs/)           |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
-- ⭐ **Claude Code conditional hooks (`if` field)** — Can be used to create more precise hooks in aide, e.g. only activating for specific file types or branches. Consider for install.sh/settings.json
+- ⭐ **Claude Code conditional hooks (`if` field)** — Can be used to create more precise hooks in Aide, e.g. only activating for specific file types or branches. Consider for install.sh/settings.json
 - ⭐ **Claude Code `effort` frontmatter for skills** — Can set reasoning effort per skill. Useful for heavy analysis skills vs fast workflow skills
 - ⭐ **Claude Code `paths:` frontmatter as a YAML list** — Easier path-specific rules. Update ai-tools-reference.md
 - ⭐ **Copilot monorepo support (v1.0.11)** — Skills/instructions are discovered at each directory level up to the git root. Important for monorepo-like projects
@@ -405,12 +405,12 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Mar    | -       | **Generalist agent enabled** — Improved task delegation and routing, model steering directly in the workspace                                                                                        | [Gemini CLI](https://geminicli.com/docs/changelogs/) |
 | Mar    | -       | **UX improvements** — Windows: paste images with `Alt+V`, automatic theme optimization based on terminal color, `/logout` for instant credential clearing, `npx gemini-wrapped` for usage statistics | [Gemini CLI](https://geminicli.com/docs/changelogs/) |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
-- ⭐ **Copilot reads `~/.claude/commands/` as skills** — `~/.claude/commands/` is in practice a shared distribution source for Claude and Copilot. No changes needed in aide — existing commands work in both tools
-- ⭐ **Skills/commands unified in Claude Code** — The distinction between skills and slash commands is gradually disappearing. A simpler mental model for the aide design
+- ⭐ **Copilot reads `~/.claude/commands/` as skills** — `~/.claude/commands/` is in practice a shared distribution source for Claude and Copilot. No changes needed in Aide — existing commands work in both tools
+- ⭐ **Skills/commands unified in Claude Code** — The distinction between skills and slash commands is gradually disappearing. A simpler mental model for the Aide design
 - ✅ **Claude Code Security** — New tool for security review of codebases — potentially useful for the projects
-- ✅ **`/loop` and Cron** — Can be used for periodic reviews or repetitive tasks in aide workflows
+- ✅ **`/loop` and Cron** — Can be used for periodic reviews or repetitive tasks in Aide workflows
 - ✅ **Gemini Plan Mode v0.33.1** — All four CLI tools now have a mature plan/analysis mode
 
 ---
@@ -463,7 +463,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Feb 27    | v0.31.0   | **Security** — Unicode stripping, deceptive URL detection, DDoS mitigation for web fetch                     | [Gemini CLI](https://geminicli.com/docs/changelogs/latest/) |
 | Feb 20-27 | v0.29.1-6 | **Patch releases** — Stability improvements and bug fixes                                                    | [Gemini CLI](https://geminicli.com/docs/changelogs/)        |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **Copilot CLI is GA!** — From preview to production-ready. All Copilot subscribers now have access, including the Business tier
 - ⭐ **Claude + Codex in Copilot Business** — Organizations can now use Claude/Codex as agents in Copilot without a Pro+ requirement
@@ -523,10 +523,10 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Feb 19 | v0.30.0-preview.3 | **SDK package** — Support for custom skills and dynamic system instructions                       | [Gemini CLI](https://geminicli.com/docs/changelogs/preview/)                                                                                 |
 | Feb 19 | -                 | **Gemini 3.1 Pro** announced (preview) — Available in the API, AI Studio, Gemini CLI, Vertex AI   | [Google Cloud Blog](https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-1-pro-on-gemini-cli-gemini-enterprise-and-vertex-ai) |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **Agentic Workflows (GitHub)** — Potential game-changer: AI agents (Copilot/Claude/Codex) run directly in GitHub Actions with Markdown-based workflows
-- ⭐ **Worktree mode (Claude Code)** — Native `--worktree` support, we already use worktrees in aide
+- ⭐ **Worktree mode (Claude Code)** — Native `--worktree` support, we already use worktrees in Aide
 - ⭐ **Sonnet 4.6 in Claude Code + Copilot** — New model available in both tools we use
 - ⭐ **Gemini Plan Mode + Ask User** — Gemini is converging on Claude Code's plan mode concept
 - ✅ **Background agents improved** — `background: true` and `Ctrl+F` give better control over background agents
@@ -575,7 +575,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Feb    | -               | **Gemini Code Assist: Agent Mode GA** — Available to everyone in VS Code and IntelliJ, inline diff, repo upload (up to 1000 files/100MB) | [Google Devs](https://developers.google.com/gemini-code-assist/resources/release-notes) |
 | Feb    | -               | ⚠️ **Gemini 2.0 Flash retired March 31, 2026** — Developers must migrate to newer models                                                 | [Google AI](https://ai.google.dev/gemini-api/docs/changelog)                            |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **Copilot: Plugins → Skills** — Copilot now uses the same "skills" terminology as Claude and Codex, the convergence continues
 - ⭐ **GPT-5.3-Codex-Spark** — 1000+ tokens/sec opens up real-time coding, may change expectations for response time
@@ -644,14 +644,14 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Jan 14 | v0.24.0 | **Remote agents** — Support for remote agents, visual hook feedback, security improvements   | [Gemini CLI](https://geminicli.com/docs/changelogs/)                               |
 | Jan 7  | v0.23.0 | **Agent Skills in preview** — Windows clipboard, `/logout` command                           | [Gemini CLI](https://geminicli.com/docs/changelogs/)                               |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **Opus 4.6 + Agent Teams** — Could revolutionize multi-step workflows (analysis → coding → testing in parallel)
 - ⭐ **ACP (Agent Client Protocol)** — New industry standard from GitHub for agent communication, potentially more important than MCP for agent-to-agent
 - ⭐ **Skills are now stable in ALL four tools** — Gemini the last to promote to stable (v0.27)
 - ⭐ **Mid-turn steering in Codex** — New interaction model where you steer the agent along the way
 - ✅ **Claude Code 2.1** — Slash commands and skills merged = simpler mental model
-- ✅ **Copilot has Opus 4.6** — Our aide workflows can run with Opus 4.6 in Copilot
+- ✅ **Copilot has Opus 4.6** — Our Aide workflows can run with Opus 4.6 in Copilot
 - ✅ **Auto-memories in Claude Code** — Less need for manual MEMORY.md maintenance
 - ✅ **--from-pr in Claude Code** — Can resume work directly from a PR
 - ⚠️ **GPT-5.3-Codex "high" cybersecurity risk** — The industry is taking security risk more seriously
@@ -697,7 +697,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Dec 5  | **IntelliJ 1.40.0** - Outline (auto-docs) + Finish Changes | [Google Devs](https://developers.google.com/gemini-code-assist/resources/release-notes)              |
 | Dec 17 | **Gemini 3 Flash** in the CLI - 78% on SWE-bench           | [Google Blog](https://developers.googleblog.com/gemini-3-flash-is-now-available-in-gemini-cli/)      |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⭐ **Skills are now the standard** - Claude, Copilot and Codex all use the skills concept
 - ⭐ **MCP is the standard** - All four CLI tools support MCP
@@ -740,7 +740,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 | Nov 10     | Persistent Memory for Gemini Code Assist            | [developers.google.com](https://developers.google.com/gemini-code-assist/resources/release-notes) |
 | **Oct 14** | **Tools deprecated → Agent mode + MCP**             | [developers.google.com](https://developers.google.com/gemini-code-assist/resources/release-notes) |
 
-**Relevance for aide:**
+**Relevance for Aide:**
 
 - ⚠️ Model IDs updated in TODO-23 (Opus 4.5, Sonnet 4.5, Haiku 4.5)
 - ✅ Cross-compatibility confirmed: Copilot supports Claude directly

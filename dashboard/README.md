@@ -1,4 +1,4 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-board-wordmark-dark.svg"><img src="docs/assets/aide-board-wordmark-light.svg" alt="aide -board" height="40"></picture>
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-board-wordmark-dark.svg"><img src="docs/assets/aide-board-wordmark-light.svg" alt="Aide -board" height="40"></picture>
 
 ## Table of contents
 
@@ -12,9 +12,9 @@
 
 ## What it is
 
-A dashboard that automates spec-driven development with **aide**. Create a spec, queue it through
+A dashboard that automates spec-driven development with **Aide**. Create a spec, queue it through
 `create` → `analyze` → `implement` → `archive`, and watch each step run — across every project
-**aide** knows about, from one page.
+**Aide** knows about, from one page.
 
 Under the hood: it scans a root for `.aide/project.yaml` manifests, resolves each project's specs
 root, parses spec progress/phase from `4-status.md` files, and renders a small static site — an
@@ -26,7 +26,7 @@ server can run on the same machine or on two — no host is named anywhere in th
 
 ## How it's used
 
-Open the front page: it lists every spec across every project **aide** knows about, grouped by
+Open the front page: it lists every spec across every project **Aide** knows about, grouped by
 phase. New makes a spec; queuing it runs it through `create` → `analyze` → `implement` →
 `archive`, and a queued job shows its live progress on the spec's row — cancel it, or add another
 step to it, from there. Click into a spec for the full picture: its description, analysis, plan,

@@ -24,8 +24,8 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 
 ---
 
-The spec list runs aide workflow steps headless on this machine: one job at a time, each step a
-`claude -p "/aide-<step> <spec>"` process started by aide's `aide-run-spec`. A job is an ordered list of steps; a step
+The spec list runs Aide workflow steps headless on this machine: one job at a time, each step a
+`claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a step
 that ends either advances the job or ends it.
 
 ## Making a spec from the page
@@ -325,7 +325,7 @@ since a scheduled job is a single `schedule` step and has no phases to tell apar
 forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
 config does not grant is refused at the form rather than at 03:00. An entry that names no model is enqueued without one
 and the queue config's own `schedule` default decides. "Run now"
-reads the same field, so pressing it tests what the schedule actually does. The step sends the named file's contents to the model verbatim, with no aide skill or spec folder
+reads the same field, so pressing it tests what the schedule actually does. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder
 involved at all; write it the way you would write a prompt by hand.
 
 **Due is computed from the most recent fire time alone — there is no backfill.** If the dashboard is down across a whole
@@ -437,7 +437,7 @@ checkout meanwhile. Two consequences worth knowing before changing anything here
 and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
 deliberately.
 
-**`aide-run-spec` runs from a private copy of itself, and that is load-bearing:** an `implement` step reinstalls aide,
+**`aide-run-spec` runs from a private copy of itself, and that is load-bearing:** an `implement` step reinstalls Aide,
 which copies the script over itself while bash is still reading it by byte offset. The copy's marker holds its own
 path and is unset before `claude` starts — a bare exported flag would be inherited by `claude`, and the next nested
 invocation would delete the installed script.
@@ -473,9 +473,9 @@ exited silently and the row sat at `phase: null`.
 
 **A Claude Code `UserPromptSubmit` hook is the other producer, and it is a person's own, opt-in setting** — for
 reporting an `/aide-*` command run BY HAND, in an interactive terminal, outside the queue entirely. `aide-emit-run`
-(installed by aide to `~/.local/bin`) POSTs one small event per slash-launched command — host, session id, command,
+(installed by Aide to `~/.local/bin`) POSTs one small event per slash-launched command — host, session id, command,
 spec, project; never the prompt text. It is inert until `AIDE_RUN_URL` is set; an `AIDE_RUN_URL` already in the
-server's own environment (the case above) is left alone, so pointing reporting at another sink still works. aide's
+server's own environment (the case above) is left alone, so pointing reporting at another sink still works. Aide's
 `install.sh` prints the ready-to-paste block; it lives in `~/.claude/settings.json` as:
 
 ```json

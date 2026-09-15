@@ -2,16 +2,16 @@
 name: aide-repo-maintenance
 description: >-
   How to add a new skill, update a shared rule, or change the 4-file spec
-  structure in the aide repo itself, and how install.sh/uninstall.sh must
+  structure in the Aide repo itself, and how install.sh/uninstall.sh must
   stay mirrored. Use when: adding or editing a skill or rule under core/,
   changing spec-structure.md, or touching install.sh/uninstall.sh.
   Do NOT use for: ordinary spec work (create/analyze/implement/archive) in
-  any project aide is installed into — this is about maintaining aide's
+  any project Aide is installed into — this is about maintaining Aide's
   own source.
 disable-model-invocation: true
 ---
 
-# Adding new functionality to aide
+# Adding new functionality to Aide
 
 Moved out of `.claude/rules/development.md` (2026-08-31, /doctor check 4):
 this only matters when actually adding a skill, changing a rule, or
