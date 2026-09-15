@@ -63,16 +63,15 @@ implementations/codex/
 ## Prerequisites
 
 ### 1. OpenAI subscription
-- ChatGPT Plus, Pro, Business, or Enterprise
-- API access (for the CLI)
+- ChatGPT Plus, Pro, Business, or Enterprise — the CLI signs in with it (`codex login`)
 
 ### 2. Codex CLI
 ```bash
 # Install the Codex CLI
-npm install -g @openai/codex-cli
+npm install -g @openai/codex
 
-# Or via Homebrew (macOS)
-brew install openai/tap/codex
+# Or through mise, which is what upgrade-ai-tools keeps current
+mise use -g npm:@openai/codex
 ```
 
 ---
@@ -83,10 +82,10 @@ brew install openai/tap/codex
 
 ```bash
 # Install the CLI
-npm install -g @openai/codex-cli
+npm install -g @openai/codex
 
-# Authenticate with your OpenAI API key
-codex auth
+# Sign in with your ChatGPT account
+codex login
 
 # Verify the installation
 codex --version
@@ -94,11 +93,15 @@ codex --version
 
 ### Step 2: Install the instruction file (AGENTS.md)
 
-The instructions live in `core/AGENTS.md` (generated from `core/rules/`). `install.sh` copies it to `~/.codex/AGENTS.md`:
+Run the installer:
 
 ```bash
-cp core/AGENTS.md ~/.codex/AGENTS.md
+aide/implementations/codex/install.sh
 ```
+
+It copies `core/AGENTS.md` (generated from `core/rules/`) to `~/.codex/AGENTS.md`, installs the hooks
+(`~/.codex/hooks.json` and `~/.codex/hooks/aide-*.sh`, which need `jq`), every skill in `core/skills/` to
+`~/.agents/skills/`, and the shared scripts to `~/.local/bin/`.
 
 Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `AGENTS.md` via directory walk).
 
@@ -123,14 +126,6 @@ linting, tools and scripts, and the 4-file spec structure — are skills in
 at most `project_doc_max_bytes` of AGENTS.md, 32768 by default, and drops
 the rest without saying so, so the file is kept well inside that budget
 (spec 147).
-
-### Environment variables
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export OPENAI_API_KEY="your-api-key-here"
-export CODEX_MODEL="<model>"  # optional: override the CLI's default model
-```
 
 ### MCP servers (Model Context Protocol)
 

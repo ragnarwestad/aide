@@ -28,8 +28,8 @@ This guide shows how to install the GitHub Copilot integration for the Aide work
 
 - GitHub Copilot subscription (Individual, Business, Pro or Enterprise)
 - Node.js 22+ (for Copilot CLI via npm) or Homebrew
-- Git clone of `aide` (and optionally `my-app`, `my-api`, etc.)
-- `AIDE_PROJECTS_PATH` environment variable set (see Quick Start)
+- Git clone of `aide`
+- `jq` (`brew install jq`), and [mise](https://mise.jdx.dev) with a node for the shared tools (optional)
 
 **Note:** Copilot CLI went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) and reads **CLAUDE.md** directly from the project root, which simplifies setup.
 
@@ -43,11 +43,7 @@ npm install -g @github/copilot
 # Or: brew install copilot-cli
 # Or: curl -fsSL https://gh.io/copilot-install | bash
 
-# 2. Set AIDE_PROJECTS_PATH (REQUIRED)
-export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
-echo 'export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"' >> ~/.zshrc
-
-# 3. Install the configuration (scripts, custom instructions, VS Code setup)
+# 2. Install the configuration (scripts, custom instructions, skills)
 cd aide/implementations/copilot
 ./install.sh
 ```
@@ -97,31 +93,34 @@ cd aide/implementations/copilot
 ```
 
 **What does install.sh do?**
-1. ✅ Installs shared scripts to `~/.local/bin/`:
-   - `aide-generate-pdf`, `aide-generate-html` - Document generation
-   - `upgrade-ai-tools` - Updates the AI CLIs
-2. ✅ Installs `AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
-3. ✅ Verifies PATH and the GitHub Copilot extension
+1. ✅ Installs every `core/scripts/aide-*` script and `upgrade-ai-tools` to `~/.local/bin/`, the shared tools through
+   mise, and puts `~/.local/bin` on PATH
+2. ✅ Installs `core/AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
+3. ✅ Installs every skill in `core/skills/` to `~/.agents/skills/`
+4. ✅ Verifies PATH and the GitHub Copilot extension
 
 **⚠️ NOTE:** `core/AGENTS.md` is already built (`core/scripts/build-agents-md.sh`) and committed. Regular users do not need to rebuild it.
 
-**Output:**
+**Output (abridged):**
 ```text
 🔧 GitHub Copilot Setup
 =======================
 
 1️⃣  Installing scripts to ~/.local/bin/...
-   ✅ Installed: ~/.local/bin/aide-generate-pdf
-   ✅ Installed: ~/.local/bin/aide-generate-html
-   ✅ Installed: ~/.local/bin/upgrade-ai-tools
+   ✅ Installed: ~/.local/bin/aide-run-spec
+   ✅ Installed: ~/.local/bin/aide-create-spec
+   … one line per script, then the shared tools through mise
 
 2️⃣  Installing global Copilot instructions...
    ✅ Installed: ~/.copilot/copilot-instructions.md
 
-3️⃣  Verifying PATH...
+3️⃣  Installing skills to ~/.agents/skills/...
+   ✅ Installed: ~/.agents/skills/ (all core/skills/)
+
+4️⃣  Verifying PATH...
    ✅ ~/.local/bin is in PATH
 
-4️⃣  Checking GitHub Copilot extension...
+5️⃣  Checking GitHub Copilot extension...
    ✅ GitHub Copilot extension is installed
 ```
 
@@ -139,23 +138,18 @@ No extra setup. Copilot CLI reads the same skills as Claude Code, so
 
 ### Test that everything works:
 
-**1. Open a project in VS Code:**
+**1. Check the instructions file:**
 ```bash
-cd $AIDE_PROJECTS_PATH/my-app
-code .
+head -3 ~/.copilot/copilot-instructions.md
 ```
 
-**2. Check custom instructions:**
-- Open Copilot Chat (`Cmd+Shift+I`)
-- Click "..." → "Settings"
-- Verify that `.github/copilot-instructions.md` is listed under "Instructions"
-
-**3. Test skills in Copilot CLI:**
+**2. Test skills in Copilot CLI:**
 
 ```bash
+cd ~/develop/my-app
 copilot
 /skills info aide-create
-# Should show: Location: /Users/<you>/.claude/commands/aide-create.md
+# Should show: Location: /Users/<you>/.agents/skills/aide-create/SKILL.md
 ```
 
 ---

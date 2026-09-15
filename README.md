@@ -8,9 +8,7 @@ implementation is kept but unverified since August 2026, for want of a subscript
 - [What it is](#what-it-is)
 - [The aide-* skills](#the-aide--skills)
 - [For end users](#for-end-users)
-- [Environment variables](#environment-variables)
-    - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
-    - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
+- [Per-project configuration](#per-project-configuration)
     - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [The Aide dashboard](#the-aide-dashboard)
@@ -86,25 +84,7 @@ documentation, installed globally so any project can use them.
 
 ---
 
-## Environment variables
-
-### AIDE_INSTALLATION_PATH (optional)
-
-Path to where Aide is checked out. Only a few scripts read it (`core/scripts/validate-env`, the uninstallers) — most of
-the install
-scripts find their own location instead.
-
-```bash
-export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
-```
-
-### AIDE_PROJECTS_PATH (optional)
-
-Solves permission issues when AI tools expand relative paths.
-
-```bash
-export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
-```
+## Per-project configuration
 
 ### AIDE_SPECS_PATH (optional, per project)
 
