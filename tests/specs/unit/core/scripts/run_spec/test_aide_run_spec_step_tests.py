@@ -5,7 +5,7 @@ word — the record on the branch is the runner's own.
 
 import json
 from ..conftest import READ_SPECS, git, run
-from .run_spec_results import RESULT_OK
+from .run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, RESULT_OK, emits
 from .run_spec_status_files import with_status
 
 BRANCH = "aide/81-queue-and-runner"
@@ -94,6 +94,39 @@ def test_a_red_suite_goes_back_to_the_session_and_a_fix_ends_the_step_completed(
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 2, calls
     assert "--resume" in calls[1] and "--session-id" not in calls[1], calls[1]
+    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
+    assert record["exitCode"] == 0, record
+
+
+def _fixing_codex(fake_codex):
+    """`_fixing_claude`'s twin for the second tool: the first turn leaves
+    the tests red, the resumed turn — the prompt names the red suite —
+    writes the fix. Emits Codex's own stream, thread id first."""
+    return fake_codex(
+        "prompt=\"$(cat)\"\n"
+        "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "fi\n"
+        + emits(CODEX_STREAM_OK).replace("cat > /dev/null; ", "")
+    )
+
+
+def test_a_red_suite_goes_back_to_a_codex_thread_too(runner, workspace, fake_codex):
+    """Codex gets the same follow-up turn as claude: `codex exec resume`
+    on the thread its first turn named, the prompt on stdin, without the
+    `--sandbox` and `--add-dir` pairs `resume` does not take."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=_fixing_codex(fake_codex), command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    calls = fake_codex.calls.read_text().splitlines()
+    assert len(calls) == 2, calls
+    assert calls[1].startswith("exec resume ") and calls[1].endswith(f" {CODEX_THREAD_ID} -"), calls[1]
+    assert "--json" in calls[1], calls[1]
+    assert "--sandbox" not in calls[1] and "--add-dir" not in calls[1], calls[1]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 

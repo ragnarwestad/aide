@@ -55,7 +55,7 @@ evidence that the phase happened:
   (`run-spec-step-tests.sh`): the same `aide-resolve-test-cmd` and `aide-record-test-run` the landing's gate calls run
   on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
   session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
-  budget and time limit (`AIDE_TEST_FIX_ROUNDS`; claude only, Codex has no resume the runner drives). Still red after
+  budget and time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
   that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
   A change no test command covers has nothing to run and passes as before. A record the session wrote through
   `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
