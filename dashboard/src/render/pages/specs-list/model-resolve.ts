@@ -36,9 +36,16 @@ export function resolveChosenModel(
   configured: string | undefined,
   used: string | undefined,
   pending?: string,
+  recorded?: string,
 ): string {
   const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
-  return has(used) ? used! : has(pending) ? pending! : has(configured) ? configured! : models[0]!.name;
+  // A phase that has run shows what it ran on, whatever the choices are
+  // called today: the job's own choice name first, the model the file
+  // recorded when that name has been renamed away, and the bare name
+  // when neither is offered any more — never the default in its place.
+  if (has(used)) return used!;
+  if (used !== undefined) return has(recorded) ? recorded! : used;
+  return has(pending) ? pending! : has(configured) ? configured! : models[0]!.name;
 }
 
 /** What an archived phase's own record wins with (spec 265). A locked
@@ -138,6 +145,6 @@ export function phaseAiModel(
   const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
   const model = archived
     ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending);
+    : resolveChosenModel(models, configured, used, pending, recordedModel);
   return { model, tool: models.find((m) => m.name === model)?.tool ?? "claude" };
 }

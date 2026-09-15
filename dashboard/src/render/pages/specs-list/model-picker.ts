@@ -79,7 +79,7 @@ export function modelPicker(
   const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
   const chosen = archived
     ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending);
+    : resolveChosenModel(models, configured, used, pending, recordedModel);
   return (
     `<select name="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Where a live pick goes: the running job's own route, the same
@@ -339,7 +339,7 @@ export function aiPicker(
   // so the two controls cannot disagree about it.
   const on = archived
     ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending);
+    : resolveChosenModel(models, configured, used, pending, recordedModel);
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
