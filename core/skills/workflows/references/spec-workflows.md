@@ -7,8 +7,7 @@
   - [Phase 1: Create document structure](#phase-1-create-document-structure)
   - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
   - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
-  - [Phase 4: Verify](#phase-4-verify)
-  - [Phase 5: Archive](#phase-5-archive)
+  - [Phase 4: Archive](#phase-4-archive)
 
 ---
 
@@ -16,7 +15,7 @@
 
 ### Overall flow
 ```text
-(Explore) - Create - Analyze - Solve - Verify - Archive
+(Explore) - Create - Analyze - Implement - Archive
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
@@ -34,7 +33,7 @@ the idea or scope is not ready for `/aide-create` yet.
 
 **Output:**
 ```text
-specs/05-PROJ-7894-class-to-functional/
+specs/05-class-to-functional/
 ├── 0-README.md            (reading order)
 ├── 1-description.md       (done)
 ├── 2-analysis.md           (⏳ empty)
@@ -68,21 +67,18 @@ specs/05-PROJ-7894-class-to-functional/
    - **RED**: Writes tests that prove the problem (should fail)
    - **GREEN**: Implements the solution (the tests should pass)
    - **REFACTOR**: Runs regression tests (verifies nothing broke)
-3. Runs all three phases through, reporting each phase's result —
-   stops only when genuinely blocked
+3. Runs all three through, reporting each one's result — stops only
+   when genuinely blocked
 4. Updates `4-status.md` along the way
 
-### Phase 4: Verify
+**The phase ends on a green test run** of the project's own suite, with
+the lint and build commands green and the work committed — run headless,
+the runner runs the suite itself and hands red tests back to the same
+session before it gives up. Test by hand in the browser where the change
+needs it, and run `/ultrareview` for a cloud-based code review of the
+branch when the change warrants one (user-triggered, requires a git repo).
 
-**Manual step:**
-1. Run all tests with the project's test command (e.g. `pnpm test -- --run`)
-2. Run the project's lint command (e.g. `pnpm run lint`)
-3. Build with the project's build command (e.g. `pnpm run build`)
-4. Test manually in the browser
-5. Run `/ultrareview` for a cloud-based code review of the branch (user-triggered, requires a git repo)
-6. Commit changes
-
-### Phase 5: Archive
+### Phase 4: Archive
 
 When the work is done, run `/aide-archive <ID>`:
 
@@ -91,5 +87,7 @@ When the work is done, run `/aide-archive <ID>`:
    project's living documentation
 3. Stamps the archive date in `4-status.md` and moves the folder to
    `<specs-root>/archive/` — the number is never reused
+4. Lands the spec's branches on the default branch — the code and the
+   specs repo alike
 
 ---

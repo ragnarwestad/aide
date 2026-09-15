@@ -127,21 +127,23 @@ and belongs in git.
 All AI tools follow the same basic workflow:
 
 ```text
+   (EXPLORE — optional: think the idea through first, no files yet)
+
 1. CREATE the spec
    ↓
    A title and a description → 4 files (description/analysis/solution/status)
 
-2. ANALYZE codebase
+2. ANALYZE the codebase
    ↓
-   Searches the codebase → Identifies affected files → Updates documentation
+   Reads the code → Identifies affected files → Writes the plan, and reviews it
 
-3. SOLVE the problem
+3. IMPLEMENT the solution
    ↓
-   RED: Write tests → GREEN: Implement → REFACTOR: Verify
+   RED: Write tests → GREEN: Implement → REFACTOR — the phase ends on a green test run
 
-4. VERIFY
+4. ARCHIVE
    ↓
-   Run tests → Linting → Build → Commit
+   Lands the code on the default branch → Feeds what was learned back into the docs
 ```
 
 **Example (Claude Code):**
