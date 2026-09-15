@@ -248,20 +248,23 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // running the whole analysis again.
 function acceptanceField(formId: string): string {
   return (
+    `<span class="field wide"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
-      label: "acceptance ticking required",
+      label: "Acceptance ticking required",
       name: "acceptanceRequired",
       form: formId,
       checked: true,
       plain: true,
     }) +
+    `<span class="fieldend">` +
     helpPopover(
       "what this does",
       "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
         "Cleared, the requirements stay written down and nothing is left to tick.",
-    )
+    ) +
+    `</span></span></span>`
   );
 }
 
@@ -272,21 +275,25 @@ function acceptanceField(formId: string): string {
 // path left to an AI session anywhere inside create.
 function aiFormulateAcceptanceField(formId: string): string {
   return (
+    `<span class="field wide"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-ai-formulate",
       value: "1",
-      label: "let AI formulate acceptance criteria",
+      label: "Let AI formulate acceptance criteria",
       name: "aiFormulateAcceptance",
       form: formId,
       checked: true,
       plain: true,
     }) +
+    `<span class="fieldend">` +
     helpPopover(
       "what this does",
       "Ticked, create runs a short AI session that drafts the acceptance criteria from this " +
-        "description. Cleared, create writes the spec directly from what is typed here — no AI " +
-        "session, done in seconds.",
-    )
+        "description; cleared, create writes the spec directly from what is typed here — no AI " +
+        "session, done in seconds. A \"## Acceptance criteria\" section you write in the " +
+        "description yourself is left as it stands either way.",
+    ) +
+    `</span></span></span>`
   );
 }
 
@@ -338,10 +345,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     field(
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
-        `placeholder="the problem, and what you want instead"></textarea>` +
-        `<small class="muted small">Ticked above, acceptance criteria will be drafted from ` +
-        `this text; cleared, the description is used exactly as written — a ` +
-        `"## Acceptance criteria" section you write here is left as it stands either way.</small>`,
+        `placeholder="the problem, and what you want instead"></textarea>`,
       { wide: true },
     ) +
     `<span class="factions">` +

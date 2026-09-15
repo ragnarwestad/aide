@@ -106,13 +106,13 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       html.indexOf('<span>Depends on</span>'),
     );
     // Nothing but those three wrappers stands between them: the
-    // acceptance switch's own `.frow`, then Depends on's. The label's
-    // own line carries a "(?)" (spec 454: a `helpPopover()` after the
-    // chip, not a `title` on it), and the head wrapper the field draws
-    // for that is markup, not order — the rule here is that no OTHER
-    // field or control sits in the gap.
+    // acceptance switch's own `.frow`, then Depends on's. Spec 472: each
+    // switch's own line now carries the same `field wide`/`fieldhead`/
+    // `fieldend` shell "Depends on" already uses, so its "(?)" stays on
+    // screen — the rule here is still that no OTHER field or control
+    // sits in the gap.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label>(<details class="intro">[\s\S]*?<\/details>)?<\/span><span class="frow"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label>(<details class="intro">[\s\S]*?<\/details>)?<\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
+      /^<\/table><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide">(<span class="fieldhead">)?$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -260,22 +260,19 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain("No project on this machine");
   });
 
-  // Spec 309: nothing on this page said acceptance criteria would be
-  // drafted from the text, or that an Acceptance criteria section written
-  // here is left alone — the only hint lived in a job log a headless run
-  // never shows.
-  test("the Description field carries a hint naming both paths (spec 433)", () => {
+  // Spec 472, AC-4: the muted sentence under Description duplicated, in
+  // different words, what the AI-formulate switch's own "(?)" already
+  // said, and sat off the visible page — its one piece of information
+  // not said elsewhere (a hand-written "## Acceptance criteria" section
+  // is left alone either way) moved into that "(?)" instead.
+  test("the Description field carries no hint of its own; the AI-formulate popover says it all (spec 472)", () => {
     const html = newPage();
-    expect(html).toContain(
-      '<small class="muted small">Ticked above, acceptance criteria will be drafted from ' +
-        'this text; cleared, the description is used exactly as written — a ' +
-        '"## Acceptance criteria" section you write here is left as it stands either way.</small>',
+    expect(html).not.toContain('<small class="muted small">');
+    const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
+    const popover = html.slice(formulateIdx, html.indexOf("</details>", formulateIdx));
+    expect(popover).toContain(
+      'A "## Acceptance criteria" section you write in the description yourself is left as it stands either way.',
     );
-    const field = html.slice(
-      html.indexOf('<textarea name="description"'),
-      html.indexOf("</label>", html.indexOf('<textarea name="description"')),
-    );
-    expect(field).toContain("<small");
   });
 
   test("a refusal carried back in the query string is shown above the form", () => {
@@ -402,7 +399,7 @@ describe("spec 342: the phase table", () => {
     const box = html.match(/<input type="checkbox"[^>]*name="acceptanceRequired"[^>]*>/)?.[0] ?? "";
     expect(box).not.toBe("");
     expect(box).toContain("checked");
-    expect(html).toContain("acceptance ticking required");
+    expect(html).toContain("Acceptance ticking required");
     expect(html).not.toContain("acceptance ticking not required");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
@@ -420,6 +417,19 @@ describe("spec 342: the phase table", () => {
     );
   });
 
+  // Spec 472, AC-3: the "(?)" is anchored the same way "Depends on"'s own
+  // is (`.field.wide` > `.fieldhead` > `.fieldend`) — the one place on
+  // this page already proven not to push its popover off the left edge.
+  test("spec 472: the acceptance switch's '(?)' is anchored in a field.wide/fieldhead/fieldend shell", () => {
+    const html = newPage();
+    const acceptIdx = html.indexOf('name="acceptanceRequired"');
+    const shellStart = html.lastIndexOf('<span class="field wide">', acceptIdx);
+    expect(shellStart).toBeGreaterThan(-1);
+    const shell = html.slice(shellStart, html.indexOf("</details>", acceptIdx) + "</details>".length);
+    expect(shell).toContain('<span class="fieldhead">');
+    expect(shell).toContain('<span class="fieldend">');
+  });
+
   // Spec 433, AC-4: "let AI formulate acceptance criteria", checked by
   // default — the same "checked, and a sibling of the acceptance switch"
   // shape, said the positive way for the same reason: unticking it is
@@ -432,13 +442,17 @@ describe("spec 342: the phase table", () => {
     expect(box).toContain("checked");
     expect(box).toContain('value="1"');
     expect(box).toContain('form="new-spec-form"');
-    expect(html).toContain("let AI formulate acceptance criteria");
+    expect(html).toContain("Let AI formulate acceptance criteria");
     // Spec 454: the field's own explanation moves off `title` into a "(?)".
     expect(html).not.toMatch(/title="Ticked, create runs a short AI session/);
+    // Spec 472, AC-4: extended with the fact the Description hint's own
+    // removal carried over — a hand-written "## Acceptance criteria"
+    // section is left alone either way.
     expect(html).toContain(
       "<p>Ticked, create runs a short AI session that drafts the acceptance criteria from this " +
-        "description. Cleared, create writes the spec directly from what is typed here — no AI " +
-        "session, done in seconds.</p>",
+        "description; cleared, create writes the spec directly from what is typed here — no AI " +
+        "session, done in seconds. A \"## Acceptance criteria\" section you write in the " +
+        "description yourself is left as it stands either way.</p>",
     );
     // Its own line, right after the acceptance switch's.
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
@@ -452,6 +466,17 @@ describe("spec 342: the phase table", () => {
     // Adjacent: the acceptance switch's own frow closes right where the
     // new field's frow opens, nothing else sitting between them.
     expect(html.slice(formulateFrowStart - "</span>".length, formulateFrowStart)).toBe("</span>");
+  });
+
+  // Spec 472, AC-3: same anchoring as the acceptance switch, above.
+  test("spec 472: the AI-formulate switch's '(?)' is anchored in a field.wide/fieldhead/fieldend shell", () => {
+    const html = newPage();
+    const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
+    const shellStart = html.lastIndexOf('<span class="field wide">', formulateIdx);
+    expect(shellStart).toBeGreaterThan(-1);
+    const shell = html.slice(shellStart, html.indexOf("</details>", formulateIdx) + "</details>".length);
+    expect(shell).toContain('<span class="fieldhead">');
+    expect(shell).toContain('<span class="fieldend">');
   });
 
   // Spec 415, REQ-2: the caption row shares phaseCaptionCells() with the
