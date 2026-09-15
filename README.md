@@ -163,11 +163,8 @@ All AI tools follow the same basic workflow:
 
 ## The Aide dashboard
 
-The dashboard runs the workflow for you. It lists every spec across every project Aide knows
-about, grouped by phase, on one page. New makes a spec from a title and a description; queuing it
-runs it through create, analyze, implement and archive, headless, one step at a time, and the
-spec's row shows the live progress. Click into a spec for its description, analysis, plan, status
-and every job that has run against it. It lives in `dashboard/` and has its own documentation:
+The Aide dashboard can be used to keep track of every project that runs aide and run their 
+specs workflow automatically. It lives in `dashboard/` folder and has its own documentation:
 **[dashboard/README.md](dashboard/README.md)**.
 
 ---
