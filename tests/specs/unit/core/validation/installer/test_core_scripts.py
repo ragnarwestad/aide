@@ -56,65 +56,8 @@ class TestCoreScriptsAreWellFormed:
 
 
 @pytest.mark.validation
-class TestValidateEnv:
-    """validate-env must check the variable names the rest of the repo reads."""
-
-    @staticmethod
-    def _run(workspace_root, extra_env):
-        env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
-        env.update(extra_env)
-        return subprocess.run(
-            [str(workspace_root / "core" / "scripts" / "validate-env"), "--quiet"],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-
-    def test_fails_when_installation_path_is_missing(self, workspace_root):
-        result = self._run(workspace_root, {})
-        assert result.returncode == 1, \
-            "Missing AIDE_INSTALLATION_PATH should be reported as an error"
-
-    def test_passes_when_installation_path_is_set(self, workspace_root, tmp_path):
-        result = self._run(
-            workspace_root, {"AIDE_INSTALLATION_PATH": str(tmp_path)}
-        )
-        assert result.returncode == 0, \
-            f"Set AIDE_INSTALLATION_PATH should pass, got:\n{result.stdout}{result.stderr}"
-
-    def test_checks_all_documented_variables(self, workspace_root):
-        """Two AIDE_* environment variables remain; the specs path is
-        per-project .aide/config (spec 73) and must NOT be checked as env."""
-        env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
-        result = subprocess.run(
-            [str(workspace_root / "core" / "scripts" / "validate-env")],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH"):
-            assert var in result.stdout, \
-                f"validate-env does not mention {var}:\n{result.stdout}"
-        assert "AIDE_SPECS_PATH is not set" not in result.stdout, \
-            "the retired env var must not be checked"
-
-
-@pytest.mark.validation
 class TestInstallCommonBin:
     """The shared bin installer must ship every user-facing CLI script."""
-
-    def test_validate_env_is_installed(self, workspace_root, tmp_path):
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
-            "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
     def test_aide_record_test_run_is_installed(self, workspace_root, tmp_path):
         """The archive gate calls it by name. It shipped without being in

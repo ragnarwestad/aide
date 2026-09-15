@@ -47,7 +47,10 @@ These steps apply regardless of which AI tool you use.
 
 **You must have:**
 
-- ✅ Git installed
+- ✅ Git and `jq` installed (`brew install jq`) — every spec script needs `jq`
+- ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
+  (markdownlint-cli2, gh, bun, pandoc, md-to-pdf) in place through it; without mise they are skipped with a warning
+- ✅ The CLI of the AI tool you will use, on PATH
 - ✅ Your projects cloned and working
 
 **Directory structure after setup:**
@@ -86,9 +89,9 @@ ls -la ~/develop/
 
 ---
 
-### Step 2: (Optional) Configure environment variables
+### Step 2: (Optional) Per-project configuration
 
-These are **optional** but recommended for a better workflow. They apply to **all AI tools**.
+Both keys are optional and apply to **all AI tools**.
 
 #### AIDE_SPECS_PATH (per project, in .aide/config)
 
@@ -145,41 +148,11 @@ refused rather than linked, both when the project is configured and when
 a run starts: such a directory is generated per worktree, and two runs
 writing through one link overwrite each other.
 
-#### AIDE_INSTALLATION_PATH
-
-Points to the workspace root (for templates and configuration):
-
-```bash
-# In ~/.zshrc or ~/.bashrc
-export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
-
-# Load the changes
-source ~/.zshrc  # or source ~/.bashrc
-```
-
-**Benefit:** Scripts and templates find the workspace regardless of where you run them from.
-
-#### AIDE_PROJECTS_PATH (Claude Code only)
-
-Eliminates permission prompts in Claude Code:
-
-```bash
-# In ~/.zshrc or ~/.bashrc
-export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
-
-# Load the changes
-source ~/.zshrc  # or source ~/.bashrc
-```
-
-**Benefit:** Claude Code generates absolute paths in permissions, so you avoid approving every time.
-
----
-
 **✅ General setup complete!**
 
 You now have:
 - ✅ Cloned the Aide workspace
-- ✅ (Optional) Configured environment variables
+- ✅ (Optional) Configured the per-project keys
 
 **Next step:** Choose your AI tool and complete the installation 👇
 

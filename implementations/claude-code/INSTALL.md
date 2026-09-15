@@ -3,19 +3,15 @@
 ## Quick Start
 
 ```bash
-# 1. Unpack the zip file
+# 1. Clone Aide
 cd ~/develop
-unzip aide-claude-code.zip
-cd aide-claude-code
+git clone <repo-url> aide
 
-# 2. Set environment variables (add to ~/.zshrc)
-export AIDE_PROJECTS_PATH="$HOME/develop"
+# 2. Run the installer
+aide/implementations/claude-code/install.sh
 
-# 3. Run install
-./install.sh
-
-# 4. Start Claude Code in a project
-cd $AIDE_PROJECTS_PATH/my-app
+# 3. Start Claude Code in a project
+cd ~/develop/my-app
 claude
 ```
 
@@ -26,7 +22,8 @@ claude
 ## Prerequisites
 
 - **Claude Code CLI** installed (the `claude` command works)
-- **Python 3.8+** (for scripts)
+- **`jq`** (`brew install jq`) — every spec script needs it
+- **[mise](https://mise.jdx.dev)** with a node installed, for the shared tools the installer adds (optional: skipped with a warning)
 - **Mac/Linux** or **Windows with WSL** (bash scripts require a Unix shell)
 
 > **Windows users:** The scripts are bash scripts and require [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) or Git Bash. Run `wsl --install` in PowerShell to install WSL.
@@ -35,40 +32,30 @@ claude
 
 ## What does install.sh do?
 
-1. **Installs scripts** to `~/.local/bin/`:
-   - `aide-generate-pdf`, `aide-generate-html` - PDF/HTML export
-   - `upgrade-ai-tools` - Updates the AI CLIs
+1. **Checks** which tools are on PATH (`aide-preflight`) — a missing one is reported, never fatal.
+2. **Installs the scripts** to `~/.local/bin/`: every `core/scripts/aide-*` script (`aide-run-spec`,
+   `aide-create-spec`, `aide-archive-spec`, `aide-generate-pdf`, `aide-generate-html`, …), their
+   library under `~/.local/bin/lib/`, the git hooks, and `upgrade-ai-tools`.
+3. **Installs the shared tools** through mise: markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf.
+4. **Puts `~/.local/bin` on PATH** in `~/.zshenv` and `~/.bashrc`, so non-interactive shells (ssh,
+   launchd) find the scripts too.
+5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` → `skills/`, the agents →
+   `agents/`, the always-on rules → `rules/`.
+6. **Installs the LSP plugins** (typescript, kotlin, jdtls) when the `claude` CLI is present.
 
-2. **Installs globally** to `~/.claude/`:
-   - `skills/` - skills (experts + aide-* workflows)
-   - `agents/` - Specialized agents
-   - `rules/` - Generic rules
+Run it again to update; it replaces what it installed and removes what it no longer ships.
 
-3. **Installs LSP plugins** (typescript, kotlin, jdtls)
+### Skills
 
-### Native Claude Code Skills
-
-Skills are expertise modules that Claude Code activates automatically based on context:
-
-```text
-.claude/skills/
-├── tdd-coach/SKILL.md               # Test-Driven Development
-├── task-workflow-assistant/SKILL.md # Spec analysis
-```
-
-**Example:** When you are about to implement new functionality, `tdd-coach` is activated automatically and guides Claude Code through RED → GREEN → REFACTOR.
+Every skill in `core/skills/` is installed: the `aide-*` workflow skills (`aide-create`,
+`aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-manifest`, `aide-reopen`,
+`aide-reset`, `aide-close`, `aide-to-pdf`) and the expertise skills Claude Code activates by context
+(`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`, `spec-structure`,
+`tools-and-scripts`, `unit-tests`, `playwright-e2e`, `workflows`).
 
 ---
 
-## Environment Variables
-
-### AIDE_PROJECTS_PATH (required)
-
-```bash
-export AIDE_PROJECTS_PATH="$HOME/develop"
-```
-
-The root directory where your projects live.
+## Per-project configuration
 
 ### AIDE_SPECS_PATH (optional, per project)
 
@@ -77,11 +64,8 @@ The root directory where your projects live.
 AIDE_SPECS_PATH=$HOME/develop/my-specs-repo
 ```
 
-Where that project's specs are stored. If not
-set, `specs/` in the project root is used. Per-project configuration —
-not an environment variable.
-
----
+Where that project's specs are stored. If not set, `specs/` in the project root is used.
+Per-project configuration — not an environment variable.
 
 ---
 
@@ -92,11 +76,11 @@ Claude Code has built-in support for LSP plugins that provide semantic code navi
 
 **Installed plugins:**
 
-| Plugin           | Language              | Used for |
-|------------------|-----------------------|----------|
-| `typescript-lsp` | TypeScript/JavaScript | my-app   |
-| `kotlin-lsp`     | Kotlin                | my-api   |
-| `jdtls-lsp`      | Java                  | my-api   |
+| Plugin           | Language              |
+|------------------|-----------------------|
+| `typescript-lsp` | TypeScript/JavaScript |
+| `kotlin-lsp`     | Kotlin                |
+| `jdtls-lsp`      | Java                  |
 
 **Manual installation** (if needed):
 
@@ -114,7 +98,7 @@ claude plugin install jdtls-lsp@claude-plugins-official
 |--------------------------------------|---------------------------|
 | `/aide-create "<title>" <description>` | Create a spec           |
 | `/aide-analyze <number>`             | Analyze codebase          |
-| `/aide-implement PROJ-XXXX`          | Implement with TDD        |
+| `/aide-implement <number>`           | Implement with TDD        |
 
 ### Terminal scripts
 
@@ -133,25 +117,18 @@ Document creation happens via the slash command `/aide-create` (not a terminal s
 ### "/aide-create command not found"
 
 ```bash
-# Verify that AIDE_PROJECTS_PATH is set
-echo $AIDE_PROJECTS_PATH
-
-# Run install again
-cd /path/to/aide-claude-code
-./install.sh
-
-# Restart Claude Code
+# Run install again, then restart Claude Code
+aide/implementations/claude-code/install.sh
 ```
 
 ---
 
 ## Updating
 
-To update to a new version:
-
-1. Download the new zip package
-2. Unpack (overwrites the old one)
-3. Run `./install.sh` again
+```bash
+cd aide && git pull
+implementations/claude-code/install.sh
+```
 
 ---
 

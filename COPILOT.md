@@ -33,12 +33,8 @@ The first time you open the workspace in VS Code:
 2. Click "..." → "Settings"
 3. Verify that `.github/copilot-instructions.md` is listed under "Instructions"
 
-**Check environment variables:**
+**Check the scripts are on PATH:**
 ```bash
-# In the VS Code terminal (Ctrl+` / Cmd+`)
-echo $AIDE_INSTALLATION_PATH
-# Should print: /Users/[your-user]/develop/aide
-
 echo $PATH | grep ".local/bin"
 # Should contain: ~/.local/bin
 ```

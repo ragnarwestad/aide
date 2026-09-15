@@ -184,7 +184,6 @@ class TestCiWorkflow:
             "core/scripts/_*.sh",
             "core/scripts/build-agents-md.sh",
             "core/scripts/upgrade-ai-tools",
-            "core/scripts/validate-env",
             "core/scripts/lib/*.sh",
             # The round's own bash — the script a test server is started
             # by, and the stand-in model it drives.
