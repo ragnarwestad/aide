@@ -87,6 +87,7 @@ export const nb: Record<TranslationKey, string> = {
     "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
     "Opprett en for hånd, i det lokale repoet på serveren.",
   "list.archiveHeldBack": "{step} holdt tilbake: {reason}",
+  "list.readyToArchive": "Alle sjekkene er krysset av — trykk {button} for å merge den",
   "list.noSpecMatchesFilter": "Ingen spec matcher dette filteret.",
   "list.noSpecAtAll": "Ingen spec å vise — ingen prosjekt på denne maskinen har en å kjøre.",
   "list.noRunner":
