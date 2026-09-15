@@ -37,7 +37,7 @@ The skills let you:
 
 **Available skills:**
 ```bash
-/aide-create Move forms off Redux Form        # Create the spec (the title is made from the description)
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
 # → specs/55-move-forms-off-redux-form/, say
 
 /aide-create TODO-redux-form-migration Move all forms off Redux Form
@@ -62,7 +62,7 @@ The skills let you:
 
 **Architecture:**
 ```text
-/aide-create <description> → Creates the spec
+/aide-create "<title>" <description> → Creates the spec
     ↓
 /aide-analyze 55 → @agent-task-analyzer
     ↓
@@ -138,9 +138,9 @@ Run `./install.sh` again to update after changes.
 
 2. **Create the spec** — a title and a description:
    ```bash
-   /aide-create Move all forms from Redux Form to React Hook Form
+   /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
    ```
-   → Generates `specs/55-move-all-forms-from-redux-form-to-react-hook-form/`, say.
+   → Generates `specs/55-move-the-forms-off-redux-form/`, say.
 
    With a name of your own instead of one made from the description:
    ```bash
@@ -300,7 +300,7 @@ aide/specs/
 
 ### 1. Unified /aide-* skills
 
-**`/aide-create <description>`**
+**`/aide-create "<title>" <description>`**
 1. Creates the document structure (4 files)
 2. Fills in 1-description.md with the title and the description
 
@@ -343,7 +343,7 @@ ls -lt ../aide/specs/
 
 ```bash
 # 1. Create the spec
-/aide-create Move all forms from Redux Form to React Hook Form
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
 
 # Claude creates the document structure — number 55, say
 

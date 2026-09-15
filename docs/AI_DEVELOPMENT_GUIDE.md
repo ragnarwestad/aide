@@ -82,7 +82,7 @@ This project is inspired by [Lakshman Oruganti's Generative AI Design Patterns](
 **Example:**
 ```bash
 # Claude Code creates the document structure
-/aide-create Move the forms off Redux Form
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
   ↓
 AI fills in 1-description.md with the title and the description
 ```
@@ -328,9 +328,9 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 ### Why slash commands (Claude Code)?
 
 **Design choice:**
-- `/aide-create PROJ-XXXX` - Create the document structure
-- `/aide-analyze PROJ-XXXX` - Analyze the codebase
-- `/aide-implement PROJ-XXXX` - Implement the solution
+- `/aide-create "<title>" <description>` - Create the spec
+- `/aide-analyze <number>` - Analyze the codebase
+- `/aide-implement <number>` - Implement the solution
 
 **Why slash commands, not natural language?**
 1. **Precision:** Avoids ambiguity (vs. "analyze this issue")

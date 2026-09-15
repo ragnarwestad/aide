@@ -186,7 +186,7 @@ Type the command in a `copilot` session, just like in Claude Code.
 
 #### 1. Create the spec
 
-**Instead of:** `/aide-create PROJ-7890` (Claude Code)
+**Instead of:** `/aide-create "<title>" <description>` (Claude Code)
 
 **With Copilot (Agent Mode):**
 
@@ -439,7 +439,7 @@ copilot -p "Run all tests and fix failures" --yolo
 copilot -p "Say 'hello'"
 
 # Run the aide workflow headless
-copilot -p "/aide-create PROJ-TEST"
+copilot -p '/aide-create "A test spec" Just checking that the flow works.'
 ```
 
 ### Flag reference

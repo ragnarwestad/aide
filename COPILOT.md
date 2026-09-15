@@ -117,9 +117,9 @@ Instead of slash commands (like Claude Code), use natural language:
 
 | Claude Code                 | Copilot equivalent                   |
 |-----------------------------|--------------------------------------|
-| `/aide-create PROJ-7890`    | "Create documentation for PROJ-7890" |
-| `/aide-analyze PROJ-7890`   | "Analyze PROJ-7890"                  |
-| `/aide-implement PROJ-7890` | "Implement PROJ-7890 with TDD"       |
+| `/aide-create "<title>" <description>` | "Create a spec titled ... with this description: ..." |
+| `/aide-analyze 55`          | "Analyze spec 55"                    |
+| `/aide-implement 55`        | "Implement spec 55 with TDD"         |
 
 ---
 

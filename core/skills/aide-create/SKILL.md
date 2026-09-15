@@ -7,7 +7,7 @@ description: >-
   documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
   code review.
-argument-hint: "<description> | TODO-<name> <description>"
+argument-hint: "\"<title>\" <description> | TODO-<name> <description>"
 effort: medium
 ---
 
@@ -19,20 +19,22 @@ Create a spec: a title and a description, as the 4-file structure.
 
 Parse `$ARGUMENTS`:
 
+**A quoted title, then the description:** the argument starts with a
+double quote; what is inside the quotes is the title, and everything
+after the closing quote is the description. The title is never made up
+by this skill — an argument that does not start with a quote is a
+missing title: ask for it before anything is created.
+- Example: `/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.`
+
 **A title may begin with an issue key** (`[A-Z][A-Z0-9]*-[0-9]+`, e.g.
 `PROJ-7890`). The key becomes part of the folder name, and the spec can
 then be referred to by that key in every later command. Nothing is
 fetched from anywhere: the description is what the arguments say.
 
-**A description, and nothing else:** the whole argument is the
-description, and the title is made from it.
-- Example: `/aide-create Move forms to React Hook Form`
-
 **A named folder:** if the first word starts with `TODO-`, the name after
 it is the folder name and the rest is the description. This is the form
 the dashboard's queue uses, stating the title on a line of its own.
 - Example: `/aide-create TODO-redux-form-migration Move all forms`
-- A leading `TODO` on its own is ignored, for the older habit.
 
 **Error handling:** If the argument is missing or has an invalid format, show:
 
@@ -40,12 +42,12 @@ the dashboard's queue uses, stating the title on a line of its own.
 Missing argument
 
 Usage:
-/aide-create <description>                   # the title is made from it
-/aide-create TODO-<name> <description>       # with a folder name of your own
+/aide-create "<title>" <description>
+/aide-create TODO-<name> <description>       # the queue's form: a folder name, the title stated separately
 
 Examples:
-/aide-create Implement dark mode
-/aide-create TODO-redux-form-migration Move forms from Redux Form
+/aide-create "Dark mode" Add a dark theme that follows the system setting, with a manual override in Settings.
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
 ```
 
 ---

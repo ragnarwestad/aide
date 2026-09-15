@@ -149,10 +149,11 @@ All AI tools follow the same basic workflow:
 **Example (Claude Code):**
 
 ```bash
-/aide-create Move the forms off Redux Form   # Create the spec — it gets a number, say 55
-/aide-analyze 55                             # Analyze the codebase
-/aide-implement 55                           # Implement with TDD
-/aide-archive 55                             # Archive, feed knowledge back into the docs
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
+# The spec gets a number, say 55:
+/aide-analyze 55      # Analyze the codebase
+/aide-implement 55    # Implement with TDD
+/aide-archive 55      # Archive, feed knowledge back into the docs
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
