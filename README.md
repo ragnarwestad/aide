@@ -1,6 +1,7 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
-A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, GitHub Copilot and Codex.
+A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code and Codex; a GitHub Copilot
+implementation is kept but unverified since August 2026, for want of a subscription to test it against.
 
 ## Table of contents
 

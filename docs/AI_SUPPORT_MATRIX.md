@@ -329,7 +329,6 @@ Check these when you update versions or wonder whether something has changed:
 ## See also
 
 - [AI_NEWS_LOG.md](./AI_NEWS_LOG.md) — News log / research feed that feeds this matrix
-- [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) — Architecture and design patterns
 - [implementations/claude-code/](../implementations/claude-code/) — Claude Code implementation
 - [implementations/copilot/](../implementations/copilot/) — Copilot implementation
 - [implementations/codex/](../implementations/codex/) — Codex implementation

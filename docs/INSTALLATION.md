@@ -31,9 +31,9 @@ This workspace supports several AI tools. Choose the one that suits you best:
 
 | AI tool            | Advantages                                       | Best for                                   | Installation documentation                                               |
 |--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents, 200K context | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
+| **Claude Code**    | Slash commands, specialized agents               | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
 | **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Native VS Code, Agent Mode, fast responses       | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
+| **GitHub Copilot** | Native VS Code, Agent Mode — unverified since August 2026, see below | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
@@ -256,14 +256,15 @@ The sections below describe what each individual installer does.
 **Key features:**
 
 - ✅ Slash commands (`/aide-create`, `/aide-analyze`, `/aide-implement`)
-- ✅ Specialized agents (`@agent-task-analyzer`, `@agent-tdd-implementer`)
+- ✅ A specialized analysis agent (`@agent-task-analyzer`)
 - ✅ Automatic reading of CLAUDE.md at startup
-- ✅ 200K token context window
 - ✅ Automatic git staging
 
 ---
 
 ### GitHub Copilot
+
+The GitHub Copilot implementation is kept but has been unverified since August 2026: there is no subscription to test it against, so its installer and docs may lag the tool.
 
 **Installation and setup:**
 
@@ -440,7 +441,6 @@ Once the setup is complete:
 1. **Read the implementation documentation for your AI tool:**
     - [implementations/claude-code/README.md](../implementations/claude-code/README.md)
     - [implementations/copilot/README.md](../implementations/copilot/README.md)
-    - [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md)
 
 2. **Read the generic workflows:**
     - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)
@@ -453,7 +453,6 @@ Once the setup is complete:
 
 4. **Explore further:**
     - Read README.md for the full overview
-    - See [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) for the architecture
 
 ---
 

@@ -14,13 +14,12 @@
   - [TDD workflow](#tdd-workflow)
 - [Tips and tricks](#tips-and-tricks)
 - [Limitations](#limitations)
-- [Comparison with Claude Code](#comparison-with-claude-code)
-  - [Available models](#available-models)
-  - [When to use what?](#when-to-use-what)
 
 ---
 
 ## Overview
+
+**The GitHub Copilot implementation is kept but has been unverified since August 2026: there is no subscription to test it against, so its installer and docs may lag the tool.**
 
 This implementation lets you use **GitHub Copilot CLI** — which went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — and **Copilot Agent Mode in VS Code** to follow the same workflows as Claude Code.
 
@@ -364,43 +363,8 @@ copilot --yolo                            # Allow everything without prompts
 
 ## Comparison with Claude Code
 
-| Feature                   | Claude Code                     | Copilot CLI                                        |
-|---------------------------|---------------------------------|----------------------------------------------------|
-| **Commands**              | Slash commands (`/aide-create`) | Slash commands + natural language                  |
-| **Instructions**          | CLAUDE.md (auto-read)           | CLAUDE.md + copilot-instructions.md                |
-| **Plan mode**             | ✅ Native                       | ✅ Native (Shift+Tab)                              |
-| **Autopilot mode**        | ✅ (via permissions)            | ✅ Native (`--yolo`)                               |
-| **Agents**                | `@agent-task-analyzer`          | Specialized (Explore, Task, Code Review)           |
-| **Skills**                | ✅ `.claude/skills/`            | ✅ Reads `~/.claude/commands/` + `.claude/skills/` |
-| **TDD**                   | Built-in RED→GREEN→REFACTOR     | Agent Mode iterates                                |
-| **Codebase analysis**     | ✅                              | ✅                                                 |
-| **Tool calling**          | ✅                              | ✅                                                 |
-| **MCP servers**           | ✅                              | ✅ (built-in GitHub MCP)                           |
-| **Permanent permissions** | ✅ `settings.json`              | ✅ `config.json` + CLI flags                       |
-| **Multi-step autonomy**   | ✅                              | ✅                                                 |
-| **Models**                | Claude Opus/Sonnet/Haiku        | Claude, GPT                                        |
-| **Context window**        | 200K tokens                     | Varies by model                                    |
-| **IDE integration**       | VS Code (via CLI)               | VS Code (native) + CLI                             |
-
-### Available models
-
-| Model             | Claude Code | Copilot CLI |
-|-------------------|-------------|-------------|
-| Claude Opus 4.7   | ✅          | ✅          |
-| Claude Sonnet 4.6 | ✅          | ✅          |
-| Claude Haiku 4.5  | ✅          | ✅          |
-| GPT-5.5           | ❌          | ✅          |
-
-### When to use what?
-
-| Scenario                  | Recommendation                          |
-|---------------------------|-----------------------------------------|
-| **Complex analysis**      | Claude Code (better skills/agents)      |
-| **Quick edits**           | Copilot (faster in VS Code)             |
-| **TDD implementation**    | Both work well                          |
-| **Refactoring**           | Copilot (native VS Code integration)    |
-| **Cross-cutting issues**  | Claude Code (better multi-repo support) |
-| **Full automation**       | Copilot CLI (`--yolo` mode)             |
+What each tool supports, verified against installed versions, is kept in one place:
+[docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md).
 
 ---
 
