@@ -200,6 +200,33 @@ write_phase_stamp() {
   esac
 }
 
+# write_round_boundary_stamp($status_file, $specs_root) — spec 471: the
+# moment a round is mechanically known to be held back (aide-archive-
+# spec's own acceptance-criteria-unticked decline), stamped once, in the
+# same "**Reopened:**"/"**Reset:**" grammar write_phase_stamp already
+# writes above — so a later round can tell which open AC-n rows are
+# unchanged since THIS round rather than since the spec's birth, by
+# diffing 1-description.md's own text at this commit against today's.
+#
+# Idempotent against a repeat decline of the SAME round: reads the
+# newest existing "**Round boundary:**" entry (if any) and writes
+# nothing when its own sha already equals $specs_root's current HEAD —
+# a spec archived-and-declined twice with nothing changed in between
+# gets one boundary, not two. Otherwise appended, never replaced: a
+# spec declined across several real rounds keeps every earlier
+# boundary, and (matching archiveHeldBackReason's own "last one wins"
+# rule) only the LAST is read.
+write_round_boundary_stamp() {
+  local status_file="$1" specs_root="$2" head existing
+  head="$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)"
+  [ -n "$head" ] || return 0
+  existing="$(sed -n 's/.*[Rr]ound boundary:\*\*[^`]*`\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
+    "$status_file" 2>/dev/null | tail -1)"
+  [ "$existing" = "$head" ] && return 0
+  printf '\n- **Round boundary:** %s (history before `%s` does not count)\n' \
+    "$(date -u +%Y-%m-%d)" "$head" >> "$status_file"
+}
+
 # apply_spec_transition($status_file, $event, $value) — the convenience
 # wrapper for the single-path case: reopen and reset, the only two
 # events where the stamp write and the state-file mirror happen at the

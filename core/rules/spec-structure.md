@@ -130,6 +130,10 @@ Number, created date, expected duration
 - AC-n ids are additive only: once written, never renumbered or
   reused, even if later dropped — same philosophy as 4-status.md's
   `Workflow steps completed` line
+- A held-back spec taking another round on its open checks (see
+  4-status's own Acceptance criteria section below) numbers a new id
+  after the highest one already written — the same additive rule,
+  applied to a second round rather than to the first draft
 - A description already carrying a matching `## Acceptance criteria`
   section is passed through unchanged — no rewriting, no second
   section appended. Only a description with no such section gets one
@@ -529,6 +533,20 @@ still unticked**, with `terminalReason: "acceptance-criteria-unticked"`
 — the one place a "must be ticked" gate exists in this file, scoped to
 this section alone. A spec with no such section, or every row ticked,
 archives exactly as it did before this section existed.
+
+**A held-back spec may take another round on its open rows.**
+`/aide-analyze` and `/aide-implement` may run again on a spec whose
+archive is held back this way — a THIRD kind of restart, distinct
+from `/aide-reopen` and `/aide-reset`, which regenerate this table from
+its template. A held-back round instead APPENDS: a ticked row's Status
+and Notes cells are left exactly as they are; only an OPEN row's Notes
+cell may gain text naming what the round still finds missing; and a
+genuinely new `AC-n` id, numbered after the highest one already
+written, may be appended as a new unticked row. The round may start
+only once every currently open row's own requirement text has changed
+since the round that held it back — an open row whose text has not
+moved keeps the spec held back on Analyze and Implement alike, not only
+on Archive.
 
 ---
 

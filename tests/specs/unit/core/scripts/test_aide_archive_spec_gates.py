@@ -173,6 +173,54 @@ def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script
     assert (specs / "81-x").exists()
 
 
+def test_declining_on_unticked_acceptance_writes_one_round_boundary_stamp(script, project, specs):
+    """Spec 471: the moment a round is mechanically known to be held
+    back is stamped once, in the same **Reopened:**/**Reset:** grammar,
+    so a later round can tell which open AC-n rows are unchanged since
+    THIS round rather than since the spec's birth."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| AC-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert text.count("**Round boundary:**") == 1, text
+
+
+def test_a_repeat_decline_with_nothing_changed_writes_no_second_stamp(script, project, specs):
+    """A person re-pressing Archive to check whether a fix landed must
+    not silently move the 'since when has this changed' reference point
+    forward each time."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| AC-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    run(script, project, "81-x")
+    run(script, project, "81-x")
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert text.count("**Round boundary:**") == 1, text
+
+
+def test_no_acceptance_criteria_section_never_gets_a_round_boundary_stamp(script, project, specs):
+    """AC-9: a spec that does not require acceptance ticking must never
+    gain the round-boundary stamp — it never reaches this gate at all."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    text = (specs / "archive" / "81-x" / "4-status.md").read_text()
+    assert "Round boundary" not in text, text
+
+
 def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, project, specs):
     """The other half of AC4: even a checklist that reads fully done
     cannot stand in for the "Workflow steps completed" line actually
