@@ -170,7 +170,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).not.toContain('name="AIDE_LINT_CMD"');
     expect(html).not.toContain('name="AIDE_BUILD_CMD"');
     // Meanwhile a non-derivable, currently-unset key does become an input.
-    expect(html).toMatch(/name="jiraBaseUrl"[^>]*value=""/);
+    expect(html).toMatch(/name="installCmd"[^>]*value=""/);
   });
 
   test("the table has one row per SETTING_KEYS entry plus Code landing, under Name/Value/Comment (criterion 1)", async () => {
@@ -181,7 +181,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).not.toContain("<th>Where from</th>");
     for (const key of [
       "AIDE_SPECS_PATH", "AIDE_WORKTREE_LINKS", "AIDE_TEST_CMD", "AIDE_LINT_CMD",
-      "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD", "AIDE_JIRA_BASE_URL",
+      "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD",
     ]) {
       // The raw key sits beside its plain-language label now (spec 318,
       // REQ-2), not alone in the cell.
@@ -327,8 +327,8 @@ describe("editing the unified settings table (spec 255)", () => {
     expect(view).not.toContain('name="installCmd"');
   });
 
-  test("saving AIDE_JIRA_BASE_URL left unchanged rewrites nothing (criterion 6)", async () => {
-    const root = projectsRoot({ aide: "AIDE_JIRA_BASE_URL=https://jira.example.com\n" });
+  test("saving AIDE_INSTALL_CMD left unchanged rewrites nothing (criterion 6)", async () => {
+    const root = projectsRoot({ aide: "AIDE_INSTALL_CMD=make install\n" });
     const project = join(root, "aide");
     const before = readFileSync(join(project, ".aide", "config"), "utf-8");
     const base = serve(root, settled(root, "aide"));
@@ -336,14 +336,14 @@ describe("editing the unified settings table (spec 255)", () => {
       method: "POST",
       headers: POST_AUTH,
       body: JSON.stringify({
-        jiraBaseUrl: "https://jira.example.com",
+        installCmd: "make install",
         specsPath: "",
         worktreeLinks: "",
       }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { results: { step: string }[] };
-    expect(body.results.map((r) => r.step)).not.toContain("jiraBaseUrl");
+    expect(body.results.map((r) => r.step)).not.toContain("installCmd");
     expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toBe(before);
   });
 

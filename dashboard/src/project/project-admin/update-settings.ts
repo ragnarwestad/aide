@@ -50,11 +50,10 @@ export async function updateProjectSettings(
     codeLanding?: string;
     /** Both gated on presence in `req`, unlike `specsPath` above:
      *  `codeLanding` already reads that way (`req.codeLanding !==
-     *  undefined`), and the two joining it need the same rule — a
-     *  future caller posting only some fields must not blank ones it
-     *  never intended to touch (spec 255). */
+     *  undefined`), and this one needs the same rule — a future caller
+     *  posting only some fields must not blank ones it never intended
+     *  to touch (spec 255). */
     installCmd?: string;
-    jiraBaseUrl?: string;
   },
 ): Promise<ProjectAdminResult> {
   const links = (req.worktreeLinks ?? "").trim();
@@ -153,11 +152,11 @@ export async function updateProjectSettings(
     }
   }
 
-  // Two more `.aide/config` keys, spec 255: same file, same
+  // One more `.aide/config` key, spec 255: same file, same
   // changed-only-write rule `specsPath` above follows, gated on
-  // presence in `req` the way `codeLanding` is above them — a caller
-  // that never mentions one of these two must not blank it.
-  const writeConfigField = (step: "installCmd" | "jiraBaseUrl", configKey: string, value: string | undefined): void => {
+  // presence in `req` the way `codeLanding` is above it — a caller
+  // that never mentions it must not blank it.
+  const writeConfigField = (step: "installCmd", configKey: string, value: string | undefined): void => {
     if (value === undefined) return;
     const trimmed = value.trim();
     if (trimmed === (configValue(projectDir, configKey) ?? "")) return;
@@ -173,7 +172,6 @@ export async function updateProjectSettings(
     }
   };
   writeConfigField("installCmd", "AIDE_INSTALL_CMD", req.installCmd);
-  writeConfigField("jiraBaseUrl", "AIDE_JIRA_BASE_URL", req.jiraBaseUrl);
 
   return done();
 }

@@ -216,12 +216,11 @@ export async function handleQueueAdminRoutes(
       specsPath: str(asked.specsPath),
       worktreeLinks: str(asked.worktreeLinks),
       // Only when the form actually sent one (spec 220, then 255 for
-      // the two that joined it): a caller posting only the older
+      // the one that joined it): a caller posting only the older
       // fields must not be read as clearing the ones it never
       // mentioned.
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
-      ...("jiraBaseUrl" in asked && { jiraBaseUrl: str(asked.jiraBaseUrl) }),
     });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request

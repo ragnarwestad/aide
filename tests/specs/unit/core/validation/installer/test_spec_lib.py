@@ -127,34 +127,6 @@ class TestResolveSpec:
 
 
 @pytest.mark.validation
-class TestDocType:
-    """aide_doc_type must recognize a JIRA key regardless of its prefix."""
-
-    @pytest.mark.parametrize(
-        "folder",
-        [
-            "05-proj-7894-class-to-functional",
-            "45-MEL-1234-fix-login",
-            "45-mel-1234-fix-login",
-            "archive/45-MEL-1234-fix-login",
-        ],
-    )
-    def test_jira_folders(self, workspace_root, folder):
-        assert _call(workspace_root, f'aide_doc_type "{folder}"') == "JIRA issue"
-
-    @pytest.mark.parametrize(
-        "folder",
-        [
-            "17-clean-up-console-log",
-            "35-todo-ai-nyheter",
-            "13-upgrade-react-17-to-react-18",
-        ],
-    )
-    def test_todo_folders(self, workspace_root, folder):
-        assert _call(workspace_root, f'aide_doc_type "{folder}"') == "TODO plan"
-
-
-@pytest.mark.validation
 class TestArchiveAwareness:
     """Archived specs keep their number and stay findable.
 
@@ -232,18 +204,18 @@ class TestConfigGet:
     def test_reads_value(self, workspace_root, tmp_path):
         (tmp_path / ".aide").mkdir()
         (tmp_path / ".aide" / "config").write_text(
-            "# project config\nAIDE_JIRA_BASE_URL=https://jira.mycompany.com\n"
+            "# project config\nAIDE_INSTALL_CMD=make install\n"
         )
         out = _call(
             workspace_root,
-            f'aide_config_get "AIDE_JIRA_BASE_URL" "{tmp_path}"',
+            f'aide_config_get "AIDE_INSTALL_CMD" "{tmp_path}"',
         )
-        assert out == "https://jira.mycompany.com"
+        assert out == "make install"
 
     def test_missing_file_is_empty_not_error(self, workspace_root, tmp_path):
         out = _call(
             workspace_root,
-            f'aide_config_get "AIDE_JIRA_BASE_URL" "{tmp_path}"',
+            f'aide_config_get "AIDE_INSTALL_CMD" "{tmp_path}"',
         )
         assert out == ""
 
@@ -252,7 +224,7 @@ class TestConfigGet:
         (tmp_path / ".aide" / "config").write_text("AIDE_OTHER=x\n")
         out = _call(
             workspace_root,
-            f'aide_config_get "AIDE_JIRA_BASE_URL" "{tmp_path}"',
+            f'aide_config_get "AIDE_INSTALL_CMD" "{tmp_path}"',
         )
         assert out == ""
 

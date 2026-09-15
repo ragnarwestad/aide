@@ -102,7 +102,7 @@ describe("configured, worked out, or not set", () => {
     expect(row(project("", "go.mod"), "AIDE_TEST_CMD").origin).toBe("derived");
   });
 
-  for (const key of ["AIDE_INSTALL_CMD", "AIDE_JIRA_BASE_URL", "AIDE_WORKTREE_LINKS", "AIDE_SPECS_PATH"]) {
+  for (const key of ["AIDE_INSTALL_CMD", "AIDE_WORKTREE_LINKS", "AIDE_SPECS_PATH"]) {
     test(`${key} is never worked out from a lockfile`, () => {
       const r = row(project("", "pnpm-lock.yaml"), key);
       expect([key, r.origin]).toEqual([key, "unset"]);
@@ -111,9 +111,9 @@ describe("configured, worked out, or not set", () => {
   }
 
   test("a configured non-command key is shown as configured", () => {
-    const r = row(project("AIDE_JIRA_BASE_URL=https://jira.example.com\n"), "AIDE_JIRA_BASE_URL");
+    const r = row(project("AIDE_INSTALL_CMD=make install\n"), "AIDE_INSTALL_CMD");
     expect(r.origin).toBe("configured");
-    expect(r.value).toBe("https://jira.example.com");
+    expect(r.value).toBe("make install");
   });
 });
 

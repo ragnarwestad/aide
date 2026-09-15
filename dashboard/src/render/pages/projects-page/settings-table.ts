@@ -58,7 +58,6 @@ const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
   AIDE_INSTALL_CMD: "installCmd",
-  AIDE_JIRA_BASE_URL: "jiraBaseUrl",
 };
 
 /** A row's Value cell: plain text in view mode and for the three
