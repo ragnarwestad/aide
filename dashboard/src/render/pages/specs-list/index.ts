@@ -156,6 +156,15 @@ export interface SpecsPageOptions {
    *  make has nothing on disk yet, so it appears in no other list on
    *  this page. Empty or absent means the form is not offered at all. */
   createProjects?: string[];
+  /** Which projects can run a test server — the exact capability check
+   *  `ctx.testServers.roundAvailable` already gates the spec page's own
+   *  start link on (`spec-page.ts:198`, one conjunct of that page's own
+   *  three-way AND — the other two are per-spec, not per-project) and the
+   *  project page's Deploy tab on (`project-pages.ts:280`), passed
+   *  straight through rather than re-derived (spec 466, AC-3). Absent
+   *  treats every project as capable, unchanged from before this existed
+   *  — real traffic always supplies it (`specs-pages.ts`). */
+  testServerAvailable?: (project: string) => boolean;
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;
@@ -200,6 +209,7 @@ function groupRows(
   now: number,
   opened: Set<string>,
 ): string {
+  const testServerAvailable = opts.testServerAvailable ?? (() => true);
   return groups
     .map((g) => {
       // An archived spec branched to a flat reader row of its own here
@@ -213,7 +223,9 @@ function groupRows(
       //
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head = specHeadRow(g, opts, opened) + specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en");
+      const head =
+        specHeadRow(g, opts, opened) +
+        specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;

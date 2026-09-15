@@ -77,7 +77,7 @@ interface LiveMark {
  *  failure, which itself means a completed step's merge never finished
  *  and so outranks the three review-related marks, which are about
  *  process, not correctness, and least urgent of the group. */
-function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
+function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: string) => boolean): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
   // A landing the project's own suite refused is the one that is not a
@@ -126,12 +126,14 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     if (!queueSaysIt) {
       marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason) });
     }
-    marks.push({
-      variant: "waiting",
-      label: TEST_SERVER(lang),
-      sentence: testServerStartLinkSentence(lang),
-      href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
-    });
+    if (testServerAvailable(g.project)) {
+      marks.push({
+        variant: "waiting",
+        label: TEST_SERVER(lang),
+        sentence: testServerStartLinkSentence(lang),
+        href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
+      });
+    }
   } else if (queueHeldForChecks(g) && !archiveRunning) {
     // The queue holds the job the moment it refuses to archive; the
     // note the branch above reads — and with it the start link — needs
@@ -141,7 +143,9 @@ function liveMarks(g: SpecGroup, lang: Language): LiveMark[] {
     // one render and gone on the next. A reader in that window was told
     // to go and tick, with no way to see the thing being ticked and
     // nothing saying one was coming. So it is said.
-    marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.testServerStartComing") });
+    if (testServerAvailable(g.project)) {
+      marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.testServerStartComing") });
+    }
   }
   if (g.prUrl) {
     marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
@@ -169,8 +173,12 @@ export interface RowMarkNotice {
  *  the old badge's hover title used to carry, so a reader can still tell
  *  which mark is which without it costing every ordinary row (at most
  *  one, most of the time) an unnecessary label. */
-export function errorMarkNotices(g: SpecGroup, lang: Language): RowMarkNotice[] {
-  const marks = liveMarks(g, lang);
+export function errorMarkNotices(
+  g: SpecGroup,
+  lang: Language,
+  testServerAvailable: (project: string) => boolean,
+): RowMarkNotice[] {
+  const marks = liveMarks(g, lang, testServerAvailable);
   // The mark's own variant decides the colour: every one of these is a
   // refusal except a landing the project's suite went red on, or a pull
   // request waiting on review, neither of which is broken.

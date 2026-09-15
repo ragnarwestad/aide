@@ -303,6 +303,70 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     );
     expect(notice).not.toContain("startTestServer=1");
   });
+
+  // Spec 466, AC-1/AC-3 (runtime-testable half): the row's decision is
+  // per-project, driven entirely by the `testServerAvailable` predicate
+  // the caller hands in — never two independently derived answers for
+  // two rows in the same render. A project whose checkout does not
+  // carry the dashboard's source (here: woodstack) must not get a link
+  // to a test server it can never run.
+  test("spec 466: only the project the predicate answers true for carries the link", () => {
+    const OTHER_FOLDER = "101-c";
+    const html = renderSpecsRows(
+      [
+        row({ specFolder: FOLDER, steps: ["archive"], state: "done" }),
+        row({ project: "woodstack", specFolder: OTHER_FOLDER, steps: ["archive"], state: "done" }),
+      ],
+      {
+        runnerAvailable: true,
+        targets: [
+          target({ done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
+          target({
+            project: "woodstack",
+            specFolder: OTHER_FOLDER,
+            done: ["implement"],
+            archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+          }),
+        ],
+        testServerAvailable: (project) => project === "aide",
+      },
+    );
+    const capableNotice = noticeCellHtml(html, FOLDER);
+    expect(capableNotice).toContain("Click the link to start a test server running this branch");
+    expect(capableNotice).toContain("startTestServer=1");
+
+    const incapableNotice = noticeCellHtml(html, OTHER_FOLDER);
+    expect(incapableNotice).toContain("Acceptance criteria are not all ticked");
+    expect(incapableNotice).not.toContain("Click the link to start a test server");
+    expect(incapableNotice).not.toContain("startTestServer=1");
+  });
+
+  // Spec 466, AC-2 (the earlier "coming soon" window): the same wrong
+  // promise, one state earlier — a project that can never run a test
+  // server must not be told one is on its way either.
+  test("spec 466: the coming-soon sentence is gone too, for a project that cannot run one", () => {
+    const notice = noticeCellHtml(
+      renderSpecsRows(
+        [
+          row({
+            specFolder: FOLDER,
+            steps: ["archive"],
+            state: "queued",
+            errorReason: "held-back",
+            error: { key: "runner.acceptanceCriteriaUnticked" },
+          }),
+        ],
+        {
+          runnerAvailable: true,
+          targets: [target({ done: ["implement"] })],
+          testServerAvailable: () => false,
+        },
+      ),
+      FOLDER,
+    );
+    expect(notice).not.toContain("Click the link to start a test server");
+    expect(notice).not.toContain("The link to start one appears once this spec's implement run is recorded as done");
+  });
 });
 
 // --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --
