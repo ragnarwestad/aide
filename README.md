@@ -12,6 +12,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
     - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
     - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
+- [The Aide dashboard](#the-aide-dashboard)
 - [Resources](#resources)
 
 ---
@@ -157,6 +158,17 @@ All AI tools follow the same basic workflow:
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
+
+---
+
+## The Aide dashboard
+
+The dashboard runs the workflow for you. It lists every spec across every project Aide knows
+about, grouped by phase, on one page. New makes a spec from a title and a description; queuing it
+runs it through create, analyze, implement and archive, headless, one step at a time, and the
+spec's row shows the live progress. Click into a spec for its description, analysis, plan, status
+and every job that has run against it. It lives in `dashboard/` and has its own documentation:
+**[dashboard/README.md](dashboard/README.md)**.
 
 ---
 
