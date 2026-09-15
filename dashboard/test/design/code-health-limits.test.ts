@@ -31,7 +31,7 @@ const TEST = join(ROOT, "test");
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 520,
-  "src/queue/store/index.ts": 634,
+  "src/queue/store/index.ts": 630,
   "src/git/branch-merge.ts": 605,
   "src/render/pages/specs-list/data-model/types.ts": 510,
 };

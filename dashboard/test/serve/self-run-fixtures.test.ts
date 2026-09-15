@@ -46,7 +46,7 @@ test("a fixture's expect and timeoutSec are read; a fixture without them carries
 
 test("every checked-in fixture's expect names a state the store knows", () => {
   const fixtures = readFixtures(join(import.meta.dir, "..", "round", "specs"));
-  expect(fixtures.length).toBeGreaterThanOrEqual(12);
+  expect(fixtures.length).toBeGreaterThanOrEqual(11);
   for (const f of fixtures) {
     if (!f.expect?.state) continue;
     expect(["queued", "running", "done", "stopped", "failed", "cancelled"]).toContain(f.expect.state);

@@ -228,11 +228,11 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(mergesOf(git.calls)).toEqual([]);
   });
 
-  // Criterion 4. Scoped to the wall clock. A provider limit can stop a
-  // step mid-sentence with no commit boundary of its own, and a CLI
-  // error is not a stop at all — neither is landed.
+  // Criterion 4. Scoped to the wall clock and a provider limit — every
+  // other terminal reason lands nothing, since neither a red test suite
+  // nor a CLI error leaves a commit boundary landing can trust.
   test("a stop for a reason other than the clock lands nothing", async () => {
-    for (const reason of ["provider-limit", "cli-error"]) {
+    for (const reason of ["tests-red", "cli-error"]) {
       const git = gitFor();
       const { base, results } = serverWithRunner(git);
       const job = await runStep(base, "analyze");
