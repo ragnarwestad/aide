@@ -18,6 +18,7 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 - [How many run at once](#how-many-run-at-once)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
+- [Running a step by hand](#running-a-step-by-hand)
 - [Notifications](#notifications)
 - [Live runs](#live-runs)
 - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -445,6 +446,31 @@ invocation would delete the installed script.
 **`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
 available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
 `array+=(...)` instead.
+
+## Running a step by hand
+
+The queue is what normally drives `aide-run-spec`, but it runs ONE workflow step for ONE spec from a terminal too,
+with the same guards:
+
+```bash
+aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
+              --budget-usd 3 --timeout-sec 1200 \
+              --permission-mode acceptEdits \
+              --result-file /tmp/step.json [--push none|branch|pr] [--pull]
+              [--worktree-base ~/.aide/dashboard/worktrees]
+```
+
+It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
+checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
+main checkout stops nobody. `--permission-mode` is never defaulted, because the most dangerous knob has to be typed
+out by whoever starts the run. It enforces its own wall clock (SIGTERM to the process group, then SIGKILL), commits
+whatever the step managed to write in BOTH roots — the project and the specs repo — and writes one JSON line to
+stdout and to `--result-file`. `--worktree-base` relocates the worktrees; a base inside any of the repos is refused.
+The worktrees go when the run ends, and one left behind by a killed run is swept by the next run for that spec.
+`--dry-run` prints the command line it would use and starts nothing.
+
+A step started this way reports nothing to a board unless `AIDE_RUN_URL` is set (see Live runs below); a step the
+queue starts needs no such setting.
 
 ## Notifications
 
