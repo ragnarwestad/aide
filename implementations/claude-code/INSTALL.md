@@ -112,7 +112,7 @@ claude plugin install jdtls-lsp@claude-plugins-official
 
 | Command                              | Description               |
 |--------------------------------------|---------------------------|
-| `/aide-create TODO <description>`    | Create a spec             |
+| `/aide-create <description>`         | Create a spec             |
 | `/aide-analyze <number>`             | Analyze codebase          |
 | `/aide-implement PROJ-XXXX`          | Implement with TDD        |
 

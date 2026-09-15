@@ -112,7 +112,7 @@ Use exactly this reason when closing the spec: $reason"
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own
-  # documented argument shape ("TODO mode (with name)"), so nothing is
+  # documented argument shape ("A named folder"), so nothing is
   # invented on either side of the contract. The slug is a throwaway
   # token for that parser and NOT the spec's folder slug — which is why
   # the title is also stated on a line of its own: a title is not

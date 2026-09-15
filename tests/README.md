@@ -435,7 +435,7 @@ echo "$result" | jq '.result'
 
 ```python
 # Run the command
-subprocess.run(["claude", "-p", "/aide-create TODO test Description"])
+subprocess.run(["claude", "-p", "/aide-create test Description"])
 
 # Verify that the files were created
 assert (specs_dir / "todo-01-test" / "1-description.md").exists()
@@ -452,7 +452,7 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
 
     # Run the command
     result = subprocess.run(
-        ["claude", "-p", "/aide-create TODO test-task Description",
+        ["claude", "-p", "/aide-create TODO-test-task Description",
          "--output-format", "json"],
         capture_output=True, text=True, timeout=120,
         cwd=str(tmp_path)
