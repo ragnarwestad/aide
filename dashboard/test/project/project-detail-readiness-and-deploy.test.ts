@@ -356,6 +356,64 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
   });
 });
 
+// Spec 464: the Projects-list banner these two tests originally proved is
+// gone, but the schedule-level guarantee they prove — a hung origin never
+// blocks a request, and never stalls the OTHER projects' own ticks — is
+// still real, and `/projects/<name>?tab=deploy` makes the exact same
+// `peekDrift` read the list used to. Ported from `projects-route.test.ts`
+// rather than dropped (3-solution.md § Test coverage, AC-5).
+describe("refreshDrift's schedule-level guarantees (ported from the /projects route)", () => {
+  test("an origin that never answers does not hold a project's Deploy tab up (criterion 2)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const settledRun = settled(root, "aide").run;
+    const stuck: GitRunner = async (dir, args) =>
+      args[0] === "fetch" ? await new Promise(() => {}) : settledRun(dir, args);
+    const base = serve(root, { run: stuck }, 25);
+    const res = await Promise.race([
+      get(base, "aide", "deploy"),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("the page waited on git")), 500)),
+    ]);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toMatch(/aria-current="page"[^>]*>Deploy/);
+  });
+
+  test("one project's git hanging does not stop refreshDrift asking about the one beside it", async () => {
+    const calls: { dir: string; args: string[] }[] = [];
+    const mixed: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      // atlasaurus's origin never answers. Only the FETCH hangs: the
+      // readiness check beside the drift check reads local git and is
+      // allowed to, so hanging everything would be a test about that
+      // instead.
+      if (dir.endsWith("/atlasaurus") && args[0] === "fetch") return await new Promise(() => {});
+      const cmd = args.join(" ");
+      if (cmd.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${dir}\n` };
+      if (cmd.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/main\n" };
+      if (cmd.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
+      if (cmd.startsWith("show-ref")) return { code: 0, stdout: "" };
+      if (args[0] === "fetch") return { code: 0, stdout: "" };
+      if (cmd.startsWith("rev-list --count")) return { code: 0, stdout: "5\n" };
+      return { code: 1, stdout: "" };
+    };
+    const root = projectsRoot({ aide: INSTALLS, atlasaurus: INSTALLS });
+    const base = serve(root, { run: mixed }, 25);
+    const html = await loadUntil(base, "aide", "5 commits behind origin", 2000, "deploy");
+    expect(html).toContain("5 commits behind origin");
+    // And the schedule keeps ticking rather than being stuck on the round
+    // that never finished. The hanging project is what shows it: nothing
+    // ever answers for it, so every further tick asks it again.
+    const asked = () =>
+      calls.filter((c) => c.dir.endsWith("/atlasaurus") && c.args[0] === "fetch").length;
+    const roundOne = asked();
+    expect(roundOne).toBeGreaterThan(0);
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline && asked() === roundOne) {
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(asked()).toBeGreaterThan(roundOne);
+  }, 15000);
+});
+
 // Spec 407, REQ-5: the Refresh button and the route it posted to are
 // both gone. The value it forced — origin drift — keeps refreshing on
 // its own, on the unchanged background schedule (REQ-6).

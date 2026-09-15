@@ -255,7 +255,7 @@ export function createdCell(
 
 /** What the "not landed" mark says on hover, age included (spec 208).
  *  Spelled out here rather than at the call site so the fact and its
- *  freshness cannot drift apart — the same reason `driftNote` exists,
+ *  freshness cannot drift apart — the same reason `driftPrefix` exists,
  *  and the same idea: an answer a schedule took is shown WITH how old
  *  it is rather than withheld.
  *

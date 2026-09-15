@@ -37,7 +37,6 @@ import { navEntries, ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, NEW_SPEC_ROUTE, 
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
 import {
-  UNCHECKED_NOTE,
   type ProjectDrift,
   type ProjectView,
   type Page,
@@ -48,7 +47,6 @@ import { codeLandingChoices } from "./settings-table.ts";
 
 export type { SpecView, ProjectView, Page, ProjectDrift, ProjectPageOptions };
 export {
-  UNCHECKED_NOTE,
   navEntries,
   ABOUT_PAGE,
   OVERVIEW_PAGE,
@@ -155,19 +153,6 @@ export interface ProjectsPageOptions {
    *  else: a project that CAN run must not be reported in the same
    *  colour as one that cannot. */
   noticeOk?: boolean;
-  /** How many commits each project's checkout is behind origin, for the
-   *  ones that are (spec 142). A project merged from a laptop, the
-   *  GitHub web UI or another machine ran no `AIDE_INSTALL_CMD`, so the
-   *  serving host is still serving the old code — and until this said
-   *  so, nothing did.
-   *
-   *  A key here is a project the check is GATED for, whatever the
-   *  answer; absent means no `AIDE_INSTALL_CMD`, and says nothing at
-   *  all. Since spec 203 the answer comes off a background schedule, so
-   *  a gated project can be present with nothing answered for it yet
-   *  (`checkedAt: null`) — which the row says, rather than showing a
-   *  count nobody has taken. */
-  driftByProject?: Record<string, ProjectDrift>;
   /** Whether a run could start in each project, recomputed per request
    *  (spec 184). The Add flow used to say this exactly once, in the
    *  query string of the redirect it landed on, and never again — so an
@@ -210,16 +195,6 @@ export interface ProjectsPageOptions {
   currentUrl?: string;
 }
 
-/** What the row says. Spelled out here rather than at the call site so
- *  the count and its wording cannot drift apart. The freshness clause
- *  is spec 203's half: the count is whatever a background schedule
- *  last found, so how OLD it is decides how much of it to believe —
- *  `driftPrefix` (spec 258) does that conversion. This list has no
- *  Deploy button, so its own ending says so, unlike the project page's
- *  shared prefix. */
-const driftNote = (behind: number, checkedAt: number, now: number): string =>
-  `${driftPrefix(behind, checkedAt, now)} — deploy is a hand step`;
-
 export function renderProjectsPage(
   projects: ProjectView[],
   generatedAt: string,
@@ -227,11 +202,6 @@ export function renderProjectsPage(
   opts: ProjectsPageOptions,
 ): string {
   const allowed = new Set(opts.createProjects ?? []);
-  // The clock the drift note's freshness label is measured against. The
-  // page's own stamp, not a second one passed in: two answers to "when
-  // is now" on one render is one too many.
-  const stamped = Date.parse(generatedAt);
-  const now = Number.isNaN(stamped) ? Date.now() : stamped;
   const body =
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
@@ -254,16 +224,6 @@ export function renderProjectsPage(
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
-      note: (name) => {
-        const drift = opts.driftByProject?.[name];
-        // Three states, not two: nothing asked yet says so, an
-        // unanswerable answer says nothing (fail-open), and a real
-        // count carries how old it is.
-        return !drift ? undefined
-          : drift.checkedAt === null ? UNCHECKED_NOTE
-          : drift.behind ? driftNote(drift.behind, drift.checkedAt, now)
-          : undefined;
-      },
       // Spec 369: the sentence itself lives on the Config tab now (moved
       // off the Health tab by spec 378) — the list carries only a link
       // to it, gated on the same answer the sentence used to be gated

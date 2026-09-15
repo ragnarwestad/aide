@@ -289,7 +289,7 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
 
 /** When the set was last taken, for the archive page's own label: an
  *  answer this old is SHOWN with its age rather than withheld, the
- *  same treatment `driftNote` gives the commits-behind count. The
+ *  same treatment `driftPrefix` gives the commits-behind count. The
  *  OLDEST of the roots asked, because the badge speaks for all of
  *  them, and `null` where any root has never been asked at all. */
 export function peekUnlandedCheckedAt(ctx: SpecLookupContext): number | null {

@@ -20,10 +20,6 @@ export interface ProjectDrift {
   checkedAt: number | null;
 }
 
-/** And what a project's row says for a check the schedule has not
- *  reached yet. A count nobody has taken is not zero. */
-export const UNCHECKED_NOTE = "origin drift not checked yet";
-
 export interface ProjectPageOptions {
   /** The project's own name for its default branch, off `origin/HEAD`
    *  — so the Code-landing choice reads "Merge into main" (or `master`)

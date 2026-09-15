@@ -15,10 +15,9 @@ import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";
 
-/** The shared half of the drift sentence — one wording source, two
- *  endings (spec 258): the list's own `driftNote` in `projects-page.ts`
- *  appends " — deploy is a hand step", which would contradict the
- *  Deploy button this file draws right beside the same words. */
+/** The drift sentence's own ending (spec 258), naming the Deploy button
+ *  this file draws right beside it — the only ending this wording has,
+ *  now that the Projects-list row shows no drift line of its own. */
 /** How long a Deploy tab that has no origin answer yet waits before
  *  asking for itself again. The answer is taken by a background poll,
  *  not by this render, so the only page that can be wrong is one drawn

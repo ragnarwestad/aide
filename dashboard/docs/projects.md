@@ -82,12 +82,12 @@ sentence is built once, on the server, so the two modes cannot drift apart.
 ### A page render never waits on the network
 
 `assessProjectReadiness` only ever touches disk — `rev-parse`, `show-ref`, `symbolic-ref`, `worktree list` — and so
-does everything else on the request path. The commits-behind-origin count beside it on the same row needs a real
+does everything else on the request path. The commits-behind-origin count on a project's own Deploy tab needs a real
 `git fetch origin`, and that fetch runs off the request path: `refreshDrift()` walks the configured projects on an
 `.unref()`'d `setInterval`, the same shape as the runner's own tick and the SSE keep-alive ping, cleared in `stop()`
 beside them. The handler calls the synchronous `peekDrift()`, which reads the cache and never spawns git. A project
-the poll has never reached yet returns `checkedAt: null`, and the row says "origin drift not checked yet" — a labelled
-stale number, never a page that blocks on GitHub being reachable.
+the poll has never reached yet returns `checkedAt: null`, and the Deploy tab says the check has not been made yet —
+a labelled stale number, never a page that blocks on GitHub being reachable.
 
 ### What Add finishes itself
 

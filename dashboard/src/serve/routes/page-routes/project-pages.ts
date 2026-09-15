@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
-import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProjectDrift, type TestServerRow } from "../../../render";
+import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
@@ -301,30 +301,6 @@ export async function projectPages(
     // scan per request is the same cost `make generate` already treats
     // as cheap — and no invalidation to get wrong.
     const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot);
-    // Spec 142: a merge made anywhere but the Merge button below ran
-    // no `AIDE_INSTALL_CMD`, so the serving host is still serving the
-    // old code and, until this asked, nothing said so. Asked only of
-    // the projects that expect an install to have happened —
-    // deploying is a known hand step where none is configured, and a
-    // banner there would be noise on every row forever.
-    //
-    // Kept out of `buildProjectViews`, which stays a pure disk scan
-    // the static generator shares.
-    //
-    // Spec 203: a read, and nothing else. `peekDrift` is a map
-    // lookup — no await, no git, no network on this path ever. The
-    // taking of the answer is `refreshDrift`'s job on its own
-    // schedule; what a row shows here is the last one it found, with
-    // its own timestamp so the page can say how old it is. A project
-    // gated for the check but never yet answered for is a key with a
-    // null `checkedAt`, which the row says out loud.
-    const driftByProject: Record<string, ProjectDrift> = {};
-    for (const p of projects) {
-      const root = ctx.machineryProjectDir(p.name);
-      if (resolveInstallCmd(root).value) {
-        driftByProject[p.name] = ctx.branchStatus.peekDrift(root);
-      }
-    }
     // Spec 184: whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who
@@ -357,7 +333,6 @@ export async function projectPages(
       new Date().toISOString(),
       ctx.nav(),
       {
-        driftByProject,
         readinessByProject,
         token: ctx.queueToken,
         // The RAW allowlist, like the New-spec dropdown: a project

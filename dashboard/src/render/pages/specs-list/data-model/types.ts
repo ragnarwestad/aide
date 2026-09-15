@@ -149,7 +149,7 @@ export interface ArchivedSpecView {
   /** When that answer was last taken — epoch ms, the checker's own
    *  cache stamp (spec 208). The set is whatever a background schedule
    *  last found, so how OLD it is decides how much of it to believe:
-   *  the mark says so, the same way `driftNote` labels a commits-behind
+   *  the mark says so, the same way `driftPrefix` labels a commits-behind
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
