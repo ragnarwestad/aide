@@ -8,6 +8,7 @@ import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
 import { specNotice } from "../../../../src/render/ui/job-state/notice.ts";
 import { STEP_LABELS_NB, stepLabel } from "../../../../src/render/ui/components";
+import { stepButton } from "../../../../src/format/step-label.ts";
 import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
 
 describe("GERUND_EN/GERUND_NB (spec 350)", () => {
@@ -30,9 +31,21 @@ describe("STEP_LABELS_NB", () => {
     }
   });
 
-  test("phase names are capitalized, in both languages", () => {
-    expect(stepLabel("archive")).toBe("Archive");
-    expect(stepLabel("archive", "nb")).toBe("Arkivering");
+  test("phase names use the Norwegian imperative", () => {
+    expect(stepLabel("create", "nb")).toBe("Opprett");
+    expect(stepLabel("analyze", "nb")).toBe("Analyser");
+    expect(stepLabel("implement", "nb")).toBe("Implementer");
+    expect(stepLabel("archive", "nb")).toBe("Arkiver");
+    expect(stepLabel("explore", "nb")).toBe("Utforsk");
+    expect(stepLabel("manifest", "nb")).toBe("Manifest");
+    expect(stepLabel("reopen", "nb")).toBe("Gjenåpne");
+    expect(stepLabel("reset", "nb")).toBe("Tilbakestill");
+    expect(stepLabel("schedule", "nb")).toBe("Kjøring");
+    expect(stepLabel("close", "nb")).toBe("Lukk");
+  });
+
+  test("row buttons keep their English step word", () => {
+    expect(stepButton("archive")).toBe("Archive");
   });
 });
 

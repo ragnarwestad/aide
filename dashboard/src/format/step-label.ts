@@ -17,9 +17,9 @@ export const STEP_LABELS: Record<string, string> = {
   schedule: "Schedule", close: "Close",
 };
 export const STEP_LABELS_NB: Record<string, string> = {
-  create: "Oppretting", analyze: "Analyse", implement: "Implementering", archive: "Arkivering",
-  explore: "Utforsking", manifest: "Manifestoppdatering", reopen: "Gjenåpning", reset: "Tilbakestilling",
-  schedule: "Plankjøring", close: "Lukking",
+  create: "Opprett", analyze: "Analyser", implement: "Implementer", archive: "Arkiver",
+  explore: "Utforsk", manifest: "Manifest", reopen: "Gjenåpne", reset: "Tilbakestill",
+  schedule: "Kjøring", close: "Lukk",
 };
 
 export const stepLabel = (step: string, lang: Language = "en"): string =>
