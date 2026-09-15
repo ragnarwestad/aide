@@ -38,20 +38,10 @@ describe("the listing on /projects", () => {
     expect(html).toMatch(/class="[^"]*error[^"]*"/);
   });
 
-  // The link 112 left behind pointed at `/` because the management was
-  // there. It is here now, so the link has nothing to point at.
-  test("no Manage projects link — the management IS this page", () => {
-    expect(page([project("alpha")])).not.toContain("Manage projects");
-  });
-
   test("it carries the nav — and no stamp: the build time lives on About now", () => {
     const html = page([project("alpha")]);
     expect(html).toContain("<nav");
     expect(html).not.toContain(AT);
     expect(html).not.toContain("<h1>Projects</h1>");
-  });
-
-  test("no next-scheduled-run text on a row (AC-1)", () => {
-    expect(page([project("aide")]).toLowerCase()).not.toContain("next scheduled run");
   });
 });

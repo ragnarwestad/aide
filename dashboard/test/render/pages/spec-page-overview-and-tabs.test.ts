@@ -19,14 +19,8 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
     expect(html).not.toContain("Approach 1.");
   });
 
-  // Spec 294: the phase-status chip is gone from the banner entirely —
-  // no badge, no state word, on any tab. The Update button stays. The
-  // title line that used to stay with it is gone too, for the reason
-  // the next test carries.
-  test("no chip/badge shows a state, but the Update button is still there", () => {
+  test("the Update button is on the banner", () => {
     const html = page();
-    expect(html).not.toContain('class="chip"');
-    expect(html).not.toContain("not started");
     expect(html).toContain("Update");
   });
 

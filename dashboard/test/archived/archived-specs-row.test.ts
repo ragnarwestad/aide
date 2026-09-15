@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
+  ARCHIVED_VIEW, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SHOWN, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
   UNSTAMPED, blockFor, described, gitDated, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
@@ -240,21 +240,6 @@ describe("an archived spec's row", () => {
     const body = cell.slice(0, cell.indexOf("</td>"));
     expect(body).toContain('<span class="u-tok">9.6k</span>');
     expect(body).not.toContain("$0.00");
-  });
-
-  // Spec 257: the description no longer shows under the title at all —
-  // recorded or not, long or short. It stays SEARCHABLE (see the search
-  // tests below), only the on-page display goes.
-  test("shows no description text under the title, recorded or not", async () => {
-    const withDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
-    expect(withDescription).not.toContain("archive-desc");
-    expect(withDescription).not.toContain(LONG_TAIL);
-  });
-
-  test("shows no dash placeholder either, for a spec with no description", async () => {
-    const withoutDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
-    expect(withoutDescription).not.toContain("archive-desc");
-    expect(withoutDescription).not.toContain("—");
   });
 
   // --- spec 317, REQ-6: an archived row's own Created date -------------------

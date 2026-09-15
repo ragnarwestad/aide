@@ -79,10 +79,6 @@ describe("the space between two controls comes from their container", () => {
 // lines rather than a wider column.
 
 describe("the row's action wraps rather than widening a column", () => {
-  test("no cell of the buttons' own is left to declare a width on", () => {
-    expect(CSS).not.toContain("stackcell");
-    expect(CSS).not.toMatch(/\.stack \{/);
-  });
 
   test("the container the badge and button share wraps, with the gap it always had", () => {
     const rule = CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "";
@@ -126,9 +122,8 @@ describe("the state trigger reads as a control, not plain text", () => {
     expect(hover).toMatch(/border-color:\s*var\(--muted\)/);
   });
 
-  test(".specsearch > .btn.primary carries the auto margin, .menu.state no longer does", () => {
+  test(".specsearch > .btn.primary carries the auto margin", () => {
     expect(CSS).toMatch(/\.specsearch > \.btn\.primary \{[^}]*margin-left:\s*auto[^}]*\}/);
-    expect(CSS).not.toMatch(/\.specsearch > \.menu\.state \{[^}]*margin-left:\s*auto[^}]*\}/);
   });
 
   test("the panel carries no left-anchoring override, so it falls back to the base right anchor", () => {

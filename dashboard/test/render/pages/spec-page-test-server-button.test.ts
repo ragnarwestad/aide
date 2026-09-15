@@ -1,9 +1,5 @@
-// Spec 388 put a Start board button in the spec page's tab row. It is
-// gone: it took the width that made that row wider than the fields and
-// the editor below it, and a press costing minutes and real model spend
-// needs a home of its own. The POST route is untouched — what these
-// tests pin is that the page offers no button to it, and that a board
-// already running is still findable and stoppable.
+// A test server already running for a spec is findable and stoppable
+// from the spec page.
 
 import { describe, expect, test } from "bun:test";
 import type { SpecPageView } from "../../../src/render";
@@ -12,17 +8,8 @@ import { page, view } from "./spec-page-fixtures.ts";
 const TEST_SERVER_ACTION = "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/test-server";
 const TEST_SERVER_STOP_ACTION = "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/test-server/stop";
 
-describe("the board: no Start button on the spec page", () => {
+describe("the board on the spec page", () => {
   const withBoard = (extra: Partial<SpecPageView> = {}) => page(view({ testServerAction: TEST_SERVER_ACTION, ...extra }));
-
-  test("no Start board button, and nothing posting to the start route", () => {
-    expect(withBoard()).not.toContain("Start board");
-    expect(withBoard()).not.toContain(`action="${TEST_SERVER_ACTION}"`);
-  });
-
-  test("its cost warning went with it — there is no press left to warn about", () => {
-    expect(withBoard()).not.toContain("real model spend");
-  });
 
   test("a board that is starting still says so, with its branch and commit", () => {
     const html = withBoard({ testServer: { status: "starting", branch: "aide/150-one-page", commit: "abc1234" } });

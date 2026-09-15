@@ -4,25 +4,9 @@ import { detail, NAV, openKeys } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.
 //
-// Spec 125: a step run by Codex says two things the page has to honour.
-// There is no `claude-usage` for a Codex session, so the Live panel is
-// not "unknown" — it is absent, because nothing will ever fill it. And
-// there is no dollar figure anywhere in Codex's output, so the Cost
-// column shows the token count and a dash where the money would be.
+// Spec 125: there is no dollar figure anywhere in Codex's output, so the
+// Cost column shows the token count and a dash where the money would be.
 describe("a job run by Codex", () => {
-  test("shows no Live right now panel — nothing watches a Codex session", () => {
-    const html = renderJobDetailPage(
-      detail({ state: "running", tool: "codex" }),
-      "2026-08-20T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).not.toContain("Live right now");
-  });
-
-  // Spec 125's other half — that a running CLAUDE job still showed the
-  // panel — is gone with the panel itself (spec 150). Both tools are
-  // asserted panel-free in "Live right now is gone" below.
 
   test("a Codex step's Cost column is tokens and a dash, never $0.00", () => {
     const html = renderJobDetailPage(

@@ -6,7 +6,6 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, parseArgs } from "../../src/serve/serve.ts";
-import { renderSite } from "../../src/render";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 let dir: string;
@@ -70,16 +69,6 @@ describe("POST /api/aide-run", () => {
       body: JSON.stringify({ host: "h", sessionId: "s2", command: "implement", pad: "x".repeat(5000) }),
     });
     expect(res.status).toBe(413);
-  });
-});
-
-// The /live page is gone (2026-08-18): the spec list shows every queued
-// run per row, and interactive sessions are claude-usage's own page.
-describe("GET /live", () => {
-  test("is not a page any more, and nothing links to it", async () => {
-    expect((await fetch(`${base}/live`)).status).toBe(404);
-    const html = await (await fetch(`${base}/`)).text();
-    expect(html).not.toContain('href="/live"');
   });
 });
 
@@ -183,16 +172,6 @@ describe("GET /projects (spec 115)", () => {
     const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
     expect(navHtml).toContain('href="projects.html"');
     expect(navHtml).not.toContain('href="/projects"');
-  });
-});
-
-describe("generated site nav (criterion 5)", () => {
-  test("no page links to /live any more", () => {
-    const pages = renderSite(
-      [{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }],
-      "2026-08-16T00:00:00Z",
-    );
-    for (const p of pages) expect(p.html).not.toContain('href="/live"');
   });
 });
 

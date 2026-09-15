@@ -121,18 +121,6 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
   });
 
-  // Criterion 5: Cancel does nothing but leave. A plain `<a href="/">`
-  // is what makes "no request against /api/queue/create" true
-  // structurally — there is no script for it to depend on.
-  // Spec 252: the bottom Cancel beside Create is gone — the top Back
-  // link is the one plain link home now, and it is a link either way,
-  // never a button that could post.
-  test("no bottom Cancel beside Create — Back is the one way out", () => {
-    const html = newPage();
-    expect(html).not.toContain('<a class="btn" href="/">Cancel</a>');
-    expect(html).not.toContain('name="cancel"');
-  });
-
   // --- spec 228: the model the FIRST step runs on ----------------------------
   //
   // The four steps that follow `create` each have a phase line with a

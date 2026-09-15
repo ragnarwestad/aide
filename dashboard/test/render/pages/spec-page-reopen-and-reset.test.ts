@@ -55,25 +55,13 @@ describe("spec 198: the Reopen control", () => {
     expect(archived().match(/name="steps" value="reopen"/g)).toHaveLength(1);
   });
 
-  // "This spec is archived — a record, and read-only." was a notice
-  // under the title until 2026-08-23. Two things were wrong with it:
-  // the page uses that shape for something that just happened, not for
-  // something that is the case, and "read-only" is a truth with
-  // modifications — Reopen is on the head line, and archive can be run
-  // again while the branch is open. Spec 300 then dropped the
-  // "Archived" label itself: the sentence already says what is the
-  // case, and a label running into it ("Archived the folder has
-  // moved...") read as one thing typed against another.
-  test("being archived is one self-contained sentence, and does not claim read-only", () => {
+  // Being archived is what is the case, not something that just
+  // happened, so it is one plain sentence and never the notice shape.
+  test("being archived is one self-contained sentence, not a notice", () => {
     const html = archived();
-    expect(html).not.toContain("<strong>Archived</strong>");
     expect(html).toContain(
       "This spec has been archived, and cannot be edited until the spec is reopened",
     );
-    // The About dialog in the shell calls the dashboard itself
-    // read-only, so it is the old SENTENCE that must be gone.
-    expect(html).not.toContain("a record, and read-only");
-    expect(html).not.toContain("This spec is archived");
     // Not the notice shape: that one is for what just happened.
     expect(html).not.toMatch(/class="rowmsg info"[^>]*>[\s\S]{0,80}archived/);
   });

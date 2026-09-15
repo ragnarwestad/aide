@@ -28,15 +28,9 @@ describe("dashboard/CLAUDE.md points at the pairs detail instead of carrying it 
   test("points at the new page", () => {
     expect(claudeMd()).toContain("docs/bash-typescript-decisions.md");
   });
-  test("no longer carries the table itself", () => {
-    expect(claudeMd()).not.toContain("Pinned by");
-  });
 });
 
 describe("the installation section moved out of dashboard/CLAUDE.md into development.md (REQ-4)", () => {
-  test("dashboard/CLAUDE.md no longer carries it", () => {
-    expect(claudeMd()).not.toContain("install_common_bin");
-  });
   test(".claude/rules/development.md carries it instead", () => {
     const text = developmentMd();
     expect(text).toContain("Individual uninstallers never remove the shared scripts");

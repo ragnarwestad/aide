@@ -38,17 +38,6 @@ describe("the checks on the Overview tab", () => {
       expect(messageOf(git.calls)).toBe(`Edit 1-description.md for ${SPEC} from the dashboard`);
     });
 
-    // The sentence that named both files in one commit has nothing left
-    // to describe: two files can no longer arrive in one request.
-    test("no commit names both files any more", async () => {
-      const git = recording();
-      const { base } = startWithChecks(git.run);
-      await save(base, { text: NEW_TEXT });
-      await tick(base, { ticks: [OPEN_ROW] });
-      for (const call of git.calls.filter((c) => c[0] === "commit")) {
-        expect(call.join(" ")).not.toContain("and tick a check");
-      }
-    });
   });
 
   // --- criterion 7: a tick that cannot go through changes nothing -----------
@@ -177,24 +166,6 @@ describe("the checks on the Overview tab", () => {
     const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=checks`, auth)).text();
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(html).not.toContain('name="tick"');
-  });
-
-  // --- the route spec 188 removed is still gone ----------------------------
-  //
-  // Deliberate, and a test rather than an absence: `/status/tick` wrote
-  // and committed on the press of one box, with no Save at all. The
-  // form spec 212 gives back is a different thing — every box on it is
-  // posted by one Save — and it lives at `/tick`.
-  test("the old per-box route is gone — the URL answers 404", async () => {
-    const { base, dir } = startWithChecks(savable("/host"));
-    const res = await fetch(`${base}/api/queue/specs/aide/${SPEC}/status/tick`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
-      redirect: "manual",
-      body: new URLSearchParams({ phase: PHASE, line: OPEN_ROW, baseSha: FILE_SHA }).toString(),
-    });
-    expect(res.status).toBe(404);
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 });
 

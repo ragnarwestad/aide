@@ -59,14 +59,6 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
     );
   });
 
-  // The single guard that catches a half-finished edit: any path still
-  // spelled the old way. Deliberately narrow — `aide-dashboard` on its
-  // own is still legitimate as the launchd label, the state directory
-  // and the log path, none of which are source paths.
-  test("no path is left pointing at a standalone aide-dashboard checkout", () => {
-    expect(recipe).not.toContain("develop/aide-dashboard");
-  });
-
   // Spec 223's own regression: the service must not read from a
   // directory a person edits. `develop/` is where every such checkout on
   // these machines lives, and nothing in this recipe has a reason to

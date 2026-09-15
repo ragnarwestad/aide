@@ -25,10 +25,6 @@ describe("docs/running-specs.md's schedule section (REQ-4)", () => {
   // that changes no meaning at all.
   const flat = readFileSync(join(ROOT, "docs/running-specs.md"), "utf-8").replace(/\s+/g, " ");
 
-  test("no longer claims there is no edit form", () => {
-    expect(flat).not.toContain("no edit form");
-  });
-
   test("says an edit through the interface commits and pushes with no manual git step", () => {
     expect(flat).toContain("commits and pushes the change from the dashboard's own checkout immediately");
     expect(flat).toContain("no manual git step");

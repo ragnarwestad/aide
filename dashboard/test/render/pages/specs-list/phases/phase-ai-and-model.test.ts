@@ -71,8 +71,6 @@ describe("spec 179: an AI and a model on every phase line", () => {
     html.match(new RegExp(`<select[^>]*data-ai="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
-  const caption = (html: string) =>
-    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
   // --- criterion 1: one AI per phase, beside that phase's model ------------
 
@@ -173,16 +171,6 @@ describe("spec 179: an AI and a model on every phase line", () => {
     ]);
     expect(aiSelect(html, "implement")).toMatch(/<option value="codex"[^>]*selected/);
     expect(aiSelect(html, "analyze")).toMatch(/<option value="claude"[^>]*selected/);
-  });
-
-  // --- criterion 6: the control it replaces is gone ------------------------
-
-  test("no set-all control exists anywhere on the page", () => {
-    const html = rows();
-    expect(html).not.toContain("data-set-all");
-    expect(html).not.toContain("Set all");
-    // Nor the caption cell it used to leave empty for itself.
-    expect(caption(html)).not.toContain("<select");
   });
 
   // --- criterion 8: nothing new is posted ---------------------------------

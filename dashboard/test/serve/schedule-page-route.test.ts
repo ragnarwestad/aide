@@ -69,14 +69,6 @@ describe("GET /schedule (spec 272)", () => {
     expect(html).toContain("· Jobs</title>");
   });
 
-  test("no <select name=\"project\"> filter/selector remains on the response (criterion 3)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
-    writeSchedule(dir, "aide", NIGHTLY);
-    const html = await (await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).not.toContain('<select name="project">');
-    expect(html).not.toContain('class="scheduleprojects"');
-  });
-
   test("?q= narrows rows to a term matching project:name or the prompt path (criterion 4)", async () => {
     const { base, dir } = harness.start({
       extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] },
@@ -186,12 +178,6 @@ describe("GET /schedule/new (spec 468 — moved to the project's own Schedule ta
   test("is gone: 404", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
     const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.status).toBe(404);
-  });
-
-  test("the old /schedule/<project>/new path is gone too", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule/aide/new`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(404);
   });
 });

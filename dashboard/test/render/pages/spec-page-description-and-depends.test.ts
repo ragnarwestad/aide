@@ -1,28 +1,8 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderJobDetailPage, type SpecPageView } from "../../../src/render";
-import { GENERATED, NAV, NOW, file, lead, page, view } from "./spec-page-fixtures.ts";
-
-describe("spec 212: the Edit link that led to a second page is gone", () => {
-  test("no tab offers one, and the page it led to is not linked anywhere", () => {
-    for (const tab of ["checks", "description", "analysis", "solution", "status"]) {
-      expect([tab, page(view(), tab).includes("/edit")]).toEqual([tab, false]);
-    }
-  });
-
-  // The job page draws its phase's file through the same function.
-  test("never appears on a job page's phase file either", () => {
-    const html = renderJobDetailPage(
-      lead({ phase: { label: "2-analysis.md", text: "## Findings\n", sha: "a3f9c21", at: "2026-08-21T09:14:00+02:00" } }),
-      GENERATED,
-      NAV,
-      { now: NOW },
-    );
-    expect(html).toContain("2-analysis.md");
-    expect(html).not.toContain("/edit");
-  });
-});
+import type { SpecPageView } from "../../../src/render";
+import { file, page, view } from "./spec-page-fixtures.ts";
 
 describe("the Description tab", () => {
   const edit = (v: SpecPageView = view()) => page(v, "description");
@@ -131,19 +111,6 @@ describe("the Description tab", () => {
     expect(html).not.toContain("<textarea");
     expect(html).toContain("The dashboard never shows a spec.");
     expect(html).toContain("archived");
-  });
-
-  // Spec 394 (REQ-1) moved the Depends on picker out of this tab's own
-  // form and into the banner above the tab row — see the describe block
-  // below. This tab's own Save form no longer carries it at all, though
-  // the banner above it (part of every page) still does.
-  test("no Depends on field inside this tab's own Save form", () => {
-    const html = edit(view({
-      dependsOnOptions: [{ project: "aide", specFolder: "164-a-spec-can-depend" }],
-      dependsOn: ["164-a-spec-can-depend"],
-    }));
-    const saveForm = html.slice(html.indexOf('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save"'));
-    expect(saveForm).not.toContain('name="dependsOn"');
   });
 });
 

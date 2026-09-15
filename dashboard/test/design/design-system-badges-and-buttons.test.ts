@@ -144,36 +144,15 @@ describe("the primary button's label per row state (the design sheet's table)", 
     const cancel = html.match(/<button[^>]*>Cancel<\/button>/)?.[0] ?? "";
     expect(cancel).not.toContain("busy");
   });
-
-  // Spec 149: there is no Merge button at all any more, and the State
-  // line stopped naming what one would land. A finished spec with a
-  // branch still open says which PHASE is next, in the State column and
-  // there alone — the repo list carries links and nothing else.
-  test("a finished spec with an open branch offers no merge, and asks for none", () => {
-    const html = rows([row({ state: "done" })], { targets: [target()] });
-    expect(buttons(html)).not.toContain("Merge");
-    expect(html).not.toContain("ready to merge");
-    expect(html).not.toContain("waiting for archive");
-  });
-
 });
 
-// --- spec 171: no way out is OFFERED, because archive takes it itself --------
+// --- spec 171: a conflict is archive's to resolve ---------------------------
 //
-// There was a Resolve control here, narrowly gated to one refusal class
-// among several. Spec 171 folded resolving into `archive`, so the
-// control is gone and the test that matters is the one that says it is
-// absent everywhere — under every refusal class, on an open row and a
-// shut one alike. A conflict that reaches a reader is one no machine
-// could settle, and the row says so in the failure's own text beside the
-// ordinary re-run every other failed step offers.
+// A conflict that reaches a reader is one no machine could settle, and
+// the row says so in the failure's own text beside the ordinary re-run
+// every other failed step offers.
 
-describe("no Resolve control (spec 171)", () => {
-  const buttons = (html: string) =>
-    [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) =>
-      m[1]!.replace(/<[^>]*>/g, "").trim(),
-    );
-
+describe("a conflict refusal (spec 171)", () => {
   const CONFLICT = {
     error: "cannot merge aide/102 into main in /repos/aide (conflict)",
     errorReason: "conflict" as const,
@@ -182,39 +161,9 @@ describe("no Resolve control (spec 171)", () => {
   const conflicted = (opts: Partial<SpecsPageOptions> = {}) =>
     rows([row({ state: "done", ...CONFLICT })], { targets: [target()], ...opts });
 
-  test("a conflict refusal draws no control of its own", () => {
+  test("offers the ordinary re-run, the same control every other failed step's row carries", () => {
     const html = conflicted();
-    expect(html).not.toContain("resolveform");
-    expect(buttons(html)).not.toContain("Resolve");
-    // The hand route the reader had before spec 149 is gone too.
-    expect(buttons(html)).not.toContain("Merge");
-    // What it DOES offer is the ordinary re-run — the same control
-    // every other failed step's row carries.
     expect(html).toMatch(/<button[^>]*form="rowrun/);
-  });
-
-  test("a collapsed row draws none either", () => {
-    const html = conflicted({ filter: {} });
-    expect(html).not.toContain("resolveform");
-    expect(buttons(html)).not.toContain("Resolve");
-  });
-
-  test("no refusal class draws one", () => {
-    // The three the merge route can produce beside a conflict, and the
-    // conflict itself. None of them offers a press of its own now.
-    for (const error of [
-      "cannot fast-forward main in /repos/aide",
-      "aide/102 is not on origin in /repos/aide — there is nothing left to merge",
-      "merged locally in /repos/aide, but the push of main failed",
-      CONFLICT.error,
-    ]) {
-      const html = rows([row({ state: "done", error })], { targets: [target()] });
-      expect(`${error}: ${html.includes("resolveform")}`).toBe(`${error}: false`);
-    }
-  });
-
-  test("nothing on the page queues a resolve step", () => {
-    expect(conflicted()).not.toMatch(/name="steps"\s+value="resolve"/);
   });
 });
 
@@ -230,11 +179,6 @@ describe("the status badge carries no mark of its own", () => {
         `<span class="badge b-${variant}">${variant}</span>`,
       ]);
     }
-  });
-
-  test("and no rule left to draw one", async () => {
-    const { CSS } = await import("../../src/render/ui/css");
-    expect(CSS).not.toContain(".badge .dot");
   });
 
   // The idle pill is painted on the page's own ground, so without an

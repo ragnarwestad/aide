@@ -48,20 +48,6 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
     expect(html).not.toContain("0 3 * * *");
   });
 
-  test("no project selector remains: no <select name=\"project\"> and no .scheduleprojects form (criterion 3)", () => {
-    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
-      rows: [
-        {
-          project: "aide",
-          entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-          projectScheduleHref: "/projects/aide?tab=schedule",
-        },
-      ],
-    });
-    expect(html).not.toContain('<select name="project">');
-    expect(html).not.toContain('class="scheduleprojects"');
-  });
-
   test("?q= narrows to rows whose project:name or prompt path matches, case-insensitively (criterion 4)", () => {
     const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       rows: [

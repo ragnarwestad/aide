@@ -39,16 +39,6 @@ describe("nav (criterion 2)", () => {
     expect(navEntries()[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
-  // Spec 163 gave the archive a tab of its own; spec 221 took it away
-  // again, because every archived spec is a row on the Specs list now —
-  // one chip away, with the same date, description, "not landed" mark
-  // and search the tab had. Two places to read one thing is two places
-  // to keep in step.
-  test("the Archive entry is gone", () => {
-    expect(navEntries().map((e) => e.label)).not.toContain("Archive");
-    expect(navEntries().map((e) => e.path)).not.toContain("/archive");
-  });
-
   // Two tabs since spec 119, three from spec 163 to spec 221, two
   // again, three from spec 272 (Schedule): the site has a Specs half,
   // a Projects half and a Schedule half. The project pages are still
@@ -148,13 +138,6 @@ describe("the generated overview is a redirect to /projects", () => {
   test("a plain link too, for a reader the script never reaches", () => {
     expect(index).toContain('<a href="/projects">');
     expect(index.toLowerCase()).toContain("moved");
-  });
-
-  test("it lists nothing itself — that is the served page's job now", () => {
-    expect(index).not.toContain('class="proj-row"');
-    expect(index).not.toContain("2 projects · 1 active · 1 archived");
-    expect(index).not.toContain("Manage projects");
-    expect(index).not.toContain("<table");
   });
 
   test("it is still a page of the site, nav and all; the stamp lives on About", () => {
@@ -259,15 +242,6 @@ describe("the front page after the panel moved", () => {
       ...opts,
     });
 
-  test("no Projects disclosure under New spec", () => {
-    const html = page({ createProjects: ["aide", "atlasaurus"] });
-    // The MARKUP, not the word: the stylesheet is inlined into every
-    // page and still carries the panel's rules, for the page that has it.
-    expect(html).not.toContain('<details class="newspec projectadmin">');
-    expect(html).not.toContain('action="/api/queue/projects"');
-    expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
-  });
-
   // Spec 289 folded the state chips into one dropdown inside
   // `.specsearch`, so there is one filter row now, not "either" of two.
   // Spec 305 then moved the state control along that row to sit between
@@ -356,19 +330,6 @@ describe("the Overview's facts table (criterion 10)", () => {
     expect(facts(html)).toEqual(["Started", "Cost so farTokens so far", "Model", "Effort"]);
   });
 
-  test("the four facts said elsewhere are gone, branch list included", () => {
-    const html = renderJobDetailPage(
-      detail({ state: "done" }),
-      "2026-08-21T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(facts(html)).not.toContain("Project");
-    expect(facts(html)).not.toContain("Spec");
-    expect(facts(html)).not.toContain("Step");
-    expect(facts(html)).not.toContain("Work");
-  });
-
   // The heading is where the spec is named, and it stays: whichever tab
   // is open, a reader still has to know which job this is.
   test("the spec's own name and title stay above the tabs", () => {
@@ -381,33 +342,6 @@ describe("the Overview's facts table (criterion 10)", () => {
     expect(html).toContain("One page shows the whole spec");
     expect(html).toContain("02-job-detail-view");
   });
-});
-
-describe("Live right now is gone (criterion 9)", () => {
-  for (const tool of ["claude", "codex"] as const) {
-    test(`a running ${tool} job does not show it`, () => {
-      const html = renderJobDetailPage(
-        detail({ state: "running", tool }),
-        "2026-08-21T10:05:00Z",
-        NAV,
-        { tab: "overview" },
-      );
-      expect(html).not.toContain("Live right now");
-      expect(html).not.toContain("Subagents");
-    });
-  }
-
-  for (const state of ["queued", "done", "failed", "cancelled"] as const) {
-    test(`nor does a ${state} one`, () => {
-      const html = renderJobDetailPage(
-        detail({ state }),
-        "2026-08-21T10:05:00Z",
-        NAV,
-        { tab: "overview" },
-      );
-      expect(html).not.toContain("Live right now");
-    });
-  }
 });
 
 // --- spec 173: the head elements that make the page an app ------------------

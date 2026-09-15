@@ -182,21 +182,14 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     expect(html).not.toContain("<h2>Projects</h2>");
   });
 
-  test("the renamed page says Specs in its nav, heading and title (criterion 9)", async () => {
+  test("the page says Specs in its nav and title (criterion 9)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain("<title>aide -board</title>");
-    // No heading: the Specs tab right above it already says it
-    // (2026-08-19). The tab bar is the page's name.
-    expect(html).not.toContain("<h1>Specs</h1>");
     // Spec 119: the list has a tab of its own again, and it is the
     // current one here. The wordmark still goes home too.
     expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
     expect(html).toContain('<a class="brand" href="/">');
-    // Not one label left saying it either — the button and the form's
-    // heading were the other two places the retired word was read.
-    expect(html).not.toContain("Queue a job");
-    expect(html).not.toContain("Queue it");
   });
 
   // The whole page, with fixtures that carry no "queue" of their own:

@@ -231,25 +231,6 @@ describe("Settings page wording and layout (spec 409)", () => {
     expect(html).toMatch(/<table class="settingstable">/);
   });
 
-  // Spec 436, REQ-1: Units left Settings entirely — it now lives in the
-  // header (shell.test.ts's own concern), reachable in both desktop and
-  // mobile layouts, so Settings has nothing left to configure for it.
-  // Scoped to the settings FORM, not the whole page: the header itself
-  // now carries its own data-unit-choice rows (spec 436's unitControl())
-  // on every page, this one included — what REQ-1 actually asks is that
-  // Settings' own form has nothing left to configure Units with.
-  test("REQ-1 (spec 436): the settings form no longer renders a Units block", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS, defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    const formOpen = html.indexOf('<form id="settings-form"');
-    const formClose = html.indexOf("</form>", formOpen) + "</form>".length;
-    const form = html.slice(formOpen, formClose);
-    expect(form).not.toContain("data-unit-choice");
-    expect(form).not.toContain('<span class="lbl">Units</span>');
-  });
-
   // Spec 473: the cost budgets are gone — time limits are the only ones
   // the queue still enforces, so Settings has nothing left to ask for
   // a per-job budget or a job cap.

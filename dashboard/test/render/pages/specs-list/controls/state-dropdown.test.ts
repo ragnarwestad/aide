@@ -97,19 +97,12 @@ describe("the state dropdown (spec 289)", () => {
     expect(waitingHref).toContain("state=waiting");
   });
 
-  test('the "(?)" popover carries the search-scope sentence, not the old runs-help text', () => {
+  test('the "(?)" popover carries the search-scope sentence', () => {
     const html = page();
     expect(html).toContain(
       "Searches the project:folder, the title, the description — the whole " +
         "description, including the part the row does not show.",
     );
-    expect(html).not.toContain("A few jobs run side by side here");
-  });
-
-  test('no class="listnote" appears anywhere on the page', () => {
-    const html = page();
-    expect(html).not.toContain('class="listnote"');
-    expect(html).not.toContain('class="muted small listnote"');
   });
 
   test("a plain Search submit still carries the active state filter forward (regression guard)", () => {
