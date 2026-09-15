@@ -35,6 +35,10 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
       spentUsd: res.costUsd,
       spentTokens: res.tokens,
+      // THIS step's model, not the row's: the row speaks for the running
+      // or last step, and spread whole it named the last step's model on
+      // every line of a multi-step job (2026-09-15).
+      model: r.stepModels?.[step] ?? r.model,
       error: res.ok && !landingFell ? undefined : r.error,
       // The job's `landing` flag belongs to the ONE step whose branch is
       // being merged, never to the steps behind it. Spread whole, it

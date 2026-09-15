@@ -308,6 +308,9 @@ export function aiPicker(
   formIdOverride?: string,
   /** Same flag, same reason, as `modelPicker`'s own. */
   alreadyRun = false,
+  /** The CLI the phase's own result names — the tool to select when
+   *  the model's choice name is no longer configured. */
+  usedTool?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   // `TOOL_NAMES`'s own key order, like the option groups in
@@ -340,7 +343,7 @@ export function aiPicker(
   const on = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
+  const restingTool = models.find((m) => m.name === on)?.tool ?? usedTool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Why it is locked, when it is, is said once for the whole phase

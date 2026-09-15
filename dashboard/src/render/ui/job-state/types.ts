@@ -87,6 +87,10 @@ export interface QueueRowView {
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
+  /** The job's own per-step model choices, so an attempt built for one
+   *  step can carry THAT step's model rather than the row's (which is
+   *  the running or last step's). */
+  stepModels?: Record<string, string>;
   /** The effort level this step ran at, when one was chosen (spec 364).
    *  Absent means none was — a real, valid resting state, unlike
    *  `model`, which a job always carries a real value for. */
@@ -115,6 +119,9 @@ export interface QueueRowView {
 export interface StepResultView {
   step?: string;
   ok: boolean;
+  /** Which CLI ran this step — what a phase line names beside a model
+   *  whose choice name is no longer configured. */
+  tool?: string;
   /** How the step ended, in the runner's own words — what tells a guard
    *  refusal (`not-implemented-yet`, `acceptance-criteria-unticked`)
    *  apart from a run that was actually tried. */

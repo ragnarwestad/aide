@@ -36,6 +36,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     state: job.state,
     landing: job.landing,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
+    stepModels: job.model,
     effort: step ? resolveStepEffort(job, step) : undefined,
     spentUsd: job.spentUsd,
     // The stored split is five numbers; the page shows one. Flattened
@@ -72,7 +73,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
         ? ctx.store.get(job.sessionId)?.phase
         : undefined,
     results: job.results.map((r) => ({
-      step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total, terminalReason: r.terminalReason,
+      step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, terminalReason: r.terminalReason,
       // When the step ENDED (spec 199) — what a phase's own duration
       // is sliced out of, together with its own recorded start below.
       at: r.at,
