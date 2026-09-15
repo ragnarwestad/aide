@@ -20,7 +20,14 @@ import {
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
-import { NAME_RE, invalidRequest, parseCreateRequest, parseJobRequest, type ParseResult } from "../parse-request.ts";
+import {
+  NAME_RE,
+  invalidRequest,
+  parseCreateRequest,
+  parseJobRequest,
+  type CreateParseResult,
+  type ParseResult,
+} from "../parse-request.ts";
 import {
   parsePendingEffort,
   parsePendingModels,
@@ -106,7 +113,7 @@ export class QueueStore {
    *  allowlist rather than the discovered set — the folder is what the
    *  job is FOR — and stored through the same tail as every other job. */
   enqueueCreate(raw: unknown): ParseResult {
-    const parsed = parseCreateRequest(raw, {
+    const parsed: CreateParseResult = parseCreateRequest(raw, {
       allow: this.allowCreateProject,
       resolve: this.resolve,
       defaults: this.defaults,
@@ -124,6 +131,13 @@ export class QueueStore {
     // announce it a second time for one request.
     if (result.ok) {
       this.recordPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
+      // Spec 465: the sibling seed, for a model picked on the New page
+      // for a phase this job does not run — `writePendingModel`, not
+      // `setPendingModel`, for the same one-announcement-per-request
+      // reason as `recordPendingSteps` above.
+      for (const [step, model] of Object.entries(parsed.pendingStepModels ?? {})) {
+        this.writePendingModel(result.job.project, result.job.specFolder, step, model);
+      }
     }
     return result;
   }
@@ -406,6 +420,17 @@ export class QueueStore {
    *  configured allowlist. There is no `job.state` to gate on, since
    *  there is no job at all; the ONLY question is whether the step and
    *  the model are real. */
+  /** The write `setPendingModel()` and `enqueueCreate()`'s own seeding
+   *  share, without either one's own `changed()` call — the same split
+   *  `recordPendingSteps()` is to `setPendingSteps()` (spec 439):
+   *  `enqueueCreate()` folds this into the ONE insert-and-seed operation
+   *  a create request is, and `insert()` has already announced that. */
+  private writePendingModel(project: string, specFolder: string, step: string, model: string): void {
+    const key = `${project}/${specFolder}`;
+    this.pendingModels[key] = { ...this.pendingModels[key], [step]: model };
+    this.persistPendingModels();
+  }
+
   setPendingModel(project: string, specFolder: string, step: string, model: string): PendingModelResult {
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
     if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
@@ -421,11 +446,25 @@ export class QueueStore {
         ),
       };
     }
-    const key = `${project}/${specFolder}`;
-    this.pendingModels[key] = { ...this.pendingModels[key], [wanted]: model };
-    this.persistPendingModels();
+    this.writePendingModel(project, specFolder, wanted, model);
     this.changed();
     return { ok: true };
+  }
+
+  /** Carries a create job's pending picks from its provisional key to
+   *  the real folder landing assigns it (spec 465) — the `pendingModels`
+   *  sibling of the `specFolder` rename `update()` already makes on the
+   *  job itself (spec 453). A no-op when nothing is recorded under the
+   *  provisional key, which is the common case: most picks are for a
+   *  phase the create job DOES run and never touch this table. */
+  renamePendingModel(project: string, fromFolder: string, toFolder: string): void {
+    const fromKey = `${project}/${fromFolder}`;
+    const picks = this.pendingModels[fromKey];
+    if (!picks) return;
+    delete this.pendingModels[fromKey];
+    this.pendingModels[`${project}/${toFolder}`] = picks;
+    this.persistPendingModels();
+    this.changed();
   }
 
   /** The sibling of `setPendingModel()`, for an effort level (spec 364).

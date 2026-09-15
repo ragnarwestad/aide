@@ -290,6 +290,47 @@ describe("landing a created spec (spec 93)", () => {
     expect(group).not.toContain("ready to merge");
   });
 
+  // Spec 465, AC-2+AC-3+AC-4 chained: a model picked on the New page for
+  // a phase this create job does not run — Implement's own box left
+  // unticked — is banked as pending under the job's provisional folder,
+  // carried to the real folder once landing assigns it, and shows up on
+  // the landed row's own Implement select with no fresh pick needed.
+  test("a model picked for Implement on the New page pre-fills Implement's select once the spec lands", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git, {
+      queueDefaults: {
+        budgetUsd: 3,
+        jobCapUsd: 10,
+        dailyCapUsd: 20,
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" },
+        modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+      },
+    });
+    const made = (await (
+      await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        // No `steps`: only `create` runs. `model.implement` is posted
+        // anyway — the New page draws that select whether or not
+        // Implement's own box is ticked.
+        body: JSON.stringify({ project: "aide", title: "A new spec", description: "Do the thing", model: { implement: "fable" } }),
+      })
+    ).json()) as { job: { id: string; specFolder: string } };
+
+    writeFileSync(join(results, `${made.job.id}.json`), JSON.stringify(CREATE_RESULT));
+    await settle(base, made.job.id, (j) => j.specFolder === "94-a-new-spec");
+
+    const html = await (
+      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    const group = specControls(html, "94-a-new-spec");
+    const implementSelect = group.match(/<select name="model\.implement"[^]*?<\/select>/)?.[0] ?? "";
+    expect(implementSelect).not.toBe("");
+    expect(implementSelect).toContain('<option value="fable" data-tool="claude" selected>fable</option>');
+  });
+
   test("a create job that has not landed yet is still a row on the page", async () => {
     // `groupBySpec` drops any job whose spec is not a known target. A
     // create job's spec is unknown BY CONSTRUCTION until it lands, so

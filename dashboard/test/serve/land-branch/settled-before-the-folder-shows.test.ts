@@ -18,12 +18,15 @@ describe("what is settled before the checkout moves", () => {
   test("a create job carries its assigned folder before the numbered folder can be seen", async () => {
     const git = landingGit({ reset: { code: 0 } });
     const updates: { at: number; patch: Record<string, unknown> }[] = [];
+    const renames: { at: number; project: string; from: string; to: string }[] = [];
     const { ctx } = landCtx(git.run, {
       queue: {
         get: () => undefined,
         update: (_id: string, patch: Record<string, unknown>) => void updates.push({ at: git.calls.length, patch }),
         transition: () => ({ ok: true }),
         branchesFor: () => [],
+        renamePendingModel: (project: string, from: string, to: string) =>
+          void renames.push({ at: git.calls.length, project, from, to }),
       },
       finalizeCreateSpec: async () => ({ ok: true, specFolder: "151-the-real-name" }),
     });
@@ -43,6 +46,11 @@ describe("what is settled before the checkout moves", () => {
     const renamed = updates.find((u) => u.patch.specFolder === "151-the-real-name");
     expect(renamed).toBeDefined();
     expect(renamed!.at).toBeLessThanOrEqual(ff);
+    // The pendingModels entry moves the same moment the job's own
+    // specFolder does, before the checkout moves (spec 465).
+    const modelRename = renames.find((r) => r.project === "aide" && r.from === "new-abcd1234" && r.to === "151-the-real-name");
+    expect(modelRename).toBeDefined();
+    expect(modelRename!.at).toBeLessThanOrEqual(ff);
   });
 
   test("the open-branch set forgets the branch before the checkout moves, under every root the cache is keyed by", async () => {

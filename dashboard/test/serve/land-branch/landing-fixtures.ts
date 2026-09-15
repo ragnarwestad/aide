@@ -41,7 +41,13 @@ export function landCtx(
   const forgotten: { root: string; branch: string }[] = [];
   const remembered: { root: string; branch: string }[] = [];
   const ctx: Record<string, unknown> = {
-    queue: { get: () => undefined, update: () => {}, transition: () => ({ ok: true }), branchesFor: () => [] },
+    queue: {
+      get: () => undefined,
+      update: () => {},
+      transition: () => ({ ok: true }),
+      branchesFor: () => [],
+      renamePendingModel: () => {},
+    },
     gitRun,
     mergeLock: { run: async (_root: string, fn: () => Promise<unknown>) => fn() },
     machineryProjectDir: () => "/repos/aide-code",

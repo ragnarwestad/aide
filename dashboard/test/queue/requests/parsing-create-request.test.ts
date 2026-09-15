@@ -228,15 +228,18 @@ describe("parseCreateRequest — model", () => {
   });
 
   // A create job runs one step. A name posted for any other is the
-  // browser sending the whole set of phase selects, and is skipped
-  // rather than refused — the rule `parseJobRequest` already follows.
-  test("a name for a step this job does not run is ignored, not refused", () => {
+  // browser sending the whole set of phase selects, and is not refused
+  // — but it is not dropped either (spec 465): a real phase's pick is
+  // banked as pending, for the row to show once the phase's own job
+  // exists.
+  test("a name for a step this job does not run is banked as pending, not dropped", () => {
     const r = parseCreateRequest(
       { ...CREATE, model: { implement: "fable" } },
       { allow, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
     expect(r.ok && r.job.model).toEqual({ create: DEFAULTS.model.default! });
+    expect(r.ok && r.pendingStepModels).toEqual({ implement: "fable" });
   });
 });
 // --- spec 342: running the whole workflow from the start ---------------------
@@ -289,16 +292,18 @@ describe("parseCreateRequest — steps (spec 342)", () => {
     expect(r.ok && r.job.model).toEqual({ create: "fable", analyze: "sonnet", implement: "fable" });
   });
 
-  // A name posted for a step this job does not run is skipped, not
-  // refused — `parseJobRequest`'s own rule, since a phase table always
-  // posts every select it drew, whichever boxes are ticked.
-  test("a model named for an untouched phase is ignored", () => {
+  // A name posted for a step this job does not run is not refused —
+  // `parseJobRequest`'s own rule, since a phase table always posts
+  // every select it drew, whichever boxes are ticked — but it is banked
+  // as pending rather than dropped (spec 465).
+  test("a model named for an untouched phase is banked as pending, not dropped", () => {
     const r = parseCreateRequest(
       { ...CREATE, steps: ["analyze"], model: { create: "sonnet", analyze: "fable", archive: "fable" } },
       { allow, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
     expect(r.ok && r.job.model).toEqual({ create: "sonnet", analyze: "fable" });
+    expect(r.ok && r.pendingStepModels).toEqual({ archive: "fable" });
   });
 
   // Bounded to the same three phases the Specs list's own row may tick

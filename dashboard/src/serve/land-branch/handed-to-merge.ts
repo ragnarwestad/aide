@@ -68,7 +68,16 @@ export function handedToMerge(
     : undefined;
   const hooks: MergeHooks = {
     beforeCheckoutMoves: (info) => {
-      if (info.assignedSpecFolder) ctx.queue.update(job.id, { specFolder: info.assignedSpecFolder });
+      if (info.assignedSpecFolder) {
+        // The pendingModels rename runs BEFORE the job's own specFolder
+        // update: a crash between the two then leaves the job on its
+        // ORIGINAL, still-correct provisional key, so a pick already
+        // banked under it stays reachable rather than becoming orphaned
+        // under a real folder the job itself has not moved to yet
+        // (spec 465).
+        ctx.queue.renamePendingModel(job.project, job.specFolder, info.assignedSpecFolder);
+        ctx.queue.update(job.id, { specFolder: info.assignedSpecFolder });
+      }
       // The branch is merged on origin by now; its delete is the very
       // next thing. A delete that then fails is reported through
       // `branchDeleteError` on the job, and the landing's own fresh

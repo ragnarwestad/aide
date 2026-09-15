@@ -346,10 +346,16 @@ function text(raw: unknown, max: number, name: string, multiline = false): strin
 const provisionalKey = (): string =>
   `new-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 
+/** `parseCreateRequest`'s own return shape, widened over the base
+ *  `ParseResult`: the picks banked for a phase this create job does not
+ *  run (spec 465) are consumed by its one caller, `enqueueCreate()`, not
+ *  carried on the job itself. */
+export type CreateParseResult = ParseResult & { pendingStepModels?: Record<string, string> };
+
 export function parseCreateRequest(
   raw: unknown,
   opts: { allow: CreateProjectAllower; resolve?: ProjectResolver; defaults: QueueDefaults },
-): ParseResult {
+): CreateParseResult {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return { ok: false, error: invalidRequest("body is not an object") };
   }
@@ -420,19 +426,26 @@ export function parseCreateRequest(
   // meaning "the configuration decides": that is what an untouched
   // select posts, and what a form with no Model field at all leaves out.
   const stepModels: Record<string, string> = {};
+  const pendingStepModels: Record<string, string> = {};
   if (r.model !== undefined && r.model !== null && r.model !== "") {
     if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: invalidRequest("invalid model") };
-    // Only the steps this job runs. A name posted for a step it does
-    // not have is skipped rather than refused — the rule
-    // `parseJobRequest` already follows for the same reason: a browser
-    // posts every select it drew, whichever boxes are ticked.
+    // A name posted for a step this job does not run is not refused —
+    // the rule `parseJobRequest` already follows, since a browser posts
+    // every select it drew, whichever boxes are ticked — but a REAL
+    // phase's pick is not dropped either (spec 465): it is banked as a
+    // pending choice for that phase, the same way the New page's own
+    // phase table lines up with the Specs list row's model picker. A
+    // key that names no real phase at all (junk, an unrelated field)
+    // still falls through unvalidated, exactly as before.
     for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
       if (name === undefined || name === null || name === "") continue;
-      if (!steps.includes(step as WorkflowStep)) continue;
+      const runsNow = steps.includes(step as WorkflowStep);
+      if (!runsNow && !(PHASE_STEPS as readonly string[]).includes(step)) continue;
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
-      stepModels[step] = name;
+      if (runsNow) stepModels[step] = name;
+      else pendingStepModels[step] = name;
     }
   }
 
@@ -477,5 +490,6 @@ export function parseCreateRequest(
       results: [],
       spentUsd: 0,
     },
+    ...(Object.keys(pendingStepModels).length ? { pendingStepModels } : {}),
   };
 }
