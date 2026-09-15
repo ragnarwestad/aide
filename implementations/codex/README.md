@@ -56,7 +56,7 @@ implementations/codex/
 - OpenAI Codex: Terminal-based agent, autonomous multi-step tasks
 
 **Model:**
-- Powered by GPT-5-Codex (optimized for software engineering)
+- Whichever model the installed Codex CLI ships as its default — see [docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md)
 
 ---
 
@@ -129,7 +129,7 @@ the rest without saying so, so the file is kept well inside that budget
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export OPENAI_API_KEY="your-api-key-here"
-export CODEX_MODEL="gpt-5-codex"  # Or o4-mini for faster/cheaper
+export CODEX_MODEL="<model>"  # optional: override the CLI's default model
 ```
 
 ### MCP servers (Model Context Protocol)
@@ -408,31 +408,8 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 
 ## Comparison with Claude Code
 
-| Feature                | Claude Code                     | OpenAI Codex                   |
-|------------------------|---------------------------------|--------------------------------|
-| **Commands**           | Slash commands (`/aide-create`) | Natural language prompts       |
-| **Instructions**       | CLAUDE.md (auto-read)           | AGENTS.md (~/.codex/AGENTS.md) |
-| **Agents**             | `@agent-task-analyzer`          | General agent                  |
-| **TDD**                | Built-in RED→GREEN→REFACTOR     | Supports the TDD cycle         |
-| **Codebase analysis**  | ✅                              | ✅                             |
-| **Tool calling**       | ✅                              | ✅                             |
-| **Parallel tasks**     | ❌                              | ✅                             |
-| **GitHub integration** | Via gh CLI                      | Native                         |
-| **Slack integration**  | ❌                              | ✅                             |
-| **Context window**     | 200K tokens                     | Varies (GPT-5)                 |
-| **IDE integration**    | VS Code (via CLI)               | IntelliJ, VS Code, Cursor      |
-| **Price**              | Free (beta)                     | $1.50-$6/1M tokens             |
-
-### When to use what?
-
-| Scenario                  | Recommendation                     |
-|---------------------------|------------------------------------|
-| **Complex analysis**      | Claude Code (larger context, free) |
-| **Parallel tasks**        | Codex (native support)             |
-| **TDD implementation**    | Both work well                     |
-| **GitHub workflows**      | Codex (native integration)         |
-| **Team collaboration**    | Codex (Slack integration)          |
-| **Cost-conscious**        | Claude Code (free in beta)         |
+What each tool supports, verified against installed versions, is kept in one place:
+[docs/AI_SUPPORT_MATRIX.md](../../docs/AI_SUPPORT_MATRIX.md).
 
 ---
 
@@ -442,7 +419,6 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 2. ✅ Authenticate with your OpenAI API key
 3. ✅ Copy the custom instructions
 4. ✅ Test with a simple spec
-5. ✅ Read [docs/AI_DEVELOPMENT_GUIDE.md](../../docs/AI_DEVELOPMENT_GUIDE.md) for the full documentation
 
 ---
 

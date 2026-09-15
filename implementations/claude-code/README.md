@@ -70,9 +70,9 @@ The skills let you:
     ↓
     Updates documentation
     ↓
-/aide-implement 55 → @agent-tdd-implementer
+/aide-implement 55 → the skill itself
     ↓
-    RED → GREEN → REFACTOR (with user confirmation)
+    RED → GREEN → REFACTOR, ending on a green test run
 ```
 
 ---
