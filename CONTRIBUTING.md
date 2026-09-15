@@ -1,4 +1,4 @@
-# Contributing to aide
+# Contributing to Aide
 
 ## Table of contents
 

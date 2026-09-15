@@ -1,6 +1,6 @@
 # Roadmap
 
-Where aide came from, what has been decided, and what comes next.
+Where Aide came from, what has been decided, and what comes next.
 New contributors (human or AI): read this first.
 
 ## Table of contents
@@ -19,7 +19,7 @@ New contributors (human or AI): read this first.
 
 ## Background
 
-aide started as an internal AI-tooling workspace for a customer
+Aide started as an internal AI-tooling workspace for a customer
 project. In July 2026 it was extracted into this repo with a clean
 history, stripped of all domain content, translated from Norwegian to
 English, and slimmed down. The git history documents each step.
@@ -71,7 +71,7 @@ reference only — do not develop there.
   — an actively developed personal tool with no support promise.
   aide-dashboard keeps every aide-specific receiver in its own code
   rather than patching claude-usage, which would be permanent fork
-  drift. aide's dashboard makes no request to claude-usage's HTTP API.
+  drift. Aide's dashboard makes no request to claude-usage's HTTP API.
 
 ## Phase 3: Make the tool truly generic
 
@@ -139,7 +139,7 @@ three-line shell script. Three of its ideas are worth taking anyway:
 - [x] **Fidelity levels in the support matrix.** Done August 2026: the
       matrix defines an E/H/I ladder (Enforced by the tool / Heuristic
       tool feature / Instruction the model usually follows) and grades how
-      each aide piece lands per tool in "How the aide pieces land" —
+      each Aide piece lands per tool in "How the Aide pieces land" —
       e.g. rules are E in Claude Code but I in Copilot/Codex.
 - [x] **Stamp versions from probing, not by hand.** Done August 2026:
       `scripts/stamp-versions` asks each CLI and stamps the "Supported
@@ -240,7 +240,7 @@ THERE, not here (we eat our own dog food):
 - [x] Stage 3 — live process events → spec 80 (done August 2026:
       `aide-emit-run` hook + the aide-dashboard server's `/live`, enriched
       read-only from claude-usage's `/api/live`)
-- [x] Stage 4 — queue and runner → spec 81 (done August 2026: aide's
+- [x] Stage 4 — queue and runner → spec 81 (done August 2026: Aide's
       `aide-run-spec` runs one workflow step headless with its guards and
       caps; the aide-dashboard `/queue` page, scheduler, gates,
       notifications and `push = none | branch | pr` drive it from the
@@ -261,7 +261,7 @@ The wish list and the grounding are in spec 76 (archived).
   "Table of contents" but still *detect* the legacy Norwegian heading
   ("Innholdsfortegnelse") for old specs.
 - `AIDE_SPECS_PATH` in a project's `.aide/config` (optional) redirects
-  that project's spec output to an external directory/repo — aide's
+  that project's spec output to an external directory/repo — Aide's
   equivalent of OpenSpec's "Stores" idea, scoped per project since
   spec 73 (the global environment variable is retired). Convention when
   several projects share one specs repo: one subfolder per project

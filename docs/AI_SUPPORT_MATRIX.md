@@ -9,7 +9,7 @@ and which configuration files each tool reads.
 
 - [Supported versions](#supported-versions)
 - [Fidelity levels](#fidelity-levels)
-- [How the aide pieces land](#how-the-aide-pieces-land)
+- [How the Aide pieces land](#how-the-aide-pieces-land)
 - [Current models](#current-models)
 - [Cross-tool capabilities](#cross-tool-capabilities)
 - [Open follow-up items](#open-follow-up-items)
@@ -54,14 +54,14 @@ followed. Every cell in the next table carries one of these grades:
 | **I — Instruction** | Plain text the model usually follows — nothing checks it                   | The model             |
 | **—**               | Does not land in this tool at all                                          | Nobody                |
 
-An **I** is not worthless — most of aide IS instructions — but an I that
+An **I** is not worthless — most of Aide IS instructions — but an I that
 everyone believed was an E is how rules break silently.
 
 ---
 
-## How the aide pieces land
+## How the Aide pieces land
 
-| aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                        |
+| Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                        |
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------|
 | Rules (git, testing, workflows, …)                              | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                         |
 | Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                        |
@@ -214,7 +214,7 @@ implementations/claude-code/
 |--------------------------------|-----------------------------------------------------|
 | `.github/skills/*/SKILL.md`    | Repo-specific skills (Copilot's native location)    |
 | `.agents/skills/*/SKILL.md`    | Repo-specific skills (shared standard with Codex)   |
-| `~/.agents/skills/*/SKILL.md`  | Personal skills (aide installs `core/skills/` here) |
+| `~/.agents/skills/*/SKILL.md`  | Personal skills (Aide installs `core/skills/` here) |
 | `~/.copilot/skills/*/SKILL.md` | Global skills (shared across projects)              |
 
 Since we already have skills in `.claude/skills/`, Copilot picks them up automatically — we do not need to duplicate them to `.github/skills/`.
@@ -261,7 +261,7 @@ implementations/copilot/
 
 ### Features
 
-- **No aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
+- **No Aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
 - **MCP:** Support via `~/.codex/config.toml`
 - **Parallel execution** — can work on several tasks at once
 
@@ -278,7 +278,7 @@ implementations/codex/
 
 ## Installation into target projects
 
-When you install aide into a target project (e.g. my-app):
+When you install Aide into a target project (e.g. my-app):
 
 ### Minimum requirements per tool
 

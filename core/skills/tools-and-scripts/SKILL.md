@@ -1,10 +1,10 @@
 ---
 name: tools-and-scripts
 description: >-
-  aide's skills, the per-project .aide/config keys, how a project's own
+  Aide's skills, the per-project .aide/config keys, how a project's own
   test/lint/build commands are detected, and where specs are stored.
   Use when: running a project's test, lint or build command; looking up
-  which aide skill does what; reading or writing .aide/config; deciding
+  which Aide skill does what; reading or writing .aide/config; deciding
   where a spec belongs.
   Do NOT use for: how to run tests correctly (that is the testing rule),
   the spec files' own layout (use the spec-structure skill).
@@ -139,7 +139,7 @@ when the manifest names none; the manifest wins where both do, and the
 run's own output says which file it read.
 
 `AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
-that installs itself somewhere — aide puts its scripts in
+that installs itself somewhere — Aide puts its scripts in
 `~/.local/bin` — code reaching the default branch changes nothing on
 the machine until the install runs. The value
 is an argv, split on whitespace and run with **no shell**, in the

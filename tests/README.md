@@ -1,4 +1,4 @@
-# Testing Guide for aide
+# Testing Guide for Aide
 
 ## Table of contents
 
@@ -39,7 +39,7 @@
 
 ## Overview
 
-This test suite verifies the functionality of the aide tool, including:
+This test suite verifies the functionality of the Aide tool, including:
 
 - Core scripts (`aide-generate-pdf`, `aide-generate-html`, `upgrade-ai-tools`)
 - Implementation-specific commands (Claude Code, Codex, Copilot)

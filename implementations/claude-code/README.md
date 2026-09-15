@@ -143,7 +143,7 @@ Run `./install.sh` again to update after changes.
 
 1. **Find the JIRA issue number** (e.g. PROJ-7637)
 
-2. **Start Claude Code** (in any project: my-app, aide, my-api, etc.)
+2. **Start Claude Code** (in any project: my-app, Aide, my-api, etc.)
 
 3. **Run the slash command:**
    ```bash
@@ -247,7 +247,7 @@ gitignored `.aide/config`), so `install.sh` cannot compute or write this
 rule for every contributor. Run `aide-print-specs-guard` from inside the
 project instead — it prints a ready-to-paste `deny` snippet scoped to
 that project's own specs root, for you to paste into the `"permissions":
-{ "deny": [...] }` array of `~/.claude/settings.json` (aide never edits
+{ "deny": [...] }` array of `~/.claude/settings.json` (Aide never edits
 that file itself).
 
 ---

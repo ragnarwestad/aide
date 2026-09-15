@@ -1,4 +1,4 @@
-# Installation - aide
+# Installation - Aide
 
 > **📝 Note:** For AI-specific installation, primarily see:
 > - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
@@ -188,7 +188,7 @@ source ~/.zshrc  # or source ~/.bashrc
 **✅ General setup complete!**
 
 You now have:
-- ✅ Cloned the aide workspace
+- ✅ Cloned the Aide workspace
 - ✅ (Optional) Configured environment variables
 
 **Next step:** Choose your AI tool and complete the installation 👇

@@ -1,4 +1,4 @@
-# Development in aide
+# Development in Aide
 
 ## Repo layout
 
@@ -15,7 +15,7 @@ carries a manifest, so it is not a project in its own right anymore.
 **Two toolchains, deliberately separate.** The repo root is pytest
 (`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
 (`dashboard/bun.lock`). Project-command detection reads the ROOT only, so
-aide's test command stays `pytest` — a `package.json` at the root would
+Aide's test command stays `pytest` — a `package.json` at the root would
 silently redirect it, which
 `tests/specs/unit/core/validation/test_dashboard_merge.py` guards
 against. Run the dashboard's own suite from inside `dashboard/`:

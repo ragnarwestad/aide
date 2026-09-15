@@ -1,4 +1,4 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="aide" height="40"></picture>
+# <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
 A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, GitHub Copilot and Codex.
 
@@ -7,7 +7,7 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 - [What it is](#what-it-is)
 - [The aide-* skills](#the-aide--skills)
 - [For end users](#for-end-users)
-- [For aide developers](#for-aide-developers)
+- [For Aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
   - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
@@ -27,7 +27,7 @@ disappears with the conversation, the next session starts from zero, and
 nobody else can review what was actually agreed before the code was
 written.
 
-aide's answer is spec-driven development: before any AI assistant writes
+Aide's answer is spec-driven development: before any AI assistant writes
 code, it writes a specification — four plain-Markdown files
 (description, analysis, solution, status) that a person and any AI tool
 can read, review and continue identically, committed to git alongside
@@ -85,9 +85,9 @@ Clone the repo, then run the installer for your AI tool:
 
 ---
 
-## For aide developers
+## For Aide developers
 
-Want to **contribute to or further develop** aide?
+Want to **contribute to or further develop** Aide?
 
 👉 **[DEVELOPING.md](DEVELOPING.md)** - Complete developer guide
 
@@ -105,7 +105,7 @@ The workspace is designed to handle **cross-cutting issues** where a single JIRA
 
 ### AIDE_INSTALLATION_PATH (optional)
 
-Path to where aide is checked out. Only a few scripts read it
+Path to where Aide is checked out. Only a few scripts read it
 (`core/scripts/validate-env`, the uninstallers) — most of the install
 scripts find their own location instead.
 
@@ -223,7 +223,7 @@ of git — the older `AIDE_WORKTREE_LINKS=` spelling there is still read
 when the manifest names none, and every run says which of the two it
 read.
 
-**Installing aide gives nobody a queue.** The script does nothing until
+**Installing Aide gives nobody a queue.** The script does nothing until
 it is invoked, and it is what a scheduler drives (the aide-dashboard
 queue does exactly that). `--dry-run` prints the command line it would
 use and starts nothing.
@@ -326,6 +326,6 @@ machine writes to.
 
 ## Resources
 
-- [DEVELOPING.md](DEVELOPING.md) - Developer guide for aide
+- [DEVELOPING.md](DEVELOPING.md) - Developer guide for Aide
 - [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - JIRA/TODO workflows
 - [core/rules/git.md](core/rules/git.md) - Git rules

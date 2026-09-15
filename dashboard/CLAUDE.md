@@ -74,7 +74,7 @@ a test that reads two sides.
 asymmetries in the readiness pair, and the three shared-source decisions
 with the tests and assertions that pin all of them.
 
-- **The landing runs aide's scripts from beside `--runner-bin`, never from
+- **The landing runs Aide's scripts from beside `--runner-bin`, never from
   PATH alone** (`scriptFor` in `land-branch/run-script.ts`). A test board
   serving a branch runs that branch's TypeScript, and the bash written
   together with it lives in the same checkout; the copy under

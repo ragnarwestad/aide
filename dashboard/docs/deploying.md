@@ -181,7 +181,7 @@ Everything the dashboard owns — its checkouts, projects root, worktrees,
 `site`, `jobs`, `pdf-cache`, `schedule-output`, `round-logs` and the JSON
 mirrors — lives under one directory, `~/.aide/dashboard/`. It used to be
 `~/aide-dashboard/`, a name indistinguishable from the code project's
-own; `.aide` is the name aide already gives what is configuration, and
+own; `.aide` is the name Aide already gives what is configuration, and
 `dashboard` says whose it is. Moving an already-running installation is
 a one-time, per-host operation — nothing in a code deploy does it for you.
 

@@ -1,16 +1,16 @@
 ---
 name: install-all
 description: >-
-  Install aide for all AI tools (Claude Code, Copilot, Codex).
+  Install Aide for all AI tools (Claude Code, Copilot, Codex).
   Runs install-all.sh, which calls each implementations/<ai>/install.sh.
-  Use when: installing or updating aide for all tools, having
+  Use when: installing or updating Aide for all tools, having
   changed skills or rules and wanting to reinstall.
   Do NOT use for: uninstalling (use /uninstall-all). Just one AI? Run
   implementations/<ai>/install.sh directly.
 disable-model-invocation: true
 ---
 
-# Install aide (all AI tools)
+# Install Aide (all AI tools)
 
 Run the orchestrator from the repo root:
 

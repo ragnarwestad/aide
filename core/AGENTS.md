@@ -1,4 +1,4 @@
-# aide — Shared instructions
+# Aide — Shared instructions
 
 Instructions for AI-assisted development focused on:
 - JIRA issues with a 4-file documentation structure

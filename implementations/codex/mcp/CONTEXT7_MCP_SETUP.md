@@ -15,7 +15,7 @@
 - [Usage](#usage)
   - [Basic usage](#basic-usage)
   - [Specify library and version](#specify-library-and-version)
-- [Relevant libraries for aide](#relevant-libraries-for-aide)
+- [Relevant libraries for Aide](#relevant-libraries-for-aide)
   - [Frontend](#frontend)
   - [Backend](#backend)
   - [Testing](#testing)
@@ -38,7 +38,7 @@ Context7 is an MCP server from Upstash that gives Codex access to **up-to-date, 
 
 ### Why use Context7?
 
-**For aide:**
+**For Aide:**
 - ✅ Always up-to-date info about UI libraries
 - ✅ Correct React/TypeScript patterns
 - ✅ Spring Boot / Kotlin best practices
@@ -94,7 +94,7 @@ Refactor to React 19, use context7 for react@19
 
 ---
 
-## Relevant libraries for aide
+## Relevant libraries for Aide
 
 ### Frontend
 - `react` - React core

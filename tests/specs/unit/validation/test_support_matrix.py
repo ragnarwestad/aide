@@ -97,6 +97,6 @@ class TestFidelityLevels:
 
     def test_matrix_grades_the_aide_pieces(self, workspace_root):
         content = (workspace_root / "docs" / "AI_SUPPORT_MATRIX.md").read_text()
-        assert "## How the aide pieces land" in content
+        assert "## How the Aide pieces land" in content
         for piece in ("Rules", "Skills", "Hooks"):
             assert piece in content

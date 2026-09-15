@@ -4,7 +4,7 @@ description: >-
   How the Copilot and Codex CLIs are kept up to date on a machine, and how
   to install the daily upgrade job — plain cron on an always-on machine,
   a launchd agent on a laptop (cron silently skips runs the machine sleeps
-  through). Use when: setting aide up on a new machine, the AI tools have
+  through). Use when: setting Aide up on a new machine, the AI tools have
   gone stale, choosing between cron and launchd, editing
   core/scripts/upgrade-ai-tools. Do NOT use for: updating Claude Code
   itself (it auto-updates), checking for news (use check-news).

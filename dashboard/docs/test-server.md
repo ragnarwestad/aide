@@ -122,7 +122,7 @@ on it: that one is left alone.
 
 Only `aide` itself, today. Starting a test server means running that project's own dashboard code
 from a branch, which only makes sense for a project whose checkout — the one this dashboard's own
-automation works from — actually contains the dashboard's source. In practice that is aide alone,
+automation works from — actually contains the dashboard's source. In practice that is Aide alone,
 self-hosting; the dashboard checks for this rather than naming the project directly, so it would
 extend automatically to any other project in the same position. For a spec in a project this
 doesn't apply to, or one archived in the meantime, the link falls back to the spec's own Steps tab
