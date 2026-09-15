@@ -3,8 +3,8 @@ name: workflows
 description: >-
   The workflow for AI-assisted development: complexity detection
   (LOW/MEDIUM/HIGH), problem-type routing, branch strategy across
-  repositories, and the create - analyze - review - solve - verify -
-  archive flow for a spec.
+  repositories, and the create - analyze - implement - archive flow for
+  a spec.
   Use when: starting work on a spec, deciding how much
   analysis a task needs, planning a change that spans several projects,
   checking which branch belongs where.
@@ -193,7 +193,7 @@ The phases are written out in full in
 [references/spec-workflows.md](./references/spec-workflows.md):
 
 ```text
-(Explore) - Create - Analyze - Solve - Verify - Archive
+(Explore) - Create - Analyze - Implement - Archive
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
@@ -217,7 +217,7 @@ The rest of the detail lives beside this file:
 
 **Three key principles:**
 1. **Detect complexity** early and match the documentation to the task
-2. Follow the **linear flow**: Create - Analyze - Solve - Verify - Archive
+2. Follow the **linear flow**: Create - Analyze - Implement - Archive
 3. Always assess **API impact** (use the mapping)
 
 **Best practices:**
