@@ -231,6 +231,10 @@ read_spec_state "$status_file"
 acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json")"
 acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json")"
 if [ "$acceptance_total" -gt 0 ] && [ "$acceptance_done" -lt "$acceptance_total" ]; then
+  # spec 471: the moment a round is mechanically known to be held back —
+  # stamp it once, so a later round can tell which open rows are
+  # unchanged since THIS round rather than since the spec's birth.
+  declare -f write_round_boundary_stamp >/dev/null 2>&1 && write_round_boundary_stamp "$status_file" "$specs_root"
   emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Checks tab before archiving — only a person can judge these"}'
 fi
 

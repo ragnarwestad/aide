@@ -151,10 +151,21 @@ same state two ways is a file whose own legend has stopped describing
 it.
 
 None of the three phases above ever ticks a row under a `## Acceptance
-criteria` heading, if `4-status.md` has one — never tick that section.
-Those rows name the spec's own REQ-tagged acceptance criteria, and
-ticking one is a judgment only the person the spec is for can make.
-Leave them exactly as you found them, in every phase.
+criteria` heading, if `4-status.md` has one — never tick that section,
+and never touch a TICKED row's Notes cell either. Those rows name the
+spec's own AC-tagged acceptance criteria, and ticking one is a judgment
+only the person the spec is for can make.
+
+**One narrow carve-out.** On a held-back spec taking another
+round on its open checks (`core/skills/aide-analyze/references/requirements-tracing.md`'s
+"A held-back spec's second round"), the Notes cell of a row that is
+still OPEN (`⬜`) may be written, naming what this round actually
+delivered against it and what — if anything — is still missing for a
+person to tick it. The Status cell of that same row, and every cell of
+a row that is already ticked, stays exactly as found regardless. On any
+spec that is not in a held-back round, leave every row exactly as you
+found it, Notes cell included — this carve-out does not widen the rule
+above it.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script

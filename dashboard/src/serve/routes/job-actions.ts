@@ -6,7 +6,7 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { parseStatus } from "../../project/parse-status";
+import { acceptanceCriteriaUnticked, parseStatus, roundGate } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
@@ -21,6 +21,28 @@ function proseSteps(dir: string): string[] {
     return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
   } catch {
     return [];
+  }
+}
+
+/** `4-status.md`'s raw text, for the round-gate check (spec 471) —
+ *  `""` for a spec with no state file yet, which `acceptanceCriteriaUnticked`
+ *  already reads as "nothing open" (no rows to find at all). */
+function proseStatusText(dir: string): string {
+  try {
+    return readFileSync(join(dir, "4-status.md"), "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+/** `1-description.md`'s raw text, for the same check — the CURRENT
+ *  wording `firstUnchangedOpenCriterion` compares against the round
+ *  boundary's own git-read copy. */
+function proseDescriptionText(dir: string): string {
+  try {
+    return readFileSync(join(dir, "1-description.md"), "utf-8");
+  } catch {
+    return "";
   }
 }
 
@@ -106,6 +128,36 @@ export async function handleJobActionRoutes(
         let phase = phaseFromState(completedPhases, archived, closed);
         for (const step of askedFor.steps) {
           if (typeof step !== "string") continue;
+          // Spec 471: a spec already held back on unticked acceptance
+          // criteria may take another round on Analyze or Implement,
+          // when every currently open AC-n row is new-or-changed since
+          // the round that held it back (AC-6) — checked AHEAD of
+          // `isLegalMove`, for both steps, rather than only inside
+          // analyze's own `!move.ok` branch: `implement`'s
+          // `implemented,implement` row is an unconditional self-loop
+          // (transitions.json), so a check placed only in analyze's
+          // refusal branch would never run for a re-run of Implement.
+          // An ordinary implemented spec (not held back at all) falls
+          // straight through to `isLegalMove` below, unchanged.
+          if ((step === "analyze" || step === "implement") && phase === "implemented") {
+            const statusText = proseStatusText(dir);
+            if (acceptanceCriteriaUnticked(statusText)) {
+              const descriptionText = proseDescriptionText(dir);
+              const gate = await roundGate(ctx.gitRun, dir, statusText, descriptionText);
+              if (!("notHeldBack" in gate)) {
+                if (gate.ok) {
+                  phase = step === "analyze" ? "analyzed" : "implemented";
+                  continue;
+                }
+                const spec = `${askedFor.project}/${askedFor.specFolder}`;
+                const message = `${askedFor.specFolder}'s round cannot start — ${gate.blockedOn} has not changed since it was held back`;
+                logRefusal("run", spec, message);
+                return wantsJson
+                  ? json({ error: message, spec }, 400)
+                  : specsRedirect(raw, { error: message, spec }, backTo);
+              }
+            }
+          }
           const move = isLegalMove(phase, step, askedFor.specFolder);
           if (!move.ok) {
             // Only analyze/create's OWN backward-move refusals are new
