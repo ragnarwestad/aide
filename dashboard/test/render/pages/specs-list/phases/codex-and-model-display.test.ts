@@ -87,3 +87,49 @@ describe("the model picker shows only the model's name, never a tool suffix", ()
     expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet<\/option>/);
   });
 });
+
+// Every line of a multi-step job shows ITS step's model, and a choice
+// name renamed away still shows the tool it ran on (2026-09-15): the
+// row's own `model` is the last step's, and spread over every attempt
+// it named codex-sol on the analyze line that ran on Sonnet.
+describe("each phase line shows what that step ran on", () => {
+  const choices = [
+    { name: "Sonnet", budgetUsd: 15 },
+    { name: "gpt-5.6-sol", budgetUsd: 35, tool: "codex" as const },
+  ];
+  const job = {
+    id: "j32",
+    project: "woodstack",
+    specFolder: "32-about",
+    steps: ["analyze", "implement"],
+    stepIndex: 1,
+    state: "done" as const,
+    spentUsd: 1.5,
+    timeoutSec: 1200,
+    createdAt: "2026-09-15T08:00:00Z",
+    model: "codex-sol",
+    stepModels: { analyze: "Sonnet", implement: "codex-sol" },
+    results: [
+      { step: "analyze", ok: true, tool: "claude", costUsd: 1.5, terminalReason: "completed", at: "2026-09-15T08:10:00Z" },
+      { step: "implement", ok: true, tool: "codex", costUsd: 0, terminalReason: "completed", at: "2026-09-15T08:20:00Z" },
+    ],
+  };
+  const line = (html: string, step: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`, "s"))?.[0] ?? "";
+  const now = (l: string) => l.match(/class="aimodelnow"[^>]*>([^<]*)/)?.[1];
+  test("the analyze line names Sonnet, the implement line names the codex model it ran on", () => {
+    const html = renderSpecsRows(
+      [job],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "woodstack", specFolder: "32-about", done: ["analyze", "implement"] }],
+        modelChoices: choices,
+        defaultModels: { default: "Sonnet" },
+        filter: { open: "woodstack/32-about" },
+      },
+      Date.parse("2026-09-15T10:00:00Z"),
+    );
+    expect(now(line(html, "analyze"))).toBe("Claude/Sonnet");
+    expect(now(line(html, "implement"))).toBe("Codex/codex-sol");
+  });
+});

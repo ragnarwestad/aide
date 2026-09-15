@@ -303,7 +303,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         // No effort control: the line names the AI and the model, and
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
-        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun) +
+        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun, latest?.results?.find((x) => x.step === p.step)?.tool) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (spec 274/247/284's
       // fallback in `phasesFor`), even with no Cost line recorded? Used
@@ -390,15 +390,16 @@ function aiModel(
   used?: string,
   recordedModel?: string,
   alreadyRun = false,
+  usedTool?: string,
 ): string {
-  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
+  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedTool);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
-  const on = phaseAiModel(g, opts, step, used, recordedModel);
+  const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool);
   const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
   const button = locked

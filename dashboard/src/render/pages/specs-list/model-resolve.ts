@@ -137,6 +137,9 @@ export function phaseAiModel(
   step: string,
   used?: string,
   recordedModel?: string,
+  /** The CLI the phase's own result names — what stands in for the
+   *  tool when the model's choice name is no longer configured. */
+  usedTool?: string,
 ): { model: string; tool: string } | undefined {
   const models = opts.modelChoices ?? [];
   if (!models.length) return undefined;
@@ -146,5 +149,5 @@ export function phaseAiModel(
   const model = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  return { model, tool: models.find((m) => m.name === model)?.tool ?? "claude" };
+  return { model, tool: models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude" };
 }
