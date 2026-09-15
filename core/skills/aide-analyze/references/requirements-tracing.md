@@ -51,6 +51,57 @@ tick (spec 285). `aide-archive-spec` refuses to archive while any of
 them is still unticked. No Acceptance criteria section: `4-status.md` is
 written exactly as it is today, with no such section.
 
+## A held-back spec's second round
+
+A spec whose archive is held back on unticked `## Acceptance criteria`
+rows, and whose `4-status.md` carries a `**Round boundary:**` stamp
+(written by `aide-archive-spec` the moment it declined), is not a fresh
+analysis — it is taking ANOTHER round on the checks that are still
+open. This is a THIRD kind of restart, distinct from `/aide-reopen` and
+`/aide-reset`: those regenerate `2-analysis.md`/`3-solution.md`/
+`4-status.md` from their templates and drop history; a held-back round
+does the opposite on every point below.
+
+**Scope.** Work out which `AC-n` ids are IN SCOPE before Step 5: every
+id whose `4-status.md` row is still `⬜`, plus any id newly added to
+`1-description.md` since the last round (an id `4-status.md` has no row
+for at all). A TICKED id (`✅`) is approved, and this round changes
+nothing behind it — no finding, no scenario, no file edit traces to it.
+
+**Step 5 (2-analysis.md).** Append a `## Round N` subsection (N = one
+more than the highest existing round subsection, or 2 if this is the
+first held-back round) naming the in-scope ids and containing this
+round's own findings, prefixed exactly as Step 5 above already
+prefixes them. The earlier round's own content — including its own
+`## Round` subsections, if any — is left untouched above it.
+
+**Step 6 (3-solution.md).** Same append: a new `## Round N` subsection
+with this round's own Approaches/Recommended solution/Acceptance
+criteria/Implementation plan, scoped to the in-scope ids only. A
+criterion for an id outside this round's scope must not appear in it.
+
+**Step 7 (Review the plan).** The coherence reviewer's must-fix check
+(below) is scoped to this round's own ids: every in-scope id from the
+Scope step above must appear in the NEW round's own Acceptance criteria
+subsection — an out-of-scope id appearing there is itself a must-fix
+(scope creep onto a ticked or not-yet-reached criterion).
+
+**Step 8 (4-status.md, Acceptance criteria section).** The table is
+never regenerated. Append a new unticked row for each genuinely NEW id
+(numbered after the highest existing one, per `spec-structure.md`'s own
+numbering convention) — never for an id that already has a row. Every
+existing row's Status cell and Task-cell text are left byte-for-byte as
+found, ticked or not. This is also the one exception to
+`aide-implement`'s own "never touch the Acceptance criteria section"
+rule: see `core/skills/aide-implement/SKILL.md` for the narrow carve-out
+that lets Implement write an open row's Notes cell.
+
+**Nothing here is ticked by any skill**, in this round or any other —
+that judgment stays the spec's own person's, exactly as the un-held-back
+case above.
+
+---
+
 The run itself may say ticking is not required (spec 386): when the
 prompt states this, write a `## Acceptance criteria` heading followed by
 ONE plain sentence — "Acceptance ticking was not required for this

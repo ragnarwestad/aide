@@ -72,6 +72,40 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     assert is_ancestor(project, earlier, branch), "the earlier step's work must survive"
     assert is_ancestor(project, "main", branch), "and main must be in there too"
 
+def test_a_held_back_specs_implement_reuses_the_existing_branch(runner, workspace, fake_claude):
+    """AC-7 (spec 471): a spec already implemented, held back only on
+    an unticked acceptance-criteria row, still reuses its existing
+    branch when Implement runs another round — branch reuse has no
+    special case for a held-back spec at all (2-analysis.md), and this
+    locks that in as a regression rather than an assumption."""
+    project = workspace["project"]
+    specs = workspace["specs"]
+    folder = workspace["folder"]
+    branch = f"aide/{folder}"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-implement.txt").write_text("implement wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "implement's own commit")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    (specs / folder / "4-status.md").write_text(
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** analyze, implement\n\n---\n\n"
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n"
+        "|------|--------|-------|\n"
+        "| AC-1: does the thing | ⬜ | |\n"
+    )
+    subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(specs), "commit", "-qm", "held back on acceptance"], check=True)
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert is_ancestor(project, earlier, branch), "the earlier round's work must survive"
+
+
 def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):

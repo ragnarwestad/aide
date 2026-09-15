@@ -50,6 +50,11 @@ Examples:
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
+- If `4-status.md` ALSO already carries that same section plus a
+  `**Round boundary:**` stamp, this is a held-back spec taking another
+  round on its open checks, not a first analysis — see
+  `references/requirements-tracing.md`'s own "A held-back spec's second
+  round" section for how Steps 4-8 below scope to it.
 
 **This skill never modifies anything outside the spec's own four
 documents** — not application source, not test files, nothing in the
@@ -96,6 +101,12 @@ placeholder is the signal, and it is the only one.
 
 Fill in the sections that still hold their placeholder. Leave every
 section that already has real content exactly as it stands.
+
+A held-back round (Step 1) is a different case from the above, not a
+variant of it: `2-analysis.md`/`3-solution.md` are already fully
+written from an earlier round, holding no placeholder at all, and this
+round APPENDS a new `## Round N` subsection to each instead of leaving
+them untouched — see `references/requirements-tracing.md`.
 
 ### Step 5: Update 2-analysis.md
 

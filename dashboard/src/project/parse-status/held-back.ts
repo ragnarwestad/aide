@@ -7,6 +7,8 @@
 // status file stays there — this is what a caller ASKS about an
 // archive, and it needs none of that.
 
+import type { GitRunner } from "../../git/branch-status.ts";
+import { acRowsAt, acRowsFromText, firstUnchangedOpenCriterion } from "../../git/round-boundary.ts";
 import { parseStatusChecks } from "./";
 
 // --- spec 108: an archive run that declined -----------------------------------
@@ -123,6 +125,65 @@ export function acceptanceStillOpen(
  *  re-deriving the comparison themselves. */
 export function archiveHeldBackApplies(reason: string, doneSteps: string[]): boolean {
   return reason !== ACCEPTANCE_CRITERIA_UNTICKED_NOTE || doneSteps.includes("implement");
+}
+
+// --- spec 471: another round on a held-back spec's open checks --------------
+
+/** The commit the LATEST `**Round boundary:**` stamp names — the moment
+ *  `aide-archive-spec` most recently declined on unticked acceptance
+ *  criteria (`core/scripts/lib/spec-transitions.sh`'s
+ *  `write_round_boundary_stamp`) — or `null` when the spec has never
+ *  been held back this way. The LAST mark wins, same rule
+ *  `archiveHeldBackReason`/`parseReopenedAfter` already keep for a mark
+ *  written more than once. */
+const ROUND_BOUNDARY_RE = /round boundary:\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
+
+export function latestRoundBoundary(content: string): string | null {
+  const matches = [...content.matchAll(ROUND_BOUNDARY_RE)];
+  return matches[matches.length - 1]?.[1] ?? null;
+}
+
+const AC_ID_RE = /^(AC-\d+):/;
+
+/** Every `AC-n` id whose own `## Acceptance criteria` row is still
+ *  open — read the same way `acceptanceCriteriaUnticked` above reads
+ *  the section, narrowed to the ids rather than only whether any exist. */
+function openAcceptanceIds(statusText: string): Set<string> {
+  const ids = new Set<string>();
+  for (const check of parseStatusChecks(statusText)) {
+    if (!/^acceptance\b/i.test(check.phase) || check.done) continue;
+    const m = check.task.match(AC_ID_RE);
+    if (m) ids.add(m[1]!);
+  }
+  return ids;
+}
+
+/** Whether a held-back spec's next Analyze/Implement round may start,
+ *  and which criterion blocks it when it may not (spec 471, AC-6).
+ *
+ *  `{ notHeldBack: true }` covers both "not held back on acceptance at
+ *  all" and "held back, but never actually declined yet" (no boundary
+ *  stamp exists) — in both cases the ordinary already-implemented
+ *  refusal (or none, if not yet implemented) applies unchanged, exactly
+ *  as it did before this spec existed. An open section with every row
+ *  already satisfied (no open ids at all — a transient state between a
+ *  tick and the next disk read) never blocks a round either: there is
+ *  nothing left to have gone stale. */
+export async function roundGate(
+  gitRun: GitRunner,
+  dir: string,
+  statusText: string,
+  descriptionText: string,
+): Promise<{ ok: true } | { ok: false; blockedOn: string } | { notHeldBack: true }> {
+  if (!acceptanceCriteriaUnticked(statusText)) return { notHeldBack: true };
+  const boundarySha = latestRoundBoundary(statusText);
+  if (!boundarySha) return { notHeldBack: true };
+  const openIds = openAcceptanceIds(statusText);
+  if (openIds.size === 0) return { ok: true };
+  const currentRows = acRowsFromText(descriptionText);
+  const boundaryRows = await acRowsAt(gitRun, dir, boundarySha);
+  const blockedOn = firstUnchangedOpenCriterion(currentRows, openIds, boundaryRows);
+  return blockedOn ? { ok: false, blockedOn } : { ok: true };
 }
 
 /** Spec 190 — `content` with every `## Archive held back` section

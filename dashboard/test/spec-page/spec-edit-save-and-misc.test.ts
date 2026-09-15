@@ -16,12 +16,17 @@ import {
   SOLUTION_TAB,
   PAGE,
   FILE_SHA,
+  DESCRIPTION,
+  NEW_TEXT,
   auth,
   ARCHIVED,
   createSpecSaveHarness,
   fillAnalysisAndSolution,
+  descriptionPath,
+  post,
   savable,
 } from "./spec-save-fixtures.ts";
+import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -264,3 +269,33 @@ describe("GET the edit page", () => {
 });
 
 // --- criterion 3: a save that goes through ----------------------------------
+
+// --- spec 471, AC-1 regression lock ------------------------------------
+//
+// 2-analysis.md's own Codebase analysis found this already true today:
+// `descriptionPanel`/`documentPanel` gate read-only status on
+// `archived`/`activeJob` alone, and the save route checks no phase at
+// all — a held-back spec is neither archived nor busy, so its
+// Description tab was never actually locked. Guarded here as a
+// regression rather than left as an assumption, the same treatment
+// Step 0 already gives AC-7's own "already true" branch-reuse case.
+
+describe("AC-1 (spec 471): a held-back spec's description stays editable", () => {
+  test("Save on a spec held back on unticked acceptance criteria is not refused", async () => {
+    const heldBackStatus = statusSaying(
+      ["create", "analyze", "implement"],
+      "\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
+        "| AC-1: does the thing | ⬜ | |\n",
+    );
+    const { base, dir } = harness.start({
+      description: DESCRIPTION,
+      status: heldBackStatus,
+      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+    });
+    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
+  });
+});
