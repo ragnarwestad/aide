@@ -405,3 +405,31 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).toMatch(/>All \(2\)</);
   });
 });
+
+// A create cancelled before it made a folder is not a row — also on a
+// project whose every spec is archived. The "not entitled to judge this
+// project" branch used to fire on such a project, since it looked at
+// active specs alone, and the cancelled create stood on the list with
+// an Analyze button for a spec that does not exist (2026-09-15).
+describe("a cancelled create is not a row on a project with only archived specs", () => {
+  const cancelledCreate: QueueRowView = {
+    id: "c9",
+    project: "aide",
+    specFolder: "new-8638781b",
+    steps: ["create"],
+    stepIndex: 0,
+    state: "cancelled",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-09-15T08:11:00Z",
+  };
+  test("with the project's specs listed as archived", () => {
+    const html = renderSpecsRows([cancelledCreate], { runnerAvailable: true, targets: [], archived: ["aide/466-x"] }, Date.parse("2026-09-15T10:00:00Z"));
+    expect(html).not.toContain('data-folder="new-8638781b"');
+  });
+  test("with the project's specs given as archived views", () => {
+    const archivedSpec: ArchivedSpecView = { project: "aide", folder: "466-x", archivedAt: "2026-09-15T09:00:00Z", done: ["create"], models: {}, phaseOutcomes: {} };
+    const html = renderSpecsRows([cancelledCreate], { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec] }, Date.parse("2026-09-15T10:00:00Z"));
+    expect(html).not.toContain('data-folder="new-8638781b"');
+  });
+});
