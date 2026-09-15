@@ -592,6 +592,11 @@ known from a previous invocation in the same session.** A spec created
 this way carries none of the commits, review or convention the skill
 provides, and looks identical to one that did.
 
+`aide-install-spec-hook <specs-repo> [...]` installs a best-effort `commit-msg` guard into a spec repo's common git
+dir: a commit touching a spec's 4/5-file layout is rejected unless its message follows the `Run /aide-<step> for
+<spec-folder>` convention. A hand-edit to an existing `1-description.md` is never gated. It only fires where it has
+been installed; the rule above is the primary defence.
+
 ---
 
 ## See also

@@ -12,6 +12,7 @@ move it to another host or run the whole thing on one machine.
 - [Moving the board's own directories](#moving-the-boards-own-directories)
 - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
 - [On one machine](#on-one-machine)
+- [Keeping the host's specs current](#keeping-the-hosts-specs-current)
 - [Known gaps](#known-gaps)
 
 ---
@@ -259,6 +260,33 @@ tracked repo names nobody's machine, and this is where yours lives instead.
 host involved. `PORT=`
 and an optional `ROOT=` (the directory to scan for projects) are the only knobs. This is the whole thing running in one
 place.
+
+## Keeping the host's specs current
+
+The board lists specs by reading the spec folders off the serving host's working copy, and nothing pulls that copy. A
+spec written and pushed from another machine is simply not there — and a spec that is not listed cannot be queued.
+
+`aide-pull-specs` is the unattended pull for exactly that case:
+
+```bash
+aide-pull-specs ~/develop/aide-specs [~/develop/other-specs ...]
+```
+
+Each repo is pulled only when it is safe to do so with nobody watching: a git working tree, nothing uncommitted,
+sitting on its own default branch, and a fast-forward. Anything else is skipped with a reason, and the repos beside it
+are still pulled. Nothing is ever committed, merged or reset. A repo already up to date prints nothing, so a cron entry
+mails only when something happened. On an always-on host, every two minutes:
+
+```cron
+*/2 * * * * $HOME/.local/bin/aide-pull-specs $HOME/develop/aide-specs
+```
+
+**Point it at specs, not at code.** Merging code and installing it belong together (`AIDE_INSTALL_CMD`), and a
+background pull would move the code under a server that goes on running the old version — merged, but not deployed,
+and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every project that has
+an install command configured, `/projects` compares the checkout against `origin` on each load and says "N commits
+behind origin — deploy is a hand step" on that project's row. It only ever looks; nothing on that page fetches more
+than the default branch, and nothing merges, pulls or moves a checkout.
 
 ## Known gaps
 
