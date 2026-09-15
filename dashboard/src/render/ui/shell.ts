@@ -187,10 +187,10 @@ function languageControl(lang: Language, currentUrl: string): string {
 // unchanged — unit-script.ts's mark() already targets every
 // [data-unit-choice] on the page, however many copies exist, so this
 // needs no script change of its own.
-function unitChoiceRows(): string {
+function unitChoiceRows(scope: string): string {
   return (
-    `<label><input type="radio" name="unit" value="usd" data-unit-choice="usd" checked> $</label>` +
-    `<label><input type="radio" name="unit" value="tokens" data-unit-choice="tokens"> Tokens</label>`
+    `<label><input type="radio" name="unit-${scope}" value="usd" data-unit-choice="usd" checked> $</label>` +
+    `<label><input type="radio" name="unit-${scope}" value="tokens" data-unit-choice="tokens"> Tokens</label>`
   );
 }
 
@@ -203,7 +203,7 @@ function unitControl(lang: Language): string {
   const unit = t(lang, "shell.unit");
   return (
     `<details class="menu unit"><summary aria-label="${unit}" title="${unit}">$</summary>` +
-    `<div class="menupanel">${unitChoiceRows()}</div></details>`
+    `<div class="menupanel">${unitChoiceRows("menu")}</div></details>`
   );
 }
 
@@ -353,7 +353,7 @@ function pageHeader(lang: Language, currentUrl: string): string {
   const mobileRows =
     `<div class="morerows theme">${themeChoiceRows(lang)}</div>` +
     `<div class="morerows lang">${languageChoiceLinks(lang, currentUrl)}</div>` +
-    `<div class="morerows unit">${unitChoiceRows()}</div>`;
+    `<div class="morerows unit">${unitChoiceRows("more")}</div>`;
   return (
     `<header>${WORDMARK}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
