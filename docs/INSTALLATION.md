@@ -246,7 +246,7 @@ The sections below describe what each individual installer does.
 
 4. **Test the setup:**
    ```bash
-   /aide-create PROJ-7637
+   /aide-create "A test spec" Just checking that the flow works.
    ```
 
 **Full documentation:**
@@ -287,7 +287,7 @@ The sections below describe what each individual installer does.
     - Configure tools via the tools button
 
 4. **Test the setup:**
-    - In the Copilot CLI: run `/aide-create PROJ-7637` (reads the same skills as Claude Code)
+    - In the Copilot CLI: run `/aide-create "A test spec" Just checking that the flow works.` (reads the same skills as Claude Code)
 
 **Full documentation:**
 
@@ -345,12 +345,12 @@ Regardless of which AI tool you use, test that the setup works:
 **With Claude Code:**
 
 ```bash
-/aide-create PROJ-7637
+/aide-create "A test spec" Just checking that the flow works.
 ```
 
 **With Copilot:**
 
-- Run `/aide-create PROJ-7637` in the Copilot CLI
+- Run `/aide-create "A test spec" Just checking that the flow works.` in the Copilot CLI
 
 **With other AI tools:**
 

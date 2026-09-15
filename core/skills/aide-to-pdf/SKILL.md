@@ -100,8 +100,8 @@ Could not find documentation for <ISSUE_ID>
 
 Have you run the create command first?
 
-/aide-create <ISSUE_ID>
-/aide-analyze <ISSUE_ID>
+/aide-create "<title>" <description>
+/aide-analyze <number>
 ```
 
 ## Notes

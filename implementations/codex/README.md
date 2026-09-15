@@ -242,7 +242,7 @@ approval exists. Note that repo-level `.codex/hooks.json` did not load in
 
 #### 1. Create the spec
 
-**Instead of:** `/aide-create PROJ-7890` (Claude Code)
+**Instead of:** `/aide-create "<title>" <description>` (Claude Code)
 
 **With Codex:**
 
@@ -470,7 +470,7 @@ codex exec "Run all tests" --format jsonl
 codex exec "Say 'hello'"
 
 # Run an aide workflow headless
-codex exec "/aide-create PROJ-TEST"
+codex exec '/aide-create "A test spec" Just checking that the flow works.'
 ```
 
 ### Flags for automation

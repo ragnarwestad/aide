@@ -19,7 +19,7 @@ cd $AIDE_PROJECTS_PATH/my-app
 claude
 ```
 
-**Test:** Run `/aide-create PROJ-7637` in Claude Code.
+**Test:** Run `/aide-create "A test spec" Just checking that the flow works.` in Claude Code.
 
 ---
 
@@ -112,7 +112,7 @@ claude plugin install jdtls-lsp@claude-plugins-official
 
 | Command                              | Description               |
 |--------------------------------------|---------------------------|
-| `/aide-create <description>`         | Create a spec             |
+| `/aide-create "<title>" <description>` | Create a spec           |
 | `/aide-analyze <number>`             | Analyze codebase          |
 | `/aide-implement PROJ-XXXX`          | Implement with TDD        |
 
