@@ -8,9 +8,9 @@ A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claud
 - [The aide-* skills](#the-aide--skills)
 - [For end users](#for-end-users)
 - [Environment variables](#environment-variables)
-  - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
-  - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
-  - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
+    - [AIDE_INSTALLATION_PATH](#aide_installation_path-optional)
+    - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
+    - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [Resources](#resources)
 
@@ -25,8 +25,8 @@ nobody else can review what was actually agreed before the code was
 written.
 
 Aide's answer is spec-driven development: before any AI assistant writes
-code, it writes a specification — four plain-Markdown files
-(description, analysis, solution, status) that a person and any AI tool
+code, it writes a specification — four plain-Markdown files (description, analysis, solution, status) that a person and
+any AI tool
 can read, review and continue identically, committed to git alongside
 the code it describes. That structure is what lets **any AI assistant**:
 
@@ -47,22 +47,22 @@ them.
 
 The four spec-workflow skills, in the order a spec moves through them:
 
-| Skill              | Does                                                                                  |
-|---------------------|----------------------------------------------------------------------------------------|
-| `/aide-create`      | Creates a spec from a title and a description: the 4-file structure (description, analysis, solution, status) |
-| `/aide-analyze`     | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan |
-| `/aide-implement`   | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution |
-| `/aide-archive`     | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
+| Skill             | Does                                                                                                                                           |
+|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/aide-create`    | Creates a spec from a title and a description: the 4-file structure (description, analysis, solution, status)                                  |
+| `/aide-analyze`   | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan              |
+| `/aide-implement` | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution                                              |
+| `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
 
 Supporting skills, used around that workflow rather than as a step in it:
 
-| Skill              | Does                                                                                  |
-|---------------------|----------------------------------------------------------------------------------------|
-| `/aide-explore`     | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
-| `/aide-manifest`    | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs) |
-| `/aide-reopen`      | Takes an archived spec back into the active list for another round, keeping the description and archive trail |
-| `/aide-reset`       | Resets an invalid active spec work round, keeping its README, description, commits and job history |
-| `/aide-to-pdf`      | Generates a PDF from a spec's documentation |
+| Skill            | Does                                                                                                           |
+|------------------|----------------------------------------------------------------------------------------------------------------|
+| `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
+| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)          |
+| `/aide-reopen`   | Takes an archived spec back into the active list for another round, keeping the description and archive trail  |
+| `/aide-reset`    | Resets an invalid active spec work round, keeping its README, description, commits and job history             |
+| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                    |
 
 ---
 
@@ -70,15 +70,17 @@ Supporting skills, used around that workflow rather than as a step in it:
 
 Clone the repo, then run the installer for your AI tool:
 
-| AI tool        | Install                          | Documentation                                        |
-|----------------|-----------------------------------|------------------------------------------------------|
+| AI tool        | Install                                  | Documentation                                        |
+|----------------|------------------------------------------|------------------------------------------------------|
 | Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
 | GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 
-`./install-all.sh` runs all three at once. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally so any project can use them.
+`./install-all.sh` runs all three at once. Each installer is self-contained: instructions, commands/prompts, scripts and
+documentation, installed globally so any project can use them.
 
-> **Windows users:** The scripts require WSL or Git Bash. See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
+> **Windows users:** The scripts require WSL or Git Bash.
+> See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 ---
 
@@ -86,8 +88,8 @@ Clone the repo, then run the installer for your AI tool:
 
 ### AIDE_INSTALLATION_PATH (optional)
 
-Path to where Aide is checked out. Only a few scripts read it
-(`core/scripts/validate-env`, the uninstallers) — most of the install
+Path to where Aide is checked out. Only a few scripts read it (`core/scripts/validate-env`, the uninstallers) — most of
+the install
 scripts find their own location instead.
 
 ```bash
