@@ -96,7 +96,15 @@ export function groupBySpec(
   // is not checked out on this host looks exactly the same from here,
   // and a project losing its whole history to a momentarily unreadable
   // disk is not recoverable by a filter.
-  const judgeable = new Set(targets.map((t) => t.project));
+  // A project the scan has ANY spec of, active or archived: a project
+  // whose specs are all archived is still one this list knows, and a
+  // create cancelled before it made a folder has no row there either
+  // (seen on aide with every spec archived, 2026-09-15).
+  const judgeable = new Set([
+    ...targets.map((t) => t.project),
+    ...(archived ?? []).map((key) => key.split("/")[0]!),
+    ...(archivedSpecs ?? []).map((s) => s.project),
+  ]);
   const archivedSet = new Set(archived ?? []);
   const fromJobs = [...byKey.entries()]
     // Archived beats every other reason to keep a group visible. An
