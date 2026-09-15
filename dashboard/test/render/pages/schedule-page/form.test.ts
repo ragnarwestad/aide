@@ -46,6 +46,20 @@ describe("renderScheduleForm", () => {
     expect(html).toContain('<option value="atlasaurus">atlasaurus</option>');
   });
 
+  // The project's own Schedule tab (spec 468): the project is fixed by
+  // the page, so it rides as a hidden field instead of a select.
+  test("a `fixedProject` option renders a hidden project field and no select", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", fixedProject: "aide" });
+    expect(html).toContain('<input type="hidden" name="project" value="aide">');
+    expect(html).not.toContain('<select name="project">');
+  });
+
+  test("omitting both `projects` and `fixedProject` renders no project field at all", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule/aide" });
+    expect(html).not.toContain('<select name="project">');
+    expect(html).not.toContain('name="project"');
+  });
+
   // The model pair. One picker for the whole entry, not one per phase:
   // a scheduled job is a single `schedule` step.
   const TWO_TOOLS = [

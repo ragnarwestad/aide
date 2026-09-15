@@ -9,7 +9,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { resolveSchedule } from "../../../project/discover";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
-import { SCHEDULE_ROUTE, renderDeleteSchedulePage, renderNewSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render";
+import { SCHEDULE_ROUTE, projectPagePath, renderDeleteSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers/static.ts";
 import type { RoutesContext } from "..";
@@ -47,12 +47,14 @@ export async function schedulePages(
           lastState: last?.state,
           lastRunAt: last?.startedAt ?? last?.createdAt,
           outputHref: outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+          // AC-5: the project's own Schedule tab — where the New-job
+          // form and this entry's own row both now live (spec 468).
+          projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
         };
       }),
     );
     const langResult = languageChoice(url, req);
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
-      projects,
       rows,
       token: ctx.queueToken,
       script: await specsClientScript(),
@@ -61,26 +63,6 @@ export async function schedulePages(
         sort: url.searchParams.get("sort") ?? undefined,
         dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
       },
-      lang: langResult.lang,
-      currentUrl: langResult.currentUrl,
-    });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
-  }
-
-  if (path === "/schedule/new") {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const langResult = languageChoice(url, req);
-    const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
-      projects: [...ctx.allowed].sort(),
-      token: ctx.queueToken,
-      script: await specsClientScript(),
-      error: url.searchParams.get("error") ?? undefined,
-      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-        name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
-      })),
-      defaultModels: ctx.queue.defaults.model,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

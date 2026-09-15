@@ -92,9 +92,9 @@ select[name^="model."] {
    same x in both rows without forcing either column wider than its
    own content needs. `max-width: 100%` keeps a track from outgrowing
    the form itself; the narrow breakpoint (narrow.css) collapses back
-   to one column, covering this page's standalone use (New job, wide)
-   and its inline use under a detail page's Edit heading (narrow)
-   without two different markups. */
+   to one column, covering this form's two embeddings — a project's own
+   Schedule tab (spec 468) and a detail page's Edit heading — without
+   two different markups. */
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
 .scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }

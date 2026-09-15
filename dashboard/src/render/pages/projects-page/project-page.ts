@@ -11,6 +11,8 @@ import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
+import { renderScheduleForm } from "../schedule-page/form.ts";
+import { schedulePagePath } from "../schedule-page/tabs.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";
@@ -187,28 +189,50 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
 }
 
-/** The Schedule section (spec 259): each entry's name, cron expression,
- *  prompt path and next fire time. The tab itself is always present
- *  (spec 378, REQ-6) — a project with nothing scheduled says so in a
- *  sentence, rather than the tab bar changing shape from project to
- *  project. Read-only: a schedule is edited in the committed manifest,
- *  not through this form, the same way `codeLanding` is a form field but
- *  `worktreeLinks`'s SOURCE (which of the two files) is not. */
-function scheduleSection(entries: readonly ScheduleEntry[]): string {
-  if (entries.length === 0) return `<p class="muted">Nothing is scheduled for this project.</p>`;
+/** The Schedule section (spec 259, extended spec 468): each entry's
+ *  name (linking to its own detail page), cron expression, prompt path
+ *  and next fire time, and — since spec 468 moved the New-job form here
+ *  from the aggregate `/schedule` page — the form to create one for
+ *  THIS project. The tab itself is always present (spec 378, REQ-6) —
+ *  a project with nothing scheduled says so in a sentence, rather than
+ *  the tab bar changing shape from project to project.
+ *
+ *  The form is drawn unconditionally (AC-1) — `1-description.md`'s own
+ *  wording carries no exception for a project outside the queue's
+ *  allowlist. Such a project is still reachable from `/projects`
+ *  (2-analysis.md, Patterns); its submission is refused by the create
+ *  route's own `ctx.allowed.has(project)` check, and the refusal shows
+ *  through this same form's own error line — the identical channel a
+ *  bad cron or a duplicate name already uses (3-solution.md, Risk 2). */
+function scheduleSection(project: string, entries: readonly ScheduleEntry[], opts: ProjectPageOptions): string {
   const now = new Date();
-  const rows = entries
-    .map((e) => {
-      const next = nextFireTime(e.cron, now);
-      return (
-        `<tr><td>${esc(e.name)}</td><td><code>${esc(e.cron)}</code></td>` +
-        `<td>${esc(e.prompt)}</td><td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td></tr>`
-      );
-    })
-    .join("");
+  const table =
+    entries.length === 0
+      ? `<p class="muted">Nothing is scheduled for this project.</p>`
+      : `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Cron</th>` +
+        `<th>Prompt</th><th>Next run</th></tr></thead><tbody>` +
+        entries
+          .map((e) => {
+            const next = nextFireTime(e.cron, now);
+            return (
+              `<tr><td><a href="${esc(schedulePagePath(project, e.name))}">${esc(e.name)}</a></td>` +
+              `<td><code>${esc(e.cron)}</code></td><td>${esc(e.prompt)}</td>` +
+              `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td></tr>`
+            );
+          })
+          .join("") +
+        `</tbody></table></div>`;
   return (
-    `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Cron</th>` +
-    `<th>Prompt</th><th>Next run</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    table +
+    `<h3>New job</h3>` +
+    renderScheduleForm({
+      action: "/api/queue/schedule",
+      fixedProject: project,
+      token: opts.token,
+      error: opts.error,
+      modelChoices: opts.modelChoices,
+      defaultModels: opts.defaultModels,
+    })
   );
 }
 
@@ -300,7 +324,7 @@ export function renderProjectPage(
   const base = projectPagePath(p.name);
   const panel =
     tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)
-    : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
+    : tab === "schedule" ? scheduleSection(p.name, opts.schedule ?? [], opts)
     : configSection(settings, p.name, readiness, opts);
 
   // "Whether this checkout is behind origin has not been checked yet" is

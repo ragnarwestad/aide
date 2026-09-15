@@ -1,30 +1,27 @@
 // /schedule (spec 272, extended spec 276, reworked spec 278): the list
-// of every allowed project's entries at once, an entry's own detail
-// page (Overview/History tabs) and the New-job page — composed from
-// schedule-page/*. Configuring, monitoring and editing all live here,
-// never on a project's own page.
+// of every allowed project's entries at once, and an entry's own detail
+// page (Overview/History tabs) — composed from schedule-page/*.
+// Monitoring and editing live here; creating a job moved to the
+// project's own Schedule tab (spec 468).
 
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { Language } from "../../../i18n";
 import { backLink, btn, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
+import type { ScheduleFormOptions } from "./form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
 import { renderScheduleOverview } from "./overview.ts";
-import { deleteSchedulePath, newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
+import { deleteSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
-export { SCHEDULE_TABS, deleteSchedulePath, newSchedulePath, schedulePagePath, scheduleTabPath };
+export { SCHEDULE_TABS, deleteSchedulePath, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
 
 export interface SchedulePageOptions {
-  /** Every allowed project — decides only whether the New-job link is
-   *  offered. */
-  projects: readonly string[];
   /** Every allowed project's entries, flattened together. */
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
@@ -144,47 +141,6 @@ export function renderDeleteSchedulePage(
     `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(title, nav, back, body, generatedAt, undefined, {
-    script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
-  });
-}
-
-export interface NewSchedulePageOptions {
-  /** Every allowed project, offered on the form's own Project select.
-   *  Empty renders a fallback message instead of the form, the same
-   *  way `renderNewSpecPage`'s own `projects.length === 0` branch
-   *  does. */
-  projects: readonly string[];
-  token?: string;
-  script?: string;
-  error?: string;
-  /** The form's own model picker — the same two views `new-spec-page.ts`
-   *  takes, from the same helper in `serve.ts`. */
-  modelChoices?: ScheduleFormOptions["modelChoices"];
-  defaultModels?: ScheduleFormOptions["defaultModels"];
-  /** Spec 408. Absent means English — the same default `pageShell`'s
-   *  own `opts.lang` falls back to. */
-  lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
-   *  language links keep the reader on this same page. */
-  currentUrl?: string;
-}
-
-export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
-  const body =
-    `<main>${backLink(SCHEDULE_ROUTE, "New job")}` +
-    (opts.projects.length
-      ? renderScheduleForm({
-          action: "/api/queue/schedule",
-          token: opts.token,
-          error: opts.error,
-          projects: opts.projects,
-          modelChoices: opts.modelChoices,
-          defaultModels: opts.defaultModels,
-        })
-      : `<p class="muted">No project on this machine may have a schedule entry made in it yet. ` +
-        `Add one on the Projects page first.</p>`) +
-    `</main>`;
-  return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

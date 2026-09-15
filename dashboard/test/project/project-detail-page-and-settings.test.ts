@@ -279,6 +279,55 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     expect(panel).toMatch(/aria-current="page"[^>]*>Schedule/);
     expect(panel).toMatch(/nothing is scheduled/i);
   });
+
+  // Spec 468: the New-job form moved here from the aggregate /schedule
+  // page — the project is fixed by the page, so it rides as a hidden
+  // field, never a select (AC-1, AC-2).
+  test("the tab shows a New-job form for this project, with no project select (AC-1, AC-2)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
+    expect(html).toContain('action="/api/queue/schedule"');
+    expect(html).toContain('<input type="hidden" name="project" value="aide">');
+    expect(html).not.toContain('<select name="project">');
+  });
+
+  // Spec 468, AC-6: the aggregate list's row no longer points here
+  // directly (it points at this tab instead), so this is now the one
+  // place an entry's own detail page is reachable from.
+  test("an entry's name links to its own detail page (AC-6)", async () => {
+    const root = projectsRoot({ aide: null });
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\nschedule:\n  - name: nightly-report\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+    );
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
+    expect(html).toContain('href="/schedule/aide/nightly-report"');
+  });
+
+  // Spec 468, Risk 2: a project outside the queue's own allowlist is
+  // still reachable from /projects and still gets the form (AC-1 is
+  // unconditional) — its submission is refused by the existing create
+  // route, and the refusal shows through the form's own error line,
+  // exactly like a bad cron or a duplicate name already does.
+  test("a project outside the queue's allowlist still gets the form, and a submission is refused inline (Risk 2)", async () => {
+    const root = projectsRoot({ aide: null, other: null });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await get(base, "other", "schedule")).text();
+    expect(html).toContain('<input type="hidden" name="project" value="other">');
+    const res = await fetch(`${base}/api/queue/schedule`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: new URLSearchParams({
+        project: "other", name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md",
+      }).toString(),
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/projects/other?tab=schedule&error=")).toBe(true);
+    const refusalHtml = await (await fetch(`${base}${location}`, { headers: AUTH })).text();
+    expect(refusalHtml).toContain("is not a project this dashboard knows");
+  });
 });
 
 // Spec 255: the edit/save/cancel controls the unified table gained.

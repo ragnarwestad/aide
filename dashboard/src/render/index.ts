@@ -55,13 +55,14 @@ export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./pages/test-servers-
 export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers-page.ts";
 
 // /schedule (spec 272): the aggregate page listing every allowed
-// project's `schedule:` entries.
+// project's `schedule:` entries. The New-job form itself moved to each
+// project's own Schedule tab (spec 468).
 export {
-  renderSchedulePage, renderScheduleDetailPage, renderNewSchedulePage, renderDeleteSchedulePage,
-  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, newSchedulePath, deleteSchedulePath,
+  renderSchedulePage, renderScheduleDetailPage, renderDeleteSchedulePage,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, deleteSchedulePath,
 } from "./pages/schedule-page";
 export type {
-  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, NewSchedulePageOptions,
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions,
   DeleteSchedulePageOptions, ScheduleHistoryRow, ScheduleTab,
 } from "./pages/schedule-page";
 

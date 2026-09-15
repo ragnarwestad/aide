@@ -18,12 +18,6 @@
    the same x. Scoped to .settingsform alone: other .row/.lbl users
    (new-spec-page.ts's "Selected:" row) keep their own unscoped look. */
 .settingsform .row .lbl { min-width: 11rem; }
-/* The `/schedule` list's own New-job link (spec 278): `.specsearch` has
-   no `details.intro` here to carry the right-aligning margin the way it
-   does on the Specs list (`details.intro`, below) — a bare `.specsearch
-   > .btn.primary` rule would also reach the Specs page's own New-spec
-   link, so this class is scoped to `/schedule` alone. */
-.schedulenewlink { margin-left: auto; }
 /* State and the action are two boxes of their own, each an exact width,
    and the cell is the sum of them (spec 379's REQ-1/REQ-4, corrected
    2026-09-04). A column has ONE width for every row, so whatever box is

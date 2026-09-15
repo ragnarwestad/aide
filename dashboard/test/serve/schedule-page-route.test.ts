@@ -179,43 +179,20 @@ describe("GET /schedule (spec 272)", () => {
   });
 });
 
-describe("GET /schedule/new (spec 278)", () => {
-  test("renders a Project select listing every allowed project, action posts to /api/queue/schedule (criterion 12)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] }, alsoProjects: ["other"] });
-    const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('<select name="project">');
-    expect(html).toContain('<option value="aide">aide</option>');
-    expect(html).toContain('<option value="other">other</option>');
-    expect(html).toContain('action="/api/queue/schedule"');
-  });
-
-  // The route's own half of the model picker: the form can only draw
-  // what it is handed, and only this proves `page-routes.ts` hands the
-  // queue config's own model table to it.
-  test("the form offers the configured models", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
-    const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
-    const html = await res.text();
-    expect(html).toContain('<select name="model"');
-    expect(html).toContain('value="codex-fast"');
-    expect(html).toContain('data-ai="model"');
-  });
-
-  test("the old /schedule/<project>/new path is gone", async () => {
+// Spec 468: the New-job form moved to the project's own Schedule tab,
+// and the Project select went with it — this page has nothing left to
+// serve.
+describe("GET /schedule/new (spec 468 — moved to the project's own Schedule tab)", () => {
+  test("is gone: 404", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule/aide/new`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(404);
   });
 
-  // Spec 408, REQ-1/REQ-4.
-  test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
+  test("the old /schedule/<project>/new path is gone too", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule/new?lang=nb`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
-    const html = await res.text();
-    expect(html).toContain('<html lang="nb">');
+    const res = await fetch(`${base}/schedule/aide/new`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(404);
   });
 });
 

@@ -7,7 +7,7 @@ import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateSch
 import type { ScheduleGit } from "../../project/project-admin/schedule-admin.ts";
 import { resolveSchedule } from "../../project/discover";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render";
+import { deleteSchedulePath, projectPagePath, SCHEDULE_ROUTE } from "../../render";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -152,15 +152,25 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const project = str(body.project);
-    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
+    // The form that posts here now lives on the project's own Schedule
+    // tab, not the aggregate page (spec 468) — a no-JS redirect, on
+    // every refusal including this allowlist check, has to land back
+    // where the form is (3-solution.md, Risk 2: a project outside the
+    // allowlist still gets the form, and its refusal surfaces through
+    // the same error line a bad cron or a duplicate name already uses).
+    const back = `${projectPagePath(project)}?tab=schedule`;
+    if (!ctx.allowed.has(project)) {
+      const message = `"${project}" is not a project this dashboard knows`;
+      return wantsJson ? json({ error: message }, 400) : specsRedirect(body, { error: message }, back);
+    }
     const codeRoot = ctx.machineryProjectDir(project);
     const result = await ctx.mergeLock.run(codeRoot, () =>
       createScheduleEntry(scheduleGit(ctx), codeRoot, {
         name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
       }, knownModels(ctx)),
     );
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
+    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
+    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
   }
 
   return null;

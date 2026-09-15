@@ -220,6 +220,37 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
     expect(res.status).toBe(400);
     expect(readSchedule(dir, "aide")).toEqual([]);
   });
+
+  // Spec 468: the form that posts here now lives on the project's own
+  // Schedule tab, not the aggregate /schedule page — a no-JS redirect
+  // has to land back where the form is, on both success and refusal.
+  test("a no-script POST redirects to the project's own Schedule tab on success", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }).toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=schedule");
+  });
+
+  test("a no-script POST that is refused redirects to the project's own Schedule tab, with the reason", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }).toString(),
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+  });
 });
 
 describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", () => {

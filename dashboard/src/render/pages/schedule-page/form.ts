@@ -19,12 +19,18 @@ export interface ScheduleFormOptions {
   action: string;
   token?: string;
   error?: string;
-  /** Present only on the New-job form (spec 278): every allowed
-   *  project, offered as a `<select>` the same way the New-spec form's
-   *  own Project field is (`new-spec-page.ts`). The Edit form on an
-   *  entry's own detail page keeps its project fixed from the URL and
-   *  never passes this. */
+  /** Every allowed project (spec 278): draws a `<select name="project">`
+   *  the same way the New-spec form's own Project field is
+   *  (`new-spec-page.ts`). Mutually exclusive with `fixedProject`
+   *  below — the New-job page used this; nothing else does now that it
+   *  is gone (spec 468). */
   projects?: readonly string[];
+  /** The project's own Schedule tab (spec 468): the project is fixed by
+   *  the page, so it rides as a hidden field instead of a select — AC-2
+   *  forbids a select here, but the create route still reads `project`
+   *  off the POST body (`schedule-admin-routes.ts`), so the value still
+   *  has to be sent. Never set together with `projects`. */
+  fixedProject?: string;
   /** Every model the config granted a budget to, and which CLI each
    *  starts — the same view the spec list's phase lines and the
    *  New-spec form are given, built by the same helper in `serve.ts` so
@@ -102,6 +108,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     tokenField(opts.token) +
+    (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
     `<p class="rowmsg failed scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     `<div class="frow">` +
     (opts.projects

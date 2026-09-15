@@ -7,7 +7,7 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { deleteSchedulePath, newSchedulePath, schedulePagePath } from "./tabs.ts";
+import { deleteSchedulePath } from "./tabs.ts";
 
 export interface SchedulePageRow {
   project: string;
@@ -17,6 +17,12 @@ export interface SchedulePageRow {
    *  displayed text stays `lastState` (2-analysis.md, Findings). */
   lastRunAt?: string;
   outputHref?: string;
+  /** AC-5 (spec 468): the project's own Schedule tab — where the
+   *  New-job form and this entry's own row both now live. Computed by
+   *  the route (`schedule-pages.ts`), the same way `outputHref` above
+   *  is, so this file needs no import of `projects-page/routes.ts`
+   *  (avoids a module cycle — 3-solution.md, Risk 1). */
+  projectScheduleHref: string;
 }
 
 export interface ScheduleFilter {
@@ -74,10 +80,6 @@ function scheduleHref(f: ScheduleFilter, patch: { q?: string; sort?: string; dir
 }
 
 export interface ScheduleListOptions {
-  /** Every allowed project — decides only whether the New-job link is
-   *  offered, the same way the Specs list's own New-spec link checks
-   *  `createProjects`. */
-  projects: readonly string[];
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
   token?: string;
@@ -87,15 +89,15 @@ function row(r: SchedulePageRow, now: Date, token?: string): string {
   const next = nextFireTime(r.entry.cron, now);
   const state = r.lastState ?? "never run";
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
-  const detailHref = schedulePagePath(r.project, r.entry.name);
   const toggleUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/enabled`;
   const runUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(r.entry.name)}/run`;
   return (
     `<tr>` +
     // `project:name`, matching the Specs list's own row format — the
     // list is no longer scoped to one project, so the row has to say
-    // which one it belongs to.
-    `<td><a href="${esc(detailHref)}">${esc(r.project)}:${esc(r.entry.name)}</a></td>` +
+    // which one it belongs to. AC-5 (spec 468): the link goes to the
+    // project's own Schedule tab, not the entry's own detail page.
+    `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a></td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +
     // A standalone checkbox with no surrounding form, the same shape
@@ -155,19 +157,7 @@ function deleteCell(r: SchedulePageRow, token?: string): string {
   );
 }
 
-// The one control on this page that is not about an entry that
-// exists — offered only when at least one allowed project could hold
-// one, the same guard the Specs list's own "New spec" link runs.
-function newJobLink(opts: ScheduleListOptions): string {
-  if (opts.projects.length === 0) return "";
-  // `.schedulenewlink` carries its own right-alignment rule
-  // (`rows-and-forms.css`) rather than reusing `.specsearch > .btn.primary`,
-  // which would also reach the Specs page's own New-spec link (3-solution.md,
-  // Risk 5).
-  return `<a class="btn primary schedulenewlink" href="${esc(newSchedulePath())}">New job</a>`;
-}
-
-function searchForm(f: ScheduleFilter, opts: ScheduleListOptions): string {
+function searchForm(f: ScheduleFilter): string {
   const keep = (["sort", "dir"] as const)
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
@@ -188,7 +178,6 @@ function searchForm(f: ScheduleFilter, opts: ScheduleListOptions): string {
     `</span>` +
     keep +
     `<button class="btn" type="submit">Search</button>` +
-    newJobLink(opts) +
     `</form>`
   );
 }
@@ -233,5 +222,5 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
     visible.length === 0
       ? rowMessage("info", opts.rows.length === 0 ? "No schedule entry exists yet." : `No schedule entry matches "${term}".`)
       : `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${visible.map((r) => row(r, now, opts.token)).join("")}</tbody></table></div>`;
-  return searchForm(f, opts) + table;
+  return searchForm(f) + table;
 }

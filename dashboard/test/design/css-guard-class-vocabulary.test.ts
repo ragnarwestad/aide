@@ -245,11 +245,10 @@ const STRUCTURE = [
   // class on the same page broke the e2e suite's "find the one
   // .specform button" locator.
   "trackingform",
-  // /schedule (spec 276, reworked spec 278): the New-job link's own
-  // right-alignment, the detail page's key/value overview, the
-  // create/edit form's error line, and the Cron field's input and its
-  // live "Next run" preview span.
-  "schedulenewlink", "kv", "scheduleform-error", "cron-input", "cron-next",
+  // /schedule (spec 276, reworked spec 278): the detail page's
+  // key/value overview, the create/edit form's error line, and the
+  // Cron field's input and its live "Next run" preview span.
+  "kv", "scheduleform-error", "cron-input", "cron-next",
   // the Config tab's button row (spec 301): always two buttons, right-
   // aligned, with its own margin to the table below.
   "configactions",
