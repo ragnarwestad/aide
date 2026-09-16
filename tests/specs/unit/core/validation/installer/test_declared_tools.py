@@ -240,3 +240,43 @@ class TestRequiredToolsAreDeclared:
             f"tool(s) checked with `command -v` but missing from "
             f"MISE_DECLARED_TOOLS (or the documented exclude set): {undeclared}"
         )
+
+
+@pytest.mark.validation
+class TestUpgradeAiToolsReportsEveryToolItUpgrades:
+    """A tool the upgrade line names but the version report never greps
+    is upgraded silently: the run prints no evidence that it moved, and
+    a package that stopped resolving looks exactly like one that is
+    already current."""
+
+    @staticmethod
+    def _lines(workspace_root):
+        text = (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()
+        upgrade_line = next(
+            line for line in text.splitlines() if line.strip().startswith("mise upgrade")
+        )
+        report_line = next(line for line in text.splitlines() if "mise ls" in line)
+        return upgrade_line, report_line
+
+    @staticmethod
+    def _patterns(report_line):
+        """The alternatives the report's own `grep -E` matches on. It
+        greps the full `mise ls` output, so each alternative is a
+        substring of the package name rather than the whole of it."""
+        pattern = re.search(r'grep -E "([^"]*)"', report_line)
+        assert pattern, report_line
+        return pattern.group(1).split("|")
+
+    def test_every_upgraded_tool_appears_in_the_version_report(self, workspace_root):
+        upgrade_line, report_line = self._lines(workspace_root)
+        packages = upgrade_line.split()[2:]
+        assert packages, upgrade_line
+        patterns = self._patterns(report_line)
+        missing = [
+            pkg for pkg in packages
+            if not any(alternative in pkg for alternative in patterns)
+        ]
+        assert not missing, (
+            f"{missing} are upgraded but never listed by the version report: "
+            f"{report_line}"
+        )
