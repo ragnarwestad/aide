@@ -8,6 +8,7 @@
 import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
+import { lastChecks } from "../../tool-check.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
@@ -37,6 +38,10 @@ export async function projectPages(
       notice: url.searchParams.get("notice") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
+      tab: url.searchParams.get("tab") ?? undefined,
+      // What the last press of Check found, never a check run because
+      // this page was opened.
+      checks: lastChecks(),
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

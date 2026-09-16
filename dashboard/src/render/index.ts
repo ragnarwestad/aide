@@ -46,8 +46,13 @@ export type { NavEntry } from "./ui/shell.ts";
 
 export { backLink, resolveBackHref } from "./ui/components";
 
-export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS } from "./pages/settings-page.ts";
-export type { SettingsPageOptions } from "./pages/settings-page.ts";
+export {
+  OTHER_STEPS, renderSettingsPage, SETTINGS_ROUTE, SETTINGS_ROWS, SETTINGS_STEPS, SETTINGS_TABS,
+  SPEC_STEPS, UNROWED_STEPS,
+} from "./pages/settings-page";
+export type { SettingsPageOptions } from "./pages/settings-page";
+export { CHECKABLE_TOOLS, TOOL_TABS, toolPanel } from "./pages/settings-page/tools.ts";
+export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 
 // /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
 // across every project, in one place.
