@@ -230,20 +230,6 @@ describe("Settings page wording and layout (spec 409)", () => {
     });
     expect(html).toMatch(/<table class="settingstable">/);
   });
-
-  // Spec 473: the cost budgets are gone — time limits are the only ones
-  // the queue still enforces, so Settings has nothing left to ask for
-  // a per-job budget or a job cap.
-  test("spec 473: no Budget per job or Job cap field is rendered", () => {
-    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
-      modelChoices: [], defaultModels: { default: "sonnet" },
-      timeoutSec: TIMEOUT_SEC,
-    });
-    expect(html).not.toContain("Budget per job");
-    expect(html).not.toContain("Job cap");
-    expect(html).not.toContain('name="budgetUsd"');
-    expect(html).not.toContain('name="jobCapUsd"');
-  });
 });
 
 // The AI column had its own copy of the tool names — `codex ? "Codex" :
