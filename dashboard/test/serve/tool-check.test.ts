@@ -63,13 +63,85 @@ describe("checkTool", () => {
     expect(check.extra).toEqual([]);
   });
 
-  test("only OpenCode is asked the two questions the others cannot answer", async () => {
-    const run = fakeRun({ "aide-preflight": { stdout: "found\n" } });
+  test("only OpenCode is asked whether its models still exist", async () => {
+    const run = fakeRun({
+      "aide-preflight": { stdout: "found\n" },
+      "auth status": { stdout: '{"loggedIn":true}' },
+      "login status": { stdout: "Logged in using ChatGPT\n" },
+    });
     for (const tool of ["claude", "codex", "copilot"] as const) {
       const check = await checkTool(tool, opts(run));
-      expect(check.extra).toEqual([]);
+      expect(check.extra.some((e) => e.question.includes("models"))).toBe(false);
     }
-    expect(run.calls.every((c) => c[0] === "aide-preflight")).toBe(true);
+  });
+
+  test("a CLI that is not installed is asked nothing at all", async () => {
+    // Asking would report "not logged in" for what is really "not
+    // installed", which sends a reader to fix the wrong thing.
+    const run = fakeRun({ "aide-preflight": { stdout: "Codex CLI is NOT installed\n" } });
+    const check = await checkTool("codex", opts(run));
+    expect(check.found).toBe(false);
+    expect(check.extra).toEqual([]);
+    expect(run.calls.length).toBe(1);
+  });
+});
+
+describe("whether a tool is logged in", () => {
+  const preflight = { "aide-preflight": { stdout: "found\n" } };
+  const login = (check: Awaited<ReturnType<typeof checkTool>>) =>
+    check.extra.find((e) => e.question === "Is it logged in?")!;
+
+  test("Claude Code answers from its own JSON", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "auth status": { stdout: '{"loggedIn":true,"authMethod":"claude.ai"}' },
+    });
+    const entry = login(await checkTool("claude", opts(run)));
+    expect(entry.ok).toBe(true);
+    expect(entry.detail).toContain("claude.ai");
+  });
+
+  test("Claude Code says no, with the command to fix it", async () => {
+    const run = fakeRun({ ...preflight, "auth status": { stdout: '{"loggedIn":false}' } });
+    const entry = login(await checkTool("claude", opts(run)));
+    expect(entry.ok).toBe(false);
+    expect(entry.detail).toContain("claude auth login");
+  });
+
+  test("a shape Claude Code never printed is unanswered, not a failure", async () => {
+    const run = fakeRun({ ...preflight, "auth status": { stdout: "who knows" } });
+    expect(login(await checkTool("claude", opts(run))).ok).toBeNull();
+  });
+
+  test("Codex answers with its exit code and its one line", async () => {
+    const run = fakeRun({ ...preflight, "login status": { stdout: "Logged in using ChatGPT\n" } });
+    const entry = login(await checkTool("codex", opts(run)));
+    expect(entry.ok).toBe(true);
+    expect(entry.detail).toContain("ChatGPT");
+  });
+
+  test("Codex that is not logged in fails on the exit code", async () => {
+    const run = fakeRun({ ...preflight, "login status": { code: 1, stdout: "Not logged in\n" } });
+    expect(login(await checkTool("codex", opts(run))).ok).toBe(false);
+  });
+
+  // The rule, again: no command means no answer, never a guess from a
+  // token file whose location the CLI is free to move.
+  test("Copilot has no command for it and says so", async () => {
+    const run = fakeRun(preflight);
+    const entry = login(await checkTool("copilot", opts(run)));
+    expect(entry.ok).toBeNull();
+    expect(entry.detail).toContain("no command");
+    expect(run.calls.length).toBe(1);
+  });
+
+  test("OpenCode answers through its providers, which are its credentials", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "opencode providers list": { stdout: "1 credentials\n" },
+    });
+    const entry = login(await checkTool("opencode", opts(run)));
+    expect(entry.ok).toBe(true);
   });
 });
 
@@ -82,7 +154,7 @@ describe("checkTool for OpenCode", () => {
       "opencode providers list": { stdout: "Credentials\n0 credentials\n" },
     });
     const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/x"] }));
-    const provider = check.extra.find((e) => e.question.includes("provider"))!;
+    const provider = check.extra.find((e) => e.question === "Is it logged in?")!;
     expect(provider.ok).toBe(false);
     expect(provider.detail).toContain("opencode providers login");
   });
