@@ -270,6 +270,13 @@ const STRUCTURE = [
   // spec-form-actions.ts's bind() loop registers, beside "specform" and
   // "trackingform".
   "settingsform",
+  // the heading row that opens each group of settings rows: the steps
+  // that act on a spec, the ones that do not, and the fallback.
+  "settingsgroup",
+  // the Settings page's per-AI tab: the panel itself, the list of
+  // questions the check answered, and the block holding what the
+  // preflight printed.
+  "toolpanel", "checklist", "checkoutput",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

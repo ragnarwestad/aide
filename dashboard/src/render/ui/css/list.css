@@ -76,6 +76,40 @@ table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }
    reads as "Timeout is far to the right" rather than beside its
    neighbours. Auto layout sizes the table to its own columns instead. */
 table.settingstable { width: auto; }
+/* The heading row that opens a group of settings rows. A row rather than
+   a blank gap, so the grouping survives being read aloud and being read
+   as markup. */
+table.settingstable tr.settingsgroup th {
+  padding-top: var(--sp-4);
+  font-size: var(--fs-s);
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+}
+table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
+
+/* The Settings page's per-AI panel: prose, the Check button, and what
+   the check found. The output block is the preflight's own terminal
+   text, so it keeps its line breaks and its monospace. */
+.toolpanel p { max-width: 70ch; }
+.checklist { list-style: none; padding-left: 0; margin: var(--sp-3) 0; }
+.checklist li { margin-bottom: var(--sp-2); }
+.checklist li > span:first-child {
+  display: inline-block;
+  min-width: 3.5em;
+  font-family: var(--mono);
+  font-size: var(--fs-s);
+  font-weight: 600;
+}
+.checkoutput {
+  font-family: var(--mono);
+  font-size: var(--fs-s);
+  white-space: pre-wrap;
+  overflow-x: auto;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
 /* Spec 415: the New-spec page's own AI/Model table has the same
    narrow-content-columns complaint as .settingstable just above, but it
    shares plain table.list with the Specs list's phase rows (spec 342),
