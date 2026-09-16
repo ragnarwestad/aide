@@ -231,9 +231,29 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(renderSentence("nb", after?.error)).toContain("kastet mergen");
   });
 
-  test("any other failure keeps the sentence the script wrote", () => {
+  // `cli-error` is the CLI itself failing rather than the work in it, so
+  // the row names which AI and model it failed on and points at the one
+  // control that can answer whether that AI is usable. The script's own
+  // words survive twice over: in the sentence, and as its hover detail.
+  test("a CLI that failed names the AI and model it failed on", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });
+    runner.tick();
+    runner.poll();
+    const text = store.get(job.id)?.error as string;
+    expect(text).toContain("sonnet");
+    expect(text).toContain("no");
+    expect(text).toContain("Check");
+    expect(store.get(job.id)?.errorDetail).toBe("no");
+  });
+
+  // Every other ending keeps the sentence the script wrote, untouched:
+  // which model was running says nothing about a scope violation.
+  test("a failure that is not about the AI keeps the script's own sentence", () => {
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({
+      readResult: () => outcome({ ok: false, terminalReason: "scope-violation", error: "no" }),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.error).toBe("no");

@@ -25,10 +25,13 @@ mkdir -p "$(dirname "$LOG")"
   # both tools read the SAME shared sources, but each has its own
   # installer, and only Claude Code's ran here. Found 2026-08-19, when
   # Codex created a spec on the four-file layout that spec 82 replaced —
-  # it had been reading its 16 August copy ever since. Copilot is parked
-  # (no subscription), and `~/.agents/skills/` — the directory Copilot
-  # reads too — is refreshed by this installer anyway.
+  # it had been reading its 16 August copy ever since.
   ./implementations/codex/install.sh
+  # And OpenCode, for the same reason and no other: its instructions file
+  # lives where only its own installer writes. Copilot needs no line —
+  # it reads `~/.agents/skills/` and the instructions file Codex's
+  # installer already refreshes.
+  ./implementations/opencode/install.sh
 } >> "$LOG" 2>&1
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then

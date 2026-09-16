@@ -29,6 +29,10 @@ export interface ExtraCheck {
 
 export interface ToolCheck {
   tool: CheckableTool;
+  /** Every command the check ran, in order, exactly as it ran them.
+   *  Shown so a reader who needs to go further can run the same thing
+   *  in a terminal and see more than a page can show. */
+  commands?: string[];
   /** When this answer was obtained. A check is a moment, not a state:
    *  what it says stops being true the next time anything is installed. */
   at: string;
@@ -106,9 +110,13 @@ function resultBlock(check: ToolCheck): string {
         .join("") +
       `</ul>`
     : "";
+  const ran = check.commands?.length
+    ? `<p class="muted small">Ran:</p><pre class="checkoutput">${esc(check.commands.join("\n"))}</pre>`
+    : "";
   return (
     `<p class="muted small">Checked ${esc(stamp(check.at))}</p>` +
     extra +
+    ran +
     `<pre class="checkoutput">${esc(check.lines.join("\n"))}</pre>`
   );
 }

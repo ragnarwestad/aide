@@ -21,6 +21,7 @@ export const en = {
   "shell.tabProjects": "Projects",
   "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem — see {path}",
+  "shell.toolFault": "{tool}: {problems} — open Settings and press Check on that tab",
   "shell.overlayDeploying": "deploying…",
   "shell.overlayResetting": "resetting…",
   "shell.overlayClosing": "closing…",
