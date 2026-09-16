@@ -128,6 +128,10 @@ const STRUCTURE = [
   // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
   // About box is, and the panel inside it.
   "confirmdialog", "confirmpanel",
+  // the page-wide leave-confirmation dialog (spec 478): a `confirmdialog`
+  // shown in place of the native beforeunload prompt for an in-app link
+  // click, named the way "about" names a page-wide dialog beside it.
+  "leaveapp",
   // the Deploy panel's own state sentence, button and refusal line,
   // spaced apart by this container's gap rather than a component margin
   // (spec 377, design-system.md "Spacing lives in the container").

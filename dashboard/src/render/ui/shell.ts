@@ -158,6 +158,26 @@ function aboutDialog(buildStamp?: string): string {
   );
 }
 
+// The same confirmdialog shape row-controls.ts/list.ts already use for
+// every other "are you sure" on this dashboard — one dialog, written
+// once per page like About, rather than stamped out per row: this
+// guard is a property of the whole app, not of any one row (spec 478).
+// A real <dialog>, unlike the native beforeunload prompt it replaces
+// for an in-app link, is positioned by the browser inside the
+// document's own viewport — always the app window, never the screen.
+function leaveAppDialog(lang: Language): string {
+  return (
+    `<dialog class="leaveapp confirmdialog"><div class="confirmpanel">` +
+    `<h2>${esc(t(lang, "shell.leaveAppTitle"))}</h2>` +
+    `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
+    `<form method="dialog"><button class="btn danger" type="submit" value="leave">` +
+    `${esc(t(lang, "shell.leaveAppLeave"))}</button></form>` +
+    `<form method="dialog"><button class="btn" type="submit">` +
+    `${esc(t(lang, "shell.leaveAppStay"))}</button></form>` +
+    `</div></dialog>`
+  );
+}
+
 // Which board this page is served from, and — on a test board — the
 // Stop control beside it (spec 424, REQ-1..5). `getBoardInfo()` is
 // process-lifetime state, read directly here rather than threaded
@@ -384,12 +404,13 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${UNSAVED_CHANGES_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
 ${pageHeader(lang, currentUrl)}
 ${headerNotices(lang)}
 ${aboutDialog(opts.buildStamp)}
+${leaveAppDialog(lang)}
 ${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}

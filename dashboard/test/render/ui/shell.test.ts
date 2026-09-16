@@ -360,6 +360,44 @@ describe("pageShell header unit control - desktop checked state (spec 469)", () 
 
 // Spec 408, REQ-2: Settings belongs to none of the tabs the bar offers,
 // so it draws no tab bar at all — everything else keeps drawing one.
+// Spec 478: a page-wide dialog, the confirmdialog shape row-controls.ts
+// already uses elsewhere, replacing the native beforeunload prompt for
+// an in-app link click — a real <dialog> is always positioned inside
+// the document's own viewport, not the OS screen.
+describe("pageShell leave-app dialog (spec 478)", () => {
+  test("AC-1/AC-2: renders dialog.leaveapp with the four translated strings", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    expect(html).toContain('<dialog class="leaveapp confirmdialog">');
+    expect(html).toContain("Leave app?");
+    expect(html).toContain("Changes you made may not be saved.");
+    expect(html).toContain(">Leave<");
+    expect(html).toContain(">Stay<");
+  });
+
+  test("renders the Norwegian strings when lang is nb", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    expect(html).toContain("Forlat appen?");
+    expect(html).toContain("Endringene du gjorde blir kanskje ikke lagret.");
+    expect(html).toContain(">Forlat<");
+    expect(html).toContain(">Bli<");
+  });
+
+  test("UNSAVED_CHANGES_SCRIPT's own click interception runs before NAV_BUSY_SCRIPT/NAV_OVERLAY_SCRIPT see the same click", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    const scriptTag = html.match(/<script>([\s\S]*?)<\/script>/)![1]!;
+    const unsavedIdx = scriptTag.indexOf("dialog.leaveapp");
+    const navBusyIdx = scriptTag.indexOf("awaiting");
+    const navOverlayIdx = scriptTag.indexOf("pageoverlay");
+    expect(unsavedIdx).toBeGreaterThan(-1);
+    expect(navBusyIdx).toBeGreaterThan(-1);
+    expect(navOverlayIdx).toBeGreaterThan(-1);
+    expect(unsavedIdx).toBeLessThan(navBusyIdx);
+    expect(unsavedIdx).toBeLessThan(navOverlayIdx);
+  });
+});
+
 describe("pageShell hideTabBar (spec 408)", () => {
   test("hideTabBar: true draws no <nav class=\"tabbar\">", () => {
     const html = pageShell("Settings", ENTRIES, "/settings", "<p>body</p>", "2026-09-06T00:00:00Z", undefined, {
