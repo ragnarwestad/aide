@@ -30,12 +30,12 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 
 This workspace supports several AI tools. Choose the one that suits you best:
 
-| AI tool            | Advantages                                       | Best for                                   | Installation documentation                                               |
-|--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents               | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
-| **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Native VS Code, Agent Mode | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
-| **OpenCode**       | One CLI in front of many providers               | Reaching a model no other tool offers | [opencode/README.md](../implementations/opencode/README.md)              |
+| AI tool            | Advantages                             | Best for                                   | Installation documentation                                               |
+|--------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
+| **Claude Code**    | Slash commands, specialized agents     | Complex analyses, cross-cutting tasks      | [claude-code/README.md](../implementations/claude-code/README.md)        |
+| **Codex (OpenAI)** | Prompt templates, manual workflow      | Spec analysis and implementation           | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| **GitHub Copilot** | Shares the skills directory with Codex | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
+| **OpenCode**       | One CLI in front of many providers     | Reaching a model no other tool offers      | [opencode/README.md](../implementations/opencode/README.md)              |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
@@ -242,13 +242,17 @@ The sections below describe what each individual installer does.
 
 **Installation and setup:**
 
-1. **Install Copilot in VS Code:**
+1. **Install the Copilot CLI:**
    ```bash
-   code --install-extension GitHub.copilot
-   code --install-extension GitHub.copilot-chat
+   mise use -g npm:@github/copilot@latest
    ```
 
-2. **Run the install script:**
+2. **Verify the installation:**
+   ```bash
+   copilot --version
+   ```
+
+3. **Run the install script:**
    ```bash
    # From the workspace root
    implementations/copilot/install.sh
@@ -256,13 +260,15 @@ The sections below describe what each individual installer does.
    It installs `AGENTS.md` as the global Copilot instructions
    (`~/.copilot/copilot-instructions.md`) and the shared scripts to `~/.local/bin/`.
 
-3. **Enable Agent Mode:**
-    - Open Copilot Chat in VS Code (`Ctrl+Shift+I` / `Cmd+Shift+I`)
-    - Select **"agent"** from the chat mode dropdown
-    - Configure tools via the tools button
+4. **Log in:**
+   ```bash
+   copilot login
+   ```
 
-4. **Test the setup:**
-    - In the Copilot CLI: run `/aide-create "A test spec" Just checking that the flow works.` (reads the same skills as Claude Code)
+5. **Test the setup:**
+   ```bash
+   copilot -p '/aide-create "A test spec" Just checking that the flow works.'
+   ```
 
 **Full documentation:**
 
@@ -270,10 +276,9 @@ The sections below describe what each individual installer does.
 
 **Key features:**
 
-- ✅ Agent Mode for autonomous multi-step tasks
-- ✅ Custom instructions (`.github/copilot-instructions.md`)
+- ✅ Reads the same skills Codex does, from `~/.agents/skills/`
+- ✅ Custom instructions (`~/.copilot/copilot-instructions.md`)
 - ✅ Slash commands / skills (`/aide-create` etc. — same as Claude Code)
-- ✅ Native VS Code integration (faster than the Claude CLI)
 - ✅ Codebase analysis and test iteration
 
 ---
@@ -449,7 +454,7 @@ cd aide/implementations/claude-code
 # Reinstall
 implementations/copilot/install.sh
 
-# Restart VS Code / Copilot CLI
+# Restart the Copilot CLI
 ```
 
 **For other AI tools:**

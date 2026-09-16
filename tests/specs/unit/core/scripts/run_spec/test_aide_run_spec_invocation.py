@@ -7,17 +7,12 @@ in conftest.py beside them.
 
 import json
 import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
 import subprocess
 import pytest
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import BRANCH, _standalone_runner_copy
-from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, emits
+from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # dry run: must not be called

@@ -7,20 +7,12 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
 import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import project_only_claude, writing_claude
-from .run_spec_invoking import BRANCH, create, worktrees
 from .run_spec_origins import is_ancestor
-from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, RESULT_ERROR, RESULT_OK, emits
+from .run_spec_results import RESULT_ERROR, RESULT_OK
 from .run_spec_status_files import conflicting_branch, nested_workspace, status_only_conflict, with_status
 
 
@@ -173,7 +165,7 @@ def test_a_4status_conflict_with_another_file_also_conflicting_stays_open(
     conflicts — today's open-conflict behavior is unchanged, and the
     step is still handed the live conflict to resolve itself."""
     ws = nested_workspace(tmp_path)
-    branch, status_rel = status_only_conflict(ws, second_file="notes.txt")
+    status_only_conflict(ws, second_file="notes.txt")
     merge_head_file = ws["project"].parent / "merge-head.txt"
     claude = fake_claude(
         "cat > /dev/null\n"

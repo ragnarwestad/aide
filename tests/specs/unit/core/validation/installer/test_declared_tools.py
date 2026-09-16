@@ -8,11 +8,8 @@ unchanged and keep their names.
 
 import os
 import re
-import shutil
 import subprocess
-from pathlib import Path
 import pytest
-from tests.specs.unit.core.validation.templates.test_templates import structure_block
 
 from .test_core_scripts import _scripts
 
@@ -202,13 +199,12 @@ class TestMiseDeclaredToolsCoversTheSixNamedTools:
 _BAREWORD_COMMAND_V = re.compile(r"command -v ([A-Za-z][A-Za-z0-9_.-]*)\b")
 
 
-# Tools with no mise-manageable backend, the AI CLIs themselves, or a
-# tool checked for a reason unrelated to aide's own installer (the editor
-# Copilot's installer looks for). An AI CLI is the one thing its own
-# implementation is FOR, and MISE_DECLARED_TOOLS is what EVERY installer
-# puts on the machine — declaring one there would have the Claude Code
-# installer fetch the others.
-_DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "opencode", "code", "curl"}
+# Tools with no mise-manageable backend, and the AI CLIs themselves. An
+# AI CLI is the one thing its own implementation is FOR, and
+# MISE_DECLARED_TOOLS is what EVERY installer puts on the machine —
+# declaring one there would have the Claude Code installer fetch the
+# others.
+_DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "copilot", "opencode", "curl"}
 
 
 @pytest.mark.validation

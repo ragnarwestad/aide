@@ -218,10 +218,11 @@ The AI picker itself POSTS NOTHING — it carries no `name`, and a press still s
 the picker is read on change (to fill the model in) and written on redraw (to reflect it), never the reverse. Change a
 model select by hand and the AI select beside it follows at once. Picking it — or moving a model select by hand — does
 reach the server at once, though: the model select it fills is recorded the instant it changes, on a phase that has not
-run yet as much as on one that has (see "A model picked for a phase" below). It is drawn only when two tools are
-configured — one AI is nothing to choose between — and filling a model in is a script's job, so with scripting off the
-pickers and their caption are hidden outright (`<noscript>`) and the five model selects underneath stay exactly as
-usable as they are with one.
+run yet as much as on one that has (see "A model picked for a phase" below). It is drawn whenever ANY tool has a
+model configured, one included: a lone entry is a statement rather than a choice, and hiding it left the row's first
+select holding a model under a heading a reader takes for the AI. Only a server with no model choices at all draws no
+picker. Filling a model in is a script's job, so with scripting off the pickers and their caption are hidden outright
+(`<noscript>`) and the five model selects underneath stay exactly as usable as they are with one.
 
 There is no `Set all…` control: a deployment with one tool and several models of it has no
 one-action way to set every phase at once, and each phase's model select is changed on its own line.

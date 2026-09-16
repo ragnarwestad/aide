@@ -34,14 +34,14 @@ Eks:  /unit-tests src/core/geo.ts
 1. **Runner + kommando:** Se `package.json` scripts (eller `pyproject.toml`/`go.mod`/
    `Cargo.toml`…). Finn test- og coverage-kommandoen prosjektet faktisk bruker. Vanlige:
 
-   | Stack | Kjør én fil | Coverage |
-   |-------|-------------|----------|
-   | Vitest | `pnpm test -- --run <fil>` | `pnpm test -- --coverage` |
-   | Jest | `npx jest <fil>` | `npx jest --coverage` |
-   | Mocha | `npx mocha <fil>` | `npx nyc mocha` |
-   | node:test | `node --test <fil>` | `node --test --experimental-test-coverage` |
-   | Pytest | `pytest <fil>` | `pytest --cov` |
-   | Go | `go test ./...` | `go test -cover ./...` |
+   | Stack     | Kjør én fil                | Coverage                                   |
+   |-----------|----------------------------|--------------------------------------------|
+   | Vitest    | `pnpm test -- --run <fil>` | `pnpm test -- --coverage`                  |
+   | Jest      | `npx jest <fil>`           | `npx jest --coverage`                      |
+   | Mocha     | `npx mocha <fil>`          | `npx nyc mocha`                            |
+   | node:test | `node --test <fil>`        | `node --test --experimental-test-coverage` |
+   | Pytest    | `pytest <fil>`             | `pytest --cov`                             |
+   | Go        | `go test ./...`            | `go test -cover ./...`                     |
 
    Bruk **prosjektets** script (f.eks. `pnpm test`), ikke et antatt. Kjør alltid i
    **ikke-watch / engangs-modus** så prosessen avslutter (Vitest: `--run`).

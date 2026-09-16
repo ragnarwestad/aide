@@ -108,7 +108,7 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
   overflow-x: auto;
   padding: var(--sp-3);
   background: var(--surface);
-  border-radius: var(--radius);
+  border-radius: var(--r);
 }
 /* Spec 415: the New-spec page's own AI/Model table has the same
    narrow-content-columns complaint as .settingstable just above, but it

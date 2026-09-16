@@ -91,7 +91,7 @@ describe("spec 388, REQ-9: a branch that exists only on origin", () => {
       // the whole round finished.
       git(aide, ["show-ref", "--verify", "--quiet", "refs/heads/feature-x"]);
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 
@@ -158,7 +158,7 @@ describe("a branch the checkout already has, moved on since", () => {
     try {
       await runToExit([aide, "--branch", "feature-x", "--port", String(decoy.port), "--timeout", "5"]);
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
     const served = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
     expect(served).toBe(newer);

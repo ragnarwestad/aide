@@ -7,19 +7,12 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
 import pytest
 import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, specs_foreign_folder_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import create
 from .run_spec_origins import origin
 from .run_spec_project_state import BASH_ERROR_REGISTRY
 from .run_spec_results import RESULT_OK

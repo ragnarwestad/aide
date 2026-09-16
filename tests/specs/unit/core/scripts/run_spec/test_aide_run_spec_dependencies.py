@@ -6,17 +6,8 @@ Split out of test_aide_run_spec_links.py 2026-09-04; the tests are
 unchanged and keep their names.
 """
 
-import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
-import pytest
-import pytest
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import run_traced

@@ -43,7 +43,7 @@ reference only — do not develop there.
   both read the generated `core/AGENTS.md` (installed as
   `~/.copilot/copilot-instructions.md` and `~/.codex/AGENTS.md`).
   Priority: Claude Code > Codex > OpenCode > Copilot. Gemini support and all
-  per-tool extras (JetBrains templates, VS Code tasks, Codex CLI wrappers)
+  per-tool extras (JetBrains templates, editor tasks, Codex CLI wrappers)
   were deliberately dropped — hand-maintained per-tool adapters were the
   main maintenance cost. Inspired by OpenSpec's engine/adapter split.
 - **`core/` is the product.** Skills, rules, scripts and templates live

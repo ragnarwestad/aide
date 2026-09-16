@@ -7,11 +7,6 @@ in conftest.py beside them.
 
 import json
 import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
 import subprocess
 import time
 import pytest

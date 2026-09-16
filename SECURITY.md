@@ -4,7 +4,7 @@
 
 Please do not open a public issue for a security vulnerability. Instead,
 report it privately using
-[GitHub's private vulnerability reporting](../../security/advisories/new)
+[GitHub's private vulnerability reporting](https://github.com/ragnarwestad/aide/security/advisories/new)
 for this repository.
 
 Include as much detail as you can: the affected component, the steps to

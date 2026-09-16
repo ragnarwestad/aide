@@ -94,11 +94,11 @@ claude plugin install jdtls-lsp@claude-plugins-official
 
 ### Slash commands (skills in Claude Code)
 
-| Command                              | Description               |
-|--------------------------------------|---------------------------|
-| `/aide-create "<title>" <description>` | Create a spec           |
-| `/aide-analyze <number>`             | Analyze codebase          |
-| `/aide-implement <number>`           | Implement with TDD        |
+| Command                                | Description        |
+|----------------------------------------|--------------------|
+| `/aide-create "<title>" <description>` | Create a spec      |
+| `/aide-analyze <number>`               | Analyze codebase   |
+| `/aide-implement <number>`             | Implement with TDD |
 
 ### Terminal scripts
 

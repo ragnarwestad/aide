@@ -69,23 +69,16 @@ else
   echo "      terminal or ssh session to pick it up"
 fi
 
-# 5. Check if the GitHub Copilot extension is installed
-echo "5️⃣  Checking GitHub Copilot extension..."
+# 5. Check if the Copilot CLI is installed
+echo "5️⃣  Checking Copilot CLI..."
 
-if command -v code &> /dev/null; then
-  if code --list-extensions | grep -q "github.copilot"; then
-    echo "   ✅ GitHub Copilot extension is installed"
-  else
-    echo "   ⚠️  GitHub Copilot extension is NOT installed"
-    echo ""
-    echo "   Install the extensions:"
-    echo "      code --install-extension GitHub.copilot"
-    echo "      code --install-extension GitHub.copilot-chat"
-    echo ""
-  fi
+if command -v copilot &> /dev/null; then
+  echo "   ✅ Copilot CLI is installed: $(copilot --version 2>/dev/null | head -1)"
 else
-  echo "   ⚠️  'code' command not found (VS Code CLI)"
-  echo "   💡 Install from VS Code: Cmd+Shift+P → 'Shell Command: Install 'code' command in PATH'"
+  echo "   ⚠️  Copilot CLI is NOT installed"
+  echo ""
+  echo "   Install via mise:"
+  echo "      mise use -g npm:@github/copilot@latest"
   echo ""
 fi
 
@@ -100,5 +93,4 @@ echo ""
 echo "💡 Tips:"
 echo "   - Update: Run ./install.sh again"
 echo "   - Update rules: Edit core/rules/, run core/scripts/build-agents-md.sh, then ./install.sh"
-echo "   - Restart VS Code after updating"
 echo ""

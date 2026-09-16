@@ -119,17 +119,17 @@ pytest -m copilot -v           # Copilot-specific
 
 **Available markers** (defined in `pytest.ini`):
 
-| Marker            | Description                                                    |
-|-------------------|----------------------------------------------------------------|
-| `unit`            | Unit tests (fast, no external dependencies)                    |
-| `integration`     | Integration tests (require a full workspace)                   |
-| `validation`      | Validation of output quality                                   |
-| `e2e`             | End-to-end tests via CLI headless mode (slow, cost money)      |
-| `evaluation`      | Evaluates prompts via AI API (slow, costs money)               |
-| `claude_code`     | Claude Code-specific tests                                     |
-| `codex`           | Codex-specific tests                                           |
-| `copilot`         | Copilot-specific tests                                         |
-| `implementations` | Cross-implementation parity tests                              |
+| Marker            | Description                                               |
+|-------------------|-----------------------------------------------------------|
+| `unit`            | Unit tests (fast, no external dependencies)               |
+| `integration`     | Integration tests (require a full workspace)              |
+| `validation`      | Validation of output quality                              |
+| `e2e`             | End-to-end tests via CLI headless mode (slow, cost money) |
+| `evaluation`      | Evaluates prompts via AI API (slow, costs money)          |
+| `claude_code`     | Claude Code-specific tests                                |
+| `codex`           | Codex-specific tests                                      |
+| `copilot`         | Copilot-specific tests                                    |
+| `implementations` | Cross-implementation parity tests                         |
 
 ### Specific test file
 

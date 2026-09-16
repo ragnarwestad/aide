@@ -6,21 +6,13 @@ in conftest.py beside them.
 """
 
 import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
-import pytest
-from ..conftest import READ_SPECS, git, run
-from .run_spec_fakes import conflicting_race_claude, landing_beside_claude, partially_committing_claude, project_only_claude, race_pushing_claude, self_committing_claude, self_pushing_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import create
+from ..conftest import git, run
+from .run_spec_fakes import landing_beside_claude, partially_committing_claude, self_committing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import is_ancestor, run_with_gh
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import subject, with_status, workflow_steps_line
+from .run_spec_status_files import with_status, workflow_steps_line
 
 def test_push_none_keeps_everything_on_this_machine(runner, workspace, fake_claude, fake_gh, origin):
     claude = writing_claude(fake_claude, workspace)
