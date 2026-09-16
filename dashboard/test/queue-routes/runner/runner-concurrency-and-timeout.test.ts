@@ -45,7 +45,17 @@ describe("the queue config decides how many run at once", () => {
     ownDirs.push(own);
     const go = join(own, "go");
     const fakeRunner = join(own, "fake-run-spec");
-    writeFileSync(fakeRunner, `#!/bin/sh\nwhile [ ! -f ${go} ]; do sleep 0.05; done\n`, { mode: 0o755 });
+    // Bounded, not just "wait for the file". `afterEach` removes this
+    // directory the moment the test ends, and a stand-in that has not
+    // noticed the go file by then waits on a path that no longer exists
+    // — forever. Twenty-seven of these were found alive on the serving
+    // host, the oldest two days old. The ceiling is under the test's own
+    // 30s timeout, so a stand-in can never outlive the test that made it.
+    writeFileSync(
+      fakeRunner,
+      `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
+      { mode: 0o755 },
+    );
     const specs = ["82-second", "83-third"];
     const { base } = start({
       queueToken: TOKEN,
