@@ -16,6 +16,8 @@ export function runCli() {
     process.exit(2);
   }
   const opts = parseArgs(argv.slice(1));
-  const s = createServer(opts);
+  // The one place the tool checks are turned on: a person serving the
+  // board wants to know, on the page, whether each AI is usable here.
+  const s = createServer({ ...opts, checkToolsOnStart: true });
   console.log(`aide-dashboard serving ${opts.siteDir} on :${s.port}`);
 }

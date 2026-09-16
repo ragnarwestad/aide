@@ -14,6 +14,12 @@
 // all, which is why the extra checks cover one tool rather than four.
 
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
+import { forgetChecks, lastChecks, recordCheck, toolsWithFaults } from "../render/ui/tool-checks.ts";
+
+// The store lives in the render layer, which is where both readers are
+// and which may not import this file. Re-exported so a caller has one
+// import site for "check a tool and remember the answer".
+export { forgetChecks, lastChecks, recordCheck, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
 
@@ -166,14 +172,23 @@ async function loginCheck(
 }
 
 export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
-  const run = opts.run ?? runScript;
   const path = opts.scriptPath ?? ((name: string) => scriptFor(name));
   const at = (opts.now ?? (() => new Date()))().toISOString();
+  // Every command this check runs, recorded as it runs. A reader who
+  // needs to go further than the page can take them runs the same line
+  // in a terminal and sees everything, rather than guessing at what was
+  // asked.
+  const commands: string[] = [];
+  const base = opts.run ?? runScript;
+  const run: typeof runScript = (argv, cwd, timeoutMs) => {
+    commands.push(argv.join(" "));
+    return base(argv, cwd, timeoutMs);
+  };
 
   const result = await run([path("aide-preflight"), tool], process.cwd(), CHECK_TIMEOUT_MS);
   if (result.timedOut) {
     return {
-      tool, at, found: false, lines: [], extra: [],
+      tool, at, found: false, lines: [], extra: [], commands,
       error: "The check did not finish in time.",
     };
   }
@@ -194,29 +209,31 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
       extra.push(await opencodeModelCheck(opts, run, path("opencode")));
     }
   }
-  return { tool, at, found, lines: printed, extra };
-}
-
-/** The last answer obtained for each tool, for as long as this server
- *  process lives. Deliberately not persisted: a check is a measurement
- *  of this machine at one moment, and a restart is exactly the kind of
- *  event that can invalidate it. */
-const LAST: Map<CheckableTool, ToolCheck> = new Map();
-
-export function recordCheck(check: ToolCheck): void {
-  LAST.set(check.tool, check);
-}
-
-export function lastChecks(): Partial<Record<CheckableTool, ToolCheck>> {
-  return Object.fromEntries(LAST) as Partial<Record<CheckableTool, ToolCheck>>;
-}
-
-/** Test seam: a suite that records a check must not leak it into the
- *  next file's expectations. */
-export function forgetChecks(): void {
-  LAST.clear();
+  return { tool, at, found, lines: printed, extra, commands };
 }
 
 export function isCheckableTool(name: unknown): name is CheckableTool {
   return typeof name === "string" && (CHECKABLE_TOOLS as readonly string[]).includes(name);
+}
+
+/** Run every check once, for a server that has just come up.
+ *
+ *  Started AFTER the server begins answering, never before: the whole
+ *  round takes about two seconds on a healthy machine, but a CLI that
+ *  hangs is bounded only by `CHECK_TIMEOUT_MS`, and no page should wait
+ *  on that. Failures are swallowed on purpose — a check that cannot run
+ *  is a check with no answer, not a server that should refuse to
+ *  serve. */
+export async function checkAllTools(
+  configuredModels: (tool: CheckableTool) => string[],
+  opts: Omit<CheckOptions, "configuredModels"> = {},
+): Promise<void> {
+  for (const tool of CHECKABLE_TOOLS) {
+    try {
+      recordCheck(await checkTool(tool, { ...opts, configuredModels: configuredModels(tool) }));
+    } catch {
+      // Nothing to record and nothing to say: the tab still reads "not
+      // checked yet", which is true.
+    }
+  }
 }

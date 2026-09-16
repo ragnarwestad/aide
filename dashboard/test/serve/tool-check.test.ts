@@ -6,7 +6,7 @@
 // something that was never broken.
 
 import { describe, expect, test } from "bun:test";
-import { checkTool, forgetChecks, lastChecks, recordCheck, stripAnsi } from "../../src/serve/tool-check.ts";
+import { checkTool, forgetChecks, lastChecks, recordCheck, stripAnsi, toolsWithFaults } from "../../src/serve/tool-check.ts";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -208,6 +208,34 @@ describe("checkTool for OpenCode", () => {
   });
 });
 
+describe("the commands a check ran", () => {
+  test("every command is recorded, in order, exactly as it ran", async () => {
+    const run = fakeRun({
+      "aide-preflight": { stdout: "found\n" },
+      "opencode providers list": { stdout: "1 credentials\n" },
+      "opencode models": { stdout: "opencode/here\n" },
+    });
+    const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/here"] }));
+    expect(check.commands).toEqual([
+      "aide-preflight opencode",
+      "opencode providers list",
+      "opencode models",
+    ]);
+  });
+
+  test("a check that did not finish still says what it tried to run", async () => {
+    const run = fakeRun({ "aide-preflight": { timedOut: true } });
+    const check = await checkTool("claude", opts(run));
+    expect(check.commands).toEqual(["aide-preflight claude"]);
+  });
+
+  test("a tool that is not installed shows the one command that found that out", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "Codex CLI is NOT installed\n" } });
+    const check = await checkTool("codex", opts(run));
+    expect(check.commands).toEqual(["aide-preflight codex"]);
+  });
+});
+
 describe("what the page reads back", () => {
   test("a recorded check is what the next page load shows, per tool", () => {
     forgetChecks();
@@ -220,5 +248,59 @@ describe("what the page reads back", () => {
     recordCheck({ tool: "codex", at: "2026-09-16T09:00:00.000Z", found: false, lines: ["c"], extra: [] });
     expect(lastChecks().codex?.lines).toEqual(["c"]);
     forgetChecks();
+  });
+});
+
+describe("what the header notice is told", () => {
+  test("a question that came back no is a fault; one nobody could ask is not", () => {
+    forgetChecks();
+    recordCheck({
+      tool: "copilot",
+      at: "2026-09-16T08:00:00.000Z",
+      found: true,
+      lines: [],
+      // Copilot has no command that reports a login, so this is null.
+      // A banner on it would be on permanently.
+      extra: [{ question: "Is it logged in?", ok: null, detail: "no command" }],
+    });
+    expect(toolsWithFaults()).toEqual([]);
+
+    recordCheck({
+      tool: "opencode",
+      at: "2026-09-16T08:00:00.000Z",
+      found: true,
+      lines: [],
+      extra: [{ question: "Is it logged in?", ok: false, detail: "none" }],
+    });
+    expect(toolsWithFaults()).toEqual([{ tool: "opencode", problems: ["is it logged in"] }]);
+    forgetChecks();
+  });
+
+  test("a CLI that is not installed is a fault on its own", () => {
+    forgetChecks();
+    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, lines: [], extra: [] });
+    expect(toolsWithFaults()).toEqual([{ tool: "codex", problems: ["not installed"] }]);
+    forgetChecks();
+  });
+});
+
+describe("when a server runs the checks at all", () => {
+  // The guard this file exists to keep. A default of "on" had every
+  // served fixture in the suite spawn four real CLIs; a test that never
+  // mentions these tools must not be able to start them.
+  test("createServer runs nothing unless it was asked", async () => {
+    const source = await Bun.file(
+      new URL("../../src/serve/serve.ts", import.meta.url),
+    ).text();
+    // Asked for by one flag and nothing else: no environment sniffing,
+    // which is what failed — `BUN_TEST` was not set the way it was
+    // assumed to be.
+    expect(source).toContain("if (opts.checkToolsOnStart)");
+    expect(source).not.toContain("BUN_TEST");
+  });
+
+  test("the CLI is the one caller that asks", async () => {
+    const cli = await Bun.file(new URL("../../src/serve/cli.ts", import.meta.url)).text();
+    expect(cli).toContain("checkToolsOnStart: true");
   });
 });

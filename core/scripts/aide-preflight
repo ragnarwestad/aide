@@ -109,7 +109,7 @@ preflight_drift() {
     # the run is in the middle of fixing.
     echo "   Installed files are behind the repo (installed $installed_sha) — this run updates them to $current_sha"
   else
-    echo -e "${YELLOW}⚠️  Installed files are behind the repo${NC} (installed $installed_sha, repo now at $current_sha) — re-run the installer"
+    echo -e "${YELLOW}⚠️  Installed files are behind the repo${NC} (installed $installed_sha, repo now at $current_sha) — press Deploy on the board, which runs the installers"
   fi
   echo ""
 }

@@ -111,11 +111,15 @@ class TestTheMergeInstallRefreshesEveryTool:
     Claude Code's. Codex therefore went on reading its install-time copy:
     on 2026-08-19 it created a spec on the four-file layout spec 82
     replaced, because its copy of `aide-create` still described the old
-    one. Copilot is parked (no subscription) and reads
-    `~/.agents/skills/`, which the Codex installer refreshes anyway.
+    one. Copilot needs no line of its own: it reads `~/.agents/skills/`
+    and the instructions file the Codex installer already refreshes.
     """
 
-    def test_both_installers_run_after_a_merge(self, workspace_root):
+    #: Every tool whose own installer writes somewhere no other
+    #: installer touches. Copilot is absent for the reason above.
+    OWN_FILES = ("claude-code", "codex", "opencode")
+
+    def test_every_installer_that_owns_a_file_runs_after_a_merge(self, workspace_root):
         # Arrange
         script = workspace_root / "dashboard" / "deploy" / "install-after-merge.sh"
 
@@ -123,7 +127,7 @@ class TestTheMergeInstallRefreshesEveryTool:
         content = script.read_text(encoding="utf-8")
 
         # Assert
-        for tool in ("claude-code", "codex"):
+        for tool in self.OWN_FILES:
             assert f"./implementations/{tool}/install.sh" in content, (
                 f"{tool}'s installer should run after a merge — otherwise its "
                 "copy of the skills and the rules drifts from the repo silently"

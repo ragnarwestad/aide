@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { rowMessage } from "./components";
 import { getPendingRestartNotice } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
+import { toolsWithFaults } from "./tool-checks.ts";
+import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 
 const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
 
@@ -49,8 +51,24 @@ function restartWaitingNotice(lang: Language): string {
   return rowMessage("waiting", text, { tag: "p", hook: "restart-notice" });
 }
 
+/** A tool the board checked and found wanting (2026-09-16). Without
+ *  this the answer lives on a Settings tab nobody has a reason to open,
+ *  and the first anyone learns of it is a run that failed. One line per
+ *  tool, since two faulty tools are two different fixes. */
+function toolFaultNotices(lang: Language): string {
+  return toolsWithFaults()
+    .map(({ tool, problems }) =>
+      rowMessage(
+        "waiting",
+        t(lang, "shell.toolFault", { tool: TOOL_TAB_LABELS[tool], problems: problems.join(", ") }),
+        { tag: "p", hook: "tool-fault" },
+      ),
+    )
+    .join("");
+}
+
 export function headerNotices(lang: Language): string {
   const installWarning = lastInstallWarning(lang);
   const installBanner = installWarning ? rowMessage("waiting", installWarning, { tag: "p" }) : "";
-  return installBanner + restartWaitingNotice(lang);
+  return installBanner + toolFaultNotices(lang) + restartWaitingNotice(lang);
 }

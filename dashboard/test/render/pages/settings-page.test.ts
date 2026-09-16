@@ -280,6 +280,7 @@ describe("Settings page", () => {
           at: "2026-09-16T08:30:00.000Z",
           found: true,
           lines: ["OpenCode found (1.18.31)"],
+          commands: ["aide-preflight opencode", "opencode providers list", "opencode models"],
           extra: [
             { question: "Is a provider logged in?", ok: true, detail: "1 credentials" },
             { question: "Do the configured models still exist?", ok: false, detail: "Not listed any more: opencode/gone" },
@@ -288,6 +289,9 @@ describe("Settings page", () => {
       },
     });
     expect(html).toContain("2026-09-16 08:30:00 UTC");
+    // What it ran, so a reader can run the same line themselves.
+    expect(html).toContain("Ran:");
+    expect(html).toContain("opencode providers list");
     expect(html).toContain("OpenCode found (1.18.31)");
     expect(html).toContain("Not listed any more: opencode/gone");
     expect(html).not.toContain("Not checked yet.");

@@ -36,6 +36,7 @@ import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { stepRepoRanges, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool } from "../steps.ts";
+import { stepFailure } from "../../format/tool-failure.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -481,13 +482,12 @@ export class Runner {
       return;
     }
     if (!outcome.ok) {
+      const failure = stepFailure(noProgressMessage(step, outcome), outcome, job.model[step] ?? job.modelChoice);
       const result = this.o.store.transition(job.id, "step-failed", {
         ...base,
         finishedAt: this.o.now(),
-        error: noProgressMessage(step, outcome) ?? outcome.error ?? outcome.terminalReason,
-        // The script's own English sentence survives as hover detail
-        // where the board's message replaced it as the text.
-        errorDetail: noProgressMessage(step, outcome) && typeof outcome.error === "string" ? outcome.error : undefined,
+        error: failure.error,
+        errorDetail: failure.errorDetail,
         // A conflict found HERE — at step start, by the runner — has to
         // reach the job the same way a landing's conflict does, so the
         // failure is stored as what it IS rather than as an unexplained
