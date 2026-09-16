@@ -56,22 +56,22 @@ export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
 const TOOL_NOTES: Record<CheckableTool, { what: string; canCheck: string; cannotCheck: string }> = {
   claude: {
     what: "Claude Code reads aide's skills, rules and agents from its own directory under your home.",
-    canCheck: "whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
+    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
     cannotCheck: "which models it accepts. Claude Code has no command that lists them, so a model name is only known to be wrong when a run fails on it.",
   },
   codex: {
     what: "Codex reads aide's generated instructions file and shares the skills directory with Copilot.",
-    canCheck: "whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
+    canCheck: "whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
     cannotCheck: "which models it accepts. Codex has no command that lists them.",
   },
   copilot: {
     what: "Copilot reads aide's generated instructions file and shares the skills directory with Codex.",
     canCheck: "whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository",
-    cannotCheck: "which models it accepts. Copilot has no command that lists them.",
+    cannotCheck: "whether it is logged in, or which models it accepts. The Copilot CLI has a command for neither.",
   },
   opencode: {
     what: "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. It finds aide's skills where they already are, so aide installs only the instructions file for it.",
-    canCheck: "everything the others can, and two more besides: whether a provider is logged in, and whether every model configured on this server still appears in that provider's own list",
+    canCheck: "everything the others can, and one more besides: whether every model configured on this server still appears in its provider's own list. A provider IS the login here, since OpenCode reaches every model through one",
     cannotCheck: "",
   },
 };

@@ -48,66 +48,121 @@ export interface CheckOptions {
   now?: () => Date;
 }
 
-/** OpenCode's own two questions. Neither is answerable for the other
- *  three tools: none of them has a command that lists models, so the
- *  page says so in words rather than showing a result it did not earn. */
-async function opencodeExtras(
+/** OpenCode reaches a model through a PROVIDER, so a provider IS its
+ *  credential: this is the same "is it logged in" question the other
+ *  three answer with a status command, asked the way OpenCode can
+ *  answer it. */
+async function opencodeProviderCheck(
+  run: typeof runScript,
+  bin: string,
+): Promise<ExtraCheck> {
+  const question = "Is it logged in?";
+  const providers = await run([bin, "providers", "list"], process.cwd(), CHECK_TIMEOUT_MS);
+  if (providers.code !== 0 || providers.timedOut) {
+    return { question, ok: null, detail: "opencode providers list could not be run." };
+  }
+  const text = stripAnsi(providers.stdout);
+  // "0 credentials" is the CLI's own wording for none configured.
+  const none = /\b0 credentials\b/.test(text);
+  return {
+    question,
+    ok: !none,
+    detail: none
+      ? "No provider is logged in, so every model call is refused. Run `opencode providers login`."
+      : lines(text).filter((l) => /credential/i.test(l)).join(" ")
+        || "At least one provider is configured.",
+  };
+}
+
+/** Whether every model configured for OpenCode still exists. The one
+ *  question none of the other three can be asked: no other CLI has a
+ *  command that lists the models it accepts. */
+async function opencodeModelCheck(
   opts: CheckOptions,
   run: typeof runScript,
   bin: string,
-): Promise<ExtraCheck[]> {
-  const out: ExtraCheck[] = [];
-
-  const providers = await run([bin, "providers", "list"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (providers.code !== 0 || providers.timedOut) {
-    out.push({
-      question: "Is a provider logged in?",
-      ok: null,
-      detail: "opencode providers list could not be run.",
-    });
-  } else {
-    const text = stripAnsi(providers.stdout);
-    // "0 credentials" is the CLI's own wording for none configured.
-    const none = /\b0 credentials\b/.test(text);
-    out.push({
-      question: "Is a provider logged in?",
-      ok: !none,
-      detail: none
-        ? "No provider is logged in, so every model call is refused. Run: opencode providers login"
-        : lines(text).filter((l) => /credential/i.test(l)).join(" ")
-          || "At least one provider is configured.",
-    });
-  }
-
+): Promise<ExtraCheck> {
+  const question = "Do the configured models still exist?";
   const configured = opts.configuredModels ?? [];
   if (configured.length === 0) {
-    out.push({
-      question: "Do the configured models still exist?",
+    return {
+      question,
       ok: null,
       detail: "No model is configured for this tool, so there is nothing to check.",
-    });
-    return out;
+    };
   }
-
   const models = await run([bin, "models"], process.cwd(), CHECK_TIMEOUT_MS);
   if (models.code !== 0 || models.timedOut) {
-    out.push({
-      question: "Do the configured models still exist?",
-      ok: null,
-      detail: "opencode models could not be run.",
-    });
-    return out;
+    return { question, ok: null, detail: "opencode models could not be run." };
   }
   const available = new Set(lines(models.stdout));
   const missing = configured.filter((m) => !available.has(m));
-  out.push({
-    question: "Do the configured models still exist?",
+  return {
+    question,
     ok: missing.length === 0,
     detail: missing.length === 0
       ? `All ${configured.length} still listed.`
       : `Not listed any more: ${missing.join(", ")}`,
-  });
-  return out;
+  };
+}
+
+
+/** Whether the tool has credentials, asked of the tool itself and never
+ *  by looking for a file. Three of the four have a command for it; the
+ *  fourth has none, and says so rather than guessing from a token file
+ *  whose location the CLI is free to change.
+ *
+ *  Verified 2026-09-16: `claude auth status` prints JSON with a
+ *  `loggedIn` boolean; `codex login status` prints one line and exits 0
+ *  when logged in; `copilot` has `login` and `logout` and no status
+ *  subcommand at all. OpenCode is asked through its providers instead,
+ *  which is the same question one layer out - it reaches a model through
+ *  a provider, so a provider IS the credential. */
+async function loginCheck(
+  tool: CheckableTool,
+  run: typeof runScript,
+  bin: string,
+): Promise<ExtraCheck> {
+  const question = "Is it logged in?";
+  if (tool === "copilot") {
+    return {
+      question,
+      ok: null,
+      detail: "The Copilot CLI has no command that reports it. Run `copilot login` if a run is refused.",
+    };
+  }
+
+  const argv = tool === "claude" ? [bin, "auth", "status"] : [bin, "login", "status"];
+  const result = await run(argv, process.cwd(), CHECK_TIMEOUT_MS);
+  if (result.timedOut) {
+    return { question, ok: null, detail: `${argv.slice(1).join(" ")} did not finish in time.` };
+  }
+  const text = stripAnsi(`${result.stdout}\n${result.stderr}`).trim();
+
+  if (tool === "claude") {
+    // Its own JSON, which is the answer rather than a sentence to read.
+    try {
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      if (typeof parsed.loggedIn === "boolean") {
+        const how = typeof parsed.authMethod === "string" ? ` (${parsed.authMethod})` : "";
+        return {
+          question,
+          ok: parsed.loggedIn,
+          detail: parsed.loggedIn ? `Yes${how}.` : "No. Run `claude auth login`.",
+        };
+      }
+    } catch {
+      // Falls through to the exit code below: a version that stops
+      // printing JSON is not a version this can claim an answer from.
+    }
+    return { question, ok: null, detail: "claude auth status did not answer in a shape this knows." };
+  }
+
+  // Codex: one line, and an exit code that says it.
+  if (result.code !== 0) {
+    return { question, ok: false, detail: text || "No. Run `codex login`." };
+  }
+  return { question, ok: true, detail: text || "Yes." };
 }
 
 export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
@@ -126,9 +181,19 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   // The preflight's own wording for a CLI it could not find.
   const found = printed.length > 0 && !printed.some((l) => /NOT installed|not found/i.test(l));
 
-  const extra = tool === "opencode"
-    ? await opencodeExtras(opts, run, path("opencode"))
-    : [];
+  // A CLI that is not there cannot be asked anything, and asking would
+  // report "not logged in" for what is really "not installed".
+  const extra: ExtraCheck[] = [];
+  if (found) {
+    extra.push(
+      tool === "opencode"
+        ? await opencodeProviderCheck(run, path("opencode"))
+        : await loginCheck(tool, run, path(tool)),
+    );
+    if (tool === "opencode") {
+      extra.push(await opencodeModelCheck(opts, run, path("opencode")));
+    }
+  }
   return { tool, at, found, lines: printed, extra };
 }
 
