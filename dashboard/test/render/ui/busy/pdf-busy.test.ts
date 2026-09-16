@@ -37,7 +37,6 @@ function harness() {
     addEventListener: (type: string, fn: () => void) => {
       if (type === "focus") focusHandler = fn;
     },
-    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     removeEventListener: (type: string) => {
       if (type === "focus") focusHandler = undefined;
     },

@@ -69,7 +69,6 @@ describe("forgetSpecCachesFor", () => {
     const ctx = {
       specDir: (_project: string, folder: string) => folder,
       peekMachinerySpecDir: (_project: string, found: string) => `/machinery/${found}`,
-      // noinspection JSUnusedGlobalSymbols -- the code under test calls it
       forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
     };
     forgetSpecCachesFor(ctx, job());
@@ -81,7 +80,6 @@ describe("forgetSpecCachesFor", () => {
     const ctx = {
       specDir: () => undefined,
       peekMachinerySpecDir: (_p: string, found: string) => found,
-      // noinspection JSUnusedGlobalSymbols -- the code under test calls it
       forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
     };
     forgetSpecCachesFor(ctx, job());

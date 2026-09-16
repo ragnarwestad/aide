@@ -12,3 +12,17 @@ disabled_rules = ["XP-004"]
 [[overrides]]
 paths = [".claude/**"]
 disabled_rules = ["XP-003"]
+
+# core/AGENTS.md is BUILT from core/rules/*.md (build-agents-md.sh) for the
+# projects Aide installs into — Codex and Copilot read it there. The rules
+# it carries are written for people as much as for a model, and these five
+# checks argue with that wording rather than with a fault:
+#
+#   AGM-003     a 12 000-character ceiling for Windsurf, which Aide does not target
+#   PE-001      where a keyword sits in the document
+#   PE-004      words like "often"
+#   PE-006      a rule phrased as a prohibition
+#   CDX-AG-005  paths inside prose, resolved against core/ instead of the repo root
+[[overrides]]
+paths = ["core/AGENTS.md"]
+disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005"]

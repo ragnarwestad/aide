@@ -282,7 +282,6 @@ function worker(networkAnswer: () => Promise<Response>) {
       let answered: Promise<Response> | undefined;
       listeners.fetch!({
         request: { mode, url: "https://board.test/" },
-        // noinspection JSUnusedGlobalSymbols -- the code under test calls it
         respondWith: (r: Promise<Response>) => void (answered = r),
       });
       return answered ? await answered : undefined;

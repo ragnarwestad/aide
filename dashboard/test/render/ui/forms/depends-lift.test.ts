@@ -16,9 +16,7 @@ const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transform
 
 /** The two blocks and one chip in each, as the page renders them. */
 function harness(checked: boolean, chipIn: "picked" | "rest") {
-  // noinspection JSUnusedGlobalSymbols -- the code under test calls it
   const picked = { className: "phases picked", children: [] as unknown[], appendChild(c: unknown) { this.children.push(c); } };
-  // noinspection JSUnusedGlobalSymbols -- the code under test calls it
   const rest = { className: "phases", children: [] as unknown[], appendChild(c: unknown) { this.children.push(c); } };
   const field = {
     querySelector: (sel: string) => (sel === ".phases.picked" ? picked : sel === ".phases:not(.picked)" ? rest : null),

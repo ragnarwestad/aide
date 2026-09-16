@@ -4,6 +4,5 @@
 // Bun's bundler actually produces.
 declare module "*.css" {
   const text: string;
-  // noinspection JSUnusedGlobalSymbols -- the CSS modules' importers use it
   export default text;
 }

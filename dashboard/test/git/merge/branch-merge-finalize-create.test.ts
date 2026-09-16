@@ -109,7 +109,6 @@ describe("mergeBranchIntoDefault: the moment before the checkout moves", () => {
     let firedAt = -1;
     let assigned: string | undefined;
     const hooks = {
-      // noinspection JSUnusedGlobalSymbols -- the code under test calls it
       beforeCheckoutMoves: (info: { assignedSpecFolder?: string }) => {
         firedAt = git.calls.length;
         assigned = info.assignedSpecFolder;

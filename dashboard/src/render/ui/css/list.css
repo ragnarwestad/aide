@@ -273,7 +273,6 @@ table.list td[data-col="created"] { text-align: center; }
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
 /* The caption line's copy of the spec's state is phone-only
    (narrow.css): on a desktop the head row's badge is a column away. */
-/*noinspection CssUnusedSymbol*/
 table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: none; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
@@ -336,20 +335,14 @@ table.speclist thead th { position: sticky; top: 0; }
    makes `width: 100%` mean the padding-INCLUSIVE box, so padding
    narrows the space the label centres in without moving .sortlink's
    own outer edge at all, and no compensating margin is needed. */
-/*noinspection CssUnusedSymbol*/
 .sortlink { display: flex; align-items: center; justify-content: center; width: 100%;
   box-sizing: border-box; padding: 2px 20px; margin: -2px 0; border-radius: var(--r-s);
   text-decoration: none; }
-/*noinspection CssUnusedSymbol*/
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
-/*noinspection CssUnusedSymbol*/
 .sortlink.on { color: var(--text); font-weight: 600; }
-/*noinspection CssUnusedSymbol*/
 .sortlink svg { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
   transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
-/*noinspection CssUnusedSymbol*/
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
-/*noinspection CssUnusedSymbol*/
 .sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }
 /* Up to two lines, then an ellipsis (asked for again 2026-08-26): one
    clamped line hid most of a long folder name behind a click. The
@@ -390,7 +383,6 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    "aide:" (asked for 2026-09-10). The two-line clamp sits on the name. */
 .spec-name > .label { display: flex; align-items: flex-start; min-width: 0; }
 .spec-name > .label > .muted { flex: 0 0 auto; }
-/*noinspection CssUnusedSymbol*/
 .spec-name > .label > .specname { overflow: hidden;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2;

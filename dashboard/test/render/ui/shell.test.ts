@@ -324,7 +324,6 @@ describe("pageShell header unit control - desktop checked state (spec 469)", () 
     const store: Record<string, string> = {};
     if (stored !== null) store["unit"] = stored;
     const localStorage = {
-      // noinspection JSUnusedGlobalSymbols -- the code under test calls it
       getItem: (key: string): string | null => store[key] ?? null,
     };
     // eslint-disable-next-line no-new-func -- the file under test IS a script

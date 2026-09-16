@@ -8,19 +8,15 @@
 .checks { margin: var(--sp-4) 0 0; }
 .checklist { list-style: none; margin: 0; padding: 0;
   display: flex; flex-direction: column; gap: var(--sp-1); }
-/*noinspection CssUnusedSymbol*/
 .checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
   margin-top: var(--sp-2); }
-/*noinspection CssUnusedSymbol*/
 .checklist .checkphase:first-child { margin-top: 0; }
 .check { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 /* The criterion's text takes the room beside the box and wraps INSIDE
    it. Without a basis of 0 a long criterion's own width is the flex
    basis, wider than the line, and the wrap moves the whole text under
    the box instead of breaking it (2026-09-14). */
-/*noinspection CssUnusedSymbol*/
 .check .checktask { flex: 1 1 0; min-width: 0; }
-/*noinspection CssUnusedSymbol*/
 .check.done .checktask { color: var(--muted); text-decoration: line-through; }
 /* The run's own note on the row, under the criterion rather than beside
    it: it is a sentence, not a label, and it must not squeeze the text
@@ -28,7 +24,6 @@
    lines up with that text — and outside `.checktask`, so a done row's
    strike-through does not run through the one thing on it that is still
    worth reading. */
-/*noinspection CssUnusedSymbol*/
 .check .checknote { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
   color: var(--muted); font-size: var(--fs-s); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
