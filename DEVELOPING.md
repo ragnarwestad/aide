@@ -69,7 +69,6 @@ aide/
 │   └── copilot/
 │       ├── .github/
 │       │   └── copilot-instructions.md  # Installed to .github/ in each project
-│       ├── keybindings.json       # VS Code keybindings (manual step)
 │       ├── install.sh
 │       └── uninstall.sh
 │

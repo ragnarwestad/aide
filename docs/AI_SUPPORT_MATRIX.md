@@ -225,7 +225,7 @@ Since we already have skills in `.claude/skills/`, Copilot picks them up automat
 ### Features
 
 - **Slash commands** — reads the personal skills from `~/.agents/skills/` (e.g. `/aide-create`)
-- **Agent Mode** — can execute multi-step workflows autonomously
+- **Headless mode** — `copilot -p` runs a prompt with no one at the keyboard
 - **MCP:** Support via the GitHub MCP server
 
 ### Installation into target projects
