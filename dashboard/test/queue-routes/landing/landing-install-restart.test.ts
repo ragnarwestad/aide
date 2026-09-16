@@ -208,7 +208,14 @@ describe("a landing that installs and asks for a restart", () => {
     const paths = repos(dir);
     const goFile = join(dir, "go");
     const fakeRunner = join(dir, "fake-run-spec");
-    writeFileSync(fakeRunner, `#!/bin/sh\nwhile [ ! -f ${goFile} ]; do sleep 0.05; done\n`, { mode: 0o755 });
+    // Bounded for the reason the concurrency suite's own stand-in is:
+    // the directory holding the go file is removed when the test ends,
+    // and a stand-in still waiting on it would wait forever.
+    writeFileSync(
+      fakeRunner,
+      `#!/bin/sh\nn=0\nwhile [ ! -f ${goFile} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
+      { mode: 0o755 },
+    );
     let headCalls = 0;
     const inner = gitFor();
     const git = {
