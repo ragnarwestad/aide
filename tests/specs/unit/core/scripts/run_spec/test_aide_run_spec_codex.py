@@ -9,7 +9,6 @@ import json
 import pytest
 import pytest
 from ..conftest import run
-from .run_spec_invoking import worktrees
 from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits
 
 

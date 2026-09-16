@@ -15,7 +15,7 @@ import threading
 import time
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate
-from .run_spec_invoking import create, wait_until, worktrees
+from .run_spec_invoking import wait_until
 from .run_spec_origins import fetchable_origin
 from .run_spec_origins import origin
 from .run_spec_results import RESULT_OK

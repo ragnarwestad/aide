@@ -8,8 +8,7 @@ reached 1017 lines. Every builder is unchanged and keeps its name.
 import json
 import shlex
 import shutil
-from ..conftest import READ_SPECS, git, run
-from .run_spec_invoking import create
+from ..conftest import READ_SPECS
 from .run_spec_results import RESULT_OK
 def writing_claude(fake_claude, workspace):
     """A claude that leaves work behind in both roots, the way a real

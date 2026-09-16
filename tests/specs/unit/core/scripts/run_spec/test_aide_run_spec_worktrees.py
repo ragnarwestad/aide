@@ -10,7 +10,7 @@ import pathlib
 import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import probing_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import BRANCH, create, worktrees
+from .run_spec_invoking import BRANCH, worktrees
 from .run_spec_origins import is_ancestor
 from .run_spec_results import RESULT_OK
 

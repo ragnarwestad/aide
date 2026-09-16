@@ -15,7 +15,7 @@ import time
 from .run_spec_status_files import STATUS_ROW_COUNTING
 # The stand-in AIs, kept beside this file — imported here so every part of
 # the suite keeps one import surface.
-from ..conftest import git, run
+from ..conftest import git
 PRECEDENCE = json.loads(
     (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "worktree-links-precedence.json")
     .read_text()

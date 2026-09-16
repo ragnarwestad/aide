@@ -11,7 +11,6 @@ import subprocess
 import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import project_only_claude, writing_claude
-from .run_spec_invoking import create
 from .run_spec_origins import is_ancestor
 from .run_spec_results import RESULT_ERROR, RESULT_OK
 from .run_spec_status_files import conflicting_branch, nested_workspace, status_only_conflict, with_status

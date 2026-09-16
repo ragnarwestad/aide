@@ -9,9 +9,9 @@ import json
 import pathlib
 import re
 import pytest
-from ..conftest import git, run
+from ..conftest import run
 from .run_spec_fakes import creating_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import CREATE_KEY, create, schedule
+from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import add_spec, set_depends_on, with_status

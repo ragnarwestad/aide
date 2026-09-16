@@ -10,7 +10,6 @@ import re
 import subprocess
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import create
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, subject, with_status
 

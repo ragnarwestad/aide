@@ -9,11 +9,10 @@ import json
 import pytest
 from ..conftest import READ_SPECS, run
 from .run_spec_fakes import writing_claude
-from .run_spec_invoking import create
 from .run_spec_origins import run_with_gh
 from .run_spec_project_state import CODE_LANDING, configure_code_landing
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import STATUS_ROW_COUNTING, bullet, phase_file_text, with_status, write_raw_status
+from .run_spec_status_files import STATUS_ROW_COUNTING, bullet, phase_file_text, write_raw_status
 
 @pytest.mark.parametrize("case", CODE_LANDING, ids=[c["name"] for c in CODE_LANDING])
 def test_the_code_landing_decides_the_default_push_mode(

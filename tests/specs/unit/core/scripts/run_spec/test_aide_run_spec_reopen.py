@@ -9,7 +9,7 @@ unchanged and keep their names.
 import json
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import specs_only_claude
-from .run_spec_invoking import BRANCH, create
+from .run_spec_invoking import BRANCH
 from .run_spec_origins import archive_the_spec, has_branch, make_branch, origin
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import already_ran, recorded_line, reopen_line, reset_line, subject, with_status

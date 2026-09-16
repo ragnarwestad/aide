@@ -13,7 +13,6 @@ import re
 import time
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import analyzing_claude
-from .run_spec_invoking import create
 from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits
 from .run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
 

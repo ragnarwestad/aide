@@ -12,7 +12,7 @@ import time
 import pytest
 from ..conftest import READ_SPECS, git, init_repo, run
 from .run_spec_fakes import linking_claude, probing_claude, writing_claude
-from .run_spec_invoking import BRANCH, worktrees
+from .run_spec_invoking import BRANCH
 from .run_spec_project_state import BASH_UNTESTABLE, PRECEDENCE, READINESS_FIXTURE, READINESS_SCENARIOS, configure_links
 from .run_spec_results import RESULT_OK
 
