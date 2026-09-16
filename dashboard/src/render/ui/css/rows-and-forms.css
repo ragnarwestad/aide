@@ -319,13 +319,22 @@ details.intro > summary:hover { border-color: var(--muted); color: var(--text); 
 details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
   z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
   background: var(--surface); border: 1px solid var(--line-strong);
-  border-radius: var(--r); box-shadow: var(--overlay-shadow); }
+  border-radius: var(--r); box-shadow: var(--overlay-shadow);
+  font-family: var(--sans); font-size: var(--fs-m); font-weight: 400; color: var(--text); }
+/* Spec 477: menu-script.ts measures the opened popover and adds this
+   class when its default side above would run past the viewport's
+   left or right edge — flips it to the other side instead. */
+details.intro.intro-flip[open] p { right: auto; left: 0; }
 /* Spec 476: opened from beside the phase table, the default leftward
    drop runs straight back over it (the same collision spec 394/426
    already hit once, from a different placement) — this one opens
    rightward instead, and narrower, into the free space the column
    itself does not use. */
 .acceptance-col details.intro[open] p { left: 0; right: auto; width: 18rem; }
+/* Spec 477: this instance's own default (above) is already flipped
+   rightward — when THAT runs off the right edge instead, fall back to
+   the plain leftward default every other popover uses. */
+.acceptance-col details.intro.intro-flip[open] p { left: auto; right: 0; }
 /* Spec 360: the spec page's tabs append this mark INSIDE their own first
    line (the file/commit stamp, the checklist's head line, the Logs
    table's header row) rather than drawing it as a preceding sibling —

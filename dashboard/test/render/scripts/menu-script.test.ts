@@ -35,6 +35,8 @@ class Elem {
   open: boolean;
   children: Elem[] = [];
   parentElement: Elem | null = null;
+  rect: { left: number; right: number; top: number; bottom: number } = { left: 0, right: 0, top: 0, bottom: 0 };
+  private eventListeners: Record<string, ((e: unknown) => void)[]> = {};
 
   constructor(tag: string, opts: { className?: string; attrs?: Record<string, string>; open?: boolean } = {}) {
     this.tagName = tag.toUpperCase();
@@ -51,6 +53,42 @@ class Elem {
 
   private hasClass(c: string): boolean {
     return this.className.split(/\s+/).filter(Boolean).includes(c);
+  }
+
+  get classList() {
+    return {
+      add: (c: string) => {
+        if (!this.hasClass(c)) this.className = `${this.className} ${c}`.trim();
+      },
+      remove: (c: string) => {
+        this.className = this.className
+          .split(/\s+/)
+          .filter((x) => x && x !== c)
+          .join(" ");
+      },
+      contains: (c: string) => this.hasClass(c),
+    };
+  }
+
+  getBoundingClientRect() {
+    return this.rect;
+  }
+
+  addEventListener(type: string, fn: (e: unknown) => void): void {
+    (this.eventListeners[type] ??= []).push(fn);
+  }
+
+  dispatch(type: string): void {
+    for (const fn of this.eventListeners[type] ?? []) fn({});
+  }
+
+  /** The one shape `menu-script.ts` queries with: `:scope > TAG`, a
+   *  direct-child lookup — the only kind a real `querySelector` call
+   *  in this file ever needs. */
+  querySelector(selector: string): Elem | null {
+    const m = selector.match(/^:scope\s*>\s*(.+)$/);
+    const childSel = (m?.[1] ?? selector).trim();
+    return this.children.find((c) => c.matches(childSel)) ?? null;
   }
 
   /** One simple selector: an optional tag, an optional `.class`, an
@@ -92,8 +130,9 @@ class Elem {
 
 /** A page with the "…" menu and the "?" popup, both closed, and one
  *  element outside either — everything `closeAll()` and its "except"
- *  lookup need to answer against. */
-function harness() {
+ *  lookup need to answer against. `innerWidth` stands in for the
+ *  browser global `menu-script.ts`'s flip check reads. */
+function harness(opts: { innerWidth?: number } = {}) {
   const body = new Elem("body");
   const menuDetails = new Elem("details", { className: "menu" });
   const menuSummary = new Elem("summary");
@@ -132,8 +171,10 @@ function harness() {
     querySelector: (): null => null,
   };
 
+  const window = { innerWidth: opts.innerWidth ?? 1024 };
+
   // eslint-disable-next-line no-new-func -- the file under test IS a script
-  new Function("document", "HTMLDialogElement", SOURCE)(document, HTMLDialogElement);
+  new Function("document", "HTMLDialogElement", "window", SOURCE)(document, HTMLDialogElement, window);
 
   return {
     menuDetails,
@@ -143,8 +184,17 @@ function harness() {
     introSummary,
     introBody,
     outside,
+    window,
     click: (target: Elem) => listeners.click!({ target, preventDefault: () => {} }),
     escape: () => listeners.keydown!({ key: "Escape" }),
+    /** Sets the popup's own position, opens or closes it, and fires the
+     *  `toggle` event `menu-script.ts` listens for — the same sequence
+     *  a real `<details>` produces when its `open` property changes. */
+    toggleIntro: (open: boolean, rect?: Partial<typeof introBody.rect>) => {
+      introDetails.open = open;
+      if (rect) Object.assign(introBody.rect, rect);
+      introDetails.dispatch("toggle");
+    },
   };
 }
 
@@ -227,5 +277,39 @@ describe("the About link still opens the dialog (unaffected by the broadened sel
     h.menuDetails.open = true;
     expect(() => h.click(h.aboutLink)).not.toThrow();
     expect(h.menuDetails.open).toBe(false);
+  });
+});
+
+// Spec 477: a "(?)" popover's own CSS default sends it to one side of
+// its icon, with no idea whether that side has room at the current
+// window width. `menu-script.ts` measures the opened popover on every
+// `toggle` and flips it to the other side when the default would run
+// past the left or right edge of the viewport.
+describe("a '?' popup flips side when its default position would run off screen (spec 477)", () => {
+  test("overflowing the left edge flips it to intro-flip", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: -10, right: 200, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(true);
+  });
+
+  test("overflowing the right edge flips it to intro-flip (the .acceptance-col case)", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: 900, right: 1100, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(true);
+  });
+
+  test("room to spare on both edges stays put", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: 100, right: 300, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(false);
+  });
+
+  test("closing then reopening in a fitting position clears a stale flip", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: -10, right: 200, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(true);
+    h.toggleIntro(false);
+    h.toggleIntro(true, { left: 100, right: 300, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(false);
   });
 });

@@ -71,6 +71,11 @@ test("AC-1: the acceptance switches' column sits beside the phase table, not bel
 });
 
 for (const viewport of [
+  // Spec 477: the 640/40rem wrap breakpoint and 1270px laptop width
+  // below had no coverage between them — the width range most likely
+  // to reproduce the reported overflow, since `.acceptance-col` sits
+  // beside the phase table without wrapping there.
+  { name: "narrow", width: 900, height: 900 },
   { name: "laptop", width: 1270, height: 900 },
   { name: "wide", width: 1920, height: 1080 },
 ]) {

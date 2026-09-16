@@ -49,4 +49,21 @@
     closeAll();
     closeBoxes();
   });
+  // Spec 477: each "(?)" popover has a static default side (CSS alone).
+  // On open, measure it against the viewport and flip it to the other
+  // side when the default would run past the left or right edge — the
+  // only two edges a popover's own icon can be positioned near enough
+  // to matter (vertical overflow is unchanged, out of scope for this
+  // spec).
+  for (const d of Array.from(document.querySelectorAll("details.intro"))) {
+    const details = d as HTMLDetailsElement;
+    const p = details.querySelector(":scope > p");
+    if (!p) continue;
+    details.addEventListener("toggle", () => {
+      details.classList.remove("intro-flip");
+      if (!details.open) return;
+      const rect = p.getBoundingClientRect();
+      if (rect.left < 0 || rect.right > window.innerWidth) details.classList.add("intro-flip");
+    });
+  }
 })();

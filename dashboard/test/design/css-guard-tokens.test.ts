@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { CSS, RENDER_FILES, COLOUR, outsideTokens, tokensAfter } from "./css-guard-fixtures.ts";
+import { CSS, RENDER_FILES, COLOUR, outsideTokens, tokensAfter, oneRule } from "./css-guard-fixtures.ts";
 
 describe("css.ts uses tokens and nothing else", () => {
   test("the stylesheet is where the test thinks it is", () => {
@@ -117,6 +117,23 @@ describe("the page's width comes from the frame rule alone", () => {
 });
 
 // --- one class, one home (spec 130) ----------------------------------------
+
+// --- every "(?)" popover reads the same font (spec 477) --------------------
+//
+// `details.intro[open] p` declared no font of its own, so each of the
+// ten `helpPopover()` call sites rendered whatever font its own
+// ancestor happened to cascade down — a `.field` label's 12px, an
+// `<h2>` tab head's 16px/600, a bare `<th>`'s 12px/500/muted. Pinning
+// the font directly on the popover's own rule wins over all of them
+// regardless of the ancestor rule's specificity.
+
+describe("every '(?)' popover shares one font", () => {
+  test("details.intro[open] p declares its own font-family and font-size", () => {
+    const rule = oneRule(CSS, (r) => r.selectors === "details.intro[open] p");
+    expect(rule.body).toContain("font-family: var(--sans)");
+    expect(rule.body).toContain("font-size: var(--fs-m)");
+  });
+});
 
 describe("a class is declared in one place", () => {
   test(".spec-name is declared once per context: the base, and one mobile override", () => {
