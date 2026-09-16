@@ -19,8 +19,6 @@
 
 ## Overview
 
-**The GitHub Copilot implementation is kept but has been unverified since August 2026: there is no subscription to test it against, so its installer and docs may lag the tool.**
-
 This implementation lets you use **GitHub Copilot CLI** — which went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — and **Copilot Agent Mode in VS Code** to follow the same workflows as Claude Code.
 
 **Copilot CLI** is a terminal-native coding agent with native slash commands, plan mode, autopilot mode and permanent permissions configuration. It reads **CLAUDE.md** and `.github/copilot-instructions.md` directly, which makes setup simpler than during the preview period.

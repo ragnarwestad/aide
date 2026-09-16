@@ -33,7 +33,7 @@ This workspace supports several AI tools. Choose the one that suits you best:
 |--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
 | **Claude Code**    | Slash commands, specialized agents               | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
 | **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Native VS Code, Agent Mode — unverified since August 2026, see below | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
+| **GitHub Copilot** | Native VS Code, Agent Mode | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
@@ -236,8 +236,6 @@ The sections below describe what each individual installer does.
 ---
 
 ### GitHub Copilot
-
-The GitHub Copilot implementation is kept but has been unverified since August 2026: there is no subscription to test it against, so its installer and docs may lag the tool.
 
 **Installation and setup:**
 
