@@ -256,9 +256,12 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // phase table's own rows — neither is about one phase, both are about
 // the spec as a whole. Spec 386's original placement (a row inside
 // `newSpecPhaseTable`) split this pair across the phase table. Spec 426
-// gave the switch its own line, above "Depends on" — spec 394's REQ-3
-// had put it beside that field instead, in one row, which pushed the
-// chip up against "Depends on"'s own "(?)" popover.
+// then gave the switch its own line, above "Depends on" — spec 394's
+// REQ-3 had put it beside that field instead, in one row, which pushed
+// the chip up against "Depends on"'s own "(?)" popover. Spec 476 moved
+// it again, into the column beside the phase table (`newSpecForm`,
+// above) — its own `.acceptance-col` CSS is what keeps this switch's
+// popover clear of the table this time.
 //
 // Said the POSITIVE way, and checked by default. It read "acceptance
 // ticking not required", unticked, which meant "it IS required" — a
@@ -272,7 +275,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
 // running the whole analysis again.
 function acceptanceField(formId: string): string {
   return (
-    `<span class="field wide"><span class="fieldhead">` +
+    `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
@@ -299,7 +302,7 @@ function acceptanceField(formId: string): string {
 // path left to an AI session anywhere inside create.
 function aiFormulateAcceptanceField(formId: string): string {
   return (
-    `<span class="field wide"><span class="fieldhead">` +
+    `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-ai-formulate",
       value: "1",
@@ -329,12 +332,12 @@ function aiFormulateAcceptanceField(formId: string): string {
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
-  // Five lines, read top to bottom: Project on its own, the phase table
-  // beneath it, the acceptance switch on a line of its own, Depends on
-  // below it, Title next, then Description with Create and Cancel at its
-  // right-hand side. Each `.frow` is a full-width row inside the same
-  // wrapping flex the Add form shares, so the shared `.newspecform` look
-  // is untouched.
+  // Four lines, read top to bottom: Project on its own, the phase table
+  // beneath it with the two acceptance switches stacked beside it,
+  // Depends on next, Title next, then Description with Create and
+  // Cancel at its right-hand side. Each `.frow` is a full-width row
+  // inside the same wrapping flex the Add form shares, so the shared
+  // `.newspecform` look is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
     tokenField(opts.token) +
@@ -346,15 +349,18 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         `</select>`,
     ) +
     `</span>` +
+    // Spec 476: the two switches moved off their own full-width lines
+    // (spec 426) into a column beside the table, in the table's own
+    // `.frow` — pairing one beside "Depends on" instead (spec 394,
+    // REQ-3) is what put the chip up against that field's own "(?)"
+    // popover the first time, so `.acceptance-col`'s own CSS opens its
+    // popovers away from the table rather than repeating that.
+    `<span class="frow">` +
     newSpecPhaseTable(opts, formId) +
-    // Spec 426: its own line, above "Depends on" — pairing it beside that
-    // field in one row (spec 394, REQ-3) put the chip up against that
-    // field's own "(?)" popover.
-    `<span class="frow">` +
+    `<span class="acceptance-col">` +
     acceptanceField(formId) +
-    `</span>` +
-    `<span class="frow">` +
     aiFormulateAcceptanceField(formId) +
+    `</span>` +
     `</span>` +
     `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), {

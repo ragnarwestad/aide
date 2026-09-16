@@ -36,6 +36,9 @@ const COMPONENTS = [
   // spec 474: the New-spec page's own Depends-on field, side by side —
   // the shared wrapper and its two columns.
   "depends-pair", "depends-col",
+  // spec 476: the two acceptance switches' own stacked column, beside
+  // the phase table.
+  "acceptance-col",
   // `headend`: where a spec stands, at the far end of the line naming it.
   "headend",
   // `formdoc`: a `.doc` whose content is fields, so it takes the

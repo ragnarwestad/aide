@@ -92,29 +92,29 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
     // Spec 342: the phase table has replaced Project's row's own
     // hand-rolled AI/Model pair (criterion 8, spec 228) as what sits
-    // between Project's row and Depends on. Spec 426 gave the acceptance
-    // switch its own `.frow`, between the phase table and Depends on's
-    // own `.frow` — the phase table's own rows are still not inside a
-    // `.frow`.
+    // between Project's row and Depends on. Spec 476 moved the two
+    // acceptance switches beside the phase table, in a shared `.frow` —
+    // the frow this assertion now finds between Project's row and the
+    // table is that shared one, opening just ahead of the table.
     const betweenProjectAndTable = html.slice(
       html.indexOf('<select name="project">'),
       html.indexOf('<table class="list">'),
     );
-    expect(betweenProjectAndTable).not.toContain('<span class="frow">');
+    expect(betweenProjectAndTable.endsWith('</select></label></span><span class="frow">')).toBe(true);
     const betweenTableAndDepends = html.slice(
       html.indexOf("</table>"),
       html.indexOf('<span class="lbl">Depends on</span>'),
     );
-    // Nothing but those three wrappers stands between them: the
-    // acceptance switch's own `.frow`, then Depends on's. Spec 472: each
-    // switch's own line now carries the same `field wide`/`fieldhead`/
-    // `fieldend` shell "Depends on" already uses, so its "(?)" stays on
-    // screen — the rule here is still that no OTHER field or control
-    // sits in the gap. Spec 474: Depends on's own shell is now
-    // `field wide depends-pair` around two `.depends-col`s, the first
-    // one opening with `.fieldhead` (its "(?)") and its `.lbl` label.
+    // Spec 476: the switches' column, stacked, closing the table's own
+    // `.frow`, then Depends on's own `.frow` opens. Spec 472: each
+    // switch's own line still carries the `field`/`fieldhead`/`fieldend`
+    // shell "Depends on" already uses, so its "(?)" stays on screen —
+    // it no longer carries `wide`, since the column beside the table (not
+    // a full-width line) is now what sizes it. Spec 474: Depends on's own
+    // shell is `field wide depends-pair` around two `.depends-col`s, the
+    // first one opening with `.fieldhead` (its "(?)") and its `.lbl` label.
     expect(betweenTableAndDepends).toMatch(
-      /^<\/table><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><span class="frow"><span class="field wide depends-pair"><span class="depends-col"><span class="fieldhead">$/,
+      /^<\/table><span class="acceptance-col"><span class="field"><span class="fieldhead"><label class="phase[^>]*data-acceptance="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><span class="field"><span class="fieldhead"><label class="phase[^>]*data-ai-formulate="1"[\s\S]*?<\/label><span class="fieldend">(<details class="intro">[\s\S]*?<\/details>)?<\/span><\/span><\/span><\/span><\/span><span class="frow"><span class="field wide depends-pair"><span class="depends-col"><span class="fieldhead">$/,
     );
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
@@ -407,13 +407,15 @@ describe("spec 342: the phase table", () => {
     );
   });
 
-  // Spec 472, AC-3: the "(?)" is anchored the same way "Depends on"'s own
-  // is (`.field.wide` > `.fieldhead` > `.fieldend`) — the one place on
-  // this page already proven not to push its popover off the left edge.
-  test("spec 472: the acceptance switch's '(?)' is anchored in a field.wide/fieldhead/fieldend shell", () => {
+  // Spec 472, AC-3: the "(?)" is anchored in the same `.field` >
+  // `.fieldhead` > `.fieldend` shell "Depends on" already uses, so it
+  // stays on screen. Spec 476 dropped `wide` from this shell — the
+  // switch sits in the column beside the phase table now, not on a
+  // full-width line of its own.
+  test("spec 472: the acceptance switch's '(?)' is anchored in a field/fieldhead/fieldend shell", () => {
     const html = newPage();
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
-    const shellStart = html.lastIndexOf('<span class="field wide">', acceptIdx);
+    const shellStart = html.lastIndexOf('<span class="field">', acceptIdx);
     expect(shellStart).toBeGreaterThan(-1);
     const shell = html.slice(shellStart, html.indexOf("</details>", acceptIdx) + "</details>".length);
     expect(shell).toContain('<span class="fieldhead">');
@@ -444,25 +446,31 @@ describe("spec 342: the phase table", () => {
         "session, done in seconds. A \"## Acceptance criteria\" section you write in the " +
         "description yourself is left as it stands either way.</p>",
     );
-    // Its own line, right after the acceptance switch's.
+    // Spec 476: its own field, right after the acceptance switch's, in
+    // the same `.acceptance-col` beside the phase table — not its own
+    // `.frow` below it.
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
     const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
     expect(acceptIdx).toBeGreaterThan(-1);
     expect(formulateIdx).toBeGreaterThan(acceptIdx);
-    const acceptFrowStart = html.lastIndexOf('<span class="frow">', acceptIdx);
-    const formulateFrowStart = html.lastIndexOf('<span class="frow">', formulateIdx);
-    expect(acceptFrowStart).toBeGreaterThan(-1);
-    expect(formulateFrowStart).toBeGreaterThan(acceptFrowStart);
-    // Adjacent: the acceptance switch's own frow closes right where the
-    // new field's frow opens, nothing else sitting between them.
-    expect(html.slice(formulateFrowStart - "</span>".length, formulateFrowStart)).toBe("</span>");
+    const colStart = html.lastIndexOf('<span class="acceptance-col">', acceptIdx);
+    expect(colStart).toBeGreaterThan(-1);
+    expect(html.lastIndexOf('<span class="acceptance-col">', formulateIdx)).toBe(colStart);
+    // Adjacent: the acceptance switch's own field closes right where the
+    // AI-formulate switch's field opens, nothing else sitting between
+    // them — no other field or control shares the column.
+    const between = html.slice(
+      html.indexOf("</details>", acceptIdx),
+      html.lastIndexOf('<span class="field">', formulateIdx),
+    );
+    expect(between).toBe("</details></span></span></span>");
   });
 
   // Spec 472, AC-3: same anchoring as the acceptance switch, above.
-  test("spec 472: the AI-formulate switch's '(?)' is anchored in a field.wide/fieldhead/fieldend shell", () => {
+  test("spec 472: the AI-formulate switch's '(?)' is anchored in a field/fieldhead/fieldend shell", () => {
     const html = newPage();
     const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
-    const shellStart = html.lastIndexOf('<span class="field wide">', formulateIdx);
+    const shellStart = html.lastIndexOf('<span class="field">', formulateIdx);
     expect(shellStart).toBeGreaterThan(-1);
     const shell = html.slice(shellStart, html.indexOf("</details>", formulateIdx) + "</details>".length);
     expect(shell).toContain('<span class="fieldhead">');
@@ -498,26 +506,34 @@ describe("spec 342: the phase table", () => {
     expect(html).not.toContain('data-col="cost"');
   });
 
-  // REQ-1, REQ-2 (spec 426): the switch sits on its own line, above
-  // "Depends on" — a "Depends on" field is only drawn at all when there
-  // is another spec to build on, so this exercises that case rather than
-  // the bare page.
-  test("spec 426: the acceptance switch is drawn on its own line, above Depends on", () => {
+  // REQ-1, REQ-2 (spec 476): the switches sit beside the phase table, in
+  // the same `.frow`, above "Depends on" — a "Depends on" field is only
+  // drawn at all when there is another spec to build on, so this
+  // exercises that case rather than the bare page.
+  test("spec 476: the acceptance switches sit beside the phase table, in its own .frow, above Depends on", () => {
     const html = newPage({ targets: [{ project: "aide", specFolder: "80-earlier" }] });
+    const tableIdx = html.indexOf('<table class="list">');
     const acceptIdx = html.indexOf('name="acceptanceRequired"');
+    const formulateIdx = html.indexOf('name="aiFormulateAcceptance"');
     const dependsIdx = html.indexOf('<span class="lbl">Depends on</span>');
-    expect(acceptIdx).toBeGreaterThan(-1);
-    expect(dependsIdx).toBeGreaterThan(-1);
-    expect(acceptIdx).toBeLessThan(dependsIdx);
-    // Each sits in its own `.frow`, not sharing one.
+    expect(tableIdx).toBeGreaterThan(-1);
+    expect(acceptIdx).toBeGreaterThan(tableIdx);
+    expect(formulateIdx).toBeGreaterThan(acceptIdx);
+    expect(dependsIdx).toBeGreaterThan(formulateIdx);
+    // The table and both switches share the one `.frow` that opens just
+    // ahead of the table — no `.frow` of their own each, unlike Depends
+    // on's, which opens its own further down.
+    const tableFrowStart = html.lastIndexOf('<span class="frow">', tableIdx);
     const acceptFrowStart = html.lastIndexOf('<span class="frow">', acceptIdx);
     const dependsFrowStart = html.lastIndexOf('<span class="frow">', dependsIdx);
-    expect(acceptFrowStart).toBeGreaterThan(-1);
-    expect(dependsFrowStart).toBeGreaterThan(acceptFrowStart);
-    // Nothing from the phase table's own rows sits between the table
-    // and the acceptance row.
-    const between = html.slice(html.indexOf("</table>"), acceptIdx);
-    expect(between).not.toContain("data-step=");
+    expect(tableFrowStart).toBeGreaterThan(-1);
+    expect(acceptFrowStart).toBe(tableFrowStart);
+    expect(dependsFrowStart).toBeGreaterThan(tableFrowStart);
+    // Both switches sit in one shared column, beside the table rather
+    // than among its rows.
+    const colStart = html.indexOf('<span class="acceptance-col">');
+    expect(colStart).toBeGreaterThan(tableIdx);
+    expect(colStart).toBeLessThan(acceptIdx);
   });
 });
 
