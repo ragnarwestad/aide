@@ -2,7 +2,7 @@
 
 This file is the entry point for GitHub Copilot when working in this repository.
 
-**📍 Deployment:** This file is for humans setting up VS Code with Copilot.
+**📍 Deployment:** This file is for humans setting up the GitHub Copilot CLI.
 
 ## 📍 Where you are now
 
@@ -12,26 +12,29 @@ You are in **Aide**. This is an AI tooling workspace for AI-assisted development
 
 ## 🚀 Setup for GitHub Copilot
 
-### 1. Install VS Code extensions
+### 1. Install the CLI
 
-Open the workspace in VS Code and install the recommended extensions:
-- GitHub Copilot
-- GitHub Copilot Chat
-- Markdown linting
-- ESLint, Prettier, Python
+```bash
+mise use -g npm:@github/copilot@latest
+copilot --version
+```
 
-### 2. Workspace Trust
+### 2. Install aide's own setup
 
-The first time you open the workspace in VS Code:
-1. Click "Trust Workspace"
-2. This gives Copilot access to all files in the workspace
+```bash
+implementations/copilot/install.sh
+```
 
-### 3. Verify configuration
+It writes the global instructions to `~/.copilot/copilot-instructions.md` and
+puts aide's shared scripts on `~/.local/bin`. The skills it reads live in
+`~/.agents/skills/`, shared with Codex, and are installed by the same script.
 
-**Check that custom instructions are loaded:**
-1. Open Copilot Chat (`Cmd+Shift+I` / `Ctrl+Shift+I`)
-2. Click "..." → "Settings"
-3. Verify that `.github/copilot-instructions.md` is listed under "Instructions"
+### 3. Log in and verify
+
+```bash
+copilot login
+copilot skill list          # aide's skills should be listed
+```
 
 **Check the scripts are on PATH:**
 ```bash
@@ -91,31 +94,27 @@ Copilot checks:
 
 ## 🤖 How to use Copilot in this workspace
 
-### Agent Mode (recommended)
+### A session you sit in
 
-Copilot's Agent Mode can follow multi-step workflows autonomously:
-
-**Example: Analyze a spec**
-```text
-@workspace Analyze spec 55 in Agent Mode.
-Follow "Autonomous workflows" from the custom instructions.
+```bash
+copilot
 ```
 
-Copilot will then:
-1. Create the document structure
-2. Analyze the codebase
-3. Update 2-analysis.md and 3-solution.md
-4. Stage files with git
+Then ask for a spec's phase by name — the skills are the same ones Claude Code
+reads:
 
-### Natural Language Commands
+```text
+/aide-analyze 55
+```
 
-Instead of slash commands (like Claude Code), use natural language:
+### Headless, with no one at the keyboard
 
-| Claude Code                 | Copilot equivalent                   |
-|-----------------------------|--------------------------------------|
-| `/aide-create "<title>" <description>` | "Create a spec titled ... with this description: ..." |
-| `/aide-analyze 55`          | "Analyze spec 55"                    |
-| `/aide-implement 55`        | "Implement spec 55 with TDD"         |
+```bash
+copilot -p "/aide-implement 55"
+```
+
+`--allow-all` answers every permission prompt, which a headless run needs since
+there is nobody to answer them.
 
 ---
 
@@ -211,25 +210,28 @@ Follow the TDD process from core/rules/testing.md:
 RED → GREEN → REFACTOR with a pause between each phase.
 ```
 
-### 4. Use Agent Mode for complex tasks
+### 4. Let a long task run headless
 
-Enable Agent Mode in Copilot Chat:
-- Click the "agent" dropdown
-- Or start the prompt with "@workspace" for automatic agent detection
+```bash
+copilot -p "/aide-implement 55" --allow-all
+```
+
+Nothing asks for permission on that path, so it finishes the whole step in one
+go rather than stopping at the first write.
 
 ---
 
 ## 🔄 Comparison with Claude Code
 
-| Feature           | Claude Code                     | Copilot (VS Code)                             |
+| Feature           | Claude Code                     | Copilot CLI                                   |
 |-------------------|---------------------------------|-----------------------------------------------|
-| **Commands**      | `/aide-create`                  | Natural language                              |
-| **Instructions**  | `CLAUDE.md` (auto-read)         | `.github/copilot-instructions.md`             |
-| **Permissions**   | Fine-grained in settings.json   | Workspace Trust (all-or-nothing)              |
-| **Bash commands** | Direct execution (pre-approved) | Manual terminal                               |
+| **Commands**      | `/aide-create`                  | `/aide-create`, same skills                   |
+| **Skills read from** | `~/.claude/skills/`          | `~/.agents/skills/`, shared with Codex        |
+| **Instructions**  | `CLAUDE.md` (auto-read)         | `~/.copilot/copilot-instructions.md`          |
+| **Permissions**   | Fine-grained in settings.json   | `--allow-all`, or a prompt per action         |
+| **Headless**      | `claude -p`                     | `copilot -p`                                  |
 | **Git commit**    | Blocked (deny list)             | Copilot cannot run it (must be done manually) |
-| **Agent Mode**    | Built-in                        | Built-in (since 2024)                         |
-| **MCP support**   | ✅                              | ✅ (via extensions)                           |
+| **MCP support**   | ✅                              | ✅                                            |
 
 ---
 

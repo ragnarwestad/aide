@@ -4,7 +4,7 @@
 
 - [Overview](#overview)
 - [Quick Start](#quick-start)
-- [What is Agent Mode?](#what-is-agent-mode)
+- [What the CLI does](#what-the-cli-does)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -19,7 +19,7 @@
 
 ## Overview
 
-This implementation lets you use **GitHub Copilot CLI** — which went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — and **Copilot Agent Mode in VS Code** to follow the same workflows as Claude Code.
+This implementation lets you use the **GitHub Copilot CLI** — which went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — to follow the same workflows as Claude Code.
 
 **Copilot CLI** is a terminal-native coding agent with native slash commands, plan mode, autopilot mode and permanent permissions configuration. It reads **CLAUDE.md** and `.github/copilot-instructions.md` directly, which makes setup simpler than during the preview period.
 
@@ -60,18 +60,16 @@ cd implementations/copilot
 
 ---
 
-## What is Agent Mode?
+## What the CLI does
 
-**Agent Mode** is GitHub Copilot's autonomous mode that can:
-- ✅ Analyze the entire codebase for context
-- ✅ Plan and execute multi-step solutions
-- ✅ Run commands and tests
-- ✅ Iterate until the solution is correct (RED → GREEN → REFACTOR)
-- ✅ Auto-fix errors along the way
+The Copilot CLI is the autonomous half of Copilot, and the only half aide uses:
+- ✅ Analyzes the whole codebase for context
+- ✅ Plans and carries out multi-step solutions
+- ✅ Runs commands and tests
+- ✅ Iterates until the solution is right (RED → GREEN → REFACTOR)
+- ✅ Fixes its own errors along the way
 
-**Difference from regular Copilot:**
-- Regular Copilot: Line-by-line code completion
-- Agent Mode: Autonomous multi-step tasks
+It reads aide's skills from `~/.agents/skills/`, the same directory Codex reads.
 
 ---
 
@@ -93,14 +91,6 @@ brew install copilot-cli
 
 # Or via curl
 curl -fsSL https://gh.io/copilot-install | bash
-```
-
-### 3. VS Code with extensions (optional, for Agent Mode in the IDE)
-
-```bash
-# Install VS Code extensions
-code --install-extension GitHub.copilot
-code --install-extension GitHub.copilot-chat
 ```
 
 ---
@@ -131,12 +121,11 @@ copilot
 /model
 ```
 
-**VS Code Agent Mode:**
+**Headless, with no one at the keyboard:**
 
-1. Open Copilot Chat in VS Code
-2. Select **"agent"** from the chat mode dropdown
-3. Configure tools via the tools button
-4. Choose your preferred AI model
+```bash
+copilot -p "/aide-analyze 55" --allow-all
+```
 
 ---
 
@@ -185,7 +174,7 @@ Type the command in a `copilot` session, just like in Claude Code.
 
 **Instead of:** `/aide-create "<title>" <description>` (Claude Code)
 
-**With Copilot (Agent Mode):**
+**With Copilot:**
 
 ```text
 Create a spec titled "Move the forms off Redux Form" with this description: ...
@@ -200,7 +189,7 @@ Create a spec titled "Move the forms off Redux Form" with this description: ...
 
 **Instead of:** `/aide-analyze PROJ-7890` (Claude Code)
 
-**With Copilot (Agent Mode):**
+**With Copilot:**
 
 ```text
 Analyze the codebase for spec 55:
@@ -219,7 +208,7 @@ Analyze the codebase for spec 55:
 
 **Instead of:** `/aide-implement PROJ-7890` (Claude Code)
 
-**With Copilot (Agent Mode):**
+**With Copilot:**
 
 ```text
 Implement the solution for PROJ-7890 with TDD:
@@ -248,7 +237,7 @@ Follow the project's coding standard for all code.
 
 ### TDD workflow
 
-Copilot's Agent Mode has built-in support for the TDD cycle:
+The Copilot CLI follows the TDD cycle from aide's own rules:
 - Writes tests first (RED)
 - Implements until tests pass (GREEN)
 - Refactors and verifies (REFACTOR)
@@ -345,7 +334,7 @@ copilot --yolo                            # Allow everything without prompts
 - ✅ Plan mode (Shift+Tab to switch modes)
 - ✅ Autopilot mode (full autonomy without confirmations)
 - ✅ Specialized agents (Explore, Task, Code Review, Plan)
-- ✅ Agent Mode for autonomous multi-step tasks
+- ✅ Autonomous multi-step tasks, headless or in a session
 - ✅ Codebase analysis
 - ✅ Command execution
 - ✅ Test iteration (RED → GREEN → REFACTOR)
@@ -368,7 +357,7 @@ What each tool supports, verified against installed versions, is kept in one pla
 
 ## Next steps
 
-1. ✅ Install Copilot and enable Agent Mode
+1. ✅ Install the Copilot CLI and log in
 2. ✅ Copy custom instructions
 3. ✅ Test with a simple spec
 
