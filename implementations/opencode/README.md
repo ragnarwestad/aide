@@ -5,10 +5,10 @@ deliberately does not.
 
 ## What is installed
 
-| Piece                  | Where                             |
-|------------------------|-----------------------------------|
-| Global instructions    | `~/.config/opencode/AGENTS.md`    |
-| Shared CLI scripts     | `~/.local/bin/`                   |
+| Piece               | Where                          |
+|---------------------|--------------------------------|
+| Global instructions | `~/.config/opencode/AGENTS.md` |
+| Shared CLI scripts  | `~/.local/bin/`                |
 
 That is the whole of it. Run `implementations/opencode/install.sh` to put
 it there, and `uninstall.sh` to take the instruction file away again.

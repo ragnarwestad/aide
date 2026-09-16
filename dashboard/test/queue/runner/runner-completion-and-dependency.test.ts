@@ -69,6 +69,26 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(store.get(bareJob.id)?.results[0]?.tool).toBe("claude");
   });
 
+  // The narrowing used to name the tools it kept, so a third one was
+  // recorded as claude however clearly the result said otherwise. Read
+  // from the one list instead, and a tool the runner can start is a
+  // tool the row can say it ran on.
+  test("a result naming opencode keeps it", () => {
+    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "opencode" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tool).toBe("opencode");
+  });
+
+  test("a tool nobody can run falls to claude rather than being kept", () => {
+    const job = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "gemini" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tool).toBe("claude");
+  });
+
   test("a hook whose work outlives the call holds back EVERY other job, not just another create", async () => {
     let finish!: () => void;
     const work = new Promise<void>((resolve) => {
@@ -211,9 +231,29 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(renderSentence("nb", after?.error)).toContain("kastet mergen");
   });
 
-  test("any other failure keeps the sentence the script wrote", () => {
+  // `cli-error` is the CLI itself failing rather than the work in it, so
+  // the row names which AI and model it failed on and points at the one
+  // control that can answer whether that AI is usable. The script's own
+  // words survive twice over: in the sentence, and as its hover detail.
+  test("a CLI that failed names the AI and model it failed on", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });
+    runner.tick();
+    runner.poll();
+    const text = store.get(job.id)?.error as string;
+    expect(text).toContain("sonnet");
+    expect(text).toContain("no");
+    expect(text).toContain("Check");
+    expect(store.get(job.id)?.errorDetail).toBe("no");
+  });
+
+  // Every other ending keeps the sentence the script wrote, untouched:
+  // which model was running says nothing about a scope violation.
+  test("a failure that is not about the AI keeps the script's own sentence", () => {
+    const job = enqueue({ steps: ["archive"] });
+    const runner = makeRunner({
+      readResult: () => outcome({ ok: false, terminalReason: "scope-violation", error: "no" }),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.error).toBe("no");

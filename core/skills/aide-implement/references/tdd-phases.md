@@ -51,9 +51,9 @@ pnpm run build
 ```
 
 After all checks:
-5. Update `specs/XX-slug/4-status.md` by writing the result with
+1. Update `specs/XX-slug/4-status.md` by writing the result with
    `aide-write-spec --file 4-status.md` (never Write/Edit — spec 282)
-6. Show a summary and confirm completion
+2. Show a summary and confirm completion
 
 ## Expected output per phase
 

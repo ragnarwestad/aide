@@ -6,6 +6,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { spawnEnv } from "../tool-path.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -32,7 +33,11 @@ export async function runScript(
   cwd: string,
   timeoutMs: number,
 ): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
-  const proc = Bun.spawn({ cmd: argv, cwd, stdout: "pipe", stderr: "pipe" });
+  // The same PATH a step's own spawn gets (`tool-path.ts`). Without it
+  // this server, under launchd, cannot see `~/.local/bin` — where aide's
+  // scripts and Claude Code itself live — so a script run from here
+  // would report a CLI missing that a real run finds.
+  const proc = Bun.spawn({ cmd: argv, cwd, env: spawnEnv(), stdout: "pipe", stderr: "pipe" });
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;

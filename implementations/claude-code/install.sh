@@ -104,7 +104,7 @@ done
 # Migrate: remove old docs/ and api-mapping/ (now consolidated into skills)
 for old_dir in docs api-mapping; do
   if [ -d "$GLOBAL_CLAUDE/$old_dir" ]; then
-    rm -rf "$GLOBAL_CLAUDE/$old_dir"
+    rm -rf "${GLOBAL_CLAUDE:?}/$old_dir"
     echo "   🗑️  Removed old: ~/.claude/$old_dir/ (consolidated into skills)"
   fi
 done
@@ -143,8 +143,8 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed globally:"
-echo "   ~/.claude/skills/          ($(ls ~/.claude/skills/ 2>/dev/null | wc -l | tr -d ' ') skills)"
-echo "   ~/.claude/rules/           ($(ls ~/.claude/rules/ 2>/dev/null | wc -l | tr -d ' ') rules)"
+echo "   ~/.claude/skills/          ($(find ~/.claude/skills -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') skills)"
+echo "   ~/.claude/rules/           ($(find ~/.claude/rules -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') rules)"
 echo "   ~/.claude/agents/          (agents)"
 echo "   ~/.local/bin/              (scripts)"
 echo ""

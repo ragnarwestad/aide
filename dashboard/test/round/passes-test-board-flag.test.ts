@@ -134,7 +134,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       expect(generateLine).toContain("--test-board 424-headeren-sier-hvilket-board");
       expect(serveLine).toContain("--test-board 424-headeren-sier-hvilket-board");
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 
@@ -178,7 +178,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       expect(serveLine).toBeDefined();
       for (const line of lines) expect(line).not.toContain("--test-board");
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 
@@ -215,7 +215,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toContain(`--test-board ${aide.split("/").pop()}`);
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 });

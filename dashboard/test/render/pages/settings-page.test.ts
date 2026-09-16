@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSettingsPage, SETTINGS_STEPS } from "../../../src/render";
+import { OTHER_STEPS, renderSettingsPage, SETTINGS_STEPS, SPEC_STEPS, UNROWED_STEPS } from "../../../src/render";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
 
 const MODELS = [
@@ -20,10 +20,11 @@ describe("Settings page", () => {
     expect(html).toContain('action="/api/queue/settings"');
     expect(html).not.toContain('name="budgetUsd"');
     expect(html).not.toContain('name="jobCapUsd"');
-    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
+    for (const step of SETTINGS_STEPS) {
       expect(html).toContain(`name="timeoutSec.${step}"`);
     }
     expect(html).not.toContain('name="model.explore"');
+    expect(html).not.toContain('name="timeoutSec.explore"');
   });
 
   test("renders every workflow step with its resolved model, matching AI and timeout", () => {
@@ -33,7 +34,7 @@ describe("Settings page", () => {
       timeoutSec: TIMEOUT_SEC,
     });
 
-    for (const step of ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset", "schedule"]) {
+    for (const step of SETTINGS_STEPS) {
       expect(html).toContain(`name="model.${step}"`);
       expect(html).toContain(`data-ai="model.${step}"`);
       expect(html).toContain(`name="timeoutSec.${step}"`);
@@ -70,11 +71,56 @@ describe("Settings page", () => {
     expect(row).toContain('name="timeoutSec.default" value="20"');
   });
 
-  // Spec 420, REQ-3, criterion 5: the settings rows come FROM the
-  // canonical step list rather than a hand-picked copy of it, so a step
-  // this codebase adds to workflow-steps.json cannot end up without one.
-  test("REQ-3: SETTINGS_STEPS is WORKFLOW_STEPS", () => {
-    expect(SETTINGS_STEPS).toBe(WORKFLOW_STEPS);
+  // The rows still come FROM the canonical step list rather than a
+  // hand-picked copy of it — but now through two groups plus a named
+  // set of steps that deliberately get no row, so a step added to
+  // workflow-steps.json still cannot end up silently without one.
+  test("every workflow step is grouped or named unrowed", () => {
+    const covered = [...SPEC_STEPS, ...OTHER_STEPS, ...UNROWED_STEPS];
+    expect([...covered].sort()).toEqual([...WORKFLOW_STEPS].sort());
+  });
+
+  test("the two groups are exactly the rows, in order", () => {
+    expect(SETTINGS_STEPS).toEqual([...SPEC_STEPS, ...OTHER_STEPS]);
+  });
+
+  test("explore gets no row: nothing on the board starts it", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    expect(html).not.toContain('data-step="explore"');
+  });
+
+  test("the rows sit in three bodies: on a spec, not on a spec, fallback", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    const bodies = html.match(/<tbody>[\s\S]*?<\/tbody>/g) ?? [];
+    expect(bodies.length).toBe(3);
+    expect(bodies[0]).toContain("On a spec");
+    expect(bodies[1]).toContain("Not on a spec");
+    expect(bodies[2]).toContain("Fallback");
+    // A step belongs to one group only, and Default is not in either.
+    expect(bodies[0]).toContain('data-step="implement"');
+    expect(bodies[0]).not.toContain('data-step="manifest"');
+    expect(bodies[1]).toContain('data-step="manifest"');
+    expect(bodies[1]).toContain('data-step="schedule"');
+    expect(bodies[1]).not.toContain('data-step="default"');
+    expect(bodies[2]).toContain('data-step="default"');
+  });
+
+  test("the header line carries one '(?)' explaining the page", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    expect(html.match(/<details class="intro">/g)?.length ?? 0).toBe(1);
+    const head = html.match(/<div class="backhead">[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(head).toContain('<details class="intro">');
+    // It explains the three things a row decides, and what Default is.
+    const help = html.match(/<details class="intro">[\s\S]*?<\/details>/)?.[0] ?? "";
+    for (const word of ["Timeout", "Default", "Model", "Manifest", "Schedule"]) {
+      expect(help).toContain(word);
+    }
   });
 
   // `pageShell()` is told `hideHeading: true`, and the page's own
@@ -88,7 +134,7 @@ describe("Settings page", () => {
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
     expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1></div>',
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1><span class="headend">',
     );
   });
 
@@ -100,7 +146,7 @@ describe("Settings page", () => {
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
     expect(html).toContain(
-      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1></div>',
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1><span class="headend">',
     );
   });
 
@@ -154,17 +200,101 @@ describe("Settings page", () => {
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
-  // Spec 408, REQ-2/REQ-6: Settings belongs to none of the tabs the bar
-  // offers, so it draws no tab bar at all, regardless of language.
-  test("draws no <nav class=\"tabbar\">, in English and Norwegian", () => {
+  // Spec 408, REQ-2/REQ-6: Settings belongs to none of the tabs the
+  // APPLICATION's bar offers, so that bar is not drawn, regardless of
+  // language. The page's own tabs are a different row, marked
+  // `subtabs`, exactly as every other tabbed subpage's are.
+  test("draws no application tab bar, in English and Norwegian", () => {
     for (const lang of ["en", "nb"] as const) {
       const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
         modelChoices: [], defaultModels: { default: "sonnet" },
         timeoutSec: TIMEOUT_SEC,
         lang,
       });
-      expect(html).not.toContain('<nav class="tabbar');
+      expect(html).not.toContain('<nav class="tabbar">');
+      expect(html).toContain('<nav class="tabbar subtabs">');
     }
+  });
+
+  test("the page's own tabs are the phases table and one per AI", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    const bar = html.match(/<nav class="tabbar subtabs">[\s\S]*?<\/nav>/)?.[0] ?? "";
+    for (const [tab, label] of [
+      ["phases", "Phases"], ["claude", "Claude Code"], ["codex", "Codex"],
+      ["copilot", "Copilot"], ["opencode", "OpenCode"],
+    ]) {
+      expect(bar).toContain(`href="/settings?tab=${tab}"`);
+      expect(bar).toContain(`>${label}<`);
+    }
+    // The tools spell themselves: capitalising the key alone would give
+    // "Claude" and "Opencode".
+    expect(bar).not.toContain(">Opencode<");
+  });
+
+  test("the phases table is what an address with no tab opens", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    expect(html).toContain('<table class="settingstable">');
+    expect(html).toContain('href="/settings?tab=phases" aria-current="page"');
+  });
+
+  test("an AI tab shows that tool's panel and not the phases table", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      tab: "opencode",
+    });
+    expect(html).toContain('data-tool="opencode"');
+    expect(html).not.toContain('<table class="settingstable">');
+    expect(html).toContain('action="/api/queue/settings/check"');
+    expect(html).toContain('name="tool" value="opencode"');
+    expect(html).toContain("Not checked yet.");
+  });
+
+  test("a tab name that is not one of the tabs opens the phases table", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      tab: "../../etc/passwd",
+    });
+    expect(html).toContain('<table class="settingstable">');
+  });
+
+  test("a tool whose models cannot be listed says so rather than showing a result", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      tab: "claude",
+    });
+    expect(html).toContain("cannot tell you");
+    expect(html).toContain("no command that lists them");
+  });
+
+  test("a check that has been made is shown with the moment it was made", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      tab: "opencode",
+      checks: {
+        opencode: {
+          tool: "opencode",
+          at: "2026-09-16T08:30:00.000Z",
+          found: true,
+          lines: ["OpenCode found (1.18.31)"],
+          commands: ["aide-preflight opencode", "opencode providers list", "opencode models"],
+          extra: [
+            { question: "Is a provider logged in?", ok: true, detail: "1 credentials" },
+            { question: "Do the configured models still exist?", ok: false, detail: "Not listed any more: opencode/gone" },
+          ],
+        },
+      },
+    });
+    expect(html).toContain("2026-09-16 08:30:00 UTC");
+    // What it ran, so a reader can run the same line themselves.
+    expect(html).toContain("Ran:");
+    expect(html).toContain("opencode providers list");
+    expect(html).toContain("OpenCode found (1.18.31)");
+    expect(html).toContain("Not listed any more: opencode/gone");
+    expect(html).not.toContain("Not checked yet.");
   });
 
   // Spec 408, REQ-1: the frame around Settings' own form is threaded the
@@ -218,9 +348,9 @@ describe("Settings page wording and layout (spec 409)", () => {
       defaultModels: { default: "sonnet" },
       timeoutSec: TIMEOUT_SEC,
     });
-    const explore = html.match(/<tr[^>]*data-step="explore"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(explore).toMatch(/<td><select[^>]*data-ai="model\.explore"[\s\S]*?<\/select><\/td>/);
-    expect(explore).toMatch(/<td><select[^>]*name="model\.explore"[\s\S]*?<\/select><\/td>/);
+    const row = html.match(/<tr[^>]*data-step="analyze"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(row).toMatch(/<td><select[^>]*data-ai="model\.analyze"[\s\S]*?<\/select><\/td>/);
+    expect(row).toMatch(/<td><select[^>]*name="model\.analyze"[\s\S]*?<\/select><\/td>/);
   });
 
   test("REQ-7: the table carries the settingstable class, sized to its own content", () => {

@@ -113,7 +113,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=checks&live=0`), 10_000, "page.goto(checks)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
     await Promise.all([
-      page.waitForNavigation(),
+      page.waitForEvent("load"),
       page.locator("form.specform button[type=\"submit\"]").click(),
     ]);
     expect(await page.locator(".checklist .check.open").count()).toBe(0);

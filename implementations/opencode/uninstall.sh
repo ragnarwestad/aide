@@ -18,7 +18,7 @@ echo "   It leaves the shared scripts in ~/.local/bin and the skills in"
 echo "   ~/.agents/skills alone: other tools and the cron job depend on"
 echo "   them, and only uninstall-all.sh removes those."
 echo ""
-read -p "Are you sure you want to continue? [y/N]: " CONFIRM
+read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""

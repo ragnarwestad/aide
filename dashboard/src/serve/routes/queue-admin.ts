@@ -14,6 +14,7 @@ import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
+import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import type { RoutesContext } from "./";
 
 export async function handleQueueAdminRoutes(
@@ -47,6 +48,41 @@ export async function handleQueueAdminRoutes(
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, "/");
   }
 
+  // Asking one tool whether it is usable on this host. A GET never runs
+  // it: the check spawns a CLI and reaches the network, so it happens
+  // when the button is pressed and at no other time.
+  if (path === "/api/queue/settings/check") {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const body = await readBounded(req);
+    if ("refusal" in body) return body.refusal;
+    let raw: unknown;
+    try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
+    catch { return json({ error: "malformed body" }, 400); }
+    const tool = (raw as Record<string, unknown> | null)?.tool;
+    if (!isCheckableTool(tool)) {
+      const error = `unknown tool: the checkable ones are ${CHECKABLE_TOOLS.join(", ")}`;
+      return wantsJson
+        ? json({ error }, 400)
+        : new Response(null, {
+            status: 303,
+            headers: { location: `${SETTINGS_ROUTE}?error=${encodeURIComponent(error)}` },
+          });
+    }
+    // Only this tool's own models: asking OpenCode whether a Claude
+    // model is in its list would report every one of them missing.
+    const configuredModels = Object.values(ctx.queue.defaults.modelChoices ?? {})
+      .filter((choice) => (choice.tool ?? "claude") === tool)
+      .map((choice) => choice.model)
+      .filter((model): model is string => typeof model === "string" && model.length > 0);
+    const check = await checkTool(tool, { configuredModels });
+    recordCheck(check);
+    return wantsJson
+      ? json({ ok: true, check })
+      : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?tab=${tool}` } });
+  }
+
+  // Matched by string equality, so it and the check route above cannot
+  // shadow each other whatever the order.
   if (path === "/api/queue/settings") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);

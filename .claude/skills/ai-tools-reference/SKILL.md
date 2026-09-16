@@ -182,7 +182,6 @@ Skills and agents support these frontmatter fields:
 | Skills              | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-based skills           |
 | Custom agents       | `.github/agents/*.md`                                                             | Agent definitions               |
 | CLI config          | `~/.copilot/config.json`                                                          | CLI configuration               |
-| VS Code settings    | `.vscode/settings.json`                                                           | IDE configuration               |
 | Coding Agent env    | `.github/workflows/copilot-setup-steps.yml`                                       | CI environment for Coding Agent |
 
 ### Path-specific instructions
@@ -203,9 +202,8 @@ Files in `.github/agents/*.md`. YAML frontmatter with `name`,
 
 ### AGENTS.md support
 
-Copilot reads `AGENTS.md` in the repo root and cwd. Supported in:
-VS Code chat, Coding Agent (all environments), CLI. NOT in JetBrains
-chat, Visual Studio chat, Eclipse chat.
+Copilot reads `AGENTS.md` in the repo root and cwd. The CLI supports it,
+which is the only surface aide uses.
 
 ### Monorepo support (v1.0.11+)
 
@@ -219,7 +217,7 @@ means projects can have project-specific skills in
 - `~/.claude/skills/` — Claude Code only (CLI dropped it; verified 1.0.79)
 - `~/.claude/rules/` — Claude Code only
 - `~/.claude/agents/` — Claude Code only
-- `.claude/CLAUDE.md` — Coding Agent only (not VS Code chat or CLI)
+- `.claude/CLAUDE.md` — Coding Agent only; the CLI does not read it
 
 ---
 
@@ -300,7 +298,7 @@ structured inter-agent messaging.
 | Feature          | Claude Code |        Copilot        |         Codex          |
 |------------------|:-----------:|:---------------------:|:----------------------:|
 | Config format    |    JSON     |         JSON          |          TOML          |
-| Config path      |  .claude/   |  .github/, .vscode/   |        .codex/         |
+| Config path      |  .claude/   | .github/, ~/.copilot/ |        .codex/         |
 | MCP servers      |     yes     |     yes (agents)      |          yes           |
 | Hooks            |     yes     |          no           |   yes (experimental)   |
 | Agents/subagents |     yes     | yes (.github/agents/) | yes (v0.117+, plugins) |

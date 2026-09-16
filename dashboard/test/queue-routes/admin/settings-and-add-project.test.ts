@@ -86,15 +86,63 @@ describe("Settings routes (spec 232)", () => {
   });
 
   // Spec 408, REQ-1/REQ-2/REQ-4: this route reads and remembers the
-  // language the same way `/` already does, and Settings draws no tab
-  // bar at all, regardless of language.
-  test("?lang=nb sets the cookie, renders a Norwegian frame and no tab bar", async () => {
+  // language the same way `/` already does, and Settings belongs to none
+  // of the APPLICATION's tabs, so that bar is not drawn, regardless of
+  // language. The page's own tabs are a separate row.
+  test("?lang=nb sets the cookie, renders a Norwegian frame and no application tab bar", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/settings?lang=nb`, { headers: { "x-aide-token": TOKEN } });
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
-    expect(html).not.toContain('<nav class="tabbar');
+    expect(html).not.toContain('<nav class="tabbar">');
+    expect(html).toContain('<nav class="tabbar subtabs">');
+  });
+
+  // The check spawns a CLI and reaches the network, so a GET of the page
+  // must never start one: it happens when the button is pressed.
+  test("opening an AI tab runs no check", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const html = await (
+      await fetch(`${base}/settings?tab=opencode`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(html).toContain('data-tool="opencode"');
+    expect(html).toContain("Not checked yet.");
+  });
+
+  test("the check route refuses a tool it does not know", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/api/queue/settings/check`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/json",
+        // Ask for JSON, or the refusal comes back as the no-script
+        // redirect and `fetch` follows it to a 200 page.
+        accept: "application/json",
+      },
+      body: JSON.stringify({ tool: "../../bin/sh" }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: expect.stringContaining("unknown tool") });
+  });
+
+  test("a refusal with no script lands back on Settings, saying why", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/api/queue/settings/check`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, "content-type": "application/json" },
+      body: JSON.stringify({ tool: "nope" }),
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toContain("/settings?error=");
+  });
+
+  test("the check route answers GET with method not allowed", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/api/queue/settings/check`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(405);
   });
 
   // Spec 252, Criterion 3: Settings is reachable from every page's "…"

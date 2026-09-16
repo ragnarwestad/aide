@@ -7,16 +7,10 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
 import threading
 import time
-import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import conflicting_race_claude, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import fetchable_origin, fetchable_origin_both_roots, is_ancestor, origin

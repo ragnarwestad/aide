@@ -32,7 +32,15 @@ export function pickTab<T extends string>(
  *  (raised 2026-08-25). "steps" is still exactly the right word for what
  *  the tab CONTAINS — one row per workflow step — so only the label a
  *  reader sees changes, not the concept. */
-const TAB_LABELS: Record<string, string> = { steps: "Logs" };
+const TAB_LABELS: Record<string, string> = {
+  steps: "Logs",
+  // The Settings page's own AI tabs: two of the four tools spell their
+  // name with a word the key cannot carry ("Claude Code") or a capital
+  // in the middle ("OpenCode"), and capitalising the key would give
+  // "Claude" and "Opencode".
+  claude: "Claude Code",
+  opencode: "OpenCode",
+};
 
 /** The tab bar, over a BASE PATH rather than a job (spec 150). It used
  *  to build its hrefs from `job.id`, which is the one assumption a

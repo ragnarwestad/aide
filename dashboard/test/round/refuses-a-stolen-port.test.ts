@@ -65,7 +65,7 @@ describe("the round, against a port another board already holds", () => {
       expect(stderr).toMatch(/already.*board/);
       expect(decoy.requests.some((r) => r.method === "POST")).toBe(false);
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 
@@ -78,7 +78,7 @@ describe("the round, against a port another board already holds", () => {
       // own server answers: there is no server of ours here to announce.
       expect(stdout).not.toContain("board up");
     } finally {
-      decoy.stop();
+      await decoy.stop();
     }
   });
 });
@@ -90,7 +90,7 @@ describe("the round, on a port nothing else holds", () => {
     // gave, then let go of it for the round's own server to bind instead.
     const probe = Bun.serve({ port: 0, fetch: () => new Response("") });
     const port = probe.port;
-    probe.stop(true);
+    await probe.stop(true);
 
     const proc = Bun.spawn({
       cmd: ["/bin/bash", RUN, AIDE_CHECKOUT, "--port", String(port), "--timeout", "5"],

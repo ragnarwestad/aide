@@ -9,15 +9,8 @@ file or brought into it.
 Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 """
 
-import json
 import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
 import pytest
 from ..conftest import git, run
 @pytest.fixture

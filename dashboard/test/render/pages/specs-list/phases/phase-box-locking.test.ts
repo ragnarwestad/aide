@@ -6,6 +6,7 @@ import {
   type SpecTarget,
 } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 // --- spec 94: a spec's phases are ticked and run from its own row ------------
 //
@@ -515,3 +516,86 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
   });
 });
 
+// --- spec 471: another round on a held-back spec, seen from the row ---------
+//
+// The rule shipped everywhere but the button: the route that takes a
+// Run press already lets a spec held back on unticked acceptance
+// criteria run Analyze and Implement again, and the runner reuses the
+// spec's own branch — while the row went on drawing both phases ticked
+// and locked, the way spec 267 draws every phase that has run. A rule
+// with no control to reach it is the same as no rule.
+describe("a held-back spec's row offers the round again", () => {
+  const job = (id: string, step: string): QueueRowView =>
+    row({ id, specFolder: "471-another-round", steps: [step], stepIndex: 0, state: "done" });
+
+  const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
+    project: "aide",
+    specFolder: "471-another-round",
+    ...extra,
+  });
+
+  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
+    renderSpecsRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
+      Date.parse("2026-09-16T12:00:00Z"),
+    );
+
+  const runLine = (html: string, folder: string) =>
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
+  const box = (line: string, step: string) =>
+    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+
+  const done = ["analyze", "implement"];
+  const ran = [job("j1", "analyze"), job("j2", "implement")];
+
+  test("analyze and implement can be ticked again while the archive is held back on checks", () => {
+    const html = rows(ran, [target({ done, archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })]);
+    const line = runLine(html, "471-another-round");
+    for (const step of done) {
+      expect(box(line, step)).toContain(`value="${step}"`);
+      expect(box(line, step)).not.toContain("disabled");
+    }
+  });
+
+  // The shape a real held-back spec has: the runner's own precheck
+  // turned the archive away before any model ran, so nothing wrote a
+  // note into `4-status.md` and the job itself finished `done`. The
+  // step result is the only record there is.
+  test("the runner's own refusal is enough, with no note in the status file", () => {
+    const archiveRefused = row({
+      id: "j3",
+      specFolder: "471-another-round",
+      steps: ["archive"],
+      stepIndex: 0,
+      state: "done",
+      results: [{
+        step: "archive",
+        ok: true,
+        costUsd: 0,
+        at: "2026-09-16T08:41:00Z",
+        terminalReason: "acceptance-criteria-unticked",
+      }],
+    });
+    const html = rows([...ran, archiveRefused], [target({ done: [...done, "archive"] })]);
+    const line = runLine(html, "471-another-round");
+    for (const step of done) expect(box(line, step)).not.toContain("disabled");
+  });
+
+  test("an archive held back for any other reason leaves them locked", () => {
+    const html = rows(ran, [target({ done, archiveHeldBack: { reason: "the Slack webhook" } })]);
+    const line = runLine(html, "471-another-round");
+    for (const step of done) expect(box(line, step)).toContain("checked disabled");
+  });
+
+  test("an ordinary implemented spec still reads as done (spec 267)", () => {
+    const html = rows(ran, [target({ done })]);
+    const line = runLine(html, "471-another-round");
+    for (const step of done) expect(box(line, step)).toContain("checked disabled");
+  });
+});

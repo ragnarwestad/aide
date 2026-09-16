@@ -44,9 +44,48 @@
   // Cancel: the existing `${prefix}-cancel` id convention, plus
   // `data-discard-changes` on the one surface (project settings) that
   // has no such id.
+  //
+  // An in-app link click while dirty (spec 478) is the one exit path a
+  // page's own script CAN intercept — Back/Forward, a closed tab and a
+  // typed address still fall to the native beforeunload prompt below.
+  // `dialog.leaveapp` (shell.ts) is a real <dialog>, always positioned
+  // inside the document's own viewport rather than by the OS, unlike
+  // that native prompt. Registered before NAV_BUSY_SCRIPT/
+  // NAV_OVERLAY_SCRIPT in shell.ts's own script concatenation, so this
+  // listener's preventDefault() is seen by both before either adds its
+  // own busy-indicator side effect — the same reasoning
+  // cancel-confirm.ts documents for a different pair of listeners.
+  let pendingHref: string | null = null;
+  let dialogWired = false;
+
   document.addEventListener("click", (event: Event) => {
     const target = event.target as Element | null;
-    if (target?.closest?.("[id$='-cancel'], [data-discard-changes]")) dirty = false;
+    if (target?.closest?.("[id$='-cancel'], [data-discard-changes]")) {
+      dirty = false;
+      return;
+    }
+    if (!dirty) return;
+    const e = event as MouseEvent;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    const link = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+    const href = link.getAttribute("href") || "";
+    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+    const dialog = document.querySelector("dialog.leaveapp") as HTMLDialogElement | null;
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    if (!dialogWired) {
+      dialogWired = true;
+      dialog.addEventListener("close", () => {
+        if (dialog.returnValue === "leave" && pendingHref) {
+          dirty = false;
+          window.location.href = pendingHref;
+        }
+        pendingHref = null;
+      });
+    }
+    event.preventDefault();
+    pendingHref = href;
+    dialog.showModal();
   });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {

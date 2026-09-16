@@ -241,3 +241,24 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
  *  step with `WORKFLOW_STEPS` is the drift this repo already names
  *  three times over. */
 export const ARCHIVE_ONLY_STEP = "reopen";
+
+/** The CLIs a step can run on, as `--tool` spells them. One list, read
+ *  wherever a tool name arrives as a string at runtime: the config
+ *  file's `modelChoices`, and a result file's own `tool`. A hand-written
+ *  copy of these names is how `opencode` reached the board as a type but
+ *  not as a value - the type checker cannot see a string comparison. */
+export const RUNNABLE_TOOLS = ["claude", "codex", "opencode", "fake-claude"] as const;
+export type RunnableTool = (typeof RUNNABLE_TOOLS)[number];
+
+/** A tool name off a file, or undefined when it is not one of ours. */
+export function asRunnableTool(value: unknown): RunnableTool | undefined {
+  return typeof value === "string" && (RUNNABLE_TOOLS as readonly string[]).includes(value)
+    ? (value as RunnableTool)
+    : undefined;
+}
+
+/** The same, widened by the one value a result file carries that is not
+ *  a CLI at all: `none` is spec 433's deterministic `create` path. */
+export function asResultTool(value: unknown): RunnableTool | "none" | undefined {
+  return value === "none" ? "none" : asRunnableTool(value);
+}

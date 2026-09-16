@@ -6,22 +6,15 @@ in conftest.py beside them.
 """
 
 import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
 import time
 import pytest
 from ..conftest import READ_SPECS, git, init_repo, run
 from .run_spec_fakes import linking_claude, probing_claude, writing_claude
-from .run_spec_invoking import BRANCH, run_traced, worktrees
-from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
+from .run_spec_invoking import BRANCH
 from .run_spec_project_state import BASH_UNTESTABLE, PRECEDENCE, READINESS_FIXTURE, READINESS_SCENARIOS, configure_links
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import add_spec, set_depends_on
 
 def test_a_worktree_base_inside_a_root_is_refused(runner, workspace, fake_claude):
     """A worktree inside a root would be untracked, and `git add -A`

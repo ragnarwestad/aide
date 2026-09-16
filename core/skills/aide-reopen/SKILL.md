@@ -39,12 +39,12 @@ round that is running.
 `aide/<NN>-slug` can be in four places, and the one that is missed is
 the one the next run refuses on:
 
-| Repository | Where |
-|---|---|
-| the project | the local ref in the checkout |
-| the project | `origin` |
+| Repository     | Where                         |
+|----------------|-------------------------------|
+| the project    | the local ref in the checkout |
+| the project    | `origin`                      |
 | the specs repo | the local ref in the checkout |
-| the specs repo | `origin` |
+| the specs repo | `origin`                      |
 
 Delete all four. Write it as ONE loop over the pairs, not as four
 separately typed commands — four commands is how one of them ends up

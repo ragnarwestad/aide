@@ -1,4 +1,5 @@
 import { resolve, dirname } from "node:path";
+import { checkAllTools } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 // The aide-dashboard server (spec 80): serves the generated static
@@ -411,6 +412,29 @@ export function createServer(opts: ServerOptions) {
     .catch(() => {
       // Best effort: a dashboard that could not ask still serves.
     });
+
+  // What each AI can and cannot do on this machine, asked once, now that
+  // the server is answering. Started here rather than before `Bun.serve`
+  // for one reason: the whole round is about two seconds on a healthy
+  // machine, but a CLI that hangs is bounded only by the check's own
+  // timeout, and no page should wait on that. A reader who opens
+  // Settings in the first moments sees "not checked yet" and then the
+  // answer; a fault reaches the header notice on every page.
+  //
+  // Only when asked. `cli.ts` is the one caller that asks; a test that
+  // starts a server says nothing and gets nothing, which is what stops a
+  // suite from spawning four CLIs per fixture.
+  if (opts.checkToolsOnStart) {
+    void checkAllTools((tool) =>
+      Object.values(queue.defaults.modelChoices ?? {})
+        .filter((choice) => (choice.tool ?? "claude") === tool)
+        .map((choice) => choice.model)
+        .filter((model): model is string => typeof model === "string" && model.length > 0),
+    ).catch(() => {
+      // Same best effort: a check that could not run leaves the tab
+      // reading "not checked yet", which is true.
+    });
+  }
 
   return {
     port: server.port,

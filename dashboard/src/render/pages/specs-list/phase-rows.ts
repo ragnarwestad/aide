@@ -9,7 +9,7 @@ import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
-import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
+import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
 
@@ -189,11 +189,20 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // as done, exactly as it does while the row is idle. Same test the
       // busy branch's own `checked` uses two lines below, for the same
       // "did THIS job name this step" question.
+      //
+      // Analyze and Implement are excluded the same way while the
+      // archive is held back on unticked acceptance criteria (spec
+      // 471): the round may be run again from this row, and a locked
+      // box was the one part of that rule with nothing to press. Only
+      // while the row is idle — a press has nowhere to go while it is
+      // busy, and the box would be saying "not run" about a phase that
+      // has run.
       const finished =
         RUN_STEPS.includes(p.step) &&
         p.step !== "archive" &&
         g.done.includes(p.step) &&
-        !(busy && g.lead?.steps.includes(p.step));
+        !(busy && g.lead?.steps.includes(p.step)) &&
+        !(!busy && offersAnotherRound(g, p.step));
       // What the last run used is not spelled out in text any more —
       // it IS the picker's pre-filled value, in the column the caption
       // calls "Model".

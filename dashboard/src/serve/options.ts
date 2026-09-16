@@ -51,6 +51,17 @@ export interface ServerOptions {
    *  the allowlist have to write it back, and a config path that stops
    *  at `parseArgs` leaves them with nowhere to write (spec 112). */
   queueConfigFile?: string;
+  /** Ask each AI once, after this server comes up, whether it is usable
+   *  on this machine (2026-09-16). OFF unless set, and set in one place:
+   *  `cli.ts`, which is the only entry a person actually serves from.
+   *
+   *  The default is the whole point. It was "on" for an afternoon, and a
+   *  suite that starts a real server per fixture spawned four real CLIs
+   *  for every one of them — fourteen at once, the machine's load at
+   *  133, and the board this dashboard IS taking two seconds to answer.
+   *  A test that never mentions these tools must not be able to start
+   *  them by accident, and only an explicit yes can. */
+  checkToolsOnStart?: boolean;
   queueDefaults?: QueueDefaults;
   /** Path to `aide-run-spec`. Without it the queue only stores jobs —
    *  nothing is ever started, and the page says so. */

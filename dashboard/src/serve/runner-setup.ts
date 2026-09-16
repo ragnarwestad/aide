@@ -10,6 +10,7 @@
 // construction time would be.
 
 import { dirname, join } from "node:path";
+import { spawnEnv } from "./tool-path.ts";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner";
@@ -122,17 +123,13 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       // `~/.local/bin` on PATH, always. aide's own scripts are installed
       // there — `aide-create-spec`, `aide-archive-spec`, `aide-close-spec`
       // — and a step's session calls them BY NAME, as its skill tells it
-      // to. This server runs under launchd, whose PATH carries neither
-      // that directory nor mise's shims, and a session that cannot find
-      // the script does not fail: it searches the disk for it, minutes
-      // at a time, and then does the job by hand or not at all.
-      // Prepended to whatever is there, never replacing it: an operator
-      // running the server from a shell keeps their own PATH.
-      const localBin = `${process.env.HOME ?? ""}/.local/bin`;
-      const path = process.env.PATH ?? "";
+      // to. A session that cannot find the script does not fail: it
+      // searches the disk for it, minutes at a time, and then does the
+      // job by hand or not at all. `tool-path.ts` is the one place that
+      // decision is made, so a tool check and a real step cannot
+      // disagree about which binaries exist.
       const env: Record<string, string | undefined> = {
-        ...process.env,
-        PATH: path.split(":").includes(localBin) ? path : `${localBin}:${path}`,
+        ...spawnEnv(),
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
       };
       // Spec 272. Only a `schedule` step's own spawn gets this: the

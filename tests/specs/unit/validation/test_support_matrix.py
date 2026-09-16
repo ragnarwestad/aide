@@ -24,6 +24,14 @@ MATRIX_SNIPPET = """# AI Support Matrix
 Other content stays untouched.
 """
 
+ALIGNED_SNIPPET = """## Supported versions
+
+| Tool               | Version | Last verified | Status    |
+|--------------------|---------|---------------|-----------|
+| Claude Code        | 1.0.0   | 2020-01-01    | Supported |
+| GitHub Copilot CLI | v0.0.1  | 2020-01-01    | Supported |
+"""
+
 
 def _fake_tool(directory, name, output):
     directory.mkdir(parents=True, exist_ok=True)
@@ -66,9 +74,25 @@ class TestStampVersions:
         content = matrix.read_text()
         today = datetime.date.today().isoformat()
         assert f"| Claude Code | 2.9.9 | {today} | ✅ Supported |" in content
-        assert f"| GitHub Copilot CLI | 1.9.9 | {today} | ✅ Supported |" in content
+        assert f"| GitHub Copilot CLI | 1.9.9  | {today} | ✅ Supported |" in content
         assert f"| Codex CLI | 0.9.9 | {today} | ✅ Supported |" in content
         assert "Other content stays untouched." in content
+
+    def test_stamping_keeps_an_aligned_table_aligned(
+        self, workspace_root, matrix, tmp_path
+    ):
+        matrix.write_text(ALIGNED_SNIPPET)
+        bin_dir = tmp_path / "bin"
+        _fake_tool(bin_dir, "claude", "2.9.9 (Claude Code)")
+        _fake_tool(bin_dir, "copilot", "GitHub Copilot CLI 1.9.9.")
+        result = _run(workspace_root, matrix, bin_dir)
+        assert result.returncode == 0, result.stderr
+
+        rows = [line for line in matrix.read_text().splitlines() if line.startswith("|")]
+        pipes = {tuple(i for i, ch in enumerate(row) if ch == "|") for row in rows}
+        assert len(pipes) == 1, "\n".join(rows)
+        today = datetime.date.today().isoformat()
+        assert f"| GitHub Copilot CLI | 1.9.9   | {today}    |" in matrix.read_text()
 
     def test_missing_tool_leaves_its_row_unchanged(
         self, workspace_root, matrix, tmp_path

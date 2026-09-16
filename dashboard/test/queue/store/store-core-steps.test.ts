@@ -40,7 +40,7 @@ describe("spec 198: reopen", () => {
   test("a reopen is refused when the target spec is already active", () => {
     const r = parseJobRequest({ ...REQ, steps: ["reopen"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
-    expect(r.ok === false && r.error).toContain("already active");
+    expect(!r.ok && r.error).toContain("already active");
   });
 
   // It is queueable, not a stage a spec passes through: `explore` and

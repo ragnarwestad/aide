@@ -7,41 +7,13 @@ keeps its name.
 """
 
 import json
-import os
 import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
 import time
-import pytest
 # The stand-in AIs, kept beside this file — imported here so every part
 # of the suite keeps one import surface.
-from .run_spec_fakes import (  # noqa: E402,F401
-    analyze_claude_advancing_row,
-    analyze_claude_naming_implement,
-    analyze_claude_renaming_the_header,
-    analyze_claude_writing_the_line_from_nothing,
-    analyzing_claude,
-    conflicting_race_claude,
-    creating_claude,
-    linking_claude,
-    make_named_writing_claude,
-    make_worktree_add_gate,
-    partially_committing_claude,
-    probing_claude,
-    project_only_claude,
-    race_pushing_claude,
-    self_committing_claude,
-    self_pushing_claude,
-    specs_foreign_folder_claude,
-    specs_only_claude,
-    writing_claude,
-)
-from ..conftest import git, init_repo, run
-from .run_spec_invoking import create, worktrees
-from .run_spec_results import emits
+from ..conftest import git, init_repo
 def workflow_steps_line(repo, branch, folder, name="4-status.md"):
     """The `Workflow steps completed:` line as a fresh read of `repo`'s
     own copy of `branch` sees it — never the working tree, which the run's

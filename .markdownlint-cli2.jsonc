@@ -21,7 +21,10 @@
 
     // MD051: Link fragments should be valid - CRITICAL for anchor links
     // Catches broken TOC links and anchor references
-    "MD051": true
+    "MD051": true,
+
+    // MD060: Table pipes line up, the way the IDE's formatter leaves them
+    "MD060": { "style": "aligned" }
   },
 
   // Ignore patterns

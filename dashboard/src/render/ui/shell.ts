@@ -114,13 +114,18 @@ function unitControl(lang: Language): string {
  *  about.html fallback a reader without JavaScript still lands on. */
 export function aboutProse(): string {
   return (
-    `<p class="intro">aide-dashboard is the read-only overview of ` +
-    `AI-assisted development across the projects on this machine: every ` +
-    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
-    `showing what the project IS (stack, deployment, logging, statistics, ` +
-    `docs) and where its specs stand (phase and progress, active and ` +
-    `archived). The site is static — regenerate and publish with ` +
-    `<code>make publish</code>.</p>`
+    `<p class="intro">aide -board runs spec-driven development across ` +
+    `every project on this machine. Write a spec, and the board takes it ` +
+    `through create, analyze, implement and archive — each phase a real ` +
+    `run of an AI you choose, in a worktree of its own, ending in a branch ` +
+    `merged and the spec filed away.</p>` +
+    `<p class="intro">A spec's own files live in a specs repository; the ` +
+    `code it changes lives in the project's. The board owns neither: it ` +
+    `keeps its own checkouts, runs the project's tests before anything ` +
+    `merges, and stops rather than guess when they go red.</p>` +
+    `<p class="intro">Every project it knows about declares itself in an ` +
+    `<code>.aide/project.yaml</code> manifest. What each page means is ` +
+    `behind the "?" on that page.</p>`
   );
 }
 
@@ -149,6 +154,26 @@ function aboutDialog(buildStamp?: string): string {
     `<h2>About</h2>` +
     aboutProse() +
     (buildStamp ? buildStampLine(buildStamp) : "") +
+    `</div></dialog>`
+  );
+}
+
+// The same confirmdialog shape row-controls.ts/list.ts already use for
+// every other "are you sure" on this dashboard — one dialog, written
+// once per page like About, rather than stamped out per row: this
+// guard is a property of the whole app, not of any one row (spec 478).
+// A real <dialog>, unlike the native beforeunload prompt it replaces
+// for an in-app link, is positioned by the browser inside the
+// document's own viewport — always the app window, never the screen.
+function leaveAppDialog(lang: Language): string {
+  return (
+    `<dialog class="leaveapp confirmdialog"><div class="confirmpanel">` +
+    `<h2>${esc(t(lang, "shell.leaveAppTitle"))}</h2>` +
+    `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
+    `<form method="dialog"><button class="btn danger" type="submit" value="leave">` +
+    `${esc(t(lang, "shell.leaveAppLeave"))}</button></form>` +
+    `<form method="dialog"><button class="btn" type="submit">` +
+    `${esc(t(lang, "shell.leaveAppStay"))}</button></form>` +
     `</div></dialog>`
   );
 }
@@ -379,12 +404,13 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${UNSAVED_CHANGES_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
 ${pageHeader(lang, currentUrl)}
 ${headerNotices(lang)}
 ${aboutDialog(opts.buildStamp)}
+${leaveAppDialog(lang)}
 ${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}

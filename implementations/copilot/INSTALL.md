@@ -5,7 +5,7 @@
 - [Overview](#overview)
 - [Quick Start](#quick-start)
 - [Detailed installation](#detailed-installation)
-  - [Step 0: Copilot CLI and VS Code extensions](#step-0-install-copilot-cli-and-vs-code-extensions)
+  - [Step 0: Install the Copilot CLI](#step-0-install-the-copilot-cli)
   - [Step 1: install.sh](#step-1-install-the-configuration-installsh)
   - [Step 2: Slash commands](#step-2-slash-commands)
 - [Verification](#verification)
@@ -54,34 +54,15 @@ cd aide/implementations/copilot
 
 ## Detailed installation
 
-### Step 0: Install Copilot CLI and VS Code extensions
-
-**Copilot CLI (terminal):**
+### Step 0: Install the Copilot CLI
 
 ```bash
-# Via npm (recommended, requires Node.js 22+)
+# Via mise, which is how aide's other tools are kept current
+mise use -g npm:@github/copilot@latest
+
+# Or via npm (requires Node.js 22+)
 npm install -g @github/copilot
-
-# Via Homebrew
-brew install copilot-cli
-
-# Via curl (Linux/macOS)
-curl -fsSL https://gh.io/copilot-install | bash
 ```
-
-**VS Code extensions (optional, for Agent Mode in the IDE):**
-
-```bash
-# Install the GitHub Copilot extensions
-code --install-extension GitHub.copilot
-code --install-extension GitHub.copilot-chat
-```
-
-Or via VS Code:
-
-1. Open Extensions (Cmd+Shift+X)
-2. Search for "GitHub Copilot"
-3. Install both extensions (Copilot + Copilot Chat)
 
 ---
 
@@ -173,8 +154,8 @@ git pull
 cd implementations/copilot
 ./install.sh
 
-# 3. Restart VS Code
-# Close and reopen VS Code for the changes to take effect
+# 3. Start a new session
+# The instructions are read when a session starts
 ```
 
 **⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the Aide team and committed to git.
@@ -221,14 +202,13 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 ## Comparison with Claude Code
 
-| Feature                     | Claude Code                       | Copilot CLI / VS Code                                        |
+| Feature                     | Claude Code                       | Copilot CLI                                                  |
 |-----------------------------|-----------------------------------|--------------------------------------------------------------|
 | **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.claude/commands/` as skills) |
 | **Custom instructions**     | ✅ Auto-read CLAUDE.md            | ✅ Auto-read CLAUDE.md + copilot-instructions.md             |
 | **Permissions**             | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags                                   |
 | **Plan mode**               | ✅ Native                         | ✅ Native (Shift+Tab in the CLI)                             |
-| **IDE integration**         | ⚠️ Via CLI                        | ✅ Native VS Code                                            |
-| **Agent Mode**              | ✅ Autonomous workflows           | ✅ Autonomous workflows                                      |
+| **Headless runs**           | ✅ `claude -p`                    | ✅ `copilot -p`                                              |
 | **Models**                  | The Claude family                 | Claude, GPT                                                  |
 | **Setup**                   | ✅ `install.sh`                   | ✅ `install.sh`                                              |
 
@@ -236,7 +216,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 - Both use the same rules from `core/rules/`
 - Copilot CLI reads CLAUDE.md directly — simpler setup than before
-- Copilot is better integrated in VS Code
+- Copilot shares its skills directory with Codex
 - Claude Code has a better skills system and specialized agents
 
 ---
@@ -248,7 +228,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 **Solution:**
 1. Run `implementations/copilot/install.sh` again (installs `~/.copilot/copilot-instructions.md`)
 2. Check that the file exists: `cat ~/.copilot/copilot-instructions.md`
-3. Restart Copilot CLI / VS Code
+3. Start a new Copilot session
 
 ---
 

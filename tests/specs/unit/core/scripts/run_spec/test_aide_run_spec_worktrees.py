@@ -6,18 +6,11 @@ in conftest.py beside them.
 """
 
 import json
-import os
 import pathlib
-import re
-import shlex
-import shutil
-import signal
-import subprocess
-import time
 import pytest
-from ..conftest import READ_SPECS, git, init_repo, run
-from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate, probing_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import BRANCH, create, wait_until, worktrees
+from ..conftest import READ_SPECS, git, run
+from .run_spec_fakes import probing_claude, specs_only_claude, writing_claude
+from .run_spec_invoking import BRANCH, worktrees
 from .run_spec_origins import is_ancestor
 from .run_spec_results import RESULT_OK
 

@@ -38,7 +38,14 @@ stamp_row() {
   tmp="$(mktemp)"
   awk -v label="$label" -v version="$version" -v today="$TODAY" '
     BEGIN { FS = OFS = "|" }
-    $2 ~ "^ *"label" *$" && NF >= 5 { $3 = " "version" "; $4 = " "today" " }
+    # A new value is padded to the cell width it replaces, so an aligned
+    # table stays aligned.
+    function cell(old, value,   w) {
+      w = length(old) - 2
+      if (w < length(value)) w = length(value)
+      return sprintf(" %-" w "s ", value)
+    }
+    $2 ~ "^ *"label" *$" && NF >= 5 { $3 = cell($3, version); $4 = cell($4, today) }
     { print }
   ' "$MATRIX" > "$tmp" && mv "$tmp" "$MATRIX"
   echo "✅ $label: $version ($TODAY)"
