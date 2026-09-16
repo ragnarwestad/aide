@@ -4,7 +4,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { busyReason } from "../../../../src/render/pages/specs-list/row-state.ts";
-import type { SpecGroup } from "../../../../src/render/pages/specs-list/data-model";
+import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { row } from "../fixtures.ts";
 
 const group = (lead: SpecGroup["lead"]): SpecGroup => ({

@@ -31,7 +31,7 @@
 
 import { rowMessage } from "../../ui/components";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import type { QueueRowView } from "../../ui/job-state";
+import type { QueueRowView } from "../..";
 import { t, type Language } from "../../../i18n";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split

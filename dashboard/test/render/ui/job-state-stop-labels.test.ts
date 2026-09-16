@@ -3,8 +3,8 @@
 // while everything else on the row went through the translations.
 
 import { describe, expect, test } from "bun:test";
-import { stateLabel } from "../../../src/render/ui/job-state/format.ts";
-import type { QueueRowView } from "../../../src/render/ui/job-state/types.ts";
+import { stateLabel } from "../../../src/render/ui/job-state";
+import type { QueueRowView } from "../../../src/render/ui/job-state";
 
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
   ({ state: "stopped", stopReason, timeoutSec }) as unknown as QueueRowView;

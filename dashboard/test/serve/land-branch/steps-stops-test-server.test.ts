@@ -10,7 +10,7 @@
 // proved nothing (2026-09-09).
 
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { landArchivedSpec } from "../../../src/serve/land-branch/steps.ts";
+import { landArchivedSpec } from "../../../src/serve/land-branch";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
 import type { TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 import { BRANCH, landCtx, landingGit, REPOS } from "./landing-fixtures.ts";

@@ -23,7 +23,7 @@ import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
-import { json } from "../serve-helpers/http.ts";
+import { json } from "../serve-helpers";
 import type { Job } from "../../queue/queue.ts";
 
 /** The folder a create job's spec can be queued under: its real

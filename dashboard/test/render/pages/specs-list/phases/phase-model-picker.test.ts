@@ -6,7 +6,7 @@ import {
   type SpecTarget,
 } from "../../../../../src/render";
 import { aiPicker, modelPicker, type PickerOptions } from "../../../../../src/render/pages/specs-list/model-picker.ts";
-import { type SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
+import { type SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- spec 123: the model is chosen on the phase line -------------------------

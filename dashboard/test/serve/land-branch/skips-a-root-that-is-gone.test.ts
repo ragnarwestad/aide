@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { landBranch } from "../../../src/serve/land-branch/merge.ts";
+import { landBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "150-spec" };

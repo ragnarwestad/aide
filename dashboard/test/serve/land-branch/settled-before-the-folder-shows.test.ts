@@ -8,7 +8,7 @@
 // are settled before the checkout moves now.
 import { describe, expect, test } from "bun:test";
 
-import { landBranch } from "../../../src/serve/land-branch/merge.ts";
+import { landBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit, REPOS, ROOT } from "./landing-fixtures.ts";
 
 const ffIndex = (calls: { dir: string; args: string[] }[]): number =>

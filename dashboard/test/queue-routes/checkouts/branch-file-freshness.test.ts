@@ -11,8 +11,8 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
-import { withFreshness } from "../../../src/serve/land-branch/freshness.ts";
-import type { LandContext } from "../../../src/serve/land-branch/types.ts";
+import { withFreshness } from "../../../src/serve/land-branch";
+import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
 import {
   TOKEN,

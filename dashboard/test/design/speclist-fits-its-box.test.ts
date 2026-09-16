@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
-import { PHASE_LINES } from "../../src/render/pages/specs-list/data-model";
+import { PHASE_LINES } from "../../src/render/pages/specs-list";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
 const rem = (v: string) => parseFloat(v);

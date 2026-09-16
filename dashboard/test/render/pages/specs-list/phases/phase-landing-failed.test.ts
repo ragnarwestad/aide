@@ -4,8 +4,8 @@
 // The pip beside it then takes the same colour.
 import { describe, expect, test } from "bun:test";
 import { attemptsPerStep } from "../../../../../src/render/pages/specs-list/data-model/phases.ts";
-import { wordPhase } from "../../../../../src/render/ui/job-state/word-phase.ts";
-import type { QueueRowView } from "../../../../../src/render/ui/job-state/types.ts";
+import { wordPhase } from "../../../../../src/render/ui/job-state";
+import type { QueueRowView } from "../../../../../src/render/ui/job-state";
 
 const ok = (step: string) => ({ step, ok: true, costUsd: 0, at: "2026-09-11T10:00:00Z" });
 

@@ -4,9 +4,9 @@
 // Back link.
 
 import { describe, expect, test } from "bun:test";
-import { renderProjectPage } from "../../../../src/render/pages/projects-page/project-page.ts";
+import { renderProjectPage } from "../../../../src/render/pages/projects-page";
 import type { ProjectReadiness } from "../../../../src/project/project-admin";
-import type { ProjectView } from "../../../../src/render/pages/projects-page/types.ts";
+import type { ProjectView } from "../../../../src/render/pages/projects-page";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 

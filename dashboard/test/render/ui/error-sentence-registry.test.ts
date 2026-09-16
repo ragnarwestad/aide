@@ -3,7 +3,7 @@ import { invalidRequest } from "../../../src/queue/parse-request.ts";
 import { renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../src/render";
 import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helpers.ts";
 import { wordPhase } from "../../../src/render/ui/job-state";
-import { worktreeLinksError } from "../../../src/project/project-admin/manifest-io.ts";
+import { worktreeLinksError } from "../../../src/project/project-admin";
 import { row } from "../pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes

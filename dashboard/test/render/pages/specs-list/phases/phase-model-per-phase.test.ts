@@ -264,7 +264,7 @@ describe("spec 169: one picker per phase", () => {
 // made every finished phase on an active row fall back to the default,
 // because the job's choice name no longer matched an entry — while the
 // phase's own file still named the model.
-import { resolveChosenModel } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
+import { resolveChosenModel } from "../../../../../src/render/pages/specs-list";
 describe("a phase that has run keeps what it ran on across a rename of the choices", () => {
   const models = [
     { name: "Sonnet" },

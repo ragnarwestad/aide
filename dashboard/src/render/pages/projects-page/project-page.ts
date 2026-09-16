@@ -12,7 +12,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { renderScheduleForm } from "../schedule-page/form.ts";
-import { schedulePagePath } from "../schedule-page/tabs.ts";
+import { schedulePagePath } from "../schedule-page";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import type { ProjectPageOptions, ProjectView } from "./types.ts";

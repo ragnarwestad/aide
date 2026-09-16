@@ -12,7 +12,7 @@
 // `specEditorClientScript()` is the only way to reach this code path.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { specEditorClientScript } from "../../src/serve/serve-helpers/static.ts";
+import { specEditorClientScript } from "../../src/serve/serve-helpers";
 
 let scriptText: string;
 

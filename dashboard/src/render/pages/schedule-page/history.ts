@@ -3,7 +3,7 @@
 // alone, so each new run overwrites the previous run's output — only
 // the newest row can link to it (Behavior delta, `3-solution.md`).
 import type { Job } from "../../../queue/types.ts";
-import { durationLabel } from "../../ui/job-state/format.ts";
+import { durationLabel } from "../../ui/job-state";
 import { rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 

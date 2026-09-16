@@ -6,10 +6,10 @@
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
-import { specNotice } from "../../../../src/render/ui/job-state/notice.ts";
+import { specNotice } from "../../../../src/render/ui/job-state";
 import { STEP_LABELS_NB, stepLabel } from "../../../../src/render/ui/components";
 import { stepButton } from "../../../../src/format/step-label.ts";
-import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
+import type { QueueRowView } from "../../../../src/render/ui/job-state";
 
 describe("GERUND_EN/GERUND_NB (spec 350)", () => {
   test("every WORKFLOW_STEPS member has an entry in both tables", () => {

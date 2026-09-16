@@ -19,7 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { dirname, join } from "node:path";
-import { specViewerClientScript } from "../../src/serve/serve-helpers/static.ts";
+import { specViewerClientScript } from "../../src/serve/serve-helpers";
 
 let scriptText: string;
 

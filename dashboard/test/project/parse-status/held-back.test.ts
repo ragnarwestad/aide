@@ -3,7 +3,7 @@
 // held-back.ts in isolation (2-analysis.md, Test coverage); this is it.
 
 import { describe, expect, test } from "bun:test";
-import { latestRoundBoundary, roundGate } from "../../../src/project/parse-status/held-back.ts";
+import { latestRoundBoundary, roundGate } from "../../../src/project/parse-status";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const acceptanceStatus = (rows: string[]) =>
