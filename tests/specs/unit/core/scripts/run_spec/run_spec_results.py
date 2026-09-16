@@ -126,3 +126,80 @@ RESULT_ERROR = {
     "total_cost_usd": 0.1042, "terminal_reason": "error",
     "errors": ["the project's tests are red after the merge"],
 }
+
+
+OPENCODE_SESSION_ID = "ses_f5706d229ffeybcta39ML4GY02"
+
+
+def _opencode_step(cost, input_t, output_t, reasoning_t, cache_read, cache_write):
+    """One `step_finish` part, in the shape opencode 1.18.31 emits."""
+    return {
+        "type": "step_finish",
+        "sessionID": OPENCODE_SESSION_ID,
+        "part": {
+            "type": "step-finish",
+            "reason": "stop",
+            "cost": cost,
+            "tokens": {
+                "input": input_t,
+                "output": output_t,
+                "reasoning": reasoning_t,
+                "cache": {"read": cache_read, "write": cache_write},
+            },
+        },
+    }
+
+
+# THREE steps, deliberately: opencode closes no turn with one summary
+# event, so a run's totals are the sum over every `step_finish` it
+# emitted. A fixture with a single step would pass just as well against
+# code that read the last event alone.
+OPENCODE_STEPS = [
+    _opencode_step(0.0125, 1200, 40, 10, 0, 800),
+    _opencode_step(0.0400, 3400, 120, 60, 5000, 0),
+    _opencode_step(0.0075, 900, 35, 5, 2500, 0),
+]
+
+OPENCODE_TOTALS = {
+    "cost": 0.06,
+    "input": 5500,
+    "output": 270,
+    "cacheRead": 7500,
+    "cacheCreation": 800,
+}
+
+
+OPENCODE_STREAM_OK = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "step_start", "sessionID": OPENCODE_SESSION_ID, "part": {"type": "step-start"}},
+        OPENCODE_STEPS[0],
+        {
+            "type": "tool_use",
+            "sessionID": OPENCODE_SESSION_ID,
+            "part": {"type": "tool", "tool": "read"},
+        },
+        OPENCODE_STEPS[1],
+        {
+            "type": "text",
+            "sessionID": OPENCODE_SESSION_ID,
+            "part": {"type": "text", "text": "done"},
+        },
+        OPENCODE_STEPS[2],
+    ]
+)
+
+
+OPENCODE_STREAM_FAILED = "\n".join(
+    json.dumps(e)
+    for e in [
+        {
+            "type": "error",
+            "sessionID": OPENCODE_SESSION_ID,
+            "error": {
+                "name": "UnknownError",
+                "data": {"message": "the model refused the turn"},
+            },
+        }
+    ]
+)

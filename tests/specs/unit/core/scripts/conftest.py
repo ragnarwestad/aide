@@ -195,7 +195,31 @@ def fake_codex(tmp_path):
     return make
 
 
-def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
+@pytest.fixture
+def fake_opencode(tmp_path):
+    """Factory for a stand-in `opencode`, mirroring `fake_codex`. Records
+    argv, then behaves as asked."""
+    calls = tmp_path / "opencode-calls.txt"
+
+    def make(body: str):
+        path = tmp_path / "fake-opencode"
+        path.write_text(
+            "#!/usr/bin/env bash\n"
+            f'printf "%s\\n" "$*" >> {calls}\n'
+            f'printf "%s\\n" "$PWD" >> {tmp_path / "opencode-cwd.txt"}\n'
+            f'cat > {tmp_path / "opencode-prompt.txt"}\n'
+            f"{body}\n"
+        )
+        path.chmod(0o755)
+        return path
+
+    make.calls = calls  # type: ignore[attr-defined]
+    make.cwd_log = tmp_path / "opencode-cwd.txt"  # type: ignore[attr-defined]
+    make.prompt_log = tmp_path / "opencode-prompt.txt"  # type: ignore[attr-defined]
+    return make
+
+
+def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False, **kwargs):
     """Invoke the runner; return (returncode, parsed json line, stdout).
 
     `codex=` is the sibling of `claude=` and exists for the same reason
@@ -238,6 +262,8 @@ def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
         env["AIDE_CLAUDE_BIN"] = str(claude)
     if codex:
         env["AIDE_CODEX_BIN"] = str(codex)
+    if opencode:
+        env["AIDE_OPENCODE_BIN"] = str(opencode)
     proc = subprocess.run(args, capture_output=True, text=True, env=env)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     if return_stderr:

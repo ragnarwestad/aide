@@ -7,9 +7,9 @@
 # script had reached 2925 lines, five times the next largest file in
 # the repo, and no reader could hold it.
 # --- the invocation ----------------------------------------------------------
-# One resolution shape, two tools. Only the CHOSEN tool has to be on the
-# machine: a host with no codex installed must still run every claude
-# step, and the reverse.
+# One resolution shape, one tool per run. Only the CHOSEN tool has to be
+# on the machine: a host with no codex installed must still run every
+# claude step, and so on for each of the others.
 find_bin() {
   local override="$1" name="$2" found=""
   if [ -n "$override" ]; then
@@ -22,10 +22,13 @@ find_bin() {
   printf '%s' "$found"
 }
 
-claude_bin=""; codex_bin=""
+claude_bin=""; codex_bin=""; opencode_bin=""
 if [ "$tool" = "codex" ]; then
   codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
   [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "cannot find the codex binary (set AIDE_CODEX_BIN)"
+elif [ "$tool" = "opencode" ]; then
+  opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
+  [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse "cannot find the opencode binary (set AIDE_OPENCODE_BIN)"
 else
   # The environment wins; the project's own .aide/config is the fallback.
   # A per-machine file is where a project points its runs at a stand-in
@@ -61,6 +64,22 @@ fi
 # and this script's shebang finds whatever bash the machine has — which
 # on a Mac is still 3.2.
 safety_flags=()
+# opencode's safety is an AGENT plus one auto-approve switch, and the
+# same no-fall-through rule applies. Verified against opencode 1.18.31
+# (2026-09-16) on this host: the `plan` agent refuses to create a file
+# and says so ("I'm currently in Plan mode (read-only)"), while the
+# default `build` agent already allows every tool and `--auto` is what
+# additionally answers the rules it would otherwise ASK about. There is
+# no sandbox flag to set: the agent IS the boundary.
+opencode_safety_flags() {
+  case "$1" in
+    bypassPermissions) safety_flags=(--agent build --auto) ;;
+    acceptEdits)       safety_flags=(--agent build) ;;
+    plan|default)      safety_flags=(--agent plan) ;;
+    *) return 1 ;;
+  esac
+}
+
 codex_safety_flags() {
   case "$1" in
     bypassPermissions) safety_flags=(--dangerously-bypass-approvals-and-sandbox) ;;
@@ -68,6 +87,24 @@ codex_safety_flags() {
     plan|default)      safety_flags=(--sandbox read-only) ;;
     *) return 1 ;;
   esac
+}
+
+# How a step ASKS for its skill, which is not the same sentence in every
+# CLI. Claude Code and Codex read `/aide-implement 476` as a slash
+# command and load the skill from it. opencode has no slash command for
+# these: it finds the same SKILL.md files (it scans `~/.agents/skills`
+# and `~/.claude/skills` itself, so aide installs nothing extra for it)
+# and the model reaches them through a `skill` tool, by name. So the
+# skill is NAMED in words instead, and the argument follows in the same
+# sentence. Verified 2026-09-16: a run told to use a skill by name
+# called `skill` with that name and answered from its contents.
+skill_call() {
+  local name="$1" args="$2"
+  if [ "$tool" = "opencode" ]; then
+    printf 'Use the %s skill, with this argument: %s' "$name" "$args"
+  else
+    printf '/%s %s' "$name" "$args"
+  fi
 }
 
 # The prompt SAYS the run is headless. AIDE_HEADLESS is still exported
@@ -108,7 +145,7 @@ Acceptance ticking is not required for this run: per Step 8, do not write the ac
   reason_line=""
   [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
 Use exactly this reason when closing the spec: $reason"
-  prompt="/aide-$command_name $spec_id$acceptance_line$reason_line
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$reason_line
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own
@@ -155,7 +192,7 @@ Acceptance ticking IS required for this spec: do not pass --acceptance-not-requi
   # the folder under exactly this name instead of picking one.
   folder_line="
 This is a headless run: create the spec folder under exactly this name — $spec_arg — do not choose a number or a slug (skip Steps 2 and 3 of the skill); pass --folder-name \"$spec_arg\" to aide-create-spec in Step 4."
-  prompt="/aide-create TODO-$title_slug $description
+  prompt="$(skill_call "aide-create" "TODO-$title_slug $description")
 
 Use exactly this title for the spec: $title$depends_line$accept_line$folder_line
 $headless_note"
@@ -174,6 +211,23 @@ if [ "$tool" = "codex" ]; then
   codex_safety_flags "$permission_mode" \
     || refuse "invalid --permission-mode for codex: $permission_mode"
   argv=("$codex_bin" exec --json)
+  argv+=("${safety_flags[@]}")
+  [ -n "$model" ] && argv+=(--model "$model")
+elif [ "$tool" = "opencode" ]; then
+  # `opencode run --format json` is the same idea a third CLI over: one
+  # JSON event per line on stdout, the prompt read from stdin (verified
+  # 2026-09-16). No `--dir`: the turn is already started with the
+  # worktree as its working directory (`run_model_turn`), exactly as
+  # claude and codex are, and naming it here would resolve a variable
+  # this file runs before. No session
+  # argument, for the reason codex has none: the id the dashboard mints
+  # has never existed on this machine, so asking opencode to resume it
+  # would fail. opencode names its own session and the result parser
+  # reads that back. The model is `provider/model`, which is why the
+  # configured name is passed through whole rather than split.
+  opencode_safety_flags "$permission_mode" \
+    || refuse "invalid --permission-mode for opencode: $permission_mode"
+  argv=("$opencode_bin" run --format json)
   argv+=("${safety_flags[@]}")
   [ -n "$model" ] && argv+=(--model "$model")
 else

@@ -7,6 +7,7 @@
 #
 # If you only want to install one AI, run its script directly, e.g.:
 #   implementations/codex/install.sh
+#   implementations/opencode/install.sh
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -14,7 +15,7 @@ echo "🔧 aide — installing all AI tools"
 echo "============================================="
 
 status=0
-for ai in claude-code copilot codex; do
+for ai in claude-code copilot codex opencode; do
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/implementations/$ai/install.sh"; then

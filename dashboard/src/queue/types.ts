@@ -32,7 +32,7 @@ export interface StepResult {
    *  Claude run. `none` is a `create` step that skipped the AI session
    *  entirely (spec 433) — the deterministic path, never a step this
    *  dashboard actually spawned a CLI for. */
-  tool?: "claude" | "codex" | "fake-claude" | "none";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** Absent when the run could not measure it — an old result file, or
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
@@ -278,7 +278,7 @@ export interface ModelChoice {
    *  keeps meaning exactly what it meant. `fake-claude` names the
    *  scripted stand-in, so a project testing the machinery says so on
    *  its rows instead of borrowing Claude Code's name. */
-  tool?: "claude" | "codex" | "fake-claude";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude";
   /** The literal `--model` value, when it differs from this entry's own
    *  key. The key is what the picker shows and what a request posts;
    *  this is what the CLI is actually handed, so a readable name like

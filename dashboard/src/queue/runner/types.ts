@@ -29,7 +29,7 @@ export interface StepOutcome {
   costMeasured: boolean;
   /** Which CLI `aide-run-spec` actually started. `none` is a `create`
    *  step that skipped the AI session entirely (spec 433). */
-  tool?: "claude" | "codex" | "fake-claude" | "none";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   terminalReason: string;
   subtype?: string;
   sessionId?: string;

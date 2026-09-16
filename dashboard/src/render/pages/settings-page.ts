@@ -17,7 +17,7 @@ export const SETTINGS_STEPS = WORKFLOW_STEPS;
 export const SETTINGS_ROWS = [...SETTINGS_STEPS, "default"] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; tool?: "claude" | "codex" | "fake-claude" }[];
+  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude" }[];
   defaultModels: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;

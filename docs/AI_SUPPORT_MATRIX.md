@@ -17,6 +17,7 @@ and which configuration files each tool reads.
 - [Claude Code](#claude-code)
 - [GitHub Copilot](#github-copilot)
 - [Codex CLI](#codex-cli)
+- [OpenCode](#opencode)
 - [Installation into target projects](#installation-into-target-projects)
 - [See also](#see-also)
 
@@ -29,6 +30,7 @@ and which configuration files each tool reads.
 | Claude Code        | 2.1.270 | 2026-09-14 | ✅ Supported               |
 | GitHub Copilot CLI | 1.0.83 | 2026-09-14 | ✅ Supported               |
 | Codex CLI          | 0.154.0 | 2026-09-14 | ✅ Supported               |
+| OpenCode           | 1.18.31 | 2026-09-16 | ✅ Supported               |
 
 **The Version and Last verified columns are stamped from probing — do not
 edit them by hand.** Run:
@@ -90,6 +92,7 @@ an allowlist test. See the frontmatter table in the ai-tools reference.
 | Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197)   |
 | GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, GPT-6 Astra and GPT-5.6 available |
 | OpenAI Codex CLI   | GPT-6 Astra (bundled default since 0.153.4)                                              |
+| OpenCode           | None of its own: every model is its provider's, named `provider/model`                   |
 
 Release dates and history are in the [news log](./AI_NEWS_LOG.md).
 
@@ -273,6 +276,47 @@ implementations/codex/
 ├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md + shared scripts
 └── mcp/                        ← MCP setup docs
 ```
+
+---
+
+## OpenCode
+
+**Version and last verified:** see [Supported versions](#supported-versions)
+
+OpenCode reaches a model through a PROVIDER rather than bringing its own,
+so a model is named `provider/model` and no provider is configured until
+one is logged in (`opencode providers login`).
+
+### Instruction files (read automatically)
+
+| File                                                | Description                                          |
+|-----------------------------------------------------|------------------------------------------------------|
+| `AGENTS.md` (`~/.config/opencode/AGENTS.md`)        | Global instruction file (installed from `core/AGENTS.md`) |
+| `~/.claude/CLAUDE.md`                               | Read as well, unqualified                            |
+| `AGENTS.md` / `CLAUDE.md` in the project            | Read; the first project-level match wins             |
+
+### Skills (read in place — nothing installed)
+
+| Directory            | Description                                        |
+|----------------------|----------------------------------------------------|
+| `~/.agents/skills/`  | Scanned for `**/SKILL.md`, shared with Codex and Copilot |
+| `~/.claude/skills/`  | Scanned the same way, shared with Claude Code      |
+
+A skill is reached through a `skill` tool, by name, not as a slash
+command — which is why a headless step names its skill in words.
+
+### Configuration
+
+| File                            | Description                          |
+|---------------------------------|--------------------------------------|
+| `~/.config/opencode/opencode.json` | Global config: providers, agents, permissions |
+
+### Headless use
+
+`opencode run --format json` reads the prompt from stdin and prints one
+JSON event per line. `--agent plan` is read-only; `--agent build` is the
+default and `--auto` additionally answers what it would otherwise ask
+about. A session is continued with `--session <id>`.
 
 ---
 
