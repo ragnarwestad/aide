@@ -19,6 +19,7 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
   - [Install everything at once](#install-everything-at-once)
   - [Claude Code](#claude-code)
   - [GitHub Copilot](#github-copilot)
+  - [OpenCode](#opencode)
   - [Other AI tools](#other-ai-tools)
 - [Verify the setup](#verify-the-setup)
 - [Troubleshooting](#troubleshooting)
@@ -34,6 +35,7 @@ This workspace supports several AI tools. Choose the one that suits you best:
 | **Claude Code**    | Slash commands, specialized agents               | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
 | **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
 | **GitHub Copilot** | Native VS Code, Agent Mode | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
+| **OpenCode**       | One CLI in front of many providers               | Reaching a model no other tool offers | [opencode/README.md](../implementations/opencode/README.md)              |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
@@ -184,6 +186,7 @@ In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh
 implementations/claude-code/install.sh
 implementations/copilot/install.sh
 implementations/codex/install.sh
+implementations/opencode/install.sh
 ```
 
 The sections below describe what each individual installer does.
@@ -272,6 +275,58 @@ The sections below describe what each individual installer does.
 - ✅ Slash commands / skills (`/aide-create` etc. — same as Claude Code)
 - ✅ Native VS Code integration (faster than the Claude CLI)
 - ✅ Codebase analysis and test iteration
+
+---
+
+### OpenCode
+
+OpenCode brings no model of its own. Every model belongs to a provider and is named `provider/model`, and
+**nothing is reachable until a provider is logged in** — an installer that finishes cleanly still leaves every
+model call refused until you do.
+
+**Installation and setup:**
+
+1. **Install OpenCode:**
+   ```bash
+   mise use -g opencode@latest
+   ```
+
+2. **Verify the installation:**
+   ```bash
+   opencode --version
+   ```
+
+3. **Run the setup script:**
+   ```bash
+   cd aide/implementations/opencode
+   ./install.sh
+   ```
+
+   **The script installs globally:**
+    - ✅ Instructions (`core/AGENTS.md`) → `~/.config/opencode/AGENTS.md`
+    - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
+    - ✅ Nothing for the skills: OpenCode scans `~/.agents/skills` and `~/.claude/skills` itself
+
+4. **Log in to a provider:**
+   ```bash
+   opencode providers login
+   opencode models          # what the logged-in providers offer
+   ```
+
+5. **Test the setup:**
+   ```bash
+   opencode run -m <provider>/<model> "Use the aide-create skill, with this argument: TODO-probe A test spec"
+   ```
+
+**Full documentation:**
+
+- **[implementations/opencode/README.md](../implementations/opencode/README.md)** - Setup guide and quick start
+
+**Key features:**
+
+- ✅ Reads the same `SKILL.md` files Claude Code and Codex do, where they already are
+- ✅ One login in front of many providers, so a model no other tool offers is still reachable
+- ❌ No slash commands for aide's skills — the model reaches a skill by name
 
 ---
 

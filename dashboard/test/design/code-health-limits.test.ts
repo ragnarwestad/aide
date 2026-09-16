@@ -30,7 +30,7 @@ const TEST = join(ROOT, "test");
 // this list was written. A file that grows past that count fails; one
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {
-  "src/queue/runner/index.ts": 520,
+  "src/queue/runner/index.ts": 519,
   "src/queue/store/index.ts": 630,
   "src/git/branch-merge.ts": 605,
   "src/render/pages/specs-list/data-model/types.ts": 510,

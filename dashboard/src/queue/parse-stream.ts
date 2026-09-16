@@ -322,18 +322,56 @@ function codexCommands(text: string, max: number): StepCommand[] {
   return out.slice(-max);
 }
 
+/** opencode's shell tool, verified against 1.18.31: a `tool` part named
+ *  `bash`, whose `state` carries the command it ran, the exit code under
+ *  `metadata.exit`, and a start/end pair. It is the one of the three
+ *  schemas that reports BOTH an exit code and a duration. */
+function opencodeCommands(text: string, max: number): StepCommand[] {
+  const out: StepCommand[] = [];
+  for (const event of events(text)) {
+    const part = event.part;
+    if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
+    const p = part as Record<string, unknown>;
+    if (p.type !== "tool" || p.tool !== "bash") continue;
+    const state = p.state;
+    if (state === null || typeof state !== "object" || Array.isArray(state)) continue;
+    const st = state as Record<string, unknown>;
+    const input = st.input as Record<string, unknown> | undefined;
+    const command = typeof input?.command === "string" ? input.command : "";
+    const meta = st.metadata as Record<string, unknown> | undefined;
+    // Never invented, for the reason codexCommands says: a tool call
+    // with no numeric exit is not this dashboard's to guess at.
+    if (!command || typeof meta?.exit !== "number") continue;
+    const time = st.time as Record<string, unknown> | undefined;
+    const durationMs =
+      typeof time?.start === "number" && typeof time?.end === "number"
+        ? time.end - time.start
+        : undefined;
+    out.push({
+      command: esc(clip(command)),
+      outcome: { kind: "exitCode", code: meta.exit },
+      ...(durationMs === undefined ? {} : { durationMs }),
+    });
+    trim(out, max);
+  }
+  return out.slice(-max);
+}
+
 /** The commands a step ran, whichever tool wrote the transcript — same
  *  bound as `summarizeStream`, same escaping. */
 export function summarizeCommands(text: string, opts: SummarizeOptions = {}): StepCommand[] {
   const max = opts.max ?? 40;
   const tool = opts.tool ?? sniff(text);
-  return tool === "codex" ? codexCommands(text, max) : claudeCommands(text, max);
+  if (tool === "codex") return codexCommands(text, max);
+  if (tool === "opencode") return opencodeCommands(text, max);
+  return claudeCommands(text, max);
 }
 
 /** The assistant's own final message, in full — Claude's one `result`
- *  event's `result` field, or Codex's LAST `agent_message` item's text.
- *  Unclipped, unlike every entry `summarizeStream` returns: this is the
- *  run's own closing word, not a one-line label for something else. */
+ *  event's `result` field, Codex's LAST `agent_message` item's text, or
+ *  opencode's last `text` part. Unclipped, unlike every entry
+ *  `summarizeStream` returns: this is the run's own closing word, not a
+ *  one-line label for something else. */
 export function finalMessage(text: string, opts: SummarizeOptions = {}): string | undefined {
   const tool = opts.tool ?? sniff(text);
   let found: string | undefined;
@@ -345,6 +383,12 @@ export function finalMessage(text: string, opts: SummarizeOptions = {}): string 
       const r = item as Record<string, unknown>;
       if (codexKind(r) !== "agent_message") continue;
       if (typeof r.text === "string" && r.text.trim()) found = esc(r.text);
+    } else if (tool === "opencode") {
+      const part = event.part;
+      if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
+      const p = part as Record<string, unknown>;
+      if (p.type !== "text") continue;
+      if (typeof p.text === "string" && p.text.trim()) found = esc(p.text);
     } else {
       if (event.type !== "result") continue;
       if (typeof event.result === "string" && event.result.trim()) found = esc(event.result);

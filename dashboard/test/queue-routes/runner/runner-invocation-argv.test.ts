@@ -1,6 +1,7 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { extraPathDirs, pathWithToolDirs } from "../../../src/serve/tool-path.ts";
 import { fileOnceWritten } from "../../helpers/file-once-written.ts";
 import { existsSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -148,20 +149,21 @@ describe("the runner invocation", () => {
   // dropping the spread would take PATH away from `claude` and `git`
   // and break every headless step — worse than the silence it fixes.
   //
-  // The server's own PATH reaches the runner whole; `~/.local/bin` is
-  // put in front of it when it is not on it already (runner-setup.ts).
-  // Asserting exact equality held only in a shell that already had it
-  // on PATH — under the landing's own test run, started from launchd,
-  // it is not, and the test went red on a merge that never touched
-  // this (432, 2026-09-10).
+  // The server's own PATH reaches the runner whole, with the directories
+  // a spawned tool needs put in front of it — `tool-path.ts` decides
+  // which, and this asserts the rule rather than a second copy of the
+  // arithmetic. Exact equality held only in a shell that already had
+  // them on PATH; under the landing's own run, started from launchd, it
+  // does not, and the test went red on a merge that never touched this
+  // (432, 2026-09-10).
   test("and the rest of the environment still reaches it", async () => {
     await withRunUrlEnv(null, async () => {
       const { env } = await envHandedToTheRunner("aide-queue-run-url-inherit-");
       const own = process.env.PATH ?? "";
-      const localBin = `${process.env.HOME ?? ""}/.local/bin`;
       expect(env.path.length).toBeGreaterThan(0);
       expect(env.path.endsWith(own)).toBe(true);
-      expect(env.path).toBe(own.split(":").includes(localBin) ? own : `${localBin}:${own}`);
+      expect(env.path).toBe(pathWithToolDirs());
+      for (const dir of extraPathDirs()) expect(env.path).toContain(dir);
     });
   });
 

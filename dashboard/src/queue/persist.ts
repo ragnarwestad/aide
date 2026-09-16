@@ -3,6 +3,7 @@
 // back.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { asRunnableTool } from "./steps.ts";
 import { dirname } from "node:path";
 import { applyEdits, modify, parse } from "jsonc-parser";
 import { EFFORT_LEVELS, JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
@@ -308,7 +309,11 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
       if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
       const e = entry as Record<string, unknown>;
       const choice: ModelChoice = {};
-      if (e.tool === "claude" || e.tool === "codex" || e.tool === "fake-claude") choice.tool = e.tool;
+      // Read from the one list (`steps.ts`), never spelled out again:
+      // the names written here by hand are what kept `opencode` out of
+      // the picker after every type in the codebase already knew it.
+      const tool = asRunnableTool(e.tool);
+      if (tool) choice.tool = tool;
       if (typeof e.model === "string" && e.model) choice.model = e.model;
       out[name] = choice;
     }
