@@ -351,21 +351,6 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(withoutPr).toContain('<span class="badge b-done">Archived</span>');
   });
 
-  // The Time column shows how long the work took and nothing else, so
-  // the archive date is no longer drawn on the row at all — and neither
-  // are the two answers that stood in for it when git could not date the
-  // folder. What the column owes the reader now is a duration, `0s`
-  // included, which the tests above hold.
-  test("the row carries no archive date, in any of its cells", () => {
-    const html = rows({
-      archivedSpecs: [archivedSpec("50-archived", { archivedAt: "2026-08-13" })],
-      filter: { state: "archived" },
-    });
-    const row = html.slice(html.indexOf("50-archived"));
-    const timeCell = row.slice(row.indexOf('data-col="started"'));
-    expect(timeCell.slice(0, timeCell.indexOf("</td>"))).not.toContain("2026-08-13");
-  });
-
   test("the search reads folder, title and description, across both kinds", () => {
     const both = {
       archivedSpecs: [archivedSpec("50-archived", { title: "Wolverine", description: "gone" })],

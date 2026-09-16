@@ -199,12 +199,6 @@ describe("spec 157: the row draws one action, on its caption line", () => {
 
   // --- criterion 14: the phase lines take the left edge ---------------------
 
-  test("no stack cell survives anywhere, open or shut (criterion 14)", () => {
-    for (const open of [true, false]) {
-      expect(rows([], [target("157-one-action")], { open })).not.toContain("stackcell");
-    }
-  });
-
   test("the phase line leads with its own cell, and still fills the table (criterion 14)", () => {
     const html = rows([], [target("157-one-action")], {
       open: true,

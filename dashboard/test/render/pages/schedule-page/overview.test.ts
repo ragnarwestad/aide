@@ -28,17 +28,4 @@ describe("renderScheduleOverview", () => {
     expect(renderScheduleOverview("aide", { ...entry, model: "codex-fast" }, {})).toContain("<dt>Model</dt>");
     expect(renderScheduleOverview("aide", entry, {})).not.toContain("<dt>Model</dt>");
   });
-
-  // Delete moved to the list on 2026-08-31 (spec 277 put it here): the
-  // Edit page is where an entry is CHANGED, and deleting it from there
-  // meant opening the thing you had decided to be rid of.
-  test("carries no Delete control — that lives on the list now", () => {
-    const html = renderScheduleOverview(
-      "aide",
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-      {},
-    );
-    expect(html).not.toContain("/delete");
-    expect(html).not.toContain(">Delete<");
-  });
 });

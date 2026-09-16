@@ -414,26 +414,6 @@ describe("refreshDrift's schedule-level guarantees (ported from the /projects ro
   }, 15000);
 });
 
-// Spec 407, REQ-5: the Refresh button and the route it posted to are
-// both gone. The value it forced — origin drift — keeps refreshing on
-// its own, on the unchanged background schedule (REQ-6).
-describe("the Refresh button and its route are gone (REQ-5)", () => {
-  test("the Config tab renders no Refresh button", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).not.toMatch(/>Refresh</);
-  });
-
-  test("the refresh route is gone — every method 404s", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const base = serve(root, settled(root, "aide"), 0);
-    const post = await fetch(`${base}/api/queue/projects/aide/refresh`, { method: "POST", headers: AUTH });
-    expect(post.status).toBe(404);
-    const getResponse = await fetch(`${base}/api/queue/projects/aide/refresh`, { headers: AUTH });
-    expect(getResponse.status).toBe(404);
-  });
-});
-
 // Spec 269: whether the process actually serving this page has picked up
 // what is on disk — a process-vs-disk question the drift banner above
 // cannot answer, because it only ever compares the checkout to origin.

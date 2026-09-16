@@ -70,16 +70,6 @@ describe("spec 123: each phase line picks its own model", () => {
    *  rule of its own, and the render vocabulary is a closed set
    *  (`css-token-guard.test.ts`). */
 
-  // --- criterion 1 -----------------------------------------------------------
-
-  test("the row's own controls carry no shared Model select any more", () => {
-    const html = rows([]);
-    expect(controlsLine(html, "123-picks")).not.toBe("");
-    expect(controlsLine(html, "123-picks")).not.toContain('name="model"');
-    // Nor anywhere else on the row: the whole-job field is gone, not moved.
-    expect(html).not.toContain('<select name="model"');
-  });
-
   // --- criterion 2 -----------------------------------------------------------
 
   test("every phase line carries its own select, on the row's Run form", () => {

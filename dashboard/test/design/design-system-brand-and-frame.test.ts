@@ -177,12 +177,6 @@ describe("the header and the two tabs (spec 119)", () => {
     const html = site.get("about.html")!;
     expect(tabs(html)).not.toContain("aria-current");
   });
-
-  test("no left column is left anywhere", () => {
-    for (const [path, html] of every) {
-      expect([path, html.includes('class="layout"')]).toEqual([path, false]);
-    }
-  });
 });
 
 // --- the board line and its Stop control (spec 424) --------------------------

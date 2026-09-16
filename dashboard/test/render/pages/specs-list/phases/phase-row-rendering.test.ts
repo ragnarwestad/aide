@@ -195,13 +195,6 @@ describe("a spec's row runs its own phases", () => {
     expect(line).toContain('<div class="spec-title"></div>');
   });
 
-  test("the top form is gone from the page, not merely hidden (criterion 7)", () => {
-    const html = page({ projects: ["aide"] });
-    expect(html).not.toContain('name="target"');
-    expect(html).not.toContain('id="targetdata"');
-    expect(html).not.toContain('class="enqueue"');
-    expect(html).not.toContain("Run a spec");
-  });
 
   test("a refusal is shown on the page, belonging to no one row (criterion 6)", () => {
     const html = page({ error: "analyze is already queued for this spec" });

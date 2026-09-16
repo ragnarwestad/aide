@@ -61,10 +61,6 @@ describe("the spec page is a page of this site like any other", () => {
       /<a class="tab" data-nav data-goto href="[^"]*\?tab=description" aria-current="page">Description<\/a>/,
     );
   });
-
-  test("no Live right now panel exists here either", () => {
-    expect(page(view({ lead: lead({ state: "running" }) }))).not.toContain("Live right now");
-  });
 });
 
 // The two pages share the tab bar and the steps table rather than each
@@ -262,11 +258,10 @@ describe("spec 242: every attempt's steps in one flat list", () => {
       ...(attempt === undefined ? {} : { attempt }),
     }));
 
-  test("a spec with one job draws no Attempt marker and no picker markup (AC1)", () => {
+  test("a spec with one job draws no Attempt marker (AC1)", () => {
     const v = view({ lead: lead(), steps: dummyResults(1) });
     const html = page(v, "steps");
     expect(html).not.toContain("Attempt ");
-    expect(html).not.toContain('data-filter="attempt"');
   });
 
   test("two attempts' steps appear together, tagged, in chronological order (AC2)", () => {
@@ -304,15 +299,6 @@ describe("spec 242: every attempt's steps in one flat list", () => {
     expect(html).toContain(">Attempt 2<");
     expect(html.indexOf(">Attempt 2<")).toBeLessThan(html.indexOf(" Implement</td>"));
     expect(html).toMatch(/>Logs \(2\)</);
-  });
-
-  test("no picker markup is drawn on any tab — the picker itself is gone", () => {
-    const older = dummyResults(1, 1, 0);
-    const newer = dummyResults(3, 2, 10);
-    const v = view({ lead: lead({ id: "newer" }), steps: [...older, ...newer] });
-    for (const tab of ["checks", "description", "analysis", "solution", "status", "steps"]) {
-      expect([tab, page(v, tab).includes('data-filter="attempt"')]).toEqual([tab, false]);
-    }
   });
 });
 

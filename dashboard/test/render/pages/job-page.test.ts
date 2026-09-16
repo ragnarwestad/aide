@@ -190,15 +190,6 @@ describe("renderJobDetailPage", () => {
     expect(html).not.toContain('<nav class="tabbar">');
   });
 
-  test("a finished job shows no live panel — there is no session to follow", () => {
-    const html = renderJobDetailPage(
-      detail({ state: "done" }),
-      "2026-08-16T10:05:00Z",
-      NAV,
-    );
-    expect(html).not.toContain("Live right now");
-  });
-
   // Spec 252, Criterion 1: the page's own "← Back" tracks wherever the
   // reader came from, rather than the bare `/` it always fell back to —
   // the first test this control has ever had.

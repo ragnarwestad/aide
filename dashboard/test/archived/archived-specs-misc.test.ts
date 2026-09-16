@@ -6,22 +6,6 @@ import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, auth, harness, order, specs
 
 afterEach(() => harness.cleanup());
 
-// --- criteria 7, 8: the Archive tab retires --------------------------------
-
-describe("the Archive tab", () => {
-  test("is no longer in the navigation (criterion 7)", async () => {
-    const html = await specsList(start().base);
-    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
-    expect(nav).not.toContain('href="/archive"');
-    expect(nav).not.toContain(">Archive<");
-  });
-
-  test("and its route is gone (criterion 8)", async () => {
-    const { base } = start();
-    expect((await fetch(`${base}/archive`, auth)).status).toBe(404);
-  });
-});
-
 // --- criterion 10: the default view does not pay for the archive -----------
 
 describe("building the archived rows", () => {

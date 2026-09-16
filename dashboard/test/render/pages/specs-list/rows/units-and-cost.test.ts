@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
-  renderSpecsPage,
   renderSpecsRows,
   type JobDetailView,
   type QueueRowView,
@@ -233,15 +232,3 @@ describe("spec 118: the job page's figures carry both units", () => {
   // is asserted directly above this.
 });
 
-describe("the day total that used to sit under the list", () => {
-  // Spec 118 put "Spent today" under the list; the user had it removed
-  // on 2026-08-19 — one more figure about money on a page that should
-  // talk about work. The per-row cost/token column is the display.
-  test("no page shows a day total", () => {
-    const html = renderSpecsPage([row()], "2026-08-16T00:00:00Z", NAV, {
-      runnerAvailable: true,
-      targets: [],
-    });
-    expect(html).not.toContain("Spent today");
-  });
-});

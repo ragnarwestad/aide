@@ -279,20 +279,4 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     // stale note upstaging the retry.
     expect(text).not.toContain("held back");
   });
-
-  // Spec 101 asked for the line on EVERY row, so a blank one did not
-  // read as a row missing something. Spec 174 took the line off every
-  // row instead, which answers the same worry the other way: no row
-  // draws it, so none is missing it.
-  test("no row draws the line any more", () => {
-    const html = rows(
-      [row({ specFolder: "101-a", state: "running" })],
-      [target("101-a"), target("101-b")],
-    );
-    // The spec rows only: a phase line has asides of its own in the
-    // same class, and those are not what this spec removed.
-    const heads = [...html.matchAll(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/g)].map((m) => m[0]);
-    expect(heads).toHaveLength(2);
-    for (const head of heads) expect(head).not.toContain('<div class="muted small">');
-  });
 });

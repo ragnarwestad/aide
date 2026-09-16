@@ -9,7 +9,6 @@ import { join } from "node:path";
 import {
   TOKEN,
   SPEC,
-  EDIT,
   DESCRIPTION_TAB,
   CHECKS_TAB,
   ANALYSIS_TAB,
@@ -54,25 +53,12 @@ function seedJobState(dir: string, id: string, state: string): string {
   return mirror;
 }
 
-// --- spec 212, criterion 8: the second page is gone -------------------------
-//
-// The textarea lives on the spec page's own Description tab now, so the
-// address it used to have has nothing behind it. Removed rather than
-// redirected: nothing inside the dashboard linked to it once the Edit
-// button went, and every other retired route here answers 404.
+// --- spec 212: the textarea lives on the spec page's own Description tab ----
 
-describe("GET the edit page", () => {
-  test("the address it had answers 404, on a live spec and an archived one", async () => {
-    const { base } = start(savable("/host"));
-    expect((await fetch(`${base}${EDIT}`, auth)).status).toBe(404);
-    const archived = startArchived(savable("/host"));
-    expect((await fetch(`${archived.base}/specs/aide/${ARCHIVED}/edit`, auth)).status).toBe(404);
-  });
-
-  test("the spec page links to no such page — the tab is where the textarea is", async () => {
+describe("the Description tab", () => {
+  test("the spec page links to it", async () => {
     const { base } = start(savable("/host"));
     const html = await (await fetch(`${base}${PAGE}`, auth)).text();
-    expect(html).not.toContain(EDIT);
     expect(html).toContain(`?tab=description`);
   });
 

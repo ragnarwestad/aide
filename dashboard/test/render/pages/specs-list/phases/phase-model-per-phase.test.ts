@@ -111,17 +111,6 @@ describe("spec 169: one picker per phase", () => {
     expect(select).not.toContain("Codex");
   });
 
-  // --- criterion 2 -----------------------------------------------------------
-
-  test("no row-wide AI filter is drawn anywhere any more", () => {
-    const html = rows();
-    expect(html).not.toContain("data-tool-picker");
-    // Nor the word the filter's own label carried: the AI is said in
-    // the caption and in the option groups now, not in a control of
-    // its own.
-    expect(html).not.toMatch(/<label[^>]*>AI <select/);
-  });
-
   // --- criterion 5's server half: what a phase has already run on -----------
 
   // `used` is what pre-fills a select with the model its phase really

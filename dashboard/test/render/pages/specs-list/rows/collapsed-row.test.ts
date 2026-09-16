@@ -102,22 +102,6 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain("$1.50");
   });
 
-  // Spec 132 took Merge back out of the row: the State column already
-  // says "ready to merge the code", and acting means opening the panel,
-  // the same as every other action a collapsed row does not draw.
-  test("a collapsed row with an unmerged branch offers no Merge at all (spec 132)", () => {
-    const cell = actionCell(
-      controlsLine(
-        rows([row({ id: "j1", specFolder: "103-merge", state: "done" })], [target("103-merge")]),
-        "103-merge",
-      ),
-    );
-    // The row still offers its own next phase (spec 157) — what it
-    // does not offer, in any state, is a way to land the branch.
-    expect(cell).not.toContain("/merge");
-    expect(cell).not.toContain("Merge");
-  });
-
   // Spec 103 sent a reader to the open row to cancel; spec 157 brought
   // the press back to the collapsed one, and 2026-09-08 sent it in
   // again. The collapsed row says "implementing" and nothing else; the

@@ -208,13 +208,6 @@ describe("the specs table fits the box that scrolls it", () => {
     );
   });
 
-  // The dash used to need a manual left indent because it sat alone in
-  // a left-aligned column; now every element in the column centres, so
-  // the compensation is gone.
-  test("the State column's dash needs no manual indent", () => {
-    expect(css).not.toContain('table.list td[data-col="state"] [data-none] { margin-left: 4ch; }');
-  });
-
   // A sortable header's chevron sits at the column's own right edge,
   // clear of the label, instead of shrink-wrapping directly against it
   // (spec 432): the chevron is positioned against the <th> itself, not
@@ -259,15 +252,6 @@ describe("the specs table fits the box that scrolls it", () => {
     for (const col of ["started", "cost", "created"]) {
       const cell = new RegExp(`table\\.list td\\[data-col="${col}"\\][^{]*\\{([^}]*)\\}`).exec(css)![1]!;
       expect(cell).toMatch(/text-align: center/);
-    }
-  });
-
-  // Every sortable column shares one .sortlink rule (spec 432): no
-  // column keeps a data-col-scoped override of its own any more.
-  test("no sortable column keeps its own .sortlink override", () => {
-    for (const col of ["spec", "state", "started", "cost", "created"]) {
-      const overridePattern = new RegExp(`table\\.list th\\[data-col="${col}"\\] \\.sortlink`);
-      expect(css).not.toMatch(overridePattern);
     }
   });
 

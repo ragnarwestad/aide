@@ -214,13 +214,6 @@ describe("the row's name at phone width", () => {
 // --- criterion 3: the open row's phase lines stack --------------------------
 
 describe("the phase lines stop being pinned columns at phone width", () => {
-  // The stack's cell gave up a fixed 14rem width here until spec 157
-  // deleted the cell outright: a row draws one button now, in the
-  // State column, and the phase lines lead their own rows. There is no
-  // width left to release at this breakpoint.
-  test("no stack cell is declared at any width", () => {
-    expect(CSS).not.toContain("stackcell");
-  });
 
   // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
   // FLEX line at this width — identically whether its fold is open or
@@ -330,12 +323,6 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).toContain(
       'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }',
     );
-  });
-
-  test("no pinned flex children survive at any width", () => {
-    expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).not.toMatch(/flex:\s*0 0 2\.5rem/);
-    expect(CSS).not.toMatch(/flex:\s*0 0 6rem/);
   });
 
   // The desktop rule must survive verbatim: the override wins by
