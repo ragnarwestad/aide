@@ -8,6 +8,8 @@ import { stepLabel } from "../../ui/components";
 import { stepButton } from "../../../format/step-label.ts";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, type SpecGroup } from "./data-model";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
+import type { QueueRowView } from "../../ui/job-state/types.ts";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off
@@ -204,3 +206,38 @@ export const refusalFor = (g: SpecGroup, opts: SpecsPageOptions): string | undef
 export const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
 export { specNumber } from "../../../project/spec-folder.ts";
+
+// --- spec 471: another round on a spec held back on its checks -------------
+/** The steps another round runs. `archive` is offered from a held-back
+ *  row already (`finished` excludes it), and `create` never runs twice. */
+const ROUND_STEPS = new Set(["analyze", "implement"]);
+
+/** The archive step's own refusal, as the RUNNER leaves it: the
+ *  mechanical precheck turns the step away before any model is spawned,
+ *  and the job it belongs to finishes `done` with no error of its own.
+ *  So the only trace on the row is the step result's reason — which is
+ *  why this is read as well as the note below, and not instead of it. */
+const PRECHECK_REFUSAL = "acceptance-criteria-unticked";
+
+const refusedForChecks = (a: QueueRowView): boolean =>
+  (a.results ?? []).some((r) => r.step === "archive" && r.terminalReason === PRECHECK_REFUSAL);
+
+/** Is this spec waiting on a person to judge its acceptance criteria?
+ *  Two records say so and either may be the only one there: the note
+ *  `4-status.md` carries once an archive RUN wrote it, and the step
+ *  result a run refused before that. */
+export function heldBackOnChecks(g: SpecGroup): boolean {
+  const archive = g.phases.find((p) => p.step === "archive");
+  if (!archive) return false;
+  return archive.heldBack?.reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE ||
+    archive.attempts.some(refusedForChecks);
+}
+
+/** Would a press on this phase's box start the round again? The row
+ *  asks only what it can answer without git; whether the round may
+ *  actually start — every open criterion new or changed since the round
+ *  boundary — is the run route's own gate, and its refusal names the
+ *  criterion that has not moved. */
+export function offersAnotherRound(g: SpecGroup, step: string): boolean {
+  return ROUND_STEPS.has(step) && heldBackOnChecks(g);
+}
