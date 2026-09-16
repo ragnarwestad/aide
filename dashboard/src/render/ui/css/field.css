@@ -100,6 +100,11 @@ select[name^="model."] {
 .scheduleform .rowmsg { grid-column: 1 / -1; }
 .cron-input { font-family: var(--mono); }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
+/* Spec 474: the two columns of the New-spec page's side-by-side
+   Depends-on field (AC-1/AC-2). min-width: 0 lets a column's own chips
+   wrap and the column shrink below its content's width. */
+.field.depends-pair { flex-direction: row; gap: var(--sp-3); align-items: flex-start; }
+.depends-col { display: inline-flex; flex-direction: column; gap: var(--sp-1); flex: 1 1 0; min-width: 0; }
 .field input[name="title"] { min-width: 18rem; }
 /* The editor mount point (spec 292): hidden until its client script
    sets data-mounted on it, so the fallback — the raw textarea beside
@@ -115,7 +120,7 @@ select[name^="model."] {
 /* A field whose label line carries its own "(?)": the mark sits at the
    far end of that line, so the explanation is beside the name of the
    thing it explains rather than in a paragraph under the control. */
-.field > .fieldhead { display: flex; align-items: center; justify-content: space-between;
+.field .fieldhead { display: flex; align-items: center; justify-content: space-between;
   gap: var(--sp-2); width: 100%; }
 /* Everything after the label's own words — the "(?)", and a form's
    Save/Cancel when the field is its only control — kept as ONE end of

@@ -25,6 +25,15 @@
    normally only a handful of dependencies, and REQ-1 is exactly that
    they read without scrolling. */
 .phases.picked { max-height: none; }
+/* Spec 474 (AC-3): the New-spec page's picked box is framed exactly
+   like the pick list beside it — matches .phases:not(.picked) above,
+   declaration for declaration. The Edit page's own picker keeps the
+   general exemption above this rule; this one wins there only inside
+   .depends-pair, on specificity. */
+.depends-pair .phases.picked { max-height: 116px; overflow-y: auto;
+  height: 116px; align-content: flex-start; border: 1px solid var(--line);
+  border-radius: var(--r-s); background: var(--surface); padding: var(--sp-2);
+  box-sizing: border-box; }
 .phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
   padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
   background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }

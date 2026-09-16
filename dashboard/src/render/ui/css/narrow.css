@@ -428,6 +428,10 @@
      onto their own line instead of cramming two fields into 20rem. */
   .scheduleform { grid-template-columns: 1fr; }
 
+  /* Same idea, for spec 474's side-by-side Depends-on field: one column
+     on a phone, the picked box above the pick list. */
+  .depends-pair { flex-direction: column; }
+
   /* The search field crowds "Search" and "New spec" onto their own
      line at phone width (spec 263): 26rem does not fit beside two
      buttons under 40rem. Narrow it enough that all three share one

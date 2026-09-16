@@ -123,4 +123,7 @@ export const en = {
   "project.testServerButton": "Start test server",
   "project.testServerUnavailable":
     "This project does not carry the dashboard's own source, so a test server cannot start from here.",
+
+  "newSpec.dependsOn": "Depends on",
+  "newSpec.select": "Select",
 } as const;
