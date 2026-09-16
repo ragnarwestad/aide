@@ -114,13 +114,18 @@ function unitControl(lang: Language): string {
  *  about.html fallback a reader without JavaScript still lands on. */
 export function aboutProse(): string {
   return (
-    `<p class="intro">aide-dashboard is the read-only overview of ` +
-    `AI-assisted development across the projects on this machine: every ` +
-    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
-    `showing what the project IS (stack, deployment, logging, statistics, ` +
-    `docs) and where its specs stand (phase and progress, active and ` +
-    `archived). The site is static — regenerate and publish with ` +
-    `<code>make publish</code>.</p>`
+    `<p class="intro">aide -board runs spec-driven development across ` +
+    `every project on this machine. Write a spec, and the board takes it ` +
+    `through create, analyze, implement and archive — each phase a real ` +
+    `run of an AI you choose, in a worktree of its own, ending in a branch ` +
+    `merged and the spec filed away.</p>` +
+    `<p class="intro">A spec's own files live in a specs repository; the ` +
+    `code it changes lives in the project's. The board owns neither: it ` +
+    `keeps its own checkouts, runs the project's tests before anything ` +
+    `merges, and stops rather than guess when they go red.</p>` +
+    `<p class="intro">Every project it knows about declares itself in an ` +
+    `<code>.aide/project.yaml</code> manifest. What each page means is ` +
+    `behind the "?" on that page.</p>`
   );
 }
 
