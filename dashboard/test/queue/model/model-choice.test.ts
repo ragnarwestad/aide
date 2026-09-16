@@ -7,6 +7,7 @@ import {
   parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
+import { RUNNABLE_TOOLS } from "../../../src/queue/steps.ts";
 
 const DEFAULTS: QueueDefaults = {
   // Per step since spec 152: an implement is not an analyze, and one
@@ -124,6 +125,32 @@ describe("a model choice may name its tool", () => {
       // the entry still stands, and the run falls to claude.
       wrongTool: {},
       brokenModel: { tool: "codex" },
+    });
+  });
+
+  // The bug this pins: `opencode` was a member of every TYPE in the
+  // codebase and of no runtime check, so the config file's own entries
+  // lost their tool and the picker offered eight OpenCode models under
+  // Claude Code. A run started on one of them would have handed Claude
+  // an `opencode/...` model name.
+  test("every tool the runner accepts survives the config file", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, {
+      modelChoices: Object.fromEntries(
+        RUNNABLE_TOOLS.map((tool) => [tool, { tool, model: `${tool}-model` }]),
+      ),
+    });
+    for (const tool of RUNNABLE_TOOLS) {
+      expect(merged.modelChoices?.[tool]).toEqual({ tool, model: `${tool}-model` });
+    }
+  });
+
+  test("an OpenCode model keeps its provider prefix", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, {
+      modelChoices: { "gemini-3.1-pro": { tool: "opencode", model: "opencode/gemini-3.1-pro" } },
+    });
+    expect(merged.modelChoices?.["gemini-3.1-pro"]).toEqual({
+      tool: "opencode",
+      model: "opencode/gemini-3.1-pro",
     });
   });
 

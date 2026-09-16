@@ -13,6 +13,7 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 - [The token](#the-token)
 - [The time limit](#the-time-limit)
 - [Which AI runs a step](#which-ai-runs-a-step)
+- [How the board finds a CLI](#how-the-board-finds-a-cli)
 - [Global defaults for the AI and model](#global-defaults-for-the-ai-and-model)
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
@@ -173,16 +174,26 @@ picker offers, and each entry may name a `tool` and a `model` of its own:
     "gpt-5.6-luna": {
       "tool": "codex",
       "model": "gpt-5.6-luna"
+    },
+    "gemini-3.1-pro": {
+      "tool": "opencode",
+      "model": "opencode/gemini-3.1-pro"
     }
   }
 }
 ```
 
-`tool` is `claude` (the default, and what an entry that says nothing means) or `codex`. `model` is the literal value
-handed to the CLI when it differs from the entry's own key — the key is what the picker shows and what a request posts,
+`tool` is `claude` (the default, and what an entry that says nothing means), `codex` or `opencode`. `model` is the
+literal value handed to the CLI when it differs from the entry's own key — the key is what the picker shows and what a request posts,
 so the key can be the name the tool itself shows for the model — `Sonnet`, `Opus`, `Fable` as Claude Code names them,
 `gpt-5.6-sol` and the rest exactly as Codex's own picker lists them. No entry carries a `(codex)` suffix in the
 dropdown: each option sits under a group named after its tool, which says it while the list is open.
+
+**An OpenCode model carries its provider.** OpenCode brings no model of its own: every model belongs to a provider and
+is named `provider/model`, so that whole string is what `model` holds — `opencode/gemini-3.1-pro`, not
+`gemini-3.1-pro`. The key beside it is still just what the picker shows. Nothing OpenCode offers is reachable until a
+provider is logged in (`opencode providers login`); the Settings page's own OpenCode tab answers whether one is, and
+whether every model configured here still appears in that provider's list.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped
 in an
@@ -246,6 +257,24 @@ read-only`. A mode with no entry in that table refuses the run rather than being
 non-interactive and has no
 `--ask-for-approval` flag at all — that one belongs to the interactive command — so the sandbox mode is the whole of
 what there is to say.)
+
+## How the board finds a CLI
+
+A skill like `/aide-analyze` runs INSIDE a CLI you started yourself, so it inherits your shell's `PATH` and everything
+on it. The board is the other way round: it STARTS the CLI, from outside, as a launchd job. launchd hands that job a
+short `PATH` that carries neither `~/.local/bin` — where the installer puts aide's own scripts, and where Claude Code
+itself lives — nor mise's shims, which is the only place Codex, Copilot and OpenCode can be found on a machine that
+installed them through mise.
+
+So the board puts those two directories back in front of whatever `PATH` it was given, before it spawns anything:
+`pathWithToolDirs` in `src/serve/tool-path.ts`, used both by a step's own spawn and by the Settings page's tool
+checks. A directory that does not exist is not added, and a directory already on the `PATH` is left where it is.
+
+One function rather than one per caller, because the failure the two-copy version produced is silent and confusing: a
+check reporting a CLI as missing while every real run found it.
+
+A project can point a run at a particular binary instead, with `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` or
+`AIDE_OPENCODE_BIN` in its `.aide/config`. That override wins over the `PATH` search entirely.
 
 ## Which effort level a step runs at
 

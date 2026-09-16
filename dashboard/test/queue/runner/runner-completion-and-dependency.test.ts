@@ -69,6 +69,26 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(store.get(bareJob.id)?.results[0]?.tool).toBe("claude");
   });
 
+  // The narrowing used to name the tools it kept, so a third one was
+  // recorded as claude however clearly the result said otherwise. Read
+  // from the one list instead, and a tool the runner can start is a
+  // tool the row can say it ran on.
+  test("a result naming opencode keeps it", () => {
+    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "opencode" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tool).toBe("opencode");
+  });
+
+  test("a tool nobody can run falls to claude rather than being kept", () => {
+    const job = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "gemini" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tool).toBe("claude");
+  });
+
   test("a hook whose work outlives the call holds back EVERY other job, not just another create", async () => {
     let finish!: () => void;
     const work = new Promise<void>((resolve) => {
