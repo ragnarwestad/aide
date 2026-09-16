@@ -241,3 +241,18 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
 export function offersAnotherRound(g: SpecGroup, step: string): boolean {
   return ROUND_STEPS.has(step) && heldBackOnChecks(g);
 }
+
+/** Is a round of work under way on this spec right now — a job in
+ *  flight with `analyze` or `implement` still ahead of it or running?
+ *  The marks a held-back archive carries are worked out afresh on every
+ *  render, from open criteria and a finished implement, so they stay
+ *  true all through the round that exists to clear them. The archive's
+ *  own run is already excepted where they are drawn; this is the same
+ *  case one phase earlier. Read off the REMAINING steps, never the
+ *  whole list: a bundled job waiting to run `archive` has `analyze` in
+ *  `steps` too, and it is the state the marks are there for. */
+export function roundUnderWay(g: SpecGroup): boolean {
+  const lead = g.lead;
+  if (!lead || !inFlight(lead)) return false;
+  return lead.steps.slice(lead.stepIndex).some((s) => s === "analyze" || s === "implement");
+}

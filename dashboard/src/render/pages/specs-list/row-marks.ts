@@ -12,6 +12,7 @@ import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
+import { roundUnderWay } from "./row-state.ts";
 
 /** The waiting-on-review sentence (spec 220, spec 335): the branch is
  *  there, and a request describes it — worded for both a live row's
@@ -115,7 +116,12 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
   const archiveRunning = !!g.phases
     .find((p) => p.step === "archive")
     ?.attempts.some((a) => a.state === "running" || !!a.landing);
-  if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !archiveRunning) {
+  // Nor while a ROUND is under way (spec 471): both marks describe a
+  // spec waiting on a person, and a spec whose Analyze or Implement is
+  // running is waiting on the run. The link is the sharper case of the
+  // two — it offers a board built from a branch the run is moving.
+  const quiet = archiveRunning || roundUnderWay(g);
+  if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
     // Unless the queue is already saying it. The runner holds a job for
     // this exact reason with a message of its own, which the notice
     // line draws above these marks — and that one is translated, where
@@ -134,7 +140,7 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
         href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
       });
     }
-  } else if (queueHeldForChecks(g) && !archiveRunning) {
+  } else if (queueHeldForChecks(g) && !quiet) {
     // The queue holds the job the moment it refuses to archive; the
     // note the branch above reads — and with it the start link — needs
     // `implement` in the git-verified done-set as well
