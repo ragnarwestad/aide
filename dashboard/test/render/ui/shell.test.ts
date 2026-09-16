@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { pageShell } from "../../../src/render/ui/shell.ts";
+import { CSS } from "../../../src/render/ui/css";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 
@@ -134,8 +135,10 @@ describe("pageShell language (spec 350)", () => {
     });
     const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
     expect(lang).toContain(">🇳🇴</summary>");
-    expect(lang).toContain('href="/?lang=nb" aria-current="true">🇳🇴 Norsk</a>');
-    expect(lang).toContain('href="/?lang=en">🇬🇧 Engelsk</a>');
+    expect(lang).toContain('href="/?lang=nb" aria-current="true"><span class="menucheck">');
+    expect(lang).toContain("🇳🇴 Norsk</a>");
+    expect(lang).toContain('href="/?lang=en"><span class="menucheck">');
+    expect(lang).toContain("🇬🇧 Engelsk</a>");
     expect(lang).not.toMatch(/>NO</);
     expect(lang).not.toMatch(/>EN</);
   });
@@ -148,10 +151,106 @@ describe("pageShell language (spec 350)", () => {
     });
     const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
     expect(lang).toContain(">🇬🇧</summary>");
-    expect(lang).toContain('href="/?lang=en" aria-current="true">🇬🇧 English</a>');
-    expect(lang).toContain('href="/?lang=nb">🇳🇴 Norwegian</a>');
+    expect(lang).toContain('href="/?lang=en" aria-current="true"><span class="menucheck">');
+    expect(lang).toContain("🇬🇧 English</a>");
+    expect(lang).toContain('href="/?lang=nb"><span class="menucheck">');
+    expect(lang).toContain("🇳🇴 Norwegian</a>");
     expect(lang).not.toMatch(/>NO</);
     expect(lang).not.toMatch(/>EN</);
+  });
+});
+
+// Spec 475: both menus mark which option is chosen — a check mark held
+// in a reserved column whether shown or not, the chosen row in its own
+// bold + colour, and a heading naming the menu — identically in the
+// header's own panel and the "…" menu's mobile copy.
+describe("pageShell theme/language menus mark the chosen option (spec 475)", () => {
+  test("AC-1: the theme menu's chosen row (auto) carries the check-mark span", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    expect(html).toContain(
+      '<button type="button" data-theme-choice="auto" aria-current="true"><span class="menucheck">',
+    );
+  });
+
+  test("AC-3: an unchosen theme row still carries the check-mark span, reserving its column", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    expect(html).toContain('<button type="button" data-theme-choice="dark"><span class="menucheck">');
+    expect(html).toContain('<button type="button" data-theme-choice="light"><span class="menucheck">');
+  });
+
+  test("AC-2: the language menu's chosen row carries the check-mark span", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    expect(html).toContain('href="/?lang=nb" aria-current="true"><span class="menucheck">');
+  });
+
+  test("AC-3: the unchosen language row still carries the check-mark span, reserving its column", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
+      lang: "nb",
+    });
+    expect(html).toContain('href="/?lang=en"><span class="menucheck">');
+  });
+
+  test("AC-4: the CSS bolds the chosen row for both button rows (theme) and <a> rows (language)", () => {
+    expect(CSS).toContain(
+      ".menupanel > button[aria-current], .menu .morerows > button[aria-current],\n" +
+        ".menupanel > a[aria-current], .menu .morerows > a[aria-current] { font-weight: 600; }",
+    );
+  });
+
+  test("AC-4: the CSS gives each menu's chosen row its own colour, distinct from its unchosen rows", () => {
+    expect(CSS).toContain(
+      ".menu.theme .menupanel > button, .menu .morerows.theme > button,\n" +
+        ".menu.lang .menupanel > a, .menu .morerows.lang > a { color: var(--muted); }",
+    );
+    expect(CSS).toContain(
+      ".menu.theme .menupanel > button[aria-current], .menu .morerows.theme > button[aria-current],\n" +
+        ".menu.lang .menupanel > a[aria-current], .menu .morerows.lang > a[aria-current] { color: var(--text); }",
+    );
+  });
+
+  test("AC-3: the CSS reserves the check-mark's column by opacity, never display:none", () => {
+    expect(CSS).toMatch(/\.menucheck\s*\{[^}]*opacity:\s*0[^}]*\}/);
+    expect(CSS).not.toMatch(/\.menucheck\s*\{[^}]*display:\s*none/);
+    expect(CSS).toContain("[aria-current] > .menucheck { opacity: 1; }");
+  });
+
+  test("AC-5: the theme menu's standalone panel opens with a heading naming it", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    expect(html).toContain('<div class="menupanel"><span class="lbl">Theme</span>');
+  });
+
+  test("AC-6: the language menu's standalone panel opens with a heading naming it", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
+    expect(lang).toContain('<div class="menupanel"><span class="lbl">Language</span>');
+  });
+
+  test('AC-5/AC-6: the "…" menu\'s mobile copy carries the same two headings', () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    expect(html).toContain('<div class="morerows theme"><span class="lbl">Theme</span>');
+    expect(html).toContain('<div class="morerows lang"><span class="lbl">Language</span>');
+  });
+
+  test("AC-7: the theme menu's content is identical in the standalone panel and the mobile copy", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
+    const standalone = html.match(
+      /<details class="menu theme">[\s\S]*?<div class="menupanel">([\s\S]*?)<\/div>\s*<\/details>/,
+    )![1]!;
+    const mobile = html.match(/<div class="morerows theme">([\s\S]*?)<\/div>/)![1]!;
+    expect(mobile).toBe(standalone);
+  });
+
+  test("AC-7: the language menu's content is identical in the standalone panel and the mobile copy", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
+      currentUrl: "/specs/aide/1-x",
+    });
+    const standalone = html.match(
+      /<details class="menu lang">[\s\S]*?<div class="menupanel">([\s\S]*?)<\/div>\s*<\/details>/,
+    )![1]!;
+    const mobile = html.match(/<div class="morerows lang">([\s\S]*?)<\/div>/)![1]!;
+    expect(mobile).toBe(standalone);
   });
 });
 

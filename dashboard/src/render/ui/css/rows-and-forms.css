@@ -151,6 +151,13 @@ td form { margin: 0; display: inline-block; }
 .menupanel > *, .menu .morerows > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a, .menu .morerows > a { color: var(--text); }
 .menupanel > a:hover, .menu .morerows > a:hover { background: var(--surface-2); text-decoration: none; }
+/* The language menu's own rows (spec 475): a check mark, a flag and the
+   name in one row, needing the flex layout the base rule above does not
+   give an <a> — scoped to `.menu.lang` alone, so Settings, About, Test
+   servers and the state dropdown's own `<a role="radio">` rows (all
+   sharing the same `.menupanel > a` ancestor shape) keep their current
+   block layout untouched. */
+.menu.lang .menupanel > a, .menu .morerows.lang > a { display: flex; align-items: center; gap: var(--sp-2); }
 /* Theme's own rows (spec 243): a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
    nothing about being a <button> instead of an <a> should read as a
@@ -160,7 +167,16 @@ td form { margin: 0; display: inline-block; }
   width: 100%; text-align: left; background: none; border: 0; color: var(--text);
   font: var(--fs-m)/1 var(--sans); cursor: pointer; }
 .menupanel > button:hover, .menu .morerows > button:hover { background: var(--surface-2); }
-.menupanel > button[aria-current], .menu .morerows > button[aria-current] { font-weight: 600; }
+.menupanel > button[aria-current], .menu .morerows > button[aria-current],
+.menupanel > a[aria-current], .menu .morerows > a[aria-current] { font-weight: 600; }
+/* AC-4 (spec 475): the chosen row also gets a text colour distinct from
+   the other rows in the SAME menu — scoped to the theme and language
+   menus alone, so Settings, About, Test servers and the unit radios
+   keep their current colour. */
+.menu.theme .menupanel > button, .menu .morerows.theme > button,
+.menu.lang .menupanel > a, .menu .morerows.lang > a { color: var(--muted); }
+.menu.theme .menupanel > button[aria-current], .menu .morerows.theme > button[aria-current],
+.menu.lang .menupanel > a[aria-current], .menu .morerows.lang > a[aria-current] { color: var(--text); }
 /* Unit's own rows (spec 436): a <label> wrapping a radio, the shape
    Settings' own Units block already used — this shape has never
    rendered inside a .menupanel before, so there is no prior rule to
@@ -172,6 +188,16 @@ td form { margin: 0; display: inline-block; }
 /* Desktop default: the mobile-only copy stays out of the way entirely
    — narrow.css reveals it at phone width. */
 .menu .morerows { display: none; }
+
+/* The check mark beside the chosen row in the theme and language menus
+   (spec 475, AC-1..3): always rendered, opacity-toggled rather than
+   removed, so the column stays reserved whether the mark shows or not —
+   the same pattern the state dropdown's own `.check` span below uses,
+   under a name of its own since "check" already means two other things
+   under this same `.menupanel` shape (2-analysis.md, "Patterns"). */
+.menucheck { display: inline-flex; width: 14px; height: 14px; flex: 0 0 auto; opacity: 0; }
+.menucheck svg { width: 14px; height: 14px; }
+[aria-current] > .menucheck { opacity: 1; }
 
 /* The state dropdown's own rows (spec 289): a round, radio-STYLED glyph
    beside each option, matching the control's underlying semantics —
