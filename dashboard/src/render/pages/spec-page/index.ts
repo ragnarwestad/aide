@@ -48,7 +48,7 @@
 // that assembles all of them — stays here.
 
 import { badge, helpPopover, rowMessage } from "../../ui/components";
-import { gerund } from "../../ui/job-state/resting.ts";
+import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";

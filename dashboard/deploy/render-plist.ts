@@ -29,6 +29,8 @@ function string(value: string, indent: string): string {
 
 export function renderPlist(opts: PlistOptions): string {
   const args = [opts.bunPath, "run", opts.script, ...opts.serveArgv];
+  // The DTD identifier is Apple's own, http and all — a name, never fetched.
+  // noinspection HttpUrlsUsage
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

@@ -30,6 +30,7 @@ class _Listener:
         listener = self
 
         class Handler(BaseHTTPRequestHandler):
+            # noinspection PyPep8Naming -- http.server calls it by this name
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", "0"))
                 listener.received.append(json.loads(self.rfile.read(length)))

@@ -259,7 +259,7 @@ describe("pageShell theme/language menus mark the chosen option (spec 475)", () 
 describe("pageShell header controls (spec 436)", () => {
   test("AC-1: theme, language and unit each stand as their own trigger in the header row", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
-    const row = html.match(/<span class="row">[\s\S]*?<details class="menu"><summary/)![0];
+    const row = html.match(/<div class="row">[\s\S]*?<details class="menu"><summary/)![0];
     expect(row).toContain('<details class="menu theme">');
     expect(row).toContain('<details class="menu lang">');
     expect(row).toContain('<details class="menu unit">');
@@ -319,14 +319,13 @@ describe("pageShell header unit control - desktop checked state (spec 469)", () 
    *  `DOMContentLoaded`. */
   function render(stored: string | null): void {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-10T00:00:00Z");
-    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)![1]!;
-    document.body.innerHTML = body;
+    document.body.innerHTML = html.match(/<body[^>]*>([\s\S]*)<\/body>/)![1]!;
 
     const store: Record<string, string> = {};
     if (stored !== null) store["unit"] = stored;
     const localStorage = {
+      // noinspection JSUnusedGlobalSymbols -- the code under test calls it
       getItem: (key: string): string | null => store[key] ?? null,
-      setItem: (key: string, value: string): void => void (store[key] = value),
     };
     // eslint-disable-next-line no-new-func -- the file under test IS a script
     new Function("document", "localStorage", scriptText)(document, localStorage);

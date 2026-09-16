@@ -209,9 +209,9 @@ def archive_the_spec(workspace):
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "archive the spec"], check=True)
 
 
-def make_branch(root, branch, note="leftover"):
-    """A branch left over from an earlier round, with a commit of its
-    own, without moving the checkout off its default branch."""
+def make_branch(root, branch):
+    """A branch left over from an earlier round, at the checkout's own
+    HEAD, without moving the checkout off its default branch."""
     head = git(root, "rev-parse", "HEAD")
     git(root, "branch", branch, head)
     return head

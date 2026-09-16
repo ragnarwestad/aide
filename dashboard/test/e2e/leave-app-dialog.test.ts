@@ -110,7 +110,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     await dialog.waitFor({ state: "visible" });
 
     await Promise.all([
-      page.waitForNavigation(),
+      page.waitForURL(/projects\.html/),
       dialog.getByRole("button", { name: "Leave" }).click(),
     ]);
     expect(page.url()).toContain("projects.html");

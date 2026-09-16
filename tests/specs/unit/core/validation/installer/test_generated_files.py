@@ -183,12 +183,14 @@ class TestSpecStructureSkillIsGenerated:
     build-agents-md.sh and compared here byte for byte.
     """
 
-    def _rule_body(self, workspace_root):
+    @staticmethod
+    def _rule_body(workspace_root):
         text = (workspace_root / "core" / "rules" / "spec-structure.md").read_text(
             encoding="utf-8")
         return re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)
 
-    def _skill_body(self, workspace_root):
+    @staticmethod
+    def _skill_body(workspace_root):
         text = (workspace_root / "core" / "skills" / "spec-structure" / "SKILL.md").read_text(
             encoding="utf-8")
         return re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)

@@ -9,7 +9,7 @@ import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../sr
 import { specNotice } from "../../../../src/render/ui/job-state";
 import { STEP_LABELS_NB, stepLabel } from "../../../../src/render/ui/components";
 import { stepButton } from "../../../../src/format/step-label.ts";
-import type { QueueRowView } from "../../../../src/render/ui/job-state";
+import type { QueueRowView } from "../../../../src/render";
 
 describe("GERUND_EN/GERUND_NB (spec 350)", () => {
   test("every WORKFLOW_STEPS member has an entry in both tables", () => {

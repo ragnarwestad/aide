@@ -125,6 +125,7 @@ work_round_boundary_in() {   # sets $work_round_sha
   local file="$1"
   work_round_sha=""
   [ -f "$file" ] || return 0
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
   work_round_sha="$(sed -n \
     -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reopened:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
     -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reset:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \

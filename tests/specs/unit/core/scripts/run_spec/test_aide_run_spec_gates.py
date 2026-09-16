@@ -57,8 +57,9 @@ def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
     assert out["terminalReason"] == "not-implemented-yet", out
     assert not fake_claude.calls.exists()
 
+@pytest.mark.usefixtures("local_origins")
 def test_analyze_proceeds_despite_an_unmerged_dependency(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     add_spec(workspace, "80-dependency")
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
@@ -70,8 +71,9 @@ def test_analyze_proceeds_despite_an_unmerged_dependency(
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
+@pytest.mark.usefixtures("local_origins")
 def test_create_proceeds_despite_an_unmerged_dependency(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """Criterion 2: what holds for analyze holds for create, the other
     step that only writes the spec's own folder."""
@@ -85,8 +87,9 @@ def test_create_proceeds_despite_an_unmerged_dependency(
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
+@pytest.mark.usefixtures("local_origins")
 def test_create_proceeds_despite_an_unknown_or_self_dependency(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """The unknown and self cases are refusals for the gated steps only.
     A non-gated step never reaches the loop, so a typo is not its
@@ -106,9 +109,10 @@ def test_create_proceeds_despite_an_unknown_or_self_dependency(
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
+@pytest.mark.usefixtures("local_origins")
 @pytest.mark.parametrize("command", ["archive"])
 def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
-    runner, workspace, fake_claude, local_origins, command
+    runner, workspace, fake_claude, command
 ):
     """Criterion 3: implement is not the only gated step. archive moves
     the folder and lands the code — it builds on what has landed."""
@@ -122,8 +126,9 @@ def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
     assert "80-dependency" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
+@pytest.mark.usefixtures("local_origins")
 def test_archive_recovers_an_already_archived_spec_whose_branch_is_still_open(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """Criterion 1. Pressing Archive again on an unlanded row must reach
     the skill, not refuse "unknown spec"."""
@@ -137,8 +142,9 @@ def test_archive_recovers_an_already_archived_spec_whose_branch_is_still_open(
     assert out["terminalReason"] == "completed"
     assert fake_claude.calls.exists(), "the step must have been invoked at all"
 
+@pytest.mark.usefixtures("local_origins")
 def test_archive_recovers_an_already_archived_spec_by_its_number(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """The fallback mirrors the resolver above it: a bare id resolves to
     <id>-* under archive/ exactly as it does among the active specs."""
@@ -151,8 +157,9 @@ def test_archive_recovers_an_already_archived_spec_by_its_number(
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
+@pytest.mark.usefixtures("local_origins")
 def test_archive_reports_an_already_landed_spec_as_done_not_refused(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """Criterion 1. An archived spec with nothing left on origin is
     finished work, not a name that does not exist. It is reported as
@@ -168,8 +175,9 @@ def test_archive_reports_an_already_landed_spec_as_done_not_refused(
     assert "77-recovered" in out["note"], out
     assert not fake_claude.calls.exists(), "nothing to archive costs nothing"
 
+@pytest.mark.usefixtures("local_origins")
 def test_an_already_landed_spec_resolves_by_its_number_too(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """The graceful outcome follows the same resolver the refusal did: a
     bare id finds <id>-* under archive/, so pressing Archive on a
@@ -183,8 +191,9 @@ def test_an_already_landed_spec_resolves_by_its_number_too(
     assert out["terminalReason"] == "already-landed", out
     assert "77-recovered" in out["note"], out
 
+@pytest.mark.usefixtures("local_origins")
 def test_an_already_landed_spec_reports_the_same_outcome_to_the_result_file(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """The result file is what the dashboard reads, and it carries the
     same one JSON line stdout got — a caller never has to parse two
@@ -198,9 +207,10 @@ def test_an_already_landed_spec_reports_the_same_outcome_to_the_result_file(
     assert rc == 0, out
     assert json.loads(result_file.read_text()) == out
 
+@pytest.mark.usefixtures("local_origins")
 @pytest.mark.parametrize("step", ["analyze", "implement"])
 def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
-    runner, workspace, fake_claude, local_origins, step
+    runner, workspace, fake_claude, step
 ):
     """Criterion 3. The fork is on the literal string `archive`: an
     archived spec is finished work for every other step, whatever its
@@ -216,8 +226,9 @@ def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
     assert "unknown spec" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
+@pytest.mark.usefixtures("local_origins")
 def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude
 ):
     """Criterion 3, for the one step that has no "unknown spec" refusal
     to give: `create` MAKES the folder, so a name it cannot resolve is
@@ -252,7 +263,7 @@ def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]
     assert data["workflowArcRetired"] == ["review-plan"]
 
-def test_bash_no_longer_declares_the_step_lists_as_literals(workspace_root, run_spec_source):
+def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
     """REQ-2: the runner reads all four lists from workflow-steps.json now.
     WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
     `NAME="..."` shape once computed), so this checks for the absence of

@@ -297,13 +297,14 @@ case "$step" in
       # runner's own merge that met it, and that ends in `merge --abort`
       # and "no progress".
       rival="$(mktemp -d)"
-      git clone -q "$(git remote get-url origin)" "$rival/main" \
-        && ( cd "$rival/main" \
-             && write_test "$slug" "aide-test exists to exercise the machinery, not the model" \
-             && git add "test/$slug.test.ts" \
-             && git -c user.name=rival -c user.email=rival@localhost commit -qm "land a competing test by hand" \
-             && git push -q origin main ) \
-        || fail "claude-stub: could not land the rival test on main"
+      if ! { git clone -q "$(git remote get-url origin)" "$rival/main" \
+          && ( cd "$rival/main" \
+               && write_test "$slug" "aide-test exists to exercise the machinery, not the model" \
+               && git add "test/$slug.test.ts" \
+               && git -c user.name=rival -c user.email=rival@localhost commit -qm "land a competing test by hand" \
+               && git push -q origin main ); }; then
+        fail "claude-stub: could not land the rival test on main"
+      fi
       rm -rf "$rival"
     fi
     ok "archived $folder"

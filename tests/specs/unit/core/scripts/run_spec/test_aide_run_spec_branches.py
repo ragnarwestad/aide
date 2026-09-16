@@ -115,7 +115,7 @@ def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
     race_dir = tmp_path / "race-clone"
     race_marker = tmp_path / "raced-sha.txt"
     project_bare = fetchable_origin_both_roots["project"]
-    claude = race_pushing_claude(fake_claude, workspace, project_bare, branch, race_marker, race_dir)
+    claude = race_pushing_claude(fake_claude, project_bare, branch, race_marker, race_dir)
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0, out
     assert out["ok"] is True, out
@@ -166,7 +166,7 @@ def test_a_conflicting_rebase_is_reported_not_resolved(
     race_dir = tmp_path / "race-clone"
     race_marker = tmp_path / "their-sha.txt"
     project_bare = fetchable_origin_both_roots["project"]
-    claude = conflicting_race_claude(fake_claude, workspace, project_bare, branch, race_marker, race_dir)
+    claude = conflicting_race_claude(fake_claude, project_bare, branch, race_marker, race_dir)
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0, out
     assert out["ok"] is False
@@ -278,7 +278,7 @@ def test_a_step_that_pushed_its_own_commit_is_not_amended(
     own commit must stay an ancestor of the branch tip, not get rewritten
     into a sibling of it."""
     sha_marker = tmp_path / "pushed-sha.txt"
-    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    claude = self_pushing_claude(fake_claude, sha_marker)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
@@ -302,7 +302,7 @@ def test_the_leftover_after_a_self_pushed_commit_still_reaches_origin(
     retried, scoped force-with-lease) rather than being silently rejected
     the way spec 327's run was."""
     sha_marker = tmp_path / "pushed-sha.txt"
-    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    claude = self_pushing_claude(fake_claude, sha_marker)
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
     assert rc == 0, out
     assert out["ok"] is True
@@ -318,7 +318,7 @@ def test_a_second_run_after_a_self_pushing_step_does_not_see_a_diverged_branch(
     own oracle: a branch this fix left consistent between local and
     origin must not refuse a later run as diverged from itself."""
     sha_marker = tmp_path / "pushed-sha.txt"
-    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    claude = self_pushing_claude(fake_claude, sha_marker)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
 
@@ -391,7 +391,7 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     # since spec 215 a branch carrying nothing does not outlive the run
     # that cut it, so a step committing nothing here would leave no
     # branch to ask a question about.
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     # Without the check, the stale branch is reused as it stands and the

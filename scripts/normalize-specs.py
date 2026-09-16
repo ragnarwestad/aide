@@ -143,12 +143,8 @@ def find_first_real_h2(content: str) -> int:
 
 def fix_code_blocks(content: str) -> str:
     """Add language specifier to code blocks missing them."""
-    # Pattern: ``` followed by newline (no language)
-    def add_text_lang(match):
-        return '```text\n'
-
     # Only fix blocks that are truly empty (``` followed by newline with code)
-    content = re.sub(r'```\n(?=[^`])', add_text_lang, content)
+    content = re.sub(r'```\n(?=[^`])', '```text\n', content)
     return content
 
 

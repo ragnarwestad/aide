@@ -11,7 +11,7 @@ import subprocess
 from ..conftest import git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import run_traced
-from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin, local_origins, origin
+from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin, local_origins
 from .run_spec_status_files import add_spec, set_depends_on
 
 

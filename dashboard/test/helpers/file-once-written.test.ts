@@ -27,7 +27,12 @@ test("a file nobody writes is reported by name, not as an empty answer", async (
     // way must end in the caller's own sentence, not in "".
     const t0 = Date.now();
     writeFileSync(join(dir, "empty.txt"), "");
-    await expect(helper(join(dir, "empty.txt"), "the runner was never invoked")).rejects.toThrow("never invoked");
+    const error = await helper(join(dir, "empty.txt"), "the runner was never invoked").then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain("never invoked");
     expect(Date.now() - t0).toBeGreaterThan(5_000);
   } finally {
     rmSync(dir, { recursive: true, force: true });

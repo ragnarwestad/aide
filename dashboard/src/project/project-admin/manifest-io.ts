@@ -138,7 +138,7 @@ function serializeScheduleEntry(entry: ScheduleEntry): string[] {
     `    cron: "${entry.cron}"`,
     `    prompt: "${entry.prompt}"`,
   ];
-  if (entry.enabled === false) lines.push(`    enabled: false`);
+  if (!entry.enabled) lines.push(`    enabled: false`);
   // Written only when the entry names one, matching `ScheduleEntry.model`'s
   // absent-means-the-configuration-decides contract: an entry left on the
   // default never gains a line pinning it to whatever that default
@@ -188,7 +188,7 @@ export function scheduleListText(currentText: string, entries: readonly Schedule
 
   const expected = entries.length > 0
     ? entries.map((e) => ({
-        name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled !== false,
+        name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled,
         ...(e.model ? { model: e.model } : {}),
         ...(e.since ? { since: e.since } : {}),
       }))

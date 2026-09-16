@@ -123,9 +123,12 @@ export function selfRunRoute(ctx: RoutesContext, req: Request, path: string): Re
 
 async function runRound(ctx: RoutesContext): Promise<void> {
   current = { stage: "resetting", startedAt: new Date().toISOString(), specs: [] };
+  const project = [...ctx.allowed][0];
+  if (!project) {
+    current = { ...current, stage: "failed", error: "this board serves no project" };
+    return;
+  }
   try {
-    const project = [...ctx.allowed][0];
-    if (!project) throw new Error("this board serves no project");
     // The checkout the round made and the runs branch from — not the
     // dashboard's own landing clone, which follows origin by itself
     // the next time a landing fetches it.

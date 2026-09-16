@@ -43,6 +43,7 @@ EXAMPLE_FILES = (
 # URLs and stay as they are. The one plain-HTTP address that is still
 # correct is the loopback one the TLS proxy forwards to — everything a
 # READER is pointed at has to be the HTTPS address.
+# noinspection HttpUrlsUsage
 PLAIN_HTTP_DASHBOARD_URL = re.compile(
     r"http://(?!127\.0\.0\.1|localhost)[^\s\"'`)]*:8788"
 )

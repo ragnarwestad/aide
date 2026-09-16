@@ -180,7 +180,8 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
       h.input(element({ classes: [cls] }));
       const { prevented, returnValue } = h.beforeunload();
       expect(prevented).toBe(true);
-      expect(returnValue).toBe("");
+      // preventDefault() is the whole request; the deprecated returnValue stays untouched.
+      expect(returnValue).toBeUndefined();
     });
 
     test(`a change inside .${cls} arms the guard (AC-1/AC-2)`, () => {

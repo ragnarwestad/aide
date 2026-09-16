@@ -24,7 +24,7 @@ def writing_claude(fake_claude, workspace):
     )
 
 
-def project_only_claude(fake_claude, workspace):
+def project_only_claude(fake_claude):
     """A claude that writes to the project and nowhere else — the shape
     of a real `implement` step, which changes code and leaves the specs
     root with nothing of its own to commit.
@@ -62,7 +62,7 @@ def landing_beside_claude(fake_claude, workspace):
     )
 
 
-def self_committing_claude(fake_claude, workspace):
+def self_committing_claude(fake_claude):
     """A step that commits its own work before it finishes — the way
     /aide-archive does. The run's own commit loop then finds a clean
     tree, and that must not read as "nothing happened" (spec 98).
@@ -81,7 +81,7 @@ def self_committing_claude(fake_claude, workspace):
     )
 
 
-def partially_committing_claude(fake_claude, workspace, then=""):
+def partially_committing_claude(fake_claude, then=""):
     """A step that commits PART of its own work and leaves the rest on
     disk — spec 142's actual shape, and what the global git rules
     produce headlessly: new files may be added by name, modified
@@ -102,7 +102,7 @@ def partially_committing_claude(fake_claude, workspace, then=""):
     )
 
 
-def race_pushing_claude(fake_claude, workspace, origin_bare, branch, race_marker, race_dir):
+def race_pushing_claude(fake_claude, origin_bare, branch, race_marker, race_dir):
     """The step's own script plays TWO parts: itself, writing its own
     file exactly as any real step does, and a stand-in for a second,
     concurrent process (another run, or a landing) that reaches origin's
@@ -123,7 +123,7 @@ def race_pushing_claude(fake_claude, workspace, origin_bare, branch, race_marker
     )
 
 
-def conflicting_race_claude(fake_claude, workspace, origin_bare, branch, race_marker, race_dir):
+def conflicting_race_claude(fake_claude, origin_bare, branch, race_marker, race_dir):
     """Like `race_pushing_claude`, but the concurrent process edits the
     SAME line of a tracked file this step's own worktree also edits —
     the shape REQ-3/REQ-7 need: a `pull --rebase` retry that hits a
@@ -142,7 +142,7 @@ def conflicting_race_claude(fake_claude, workspace, origin_bare, branch, race_ma
     )
 
 
-def self_pushing_claude(fake_claude, workspace, sha_marker, then=""):
+def self_pushing_claude(fake_claude, sha_marker, then=""):
     """Commits part of its own work under a written message AND pushes
     that commit to origin itself, then leaves more on disk — spec 146's
     `partially_committing_claude` shape, plus the push spec 327's run

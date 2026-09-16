@@ -44,7 +44,7 @@ def test_a_completed_claim_that_ticks_no_row_still_counts(
     turned a record-keeping slip into a red run someone had to
     re-drive."""
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |", "| b | ⬜ | |"])
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["ok"] is True, out
@@ -55,7 +55,7 @@ def test_a_genuine_implement_run_is_unaffected(runner, workspace, fake_claude):
     """AC6: the project changed AND a row is ticked — exactly today's
     behavior for a real run, unaffected by the new check."""
     status_with_phase(workspace, "create, analyze", ["| a | ✅ | |", "| b | ⬜ | |"])
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["ok"] is True, out
@@ -195,7 +195,7 @@ def test_archive_no_progress_guard_never_fires_for_other_steps(
         rc, out, _ = run(runner, workspace, claude, command="analyze")
     else:
         status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
-        claude = project_only_claude(fake_claude, workspace)
+        claude = project_only_claude(fake_claude)
         rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["ok"] is True, out
@@ -208,7 +208,7 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     the child left a real change in the project repo, which analyze must
     never do."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert out["ok"] is False, out

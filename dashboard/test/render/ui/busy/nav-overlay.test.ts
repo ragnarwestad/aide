@@ -41,6 +41,7 @@ function harness() {
         querySelector: (sel: string) => (sel === ".overlaynote" ? noteEl : null),
       };
     },
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     get lastElementChild() {
       return dialog;
     },
@@ -84,6 +85,7 @@ function harness() {
 
   const link = (href: string, opts: { target?: string; download?: boolean } = {}) => ({
     target: opts.target,
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     hasAttribute: (n: string) => (n === "download" ? !!opts.download : false),
     getAttribute: (n: string) => (n === "href" ? href : null),
   });

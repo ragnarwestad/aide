@@ -135,7 +135,8 @@ class TestUninstallReadsTheManifest:
     waiting for another install first.
     """
 
-    def uninstall(self, workspace_root, home):
+    @staticmethod
+    def uninstall(workspace_root, home):
         return subprocess.run(
             [str(workspace_root / "implementations" / "claude-code" / "uninstall.sh")],
             input="y\n",
@@ -344,7 +345,8 @@ class TestInstallRetiresTheRulesThatBecameSkills:
     RETIRED = ["workflows.md", "documentation.md", "tools-and-scripts.md",
                "markdown-linting.md"]
 
-    def install(self, workspace_root, home):
+    @staticmethod
+    def install(workspace_root, home):
         return subprocess.run(
             [str(workspace_root / "implementations" / "claude-code" / "install.sh")],
             capture_output=True,

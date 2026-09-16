@@ -5,8 +5,8 @@
 // of the two bundles a tab needs, not just whether one is needed: a
 // locked tab with real text needs the viewer, never nothing.
 import { describe, expect, test } from "bun:test";
-import { documentTabScript } from "../../../../src/render/pages/spec-page";
-import type { SpecPageView } from "../../../../src/render/pages/spec-page";
+import { documentTabScript } from "../../../../src/render";
+import type { SpecPageView } from "../../../../src/render";
 
 const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
   project: "aide",

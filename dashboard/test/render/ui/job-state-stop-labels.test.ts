@@ -4,7 +4,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { stateLabel } from "../../../src/render/ui/job-state";
-import type { QueueRowView } from "../../../src/render/ui/job-state";
+import type { QueueRowView } from "../../../src/render";
 
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
   ({ state: "stopped", stopReason, timeoutSec }) as unknown as QueueRowView;

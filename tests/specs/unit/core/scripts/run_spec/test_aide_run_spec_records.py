@@ -62,7 +62,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     """
     with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"

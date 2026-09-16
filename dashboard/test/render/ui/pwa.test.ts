@@ -269,7 +269,6 @@ function worker(networkAnswer: () => Promise<Response>) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
-    skipWaiting: () => {},
     clients: { claim: () => Promise.resolve() },
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
@@ -283,8 +282,8 @@ function worker(networkAnswer: () => Promise<Response>) {
       let answered: Promise<Response> | undefined;
       listeners.fetch!({
         request: { mode, url: "https://board.test/" },
+        // noinspection JSUnusedGlobalSymbols -- the code under test calls it
         respondWith: (r: Promise<Response>) => void (answered = r),
-        waitUntil: () => {},
       });
       return answered ? await answered : undefined;
     },

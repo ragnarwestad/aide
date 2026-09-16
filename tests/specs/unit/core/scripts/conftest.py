@@ -418,11 +418,6 @@ from .run_spec.run_spec_project_state import (  # noqa: E402,F401
     PRECEDENCE,
     READINESS_FIXTURE,
     READINESS_SCENARIOS,
-    STATUS_ROW_COUNTING,
-    _break_default_branch_held_elsewhere,
-    _break_git_root,
-    _break_specs_root,
-    _break_worktree_links,
     configure_code_landing,
     configure_links,
 )

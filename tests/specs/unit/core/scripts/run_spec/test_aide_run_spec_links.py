@@ -372,8 +372,9 @@ def test_an_untracked_aide_config_is_copied_into_the_worktree(runner, workspace,
     assert ".aide/config" not in files, files
     assert "new-code.txt" in files
 
+@pytest.mark.usefixtures("workspace")
 def test_a_gitignored_specs_root_inside_the_project_is_linked_and_not_committed(
-    runner, workspace, fake_claude, tmp_path
+    runner, fake_claude, tmp_path
 ):
     """aide's own default: `specs/` inside the project and gitignored
     (.gitignore:2). A worktree checks out tracked files only, so the specs
@@ -407,8 +408,9 @@ def test_a_gitignored_specs_root_inside_the_project_is_linked_and_not_committed(
     assert "new-code.txt" in files
     assert "specs/" not in files, files
 
+@pytest.mark.usefixtures("workspace")
 def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
-    runner, workspace, fake_claude, tmp_path
+    runner, fake_claude, tmp_path
 ):
     """`specs_repo` empty is a shape that exists today. Such a specs root
     was never committed or pushed by this script, and that has to keep

@@ -53,6 +53,7 @@ export function landCtx(
     machineryProjectDir: () => "/repos/aide-code",
     machinerySpecsRoot: () => ROOT,
     codeLanding: () => undefined,
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     invalidateScan: () => {},
     warmSpec: async () => {},
     workflowHistory: { forget: () => {} },

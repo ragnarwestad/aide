@@ -5,7 +5,7 @@ It is NOT an application in itself.
 
 ---
 
-## Important: Two roles — do not confuse them
+## Important: Two roles — keep them apart
 
 **Role 1 — Development environment:** We only use Claude Code to work on
 this repo. The Claude Code config for this repo lives in `.claude/`.
@@ -43,8 +43,9 @@ scripts/check-bash                  # shellcheck over core/scripts and the round
 
 **`bun test` transpiles; it does not type-check.** A green `bun test` says
 nothing about types, and `make test` exists to stop that being mistaken for
-a green build — it runs `bunx tsc --noEmit` first and fails there. Never
-report the dashboard as green off `bun test` alone.
+a green build — it runs `bunx tsc --noEmit` first and fails there. Report
+the dashboard as green only once `make test` is, since `bun test` alone
+says nothing about types.
 
 `scripts/check-bash` needs shellcheck (`brew install shellcheck`); CI (on a
 pull request only) runs the same script, so a bash change that passes it
@@ -60,8 +61,8 @@ The dashboard on the serving host runs as a launchd job
 (`com.aide-dashboard.serve`), and code reaching `main` changes nothing
 there until it is installed: that is what `dashboard/deploy/install-after-merge.sh`
 does (`AIDE_INSTALL_CMD`), and it is what an `archive` step runs after it
-lands code. Never restart it by hand with `pkill` + `bun run` — a
-hand-started process is not the service.
+lands code. Restart it through launchd (`launchctl kickstart -k`), since a
+process started by hand with `pkill` + `bun run` is not the service.
 
 ---
 

@@ -1,0 +1,14 @@
+# agnix (the IDE's agent-config linter) for this repository.
+
+# Two files that belong to different projects by design: .claude/CLAUDE.md
+# steers work on this repo (bun in dashboard/), and core/AGENTS.md is built
+# for the projects Aide is installed into (pnpm in its examples).
+[[overrides]]
+paths = [".claude/CLAUDE.md", "core/AGENTS.md"]
+disabled_rules = ["XP-004"]
+
+# Only Claude Code reads .claude/, so naming Claude Code's own paths there
+# is the point, not a portability risk.
+[[overrides]]
+paths = [".claude/**"]
+disabled_rules = ["XP-003"]

@@ -134,6 +134,7 @@ _spec_state_closed_json() {
 # aide-run-spec's work_round_boundary_in.
 _spec_state_reopened_json() {
   local file="$1" line date sha
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
   line="$(sed -n \
     -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reopened:\*\*[[:space:]]*\([0-9-]*\).*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1\t\2/p' \
     -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reset:\*\*[[:space:]]*\([0-9-]*\).*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1\t\2/p' \

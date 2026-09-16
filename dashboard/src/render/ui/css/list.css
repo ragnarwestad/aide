@@ -97,12 +97,12 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
 .checklist li > span:first-child {
   display: inline-block;
   min-width: 3.5em;
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: var(--fs-s);
   font-weight: 600;
 }
 .checkoutput {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: var(--fs-s);
   white-space: pre-wrap;
   overflow-x: auto;
@@ -207,7 +207,7 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
   table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 @media (max-width: 53rem) {
   #jobrows { --speclist-width: 42.5rem; }
@@ -216,8 +216,8 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="phase"] { width: 47.0588%; }
   table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
   table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
-  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 @media (max-width: 46.5rem) {
   #jobrows { --speclist-width: 36rem; }
@@ -225,9 +225,9 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="spec"] { width: 19.4444%; }
   table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
   table.speclist > colgroup > col[data-col="state"] { width: 25%; }
-  table.speclist > colgroup > col[data-col="started"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 0; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
@@ -273,6 +273,7 @@ table.list td[data-col="created"] { text-align: center; }
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
 /* The caption line's copy of the spec's state is phone-only
    (narrow.css): on a desktop the head row's badge is a column away. */
+/*noinspection CssUnusedSymbol*/
 table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: none; }
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included (REQ-1/
@@ -335,14 +336,20 @@ table.speclist thead th { position: sticky; top: 0; }
    makes `width: 100%` mean the padding-INCLUSIVE box, so padding
    narrows the space the label centres in without moving .sortlink's
    own outer edge at all, and no compensating margin is needed. */
+/*noinspection CssUnusedSymbol*/
 .sortlink { display: flex; align-items: center; justify-content: center; width: 100%;
   box-sizing: border-box; padding: 2px 20px; margin: -2px 0; border-radius: var(--r-s);
   text-decoration: none; }
+/*noinspection CssUnusedSymbol*/
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+/*noinspection CssUnusedSymbol*/
 .sortlink.on { color: var(--text); font-weight: 600; }
+/*noinspection CssUnusedSymbol*/
 .sortlink svg { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
   transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
+/*noinspection CssUnusedSymbol*/
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
+/*noinspection CssUnusedSymbol*/
 .sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }
 /* Up to two lines, then an ellipsis (asked for again 2026-08-26): one
    clamped line hid most of a long folder name behind a click. The
@@ -367,7 +374,7 @@ table.speclist thead th { position: sticky; top: 0; }
    the same two out side by side, narrow.css.) */
 table.list tr.spechead .pipslot { display: flex; justify-content: center; margin: 0 0 var(--sp-2); padding-left: 0; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none; }
-.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
+.spec-name { font-weight: 600; font-family: var(--mono), monospace; font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
      2026-08-22, and that number was about the PIPS: they sat at the end
@@ -383,6 +390,7 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    "aide:" (asked for 2026-09-10). The two-line clamp sits on the name. */
 .spec-name > .label { display: flex; align-items: flex-start; min-width: 0; }
 .spec-name > .label > .muted { flex: 0 0 auto; }
+/*noinspection CssUnusedSymbol*/
 .spec-name > .label > .specname { overflow: hidden;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2;

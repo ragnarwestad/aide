@@ -80,7 +80,6 @@ describe("on /projects, where there is no New-spec form", () => {
       querySelector: (sel: string) => (matches(sel, addForm.className) ? addForm : null),
       querySelectorAll: (sel: string) =>
         sel.includes("addprojectform") || sel.includes("removeform") ? [addForm] : [],
-      createElement: () => ({ id: "", className: "", textContent: "" }),
       addEventListener: () => {},
       visibilityState: "hidden",
     };
@@ -143,7 +142,6 @@ describe("on /projects, where there is no New-spec form", () => {
       querySelector: () => null,
       querySelectorAll: (sel: string) =>
         sel.includes("addprojectform") || sel.includes("removeform") ? [addForm] : [],
-      createElement: () => ({ id: "", className: "", textContent: "" }),
       addEventListener: () => {},
       visibilityState: "hidden",
     };

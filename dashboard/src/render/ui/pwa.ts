@@ -162,7 +162,7 @@ body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
  *  rather than an omission — every line of this dashboard is live
  *  state, and a queue served out of yesterday's storage would be worse
  *  than no app at all. */
-export const SERVICE_WORKER = `// Served from /sw.js — built in src/render/pwa.ts, never a file on disk.
+export const SERVICE_WORKER = `// Served from /sw.js — built in src/render/ui/pwa.ts.
 const OFFLINE_PAGE = ${JSON.stringify(OFFLINE_PAGE)};
 
 // Take over at once: there is no cached anything for an older copy to
@@ -185,6 +185,17 @@ self.addEventListener("fetch", (event) => {
   );
 });
 `;
+
+/** The same five answers as files, by the name they are served under —
+ *  what a published copy of the site needs beside its pages, where no
+ *  server stands in front to compute them. */
+export const PWA_FILES: Readonly<Record<string, string | Buffer>> = {
+  "manifest.webmanifest": WEBMANIFEST,
+  "sw.js": SERVICE_WORKER,
+  "icon-512.svg": APP_ICON,
+  "icon-512-maskable.svg": APP_ICON_MASKABLE,
+  "apple-touch-icon.png": APPLE_TOUCH_ICON,
+};
 
 /** The four elements that turn a page into something a browser offers
  *  to install. They go in every `<head>` the shell builds, beside

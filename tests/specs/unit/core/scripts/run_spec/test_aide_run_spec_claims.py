@@ -14,9 +14,10 @@ from .run_spec_project_state import CODE_LANDING, configure_code_landing
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import STATUS_ROW_COUNTING, bullet, phase_file_text, write_raw_status
 
+@pytest.mark.usefixtures("origin")
 @pytest.mark.parametrize("case", CODE_LANDING, ids=[c["name"] for c in CODE_LANDING])
 def test_the_code_landing_decides_the_default_push_mode(
-    runner, workspace, fake_claude, fake_gh, origin, case
+    runner, workspace, fake_claude, fake_gh, case
 ):
     """The `push` column of the shared table: what a run with no `--push`
     on its command line ends up using. `pr` in the manifest is the only
@@ -36,8 +37,9 @@ def test_the_code_landing_decides_the_default_push_mode(
         # silence.
         assert "codeLanding" in err, err
 
+@pytest.mark.usefixtures("origin")
 def test_a_typed_push_mode_beats_the_manifest(
-    runner, workspace, fake_claude, fake_gh, origin
+    runner, workspace, fake_claude, fake_gh
 ):
     """The manifest supplies a DEFAULT, not an override. A person typing
     `--push branch` at a terminal has said what they want, and a file
@@ -50,7 +52,8 @@ def test_a_typed_push_mode_beats_the_manifest(
     assert out["push"] == "branch", out
     assert not fake_gh.calls.exists(), "gh is only for `pr`"
 
-def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fake_gh, origin):
+@pytest.mark.usefixtures("origin")
+def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fake_gh):
     """The whole reason the default is forced rather than merely allowed:
     without a pull request there is nothing for the dashboard to leave
     open, so the two halves must travel together."""

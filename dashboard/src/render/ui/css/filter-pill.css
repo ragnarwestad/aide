@@ -14,7 +14,7 @@
    belongs in the markup, not in a second class that looks the same. */
 .filters a, .filters button { padding: 3px 9px; border-radius: 999px; font-size: var(--fs-s);
   color: var(--muted); border: 1px solid transparent; }
-.filters button { background: none; font-family: var(--sans); line-height: var(--lh);
+.filters button { background: none; font-family: var(--sans), sans-serif; line-height: var(--lh);
   cursor: pointer; }
 .filters a:hover, .filters button:hover { background: var(--surface); text-decoration: none; }
 /* No bold on the chosen one: bold text is WIDER, so the pill grew and

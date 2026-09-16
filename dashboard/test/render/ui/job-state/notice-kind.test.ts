@@ -5,7 +5,7 @@
 // shaped message still guessing "warn" or "err" for itself.
 import { describe, expect, test } from "bun:test";
 import { specNotice } from "../../../../src/render/ui/job-state";
-import type { QueueRowView } from "../../../../src/render/ui/job-state";
+import type { QueueRowView } from "../../../../src/render";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "j1",

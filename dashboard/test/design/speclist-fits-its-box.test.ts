@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
-import { PHASE_LINES } from "../../src/render/pages/specs-list";
+import { PHASE_LINES } from "../../src/render";
 
 const css = readFileSync(new URL("../../src/render/ui/css/list.css", import.meta.url), "utf8");
 const rem = (v: string) => parseFloat(v);
@@ -34,7 +34,8 @@ describe("the specs table fits the box that scrolls it", () => {
   // one figure column each (Created, Cost, Time) — every set of six adds
   // up to the whole table, with the hidden columns at 0.
   test("the six columns are percentages, and they add up to the whole table", () => {
-    const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: ([\d.]+)%/g)].map((m) => rem(m[1]!));
+    // A hidden column is a bare 0 — a zero needs no unit.
+    const cols = [...css.matchAll(/col\[data-col="\w+"\] \{ width: (?:([\d.]+)%|0;)/g)].map((m) => rem(m[1] ?? "0"));
     expect(cols).toHaveLength(24);
     for (let i = 0; i < cols.length; i += 6) {
       expect(cols.slice(i, i + 6).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);

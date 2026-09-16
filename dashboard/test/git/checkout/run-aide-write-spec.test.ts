@@ -63,14 +63,13 @@ describe("runAideWriteSpec", () => {
 
   test("returns ok and the derived stateJson on a successful run", async () => {
     const dir = own("aide-run-write-spec-");
-    const bin = stubBin(
+    process.env.AIDE_WRITE_SPEC_BIN = stubBin(
       dir,
       `cat > /dev/null\n${printLine({
         ok: true, exitCode: 0, terminalReason: "written",
         stateJson: JSON.stringify({ completedPhases: ["create"] }),
       })}`,
     );
-    process.env.AIDE_WRITE_SPEC_BIN = bin;
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
     expect(result.ok).toBe(true);
     expect(JSON.parse(result.stateJson!)).toEqual({ completedPhases: ["create"] });
@@ -79,24 +78,22 @@ describe("runAideWriteSpec", () => {
   test("passes the content through on stdin", async () => {
     const dir = own("aide-run-write-spec-stdin-");
     const captured = join(dir, "captured");
-    const bin = stubBin(
+    process.env.AIDE_WRITE_SPEC_BIN = stubBin(
       dir,
       `cat > ${captured}\n${printLine({ ok: true, exitCode: 0, terminalReason: "written" })}`,
     );
-    process.env.AIDE_WRITE_SPEC_BIN = bin;
     await runAideWriteSpec("42-x", "4-status.md", "the real content\n");
     expect(Bun.file(captured).text()).resolves.toBe("the real content\n");
   });
 
   test("returns ok:false when the script refuses", async () => {
     const dir = own("aide-run-write-spec-refuse-");
-    const bin = stubBin(
+    process.env.AIDE_WRITE_SPEC_BIN = stubBin(
       dir,
       `cat > /dev/null\n${printLine({
         ok: false, exitCode: 2, terminalReason: "refused", error: "spec file not found",
       })}\nexit 2`,
     );
-    process.env.AIDE_WRITE_SPEC_BIN = bin;
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
     expect(result.ok).toBe(false);
     expect(result.error).toBe("spec file not found");
@@ -111,8 +108,7 @@ describe("runAideWriteSpec", () => {
 
   test("returns ok:false when the output is not a JSON line", async () => {
     const dir = own("aide-run-write-spec-garbage-");
-    const bin = stubBin(dir, `cat > /dev/null\nprintf 'not json\\n'`);
-    process.env.AIDE_WRITE_SPEC_BIN = bin;
+    process.env.AIDE_WRITE_SPEC_BIN = stubBin(dir, `cat > /dev/null\nprintf 'not json\\n'`);
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
     expect(result.ok).toBe(false);
   });

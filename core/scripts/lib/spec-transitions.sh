@@ -133,6 +133,7 @@ may_apply_spec_transition() {   # $1 = status_file, $2 = event
   if [ "$refusal" != "null" ]; then
     transition_refusal="$(jq -r '.refusal.reason' <<<"$row")"
     local template; template="$(jq -r '.refusal.message' <<<"$row")"
+    # shellcheck disable=SC2059  # the refusal message is a printf template with one %s
     transition_message="$(printf "$template" "$spec_label")"
     return 1
   fi
@@ -167,6 +168,7 @@ write_phase_stamp() {
       local mark today
       [ "$kind" = "reopened" ] && mark="Reopened" || mark="Reset"
       today="$(date -u +%Y-%m-%d)"
+      # shellcheck disable=SC2016  # the backticks are markdown, printed as they are
       printf '\n- **%s:** %s (history before `%s` does not count)\n' \
         "$mark" "$today" "$value" >> "$status_file"
       ;;
@@ -220,9 +222,11 @@ write_round_boundary_stamp() {
   local status_file="$1" specs_root="$2" head existing
   head="$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)"
   [ -n "$head" ] || return 0
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
   existing="$(sed -n 's/.*[Rr]ound boundary:\*\*[^`]*`\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
     "$status_file" 2>/dev/null | tail -1)"
   [ "$existing" = "$head" ] && return 0
+  # shellcheck disable=SC2016  # the backticks are markdown, printed as they are
   printf '\n- **Round boundary:** %s (history before `%s` does not count)\n' \
     "$(date -u +%Y-%m-%d)" "$head" >> "$status_file"
 }

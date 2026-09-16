@@ -213,6 +213,7 @@ echo "== starting the dashboard from $SERVE_FROM on :$PORT"
 SERVER=$!
 # Removed on exit unless told to keep the board up — same shape
 # test-instance's own stop()/trap already had.
+# shellcheck disable=SC2329  # run by `trap stop EXIT`
 stop() {
   if [ "$KEEP" = yes ] && kill -0 "$SERVER" 2>/dev/null; then
     if [ -n "$BRANCH" ]; then
@@ -264,7 +265,7 @@ curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" -H "X-Aide-Token
 # before trusting it, and refuse as soon as it does.
 alive=no
 for _ in $(seq 1 6); do
-  kill -0 "$SERVER" 2>/dev/null && alive=yes || { alive=no; break; }
+  if kill -0 "$SERVER" 2>/dev/null; then alive=yes; else alive=no; break; fi
   sleep 0.5
 done
 [ "$alive" = yes ] \

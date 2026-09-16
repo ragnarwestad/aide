@@ -65,10 +65,12 @@ cat "$INTRO" > "$OUTPUT"
 
 for rule in $RULE_FILES; do
   if [ -f "$RULES_DIR/$rule.md" ]; then
-    echo "" >> "$OUTPUT"
-    echo "---" >> "$OUTPUT"
-    echo "" >> "$OUTPUT"
-    strip_frontmatter "$RULES_DIR/$rule.md" | sed "${SED_ARGS[@]}" >> "$OUTPUT"
+    {
+      echo ""
+      echo "---"
+      echo ""
+      strip_frontmatter "$RULES_DIR/$rule.md" | sed "${SED_ARGS[@]}"
+    } >> "$OUTPUT"
   fi
 done
 

@@ -26,6 +26,7 @@ function fakeRun(answers: Record<string, Partial<RunResult>>) {
 
 const opts = (run: ReturnType<typeof fakeRun>, extra: Record<string, unknown> = {}) => ({
   run,
+  // noinspection JSUnusedGlobalSymbols -- the code under test calls it
   scriptPath: (name: string) => name,
   now: () => new Date("2026-09-16T08:30:00.000Z"),
   ...extra,

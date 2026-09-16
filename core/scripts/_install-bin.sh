@@ -154,6 +154,7 @@ uninstall_common_bin() {
 # STABLE directories only. A versioned path (mise's bun install dir, say)
 # rots at the next upgrade, which is why the deploy scripts name such tools
 # by full path instead.
+# shellcheck disable=SC2016  # $HOME is written literally, for the login shell to expand
 AIDE_PATH_DIRS='/opt/homebrew/bin /usr/local/bin $HOME/.local/bin'
 
 _AIDE_PATH_BLOCK_START="# >>> aide PATH (managed by aide, do not edit by hand) >>>"

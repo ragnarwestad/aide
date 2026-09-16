@@ -34,10 +34,12 @@ interface FakeButton {
 function harness(opts: { stored?: string | null; storageThrows?: boolean } = {}) {
   const written: [string, string][] = [];
   const localStorage = {
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     getItem: (key: string): string | null => {
       if (opts.storageThrows) throw new Error("storage is denied for this origin");
       return key === "theme" ? opts.stored ?? null : null;
     },
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     setItem: (key: string, value: string): void => {
       if (opts.storageThrows) throw new Error("storage is denied for this origin");
       written.push([key, value]);

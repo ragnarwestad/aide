@@ -38,10 +38,12 @@ interface FakeRadio {
 function harness(opts: { stored?: string | null; storageThrows?: boolean } = {}) {
   const written: [string, string][] = [];
   const localStorage = {
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     getItem: (key: string): string | null => {
       if (opts.storageThrows) throw new Error("storage is denied for this origin");
       return key === "unit" ? opts.stored ?? null : null;
     },
+    // noinspection JSUnusedGlobalSymbols -- the code under test calls it
     setItem: (key: string, value: string): void => {
       if (opts.storageThrows) throw new Error("storage is denied for this origin");
       written.push([key, value]);
@@ -53,7 +55,7 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
 
   const radio = (choice: string, current = false): FakeRadio & Record<string, unknown> => {
     const attrs: Record<string, string> = { "data-unit-choice": choice };
-    const self: FakeRadio & Record<string, unknown> = {
+    return {
       choice,
       attrs,
       checked: current,
@@ -61,7 +63,6 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
       addEventListener: (type: string, fn: () => void) =>
         void (listeners[`${choice}:${type}`] = fn),
     };
-    return self;
   };
 
   // Dollars is what the server rendered as chosen: it has no way to know

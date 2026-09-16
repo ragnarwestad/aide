@@ -25,8 +25,8 @@
 head_after_per_root=(); changed_files_per_root=()
 i=0
 for root in "${roots[@]}"; do
-  head_after_per_root[$i]="${head_before[$i]}"
-  changed_files_per_root[$i]=0
+  head_after_per_root[i]="${head_before[$i]}"
+  changed_files_per_root[i]=0
   i=$(( i + 1 ))
 done
 repos_json="[]"
@@ -146,7 +146,7 @@ commit_and_push_roots() {
     wt="${work_roots[$i]}"
     changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
     if [ "$changed" -gt 0 ]; then
-      changed_files_per_root[$i]=$(( ${changed_files_per_root[$i]} + changed ))
+      changed_files_per_root[i]=$(( changed_files_per_root[i] + changed ))
       git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
       head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
       # Compared against ${head_after_per_root[$i]} — the tip as THIS
@@ -175,7 +175,7 @@ commit_and_push_roots() {
         # that commit is not already public (REQ-1): amending a commit
         # origin already has is what stranded spec 327's stamp on the
         # machine that ran it.
-        amend_source[$i]="$head_now"
+        amend_source[i]="$head_now"
         if [ -n "$amend_note" ]; then
           # The step's own message can have a body, so gluing the note
           # onto the raw %B would land it mid-paragraph: give it a line of
@@ -193,7 +193,7 @@ commit_and_push_roots() {
         git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
       fi
     fi
-    head_after_per_root[$i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
+    head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
     i=$(( i + 1 ))
   done
 
@@ -257,7 +257,7 @@ commit_and_push_roots() {
         # is folded in unconditionally rather than only on success.
         # $repos_json is built once, at the very end, straight from this
         # array (below), so nothing else needs to be told about the move.
-        head_after_per_root[$idx]="$push_retry_new_head"
+        head_after_per_root[idx]="$push_retry_new_head"
       fi
     done
   fi
