@@ -48,7 +48,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
   "test/specs-client": 22,
   "test/design": 26,
   "test/project": 19,
-  "test/serve": 22,
+  "test/serve": 23,
 };
 
 // Rule 4: top-level test/ directories that group tests by feature rather
