@@ -13,7 +13,7 @@ echo ""
 echo "⚠️  This will remove:"
 echo "   - ~/.copilot/copilot-instructions.md"
 echo ""
-read -p "Are you sure you want to continue? [y/N]: " CONFIRM
+read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""

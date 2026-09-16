@@ -7,17 +7,6 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
-import subprocess
-import time
-import pytest
-import pytest
-import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import specs_only_claude
 from .run_spec_invoking import BRANCH, create

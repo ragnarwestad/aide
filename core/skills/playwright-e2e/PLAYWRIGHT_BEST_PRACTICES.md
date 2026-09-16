@@ -28,7 +28,7 @@ prosjektkonvensjoner og arbeidsflyt, se [SKILL.md](SKILL.md).
 
 Prioriter robuste, intensjons-baserte locators:
 
-```tsx
+```ts
 // ✅ BESTE — Role-based (mest robust mot DOM-endringer)
 page.getByRole("button", { name: "Lagre" });
 page.getByRole("textbox", { name: "Søk" });
@@ -52,7 +52,7 @@ Bruk codegen for å finne robuste locators: `npx playwright codegen <url>`.
 
 Playwright venter automatisk — utnytt det.
 
-```tsx
+```ts
 // ✅ RIKTIG — web-first assertions venter automatisk (opptil timeout)
 await expect(page.getByText("Lagret")).toBeVisible();
 
@@ -70,7 +70,7 @@ Trenger du å vente på en tilstand, vent på noe observerbart (`toBeVisible`,
 
 Hver test MÅ være uavhengig av rekkefølge og av andre tester.
 
-```tsx
+```ts
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   // Sett opp clean state her
@@ -86,7 +86,7 @@ test("test 1", async ({ page }) => {
 Ikke la testene avhenge av eksterne systemer eller live-data — det gir flaky tester og
 hindrer offline-kjøring.
 
-```tsx
+```ts
 test("viser korrekt status", async ({ page }) => {
   await page.route("**/api/status/*", (route) =>
     route.fulfill({ status: 200, body: JSON.stringify({ status: "OK" }) }),
@@ -104,7 +104,7 @@ data-avhengige tall.
 
 Sjekk flere ting uten å stoppe ved første feil — rapporten viser alle.
 
-```tsx
+```ts
 await expect.soft(page.getByText("Tittel")).toBeVisible();
 await expect.soft(page.getByText("Status: OK")).toBeVisible();
 await expect.soft(page.getByRole("button", { name: "Neste" })).toBeEnabled();
@@ -114,7 +114,7 @@ await expect.soft(page.getByRole("button", { name: "Neste" })).toBeEnabled();
 
 Bruk alltid Playwright sine `expect`-assertions fremfor `throw new Error()`.
 
-```tsx
+```ts
 // ✅ RIKTIG
 await expect(page.getByTestId("saldo")).toHaveText("100");
 await expect(page.getByRole("button", { name: "Lagre" })).toBeVisible();
@@ -131,7 +131,7 @@ screenshots ved feil, og integrasjon med trace viewer.
 
 Legg en melding i `expect(...)` så feilen forteller hva som var galt.
 
-```tsx
+```ts
 // ✅ Riktig
 await expect(
   page.getByRole("button", { name: "Bekreft" }),
@@ -146,7 +146,7 @@ await expect(page.getByRole("button", { name: "Bekreft" })).toBeEnabled();
 
 I `playwright.config.*` — samle artefakter kun ved behov, ikke alltid:
 
-```tsx
+```ts
 export default defineConfig({
   use: {
     trace: "on-first-retry", // trace kun ved retry
@@ -189,7 +189,7 @@ e2e/
 
 En typisk POM-klasse:
 
-```tsx
+```ts
 import { type Page, type Locator, expect } from "@playwright/test";
 
 export class HomePage {
@@ -251,7 +251,7 @@ Generelle regler: **camelCase**, **async/await**, **eksplisitt returtype**
 
 Verifikasjonsmetoder skal **kaste via `expect()`**, ikke returnere boolean:
 
-```tsx
+```ts
 // ✅ Riktig — venter + gir DOM-snapshot ved feil
 async expectSaveEnabled(): Promise<void> {
   await expect(

@@ -16,7 +16,7 @@ echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules from ~/.claude/rules/ (5 named files)"
 echo "   - ~/.claude/docs/ and ~/.claude/api-mapping/ (legacy)"
 echo ""
-read -p "Are you sure you want to continue? [y/N]: " CONFIRM
+read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""

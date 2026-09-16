@@ -8,13 +8,7 @@ Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 import json
 import os
 import pathlib
-import re
-import shlex
-import shutil
-import signal
-import subprocess
 import time
-import pytest
 from ..conftest import git, run
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
@@ -106,4 +100,3 @@ def schedule(runner, ws, claude, **kwargs):
     return run(runner, ws, claude, **kwargs)
 
 
-BRANCH = "aide/81-queue-and-runner"

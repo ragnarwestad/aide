@@ -142,8 +142,7 @@ describe("the spec's actions stay on the tab row", () => {
 
   const trailing = (html: string) => {
     const nav = html.slice(html.indexOf('<nav class="tabbar subtabs">'));
-    const row = nav.slice(nav.indexOf('<span class="row">'), nav.indexOf("</nav>"));
-    return row;
+    return nav.slice(nav.indexOf('<span class="row">'), nav.indexOf("</nav>"));
   };
 
   test("the action group carries no paragraph, in any board state", () => {

@@ -7,14 +7,8 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
 import re
-import shlex
-import shutil
-import signal
 import subprocess
-import time
 import pytest
 import pytest
 from ..conftest import READ_SPECS, git, run

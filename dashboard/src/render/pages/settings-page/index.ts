@@ -14,7 +14,6 @@ export const SETTINGS_ROUTE = "/settings";
  *  the other four are one AI each. They are a row INSIDE the page, not
  *  the application's own tab bar, which this page hides. */
 export const SETTINGS_TABS = ["phases", ...TOOL_TABS] as const;
-export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 /** The steps that act on a spec: what a reader presses on a row of the
  *  specs list. They are one group because that is the one thing they

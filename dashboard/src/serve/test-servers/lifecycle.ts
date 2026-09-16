@@ -97,7 +97,7 @@ const bindable: PortProbe = (port) => {
     // address for these very ports. Probing on every address would
     // collide with that and report a free port as taken.
     const probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
-    probe.stop(true);
+    void probe.stop(true);
     return true;
   } catch {
     return false;

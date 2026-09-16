@@ -6,15 +6,8 @@ reached 1017 lines. Every builder is unchanged and keeps its name.
 """
 
 import json
-import os
-import pathlib
-import re
 import shlex
 import shutil
-import signal
-import subprocess
-import time
-import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_invoking import create
 from .run_spec_results import RESULT_OK

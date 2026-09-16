@@ -18,7 +18,7 @@ echo "⚠️  This will remove:"
 echo "   - ~/.codex/AGENTS.md"
 echo "   - ~/.codex/hooks.json (if unchanged) + ~/.codex/hooks/aide-*.sh"
 echo ""
-read -p "Are you sure you want to continue? [y/N]: " CONFIRM
+read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""

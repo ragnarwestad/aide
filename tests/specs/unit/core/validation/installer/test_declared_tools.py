@@ -8,11 +8,8 @@ unchanged and keep their names.
 
 import os
 import re
-import shutil
 import subprocess
-from pathlib import Path
 import pytest
-from tests.specs.unit.core.validation.templates.test_templates import structure_block
 
 from .test_core_scripts import _scripts
 

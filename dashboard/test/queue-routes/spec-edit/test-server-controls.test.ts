@@ -332,7 +332,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
-    Bun.write(
+    await Bun.write(
       join(results, `${made.job.id}.json`),
       JSON.stringify({
         ok: true,
@@ -467,7 +467,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
-    Bun.write(
+    await Bun.write(
       join(results, `${made.job.id}.json`),
       JSON.stringify({
         ok: true,

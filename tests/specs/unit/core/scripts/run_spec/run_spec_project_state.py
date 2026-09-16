@@ -7,66 +7,14 @@ Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 """
 
 import json
-import os
 import pathlib
-import re
-import shlex
 import shutil
-import signal
 import subprocess
 import time
-import pytest
 # The spec files the tests build, kept beside this one.
-from .run_spec_status_files import (  # noqa: E402,F401
-    REOPEN_BOUNDARY_DATE,
-    STATUS_ROW_COUNTING,
-    TIME_OF_DAY_RE,
-    TIME_SPENT_RE,
-    add_spec,
-    already_ran,
-    bullet,
-    conflicting_branch,
-    nested_workspace,
-    phase_file_text,
-    recorded_line,
-    recorded_model,
-    reopen_line,
-    reset_line,
-    set_depends_on,
-    status_only_conflict,
-    status_with_phase,
-    subject,
-    tracking_block,
-    with_analysis,
-    with_analysis_attempts,
-    with_solution,
-    with_status,
-    workflow_steps_line,
-    write_raw_status,
-)
+from .run_spec_status_files import STATUS_ROW_COUNTING
 # The stand-in AIs, kept beside this file — imported here so every part of
 # the suite keeps one import surface.
-from .run_spec_fakes import (  # noqa: E402,F401
-    analyze_claude_advancing_row,
-    analyze_claude_naming_implement,
-    analyze_claude_renaming_the_header,
-    analyze_claude_writing_the_line_from_nothing,
-    analyzing_claude,
-    conflicting_race_claude,
-    creating_claude,
-    linking_claude,
-    make_named_writing_claude,
-    make_worktree_add_gate,
-    partially_committing_claude,
-    probing_claude,
-    project_only_claude,
-    race_pushing_claude,
-    self_committing_claude,
-    self_pushing_claude,
-    specs_foreign_folder_claude,
-    specs_only_claude,
-    writing_claude,
-)
 from ..conftest import git, run
 PRECEDENCE = json.loads(
     (pathlib.Path(__file__).resolve().parents[5] / "fixtures" / "worktree-links-precedence.json")

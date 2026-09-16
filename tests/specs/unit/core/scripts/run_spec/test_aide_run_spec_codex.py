@@ -6,13 +6,6 @@ unchanged and keep their names.
 """
 
 import json
-import os
-import pathlib
-import re
-import shlex
-import shutil
-import signal
-import subprocess
 import pytest
 import pytest
 from ..conftest import run

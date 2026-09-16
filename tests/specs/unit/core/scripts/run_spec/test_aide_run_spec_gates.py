@@ -6,21 +6,15 @@ in conftest.py beside them.
 """
 
 import json
-import os
 import pathlib
 import re
-import shlex
-import shutil
-import signal
-import subprocess
-import time
 import pytest
-from ..conftest import READ_SPECS, git, run
-from .run_spec_fakes import creating_claude, project_only_claude, specs_only_claude, writing_claude
-from .run_spec_invoking import BRANCH, CREATE_KEY, SCHEDULE_KEY, create, schedule, worktrees
-from .run_spec_origins import is_ancestor, leave_branch_on_origin, leave_unmerged_branch_on_origin
-from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, RESULT_ERROR, RESULT_OK, emits
-from .run_spec_status_files import add_spec, conflicting_branch, nested_workspace, set_depends_on, status_only_conflict, with_status
+from ..conftest import git, run
+from .run_spec_fakes import creating_claude, specs_only_claude, writing_claude
+from .run_spec_invoking import CREATE_KEY, create, schedule
+from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
+from .run_spec_results import RESULT_OK
+from .run_spec_status_files import add_spec, set_depends_on, with_status
 
 def test_refuses_implement_before_analyze_has_run(runner, workspace, fake_claude):
     with_status(workspace, claims=["create"])

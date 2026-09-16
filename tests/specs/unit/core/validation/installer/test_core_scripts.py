@@ -1,13 +1,11 @@
 """Validation tests for the shared shell scripts in core/scripts."""
 import os
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from tests.specs.unit.core.validation.templates.test_templates import structure_block
 
 # Template placeholders such as {{DOMAIN}} — none may survive into core/scripts.
 PLACEHOLDER_PATTERN = re.compile(r"\{\{[A-Za-z_]+\}\}")

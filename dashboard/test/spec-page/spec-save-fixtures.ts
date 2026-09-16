@@ -10,7 +10,6 @@ import { queueHarness, type QueueHarness } from "../helpers/queue-server.ts";
 
 export const TOKEN = "s3cret-token";
 export const SPEC = "81-queue-and-runner";
-export const EDIT = `/specs/aide/${SPEC}/edit`;
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 // Spec 394: the banner's own tracking route — what the spec depends on
 // and whether it requires acceptance ticking, both posted here now
