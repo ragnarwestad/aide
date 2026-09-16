@@ -206,8 +206,8 @@ esac
 # testing the machinery says so on its rows, and so a run can refuse
 # when nothing is there to stand in.
 case "$tool" in
-  claude|codex|fake-claude) ;;
-  *) refuse "invalid --tool: $tool (claude, codex or fake-claude)" ;;
+  claude|codex|opencode|fake-claude) ;;
+  *) refuse "invalid --tool: $tool (claude, codex, opencode or fake-claude)" ;;
 esac
 
 if [ -n "$effort" ]; then

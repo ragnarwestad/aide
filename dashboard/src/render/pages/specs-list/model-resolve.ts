@@ -114,6 +114,7 @@ export const ALREADY_RUN_REASON = "already done, and not a step you can run";
 export const TOOL_NAMES: Record<string, string> = {
   claude: "Claude Code",
   codex: "Codex",
+  opencode: "OpenCode",
   "fake-claude": "Fake-Claude",
 };
 
@@ -124,6 +125,8 @@ export const TOOL_NAMES: Record<string, string> = {
 export const SHORT_TOOL_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "Codex",
+  // Already the one word a narrow screen has room for.
+  opencode: "OpenCode",
   "fake-claude": "Fake-Claude",
 };
 

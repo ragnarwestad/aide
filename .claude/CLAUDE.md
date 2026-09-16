@@ -13,12 +13,16 @@ Other AI tools (Copilot, Codex) are not used for development here.
 
 **Role 2 — Product:** `implementations/` contains source code we build
 and install into other projects. There are implementations
-for Claude Code, Copilot and Codex.
+for Claude Code, Codex, OpenCode and Copilot.
 
 **Implementation priority:**
 1. **Claude Code** — most important
 2. **Codex** — second
-3. **Copilot** — third.
+3. **OpenCode** — third. It brings no model of its own: every model is a
+   provider's, named `provider/model`, and none is reachable until a
+   provider is logged in. Its implementation is thin because it scans
+   `~/.agents/skills` and `~/.claude/skills` for skills itself.
+4. **Copilot** — fourth.
 
 ---
 

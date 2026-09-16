@@ -12,6 +12,7 @@
 #   aide-preflight claude
 #   aide-preflight copilot
 #   aide-preflight codex
+#   aide-preflight opencode
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -55,6 +56,14 @@ preflight_copilot() {
   echo "   not ~/.claude/skills/ (verified against 1.0.79). ~/.claude/rules/ is"
   echo "   NOT read by Copilot; the rules reach it through the instructions file."
   echo ""
+}
+
+preflight_opencode() {
+  echo ""
+  echo "🔧 OpenCode"
+  probe "OpenCode" opencode
+  echo "   core/AGENTS.md → ${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md   ($(state "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"))"
+  echo "   skills: read in place from ~/.agents/skills and ~/.claude/skills — nothing installed"
 }
 
 preflight_codex() {
@@ -115,15 +124,17 @@ case "$TOOL" in
   claude)  preflight_claude; preflight_drift ;;
   copilot) preflight_copilot; preflight_drift ;;
   codex)   preflight_codex; preflight_drift ;;
+  opencode) preflight_opencode; preflight_drift ;;
   all)
     preflight_claude
     preflight_copilot
     preflight_codex
+    preflight_opencode
     preflight_optional_deps
     preflight_drift
     ;;
   *)
-    echo "❌ Unknown tool: $TOOL (use claude, copilot, codex or all)"
+    echo "❌ Unknown tool: $TOOL (use claude, copilot, codex, opencode or all)"
     exit 1
     ;;
 esac

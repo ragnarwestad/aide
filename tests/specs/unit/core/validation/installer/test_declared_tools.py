@@ -80,13 +80,21 @@ class TestInstallMiseDeclaredTools:
         assert "use -g npm:markdownlint-cli2@latest" in logged, logged
 
 
+def _implementations(workspace_root):
+    """Every implementation that has an installer. Derived rather than
+    listed: the rules below hold for EVERY tool aide installs, and a
+    hand-written list stops covering the next one the day it is added."""
+    root = workspace_root / "implementations"
+    return sorted(d.name for d in root.iterdir() if (d / "install.sh").is_file())
+
+
 @pytest.mark.validation
 class TestInstallersDeclareMarkdownlint:
     """Every installer must call install_mise_declared_tools, or a machine
     that only ran one implementations/<ai>/install.sh never gets it."""
 
     def test_every_installer_calls_install_mise_declared_tools(self, workspace_root):
-        for tool in ("claude-code", "copilot", "codex"):
+        for tool in _implementations(workspace_root):
             installer = workspace_root / "implementations" / tool / "install.sh"
             text = installer.read_text()
             assert "install_mise_declared_tools" in text, \
@@ -194,9 +202,13 @@ class TestMiseDeclaredToolsCoversTheSixNamedTools:
 _BAREWORD_COMMAND_V = re.compile(r"command -v ([A-Za-z][A-Za-z0-9_.-]*)\b")
 
 
-# Tools with no mise-manageable backend, or checked for a reason unrelated
-# to aide's own installer (the editor Copilot's installer looks for).
-_DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "code", "curl"}
+# Tools with no mise-manageable backend, the AI CLIs themselves, or a
+# tool checked for a reason unrelated to aide's own installer (the editor
+# Copilot's installer looks for). An AI CLI is the one thing its own
+# implementation is FOR, and MISE_DECLARED_TOOLS is what EVERY installer
+# puts on the machine — declaring one there would have the Claude Code
+# installer fetch the others.
+_DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "opencode", "code", "curl"}
 
 
 @pytest.mark.validation
@@ -214,7 +226,7 @@ class TestRequiredToolsAreDeclared:
         declared_tools = match.group(1)
 
         files = _scripts(workspace_root)
-        for tool in ("claude-code", "copilot", "codex"):
+        for tool in _implementations(workspace_root):
             files.append(workspace_root / "implementations" / tool / "install.sh")
 
         undeclared = []

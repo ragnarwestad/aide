@@ -12,7 +12,7 @@ export interface JobStepResultView {
    *  result written before the second tool existed says nothing here,
    *  and claude is what ran it. `none` is a `create` step that skipped
    *  the AI session entirely (spec 433). */
-  tool?: "claude" | "codex" | "fake-claude" | "none";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** This step's token total, absent when the run did not measure one
    *  (spec 118). A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
@@ -87,7 +87,7 @@ export interface JobDetailView extends QueueRowView {
    *  since a running step's tool always names a real CLI (`runningStep`
    *  is resolved from the config's own model choice, which has no "none"
    *  entry). */
-  tool?: "claude" | "codex" | "fake-claude" | "none";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** The spec's H1. */
   title?: string;
   finishedAt?: string;

@@ -89,11 +89,16 @@ class TestPreflightIsWiredIn:
         assert result.returncode == 0, result.stderr
         assert (tmp_path / ".local" / "bin" / "aide-preflight").is_file()
 
-    @pytest.mark.parametrize("ai", ["claude-code", "copilot", "codex"])
-    def test_every_installer_runs_preflight(self, workspace_root, ai):
-        install = workspace_root / "implementations" / ai / "install.sh"
-        assert "aide-preflight" in install.read_text(), \
-            f"{ai}/install.sh does not run the preflight"
+    def test_every_installer_runs_preflight(self, workspace_root):
+        """Every implementation, not a list of them: a new tool that
+        skips the preflight is exactly what this has to catch."""
+        root = workspace_root / "implementations"
+        installers = sorted(d.name for d in root.iterdir() if (d / "install.sh").is_file())
+        assert installers, "no implementations/<ai>/install.sh found at all"
+        for ai in installers:
+            install = root / ai / "install.sh"
+            assert "aide-preflight" in install.read_text(), \
+                f"{ai}/install.sh does not run the preflight"
 
 
 @pytest.mark.validation

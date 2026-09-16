@@ -42,7 +42,7 @@ reference only — do not develop there.
   Copilot both read the skills in `~/.claude/skills/`; Copilot and Codex
   both read the generated `core/AGENTS.md` (installed as
   `~/.copilot/copilot-instructions.md` and `~/.codex/AGENTS.md`).
-  Priority: Claude Code > Codex > opencode > Copilot. Gemini support and all
+  Priority: Claude Code > Codex > OpenCode > Copilot. Gemini support and all
   per-tool extras (JetBrains templates, VS Code tasks, Codex CLI wrappers)
   were deliberately dropped — hand-maintained per-tool adapters were the
   main maintenance cost. Inspired by OpenSpec's engine/adapter split.
@@ -120,7 +120,7 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 ### From whippletree
 
 From reading [whippletree](https://github.com/larstonder/whippletree), a Go
-CLI that compiles one hook contract onto Claude Code, Codex and opencode. We
+CLI that compiles one hook contract onto Claude Code, Codex and OpenCode. We
 are not adopting it — it distributes executable behavior, we distribute
 prompts, and it carries a compiled dispatcher per bundle for what is often a
 three-line shell script. Three of its ideas are worth taking anyway:
@@ -265,5 +265,5 @@ The wish list and the grounding are in spec 76 (archived).
   `archive/` — pointing every project at the repo ROOT would recreate
   the shared pool.
 - The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
-  upgrades Copilot/Codex/opencode via mise and Claude Code via
+  upgrades Copilot/Codex/OpenCode via mise and Claude Code via
   `claude update`.

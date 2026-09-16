@@ -138,6 +138,11 @@ $step_tests_failing"
         done
         if [ "$tool" = "codex" ]; then
           step_retry_argv+=("$session_out" -)
+        elif [ "$tool" = "opencode" ]; then
+          # `--session <id>`, not `--resume`: opencode's own spelling
+          # (`opencode run --help`, 1.18.31). The subcommand stays `run`,
+          # so nothing above rewrote it and nothing here has to.
+          step_retry_argv+=(--session "$session_out")
         else
           [ "$step_resumes" = "yes" ] || step_retry_argv+=(--resume "$session_out")
         fi

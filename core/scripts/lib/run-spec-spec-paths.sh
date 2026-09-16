@@ -314,6 +314,49 @@ if [ "$tool" = "codex" ]; then
       else empty end
     ' <<<"$result_json" 2>/dev/null)"
   fi
+elif [ "$tool" = "opencode" ]; then
+  # opencode closes no turn with a single result event. It emits one
+  # `step_finish` per step, each carrying that step's own tokens and
+  # cost, so the run's totals are the SUM over all of them — taking the
+  # last one alone would report the final step's numbers as the whole
+  # run's. A turn that failed says so in an `error` event instead, and
+  # that event wins: it is the only place a message to show the reader
+  # exists. Verified 2026-09-16 against opencode 1.18.31, whose error
+  # event carries `.error.name` with the human sentence under
+  # `.error.data.message`.
+  error_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "error")' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  # Every event carries the session opencode named for itself, so the
+  # first one that parses answers it — including for a run that failed
+  # before any step finished.
+  session_out="$(jq -Rr 'fromjson? | select(type == "object") | .sessionID // empty' \
+    "$transcript" 2>/dev/null | head -n 1)"
+  steps_json="$(jq -Rsc '
+    [splits("\n") | select(length > 0) | fromjson?
+     | select(type == "object" and .type == "step_finish") | .part]
+    | {cost:          (map(.cost // 0)                  | add // 0),
+       input:         (map(.tokens.input // 0)          | add // 0),
+       output:        (map((.tokens.output // 0) + (.tokens.reasoning // 0)) | add // 0),
+       cacheRead:     (map(.tokens.cache.read // 0)     | add // 0),
+       cacheCreation: (map(.tokens.cache.write // 0)    | add // 0),
+       steps:         length}
+  ' "$transcript" 2>/dev/null)"
+  if [ -n "$error_json" ]; then
+    have_result="true"
+    subtype="turn_failed"
+    error_msg="$(jq -r '(.error.data.message // .error.name // "the turn failed") | tostring' <<<"$error_json")"
+  elif [ "$(jq -r '.steps // 0' <<<"${steps_json:-{\}}" 2>/dev/null)" != "0" ]; then
+    have_result="true"
+    subtype="success"
+  fi
+  if [ "$have_result" = "true" ] && [ -n "$steps_json" ]; then
+    # Reasoning tokens are added to output for the reason codex's are:
+    # they are billed as output, so dropping them understates the run.
+    cost="$(jq -r '.cost' <<<"$steps_json")"
+    cost_measured="true"
+    tokens_json="$(jq -c '{input, output, cacheRead, cacheCreation}
+      | . + {total: (.input + .output + .cacheRead + .cacheCreation)}' <<<"$steps_json")"
+  fi
 else
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
   "$transcript" 2>/dev/null | tail -n 1)"

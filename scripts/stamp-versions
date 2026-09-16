@@ -47,6 +47,7 @@ stamp_row() {
 stamp_row "Claude Code"        "$(probe_version claude)"
 stamp_row "GitHub Copilot CLI" "$(probe_version copilot)"
 stamp_row "Codex CLI"          "$(probe_version codex)"
+stamp_row "OpenCode"           "$(probe_version opencode)"
 
 echo ""
 echo "Stamped: $MATRIX"

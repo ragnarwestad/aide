@@ -77,7 +77,7 @@ export interface SummarizeOptions {
   // since a step that ran no AI writes no transcript to summarize, but
   // the caller's own `tool` reads off the same widened field and has to
   // type-check regardless.
-  tool?: "claude" | "codex" | "fake-claude" | "none";
+  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
 }
 
 /** Every line of the stream that parses, as an object. Shared by both
@@ -181,14 +181,57 @@ export function summarizeCodexStream(text: string, opts: SummarizeOptions = {}):
   return out.slice(-max);
 }
 
+/** What an opencode event was about, in the same one-line shape the
+ *  other two get. Its events carry the interesting part under `part`,
+ *  keyed by `part.type`, verified against opencode 1.18.31.
+ *
+ *  `step-start` and `step-finish` are absent on purpose: they are the
+ *  run's own bookkeeping, and a page answering "what is it doing" wants
+ *  neither. */
+function opencodeEntry(part: Record<string, unknown>): string {
+  const str = (k: string) => (typeof part[k] === "string" ? (part[k] as string) : "");
+  switch (str("type")) {
+    case "text":
+      return str("text");
+    case "tool": {
+      // The tool's own name is the whole of what there is to say: the
+      // input is a free-form object whose shape is the tool's, and
+      // guessing which key holds a path would be wrong per tool.
+      const name = str("tool");
+      return name ? `tool ${name}` : "";
+    }
+    default:
+      return "";
+  }
+}
+
+/** The opencode half of the same contract: same entry shape, same
+ *  bound, same escaping. */
+export function summarizeOpencodeStream(text: string, opts: SummarizeOptions = {}): string[] {
+  const max = opts.max ?? 40;
+  const out: string[] = [];
+  for (const event of events(text)) {
+    const part = event.part;
+    if (part === null || typeof part !== "object" || Array.isArray(part)) continue;
+    const entry = opencodeEntry(part as Record<string, unknown>);
+    if (entry.trim()) out.push(esc(clip(entry)));
+    trim(out, max);
+  }
+  return out.slice(-max);
+}
+
 /** Which schema this text is in, when nobody said. Codex's events are
- *  the only ones whose `type` is dotted, so one parsable line settles
- *  it; a file that says neither falls to claude, which is what every
- *  transcript written before spec 125 is. */
-function sniff(text: string): "claude" | "codex" {
+ *  the only ones whose `type` is dotted, and opencode's are the only
+ *  ones carrying a `part` object, so one parsable line settles it; a
+ *  file that says none of them falls to claude, which is what every
+ *  transcript written before there was a second tool is. */
+function sniff(text: string): "claude" | "codex" | "opencode" {
   for (const event of events(text)) {
     if (typeof event.type !== "string") continue;
     if (/^(thread|turn|item)\./.test(event.type)) return "codex";
+    if (event.part !== null && typeof event.part === "object" && !Array.isArray(event.part)) {
+      return "opencode";
+    }
     if (event.type === "assistant" || event.type === "system" || event.type === "result") return "claude";
   }
   return "claude";
@@ -197,7 +240,9 @@ function sniff(text: string): "claude" | "codex" {
 /** The transcript, whichever tool wrote it. */
 export function summarizeStream(text: string, opts: SummarizeOptions = {}): string[] {
   const tool = opts.tool ?? sniff(text);
-  return tool === "codex" ? summarizeCodexStream(text, opts) : summarizeClaudeStream(text, opts);
+  if (tool === "codex") return summarizeCodexStream(text, opts);
+  if (tool === "opencode") return summarizeOpencodeStream(text, opts);
+  return summarizeClaudeStream(text, opts);
 }
 
 // --- spec 452: the Logs tab's summary --------------------------------------
