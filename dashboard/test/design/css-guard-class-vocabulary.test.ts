@@ -92,6 +92,10 @@ const STRUCTURE = [
   // The spec's own state drawn again inside the caption line's action
   // slot, for a phone (2026-09-10).
   "headstate", "current", "lbl",
+  // The check mark beside the theme/language menus' own chosen row
+  // (spec 475) — a name of its own since "check" below already means
+  // two other things under this same .menupanel shape.
+  "menucheck",
   // where the pips sit on a spec's name line, since the Progress
   // column went and they moved in beside the name (2026-08-22)
   "pipslot",
