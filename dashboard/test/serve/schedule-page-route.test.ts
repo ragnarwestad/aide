@@ -171,17 +171,6 @@ describe("GET /schedule (spec 272)", () => {
   });
 });
 
-// Spec 468: the New-job form moved to the project's own Schedule tab,
-// and the Project select went with it — this page has nothing left to
-// serve.
-describe("GET /schedule/new (spec 468 — moved to the project's own Schedule tab)", () => {
-  test("is gone: 404", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   test("the Overview tab shows the cron and prompt path", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
