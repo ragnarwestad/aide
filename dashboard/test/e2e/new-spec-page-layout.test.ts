@@ -48,6 +48,12 @@ const ACCEPT_SUMMARY = 'label[data-acceptance="1"] + span.fieldend details.intro
 const ACCEPT_POPOVER = 'label[data-acceptance="1"] + span.fieldend details.intro[open] p';
 const FORMULATE_SUMMARY = 'label[data-ai-formulate="1"] + span.fieldend details.intro > summary';
 const FORMULATE_POPOVER = 'label[data-ai-formulate="1"] + span.fieldend details.intro[open] p';
+// Spec 477 Round 3: the "Depends on" field's own "(?)" sits near the
+// LEFT edge of the form (first field on its own row, no acceptance-col
+// style override) — the opposite bug from the acceptance-col popovers
+// above, and the one 1-description.md's own report names.
+const DEPENDS_SUMMARY = ".depends-col .fieldhead .fieldend details.intro > summary";
+const DEPENDS_POPOVER = ".depends-col .fieldhead .fieldend details.intro[open] p";
 
 function rectsIntersect(
   a: { left: number; right: number; top: number; bottom: number },
@@ -71,6 +77,11 @@ test("AC-1: the acceptance switches' column sits beside the phase table, not bel
 });
 
 for (const viewport of [
+  // Spec 477 Round 3: 760px is the narrower of the two widths
+  // 1-description.md's own Problem section measures ("115 piksler
+  // utenfor ved 900, 255 ved 760") — the installed app runs narrower
+  // than 1000px, and 760 was not covered until now.
+  { name: "narrower", width: 760, height: 900 },
   // Spec 477: the 640/40rem wrap breakpoint and 1270px laptop width
   // below had no coverage between them — the width range most likely
   // to reproduce the reported overflow, since `.acceptance-col` sits
@@ -98,6 +109,21 @@ for (const viewport of [
       await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
       await page.locator(FORMULATE_SUMMARY).click();
       const rect = await page.locator(FORMULATE_POPOVER).evaluate((el) => el.getBoundingClientRect());
+      expect(rect.left).toBeGreaterThanOrEqual(0);
+      expect(rect.top).toBeGreaterThanOrEqual(0);
+      expect(rect.right).toBeLessThanOrEqual(viewport.width);
+      expect(rect.bottom).toBeLessThanOrEqual(viewport.height);
+    });
+
+    // Spec 477 Round 3, AC-1/AC-4: the left-hand-icon case
+    // 1-description.md's Problem section reports — opens rightward
+    // (flipped) once its plain leftward default would run past the
+    // left edge.
+    test("AC-1/AC-4: the Depends-on field's popover stays within the viewport", async () => {
+      await page.setViewportSize(viewport);
+      await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+      await page.locator(DEPENDS_SUMMARY).click();
+      const rect = await page.locator(DEPENDS_POPOVER).evaluate((el) => el.getBoundingClientRect());
       expect(rect.left).toBeGreaterThanOrEqual(0);
       expect(rect.top).toBeGreaterThanOrEqual(0);
       expect(rect.right).toBeLessThanOrEqual(viewport.width);
