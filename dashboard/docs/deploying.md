@@ -154,19 +154,19 @@ Everything is overridable, nothing personal is baked in:
 
 All paths are relative to the serving host's own `$HOME`.
 
-| Variable         | Default                              | What it is                                                        |
-|------------------|--------------------------------------|-------------------------------------------------------------------|
-| `MINI`           | — required                           | the ssh target                                                    |
-| `PORT`           | `8788`                               | port to serve on, behind the proxy                                |
-| `TS_PORT`        | `443`                                | port tailscale serve terminates TLS on                            |
+| Variable         | Default                               | What it is                                                        |
+|------------------|---------------------------------------|-------------------------------------------------------------------|
+| `MINI`           | — required                            | the ssh target                                                    |
+| `PORT`           | `8788`                                | port to serve on, behind the proxy                                |
+| `TS_PORT`        | `443`                                 | port tailscale serve terminates TLS on                            |
 | `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
-| `MINI_SRC`       | `$(MINI_REPO)/dashboard`             | the directory bun runs in, and what the plist points at           |
-| `REMOTE_STATE`   | `aide-dashboard`                     | site, mirrors, queue state                                        |
-| `REMOTE_BUN`     | `.local/share/mise/shims/bun`        | bun on that host                                                  |
-| `LABEL`          | `com.aide-dashboard.serve`           | launchd job label                                                 |
-| `QUEUE_PROJECTS` | `aide,aide-dashboard`                | the allowlist's first-boot seed                                   |
-| `ROOT`           | unset                                | projects root there (omitted when unset) — see below              |
-| `BIND`           | unset                                | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
+| `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
+| `REMOTE_STATE`   | `aide-dashboard`                      | site, mirrors, queue state                                        |
+| `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
+| `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
+| `QUEUE_PROJECTS` | `aide,aide-dashboard`                 | the allowlist's first-boot seed                                   |
+| `ROOT`           | unset                                 | projects root there (omitted when unset) — see below              |
+| `BIND`           | unset                                 | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list

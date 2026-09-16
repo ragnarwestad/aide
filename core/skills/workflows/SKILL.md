@@ -205,10 +205,10 @@ written, as its own last step.
 
 The rest of the detail lives beside this file:
 
-| Reference | What it covers |
-|-----------|----------------|
-| [references/spec-workflows.md](./references/spec-workflows.md) | Every phase of the spec workflow: what each one does, what it produces, when to re-run it |
-| [references/api-impact.md](./references/api-impact.md) | Assessing API impact, and the order to implement a change that spans several projects |
+| Reference                                                                    | What it covers                                                                                |
+|------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [references/spec-workflows.md](./references/spec-workflows.md)               | Every phase of the spec workflow: what each one does, what it produces, when to re-run it     |
+| [references/api-impact.md](./references/api-impact.md)                       | Assessing API impact, and the order to implement a change that spans several projects         |
 | [references/workflow-optimization.md](./references/workflow-optimization.md) | Context management, course correction, Explore - Plan - Code, checklists for large migrations |
 
 ---

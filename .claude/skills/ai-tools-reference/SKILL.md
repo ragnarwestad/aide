@@ -298,7 +298,7 @@ structured inter-agent messaging.
 | Feature          | Claude Code |        Copilot        |         Codex          |
 |------------------|:-----------:|:---------------------:|:----------------------:|
 | Config format    |    JSON     |         JSON          |          TOML          |
-| Config path      |  .claude/   |  .github/, ~/.copilot/ |        .codex/         |
+| Config path      |  .claude/   | .github/, ~/.copilot/ |        .codex/         |
 | MCP servers      |     yes     |     yes (agents)      |          yes           |
 | Hooks            |     yes     |          no           |   yes (experimental)   |
 | Agents/subagents |     yes     | yes (.github/agents/) | yes (v0.117+, plugins) |

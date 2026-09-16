@@ -158,11 +158,11 @@ Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
 `~/.claude/commands/`), so slash commands work **natively** — no setup beyond
 `install.sh`:
 
-| Command           | Function                  |
-|-------------------|---------------------------|
-| `/aide-create`    | Create a spec             |
-| `/aide-analyze`   | Analyze codebase          |
-| `/aide-implement` | Implement with TDD        |
+| Command           | Function           |
+|-------------------|--------------------|
+| `/aide-create`    | Create a spec      |
+| `/aide-analyze`   | Analyze codebase   |
+| `/aide-implement` | Implement with TDD |
 
 Type the command in a `copilot` session, just like in Claude Code.
 

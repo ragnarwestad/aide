@@ -223,15 +223,15 @@ go rather than stopping at the first write.
 
 ## 🔄 Comparison with Claude Code
 
-| Feature           | Claude Code                     | Copilot CLI                                   |
-|-------------------|---------------------------------|-----------------------------------------------|
-| **Commands**      | `/aide-create`                  | `/aide-create`, same skills                   |
-| **Skills read from** | `~/.claude/skills/`          | `~/.agents/skills/`, shared with Codex        |
-| **Instructions**  | `CLAUDE.md` (auto-read)         | `~/.copilot/copilot-instructions.md`          |
-| **Permissions**   | Fine-grained in settings.json   | `--allow-all`, or a prompt per action         |
-| **Headless**      | `claude -p`                     | `copilot -p`                                  |
-| **Git commit**    | Blocked (deny list)             | Copilot cannot run it (must be done manually) |
-| **MCP support**   | ✅                              | ✅                                            |
+| Feature              | Claude Code                   | Copilot CLI                                   |
+|----------------------|-------------------------------|-----------------------------------------------|
+| **Commands**         | `/aide-create`                | `/aide-create`, same skills                   |
+| **Skills read from** | `~/.claude/skills/`           | `~/.agents/skills/`, shared with Codex        |
+| **Instructions**     | `CLAUDE.md` (auto-read)       | `~/.copilot/copilot-instructions.md`          |
+| **Permissions**      | Fine-grained in settings.json | `--allow-all`, or a prompt per action         |
+| **Headless**         | `claude -p`                   | `copilot -p`                                  |
+| **Git commit**       | Blocked (deny list)           | Copilot cannot run it (must be done manually) |
+| **MCP support**      | ✅                            | ✅                                            |
 
 ---
 

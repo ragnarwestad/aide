@@ -230,18 +230,18 @@ implementasjon. Bruk konsistente verb-prefikser. (Tabellen under bruker engelske
 en nøytral default — et prosjekt kan lokalisere prefiksene (f.eks. norske
 `klikk/input/velg/verifiser`), men da konsekvent for HELE suiten.)
 
-| UI-element / handling | Konvensjon | Eksempel |
-|----------------------|------------|----------|
-| Knapp | `click<Label>()` | `clickSave()` |
-| Checkbox | `check<Label>()` / `toggle<Label>()` | `checkRemember()` |
-| Tekstfelt | `fill<Label>(value: string)` | `fillEmail("a@b.no")` |
-| Datofelt | `set<Label>(date: string)` | `setStartDate("01.01.2024")` |
-| Select/Radio | `select<Label>(value)` | `selectCountry("NO")` |
-| Navigasjon | `goto<Page>()` | `gotoCheckout()` |
-| Lese data | `get<Data>(): Promise<T>` | `getOrderId()` |
-| Vent på tilstand | `waitFor<State>()` | `waitForLoaded()` |
-| Verifisering | `expect<What>()` | `expectErrorShown()` |
-| Sammensatt flow | `<verb><What>()` | `completeCheckout(...)` |
+| UI-element / handling | Konvensjon                           | Eksempel                     |
+|-----------------------|--------------------------------------|------------------------------|
+| Knapp                 | `click<Label>()`                     | `clickSave()`                |
+| Checkbox              | `check<Label>()` / `toggle<Label>()` | `checkRemember()`            |
+| Tekstfelt             | `fill<Label>(value: string)`         | `fillEmail("a@b.no")`        |
+| Datofelt              | `set<Label>(date: string)`           | `setStartDate("01.01.2024")` |
+| Select/Radio          | `select<Label>(value)`               | `selectCountry("NO")`        |
+| Navigasjon            | `goto<Page>()`                       | `gotoCheckout()`             |
+| Lese data             | `get<Data>(): Promise<T>`            | `getOrderId()`               |
+| Vent på tilstand      | `waitFor<State>()`                   | `waitForLoaded()`            |
+| Verifisering          | `expect<What>()`                     | `expectErrorShown()`         |
+| Sammensatt flow       | `<verb><What>()`                     | `completeCheckout(...)`      |
 
 Generelle regler: **camelCase**, **async/await**, **eksplisitt returtype**
 (`Promise<void>` / `Promise<string>`), og **union types** for enum-aktige parametre

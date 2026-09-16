@@ -460,12 +460,12 @@ Each of the four phases writes its own outcome into the Tracking info
 of the file that is ITS OWN artifact — never into 4-status.md on
 another phase's behalf:
 
-| Phase | Own file | Date field enriched |
-|---|---|---|
-| create | 1-description.md | `Created:` |
-| analyze | 2-analysis.md | `Last analyzed:` |
-| implement | 3-solution.md | `Last updated:` |
-| archive | 4-status.md | `Last updated:` |
+| Phase     | Own file         | Date field enriched |
+|-----------|------------------|---------------------|
+| create    | 1-description.md | `Created:`          |
+| analyze   | 2-analysis.md    | `Last analyzed:`    |
+| implement | 3-solution.md    | `Last updated:`     |
+| archive   | 4-status.md      | `Last updated:`     |
 
 The record, beside the file's own existing date field — never a new
 one, the date already exists, only the time of day is new
@@ -552,23 +552,23 @@ on Archive.
 
 ## Separation of content
 
-| Content                 | Location         |
-|-------------------------|------------------|
-| Problem description     | 1-description.md |
-| Acceptance criteria — source (AC-n, optional) | 1-description.md |
-| Metadata                | 1-description.md |
-| Mapping/findings        | 2-analysis.md    |
-| Scope (files, estimate) | 3-solution.md    |
-| Complexity analysis     | 3-solution.md    |
-| Risk analysis           | 3-solution.md    |
-| Approaches              | 3-solution.md    |
-| Behavior delta          | 3-solution.md    |
-| Acceptance criteria — testable scenarios | 3-solution.md |
-| Before/after examples   | 3-solution.md    |
-| Implementation plan     | 3-solution.md    |
-| Testing strategy        | 3-solution.md    |
-| Progress                | 4-status.md      |
-| Acceptance criteria — tick checklist (AC-tagged, optional) | 4-status.md |
+| Content                                                    | Location         |
+|------------------------------------------------------------|------------------|
+| Problem description                                        | 1-description.md |
+| Acceptance criteria — source (AC-n, optional)              | 1-description.md |
+| Metadata                                                   | 1-description.md |
+| Mapping/findings                                           | 2-analysis.md    |
+| Scope (files, estimate)                                    | 3-solution.md    |
+| Complexity analysis                                        | 3-solution.md    |
+| Risk analysis                                              | 3-solution.md    |
+| Approaches                                                 | 3-solution.md    |
+| Behavior delta                                             | 3-solution.md    |
+| Acceptance criteria — testable scenarios                   | 3-solution.md    |
+| Before/after examples                                      | 3-solution.md    |
+| Implementation plan                                        | 3-solution.md    |
+| Testing strategy                                           | 3-solution.md    |
+| Progress                                                   | 4-status.md      |
+| Acceptance criteria — tick checklist (AC-tagged, optional) | 4-status.md      |
 
 ---
 

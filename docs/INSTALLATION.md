@@ -30,12 +30,12 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 
 This workspace supports several AI tools. Choose the one that suits you best:
 
-| AI tool            | Advantages                                       | Best for                                   | Installation documentation                                               |
-|--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents               | Complex analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
-| **Codex (OpenAI)** | Prompt templates, manual workflow                | Spec analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| AI tool            | Advantages                             | Best for                                   | Installation documentation                                               |
+|--------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
+| **Claude Code**    | Slash commands, specialized agents     | Complex analyses, cross-cutting tasks      | [claude-code/README.md](../implementations/claude-code/README.md)        |
+| **Codex (OpenAI)** | Prompt templates, manual workflow      | Spec analysis and implementation           | [../implementations/codex/README.md](../implementations/codex/README.md) |
 | **GitHub Copilot** | Shares the skills directory with Codex | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
-| **OpenCode**       | One CLI in front of many providers               | Reaching a model no other tool offers | [opencode/README.md](../implementations/opencode/README.md)              |
+| **OpenCode**       | One CLI in front of many providers     | Reaching a model no other tool offers      | [opencode/README.md](../implementations/opencode/README.md)              |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
