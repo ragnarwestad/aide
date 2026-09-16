@@ -27,7 +27,7 @@ and which configuration files each tool reads.
 | Tool               | Version | Last verified | Status                     |
 |--------------------|---------|---------------|----------------------------|
 | Claude Code        | 2.1.270 | 2026-09-14 | ✅ Supported               |
-| GitHub Copilot CLI | 1.0.83 | 2026-09-14 | ⏸️ Parked (no subscription) |
+| GitHub Copilot CLI | 1.0.83 | 2026-09-14 | ✅ Supported               |
 | Codex CLI          | 0.154.0 | 2026-09-14 | ✅ Supported               |
 
 **The Version and Last verified columns are stamped from probing — do not
@@ -103,7 +103,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 ## Open follow-up items
 
-- ⏸️ **Copilot is PARKED (August 2026): no subscription.** The customer-provided subscription lapsed, so every Copilot model call is refused («Access denied by policy settings»). Consequences: the Copilot e2e tests cannot run, and the cells that need a model call stay unverified — `CLAUDE.md`, repo `AGENTS.md`, project-level `.claude/rules/` and `.claude/agents/`, and the instructions files. Verified-stamped cells (skills/commands, done via the free `copilot skill list` against 1.0.79 on 2026-08-13) remain valid. Resume the verification sweep when a subscription exists again.
+- ⏳ **The Copilot cells that need a real model call are unverified:** `CLAUDE.md`, repo `AGENTS.md`, project-level `.claude/rules/` and `.claude/agents/`, and the instructions files. The verified-stamped cells (skills and commands, read with `copilot skill list`) hold. Finish the sweep when a model call can be made from this machine.
 - The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
 
 ---
