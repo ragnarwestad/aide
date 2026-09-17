@@ -12,7 +12,6 @@ import shutil
 import subprocess
 import time
 # The spec files the tests build, kept beside this one.
-from .run_spec_status_files import STATUS_ROW_COUNTING
 # The stand-in AIs, kept beside this file — imported here so every part of
 # the suite keeps one import surface.
 from ..conftest import git

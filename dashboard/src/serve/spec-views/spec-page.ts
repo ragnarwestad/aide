@@ -50,7 +50,6 @@ export async function specPageView(
   // TAB's own text (out of REQ-1's scope, per 1-description.md) — the
   // Checks section below may draw from a DIFFERENT source.
   const status = files.find((f) => f.label === STATUS_SPEC_FILE);
-  const diskStatusText = status?.text ?? "";
   // REQ-1/REQ-2: an active spec with its own OPEN `aide/<folder>`
   // branch has its real, already-committed progress sitting there —
   // `implement` never merges its own work, only `archive` does — so
@@ -58,7 +57,7 @@ export async function specPageView(
   // is what makes archive's own human-approval gate reachable at all
   // (see 1-description.md). An archived spec never has one; every
   // other spec falls back to the disk read exactly as before REQ-1.
-  let checksText = diskStatusText;
+  let checksText = status?.text ?? "";
   let branchBaseSha: string | undefined;
   if (!ref?.archived) {
     // The ordinary CACHED call (never `fresh`): the same tolerance for

@@ -335,22 +335,22 @@
      No auto margin anywhere: free space at the line's end would stand
      between the status and the box, as wide as the status text left. */
   table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }
-  table.list tr.subrow .aimodelnow { width: var(--aimodel-w); box-sizing: border-box;
+    table.list tr.subrow .aimodelnow { width: var(--aimodel-w); box-sizing: border-box;
     height: 28px; padding: 0 var(--sp-2); border: 1px solid var(--line-strong);
     border-radius: var(--r-s); background: var(--surface); color: var(--text);
     font: var(--fs-s)/var(--lh) var(--mono); display: flex; align-items: center;
     white-space: nowrap; overflow: hidden;
     text-overflow: ellipsis; cursor: pointer; }
-  table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
+    table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
     background: var(--surface-2); cursor: default; }
-  table.list tr.subrow .aimodelpanel { display: none; position: absolute; top: 0; left: 0;
+    table.list tr.subrow .aimodelpanel { display: none; position: absolute; top: 0; left: 0;
     z-index: 20; flex-direction: column; gap: var(--sp-2); min-width: 13rem;
     padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong);
     border-radius: var(--r); box-shadow: var(--overlay-shadow); }
-  table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }
-  table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
-  table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
-  table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
+    table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }
+    table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
+    table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
+    table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
@@ -373,7 +373,7 @@
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
      copy still starts over the phases' own state column. */
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
+    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { display: block; justify-self: start; }
   /* The slot holds an empty form (the button points at it by id), the
      button, and the state copy: the button in the first column at its
      own width, the state in the second, the form out of the grid. */
@@ -383,7 +383,7 @@
      button: placed the same way, or it stretches across the column and
      its button sits in the middle of it. */
   table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }
-  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
+    table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
   /* An open row's own second line comes off: the caption line carries
      the state, over the phases' states, and the phase lines say what the
      pips say — one state twice on one screen is one too many. A shut
@@ -453,13 +453,13 @@
   /* The board's name stays in the header to the last; its Stop button
      moves into the "…" menu, first row — beside the wordmark the two
      together wrapped "aide -dashboard" onto two lines. */
-  header > .boardline > .actionform { display: none; }
+    header > .boardline > .actionform { display: none; }
   /* The wordmark never wraps; the board's name is what gives way — it
      shrinks to the room left between the wordmark and the "…" and wraps
      inside that, right against the menu. */
   header .brand { flex: none; white-space: nowrap; }
-  header > .boardline { flex: 1 1 auto; min-width: 0; justify-content: flex-end; text-align: right; }
-  .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
+    header > .boardline { flex: 1 1 auto; min-width: 0; justify-content: flex-end; text-align: right; }
+    .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }

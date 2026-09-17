@@ -215,7 +215,6 @@ export function harness(
 
   const inserted: { id: string; className: string; textContent: string }[] = [];
   const parentNode = {
-    insertBefore: (node: { id: string; className: string; textContent: string }) => void inserted.push(node),
   };
   // Replacing the rows is not a string assignment in a browser: the old
   // selects are gone and new ones stand there, drawn from the server's
@@ -331,7 +330,6 @@ export function harness(
       resolveDocumentQuerySelectorAll(sel, {
         elapsed, addForm, removeForm, aiSelects, modelSelects, otherRowSelect, runButton, stepBoxes, tailBoxEl,
       }),
-    createElement: () => ({ id: "", className: "", textContent: "" }),
     // Recorded since spec 189: `visibilitychange` is what opens and
     // closes the page's connection now, so a fake that swallowed it
     // could not tell a tab going quiet from one that never connected.

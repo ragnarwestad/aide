@@ -44,7 +44,7 @@ aide_resolve_spec() {
     return
   elif echo "$input" | grep -qiE '^(todo-)?[0-9]+$'; then
     # Number shorthand ("27", "05" or "todo-27"); base 10 avoids octal errors
-    num=$(echo "$input" | sed 's/^[Tt][Oo][Dd][Oo]-//')
+    num="${input#[Tt][Oo][Dd][Oo]-}"
     flag="-name"; pattern="$(printf '%02d' "$((10#$num))")-*"
   elif echo "$input" | grep -qE '^[A-Z][A-Z0-9]*-[0-9]+$'; then
     # Issue key (any project prefix): the key is part of the slug
@@ -233,8 +233,8 @@ aide_test_scope_commands() {
     paths="$(aide_config_get "AIDE_TEST_SCOPE_PATHS_$n" "$root")"
     [ -n "$paths" ] || break
     cmd="$(aide_config_get "AIDE_TEST_SCOPE_CMD_$n" "$root")"
-    scope_paths[$((n-1))]="$paths"
-    scope_cmds[$((n-1))]="$cmd"
+    scope_paths[n-1]="$paths"
+    scope_cmds[n-1]="$cmd"
     n=$((n+1))
   done
 
@@ -260,7 +260,7 @@ aide_test_scope_commands() {
     if [ "$idx" = "-1" ]; then
       any_unmatched="yes"
     else
-      matched[$idx]="yes"
+      matched[idx]="yes"
     fi
   done
 

@@ -124,7 +124,9 @@ sed -i '' 's/- \[X\] /- ✅ /g' "$TEMP_MD"
 
 # Fix incorrect code block termination (```text used instead of ```)
 # This is a common mistake where someone writes ```text as the closing fence
+# shellcheck disable=SC2016  # the backticks are markdown fences, matched as they are
 sed -i '' 's/^```text$/```/g' "$TEMP_MD"
+# shellcheck disable=SC2016  # the backticks are markdown fences, matched as they are
 sed -i '' 's/^   ```text$/   ```/g' "$TEMP_MD"
 
 # Convert markdown to HTML with Pandoc (automatically generates IDs on all headings)

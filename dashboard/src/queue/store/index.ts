@@ -501,8 +501,7 @@ export class QueueStore {
   }
 
   private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): void {
-    const wanted = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
-    this.pendingSteps[`${project}/${specFolder}`] = wanted;
+    this.pendingSteps[`${project}/${specFolder}`] = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
     this.persistPendingStepsTable();
   }
 

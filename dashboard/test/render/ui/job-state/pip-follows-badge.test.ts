@@ -4,7 +4,7 @@
 // phase's state in two colours.
 import { describe, expect, test } from "bun:test";
 import { CSS } from "../../../../src/render/ui/css";
-import { wordPhase } from "../../../../src/render/ui/job-state/word-phase.ts";
+import { wordPhase } from "../../../../src/render/ui/job-state";
 
 const noJob = undefined;
 

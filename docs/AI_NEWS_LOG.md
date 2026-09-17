@@ -60,7 +60,7 @@ Relevance markers in each review's `Relevance for aide` section:
 |--------|----------------------------------------------------|
 | ⭐     | Direct impact on Aide (requires action)            |
 | ✅     | Useful, but no immediate action                    |
-| ℹ️     | Informative, low relevance                         |
+| ℹ      | Informative, low relevance                         |
 | ⚠️     | Breaking change or something that must be verified |
 
 ---
@@ -157,7 +157,7 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 - ✅ **Codex hooks run async and call MCP tools (v0.148), `Interrupt` hooks (v0.150), hook trust persists through `codex exec` resume (v0.141)** — the Codex hook implementation can grow; the trust flag matters for the resume above.
 - ✅ **Codex `/import` migrates Claude Code settings, skills and memories (v0.145, v0.147)** — an alternative to Aide's own Codex installer for the parts that overlap; not adopted, noted.
 - ✅ **Copilot `copilot skill` subcommand, plugins dashboard, Open Plugin Spec v1, `preToolUse` exit 2 denies** — logged for the next verification sweep.
-- ℹ️ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no Aide action.
+- ℹ **Codex `--worktree`, `codex agents`, `codex queue`; Claude Code cross-session messaging and background subagents by default** — product expansions, no Aide action.
 
 ---
 
@@ -227,7 +227,7 @@ Platform: **Codex app 26.519** (May 21) — Appshots (send the frontmost app win
 - ✅ **Goals default in Codex (v0.133) + `/goal` in Claude Code** — the `/goal` primitive is maturing in both tools
 - ✅ **`claude agents --json` (v2.1.145)** — scripting-friendly agent execution, relevant if Aide automates agent workflows
 - ✅ **Fast mode → Opus 4.7 (Claude Code v2.1.142)** — Fast usage in Aide now hits Opus 4.7
-- ℹ️ **Codex Appshots/computer use, Copilot for Eclipse, Gemini surgical edits** — product/UX expansions, low priority for Aide
+- ℹ **Codex Appshots/computer use, Copilot for Eclipse, Gemini surgical edits** — product/UX expansions, low priority for Aide
 
 ---
 
@@ -316,7 +316,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 - ✅ **BYOK + local models + `COPILOT_OFFLINE` (Copilot CLI)** — air-gapped use, potentially relevant under strict security requirements
 - ✅ **Native binary architecture (Claude Code v2.1.113)** — faster startup, lower memory usage
 - ✅ **Memory convergence** — Claude Code recap, Codex memory reset, Gemini Auto Memory Inbox — all tools are maturing persistent memory
-- ℹ️ **Claude Design, Codex for Chrome, Gemini voice mode** — product expansions, low priority for Aide
+- ℹ **Claude Design, Codex for Chrome, Gemini voice mode** — product expansions, low priority for Aide
 
 ---
 
@@ -379,7 +379,7 @@ Platform: **The Codex app "Codex for (almost) everything"** — background compu
 - ✅ **Claude Code transcript search** — Useful UX improvement for long sessions
 - ✅ **Codex plugins + sub-agents** — Codex is maturing, but low priority for us
 - ✅ **Gemini tool sandboxing** — All four CLI tools now have sandboxing
-- ℹ️ **Copilot @copilot PR changes** — Platform feature, not CLI-related
+- ℹ **Copilot @copilot PR changes** — Platform feature, not CLI-related
 
 ---
 

@@ -114,6 +114,20 @@ describe("POST /api/self-run", () => {
     expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(200);
   });
 
+  test("a board that serves no project ends the round as failed, saying so", async () => {
+    const { base } = harness.start({
+      extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, queueProjects: [] },
+    });
+    const pressed = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+    expect(pressed.status).toBe(200);
+    let state: { stage: string; error?: string } = { stage: "resetting" };
+    for (let i = 0; i < 50 && state.stage !== "done" && state.stage !== "failed"; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+      state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+    }
+    expect(state).toMatchObject({ stage: "failed", error: "this board serves no project" });
+  });
+
   test("before any press the status is idle", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD } });
     const res = await fetch(`${base}/api/self-run`, auth);

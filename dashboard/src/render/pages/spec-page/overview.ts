@@ -3,7 +3,7 @@
 // checklist, and the Reopen/Reset controls.
 
 import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from "../../ui/components";
-import { SPINNER } from "../../ui/components/icons.ts";
+import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";

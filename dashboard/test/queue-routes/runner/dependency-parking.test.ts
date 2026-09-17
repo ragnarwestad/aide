@@ -353,10 +353,10 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
   // `blockedForMissingAnalyze()` rather than `blockedDependencies()` —
   // asked before a job is spawned, the same shape as the dependency park
   // above.
-  describe("a job parked on unticked acceptance criteria", () => {
+  describe("an archive whose acceptance criteria are not all ticked", () => {
     /** `root()` minus the dependency, with implement done and one
      *  acceptance row still open in the state file. */
-    function rootWithOpenRow(dir: string, done: boolean): { root: string; project: string; specs: string } {
+    function rootWithOpenRow(dir: string): { root: string; project: string; specs: string } {
       const paths = root(dir);
       writeFileSync(join(paths.specs, "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
       writeFileSync(
@@ -366,7 +366,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       writeFileSync(
         join(paths.specs, "81-queue-and-runner", "4-status.json"),
         JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
-          acceptanceCriteria: [{ task: "REQ-1: does the thing", done }], phaseCounts: {} }),
+          acceptanceCriteria: [{ task: "REQ-1: does the thing", done: false }], phaseCounts: {} }),
       );
       return paths;
     }
@@ -377,37 +377,14 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["archive"] }),
       });
 
-    test("an archive job whose spec has an open acceptance row never invokes the runner", async () => {
-      const dir = own("aide-queue-parked-acceptance-");
+    // It is NOT parked here any more: the step starts, and
+    // `aide-archive-spec`'s own pre-check refuses it without spending a
+    // model, so the job ends with the reason on its row and a person
+    // presses Archive once the rows are ticked.
+    test("the step starts rather than being parked for the tick", async () => {
+      const dir = own("aide-queue-unticked-acceptance-");
       const { bin, argvFile } = stub(dir);
-      const paths = rootWithOpenRow(dir, false);
-      const { base } = harness.start({
-        extra: {
-          queueToken: TOKEN,
-          projectRoot: paths.root,
-          queueProjectRoot: paths.root,
-          queueRunnerBin: bin,
-          queueResultDir: join(dir, "jobs"),
-          gitRun: gitFor(() => true).run,
-        },
-      });
-      expect((await queueArchive(base)).status).toBe(200);
-      await settle();
-      expect(existsSync(argvFile)).toBe(false);
-
-      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-        jobs: { state: string; error?: unknown }[];
-      };
-      expect(listed.jobs[0].state).toBe("queued");
-      expect(sentence(listed.jobs[0].error)).toBe(
-        "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
-      );
-    });
-
-    test("the job starts once every row is ticked", async () => {
-      const dir = own("aide-queue-released-acceptance-");
-      const { bin, argvFile } = stub(dir);
-      const paths = rootWithOpenRow(dir, true);
+      const paths = rootWithOpenRow(dir);
       const { base } = harness.start({
         extra: {
           queueToken: TOKEN,

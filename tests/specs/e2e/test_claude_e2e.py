@@ -80,7 +80,7 @@ class TestClaudeAideWorkflow:
     """E2E: Claude Code aide workflow - create and analyze."""
 
     @pytest.mark.slow
-    def test_aide_full_workflow(self, e2e_workspace, workspace_root):
+    def test_aide_full_workflow(self, e2e_workspace):
         """Test complete aide workflow: create -> analyze.
 
         This test verifies that:

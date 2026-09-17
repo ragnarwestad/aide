@@ -236,7 +236,8 @@ class TestUninstallAgentsSkills:
     open, the names in it are exactly the ones its own loop over
     core/skills/ cannot see."""
 
-    def run_uninstall(self, helper, home):
+    @staticmethod
+    def run_uninstall(helper, home):
         return subprocess.run(
             [BASH, "-c", f'set -e; source "{helper}"; uninstall_agents_skills'],
             capture_output=True,

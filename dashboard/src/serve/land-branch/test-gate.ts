@@ -13,7 +13,7 @@ import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSyn
 import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
-import { resolveWorktreeLinks } from "../../project/discover/config.ts";
+import { resolveWorktreeLinks } from "../../project/discover";
 import { runScript, scriptFor } from "./run-script.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through

@@ -280,7 +280,8 @@ function pageHeader(lang: Language, currentUrl: string): string {
     // header's right-hand end (spec 243, spec 350, spec 436) —
     // header-level controls the reader reaches without opening the menu
     // first, not one more item behind it.
-    `<span class="row">${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
+    // A <div>, not a <span>: a <details> is flow content, which a span cannot hold.
+    `<div class="row">${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
@@ -292,7 +293,7 @@ function pageHeader(lang: Language, currentUrl: string): string {
     `<div class="menupanel">${boardRow(lang)}${mobileRows}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
-    `</details></span></header>`
+    `</details></div></header>`
   );
 }
 

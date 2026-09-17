@@ -7,7 +7,7 @@
 // re-check corrects it, but not until the whole merge loop is over.
 
 import { describe, expect, test } from "bun:test";
-import { landBranch } from "../../../src/serve/land-branch/merge.ts";
+import { landBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit, REPOS, ROOT } from "./landing-fixtures.ts";
 import type { Answer } from "../../helpers/fake-git.ts";
 

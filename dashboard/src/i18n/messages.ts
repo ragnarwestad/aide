@@ -54,11 +54,6 @@ export const MESSAGES = {
     nb: "holdt tilbake: avhenger av {dependency}, som ikke er arkivert ennå",
     exempt: "resolves on its own once the dependency is archived — nothing to press",
   },
-  "runner.acceptanceCriteriaUnticked": {
-    en: "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab",
-    nb: "holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset ennå — kryss dem av på Sjekker-fanen",
-    resolve: "tick them on the Checks tab",
-  },
   "runner.runVanished": {
     en: "the run vanished without leaving a result. — Press {button} again.",
     nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",

@@ -26,15 +26,6 @@ const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitin
  *  already knows how to act on (the round the checks are waiting on). */
 const testServerStartLinkSentence = (lang: Language): string => t(lang, "list.testServerStartLink");
 
-/** Is the QUEUE holding this spec's archive for unticked acceptance
- *  criteria? The file's own note answers the same question a moment
- *  later — the archive run writes it — so the two are read apart:
- *  this one to avoid saying it twice, and to say the start link is
- *  coming while only this half is true. */
-const queueHeldForChecks = (g: SpecGroup): boolean =>
-  g.lead?.errorReason === "held-back" && !!g.lead.error && typeof g.lead.error === "object" &&
-  !Array.isArray(g.lead.error) && g.lead.error.key === "runner.acceptanceCriteriaUnticked";
-
 /** The sentence a LIVE row carries when a push never reached origin
  *  (spec 328, spec 335, spec 352). Fixed prose, not `pushError`'s own
  *  text: that text is git's raw stderr with its `hint:` lines flattened
@@ -122,16 +113,7 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
   // two — it offers a board built from a branch the run is moving.
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
-    // Unless the queue is already saying it. The runner holds a job for
-    // this exact reason with a message of its own, which the notice
-    // line draws above these marks — and that one is translated, where
-    // the file's note is a fixed English constant. Two sentences saying
-    // one thing, one of them in the wrong language, is what a reader
-    // got until 2026-09-08.
-    const queueSaysIt = queueHeldForChecks(g);
-    if (!queueSaysIt) {
-      marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason) });
-    }
+    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason) });
     if (testServerAvailable(g.project)) {
       marks.push({
         variant: "waiting",
@@ -139,18 +121,6 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
         sentence: testServerStartLinkSentence(lang),
         href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
       });
-    }
-  } else if (queueHeldForChecks(g) && !quiet) {
-    // The queue holds the job the moment it refuses to archive; the
-    // note the branch above reads — and with it the start link — needs
-    // `implement` in the git-verified done-set as well
-    // (`archiveHeldBackApplies`), and that set does not count a step
-    // whose work is still on its branch. So the link can be there on
-    // one render and gone on the next. A reader in that window was told
-    // to go and tick, with no way to see the thing being ticked and
-    // nothing saying one was coming. So it is said.
-    if (testServerAvailable(g.project)) {
-      marks.push({ variant: "waiting", label: TEST_SERVER(lang), sentence: t(lang, "list.testServerStartComing") });
     }
   }
   if (g.prUrl) {

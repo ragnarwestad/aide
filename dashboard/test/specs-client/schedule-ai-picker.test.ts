@@ -30,7 +30,7 @@ function modelSelect(chosen: string) {
     selected: value === chosen,
     parentElement: group,
   }));
-  const self = {
+  return {
     // The bare name — one model for the whole entry.
     name: "model",
     options,
@@ -46,7 +46,6 @@ function modelSelect(chosen: string) {
       for (const o of options) o.selected = o.value === v;
     },
   };
-  return self;
 }
 
 function aiSelect(tool: string) {

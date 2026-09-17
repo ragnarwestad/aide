@@ -91,7 +91,7 @@ def test_the_prompt_says_never_to_wait_on_background_work(runner, workspace, fak
     assert "foreground" in lowered
     assert "end your turn" in lowered
 
-def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude, command="implement"):
+def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude):
     """Spec 144. The run works in a worktree cut from origin's default
     branch, so nothing in the main checkout reaches it — dirty or not.
     A stray file used to refuse every job touching the repo, however
@@ -108,7 +108,7 @@ def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_clau
     branch = "aide/81-queue-and-runner"
     assert "scratch.txt" not in git(workspace["project"], "show", "--name-only", "--pretty=", branch)
 
-def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude, command="implement"):
+def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude):
     """The specs repo is where /aide-analyze actually writes, so it was
     the root the old refusal guarded hardest. Its worktree is cut from
     origin's default branch too (spec 144)."""

@@ -23,7 +23,7 @@ import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
-import { json } from "../serve-helpers/http.ts";
+import { json } from "../serve-helpers";
 import type { Job } from "../../queue/queue.ts";
 
 /** The folder a create job's spec can be queued under: its real
@@ -123,9 +123,12 @@ export function selfRunRoute(ctx: RoutesContext, req: Request, path: string): Re
 
 async function runRound(ctx: RoutesContext): Promise<void> {
   current = { stage: "resetting", startedAt: new Date().toISOString(), specs: [] };
+  const project = [...ctx.allowed][0];
+  if (!project) {
+    current = { ...current, stage: "failed", error: "this board serves no project" };
+    return;
+  }
   try {
-    const project = [...ctx.allowed][0];
-    if (!project) throw new Error("this board serves no project");
     // The checkout the round made and the runs branch from — not the
     // dashboard's own landing clone, which follows origin by itself
     // the next time a landing fetches it.
@@ -258,9 +261,7 @@ async function resetRepo(ctx: RoutesContext, dir: string, base: string | null): 
  *  origin while the queue works, so a spec's state (read from the
  *  checkout a person looks at) catches up with what a landing pushed —
  *  a dependency on an archived spec is answered from there. Until no
- *  job of the project is live; a queued archive held for its own
- *  acceptance-criteria gate never leaves `queued` on its own and is not
- *  live. */
+ *  job of the project is live. */
 async function followUntilDrained(ctx: RoutesContext, project: string, dirs: string[]): Promise<void> {
   const live = (): boolean =>
     ctx.queue.list().some(
@@ -268,7 +269,7 @@ async function followUntilDrained(ctx: RoutesContext, project: string, dirs: str
         j.project === project &&
         (j.state === "running" ||
           j.landing === true ||
-          (j.state === "queued" && (j.error as { key?: string } | undefined)?.key !== "runner.acceptanceCriteriaUnticked")),
+          j.state === "queued"),
     );
   const deadline = Date.now() + 30 * 60_000;
   while (live() && Date.now() < deadline) {

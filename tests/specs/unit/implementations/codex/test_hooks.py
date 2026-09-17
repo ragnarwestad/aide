@@ -20,8 +20,8 @@ def hooks_dir(workspace_root):
     return workspace_root / "implementations" / "codex" / HOOKS_DIR_NAME
 
 
-def run_hook(hooks_dir, script, payload, env=None):
-    """Run a hook script with the payload on stdin, like Codex does."""
+def run_hook(hooks_dir, script, event, env=None):
+    """Run a hook script with the event on stdin, like Codex does."""
     import os
 
     full_env = dict(os.environ)
@@ -29,7 +29,7 @@ def run_hook(hooks_dir, script, payload, env=None):
         full_env.update(env)
     return subprocess.run(
         [str(hooks_dir / script)],
-        input=json.dumps(payload),
+        input=json.dumps(event),
         capture_output=True,
         text=True,
         env=full_env,
@@ -58,7 +58,8 @@ class TestHooksJson:
     def config(self, hooks_dir):
         return json.loads((hooks_dir / "hooks.json").read_text())
 
-    def _commands(self, config, event):
+    @staticmethod
+    def _commands(config, event):
         return [
             hook["command"]
             for group in config["hooks"].get(event, [])
@@ -283,7 +284,8 @@ class TestStopGuard:
     lives under $TMPDIR, which the tests point at tmp_path.
     """
 
-    def track(self, hooks_dir, tmp_path, tool_name, tool_input):
+    @staticmethod
+    def track(hooks_dir, tmp_path, tool_name, tool_input):
         result = run_hook(
             hooks_dir,
             "aide-track-turn.sh",
@@ -293,7 +295,8 @@ class TestStopGuard:
         assert result.returncode == 0
         return result
 
-    def stop(self, hooks_dir, tmp_path, stop_hook_active=False):
+    @staticmethod
+    def stop(hooks_dir, tmp_path, stop_hook_active=False):
         return run_hook(
             hooks_dir,
             "aide-stop-guard.sh",
@@ -301,7 +304,8 @@ class TestStopGuard:
             env={"TMPDIR": str(tmp_path)},
         )
 
-    def decision(self, result):
+    @staticmethod
+    def decision(result):
         assert result.returncode == 0
         if not result.stdout.strip():
             return None

@@ -45,7 +45,8 @@ class TestConfigExampleFile:
     skill's own table recognizes, read from that table rather than a
     hardcoded list — the two cannot silently drift apart."""
 
-    def _table_keys(self, workspace_root):
+    @staticmethod
+    def _table_keys(workspace_root):
         skill = (
             workspace_root / "core" / "skills" / "tools-and-scripts" / "SKILL.md"
         ).read_text()

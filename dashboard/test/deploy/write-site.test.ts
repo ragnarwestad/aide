@@ -6,6 +6,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeSite } from "../../src/main.ts";
+import { APPLE_TOUCH_ICON, PWA_LINKS, WEBMANIFEST } from "../../src/render";
 
 describe("writeSite", () => {
   test("writes pages, removes stale .html, leaves other files alone", () => {
@@ -26,6 +27,24 @@ describe("writeSite", () => {
       expect(readFileSync(join(dir, "a.html"), "utf-8")).toBe("<p>a</p>");
       expect(existsSync(join(dir, "stale.html"))).toBe(false);
       expect(readFileSync(join(dir, "keep.txt"), "utf-8")).toBe("not a page");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // The pages link /manifest.webmanifest and /apple-touch-icon.png, and
+  // the server answers those from memory. A site published by rsync has
+  // no server in front of it, so the files have to be on disk beside
+  // the pages.
+  test("writes the files the pages' PWA links point at", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-dash-out-"));
+    try {
+      writeSite([{ path: "index.html", html: PWA_LINKS }], dir);
+      const linked = [...PWA_LINKS.matchAll(/href="\/([^"]+)"/g)].map((m) => m[1]!);
+      expect(linked.length).toBeGreaterThan(0);
+      for (const file of linked) expect(existsSync(join(dir, file))).toBe(true);
+      expect(readFileSync(join(dir, "manifest.webmanifest"), "utf-8")).toBe(WEBMANIFEST);
+      expect(readFileSync(join(dir, "apple-touch-icon.png")).equals(APPLE_TOUCH_ICON)).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

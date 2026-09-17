@@ -9,7 +9,7 @@ import {
   type SpecTarget,
 } from "../../../src/render";
 import { durationLabel } from "../../../src/render/ui/job-state";
-import { phaseDuration } from "../../../src/render/pages/specs-list/data-model/phases.ts";
+import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 
 // --- spec 199: time becomes something worth reading -------------------------
 //

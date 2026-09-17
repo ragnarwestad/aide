@@ -56,8 +56,9 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     assert "resolved by the step" in git(project, "show", f"{branch}:contested.txt")
     assert is_ancestor(project, "main", branch), "main must now be contained in the branch"
 
+@pytest.mark.usefixtures("origin")
 def test_after_an_archive_resolution_the_default_branch_fast_forwards(
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude
 ):
     """Criterion 3 (spec 171). The point of pushing the branch is that
     the landing that follows finds a fast-forward — the same routine that
@@ -198,7 +199,7 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     # In the project, because that is the branch the merge is asked
     # about: since spec 215 a branch this run never advanced past its
     # base is deleted at the end of it.
-    claude = project_only_claude(fake_claude, workspace)
+    claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert is_ancestor(project, "main", branch)
@@ -326,8 +327,9 @@ def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
+@pytest.mark.usefixtures("origin")
 def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude
 ):
     """An archive session that aborts the merge it was handed open —
     read as "leftover dirty state" — and still moves the folder used to

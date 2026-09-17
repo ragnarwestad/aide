@@ -11,7 +11,7 @@ import { resolveSchedule } from "../../../project/discover";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { SCHEDULE_ROUTE, projectPagePath, renderDeleteSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
-import { serveStatic } from "../../serve-helpers/static.ts";
+import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 export async function schedulePages(

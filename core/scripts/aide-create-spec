@@ -213,9 +213,10 @@ if [ "$assign_number" = "yes" ]; then
   # One commit, landing together with the merge that triggered it: the
   # rename alone (from `git mv`, already staged) plus the Task: line
   # rewrites above, which are not.
-  git -C "$specs_root" add -- "$new_folder" \
-    && git -C "$specs_root" commit -q -m "Assign $new_folder its number" \
-    || refuse "could not commit the rename of $folder to $new_folder"
+  if ! { git -C "$specs_root" add -- "$new_folder" \
+      && git -C "$specs_root" commit -q -m "Assign $new_folder its number"; }; then
+    refuse "could not commit the rename of $folder to $new_folder"
+  fi
 
   emit_ok "$(jq -cn --arg f "$new_folder" '{terminalReason:"assigned", specFolder:$f}')"
 fi
@@ -326,6 +327,7 @@ if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
   # per join, rather than repeating the whole string — so ", " would
   # come out as a bare "," between every pair. Joined with a single
   # comma instead, then widened to ", " afterwards.
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
   formatted="$(printf '%s' "$depends_on" | tr ',' '\n' \
     | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' \
     | sed 's/^/`/; s/$/`/' | paste -sd, - | sed 's/,/, /g')"

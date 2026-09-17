@@ -3,9 +3,9 @@
 import { describe, expect, test } from "bun:test";
 import { row, rows, target } from "./design-system-fixtures.ts";
 import type { SpecsPageOptions, QueueRowView } from "../../src/render";
-import { wordPhase } from "../../src/render/ui/job-state/word-phase.ts";
+import { wordPhase } from "../../src/render/ui/job-state";
 import { badge } from "../../src/render/ui/components";
-import { restingChip, specStateChip } from "../../src/render/ui/job-state/resting.ts";
+import { restingChip, specStateChip } from "../../src/render/ui/job-state";
 
 // --- every state picks a badge -----------------------------------------------
 

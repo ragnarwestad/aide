@@ -4,7 +4,7 @@
 import { badge, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { wordPhase } from "../../ui/job-state";
-import type { QueueRowView } from "../../ui/job-state/types.ts";
+import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";

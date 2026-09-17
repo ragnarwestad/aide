@@ -61,20 +61,19 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
 
 - Starts nothing at all while any job has `landing` set — see [Beside the state](#beside-the-state).
 - Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
+- Leaves an `archive` job `queued` with a reason on it — "held back: another archive is running in this project — it
+  starts when that one has merged" — while another `archive` in the same project is running or landing. Both branch
+  from the code root's main and both land into it, so the second waits for the first to have merged. This is the
+  cheapest question of the four and the one asked first; the three below need the spec's own files or the network.
 - Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
-- Leaves an `archive` job `queued` the same way — "held back: the Acceptance criteria are not all ticked yet — tick
-  them on the Checks tab" — while its spec's state file has an acceptance row nobody has ticked; the tick that
-  closes the last row is what releases it. A chained analyze/implement/archive job waits here between implement
-  and archive instead of ending with archive refused. Never triggered for a spec whose `analyze` ran with the
-  "acceptance ticking not required" switch: its state file carries a one-line note instead of a row, and there is
-  no open row to hold the job back for. Never triggered either for a spec with no `implement` on its
-  `Workflow steps completed` line: `core/scripts/aide-archive-spec` refuses that with `not-implemented-yet` before it
-  looks at the acceptance section at all, so the step is left to start and end with the reason that is actually
-  true — "nothing is implemented yet — run implement first". Held here instead, the row asked a person to tick rows
-  for work nobody had done.
+- Starts an `archive` whose spec still has an unticked acceptance row, rather than holding it: the step's own
+  pre-check (`core/scripts/aide-archive-spec`) refuses it before any model is spawned, the job ends `done` with
+  "archive held back" on its row, and a person presses Archive once the rows are ticked. Held here instead, one row
+  meant two different things — a tick sometimes started the archive by itself and sometimes started nothing, and
+  which one was true depended on whether the hold had been able to see `implement` as finished when it looked.
 - Moves a job with no step left to `done`.
 - Otherwise spawns the step and writes `running`, with the process and file fields.
 
@@ -125,12 +124,16 @@ Three fields say something the state alone does not, and each is read by the pag
   as ever. The step's own phase line follows the same flag: its badge reads "Running", not "done", and its
   own duration keeps counting until the landing settles — the row's state and the phase line never disagree about
   whether the step is still going.
-- **`stopReason`** is `timeout` or `provider-limit`, set with `stopped` and nowhere else.
-  `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome.
-- **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running
-  `archive` resolves both. It is declared in `src/queue/types.ts` and again in `src/render/ui/job-state/types.ts`,
-  which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree. `error` beside it is
-  the sentence for a reader, present on `stopped`, `failed` and `interrupted`, and on a `queued` job that is held back.
+- **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
+  `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
+  suite on a landing is work that is not green yet rather than a broken agent.
+- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when a person can act on the cause —
+  re-running `archive` resolves the conflict and the unlanded branch. It is declared in `src/queue/types.ts` and again
+  in `src/render/ui/job-state/types.ts`,
+  which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.
+  `error` beside it is what a reader is told, present on `stopped`, `failed` and `interrupted`, and on a `queued` job
+  that is held back. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
+  a finished string the queue made up.
 
 ## What the page makes of it
 

@@ -52,7 +52,7 @@ For each news item, assess:
 - **How important is it?** Use the icons:
   - ⭐ Direct impact on Aide (requires action)
   - ✅ Useful, but no immediate action
-  - ℹ️ Informative, low relevance
+  - ℹ Informative, low relevance
   - ⚠️ Breaking change or something that must be verified
 
 ## Step 4: Update the news log
@@ -86,7 +86,7 @@ Format — follow the existing pattern in the file:
 
 - ⭐ Important findings that require action
 - ✅ Useful findings
-- ℹ️ Informative findings
+- ℹ Informative findings
 ```
 
 ## Step 5: Flag proposals for the matrix and reference

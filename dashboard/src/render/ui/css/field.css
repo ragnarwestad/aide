@@ -60,7 +60,7 @@ select[name^="model."]:disabled, select[data-ai]:disabled {
    the sentence above already carves out for the project and checkout
    pickers. */
 select[name^="model."] {
-  font-family: var(--mono); font-size: var(--fs-s); }
+  font-family: var(--mono), monospace; font-size: var(--fs-s); }
 /* border-box, or width:100% means "100% plus padding and border" and
    the box sticks 18px out of its own field — which is exactly the gap
    to whatever stands beside it (seen against Create, 2026-08-19). */
@@ -98,7 +98,7 @@ select[name^="model."] {
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
 .scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }
-.cron-input { font-family: var(--mono); }
+.cron-input { font-family: var(--mono), monospace; }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 /* Spec 474: the two columns of the New-spec page's side-by-side
    Depends-on field (AC-1/AC-2). min-width: 0 lets a column's own chips

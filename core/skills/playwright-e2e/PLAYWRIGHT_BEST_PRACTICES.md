@@ -252,17 +252,21 @@ Generelle regler: **camelCase**, **async/await**, **eksplisitt returtype**
 Verifikasjonsmetoder skal **kaste via `expect()`**, ikke returnere boolean:
 
 ```ts
-// ✅ Riktig — venter + gir DOM-snapshot ved feil
-async expectSaveEnabled(): Promise<void> {
-  await expect(
-    this.page.getByRole("button", { name: "Save" }),
-    "Save-knappen skal være aktivert når skjemaet er gyldig",
-  ).toBeEnabled();
-}
+class FormPage {
+  constructor(private readonly page: Page) {}
 
-// ❌ Feil — returnerer boolean, ingen venting, taper kontekst
-async isSaveEnabled(): Promise<boolean> {
-  return this.page.getByRole("button", { name: "Save" }).isEnabled();
+  // ✅ Riktig — venter + gir DOM-snapshot ved feil
+  async expectSaveEnabled(): Promise<void> {
+    await expect(
+      this.page.getByRole("button", { name: "Save" }),
+      "Save-knappen skal være aktivert når skjemaet er gyldig",
+    ).toBeEnabled();
+  }
+
+  // ❌ Feil — returnerer boolean, ingen venting, taper kontekst
+  async isSaveEnabled(): Promise<boolean> {
+    return this.page.getByRole("button", { name: "Save" }).isEnabled();
+  }
 }
 ```
 

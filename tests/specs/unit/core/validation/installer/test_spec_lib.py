@@ -46,7 +46,8 @@ class TestSpecsRoot:
     stale export cannot leak one project's specs into another's root.
     """
 
-    def _project(self, tmp_path, config_value=None):
+    @staticmethod
+    def _project(tmp_path, config_value=None):
         if config_value is not None:
             (tmp_path / ".aide").mkdir()
             (tmp_path / ".aide" / "config").write_text(
@@ -242,7 +243,8 @@ class TestManifestGet:
     read loop with far more room for a silent misparse.
     """
 
-    def _manifest(self, tmp_path, text):
+    @staticmethod
+    def _manifest(tmp_path, text):
         (tmp_path / ".aide").mkdir(exist_ok=True)
         (tmp_path / ".aide" / "project.yaml").write_text(text)
 
@@ -326,7 +328,8 @@ class TestSpecDependencies:
     special-case.
     """
 
-    def _spec(self, tmp_path, body):
+    @staticmethod
+    def _spec(tmp_path, body):
         folder = tmp_path / "92-spec-depends-on-spec"
         folder.mkdir()
         (folder / "1-description.md").write_text(body)

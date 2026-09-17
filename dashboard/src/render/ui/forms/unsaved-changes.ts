@@ -90,7 +90,8 @@
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!dirty) return;
+    // preventDefault() alone asks for the browser's own prompt;
+    // returnValue is the deprecated way to ask for the same thing.
     event.preventDefault();
-    event.returnValue = "";
   });
 })();

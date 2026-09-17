@@ -12,7 +12,7 @@
   --danger: #6B1D0C; --danger-soft: #F1DDD7;
   --pdf: #D0342C;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236B6760' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
-  --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
+  --fs-s: 12px; --fs-m: calc(27px / 2); --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
   --lh: 1.45;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --r: 6px; --r-s: 4px;

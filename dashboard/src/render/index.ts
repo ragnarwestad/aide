@@ -80,6 +80,8 @@ export {
   APPLE_TOUCH_ICON,
   APP_ICON,
   APP_ICON_MASKABLE,
+  PWA_FILES,
+  PWA_LINKS,
   SERVICE_WORKER,
   WEBMANIFEST,
 } from "./ui/pwa.ts";

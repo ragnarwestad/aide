@@ -53,7 +53,7 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
 
   const radio = (choice: string, current = false): FakeRadio & Record<string, unknown> => {
     const attrs: Record<string, string> = { "data-unit-choice": choice };
-    const self: FakeRadio & Record<string, unknown> = {
+    return {
       choice,
       attrs,
       checked: current,
@@ -61,7 +61,6 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
       addEventListener: (type: string, fn: () => void) =>
         void (listeners[`${choice}:${type}`] = fn),
     };
-    return self;
   };
 
   // Dollars is what the server rendered as chosen: it has no way to know

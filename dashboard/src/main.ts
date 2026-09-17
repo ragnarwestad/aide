@@ -7,7 +7,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { buildProjectViews } from "./project/discover";
-import { renderSite, type Page } from "./render";
+import { PWA_FILES, renderSite, type Page } from "./render";
 import { setBoardInfo } from "./render/ui/board-info.ts";
 
 // Write every page and remove ONLY .html files not in the produced
@@ -21,6 +21,9 @@ export function writeSite(pages: Page[], dir: string): void {
     if (entry.endsWith(".html") && !produced.has(entry)) rmSync(join(dir, entry));
   }
   for (const page of pages) writeFileSync(join(dir, page.path), page.html);
+  // What the pages' PWA links point at: the server computes these, a
+  // published copy of the site has only the files.
+  for (const [name, body] of Object.entries(PWA_FILES)) writeFileSync(join(dir, name), body);
 }
 
 export function main(argv: string[]): number {

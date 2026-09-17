@@ -21,7 +21,7 @@ from .run_spec_origins import origin
 from .run_spec_results import RESULT_OK
 
 
-def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, fake_claude, tmp_path):
+def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp_path):
     """The measured problem. Two jobs for two specs against one pair of
     repositories used to be impossible; the only honest way to test that
     they are now independent is to run both at once."""

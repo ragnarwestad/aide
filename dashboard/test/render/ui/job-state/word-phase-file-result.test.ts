@@ -7,7 +7,7 @@
 // spec says ran.
 
 import { describe, expect, test } from "bun:test";
-import { wordPhase } from "../../../../src/render/ui/job-state/word-phase.ts";
+import { wordPhase } from "../../../../src/render/ui/job-state";
 
 const noJob = undefined;
 

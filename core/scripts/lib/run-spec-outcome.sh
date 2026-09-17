@@ -85,6 +85,7 @@ if [ -n "$phase_file" ]; then
       # empty sha is worse than an absent line — absence over a guess,
       # the same rule already used for Model.
       if [ -n "${head_before[$i]:-}" ]; then
+        # shellcheck disable=SC2016  # the backticks are markdown, printed as they are
         printf -- '- **Repo:** `%s/%s @ %s`\n' \
           "$(basename "$root")" "$branch" "${head_before[$i]:0:8}" >> "$work_dir/phase-outcome"
       fi

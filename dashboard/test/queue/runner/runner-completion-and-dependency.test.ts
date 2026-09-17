@@ -498,37 +498,26 @@ describe("a step appended to a running job's tail (spec 160)", () => {
   });
 });
 
-describe("a job parked on unticked acceptance criteria", () => {
-  // The third set `tick()` takes, `notAnalyzed`'s sibling for archive:
-  // run, the step would only be refused by aide-archive-spec, and a
-  // chained analyze/implement/archive job would end with archive
-  // unarchived. Held here, it waits for the tick and starts by itself.
-  const REASON = "held back: the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
-
-  test("an archive job in the set stays queued with the reason on it", () => {
+describe("an archive whose acceptance criteria are not all ticked", () => {
+  // It used to be held here, waiting for the tick that would start it
+  // by itself. That hold is gone: the row read the same either way
+  // while sometimes a tick started the archive and sometimes nothing
+  // did — so the step starts, `aide-archive-spec`'s pre-check refuses
+  // it before any model is spawned, and a person presses Archive.
+  test("it starts, and is not held in the queue", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner();
-    runner.tick(undefined, undefined, new Set([job.id]));
-    expect(spawns.length).toBe(0);
-    const stored = store.get(job.id);
-    expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe(REASON);
-  });
-
-  test("the same job starts once the set no longer names it", () => {
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner();
-    runner.tick(undefined, undefined, new Set([job.id]));
-    expect(spawns.length).toBe(0);
-    runner.tick(undefined, undefined, new Set());
+    runner.tick();
     expect(spawns.length).toBe(1);
     expect(store.get(job.id)?.state).toBe("running");
   });
 
-  test("checked after the analyze and dependency gates: those reasons win", () => {
+  // The two gates that remain hold what resolves without anybody
+  // pressing anything, and they still do.
+  test("a dependency still holds the same job", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]), undefined, new Set([job.id]));
+    runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80,");
   });

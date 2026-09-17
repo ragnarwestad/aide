@@ -8,6 +8,7 @@ in conftest.py beside them.
 import json
 import re
 import subprocess
+import pytest
 from ..conftest import git, run
 from .run_spec_fakes import landing_beside_claude, partially_committing_claude, self_committing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import is_ancestor, run_with_gh
@@ -84,13 +85,15 @@ def test_a_repo_with_no_changes_gets_no_branch(runner, workspace, fake_claude, o
     assert git(origin["project"], "branch", "--list", branch) == "", "nothing changed there"
     assert branch in git(origin["specs"], "branch", "--list", branch)
 
-def test_the_link_points_at_the_repo_that_actually_changed(runner, workspace, fake_claude, origin):
+@pytest.mark.usefixtures("origin")
+def test_the_link_points_at_the_repo_that_actually_changed(runner, workspace, fake_claude):
     rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     assert out["branchUrl"] == f"https://github.com/example/aide-specs/compare/main...{branch}"
 
-def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_claude, origin):
+@pytest.mark.usefixtures("origin")
+def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_claude):
     """Both changed, so both are reviewable. `branchUrl` stays the
     project's for the reader who wants one link; `branchUrls` carries
     the rest."""
@@ -139,7 +142,7 @@ def test_push_pr_opens_a_pull_request_and_reports_its_url(
     assert out["prUrl"] == "https://github.com/example/aide/pull/7"
     assert out.get("prError") is None
 
-def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin, command="implement"):
+def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin):
     """`gh` on the mini needs an interactive re-auth only the user can
     do. A run whose work succeeded must not be reported as failed
     because the PR could not be opened."""
@@ -194,8 +197,9 @@ def test_a_root_the_step_never_touched_survives_a_landing_beside_it(
     assert out["ok"] is True, out.get("error")
 
 
+@pytest.mark.usefixtures("rejecting_origin")
 def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
-    runner, workspace, fake_claude, rejecting_origin
+    runner, workspace, fake_claude
 ):
     """REQ-1/REQ-3/REQ-6: origin is reachable and refuses every push —
     the step's own tool turn reports success, but nothing it produced
@@ -289,7 +293,7 @@ def test_a_repo_the_step_committed_itself_is_still_pushed(runner, workspace, fak
     commit loop found a clean tree, counted the repo as unchanged and
     pushed nothing — the branch existed on the serving host only. HEAD
     moved, so the branch belongs on origin, whoever made the commit."""
-    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude, workspace), push="branch")
+    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     roots = {r["root"]: r for r in out["repos"]}
@@ -298,12 +302,13 @@ def test_a_repo_the_step_committed_itself_is_still_pushed(runner, workspace, fak
     assert project["headBefore"] != project["headAfter"], "but HEAD moved"
     assert branch in git(origin["project"], "branch", "--list", branch), "so the branch must reach origin"
 
+@pytest.mark.usefixtures("origin")
 def test_a_repo_the_step_committed_itself_gets_its_compare_link(
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude
 ):
     """The link is what a reader opens; a pushed branch nobody is told
     about is the same silence in a different place."""
-    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude, workspace), push="branch")
+    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude), push="branch")
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     url = f"https://github.com/example/aide/compare/main...{branch}"
@@ -318,7 +323,7 @@ def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
     the generic subject and the change arrived split down a line no
     reader can use. The leftover belongs in the commit the step already
     made."""
-    rc, out, _ = run(runner, workspace, partially_committing_claude(fake_claude, workspace))
+    rc, out, _ = run(runner, workspace, partially_committing_claude(fake_claude))
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]
@@ -340,7 +345,7 @@ def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace,
     drop it — and it belongs on its own line, below a body that is the
     step's."""
     claude = partially_committing_claude(
-        fake_claude, workspace, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
+        fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
     )
     rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"

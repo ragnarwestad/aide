@@ -97,12 +97,12 @@ table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
 .checklist li > span:first-child {
   display: inline-block;
   min-width: 3.5em;
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: var(--fs-s);
   font-weight: 600;
 }
 .checkoutput {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: var(--fs-s);
   white-space: pre-wrap;
   overflow-x: auto;
@@ -207,7 +207,7 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
   table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 @media (max-width: 53rem) {
   #jobrows { --speclist-width: 42.5rem; }
@@ -216,8 +216,8 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="phase"] { width: 47.0588%; }
   table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
   table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
-  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 @media (max-width: 46.5rem) {
   #jobrows { --speclist-width: 36rem; }
@@ -225,9 +225,9 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="spec"] { width: 19.4444%; }
   table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
   table.speclist > colgroup > col[data-col="state"] { width: 25%; }
-  table.speclist > colgroup > col[data-col="started"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="cost"] { width: 0%; }
-  table.speclist > colgroup > col[data-col="created"] { width: 0%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 0; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
+  table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
@@ -367,7 +367,7 @@ table.speclist thead th { position: sticky; top: 0; }
    the same two out side by side, narrow.css.) */
 table.list tr.spechead .pipslot { display: flex; justify-content: center; margin: 0 0 var(--sp-2); padding-left: 0; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none; }
-.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
+.spec-name { font-weight: 600; font-family: var(--mono), monospace; font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
      2026-08-22, and that number was about the PIPS: they sat at the end

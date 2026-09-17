@@ -8,7 +8,7 @@ import {
   type SpecsPageOptions,
 } from "../../../src/render";
 import { aiPicker, modelPicker } from "../../../src/render/pages/specs-list/model-picker.ts";
-import { type SpecGroup } from "../../../src/render/pages/specs-list/data-model";
+import { type SpecGroup } from "../../../src/render/pages/specs-list";
 import {
   row,
 } from "./fixtures.ts";
