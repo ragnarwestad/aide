@@ -9,6 +9,7 @@
 // shape `job-row.ts`'s own wrapper in `setup/land.ts` already is.
 
 import type { Job } from "../../queue/queue.ts";
+import type { LogFilter } from "../../queue/parse-stream";
 import {
   archivedSpecRows as archivedSpecRowsImpl,
   specPageView as specPageViewImpl,
@@ -20,11 +21,11 @@ export function setupSpecViews(ctx: SpecViewsContext) {
   function archivedSpecRows(state: string | undefined) {
     return archivedSpecRowsImpl(ctx, state);
   }
-  function specPageView(project: string, specFolder: string, tab?: string) {
-    return specPageViewImpl(ctx, project, specFolder, tab);
+  function specPageView(project: string, specFolder: string, tab?: string, only?: LogFilter) {
+    return specPageViewImpl(ctx, project, specFolder, tab, only);
   }
-  function jobDetailView(job: Job) {
-    return jobDetailViewImpl(ctx, job);
+  function jobDetailView(job: Job, only?: LogFilter) {
+    return jobDetailViewImpl(ctx, job, only);
   }
   return { archivedSpecRows, specPageView, jobDetailView };
 }

@@ -6,11 +6,20 @@ import { specPhaseFile } from "../../project/discover";
 import type { JobDetailView } from "../../render";
 import type { Job } from "../../queue/queue.ts";
 import { resolveStepModel, tailFile } from "../serve-helpers";
-import { finalMessage, summarizeCommands, summarizeStream } from "../../queue/parse-stream.ts";
+import { finalMessage, summarizeCommands, summarizeEntries, type LogFilter } from "../../queue/parse-stream";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
 
-export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<JobDetailView> {
+/** `only` is the Logs tab's filter, read from the URL. It is applied
+ *  HERE rather than in the renderer so the bound is per kind: "the last
+ *  40 commands", not "the commands among the last 40 lines" — a step
+ *  whose tail is all prose would otherwise answer "no commands" for a
+ *  step that ran twenty. */
+export async function jobDetailView(
+  ctx: SpecViewsContext,
+  job: Job,
+  only?: LogFilter,
+): Promise<JobDetailView> {
   const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
   // Which CLI this page is about (spec 125). A running step's tool is
   // not recorded anywhere yet — the result file that would carry it is
@@ -56,7 +65,7 @@ export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<Jo
         return {
           ...r,
           tokens: r.tokens?.total,
-          logs: text ? summarizeStream(text, { tool }) : undefined,
+          logs: text ? summarizeEntries(text, { tool, only }).map((e) => e.text) : undefined,
           commands: text ? summarizeCommands(text, { tool }) : undefined,
           finalMessage: text ? finalMessage(text, { tool }) : undefined,
           changedFiles,
@@ -72,7 +81,9 @@ export async function jobDetailView(ctx: SpecViewsContext, job: Job): Promise<Jo
         ? {
             step,
             sessionId: job.sessionId,
-            logs: job.streamFile ? summarizeStream(tailFile(job.streamFile), { tool: named }) : [],
+            logs: job.streamFile
+              ? summarizeEntries(tailFile(job.streamFile), { tool: named, only }).map((e) => e.text)
+              : [],
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,

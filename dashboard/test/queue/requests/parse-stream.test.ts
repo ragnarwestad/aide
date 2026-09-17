@@ -4,7 +4,13 @@
 // more than prettiness: the list can never grow without limit, and
 // nothing in it can leave the page as markup.
 import { describe, expect, test } from "bun:test";
-import { finalMessage, summarizeCommands, summarizeStream } from "../../../src/queue/parse-stream.ts";
+import {
+  finalMessage,
+  resolveLogFilter,
+  summarizeCommands,
+  summarizeEntries,
+  summarizeStream,
+} from "../../../src/queue/parse-stream";
 
 const line = (o: unknown) => JSON.stringify(o);
 
@@ -320,5 +326,91 @@ describe("finalMessage", () => {
   test("a stream with neither a result event nor an agent_message returns undefined", () => {
     expect(finalMessage(assistantText("just text"), { tool: "claude" })).toBeUndefined();
     expect(finalMessage(codexLine({ type: "turn.completed", usage: {} }), { tool: "codex" })).toBeUndefined();
+  });
+});
+
+// The Logs tab's filter: a reader asking for one kind of line gets the
+// last N OF THAT KIND, not the ones that happen to be in the last N
+// lines. The three CLIs name a command, a write and a failure
+// differently; this is where they become one word.
+describe("summarizeEntries", () => {
+  const toolUseId = (name: string, input: Record<string, unknown>, id: string) =>
+    line({ type: "assistant", message: { content: [{ type: "tool_use", name, input, id }] } });
+  const toolResult = (id: string, isError: boolean) =>
+    line({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: isError }] } });
+
+  const CLAUDE = [
+    assistantText("Looking at the queue"),
+    toolUse("Read", { file_path: "src/queue.ts" }),
+    toolUseId("Bash", { command: "bun test" }, "t1"),
+    toolResult("t1", true),
+    toolUse("Write", { file_path: "src/queue.ts" }),
+    toolUse("Bash", { command: "git status" }),
+  ].join("\n");
+
+  test("a Claude transcript's lines carry what they are", () => {
+    expect(summarizeEntries(CLAUDE).map((e) => [e.kind, e.failed ?? false])).toEqual([
+      ["text", false],
+      ["tool", false],
+      ["command", true],
+      ["file", false],
+      ["command", false],
+    ]);
+  });
+
+  test("only=commands keeps the commands, failed ones included", () => {
+    expect(summarizeEntries(CLAUDE, { only: "commands" }).map((e) => e.text)).toEqual([
+      "Bash bun test",
+      "Bash git status",
+    ]);
+  });
+
+  test("only=files keeps the writes, not the reads", () => {
+    expect(summarizeEntries(CLAUDE, { only: "files" }).map((e) => e.text)).toEqual(["Write src/queue.ts"]);
+  });
+
+  test("only=errors keeps what the tool itself reported as a failure", () => {
+    expect(summarizeEntries(CLAUDE, { only: "errors" }).map((e) => e.text)).toEqual(["Bash bun test"]);
+  });
+
+  test("the bound counts the kept kind, not every line before it", () => {
+    const noise = Array.from({ length: 60 }, (_, i) => assistantText(`thinking ${i}`));
+    const stream = [toolUse("Bash", { command: "bun test" }), ...noise].join("\n");
+
+    expect(summarizeStream(stream)).not.toContain("Bash bun test");
+    expect(summarizeEntries(stream, { only: "commands" }).map((e) => e.text)).toEqual(["Bash bun test"]);
+  });
+
+  test("a Codex transcript answers with the same words, and its own exit code", () => {
+    const stream = [
+      line({ type: "item.completed", item: { type: "command_execution", command: "bun test", exit_code: 1 } }),
+      line({ type: "item.completed", item: { type: "file_change", changes: [{ path: "src/x.ts" }] } }),
+      line({ type: "item.completed", item: { type: "agent_message", text: "done" } }),
+    ].join("\n");
+
+    expect(summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false])).toEqual([
+      ["command", true],
+      ["file", false],
+      ["text", false],
+    ]);
+  });
+
+  test("an opencode transcript does too", () => {
+    const stream = [
+      line({ type: "tool_use", part: { type: "tool", tool: "bash", state: { input: { command: "ls" }, metadata: { exit: 2 } } } }),
+      line({ type: "tool_use", part: { type: "tool", tool: "write", state: { input: { filePath: "src/x.ts" } } } }),
+      line({ type: "text", part: { type: "text", text: "done" } }),
+    ].join("\n");
+
+    expect(summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false])).toEqual([
+      ["command", true],
+      ["file", false],
+      ["text", false],
+    ]);
+  });
+
+  test("an unknown filter in the URL shows the whole log rather than refusing", () => {
+    expect(resolveLogFilter("everything")).toBeUndefined();
+    expect(resolveLogFilter("commands")).toBe("commands");
   });
 });

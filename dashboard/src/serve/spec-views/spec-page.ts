@@ -14,6 +14,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "./";
 
+import type { LogFilter } from "../../queue/parse-stream";
 import { jobDetailView } from "./job-detail.ts";
 
 export async function specPageView(
@@ -21,6 +22,7 @@ export async function specPageView(
   project: string,
   specFolder: string,
   tab?: string,
+  only?: LogFilter,
 ): Promise<SpecPageView | null> {
   const found = ctx.specDir(project, specFolder);
   if (!found) return null;
@@ -160,7 +162,7 @@ export async function specPageView(
     }
   }
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
-  const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
+  const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job, only)));
   // jobs is newest-first; oldest = attempt 1. Only tagged when there is
   // more than one job — a single-attempt spec draws no marker at all
   // (spec 242's own "nothing to show, show nothing" rule, at row level).

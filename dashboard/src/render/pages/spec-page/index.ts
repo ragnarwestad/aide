@@ -47,6 +47,7 @@
 // reset confirmation page). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
+import type { LogFilter } from "../../../queue/parse-stream";
 import { badge, helpPopover, rowMessage } from "../../ui/components";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
@@ -78,6 +79,7 @@ export function renderSpecPage(
   opts: {
     tab?: string;
     step?: string;
+    only?: LogFilter;
     now?: number;
     script?: string;
     scriptSrc?: string;
@@ -142,6 +144,7 @@ export function renderSpecPage(
           tabHref,
           openStep: opts.step,
           runningStep: lead?.runningStep,
+          only: opts.only,
           mark,
           // The same table, so the same answer: a step whose merge was
           // refused must not read "ok" here either.

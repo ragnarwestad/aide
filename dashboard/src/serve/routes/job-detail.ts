@@ -4,6 +4,7 @@
 // overlaps with the exact-string routes handled elsewhere (e.g.
 // /api/queue/create) — it MUST be tried last, after every other
 // theme, exactly as it sat last in the original dispatcher.
+import { resolveLogFilter } from "../../queue/parse-stream";
 import { json, languageChoice } from "../serve-helpers";
 import { renderJobDetailPage, resolveBackHref } from "../../render";
 import type { RoutesContext } from "./";
@@ -25,13 +26,15 @@ export async function handleJobDetailRoute(
     }
     if (api) return json({ generatedAt: new Date().toISOString(), job });
     const langResult = languageChoice(url, req);
+    const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
     const html = renderJobDetailPage(
-      { ...(await ctx.jobDetailView(job)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/") },
+      { ...(await ctx.jobDetailView(job, only)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/") },
       new Date().toISOString(),
       ctx.nav(),
       {
         tab: url.searchParams.get("tab") ?? undefined,
         step: url.searchParams.get("step") ?? undefined,
+        only,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       },

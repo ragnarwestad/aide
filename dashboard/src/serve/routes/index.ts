@@ -14,6 +14,7 @@
 // (`job-detail.ts`'s single-segment id regex would otherwise swallow
 // `/api/queue/create` and friends), so the order is never to be
 // changed without re-checking every regex for overlap.
+import type { LogFilter } from "../../queue/parse-stream";
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
@@ -108,8 +109,8 @@ export interface RoutesContext {
     readiness?: ProjectReadiness,
   ) => Response;
   archivedSpecRows: (state: string | undefined) => ArchivedSpecView[];
-  specPageView: (project: string, specFolder: string, tab?: string) => Promise<SpecPageView | null>;
-  jobDetailView: (job: Job) => Promise<JobDetailView>;
+  specPageView: (project: string, specFolder: string, tab?: string, only?: LogFilter) => Promise<SpecPageView | null>;
+  jobDetailView: (job: Job, only?: LogFilter) => Promise<JobDetailView>;
   /** This process's own boot-time commit and the repo it runs from
    *  (spec 269) — see `state.ts`'s own doc comment for why both fields
    *  stay `null` rather than "loading" until the boot-time read

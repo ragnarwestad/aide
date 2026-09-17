@@ -5,6 +5,7 @@
 // hand-paired-lists problem `development.md` already names three times
 // over.
 
+import type { LogFilter } from "../../../queue/parse-stream";
 import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
@@ -95,14 +96,49 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  for a run the runner refused before it started; every other note
  *  that function carried is already said elsewhere (`job.error` in the
  *  banner, `archiveHeldBack` in this same row's Outcome cell). */
-function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusal?: string): string {
+/** The filter links above a raw log: the whole log, or one kind of line
+ *  from it. Links carrying the answer in the URL, the same way the tab
+ *  and the open row already do — the page reloads itself every ten
+ *  seconds, so a filter held in a widget would snap back to everything
+ *  while the reader was still reading.
+ *
+ *  Absent when there is no `tabHref` to hang them on, and absent for the
+ *  running step's own panel, whose log is being written as it is read. */
+function logFilterLinks(tabHref: string, stepKey: string, only: LogFilter | undefined): string {
+  const here = only ?? "all";
+  const link = (value: LogFilter, label: string): string =>
+    value === here
+      ? `<span class="muted small">${label}</span>`
+      : `<a class="small" data-nav href="${tabHref}&step=${esc(stepKey)}` +
+        `${value === "all" ? "" : `&only=${value}`}">${label}</a>`;
+  return (
+    `<p class="small">` +
+    [link("all", "All"), link("commands", "Commands"), link("files", "Files"), link("errors", "Errors")].join(" · ") +
+    `</p>`
+  );
+}
+
+function stepLogPanel(
+  logs: string[] | undefined,
+  terminalReason: string,
+  refusal?: string,
+  filters = "",
+  filtered = false,
+): string {
   // The merge's own refusal first: it is the newest thing that happened
   // to this step, and the transcript below it is of the run that
   // succeeded. Without it the page showed four steps reading "ok" and
   // no sign of the tests that refused the merge.
   const merge = refusal ? `<pre class="specfile">${esc(refusal)}</pre>` : "";
-  if (logs && logs.length > 0) return `${merge}<pre class="specfile">${logs.join("\n")}</pre>`;
+  if (logs && logs.length > 0) return `${merge}${filters}<pre class="specfile">${logs.join("\n")}</pre>`;
   if (merge) return merge;
+  // A filter that matched nothing is not an empty transcript: say which
+  // it is, and leave the links up so the reader can get back. Only when
+  // a filter is actually on — an unfiltered step with nothing in it is
+  // the sentence below, exactly as it was.
+  if (filtered && logs) {
+    return `${filters}<p class="muted">No line of this kind is in this step's log.</p>`;
+  }
   if (terminalReason === "refused") {
     return (
       `<p class="muted">This step was refused before it started, so nothing ran and ` +
@@ -193,6 +229,7 @@ export function stepResults(
     runningStep?: JobDetailView["runningStep"];
     mark?: string;
     landingRefused?: LandingRefusal;
+    only?: LogFilter;
     lang?: Language;
   } = {},
 ): string {
@@ -238,6 +275,8 @@ export function stepResults(
             r.logs,
             r.terminalReason,
             opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,
+            opts.tabHref ? logFilterLinks(opts.tabHref, key, opts.only) : "",
+            !!opts.only && opts.only !== "all",
           )}</td></tr>`
         : "";
       return main + log;
