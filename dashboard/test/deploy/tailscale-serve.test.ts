@@ -18,6 +18,7 @@ import { describe, expect, test } from "bun:test";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TEST_SERVER_PORTS } from "../../src/serve/test-servers/lifecycle.ts";
 
 const ROOT = join(import.meta.dir, "..", "..");
 
@@ -80,6 +81,35 @@ describe("install-serve puts TLS in front of the dashboard", () => {
     expect(recipe).toContain("test -x /opt/homebrew/bin/tailscale");
     expect(recipe).toContain("/opt/homebrew/bin/tailscale serve --bg");
     expect(recipe).not.toContain("/usr/local/bin/tailscale");
+  });
+});
+
+describe("install-serve puts the test boards behind the proxy too", () => {
+  // A test board started from the dashboard takes a port from the pool,
+  // and one that no proxy rule covers answers on the host alone.
+  test("every port in the test-server pool gets its own rule", () => {
+    const recipe = dryRunInstallServe({ BIND: "127.0.0.1" });
+
+    expect(recipe).toContain(`for p in ${TEST_SERVER_PORTS.join(" ")}; do`);
+    expect(recipe).toContain("tailscale serve --bg --https $p http://127.0.0.1:$p");
+  });
+});
+
+describe("install-serve gives a fresh host a projects root", () => {
+  test("with no ROOT, the directory of links is made and the aide checkout linked into it", () => {
+    const recipe = dryRunInstallServe({ BIND: "127.0.0.1" });
+
+    expect(recipe).toContain('--root "$home/.aide/dashboard/projects"');
+    expect(recipe).toContain(
+      'ln -s "$HOME/.aide/dashboard/checkouts/aide/code" .aide/dashboard/projects/aide',
+    );
+  });
+
+  test("a ROOT that is set is passed as it is, and nothing is linked", () => {
+    const recipe = dryRunInstallServe({ BIND: "127.0.0.1", ROOT: "/srv/projects" });
+
+    expect(recipe).toContain('--root "/srv/projects"');
+    expect(recipe).not.toContain("ln -s");
   });
 });
 

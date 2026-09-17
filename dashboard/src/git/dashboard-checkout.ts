@@ -39,6 +39,14 @@ import { configValue, resolveWorktreeLinks } from "../project/discover";
  *  under the projects root would be DISCOVERED as a project. */
 export const DEFAULT_DASHBOARD_CHECKOUT_ROOT = join(homedir(), ".aide", "dashboard", "checkouts");
 
+/** The projects root that holds links to these checkouts rather than
+ *  checkouts of its own: `projects/` beside `checkouts/`. A server whose
+ *  `--root` is this directory clones a new project straight into its
+ *  own checkout and links it here (`addProject`). */
+export function dashboardProjectsRoot(base: string): string {
+  return join(dirname(base), "projects");
+}
+
 /** The two roots a project's machinery works in. `specsRepo` is the
  *  repository `specs` sits in — the same one when the specs live in the
  *  project's own repo, a clone of its own when they do not. */
