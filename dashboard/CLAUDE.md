@@ -109,7 +109,9 @@ with the tests and assertions that pin all of them.
   reads `done` with `landing` set while its branch is merged, and an
   archive started in that window brings its branch up to a main the
   merge has not reached yet. An analyze or implement landing moves the
-  specs repository alone and holds nothing.
+  specs repository alone and holds nothing — `landStepBranch` leaves the
+  code root out even when the run's own catch-up merge moved it, unless
+  the specs live inside that root.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the

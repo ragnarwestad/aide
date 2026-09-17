@@ -1,10 +1,11 @@
 // The four thin `Landing` descriptions each workflow step's own landing
 // is built from.
 
-import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
+import { isAbsolute, relative } from "node:path";
+import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
-import { landBranch } from "./merge.ts";
+import { landBranch, sameRoot } from "./merge.ts";
 import type { LandContext } from "./types.ts";
 
 /** Put a newly created spec where the page can see it (spec 93).
@@ -47,8 +48,10 @@ export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<S
  *  effect, which is exactly what "archive is the one step that sends
  *  code to the default branch" rules out. The residual gap is that a
  *  run whose own catch-up merge happens to move the project's HEAD
- *  lands that code early; it is accepted, and it belonged to `resolve`
- *  until spec 171 retired that step.
+ *  lands that code early, and a spec held back on its checks can take
+ *  another round on a code branch that already holds implement's work,
+ *  which made that the ordinary path. So the code root is left out —
+ *  unless the specs live inside it, where it is the only root there is.
  *
  *  The install is neither asked for nor refused here: `landBranch`
  *  runs it for any CODE root that lands, whichever step landed it.
@@ -61,11 +64,27 @@ export async function landStepBranch(
 ): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step,
+    repos: specsRootsOnly(ctx, job, outcome),
     // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.stepLandingFailed", values: { step } }),
   });
 }
+
+/** The roots a step's run pushed, minus the project's code root — or
+ *  `undefined` (every root the run pushed) when the specs live inside
+ *  that code root, which leaves no other root to land them from. */
+function specsRootsOnly(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): BranchRef[] | undefined {
+  const codeRoot = ctx.machineryProjectDir(job.project);
+  const specsRoot = ctx.machinerySpecsRoot(job.project);
+  if (!specsRoot || sameRoot(specsRoot, codeRoot) || isInside(specsRoot, codeRoot)) return undefined;
+  return (outcome.branchUrls ?? []).filter((r) => !sameRoot(r.root, codeRoot));
+}
+
+const isInside = (dir: string, root: string): boolean => {
+  const rel = relative(root, dir);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+};
 
 /** Land what a step wrote when it did NOT finish, but ran out of time
  *  having touched no code repo (spec 187).
