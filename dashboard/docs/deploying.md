@@ -161,12 +161,12 @@ All paths are relative to the serving host's own `$HOME`.
 | `TS_PORT`        | `443`                                 | port tailscale serve terminates TLS on                            |
 | `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
 | `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
-| `REMOTE_STATE`   | `aide-dashboard`                      | site, mirrors, queue state                                        |
+| `REMOTE_STATE`   | `.aide/dashboard`                     | site, mirrors, queue state                                        |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
 | `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`                 | the allowlist's first-boot seed                                   |
 | `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
-| `TEST_PORTS`     | `8801` … `8806`                       | test boards' ports, each put behind tailscale serve               |
+| `TEST_PORTS`     | `8801 8802 8803 8804 8805 8806`       | test boards' ports, each put behind tailscale serve               |
 | `BIND`           | unset                                 | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
