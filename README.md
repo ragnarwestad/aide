@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [What it is](#what-it-is)
+- [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
 - [Install](#install)
 - [AI-assisted workflow](#ai-assisted-workflow)
@@ -43,6 +44,29 @@ Either way, the spec is what lets any AI assistant:
 **Key benefit:** Not locked to a single AI vendor - teams can pick the
 best tool for each task, and the spec is what carries the work between
 them.
+
+---
+
+## Where Aide sits in spec-driven development
+
+Spec-driven development means writing a spec before an AI assistant writes code, and treating that spec as the
+source of truth for both the person and the assistant. Birgitta Böckeler's
+[Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) names
+three levels of it:
+
+| Level          | The spec …                                                                      |
+|----------------|---------------------------------------------------------------------------------|
+| Spec-first     | is written first and guides the work, then is discarded once the feature exists |
+| Spec-anchored  | is kept after the work and edited as the feature evolves                        |
+| Spec-as-source | is the only thing a person edits; the code is generated from it                 |
+
+Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a person
+declines to accept the result, they edit the spec's acceptance criteria and the same spec runs another round of
+analysis or implementation — a round that may only start once every open criterion is new or changed since the
+last one. When the person is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
+`archive/` with its history, and what it taught is written back into the project's living documentation, which is
+where the current state of the system is described. It is not spec-as-source: people and assistants still read and
+edit the code.
 
 ---
 
