@@ -101,6 +101,36 @@ describe("whether a tool is logged in", () => {
     expect(entry.detail).toContain("claude.ai");
   });
 
+  // Which account the board runs as, asked from the board's own
+  // process — not from a terminal, whose login can be another one.
+  test("Claude Code names the account and the plan it runs on", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "auth status": {
+        stdout: JSON.stringify({
+          loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
+          orgName: "someone@example.com's Organization", subscriptionType: "max",
+        }),
+      },
+    });
+    expect(login(await checkTool("claude", opts(run))).detail).toBe("Yes (claude.ai) — someone@example.com, Max.");
+  });
+
+  test("an organization of its own is named beside the account", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "auth status": {
+        stdout: JSON.stringify({
+          loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
+          orgName: "Example AS", subscriptionType: "team",
+        }),
+      },
+    });
+    expect(login(await checkTool("claude", opts(run))).detail).toBe(
+      "Yes (claude.ai) — someone@example.com, Example AS, Team.",
+    );
+  });
+
   test("Claude Code says no, with the command to fix it", async () => {
     const run = fakeRun({ ...preflight, "auth status": { stdout: '{"loggedIn":false}' } });
     const entry = login(await checkTool("claude", opts(run)));

@@ -113,6 +113,24 @@ async function opencodeModelCheck(
 }
 
 
+/** Which account and plan `claude auth status` says it runs on — asked
+ *  from the board's own process, so it names the login a run will use,
+ *  which a terminal's own login need not be. The organization is named
+ *  only when it is one of its own, not the default one every personal
+ *  account gets ("<email>'s Organization"). */
+function claudeAccount(parsed: Record<string, unknown>): string {
+  const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  const email = str(parsed.email);
+  const org = str(parsed.orgName);
+  const plan = str(parsed.subscriptionType);
+  const parts = [
+    email,
+    org && org !== `${email}'s Organization` ? org : undefined,
+    plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : undefined,
+  ].filter((p): p is string => !!p);
+  return parts.length ? ` — ${parts.join(", ")}` : "";
+}
+
 /** Whether the tool has credentials, asked of the tool itself and never
  *  by looking for a file. Three of the four have a command for it; the
  *  fourth has none, and says so rather than guessing from a token file
@@ -154,7 +172,7 @@ async function loginCheck(
         return {
           question,
           ok: parsed.loggedIn,
-          detail: parsed.loggedIn ? `Yes${how}.` : "No. Run `claude auth login`.",
+          detail: parsed.loggedIn ? `Yes${how}${claudeAccount(parsed)}.` : "No. Run `claude auth login`.",
         };
       }
     } catch {
