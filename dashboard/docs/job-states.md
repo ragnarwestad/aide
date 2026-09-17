@@ -64,7 +64,7 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
 - Leaves an `archive` job `queued` with a reason on it — "held back: another archive is running in this project — it
   starts when that one has merged" — while another `archive` in the same project is running or landing. Both branch
   from the code root's main and both land into it, so the second waits for the first to have merged. This is the
-  cheapest question of the four and the one asked first; the three below need the spec's own files or the network.
+  cheapest of the three holds and the one asked first; the two below need the spec's own files or the network.
 - Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
@@ -74,6 +74,10 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   "archive held back" on its row, and a person presses Archive once the rows are ticked. Held here instead, one row
   meant two different things — a tick sometimes started the archive by itself and sometimes started nothing, and
   which one was true depended on whether the hold had been able to see `implement` as finished when it looked.
+  The row's own "archive held back" is worked out afresh on every render, never remembered from a refusal, and it
+  asks the BRANCH's copy of `4-status.md` before the disk's (`spec-lookup.ts`): a tick on a spec whose
+  `aide/<folder>` is open lands there, and the disk copy stays unticked until archive lands. It says nothing while
+  a round is under way (`row-marks.ts`) — a reader whose own run is going has nothing to go and tick.
 - Moves a job with no step left to `done`.
 - Otherwise spawns the step and writes `running`, with the process and file fields.
 
