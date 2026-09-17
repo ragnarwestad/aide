@@ -131,6 +131,31 @@ describe("whether a tool is logged in", () => {
     );
   });
 
+  // `claude auth status` reads the address from one file and the plan
+  // from the stored login itself. When the two are different logins —
+  // an old one left behind after `claude auth login` wrote a new one
+  // elsewhere — it names one account with another's plan, and every
+  // run spends the account that is not named. A personal organization
+  // never has an organization plan, so the pair says it.
+  test("an organization plan on a personal account is flagged as two logins", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "auth status": {
+        stdout: JSON.stringify({
+          loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
+          orgName: "someone@example.com's Organization", subscriptionType: "team",
+        }),
+      },
+    });
+    const entry = login(await checkTool("claude", opts(run)));
+    expect(entry.ok).toBe(false);
+    expect(entry.detail).toBe(
+      "Yes (claude.ai) — someone@example.com, Team. " +
+        "A Team plan does not belong to a personal account: the stored login is probably another account's " +
+        "than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with `security delete-generic-password -s \"Claude Code-credentials\"` and check again.",
+    );
+  });
+
   test("Claude Code says no, with the command to fix it", async () => {
     const run = fakeRun({ ...preflight, "auth status": { stdout: '{"loggedIn":false}' } });
     const entry = login(await checkTool("claude", opts(run)));

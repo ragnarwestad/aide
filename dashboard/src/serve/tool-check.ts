@@ -131,6 +131,23 @@ function claudeAccount(parsed: Record<string, unknown>): string {
   return parts.length ? ` — ${parts.join(", ")}` : "";
 }
 
+/** `claude auth status` reads the address and organization from one
+ *  file and the plan from the stored login itself, and the two can be
+ *  different logins: one left in the keychain after `claude auth login`
+ *  wrote a new one to the file. Runs use the stored one, so the check
+ *  names an account runs do not spend. An organization plan on a
+ *  personal organization is the one pairing that cannot be real. */
+function mixedLogins(parsed: Record<string, unknown>): string | undefined {
+  const plan = typeof parsed.subscriptionType === "string" ? parsed.subscriptionType : "";
+  const personal = typeof parsed.email === "string" && parsed.orgName === `${parsed.email}'s Organization`;
+  if (!personal || (plan !== "team" && plan !== "enterprise")) return undefined;
+  const name = plan.charAt(0).toUpperCase() + plan.slice(1);
+  return (
+    `A ${name} plan does not belong to a personal account: the stored login is probably another account's ` +
+    "than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with `security delete-generic-password -s \"Claude Code-credentials\"` and check again."
+  );
+}
+
 /** Whether the tool has credentials, asked of the tool itself and never
  *  by looking for a file. Three of the four have a command for it; the
  *  fourth has none, and says so rather than guessing from a token file
@@ -169,10 +186,12 @@ async function loginCheck(
       const parsed = JSON.parse(text) as Record<string, unknown>;
       if (typeof parsed.loggedIn === "boolean") {
         const how = typeof parsed.authMethod === "string" ? ` (${parsed.authMethod})` : "";
+        if (!parsed.loggedIn) return { question, ok: false, detail: "No. Run `claude auth login`." };
+        const mixed = mixedLogins(parsed);
         return {
           question,
-          ok: parsed.loggedIn,
-          detail: parsed.loggedIn ? `Yes${how}${claudeAccount(parsed)}.` : "No. Run `claude auth login`.",
+          ok: !mixed,
+          detail: `Yes${how}${claudeAccount(parsed)}.${mixed ? ` ${mixed}` : ""}`,
         };
       }
     } catch {
