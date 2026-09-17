@@ -110,30 +110,59 @@ describe("specStateChip/restingChip take lang (spec 350)", () => {
 
 // Spec 396: a queued job the runner is holding back is not competing for
 // a slot, so its badge must not carry the n/total wording meant for a job
-// that is.
-describe("specStateChip() on a held-back queued row (spec 396)", () => {
-  // And it says the bare word (2026-09-08). It read "implementing held
-  // back" until then — the step is already named on the line, and the
-  // half a reader acts on is the reason, which the row's own notice
-  // line says in full underneath.
-  test("reads 'stopped', with no step and no n/total figure", () => {
+// that is. Spec 485: the word is its own ("Held back"), never "Stopped" —
+// a hold is a routine wait, not a stop — and its colour follows the same
+// neutral/amber split the row's own notice line already uses.
+describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () => {
+  // A hold that resolves on its own (a dependency not archived yet) reads
+  // neutral, with no step and no n/total figure.
+  test("a dependency hold reads 'Held back', neutral, with no step and no n/total figure", () => {
     const html = specStateChip(
-      row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
+      row({
+        state: "queued",
+        steps: ["implement"],
+        stepIndex: 0,
+        errorReason: "held-back",
+        error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
+      }),
       "en",
     );
-    expect(html).toContain(">Stopped<");
+    expect(html).toContain(">Held back<");
+    expect(html).toContain("b-idle");
     expect(html).not.toContain("Implementing");
     expect(html).not.toMatch(/\d+\/\d+/);
   });
 
-  // Norwegian too: the word was hardcoded English for the sibling state
-  // ("archive held back") until the two shared one key.
-  test("Norwegian says Stoppet, not the English word", () => {
+  // A hold that waits on a person (not analyzed yet) reads amber.
+  test("a not-analyzed hold reads 'Held back', amber", () => {
     const html = specStateChip(
-      row({ state: "queued", steps: ["implement"], stepIndex: 0, errorReason: "held-back" }),
+      row({
+        state: "queued",
+        steps: ["implement"],
+        stepIndex: 0,
+        errorReason: "held-back",
+        error: { key: "runner.notAnalyzed" },
+      }),
+      "en",
+    );
+    expect(html).toContain(">Held back<");
+    expect(html).toContain("b-waiting");
+  });
+
+  // Norwegian too: the word was hardcoded English ("Stopped") until it
+  // took its own key.
+  test("Norwegian says Holdt tilbake, not the English word", () => {
+    const html = specStateChip(
+      row({
+        state: "queued",
+        steps: ["implement"],
+        stepIndex: 0,
+        errorReason: "held-back",
+        error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
+      }),
       "nb",
     );
-    expect(html).toContain(">Stoppet<");
+    expect(html).toContain(">Holdt tilbake<");
   });
 
   test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {
@@ -142,15 +171,25 @@ describe("specStateChip() on a held-back queued row (spec 396)", () => {
       steps: ["implement"],
       stepIndex: 0,
       errorReason: "held-back",
-      error: "held back: depends on 80-x, which is not archived yet",
+      error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
     });
     const badgeHtml = specStateChip(heldRow, "en");
     const notice = specNotice(heldRow);
 
-    expect(badgeHtml).toContain(">Stopped<");
+    expect(badgeHtml).toContain(">Held back<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
     // `<phase> <what happened>: <the longer sentence>` — the phase and
     // the state word as one phrase: "implement held back: …".
     expect(notice?.text.startsWith("Implement held back:")).toBe(true);
+  });
+
+  // AC-3: a job that actually stopped still reads "Stopped" — the fix is
+  // scoped to a queued job's own hold, never to a real stop.
+  test("a job that actually stopped still reads 'Stopped'", () => {
+    const html = specStateChip(
+      row({ state: "stopped", steps: ["implement"], stepIndex: 0, stopReason: "timeout" }),
+      "en",
+    );
+    expect(html).toContain(">Stopped<");
   });
 });

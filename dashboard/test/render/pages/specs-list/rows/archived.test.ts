@@ -418,3 +418,66 @@ describe("a cancelled create is not a row on a project with only archived specs"
     expect(html).not.toContain('data-folder="new-8638781b"');
   });
 });
+
+// Spec 483: a locked row (archived or closed) reads truth from its own
+// files, never from a job the queue happens to still remember
+// (`readerGroup`'s own comment, group-builders.ts) — except the notice
+// panel's `phaseDisagreement`, which read a locked row's queue-remembered
+// `attempts` (spec 410, added for the duration/cost cells) the same way
+// it reads a live row's, and so warned about a re-run that happened
+// before the spec was locked and is no longer actionable.
+describe("spec 483: an archived spec's row does not warn about an earlier cancelled re-run", () => {
+  const BUILT = ["create", "analyze", "implement", "archive"];
+
+  // The queue's own memory of a re-run attempted after the spec was
+  // archived — `implement` done in the files, but the most recent
+  // attempt the queue remembers for it did not end in "done".
+  const cancelledRerun: QueueRowView = {
+    id: "r1",
+    project: "aide",
+    specFolder: "480-locked",
+    steps: ["implement"],
+    stepIndex: 0,
+    state: "cancelled",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-09-16T10:00:00Z",
+  };
+
+  const archivedSpec = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder: "480-locked",
+    archivedAt: "2026-09-15",
+    done: BUILT,
+    models: {},
+    phaseOutcomes: {},
+    ...over,
+  });
+
+  test("AC-1: an archived row shows no last-re-run qualifier", () => {
+    const html = renderSpecsRows(
+      [cancelledRerun],
+      { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec()], filter: { state: "archived" } },
+      Date.parse("2026-09-17T12:00:00Z"),
+    );
+    expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
+  });
+
+  test("AC-2: a closed row shows the same absence", () => {
+    const html = renderSpecsRows(
+      [cancelledRerun],
+      { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec({ closed: true })], filter: { state: "all" } },
+      Date.parse("2026-09-17T12:00:00Z"),
+    );
+    expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
+  });
+
+  test("AC-3: the identical shape on an active row still shows the qualifier", () => {
+    const html = renderSpecsRows(
+      [cancelledRerun],
+      { runnerAvailable: true, targets: [{ project: "aide", specFolder: "480-locked", done: BUILT }] },
+      Date.parse("2026-09-17T12:00:00Z"),
+    );
+    expect(noticeCellHtml(html, "480-locked")).toContain("last re-run");
+  });
+});

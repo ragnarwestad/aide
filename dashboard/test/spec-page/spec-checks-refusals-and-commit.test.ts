@@ -17,6 +17,7 @@ import {
   PHASE, OPEN_ROW, DONE_ROW, STATUS, statusPath, startWithChecks as start, tick, save,
   recording, messageOf,
 } from "./spec-checks-fixtures.ts";
+import { afterTick } from "../../src/serve/routes/spec-edit/checks.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -187,5 +188,60 @@ describe("4-status.md cannot be saved as a document", () => {
     expect(where).toContain("error=");
     expect(where).toContain("Checks tab");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+  });
+});
+
+// --- a saved tick is read again before the reader is sent back -----------
+// A saved tick changes the branch copy of the spec's state file, which
+// the Specs list reads through a cache to decide whether to say
+// "archive held back: the Acceptance criteria are not all ticked". Only
+// marked due, the old answer went on being served until the schedule's
+// next read, and the reader who had just ticked the last row was told
+// to go and tick it.
+
+describe("after a tick is saved", () => {
+  test("the answer is read again, and the list's scan dropped, before the reader is sent back", async () => {
+    const order: string[] = [];
+    let release = (): void => {};
+    const reread = new Promise<void>((r) => (release = r));
+    const done = afterTick(
+      {
+        forgetBranchFileSteps: (dir, folder) => void order.push(`forget ${dir} ${folder}`),
+        rereadSpec: async (dir, folder) => {
+          order.push(`reread ${dir} ${folder}`);
+          await reread;
+          order.push("reread finished");
+        },
+        invalidateScan: () => void order.push("scan dropped"),
+      },
+      "/specs/aide/481-x",
+      "481-x",
+    );
+    await Bun.sleep(5);
+    // Not back to the reader yet: the read is still going.
+    expect(order).toEqual(["forget /specs/aide/481-x 481-x", "reread /specs/aide/481-x 481-x"]);
+    release();
+    await done;
+    expect(order).toEqual([
+      "forget /specs/aide/481-x 481-x",
+      "reread /specs/aide/481-x 481-x",
+      "reread finished",
+      "scan dropped",
+    ]);
+  });
+
+  test("a read that fails still lets the reader back, with the scan dropped", async () => {
+    const order: string[] = [];
+    await afterTick(
+      {
+        rereadSpec: async () => {
+          throw new Error("git is gone");
+        },
+        invalidateScan: () => void order.push("scan dropped"),
+      },
+      "/specs/aide/481-x",
+      "481-x",
+    );
+    expect(order).toEqual(["scan dropped"]);
   });
 });

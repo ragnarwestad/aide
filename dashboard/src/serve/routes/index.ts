@@ -67,6 +67,8 @@ export interface RoutesContext {
   /** Drop the cached branch answer for one spec (`dir`, `specFolder`),
    *  after a write that changed the file it caches. */
   forgetBranchFileSteps?: (dir: string, specFolder: string) => void;
+  /** Read one spec's cached answers again now, and tell the page. */
+  rereadSpec?: (dir: string, specFolder: string) => Promise<void>;
   targets: () => SpecTarget[];
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
   specDir: (project: string, specFolder: string) => string | undefined;

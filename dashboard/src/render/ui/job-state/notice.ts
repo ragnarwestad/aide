@@ -16,11 +16,24 @@ import type { QueueRowView } from "./types.ts";
  *  named here or not, keeps the waiting kind's warning triangle: a
  *  message added to this family later and left off this list defaults
  *  to "waiting", not silently to "info" (spec 389). */
-const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
+export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
   "runner.dependencyNotArchived",
 ]);
+
+/** Whether a queued job's own hold resolves on its own, read off the
+ *  key alone, never the rendered text (spec 485, AC-2). Exported so the
+ *  row's own state word (`specStateChip`, resting.ts) colours a
+ *  held-back queue exactly as this file's notice line already does —
+ *  one classification, asked from two places, rather than the same
+ *  three keys copied a second time and left free to drift apart. */
+export function heldBackResolvesOnItsOwn(r: Pick<QueueRowView, "errorReason" | "error">): boolean {
+  if (r.errorReason !== "held-back" || !r.error || typeof r.error !== "object" || Array.isArray(r.error)) {
+    return false;
+  }
+  return HELD_BACK_INFO_KEYS.has(r.error.key);
+}
 
 /** A sentence a row has to show, and how loudly. The row draws it in a
  *  panel of its own (`specNoticeRow`, specs-list.ts) rather than in a
@@ -183,12 +196,7 @@ export function specNotice(
       // single BoardMessage while a job is held back (`Runner.hold()`).
       // A held-back key this set does not name falls through to
       // "waiting" — the safer default.
-      const heldBackKey =
-        lead.errorReason === "held-back" && lead.error && typeof lead.error === "object" &&
-          !Array.isArray(lead.error)
-          ? lead.error.key
-          : undefined;
-      const heldBackInfo = heldBackKey !== undefined && HELD_BACK_INFO_KEYS.has(heldBackKey);
+      const heldBackInfo = heldBackResolvesOnItsOwn(lead);
       // `tests-red` waits for the same reason: the landing ran the
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they

@@ -30,6 +30,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
       state.scan = null;
     },
     forgetBranchFileSteps: (dir, specFolder) => inputs.branchFileSteps.forget(dir, specFolder),
+    rereadSpec: inputs.rereadSpec,
     targets: inputs.targets,
     withFreshness: inputs.withFreshness,
     specDir: inputs.specDir,
