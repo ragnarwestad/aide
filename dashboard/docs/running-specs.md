@@ -478,7 +478,7 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
 main checkout stops nobody. `--permission-mode` is never defaulted, because the most dangerous knob has to be typed
-out by whoever starts the run. It enforces its own wall clock (SIGTERM to the process group, then SIGKILL), commits
+out by whoever starts the run. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
 whatever the step managed to write in BOTH roots — the project and the specs repo — and writes one JSON line to
 stdout and to `--result-file`. `--worktree-base` relocates the worktrees; a base inside any of the repos is refused.
 The worktrees go when the run ends, and one left behind by a killed run is swept by the next run for that spec.
