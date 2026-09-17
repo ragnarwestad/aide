@@ -9,11 +9,11 @@ implementation and archiving.
 - [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
-- [Install](#install)
+- [Install & Configuration](#install--configuration)
+    - [Per-project configuration](#per-project-configuration)
+        - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [The Aide dashboard](#the-aide-dashboard)
-- [Per-project configuration](#per-project-configuration)
-    - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [Resources](#resources)
 
 ---
@@ -53,11 +53,17 @@ them.
 
 ## What a spec looks like
 
-A spec is a folder of four files. The user writes the description, or has `/aide-create` draft it from a title and
-a few sentences; analyze writes `2-analysis.md` and `3-solution.md`; every step records its progress in
-`4-status.md`. This is an archived spec from Aide's own work, shortened where it says `[...]`.
+A spec is a folder of four files:
 
-`1-description.md` says what is wrong and what done means:
+- `1-description.md` — what is wrong and what done means. The user writes it, or has `/aide-create` draft it from a
+  title and a few sentences
+- `2-analysis.md` — what analyze found in the codebase
+- `3-solution.md` — the plan analyze writes for implement to follow
+- `4-status.md` — where every step records its progress
+
+This is an archived spec from Aide's own work, shortened where it says `[...]`.
+
+From `1-description.md`:
 
 ```markdown
 # A spec's row offers a test server only where one can run - Description
@@ -144,7 +150,7 @@ Supporting skills, used around that workflow rather than as a step in it:
 
 ---
 
-## Install
+## Install & Configuration
 
 Clone the repo, then run the installer for your AI tool:
 
@@ -164,6 +170,24 @@ scripts and skills, so they have to be there first. See
 
 > **Windows users:** The scripts require WSL or Git Bash.
 > See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+### Per-project configuration
+
+#### AIDE_SPECS_PATH (optional, per project)
+
+Store specs outside a project — set the key
+in `.aide/config` in that project's root:
+
+```text
+AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
+```
+
+**Default:** specs are written to `specs/` in the project root. The path
+is per-project configuration, not an environment variable — two projects
+can point at two different spec repos. Keep the personal config out of git
+with a global personal gitignore (`core.excludesFile`) containing
+`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
+and belongs in git.
 
 ---
 
@@ -207,10 +231,12 @@ All AI tools follow the same basic workflow:
 
 ## The Aide dashboard
 
-The skills above are run by hand, one spec at a time, in whichever tool you have open. The dashboard runs them for
+All Aide skills can be run by hand, one spec at a time, in whichever tool you have open. The dashboard runs them for
 you: it lists every spec across every project Aide knows about, grouped by phase, and queues a spec through
 `create` → `analyze` → `implement` → `archive` without anyone watching. A running job shows its live progress on the
 spec's row, and clicking a spec opens its description, analysis, plan, status and every job that has run against it.
+
+<p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
 It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
 so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
@@ -220,28 +246,9 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 ---
 
-## Per-project configuration
-
-### AIDE_SPECS_PATH (optional, per project)
-
-Store specs outside a project — set the key
-in `.aide/config` in that project's root:
-
-```text
-AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
-```
-
-**Default:** specs are written to `specs/` in the project root. The path
-is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep the personal config out of git
-with a global personal gitignore (`core.excludesFile`) containing
-`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
-and belongs in git.
-
----
-
 ## Resources
 
 - [DEVELOPING.md](DEVELOPING.md) - Developer guide for Aide
 - [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - The spec workflow
 - [core/rules/git.md](core/rules/git.md) - Git rules
+- [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) - Birgitta Böckeler on the levels of spec-driven development and the tools behind them
