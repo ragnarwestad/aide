@@ -69,16 +69,11 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
-- Leaves an `archive` job `queued` the same way — "held back: the Acceptance criteria are not all ticked yet — tick
-  them on the Checks tab" — while its spec's state file has an acceptance row nobody has ticked; the tick that
-  closes the last row is what releases it. A chained analyze/implement/archive job waits here between implement
-  and archive instead of ending with archive refused. Never triggered for a spec whose `analyze` ran with the
-  "acceptance ticking not required" switch: its state file carries a one-line note instead of a row, and there is
-  no open row to hold the job back for. Never triggered either for a spec with no `implement` on its
-  `Workflow steps completed` line: `core/scripts/aide-archive-spec` refuses that with `not-implemented-yet` before it
-  looks at the acceptance section at all, so the step is left to start and end with the reason that is actually
-  true — "nothing is implemented yet — run implement first". Held here instead, the row asked a person to tick rows
-  for work nobody had done.
+- Starts an `archive` whose spec still has an unticked acceptance row, rather than holding it: the step's own
+  pre-check (`core/scripts/aide-archive-spec`) refuses it before any model is spawned, the job ends `done` with
+  "archive held back" on its row, and a person presses Archive once the rows are ticked. Held here instead, one row
+  meant two different things — a tick sometimes started the archive by itself and sometimes started nothing, and
+  which one was true depended on whether the hold had been able to see `implement` as finished when it looked.
 - Moves a job with no step left to `done`.
 - Otherwise spawns the step and writes `running`, with the process and file fields.
 

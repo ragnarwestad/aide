@@ -261,9 +261,7 @@ async function resetRepo(ctx: RoutesContext, dir: string, base: string | null): 
  *  origin while the queue works, so a spec's state (read from the
  *  checkout a person looks at) catches up with what a landing pushed —
  *  a dependency on an archived spec is answered from there. Until no
- *  job of the project is live; a queued archive held for its own
- *  acceptance-criteria gate never leaves `queued` on its own and is not
- *  live. */
+ *  job of the project is live. */
 async function followUntilDrained(ctx: RoutesContext, project: string, dirs: string[]): Promise<void> {
   const live = (): boolean =>
     ctx.queue.list().some(
@@ -271,7 +269,7 @@ async function followUntilDrained(ctx: RoutesContext, project: string, dirs: str
         j.project === project &&
         (j.state === "running" ||
           j.landing === true ||
-          (j.state === "queued" && (j.error as { key?: string } | undefined)?.key !== "runner.acceptanceCriteriaUnticked")),
+          j.state === "queued"),
     );
   const deadline = Date.now() + 30 * 60_000;
   while (live() && Date.now() < deadline) {

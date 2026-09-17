@@ -101,7 +101,7 @@ export class Runner {
    *  a Map, since the reason it names carries no per-job detail — every
    *  job in it gets the identical fixed sentence, unlike a dependency's
    *  own folder name. */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -201,15 +201,15 @@ export class Runner {
         hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specNumber(dependency) } });
         continue;
       }
-      // The same shape once more, for `archive`: an acceptance row only
-      // a person can tick is still open. Run, the step would only be
-      // refused by `aide-archive-spec` and end the job with archive
-      // unarchived — so a chained analyze/implement/archive job waits
-      // here for the tick instead, and starts by itself once it lands.
-      if (acceptanceOpen?.has(job.id)) {
-        hold(job, { key: "runner.acceptanceCriteriaUnticked" });
-        continue;
-      }
+      // An `archive` whose acceptance rows are not all ticked is NOT
+      // held here: it starts, and `aide-archive-spec`'s own pre-check
+      // refuses it before any model is spawned, so the job ends with
+      // the reason on its row and a person presses Archive once they
+      // have ticked. Held here instead, the same row meant two
+      // different things — sometimes a tick started the archive by
+      // itself, sometimes nothing did, and which one was true depended
+      // on whether the hold had been able to see `implement` as
+      // finished at the moment it looked.
       this.startOne(job);
     }
     this.clearStaleHolds(held);

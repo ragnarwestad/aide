@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { discoverProjects } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
+import { parseStatus } from "../../project/parse-status";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import type { ScheduleContext } from "./";
 
@@ -155,46 +155,3 @@ function completedSteps(ctx: ScheduleContext, dir: string, folder: string): stri
   );
 }
 
-/** `blockedForMissingAnalyze`'s sibling for `archive`: every queued job
- *  whose next step is `archive` and whose spec, in the main checkout,
- *  still has an acceptance row nobody has ticked. Read off the state
- *  file — the branch's copy when `aide/<folder>` is open, since that is
- *  where the Checks tab's tick lands, else the disk copy — so the tick
- *  that closes the last row is what releases the job. A spec with no
- *  state file (analyzed before spec
- *  355) or no acceptance section is not held: `aide-archive-spec`'s own
- *  gate is a no-op for the latter, and the former is its call to make. */
-export function blockedForUntickedAcceptance(ctx: ScheduleContext): Set<string> {
-  const blocked = new Set<string>();
-  if (!ctx.projectRoot) return blocked;
-  const waiting = ctx.queue.list().filter((job) => {
-    if (job.state !== "queued") return false;
-    return job.steps[job.stepIndex] === "archive";
-  });
-  if (waiting.length === 0) return blocked;
-  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
-  for (const job of waiting) {
-    const project = projects.get(job.project);
-    const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
-    if (!spec) continue;
-    // A spec that never reached `implement` is not waiting for a tick,
-    // whatever its rows say: `core/scripts/aide-archive-spec` refuses it
-    // with `not-implemented-yet` before it ever looks at the acceptance
-    // section, and that refusal is the reason the reader needs. Held
-    // here instead, the row read "tick the Acceptance criteria" — asking
-    // a person to sign off work nobody has done, on a job that would
-    // then sit queued for a tick that cannot honestly be made (423,
-    // 2026-09-09). Let it start: the script answers as its own
-    // pre-check, before any model is spawned, and the job ends with
-    // "nothing is implemented yet — run implement first" on the row.
-    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("implement")) continue;
-    // The branch copy first, as the row and the Checks tab read it —
-    // a tick on a spec with an open branch is written there, and the
-    // disk copy stays unticked until archive lands.
-    const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder).steps;
-    if (acceptanceStillOpen(branchAnswer?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) {
-      blocked.add(job.id);
-    }
-  }
-  return blocked;
-}

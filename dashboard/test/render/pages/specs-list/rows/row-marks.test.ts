@@ -192,70 +192,6 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     );
   });
 
-  // The queue holds a job for this exact reason with a message of its
-  // own, and the notice line draws that above these marks. Both said it
-  // until 2026-09-08 — twice on one line, and the mark's half in
-  // English on a Norwegian board, because the file's note is a fixed
-  // constant where the runner's message is translated.
-  test("the file's note is not repeated when the queue is already saying it", () => {
-    const notice = noticeCellHtml(
-      renderSpecsRows(
-        [
-          row({
-            specFolder: FOLDER,
-            steps: ["archive"],
-            state: "queued",
-            errorReason: "held-back",
-            error: { key: "runner.acceptanceCriteriaUnticked" },
-          }),
-        ],
-        {
-          runnerAvailable: true,
-          targets: [
-            target({
-              done: ["implement"],
-              archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-            }),
-          ],
-        },
-      ),
-      FOLDER,
-    );
-    // The queue's sentence, once.
-    expect(notice.match(/Acceptance criteria are not all ticked yet/g)).toHaveLength(1);
-    // Said once. The queue's own sentence opens "archive held back:"
-    // now, so the file's note being absent is a COUNT, not the absence
-    // of those words.
-    expect(notice.match(/held back/g)).toHaveLength(1);
-    // And the link is untouched: it is a different fact.
-    expect(notice).toContain("Click the link to start a test server running this branch");
-  });
-
-  // The two halves arrive apart: the queue holds the archive the moment
-  // it refuses, and `4-status.md`'s note — what the link is offered on —
-  // lands when the archive run writes it. A reader told to go and tick,
-  // with no way to see the thing being ticked, must at least be told one
-  // is coming.
-  test("the queue alone: no link yet, and the row says one is coming", () => {
-    const notice = noticeCellHtml(
-      renderSpecsRows(
-        [
-          row({
-            specFolder: FOLDER,
-            steps: ["archive"],
-            state: "queued",
-            errorReason: "held-back",
-            error: { key: "runner.acceptanceCriteriaUnticked" },
-          }),
-        ],
-        { runnerAvailable: true, targets: [target({ done: ["implement"] })] },
-      ),
-      FOLDER,
-    );
-    expect(notice).not.toContain("Click the link to start a test server");
-    expect(notice).toContain("The link to start one appears once this spec's implement run is recorded as done");
-  });
-
   // Ticking the last check starts the archive at once, and the note in
   // `4-status.md` is not rewritten until that run gets far enough to
   // write it. The run in flight is the newer fact: the reader must not
@@ -341,32 +277,6 @@ describe("a spec held for Checks carries a link to a board on its branch (spec 4
     expect(incapableNotice).not.toContain("startTestServer=1");
   });
 
-  // Spec 466, AC-2 (the earlier "coming soon" window): the same wrong
-  // promise, one state earlier — a project that can never run a test
-  // server must not be told one is on its way either.
-  test("spec 466: the coming-soon sentence is gone too, for a project that cannot run one", () => {
-    const notice = noticeCellHtml(
-      renderSpecsRows(
-        [
-          row({
-            specFolder: FOLDER,
-            steps: ["archive"],
-            state: "queued",
-            errorReason: "held-back",
-            error: { key: "runner.acceptanceCriteriaUnticked" },
-          }),
-        ],
-        {
-          runnerAvailable: true,
-          targets: [target({ done: ["implement"] })],
-          testServerAvailable: () => false,
-        },
-      ),
-      FOLDER,
-    );
-    expect(notice).not.toContain("Click the link to start a test server");
-    expect(notice).not.toContain("The link to start one appears once this spec's implement run is recorded as done");
-  });
 });
 
 // --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --
@@ -394,7 +304,7 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
   });
 
   test("a held-back reason that waits on a person is drawn waiting, not info or failed", () => {
-    for (const key of ["runner.notAnalyzed", "runner.acceptanceCriteriaUnticked"] as const) {
+    for (const key of ["runner.notAnalyzed"] as const) {
       const html = notice({ key }, "held-back");
       expect(html).toMatch(/class="[^"]*rowmsg waiting/);
       expect(html).not.toMatch(/class="[^"]*rowmsg info/);

@@ -25,9 +25,9 @@ import type { QueueStore } from "../../queue/queue.ts";
 import type { Runner } from "../../queue/runner";
 import type { SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
-import { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./blocked.ts";
+import { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
-export { blockedDependencies, blockedForMissingAnalyze, blockedForUntickedAcceptance } from "./blocked.ts";
+export { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
@@ -291,5 +291,5 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // refuse as unknown. `CheckoutEnsurer` explains what that costs.
   await Promise.all([...new Set(ctx.queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
     .map((project) => ctx.checkoutEnsurer.fresh(project)));
-  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx), blockedForUntickedAcceptance(ctx));
+  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx));
 }
