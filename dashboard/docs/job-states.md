@@ -88,7 +88,8 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   the other windows' figures, and the plan or refused credit where the tool names them. The runner reads it from
   claude's `rate_limit_event` and from the session file Codex keeps for the thread (a Codex turn is a
   `provider-limit` only when that file shows a full window); opencode has no reader. The row and the Logs tab say it
-  as one sentence in place of the runner's own summary.
+  as one sentence in place of the runner's own summary. A stopped step still lands what it did, and that landing leaves
+  the job's `error` in place: it is the reason the step stopped, not a fault the landing resolved.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
   `errorReason: "conflict"`.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.

@@ -39,6 +39,7 @@ import { installAfterMerge } from "./install.ts";
 import { handedToMerge, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
+import { keepsItsStopReason } from "./stopped-reason.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
@@ -424,6 +425,7 @@ export async function landBranch(
     // quiet, and a link they have to go hunting for on an older row is
     // a link that is not there.
     const review = stillOpen.length ? ctx.queue.pullRequestFor(job.project, job.specFolder) : {};
+    const keepsItsReason = keepsItsStopReason(ctx.queue.get(job.id));
     ctx.queue.update(job.id, {
       ...what.landed,
       branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
@@ -431,8 +433,7 @@ export async function landBranch(
       prUrl: review.prUrl,
       prError: review.prError,
       branchDeleteError: deleteErrors.length ? deleteErrors : undefined,
-      error: undefined,
-      errorReason: undefined,
+      ...(keepsItsReason ? {} : { error: undefined, errorReason: undefined }),
     });
     // The page caches its scan for five seconds. Without this the very
     // request that follows a landing would still not show the spec —
