@@ -93,7 +93,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.archiveHeldBack": "{step} holdt tilbake: {reason}",
   "list.readyToArchive": "Alle sjekkene er krysset av — trykk {button} for å merge den",
   "list.noSpecMatchesFilter": "Ingen spec matcher dette filteret.",
-  "list.noSpecAtAll": "Ingen spec å vise — ingen prosjekt på denne maskinen har en å kjøre.",
+  "list.noSpecAtAll": "Ingen specer å vise.",
   "list.noRunner":
     "Ingen kjøretjeneste er installert på denne maskinen ennå (del 81b) — køede jobber blir " +
     "stående i kø, og ingenting her koster penger.",

@@ -63,8 +63,18 @@ describe("the Specs list in Norwegian (spec 350)", () => {
 
   test("the empty-list message is Norwegian", () => {
     const html = page({ lang: "nb" });
-    expect(html).toContain("Ingen spec å vise");
-    expect(html).not.toContain("No spec to show");
+    expect(html).toContain("Ingen specer å vise");
+    expect(html).not.toContain("No specs to show");
+  });
+
+  // AC-1
+  test("the empty-list message makes no claim about the machine", () => {
+    const en = page({ lang: "en" });
+    const nb = page({ lang: "nb" });
+    expect(en).toContain("No specs to show.");
+    expect(en).not.toContain("no project on this machine");
+    expect(nb).toContain("Ingen specer å vise.");
+    expect(nb).not.toContain("ingen prosjekt på denne maskinen");
   });
 });
 

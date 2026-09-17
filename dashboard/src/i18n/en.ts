@@ -92,7 +92,7 @@ export const en = {
   "list.archiveHeldBack": "{step} held back: {reason}",
   "list.readyToArchive": "All checks ticked — press {button} to merge it",
   "list.noSpecMatchesFilter": "No spec matches this filter.",
-  "list.noSpecAtAll": "No spec to show — no project on this machine has one to run.",
+  "list.noSpecAtAll": "No specs to show.",
   "list.noRunner":
     "No runner is installed on this machine yet (slice 81b) — queued jobs stay queued, " +
     "and nothing here spends money.",
