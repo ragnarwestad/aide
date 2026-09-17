@@ -1,17 +1,18 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
-A spec-driven development (SDD) workspace for AI-assisted coding. Supports Claude Code, Codex, OpenCode and GitHub
-Copilot.
+Spec-driven development (SDD) for AI-assisted coding, in two halves. The **skills** turn a title and a description
+into a spec, then analyze, implement and archive it — inside Claude Code, Codex, OpenCode or GitHub Copilot. The
+**board** runs those same steps for you, queued and unattended, across every project Aide knows about.
 
 ## Table of contents
 
 - [What it is](#what-it-is)
 - [The aide-* skills](#the-aide--skills)
-- [For end users](#for-end-users)
-- [Per-project configuration](#per-project-configuration)
-    - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
+- [Install](#install)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [The Aide dashboard](#the-aide-dashboard)
+- [Per-project configuration](#per-project-configuration)
+    - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [Resources](#resources)
 
 ---
@@ -67,7 +68,7 @@ Supporting skills, used around that workflow rather than as a step in it:
 
 ---
 
-## For end users
+## Install
 
 Clone the repo, then run the installer for your AI tool:
 
@@ -83,26 +84,6 @@ documentation, installed globally so any project can use them.
 
 > **Windows users:** The scripts require WSL or Git Bash.
 > See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
-
----
-
-## Per-project configuration
-
-### AIDE_SPECS_PATH (optional, per project)
-
-Store specs outside a project — set the key
-in `.aide/config` in that project's root:
-
-```text
-AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
-```
-
-**Default:** specs are written to `specs/` in the project root. The path
-is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep the personal config out of git
-with a global personal gitignore (`core.excludesFile`) containing
-`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
-and belongs in git.
 
 ---
 
@@ -146,9 +127,36 @@ All AI tools follow the same basic workflow:
 
 ## The Aide dashboard
 
-The Aide dashboard can be used to keep track of every project that runs aide and run their 
-specs workflow automatically. It lives in `dashboard/` folder and has its own documentation:
-**[dashboard/README.md](dashboard/README.md)**.
+The skills above are run by hand, one spec at a time, in whichever tool you have open. The dashboard runs them for
+you: it lists every spec across every project Aide knows about, grouped by phase, and queues a spec through
+`create` → `analyze` → `implement` → `archive` without anyone watching. A running job shows its live progress on the
+spec's row, and clicking a spec opens its description, analysis, plan, status and every job that has run against it.
+
+It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
+so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
+machine that stays on so runs continue after you close the lid.
+
+It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](dashboard/README.md)**.
+
+---
+
+## Per-project configuration
+
+### AIDE_SPECS_PATH (optional, per project)
+
+Store specs outside a project — set the key
+in `.aide/config` in that project's root:
+
+```text
+AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
+```
+
+**Default:** specs are written to `specs/` in the project root. The path
+is per-project configuration, not an environment variable — two projects
+can point at two different spec repos. Keep the personal config out of git
+with a global personal gitignore (`core.excludesFile`) containing
+`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
+and belongs in git.
 
 ---
 
