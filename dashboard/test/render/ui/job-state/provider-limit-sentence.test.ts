@@ -59,5 +59,6 @@ describe("the sentence a provider's usage limit is shown as", () => {
   test("with no reset time it still says which limit ran out", () => {
     const bare: ProviderLimit = { tool: "claude", window: "provider" };
     expect(providerLimitSentence(bare, "Opus", "en", NOW, TZ)).toBe("Claude (Opus): the usage limit is used up.");
+    expect(providerLimitSentence(bare, "Opus", "nb", NOW, TZ)).toBe("Claude (Opus): bruksgrensen er brukt opp.");
   });
 });

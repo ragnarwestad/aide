@@ -330,7 +330,7 @@ export const MESSAGES = {
   },
   "wordPhase.stopProviderLimit": {
     en: "the AI's usage limit was reached — run it again once the limit resets",
-    nb: "AI-ens brukgrense ble nådd — kjør på nytt når grensen er nullstilt",
+    nb: "AI-ens bruksgrense ble nådd — kjør på nytt når grensen er nullstilt",
     resolve: "run it again once the limit resets",
   },
   "wordPhase.filesDisagree": {

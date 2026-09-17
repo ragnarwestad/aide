@@ -125,13 +125,13 @@ export const nb: Record<TranslationKey, string> = {
   "newSpec.dependsOn": "Avhenger av",
   "newSpec.select": "Velg",
 
-  // Brukgrensen som stoppet et steg, slik verktøyet selv meldte den.
+  // Bruksgrensen som stoppet et steg, slik verktøyet selv meldte den.
   "limit.used": "{who}: {limit} er brukt opp",
   "limit.resets": "nullstilles {when}",
   "limit.window.five_hour": "femtimersgrensen",
   "limit.window.seven_day": "ukesgrensen",
   "limit.window.minutes": "grensen på {minutes} minutter",
-  "limit.window.other": "brukgrensen",
+  "limit.window.other": "bruksgrensen",
   "limit.otherWindow": "{limit}: {percent} % brukt",
   "limit.creditOut": "Det er ikke mer ekstra forbruk igjen.",
   "limit.credit": "Ekstra forbruk: {reason}.",
