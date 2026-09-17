@@ -36,6 +36,12 @@ class Elem {
   children: Elem[] = [];
   parentElement: Elem | null = null;
   rect: { left: number; right: number; top: number; bottom: number } = { left: 0, right: 0, top: 0, bottom: 0 };
+  style: { transform: string; removeProperty(prop: string): void } = {
+    transform: "",
+    removeProperty(prop: string) {
+      if (prop === "transform") this.transform = "";
+    },
+  };
   private eventListeners: Record<string, ((e: unknown) => void)[]> = {};
 
   constructor(tag: string, opts: { className?: string; attrs?: Record<string, string>; open?: boolean } = {}) {
@@ -188,12 +194,14 @@ function harness(opts: { innerWidth?: number } = {}) {
     click: (target: Elem) => listeners.click!({ target, preventDefault: () => {} }),
     escape: () => listeners.keydown!({ key: "Escape" }),
     /** Sets the popup's own position, opens or closes it, and fires the
-     *  `toggle` event `menu-script.ts` listens for — the same sequence
-     *  a real `<details>` produces when its `open` property changes. */
+     *  `toggle` event `menu-script.ts` listens for on `document` (spec
+     *  477's delegated listener, not one attached to the element itself)
+     *  — the same sequence a real `<details>` produces when its `open`
+     *  property changes. */
     toggleIntro: (open: boolean, rect?: Partial<typeof introBody.rect>) => {
       introDetails.open = open;
       if (rect) Object.assign(introBody.rect, rect);
-      introDetails.dispatch("toggle");
+      listeners.toggle!({ target: introDetails });
     },
   };
 }
@@ -311,5 +319,35 @@ describe("a '?' popup flips side when its default position would run off screen 
     h.toggleIntro(false);
     h.toggleIntro(true, { left: 100, right: 300, top: 0, bottom: 50 });
     expect(h.introDetails.classList.contains("intro-flip")).toBe(false);
+  });
+});
+
+// Spec 477 Round 4: a flip picks the side with more room, but an icon
+// near the MIDDLE of a narrow window (the "Depends on" field's own
+// popover, wrapped there at 760px — 2-analysis.md) can still overflow
+// on its flipped side too, when the popover is wider than the room on
+// EITHER side. A binary flip cannot fix that; only shifting the
+// popover the rest of the way by the exact overflow can.
+describe("a '?' popup that overflows on its flipped side too is shifted the rest of the way (spec 477 round 4)", () => {
+  test("still overflowing the right edge after flipping is shifted left by the exact overflow", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: 600, right: 1200, top: 0, bottom: 50 });
+    expect(h.introDetails.classList.contains("intro-flip")).toBe(true);
+    expect(h.introBody.style.transform).toBe("translateX(-176px)");
+  });
+
+  test("a popover wider than the window itself is pinned to the left edge", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: -300, right: 1300, top: 0, bottom: 50 });
+    expect(h.introBody.style.transform).toBe("translateX(300px)");
+  });
+
+  test("a fitting position clears a stale shift", () => {
+    const h = harness({ innerWidth: 1024 });
+    h.toggleIntro(true, { left: 600, right: 1200, top: 0, bottom: 50 });
+    expect(h.introBody.style.transform).toBe("translateX(-176px)");
+    h.toggleIntro(false);
+    h.toggleIntro(true, { left: 100, right: 300, top: 0, bottom: 50 });
+    expect(h.introBody.style.transform).toBe("");
   });
 });

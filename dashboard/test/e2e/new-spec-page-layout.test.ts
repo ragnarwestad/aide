@@ -25,6 +25,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
+// A <details> fires its own "toggle" event from a QUEUED task, not
+// synchronously with the click that opens it (menu-script.ts's flip
+// decision runs from that event) — reading a just-opened popover's rect
+// straight after `.click()` resolves can still see its pre-flip
+// position. Two animation frames is one full task-plus-render cycle,
+// well past where the queued event has already run.
+function settle(p: Page): Promise<void> {
+  return p.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+}
+
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
@@ -123,6 +135,7 @@ for (const viewport of [
       await page.setViewportSize(viewport);
       await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
       await page.locator(ACCEPT_SUMMARY).click();
+      await settle(page);
       const rect = await page.locator(ACCEPT_POPOVER).evaluate((el) => el.getBoundingClientRect());
       expect(rect.left).toBeGreaterThanOrEqual(0);
       expect(rect.top).toBeGreaterThanOrEqual(0);
@@ -134,6 +147,7 @@ for (const viewport of [
       await page.setViewportSize(viewport);
       await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
       await page.locator(FORMULATE_SUMMARY).click();
+      await settle(page);
       const rect = await page.locator(FORMULATE_POPOVER).evaluate((el) => el.getBoundingClientRect());
       expect(rect.left).toBeGreaterThanOrEqual(0);
       expect(rect.top).toBeGreaterThanOrEqual(0);
@@ -149,6 +163,7 @@ for (const viewport of [
       await page.setViewportSize(viewport);
       await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
       await page.locator(DEPENDS_SUMMARY).click();
+      await settle(page);
       const rect = await page.locator(DEPENDS_POPOVER).evaluate((el) => el.getBoundingClientRect());
       expect(rect.left).toBeGreaterThanOrEqual(0);
       expect(rect.top).toBeGreaterThanOrEqual(0);
@@ -164,6 +179,7 @@ test("AC-4: the acceptance switch's popover does not overlap the AI-formulate sw
   await page.setViewportSize({ width: 1270, height: 900 });
   await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
   await page.locator(ACCEPT_SUMMARY).click();
+  await settle(page);
   const [popover, table, formulateLabel] = await Promise.all([
     page.locator(ACCEPT_POPOVER).evaluate((el) => el.getBoundingClientRect()),
     page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
@@ -177,6 +193,7 @@ test("AC-4: the AI-formulate switch's popover does not overlap the acceptance sw
   await page.setViewportSize({ width: 1270, height: 900 });
   await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
   await page.locator(FORMULATE_SUMMARY).click();
+  await settle(page);
   const [popover, table, acceptLabel] = await Promise.all([
     page.locator(FORMULATE_POPOVER).evaluate((el) => el.getBoundingClientRect()),
     page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
