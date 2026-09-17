@@ -1,9 +1,5 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
-Spec-driven development (SDD) for AI-assisted coding, in two halves. The **skills** turn a title and a description
-into a spec, then analyze, implement and archive it — inside Claude Code, Codex, OpenCode or GitHub Copilot. The
-**board** runs those same steps for you, queued and unattended, across every project Aide knows about.
-
 ## Table of contents
 
 - [What it is](#what-it-is)
@@ -19,17 +15,23 @@ into a spec, then analyze, implement and archive it — inside Claude Code, Code
 
 ## What it is
 
-An AI assistant is powerful but unpredictable when the requirements for a
-change live only in a chat history: the reasoning behind a decision
-disappears with the conversation, the next session starts from zero, and
-nobody else can review what was actually agreed before the code was
-written.
+An AI assistant is powerful but unpredictable when the requirements for a change live only in a chat history: the
+reasoning behind a decision disappears with the conversation, the next session starts from zero, and nobody else can
+review what was actually agreed before the code was written.
 
-Aide's answer is spec-driven development: before any AI assistant writes
-code, it writes a specification — four plain-Markdown files (description, analysis, solution, status) that a person and
-any AI tool
-can read, review and continue identically, committed to git alongside
-the code it describes. That structure is what lets **any AI assistant**:
+Aide's answer is spec-driven development (SDD): before any AI assistant writes code, it writes a specification — four
+plain-Markdown files (description, analysis, solution, status) that a person and any AI tool can read, review and
+continue identically, committed to git alongside the code it describes.
+
+**The dashboard is the usual way in.** It lists every spec across every project Aide knows about, and runs each one
+through create, analyze, implement and archive for you — queued and unattended, with a person stepping in only where
+a judgement is needed, such as ticking the acceptance criteria before archive.
+See [The Aide dashboard](#the-aide-dashboard).
+
+**The skills are what it runs.** Each step is an `aide-*` skill, and the same skills work by hand, one spec at a
+time, inside Claude Code, Codex, OpenCode or GitHub Copilot. See [The aide-\* skills](#the-aide--skills).
+
+Either way, the spec is what lets any AI assistant:
 
 - Understand a spec and analyze the codebase automatically
 - Suggest concrete solutions with file references and line numbers,
@@ -81,6 +83,10 @@ Clone the repo, then run the installer for your AI tool:
 
 `./install-all.sh` runs all four at once. Each installer is self-contained: instructions, commands/prompts, scripts and
 documentation, installed globally so any project can use them.
+
+The dashboard is installed after this, on the machine that will run it: it starts every step through Aide's own
+scripts and skills, so they have to be there first. See
+[Installation in the dashboard's README](dashboard/README.md#installation).
 
 > **Windows users:** The scripts require WSL or Git Bash.
 > See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
