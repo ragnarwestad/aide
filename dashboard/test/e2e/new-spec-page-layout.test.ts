@@ -28,7 +28,33 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
-  const started = harness.start({ extra: { queueToken: TOKEN } });
+  // The board's own model choices, because the page's LAYOUT depends on
+  // them: each choice adds a picker to the phase table, the table's
+  // width is what pushes the acceptance column rightwards, and the
+  // column's position is what decides whether a popover opening
+  // rightwards has room. A harness with no choices drew a 146px table
+  // where the serving board draws a 402px one, and every popover then
+  // had room to spare — the page under test was not the page anyone
+  // looks at. Measured against the serving board on 2026-09-16: with
+  // these five, the popovers land on exactly the same pixels there and
+  // here (255px past the right edge at 760, 115px at 900).
+  const started = harness.start({
+    extra: {
+      queueToken: TOKEN,
+      queueDefaults: {
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "Sonnet" },
+        modelChoices: {
+          Fable: {},
+          Opus: {},
+          Sonnet: {},
+          "gpt-5.6-sol": { tool: "codex" as const },
+          "gpt-6-astra": { tool: "codex" as const },
+        },
+      },
+    },
+  });
   base = started.base;
 });
 
