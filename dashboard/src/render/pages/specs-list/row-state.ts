@@ -134,7 +134,17 @@ function defaultTicked(g: SpecGroup): Set<string> {
 // closes that gap.
 export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): Set<string> {
   const recorded = opts.pendingSteps?.[groupKey(g.project, g.specFolder)];
-  return recorded ? new Set(recorded) : defaultTicked(g);
+  const chosen = recorded ? new Set(recorded) : defaultTicked(g);
+  // Held back on its checks: archive is what comes next, and the round
+  // offered beside it is a choice the reader makes by ticking. The
+  // remembered choice names the chain that has just run, and ticked
+  // again it turned a press meant for archive into another round.
+  if (heldBackOnChecks(g)) {
+    chosen.delete("analyze");
+    chosen.delete("implement");
+    chosen.add("archive");
+  }
+  return chosen;
 }
 
 // What the row's one button SAYS, and whether a press on it would do

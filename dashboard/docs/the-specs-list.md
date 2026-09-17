@@ -37,7 +37,10 @@ time, or the phases ticked on the row itself at whichever Run came after that �
 choice sticks until the reader changes it themselves, by re-ticking the row's own boxes and pressing the row's button again. A spec
 that has never had either — a create or a Run — recorded under it falls back to ticking every phase it has not had, the
 same default it always had; a fresh spec, or one whose only recorded choice is empty, starts from there. A phase
-already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way.
+already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A spec whose
+archive is held back on unticked acceptance criteria is the one exception: its Analyze and Implement boxes are offered
+for another round but never ticked by default, whatever was recorded, and Archive is — the recorded choice names the
+round that has just run, and a press meant for archive must not start another.
 
 The button names the FIRST of the ticked phases and not the whole list — a label is a name, not a summary, and the
 boxes are on the row that the press acts on. When that phase is not ticked — and no later phase is either — the button
