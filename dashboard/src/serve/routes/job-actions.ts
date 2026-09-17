@@ -323,6 +323,10 @@ export async function handleJobActionRoutes(
         ? json({ error: result.error, spec }, 400)
         : specsRedirect(body, { error: result.error, spec });
     }
+    // A step this job was not queued with is a choice about a job still
+    // to come: kept on this job alone, it went when the job ended, and
+    // the next run of the step was back on the default.
+    if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model);
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
   }
 
