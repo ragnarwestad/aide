@@ -108,6 +108,7 @@ export const es: Record<TranslationKey, string> = {
   "state.failed": "fallido",
   "state.cancelled": "cancelado",
   "state.interrupted": "interrumpido",
+  "state.heldBack": "retenido",
   "state.stopped": "detenido",
   "state.stoppedTimeout": "detenido — {minutes} min",
   "state.stoppedProviderLimit": "detenido — límite del proveedor",
