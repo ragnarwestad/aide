@@ -154,3 +154,25 @@ export function phaseAiModel(
     : resolveChosenModel(models, configured, used, pending, recordedModel);
   return { model, tool: models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude" };
 }
+
+/** The compact button's own text (AC-1/AC-2, spec 480): the model's
+ *  bare name, unless another entry in the SAME array carries that
+ *  exact name — a tool prefix then goes in front, "Codex · gpt-6"
+ *  (the description's own example). Written over the array
+ *  `SpecsPageOptions.modelChoices` already is, not the config's
+ *  `Record`, so a fixture built with two same-named entries exercises
+ *  the tie-break directly; a real `queue-config.json` cannot produce
+ *  one today, since the Record's own key IS the name
+ *  (`ModelChoice`'s own comment) and a JS object cannot hold two
+ *  identical keys (`2-analysis.md`, "Codebase analysis"). Mirrored
+ *  client-side by `refreshAiModelBox()` (`specs-client/ai-sync.ts`) —
+ *  the two run in separate bundles with no shared module, so both must
+ *  be kept applying the same rule by hand. */
+export function compactModelLabel(
+  models: NonNullable<SpecsPageOptions["modelChoices"]>,
+  on: { model: string; tool: string } | undefined,
+): string {
+  if (!on) return "";
+  const collides = models.filter((m) => m.name === on.model).length > 1;
+  return collides ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}` : on.model;
+}

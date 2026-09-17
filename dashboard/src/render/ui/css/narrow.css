@@ -39,22 +39,38 @@
      31px, the chip's own measured width (12px box, 8px padding and a
      1px border a side), so the caption's "Select" cell and the state
      after it sit exactly where a phase line's do; the 2.5rem it had
-     was air. The
-     AI/model box takes every pixel the line has left over — as wide as
-     it can be with the state column still on a 390px screen. */
-  table.list { --phase-w: 5.75rem; --aimodel-w: calc(8.75rem - 10px); --tick-w: 31px; }
+     was air.
+     --aimodel-w narrows to 3rem (48px) with spec 480 (was 8.75rem-10px,
+     130px): the compact button shows a bare model name now, not
+     "Tool/model", so it needs less room, and the room it gives back is
+     what lets Time show on the same line. Found with a headless-browser
+     walk (Implementation plan Step 4), not computed on paper — the tight
+     case is a BUSY phase's "Running" badge (wider than a plain word like
+     "ready") beside a full state column: 52px already wraps the line at
+     360px, so 3rem keeps a margin under that. The button's own text
+     still ellipsis-clips at this width (`.aimodelnow`'s own rule,
+     below) — a name longer than "sonnet" trims visually, which is the
+     trade Time asked for. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: 3rem; --tick-w: 31px; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
 
-  /* Started and Cost are not what a phone is for on a PHASE line: the
-     reader is checking whether a run finished and pressing Run or
-     Cancel, and neither figure is needed to do either. Dropped rather
-     than squeezed — six columns in 390px is six unreadable ones.
-     Scoped to tr.subrow, not every row: the spec's own header line
-     keeps its date/cost, folded onto line 2 with the badge and the
-     button instead (design handoff, mobile-spec-row). */
-  table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
+  /* Cost is not what a phone is for on a PHASE line: the reader is
+     checking whether a run finished and pressing Run or Cancel, and the
+     figure is needed for neither. Scoped to tr.subrow, not every row:
+     the spec's own header line keeps its date/cost, folded onto line 2
+     with the badge and the button instead (design handoff,
+     mobile-spec-row). Time no longer folds away beside it (spec 480,
+     AC-5): the room the compact model button gives back goes to it, on
+     the same line as the phase's state, instead. */
+  table.list tr.subrow [data-col="cost"] { display: none; }
+  /* `display: block`, or list.css's own 46.5rem breakpoint
+     (`table.speclist td[data-col="started"] { display: none; }`) wins —
+     this selector is more specific (spec 480), but neither of the other
+     two declarations here touches `display`, and a property no rule
+     here sets is a property that rule still decides. */
+  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 auto; padding-left: 0; }
 
 
   /* The spec LIST leaves table layout entirely at this width — found

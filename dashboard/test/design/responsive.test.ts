@@ -50,10 +50,17 @@ const rows = (filter?: SpecsPageOptions["filter"], extra: Partial<SpecsPageOptio
 describe("Started and Cost fold away at phone width", () => {
   // Scoped to the PHASE lines since the mobile-spec-row handoff
   // (2026-08-24): the spec's own header line keeps its date and cost,
-  // folded onto the second line beside the badge and the button.
-  test("the narrow-width block hides both columns on the phase lines", () => {
-    expect(NARROW).toMatch(
-      /table\.list tr\.subrow \[data-col="started"\][\s\S]*?tr\.subrow \[data-col="cost"\][\s\S]*?display:\s*none/,
+  // folded onto the second line beside the badge and the button. Time
+  // no longer hides here (spec 480, AC-5) — the room the compact
+  // button gives back goes to it — but Cost still does.
+  test("the narrow-width block hides Cost on the phase lines, but not Time", () => {
+    expect(NARROW).toMatch(/table\.list tr\.subrow \[data-col="cost"\]\s*\{\s*display:\s*none;?\s*\}/);
+    // Matches EITHER a rule of its own or a selector list it shares with
+    // another column ("started, cost { display: none }") — the shape
+    // this rule had before spec 480, and the shape a regression back to
+    // it would take.
+    expect(NARROW).not.toMatch(
+      /table\.list tr\.subrow \[data-col="started"\](?:\s*,[^{]*)?\s*\{[^}]*display:\s*none/,
     );
   });
 
@@ -258,14 +265,15 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(html).toContain('<label class="aimodelfield"><span>Model</span>');
   });
 
-  // The box says what THIS line is on, never a fixed word: the AI in
-  // one short word, and the model the select is actually set to.
-  test("the box names the line's own AI and model", () => {
+  // The box says what THIS line is on, never a fixed word: the model
+  // the select is actually set to, bare, with no tool prefix — nothing
+  // configured shares "opus" here (AC-1, spec 480).
+  test("the box names the line's own model", () => {
     const html = rows(
       { open: "aide/155-x" },
       { modelChoices: [{ name: "opus" }, { name: "codex-luna",  tool: "codex" }] },
     );
-    expect(html).toContain(">Claude/opus</label>");
+    expect(html).toContain(">opus</label>");
   });
 
   // A wide screen draws the two selects exactly as it always has: the
@@ -285,8 +293,10 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the phase name's cell gives its right padding back", () => {
     expect(NARROW).toContain(".phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }");
     // Wide enough for the longest phase name in either language:
-    // "implementering" is 98px in this face.
-    expect(NARROW).toMatch(/table\.list \{ --phase-w: 5\.75rem; --aimodel-w: calc\(8\.75rem - 10px\); --tick-w: 31px; \}/);
+    // "implementering" is 98px in this face. --aimodel-w narrowed to
+    // 3rem with spec 480 — the compact button shows a bare model name
+    // now, not "Tool/model", and the room freed goes to Time (AC-5).
+    expect(NARROW).toMatch(/table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3rem; --tick-w: 31px; \}/);
     // The left one stays — it is the indent under the spec's own name.
     expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });

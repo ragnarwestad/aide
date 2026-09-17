@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderJobDetailPage, renderSpecsRows, type SpecTarget } from "../../../../../src/render";
+import { compactModelLabel } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
 import { detail, NAV, openKeys } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.
@@ -113,7 +114,54 @@ describe("each phase line shows what that step ran on", () => {
       },
       Date.parse("2026-09-15T10:00:00Z"),
     );
-    expect(now(line(html, "analyze"))).toBe("Claude/Sonnet");
-    expect(now(line(html, "implement"))).toBe("Codex/codex-sol");
+    expect(now(line(html, "analyze"))).toBe("Sonnet");
+    expect(now(line(html, "implement"))).toBe("codex-sol");
+  });
+});
+
+// AC-1/AC-2 (spec 480): the compact button's own text — a bare model
+// name by default, a tool prefix only on a name collision within the
+// SAME configured array.
+describe("compactModelLabel() names the phase's model (spec 480)", () => {
+  test("the bare model name, when nothing else configured shares it", () => {
+    const models = [{ name: "sonnet" }, { name: "gpt-fast", tool: "codex" as const }];
+    expect(compactModelLabel(models, { model: "sonnet", tool: "claude" })).toBe("sonnet");
+  });
+
+  test("the short tool name in front, when two entries share the model name", () => {
+    const models = [
+      { name: "gpt-6", tool: "claude" as const },
+      { name: "gpt-6", tool: "codex" as const },
+    ];
+    expect(compactModelLabel(models, { model: "gpt-6", tool: "codex" })).toBe("Codex · gpt-6");
+  });
+
+  test("empty when the phase is on nothing", () => {
+    expect(compactModelLabel([{ name: "sonnet" }], undefined)).toBe("");
+  });
+});
+
+// AC-2's own render case: two configured entries sharing one model name
+// (unreachable against today's real config schema, per 2-analysis.md's
+// "Codebase analysis" — proven here with a hand-built array instead).
+describe("two configured entries share one model name (AC-2)", () => {
+  test("the phase line's button names the tool before the model", () => {
+    const target: SpecTarget = { project: "aide", specFolder: "480-collide" };
+    const html = renderSpecsRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets: [target],
+        modelChoices: [
+          { name: "gpt-6", tool: "claude" },
+          { name: "gpt-6", tool: "codex" },
+        ],
+        defaultModels: { default: "gpt-6" },
+        filter: { open: openKeys([], [target]) },
+      },
+      Date.parse("2026-09-17T12:00:00Z"),
+    );
+    const line = html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">.*?<\/tr>/s)?.[0] ?? "";
+    expect(line).toMatch(/class="aimodelnow"[^>]*>Claude · gpt-6/);
   });
 });

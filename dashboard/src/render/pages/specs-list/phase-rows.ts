@@ -8,7 +8,7 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, ALREADY_RUN_REASON, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, SHORT_TOOL_NAMES } from "./model-picker.ts";
+import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
@@ -409,7 +409,7 @@ function aiModel(
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
   const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool);
-  const now = on ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool}/${on.model}` : "";
+  const now = compactModelLabel(opts.modelChoices ?? [], on);
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
   const button = locked
     ? `<span class="aimodelnow" aria-disabled="true">${esc(now)}</span>`

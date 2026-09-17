@@ -16,6 +16,7 @@ export {
   ALREADY_RUN_REASON,
   SHORT_TOOL_NAMES,
   TOOL_NAMES,
+  compactModelLabel,
   defaultModelForTool,
   phaseAiModel,
   resolveChosenModel,

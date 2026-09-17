@@ -141,8 +141,18 @@ export function syncAiToModel(model: HTMLSelectElement): void {
 /** The compact picker's own box, kept saying what the line is ON (spec
  *  179's pair, narrow screens). The two selects inside it are the
  *  truth; this is the one line of text over them, and a pick that left
- *  it stale would have the reader looking at "Claude/sonnet" over a
- *  Codex model until the next redraw.
+ *  it stale would have the reader looking at "sonnet" over a Codex
+ *  model until the next redraw.
+ *
+ *  The bare model name, unless another CONFIGURED entry shares it — the
+ *  same rule the server's `compactModelLabel()` applies
+ *  (`render/pages/specs-list/model-resolve.ts`, spec 480). The two run
+ *  in separate bundles with no shared module, so both must be kept
+ *  applying the same rule by hand. Every configured model is an
+ *  `<option data-tool>` in this select whatever tool is offered right
+ *  now — `offerOnly()` only hides one, never removes it — so counting
+ *  them here reads the same set the server's own array does, just off
+ *  the DOM instead of `opts.modelChoices`.
  *
  *  The AI's word comes off the option the server wrote it on
  *  (`data-short`) — which word stands for which tool is a fact about
@@ -154,7 +164,10 @@ export function refreshAiModelBox(container: Element): void {
   const ai = container.querySelector("select[data-ai]") as HTMLSelectElement | null;
   const short =
     ai?.selectedOptions[0]?.dataset.short ?? model.selectedOptions[0]?.dataset.tool ?? "";
-  const text = short ? `${short}/${model.value}` : model.value;
+  const collides =
+    Array.from(model.querySelectorAll("option[data-tool]"))
+      .filter((o) => (o as HTMLOptionElement).value === model.value).length > 1;
+  const text = collides && short ? `${short} · ${model.value}` : model.value;
   box.textContent = text;
   box.setAttribute("title", text);
 }
