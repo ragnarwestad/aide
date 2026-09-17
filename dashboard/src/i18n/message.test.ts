@@ -32,13 +32,41 @@ describe("renderSentence", () => {
 
   test("an array of mixed Sentences joins each as its own sentence", () => {
     const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
-    expect(result).toBe("cannot fast-forward main. the run vanished without leaving a result. — Press Implement again.");
+    expect(result).toBe("cannot fast-forward main. The run vanished without leaving a result. — Press Implement again.");
   });
 
   test("an array where every Sentence already ends in a full stop never joins with '.;'", () => {
     const result = renderSentence("en", ["cannot fast-forward main.", "the archived spec is on aide/04-x."]);
     expect(result).not.toContain(".;");
-    expect(result).toBe("cannot fast-forward main. the archived spec is on aide/04-x.");
+    expect(result).toBe("cannot fast-forward main. The archived spec is on aide/04-x.");
+  });
+
+  // The reader sees two sentences, so the second one has to LOOK like
+  // one — joined behind a full stop, a lower-case opening reads as the
+  // first sentence carrying on.
+  test("every sentence after the first opens with a capital, in both languages", () => {
+    expect(renderSentence("en", ["cannot fast-forward main", "the tests are red on this merge"])).toBe(
+      "cannot fast-forward main. The tests are red on this merge",
+    );
+    expect(renderSentence("nb", ["kan ikke spole fram main", "ønsker du å prøve igjen"])).toBe(
+      "kan ikke spole fram main. Ønsker du å prøve igjen",
+    );
+  });
+
+  // A branch is a name, and a capitalised name is a different branch.
+  test("a sentence that opens with a branch, a path or a command keeps its own spelling", () => {
+    expect(renderSentence("en", ["the merge failed", "aide/04-x is still on origin"])).toBe(
+      "the merge failed. aide/04-x is still on origin",
+    );
+    expect(renderSentence("en", ["the merge failed", "`bun test` exited 1"])).toBe(
+      "the merge failed. `bun test` exited 1",
+    );
+  });
+
+  test("the first sentence is left exactly as its writer spelled it", () => {
+    expect(renderSentence("en", ["aide/04-x is still on origin", "the merge failed"])).toBe(
+      "aide/04-x is still on origin. The merge failed",
+    );
   });
 
   test("undefined stays undefined", () => {
