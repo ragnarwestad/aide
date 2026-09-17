@@ -69,6 +69,9 @@ export interface ScheduleContext {
   queue: QueueStore;
   specRoots: (project: string) => string[];
   readRunner: () => Runner | null;
+  /** The clock the dependency hold measures its wait with; `Date.now`
+   *  unless a test sets one. */
+  now?: () => number;
   /** Checks again whether the tools waiting jobs will run on are usable. */
   recheckTools?: (tools: CheckableTool[]) => Promise<void>;
   checkoutEnsurer: CheckoutEnsurer;

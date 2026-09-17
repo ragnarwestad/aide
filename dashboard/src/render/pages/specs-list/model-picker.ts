@@ -76,7 +76,7 @@ export function modelPicker(
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
-  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const pending = archived ? undefined : pendingPick(g, opts, step, live);
   const chosen = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
@@ -256,6 +256,18 @@ export function phaseCaptionCells(
   );
 }
 
+/** The pick a phase that has not run yet pre-fills from. A phase the
+ *  running job can still take has its pick on that job — where a pick
+ *  made while it runs is written — ahead of the spec's own record. */
+function pendingPick(
+  g: SpecGroup,
+  opts: { pendingModels?: Record<string, Record<string, string>> },
+  step: string,
+  live: boolean,
+): string | undefined {
+  return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+}
+
 // The AI a phase will run on, beside the model it will run (spec 179).
 // One per phase line, in the column between the phase's name and its
 // model — where spec 169's set-all control stood, and spec 127's
@@ -336,7 +348,7 @@ export function aiPicker(
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: the same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
-  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const pending = archived ? undefined : pendingPick(g, opts, step, live);
   // The same answer `modelPicker` pre-fills its select with, from the
   // same helper: the AI shown is the tool of the model this line is on,
   // so the two controls cannot disagree about it.

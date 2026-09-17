@@ -238,6 +238,10 @@ Reloading the page, opening the spec in a different browser, or coming back anot
 a run started afterwards uses it. A phase that has since actually run shows what it ran on instead: a record of what
 happened outranks an earlier choice about what was to come.
 
+While a job runs, a pick for a phase the job can still take is written to that job, and the line shows the job's own
+pick. A phase the job was not queued with is recorded for the spec as well, so the pick outlives the job and the next
+run of that phase uses it.
+
 The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools — **the wall
 clock (`timeoutSec`) is the only thing that stops a runaway step**, for either tool, and it is mandatory for every
 step either way. Two things differ, and both are visible on the page rather than papered over:
