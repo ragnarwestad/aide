@@ -3,6 +3,7 @@
 
 import { ICON_WARN, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
 
 // `removeHref` only on the served page: a generated file has no token
@@ -14,8 +15,11 @@ function overviewRow(
   removeHref?: string,
   note?: string,
   warnHref?: string,
+  lang: Language = "en",
 ): string {
-  const remove = removeHref ? `<a class="btn small proj-row-action" href="${esc(removeHref)}">Remove</a>` : "";
+  const remove = removeHref
+    ? `<a class="btn small proj-row-action" href="${esc(removeHref)}">${t(lang, "project.remove")}</a>`
+    : "";
   // Spec 369: the readiness sentence itself moved to the project's own
   // page — this is only a pointer to it, so it needs the same escape
   // from the row's stretched-link overlay `.proj-row-action` uses.
@@ -31,7 +35,7 @@ function overviewRow(
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div>${projectLink}` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${warn}${remove}</div>`
+      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -41,7 +45,7 @@ function overviewRow(
     : "";
   return (
     `<div class="proj-row"><div>${projectLink}` +
-    `<span class="counts">${active} active · ${archived} archived</span>` +
+    `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>` +
     desc +
     drift +
     `</div>${warn}${remove}</div>`
@@ -56,12 +60,12 @@ function overviewRow(
  *  top line beside the Add button, the way the spec list's count and
  *  its New spec link share the filter row. The list itself then starts
  *  with a row, and the word "Projects" is said once — in the tab. */
-export function projectSummary(projects: ProjectView[]): string {
+export function projectSummary(projects: ProjectView[], lang: Language = "en"): string {
   const active = projects.reduce((n, p) => n + p.specs.filter((s) => !s.archived).length, 0);
   const archived = projects.reduce((n, p) => n + p.specs.filter((s) => s.archived).length, 0);
   return (
-    `<span class="summary">${projects.length} projects · ` +
-    `${active} active · ${archived} archived</span>`
+    `<span class="summary">${t(lang, "project.count", { n: projects.length })} · ` +
+    `${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>`
   );
 }
 
@@ -88,6 +92,7 @@ export function projectListBody(
      *  no mark at all — a third callback of the same shape as `note`
      *  and `removeHref`, not a change to how the row is composed. */
     warnHref?: (name: string) => string | undefined;
+    lang?: Language;
   },
 ): string {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
@@ -100,6 +105,7 @@ export function projectListBody(
           opts.removeHref?.(p.name),
           opts.note?.(p.name),
           opts.warnHref?.(p.name),
+          opts.lang ?? "en",
         ),
       )
       .join("\n")

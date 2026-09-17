@@ -15,7 +15,7 @@
 import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
 import { CHECKING, pips, stepLabel, type PipKind } from "../../ui/components";
@@ -124,24 +124,24 @@ export function renderJobDetailPage(
   // worked since spec 91.
   const head =
     labelled([
-      ["Started", relTime(job.startedAt ?? job.createdAt, now)],
+      [t(lang, "job.started"), relTime(job.startedAt ?? job.createdAt, now)],
       // Marked when any step summed into it was over-charged, the same
       // way the Steps tab already marks that step (spec 152). Not
       // `anyCostUnmeasured`: this page's own `JobStepResultView` is a
       // different interface, and a Codex step has no dollar figure to
       // have estimated in the first place.
       [
-        unitLabel("Cost so far", "Tokens so far"),
+        unitLabel(t(lang, "job.costSoFar"), t(lang, "job.tokensSoFar")),
         usdOrTokens(job.spentUsd, job.spentTokens) +
           (job.results.some((r) => !r.costMeasured)
             ? ' <span class="muted small">est.</span>'
             : ""),
       ],
-      ["Model", esc(job.model ?? "as configured")],
+      [t(lang, "job.model"), esc(job.model ?? "as configured")],
       // Spec 364, REQ-5: beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
-      ["Effort", esc(job.effort ?? "not set")],
+      [t(lang, "job.effort"), esc(job.effort ?? "not set")],
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same

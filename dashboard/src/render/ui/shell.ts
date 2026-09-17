@@ -15,11 +15,20 @@ import { themeControl, themeChoiceRows, languageControl, languageChoiceLinks } f
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
-import { t, type Language } from "../../i18n";
+import { t, type Language, type TranslationKey } from "../../i18n";
 
 export interface NavEntry {
   label: string;
   path: string;
+  /** Resolved per request, in `tabBar()` below, in preference to `label`
+   *  (spec 482) — `navEntries()` builds this list at server start,
+   *  before any reader's language is known, so a tab whose word can
+   *  change per language names the catalogue KEY here instead of
+   *  baking in English. Absent for every entry with nothing to
+   *  translate (a project's own name, the generated fallback nav's
+   *  `navFromSite()`), which keeps rendering `label` exactly as before —
+   *  a widening, not a breaking change to this type. */
+  labelKey?: TranslationKey;
 }
 
 // The theme switcher's own code is TypeScript like the rest of the
@@ -334,7 +343,7 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
     `<nav class="tabbar">` +
     tab(t(lang, "shell.tabSpecs"), "/", currentPath === "/") +
     tab(t(lang, "shell.tabProjects"), projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
-    sections.map((e) => tab(e.label, e.path, e.path === currentPath)).join("") +
+    sections.map((e) => tab(e.labelKey ? t(lang, e.labelKey) : e.label, e.path, e.path === currentPath)).join("") +
     `</nav>`
   );
 }

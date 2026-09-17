@@ -30,9 +30,15 @@ describe("renderSentence", () => {
     );
   });
 
-  test("an array of mixed Sentences joins rendered text with '; '", () => {
+  test("an array of mixed Sentences joins each as its own sentence", () => {
     const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
-    expect(result).toBe("cannot fast-forward main; the run vanished without leaving a result. — Press Implement again.");
+    expect(result).toBe("cannot fast-forward main. the run vanished without leaving a result. — Press Implement again.");
+  });
+
+  test("an array where every Sentence already ends in a full stop never joins with '.;'", () => {
+    const result = renderSentence("en", ["cannot fast-forward main.", "the archived spec is on aide/04-x."]);
+    expect(result).not.toContain(".;");
+    expect(result).toBe("cannot fast-forward main. the archived spec is on aide/04-x.");
   });
 
   test("undefined stays undefined", () => {

@@ -7,7 +7,7 @@
 
 import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { ICON_CHEVRON, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
@@ -125,14 +125,14 @@ function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusa
  *  `small`/`num`/`label` are the same classes the raw log and the row's
  *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
  *  any render file that introduces a class outside that vocabulary. */
-function stepSummary(r: JobStepResultView): string {
+function stepSummary(r: JobStepResultView, lang: Language = "en"): string {
   const hasLog = !!(r.logs && r.logs.length > 0);
   const facts =
     `<table class="facts"><tbody>` +
-    `<tr><td class="label">At</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
-    `<tr><td class="label">${unitLabel("Cost", "Tokens")}</td>` +
+    `<tr><td class="label">${t(lang, "job.stepAt")}</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
+    `<tr><td class="label">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</td>` +
     `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}</td></tr>` +
-    `<tr><td class="label">Result</td><td>${esc(r.terminalReason)}` +
+    `<tr><td class="label">${t(lang, "job.stepResult")}</td><td>${esc(r.terminalReason)}` +
     // The usage limit that stopped the step, from the tool's own record.
     (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : "") +
     `</td></tr>` +
@@ -141,7 +141,7 @@ function stepSummary(r: JobStepResultView): string {
   // itself recorded (the facts above) and says so in words, rather than
   // an empty commands/changed-files list with no explanation.
   if (!hasLog) {
-    return `${facts}<p class="muted">The log is missing for this step.</p>`;
+    return `${facts}<p class="muted">${t(lang, "job.logMissing")}</p>`;
   }
   const files =
     r.changedFiles && r.changedFiles.length > 0
@@ -221,7 +221,7 @@ export function stepResults(
       const key = String(i);
       const isOpen = open === key;
       const main =
-        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">Attempt ${r.attempt}</span> `}` +
+        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: r.attempt })}</span> `}` +
         `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack, opts.landingRefused, lang)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
@@ -234,7 +234,7 @@ export function stepResults(
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepSummary(r)}${stepLogPanel(
+        ? `<tr class="steplog"><td colspan="6">${stepSummary(r, lang)}${stepLogPanel(
             r.logs,
             r.terminalReason,
             opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,
@@ -247,9 +247,9 @@ export function stepResults(
     if (!opts.runningStep) return "";
     const isOpen = open === "live";
     const main =
-      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">Attempt ${opts.runningStep.attempt}</span> `}` +
+      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.attempt })}</span> `}` +
       `${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
-      `<td>running</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
+      `<td>${t(lang, "state.running")}</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;
     const log = isOpen
@@ -262,7 +262,7 @@ export function stepResults(
   // (spec 155). The spec page's Steps tab is this same table.
   return (
     `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
-    `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
+    `<th class="num">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</th>` +
     `<th>Ended as</th><th>Session</th><th>At${opts.mark ?? ""}</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
   );
 }

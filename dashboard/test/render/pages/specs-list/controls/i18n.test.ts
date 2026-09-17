@@ -130,3 +130,29 @@ describe("the row's message panel", () => {
     expect(line).not.toContain(">archive<");
   });
 });
+
+// The caption line above a phase's AI/model picker (spec 482): the four
+// words were literal, never routed through `t()`, so they stayed
+// English whatever the reader's language was.
+describe("the phase-row caption line", () => {
+  const CHOICES = [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" as const }];
+
+  test("Phase/AI/Model/Select read Norwegian, not English", () => {
+    const html = renderSpecsRows(
+      [row({ id: "c1", specFolder: "4-x", steps: ["analyze"], stepIndex: 0, state: "done" })],
+      {
+        runnerAvailable: true,
+        targets: [target("4-x")],
+        filter: { open: "aide/4-x" },
+        modelChoices: CHOICES,
+        lang: "nb",
+      },
+    );
+    expect(html).toContain(">Fase<");
+    expect(html).toContain(">Modell<");
+    expect(html).toContain('data-cap="box">Velg<');
+    expect(html).not.toContain(">Phase<");
+    expect(html).not.toContain(">Model<");
+    expect(html).not.toContain('data-cap="box">Select<');
+  });
+});

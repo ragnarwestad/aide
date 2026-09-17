@@ -5,6 +5,62 @@
 import { describe, expect, test } from "bun:test";
 import { page, view } from "./spec-page-fixtures.ts";
 
+// Spec 482 (AC-1): the tracking banner's own facts, the archived/closed
+// sentences, and the locked-acceptance popover were English string
+// literals — never routed through `t()` — so a reader who read the spec
+// page in Norwegian met plain English the moment a spec was archived,
+// closed, or had analyze already lock its acceptance switch.
+describe("the tracking banner, in Norwegian (spec 482)", () => {
+  test("an archived spec's Depends on/Acceptance facts read Norwegian, not English", () => {
+    const html = page(
+      view({
+        archived: true,
+        dependsOn: ["80-earlier"],
+        dependsOnOptions: [{ project: "aide", specFolder: "80-earlier" }],
+      }),
+      undefined,
+      "nb",
+    );
+    expect(html).toContain("<strong>Avhenger av</strong>");
+    expect(html).toContain("<strong>Akseptanse</strong>");
+    expect(html).toContain("kreves");
+    expect(html).not.toContain("<strong>Depends on</strong>");
+    expect(html).not.toContain("<strong>Acceptance</strong>");
+  });
+
+  test("an archived spec's own sentence reads Norwegian, not English", () => {
+    const html = page(view({ archived: true }), undefined, "nb");
+    expect(html).toContain("Denne specen er arkivert");
+    expect(html).not.toContain("This spec has been archived");
+  });
+
+  test("a closed spec's own sentence reads Norwegian, not English", () => {
+    const html = page(
+      view({ archived: true, closed: true, closedDate: "2026-09-10", closeReason: "did not pan out" }),
+      undefined,
+      "nb",
+    );
+    expect(html).toContain("Denne specen ble lukket");
+    expect(html).toContain("did not pan out");
+    expect(html).not.toContain("This spec was closed");
+  });
+
+  test("the locked-acceptance switch and its popover read Norwegian, not English", () => {
+    const html = page(view({ done: ["create", "analyze"] }), undefined, "nb");
+    expect(html).toContain("avkrysning av akseptansekriteriene kreves");
+    expect(html).toContain(
+      "<p>Analyser har allerede avgjort om akseptansekriterie-tabellen skal skrives — dette kan ikke endres nå.</p>",
+    );
+    expect(html).not.toContain("acceptance ticking required");
+    expect(html).not.toContain("Analyze has already decided");
+  });
+
+  test("English is unchanged", () => {
+    const html = page(view({ archived: true }));
+    expect(html).toContain("This spec has been archived");
+  });
+});
+
 describe("spec 394: the banner's combined tracking control", () => {
   // REQ-1: the depends-on picker sits above the tab row, on every tab —
   // not just the Description one it used to belong to.

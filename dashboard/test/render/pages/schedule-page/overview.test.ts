@@ -28,4 +28,22 @@ describe("renderScheduleOverview", () => {
     expect(renderScheduleOverview("aide", { ...entry, model: "codex-fast" }, {})).toContain("<dt>Model</dt>");
     expect(renderScheduleOverview("aide", entry, {})).not.toContain("<dt>Model</dt>");
   });
+
+  // Spec 482: the whole `<dl>` and the AI/Model fields in the Edit form
+  // below it were English string literals, never routed through `t()`.
+  test("the detail list reads Norwegian, not English", () => {
+    const html = renderScheduleOverview(
+      "aide",
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true, model: "codex-fast" },
+      { lang: "nb" },
+    );
+    expect(html).toContain("<dt>Neste kjøring</dt>");
+    expect(html).toContain("<dt>Promptfil</dt>");
+    expect(html).toContain("<dt>Modell</dt>");
+    expect(html).toContain("<dt>Aktivert</dt><dd>ja</dd>");
+    expect(html).not.toContain("<dt>Next run</dt>");
+    expect(html).not.toContain("<dt>Prompt file</dt>");
+    expect(html).not.toContain("<dt>Model</dt>");
+    expect(html).not.toContain("<dd>yes</dd>");
+  });
 });

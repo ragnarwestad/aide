@@ -4,9 +4,21 @@
 import { badge, helpPopover, type BadgeVariant } from "../components";
 import { esc } from "../html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import { t, type Language } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { QueueRowView } from "./types.ts";
+
+// Every state but `stopped` (which carries its own reason, below) is a
+// single catalogue key — added here rather than left as `r.state`
+// (spec 482), which was the raw English enum value in every language.
+const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, TranslationKey> = {
+  queued: "state.queued",
+  running: "state.running",
+  done: "state.done",
+  failed: "state.failed",
+  cancelled: "state.cancelled",
+  interrupted: "state.interrupted",
+};
 
 // A stopped job is NOT a failed one, and the two must never render as
 // the same string: with a tight timeout a time-stop is a common,
@@ -19,7 +31,7 @@ export function stateLabel(r: QueueRowView, lang: Language = "en"): string {
     if (r.stopReason === "provider-limit") return t(lang, "state.stoppedProviderLimit");
     return t(lang, "state.stoppedTestsRed");
   }
-  return r.state;
+  return t(lang, STATE_LABEL_KEYS[r.state]);
 }
 
 /** How long, in words (spec 199). "45s", "4m12s", "1h04m" — the unit

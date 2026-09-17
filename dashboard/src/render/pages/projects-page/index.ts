@@ -202,6 +202,7 @@ export function renderProjectsPage(
   opts: ProjectsPageOptions,
 ): string {
   const allowed = new Set(opts.createProjects ?? []);
+  const lang = opts.lang ?? "en";
   const body =
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
@@ -217,13 +218,14 @@ export function renderProjectsPage(
     // an <h1> and an <h2> that both said "Projects", and read as
     // floating between two titles rather than sitting on the list
     // (2026-08-21).
-    `<div class="listtop">${projectSummary(projects)}` +
-    `<a class="btn primary" href="${ADD_PROJECT_ROUTE}">Add</a></div>\n` +
+    `<div class="listtop">${projectSummary(projects, lang)}` +
+    `<a class="btn primary" href="${ADD_PROJECT_ROUTE}">${t(lang, "project.add")}</a></div>\n` +
     // Remove rides on each row the allowlist knows — a discovered
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
+      lang,
       // Spec 369: the sentence itself lives on the Config tab now (moved
       // off the Health tab by spec 378) — the list carries only a link
       // to it, gated on the same answer the sentence used to be gated

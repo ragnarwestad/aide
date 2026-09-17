@@ -86,6 +86,7 @@ export function renderScheduleDetailPage(
           error: opts.error,
           modelChoices: opts.modelChoices,
           defaultModels: opts.defaultModels,
+          lang: opts.lang,
         });
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {

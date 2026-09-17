@@ -8,6 +8,7 @@
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, field, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
 
 export interface ScheduleFormOptions {
@@ -62,7 +63,7 @@ export const SCHEDULE_FORM_ID = "schedule-form";
  *  configuration, never in the browser), and the select PRE-FILLED with
  *  what the entry is actually on — its own saved pick, else what the
  *  configuration would give the `schedule` step. */
-function modelFields(opts: ScheduleFormOptions): string {
+function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
   const configured = opts.defaultModels?.schedule ?? opts.defaultModels?.default;
@@ -92,18 +93,21 @@ function modelFields(opts: ScheduleFormOptions): string {
   // have them (2026-08-31).
   return (
     `<span class="row">` +
-    (aiSelect ? field("AI", aiSelect) : "") +
-    field("Model", `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`) +
+    (aiSelect ? field(t(lang, "schedule.ai"), aiSelect) : "") +
+    field(
+      t(lang, "schedule.model"),
+      `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`,
+    ) +
     `</span>`
   );
 }
 
 export const CRON_NEXT_HOOK = "cron-next";
 
-export function renderScheduleForm(opts: ScheduleFormOptions): string {
+export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "en"): string {
   const e = opts.entry;
   const initialNext = e?.cron ? nextFireTime(e.cron, new Date()) : null;
-  const models = modelFields(opts);
+  const models = modelFields(opts, lang);
   return (
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
