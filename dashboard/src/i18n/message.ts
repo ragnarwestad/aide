@@ -33,6 +33,9 @@ export type Sentence = string | BoardMessage;
 
 export function renderSentence(lang: Language, s: Sentence | Sentence[] | undefined): string | undefined {
   if (s === undefined) return undefined;
-  if (Array.isArray(s)) return s.map((one) => renderSentence(lang, one)).filter((t): t is string => !!t).join("; ");
+  if (Array.isArray(s)) {
+    const rendered = s.map((one) => renderSentence(lang, one)).filter((t): t is string => !!t);
+    return rendered.map((t, i) => (i < rendered.length - 1 && !/[.!?]$/.test(t) ? `${t}.` : t)).join(" ");
+  }
   return typeof s === "string" ? s : renderMessage(lang, s);
 }
