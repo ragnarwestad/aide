@@ -122,7 +122,7 @@ order, stopping at the first that applies:
 | `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs             |
 | `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
 | `not-implemented-yet`          | `implement` is not on the completed line                                                        |
-| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a person ticks those |
+| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
 | `archived`                     | Stamped and moved; the landing follows                                                          |
 
 The first four outcomes short of `archived` end the step without a model run. `conflict-open` and `archived` spawn

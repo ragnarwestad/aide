@@ -121,10 +121,10 @@ carries the moment it was written, and a test board that the dashboard
 stops gets a line saying who asked and which process group was signalled.
 
 **The repo it clones there is the dashboard's OWN checkout —
-`~/.aide/dashboard/checkouts/aide/code` — not a checkout a person edits.** That is the directory a code landing merges
+`~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code landing merges
 into and runs
 `AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
-no rule for a safe moment held up. It logs that the served page runs older code than main, and the person restarts
+no rule for a safe moment held up. It logs that the served page runs older code than main, and the user restarts
 when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts, and so does
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. The button answers before the restart
 fires, says the dashboard is restarting, and reloads the page once the service answers again. While jobs are
@@ -143,7 +143,7 @@ its own periodic
 
 **An already-installed service migrates by re-running the same command.** `make install-serve` is idempotent and is
 already the documented upgrade path (`deploy-serve: install-serve`) — it rewrites the plist with the new location and
-restarts the job. Nothing else is needed, and the person's own checkout on that host goes back to being just a working
+restarts the job. Nothing else is needed, and the user's own checkout on that host goes back to being just a working
 copy: no service reads from it, so letting it fall behind stops mattering.
 
 **Check your `.env.deploy` for a `MINI_REPO` override before upgrading.** It is gitignored and per-machine, so a host

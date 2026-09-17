@@ -84,7 +84,7 @@ never reached origin, a landing that did not finish, a pull request the code is 
 open), or an archived branch left open (whether because a landing's own delete failed, or because nothing has
 landed it at all) are facts about the work, not a second state the spec is IN, so none of them draw a badge in that
 column. Each is said once in the row's own notice line instead, ranked, joined with " · " when more than one
-applies, in a sentence written for a person — what happened and what to do, never git's own stderr — and each
+applies, in a sentence written for a user — what happened and what to do, never git's own stderr — and each
 keeping its own link where it has one, so a reader never loses one fact's link by another fact joining it on the
 same line.
 
@@ -119,7 +119,7 @@ reveals the workflow phases underneath, always in that order, so how far a spec 
 rows, plus the run controls (phase checkboxes, model, the also-touches field after it, Run, Cancel). A phase never run
 shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
 re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
-makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a person just acted
+makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a user just acted
 on open across the redirect that follows their own submit.
 
 The first line is `create` — history, not a control. It reads done once `4-status.md` records it, which is
@@ -238,7 +238,7 @@ from the list. It says it is archived, and its Description tab is read-only with
 a record.
 
 **The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
-person owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
+user owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
 runs. The `Depends on` picker used to sit on this tab; it moved into the banner above the tab row, since a dependency
 is a fact about the SPEC rather than about this one document.
 
