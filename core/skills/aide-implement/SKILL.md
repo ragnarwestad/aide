@@ -159,13 +159,20 @@ only the person the spec is for can make.
 **One narrow carve-out.** On a held-back spec taking another
 round on its open checks (`core/skills/aide-analyze/references/requirements-tracing.md`'s
 "A held-back spec's second round"), the Notes cell of a row that is
-still OPEN (`⬜`) may be written, naming what this round actually
-delivered against it and what — if anything — is still missing for a
-person to tick it. The Status cell of that same row, and every cell of
-a row that is already ticked, stays exactly as found regardless. On any
-spec that is not in a held-back round, leave every row exactly as you
-found it, Notes cell included — this carve-out does not widen the rule
-above it.
+still OPEN (`⬜`) may be written. The Status cell of that same row, and
+every cell of a row that is already ticked, stays exactly as found
+regardless. On any spec that is not in a held-back round, leave every
+row exactly as you found it, Notes cell included — this carve-out does
+not widen the rule above it.
+
+**The cell is REWRITTEN, never added to, and it is one or two
+sentences: what is missing for a person to tick this row, and nothing
+else.** The cell is a table cell a person reads to decide one thing;
+four rounds' worth of appended paragraphs in it is a cell nobody reads
+at all. Whatever the earlier round left there is replaced, not kept —
+what each round found, ran and measured belongs in `2-analysis.md` and
+`3-solution.md`, which carry a `## Round N` section for exactly that.
+Nothing is missing is a cell left empty, not a sentence saying so.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script

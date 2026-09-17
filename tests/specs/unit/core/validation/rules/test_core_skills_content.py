@@ -204,3 +204,57 @@ class TestNoHistoricalSpecCitations:
             f"({match.group(0)!r}) — state the instruction directly, "
             f"without the historical citation"
         )
+
+
+@pytest.mark.validation
+class TestTheNotesCellIsRewrittenNotAppendedTo:
+    """A row's Notes cell is what a person reads to decide whether to
+    tick it. Each round writing its own paragraph into the same cell
+    turned it into four rounds of prose nobody reads, so the
+    instruction says the cell is rewritten and short — pinned in both
+    places that describe it, since a reader of either one acts on it
+    alone.
+    """
+
+    @pytest.fixture
+    def implement(self):
+        path = CORE_SKILLS_DIR / "aide-implement" / "SKILL.md"
+        assert path.exists(), "core/skills/aide-implement/SKILL.md is missing"
+        return path.read_text(encoding="utf-8")
+
+    @pytest.fixture
+    def tracing(self):
+        path = (
+            CORE_SKILLS_DIR
+            / "aide-analyze"
+            / "references"
+            / "requirements-tracing.md"
+        )
+        assert path.exists(), "requirements-tracing.md is missing"
+        return path.read_text(encoding="utf-8")
+
+    def test_implement_says_the_cell_is_rewritten_and_short(self, implement):
+        assert "REWRITTEN, never added to" in implement, (
+            "aide-implement must say an open row's Notes cell is rewritten "
+            "rather than appended to"
+        )
+        assert "one or two\nsentences" in implement or "one or two sentences" in implement, (
+            "aide-implement must bound the Notes cell to one or two sentences"
+        )
+
+    def test_implement_sends_the_round_detail_to_the_other_two_files(self, implement):
+        """What each round found belongs where a round already has a
+        section of its own."""
+        carve_out = implement.split("One narrow carve-out", 1)[1][:1200]
+        assert "2-analysis.md" in carve_out and "3-solution.md" in carve_out, (
+            "the carve-out must name where a round's own findings go instead"
+        )
+
+    def test_the_tracing_reference_says_the_same(self, tracing):
+        cross_reference = tracing.split("lets Implement write an open row's Notes cell", 1)
+        assert len(cross_reference) == 2, (
+            "requirements-tracing.md must still point at the carve-out"
+        )
+        assert "rewritten from" in cross_reference[1][:400], (
+            "requirements-tracing.md must say the cell is rewritten each round"
+        )
