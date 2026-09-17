@@ -342,9 +342,27 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
  *  needs the identical join, and writing it a third time is the exact
  *  hand-copied-list shape `development.md` already names six of. */
 export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
-  return specPhases(all, target?.dir).map((phase) => ({
-    ...phase,
-    ...heldBackFor(phase.step, target),
-    ...historyFor(phase.step, target, phase.attempts[0]),
-  }));
+  const round = all.find(roundInFlight);
+  return specPhases(all, target?.dir).map((phase) => {
+    const joined = {
+      ...phase,
+      ...heldBackFor(phase.step, target),
+      ...historyFor(phase.step, target, phase.attempts[0]),
+    };
+    return round && phase.step === "archive" ? archiveInRound(joined, round) : joined;
+  });
+}
+
+/** A job in flight with Analyze or Implement still ahead of it: another
+ *  round of work on the spec. */
+const roundInFlight = (r: QueueRowView): boolean =>
+  inFlight(r) && r.steps.slice(r.stepIndex).some((s) => s === "analyze" || s === "implement");
+
+/** Archive's line while a round is under way. Until the round itself
+ *  reaches archive, every answer the line has — the hold, the stop
+ *  reason, the last attempt, the file's stamped result and time — is the
+ *  previous round's, and archive has not run in this one. */
+function archiveInRound(phase: Phase, round: QueueRowView): Phase {
+  if (phase.attempts.some((a) => a.id === round.id)) return phase;
+  return { step: phase.step, attempts: [], history: {} };
 }

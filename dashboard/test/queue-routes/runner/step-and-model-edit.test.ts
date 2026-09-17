@@ -1,7 +1,8 @@
 // Split out of step-and-dependency-routes.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TOKEN, JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -236,7 +237,11 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
    *  a second server started on that mirror — the same trick the
    *  `/steps` suite above uses, so no runner reconciles the seeded
    *  state out from under the test. */
-  async function running(steps: string[], stepIndex = 0): Promise<{ base: string; id: string }> {
+  async function running(
+    steps: string[],
+    stepIndex = 0,
+    pendingModelsPath?: string,
+  ): Promise<{ base: string; id: string }> {
     const first = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
     const made = (await (
       await fetch(`${first.base}/api/queue`, {
@@ -252,7 +257,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     job.stepIndex = stepIndex;
     writeFileSync(mirror, JSON.stringify(jobs));
     const second = harness.start({
-      extra: { queueToken: TOKEN, queueMirrorPath: mirror, queueDefaults: DEFAULTS },
+      extra: { queueToken: TOKEN, queueMirrorPath: mirror, queueDefaults: DEFAULTS, pendingModelsPath },
     });
     return { base: second.base, id: made.job.id };
   }
@@ -281,6 +286,24 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     expect(answer.ok).toBe(true);
     expect(answer.job.model.implement).toBe("fable");
     expect((await modelOf(base, id)).implement).toBe("fable");
+  });
+
+  // A step the running job was not queued with is a choice about a job
+  // still to come. Kept on this job alone, it was gone the moment the
+  // job ended, and the next run of that step went back to the default.
+  test("a pick for a step outside the job is kept for the spec as well", async () => {
+    const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
+    const { base, id } = await running(["analyze"], 0, pendingPath);
+    expect((await pick(base, id, "archive", "fable")).status).toBe(200);
+    const kept = JSON.parse(readFileSync(pendingPath, "utf-8")) as Record<string, Record<string, string>>;
+    expect(Object.values(kept).some((steps) => steps.archive === "fable")).toBe(true);
+  });
+
+  test("a pick for a step the job will run stays the job's alone", async () => {
+    const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
+    const { base, id } = await running(["analyze", "implement"], 0, pendingPath);
+    expect((await pick(base, id, "implement", "fable")).status).toBe(200);
+    expect(existsSync(pendingPath)).toBe(false);
   });
 
   test("the form encoding the page posts is understood too (criterion 4)", async () => {
