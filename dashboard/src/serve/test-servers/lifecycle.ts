@@ -155,9 +155,18 @@ export async function startTestServer(
     existing.branch === branch &&
     existing.commit === commit &&
     existing.status !== "failed" &&
-    ctx.isAlive(existing.wrapperPid)
+    // A board that is up has a wrapper that has exited, which is what
+    // success looks like; its own process is the one to ask.
+    ctx.isAlive(existing.status === "running" && existing.pid ? existing.pid : existing.wrapperPid)
   ) {
     return { ok: true, entry: existing };
+  }
+  // Any other board this spec still has — an older commit, or one that
+  // failed — goes before the new one starts. Registered over, it kept
+  // running where the page could no longer show or stop it, and held a
+  // port the next board then went without.
+  if (existing) {
+    stopTestServer(ctx, project, specFolder, `a board for ${commit.slice(0, 7)} replaces it`);
   }
 
   // REQ-2 (spec 428): the pool being full is a refusal like any other in

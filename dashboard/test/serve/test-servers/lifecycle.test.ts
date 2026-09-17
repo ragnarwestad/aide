@@ -119,6 +119,30 @@ describe("startTestServer", () => {
     expect(second).toEqual(first);
   });
 
+  // A board that came up has a wrapper that has exited — that is what
+  // success looks like — so it is the board's own process that says
+  // whether it is still there.
+  test("a board already up on the same commit is handed back, not started again", async () => {
+    const ctx = makeCtx();
+    ctx.store.set("aide", "spec-1", {
+      branch: "aide/spec-1",
+      commit: "abc123",
+      port: 9000,
+      wrapperPid: 4242,
+      pid: 7777,
+      workDir: dir,
+      logPath: join(dir, "board.log"),
+      status: "running",
+      startedAt: "2026-09-05T00:00:00.000Z",
+    });
+    // The wrapper has exited, as it does once the board is up.
+    alive.delete(4242);
+    alive.add(7777);
+    const again = await startTestServer(ctx, "aide", "spec-1");
+    expect(spawnCalls).toHaveLength(0);
+    expect(again.ok && again.entry.pid).toBe(7777);
+  });
+
   test("a branch that has moved to a new commit starts a fresh board", async () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
@@ -130,6 +154,9 @@ describe("startTestServer", () => {
     const second = await startTestServer(movedCtx, "aide", "spec-1");
     expect(spawnCalls).toHaveLength(2);
     expect(second.ok && second.entry.commit).toBe("def456");
+    // The board on the old commit goes first. Registered over, it kept
+    // running where nothing could see or stop it, and held its port.
+    expect(killSpy).toHaveBeenCalledWith(-4242, "SIGTERM");
   });
 
   test("REQ-10: the port never collides with the served board's own port or another tracked board's port", async () => {
