@@ -21,6 +21,7 @@ import type { SpecTarget } from "../../render";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
+  rereadSpec as rereadSpecImpl,
   refreshSpecCaches as refreshSpecCachesImpl,
   refreshSchedules as refreshSchedulesImpl,
   tickRunner as tickRunnerImpl,
@@ -115,6 +116,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
     return warmSpecImpl(scheduleCtx, t);
   }
+  function rereadSpec(dir: string, specFolder: string) {
+    return rereadSpecImpl(scheduleCtx, dir, specFolder);
+  }
   function refreshSpecCaches() {
     return refreshSpecCachesImpl(scheduleCtx);
   }
@@ -164,7 +168,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
 
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    warmSpec, refreshSpecCaches, tickRunner,
+    warmSpec, rereadSpec, refreshSpecCaches, tickRunner,
     driftTimer, specCacheTimer, scheduleTimer,
   };
 }

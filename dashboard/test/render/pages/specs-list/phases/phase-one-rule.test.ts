@@ -369,3 +369,77 @@ describe("a phase that ran never draws the not-run dash", () => {
     expect(cell).not.toContain(PHASE_NOT_RUN);
   });
 });
+
+// --- a transition between phases is never drawn as a failure ----------------
+//
+// The row reads the queue, which moves the instant a step ends, and the
+// files and git history, which are read again only a moment later. In
+// between, the two disagree — and the row drew that gap as a fault:
+// "last run reported done, but nothing reached the files", or the next
+// phase reading "Running" while it waited behind a landing.
+describe("a phase in transition reads as what it is doing", () => {
+  const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
+    project: "aide",
+    specFolder: "480-transition",
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
+    renderSpecsRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-09-17T10:00:00Z"),
+    );
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  const FAULTS = /nothing reached the files|disagree|run it again/;
+
+  // A chained job moves on to its next step in the same write that
+  // marks the finished one as landing, so `stepIndex` already names
+  // implement while analyze's branch is being merged.
+  const landingAnalyze = row({
+    id: "chain",
+    specFolder: "480-transition",
+    steps: ["analyze", "implement"],
+    stepIndex: 1,
+    state: "queued",
+    landing: true,
+    results: [{ step: "analyze", ok: true, costUsd: 1, terminalReason: "completed" }],
+  });
+
+  test("the landing belongs to the step being merged, not the one queued behind it", () => {
+    const html = rows([landingAnalyze], [target({ done: ["create"] })]);
+    expect(stateCell(subRow(html, "analyze"))).toContain("Running");
+    expect(stateCell(subRow(html, "implement"))).not.toContain("Running");
+    expect(html).not.toMatch(FAULTS);
+  });
+
+  // Implement lands nothing: its step ends, and the files and history
+  // are read again a moment later. A step that ended after they were
+  // last read cannot be contradicted by them yet.
+  const implemented = (at: string) =>
+    row({
+      id: "impl",
+      specFolder: "480-transition",
+      steps: ["implement"],
+      stepIndex: 0,
+      state: "done",
+      results: [{ step: "implement", ok: true, costUsd: 1, terminalReason: "completed", at }],
+    });
+
+  test("a step that ended after the files were last read says done, not that nothing reached them", () => {
+    const html = rows(
+      [implemented("2026-09-17T09:59:50Z")],
+      [target({ done: ["create", "analyze"], sourcesCheckedAt: "2026-09-17T09:59:40Z" })],
+    );
+    expect(stateCell(subRow(html, "implement"))).toContain("Done");
+    expect(html).not.toMatch(FAULTS);
+  });
+
+  test("once the files have been read since, a step they still do not show is said", () => {
+    const html = rows(
+      [implemented("2026-09-17T09:59:50Z")],
+      [target({ done: ["create", "analyze"], sourcesCheckedAt: "2026-09-17T09:59:55Z" })],
+    );
+    expect(html).toContain("nothing reached the files");
+  });
+});

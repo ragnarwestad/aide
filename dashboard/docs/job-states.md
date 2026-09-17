@@ -133,7 +133,15 @@ Three fields say something the state alone does not, and each is read by the pag
   it has already succeeded, and must treat that one row as settled by hand; every other row's flag is as trustworthy
   as ever. The step's own phase line follows the same flag: its badge reads "Running", not "done", and its
   own duration keeps counting until the landing settles — the row's state and the phase line never disagree about
-  whether the step is still going.
+  whether the step is still going. The flag belongs to the step being merged: a chained job has already moved
+  `stepIndex` on to its next step when the landing starts, so that next step reads "Queued", never "Running".
+
+  The row also reads the spec's files and git history, which are cached and catch up after the queue does. Each
+  answer carries when it was read (`SpecTarget.sourcesCheckedAt`, the older of the history's and the branch copy's
+  read), and a phase whose latest run ended after that reads as its run's own word, with no sentence about the files
+  disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
+  those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
+  with a landing has them read again by the landing.
 - **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
   suite on a landing is work that is not green yet rather than a broken agent.

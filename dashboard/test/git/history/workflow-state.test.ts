@@ -102,6 +102,24 @@ describe("resolveWorkflowState", () => {
     return fakeGit(answers);
   };
 
+  // When the answer was read is part of it: a row may not hold a step
+  // that ended after that against what the answer says. Two reads make
+  // one answer, so it is the OLDER read that says how current it is.
+  test("the answer carries when it was read — the older of the two reads", async () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
+    await history.read(DIR, FOLDER);
+    const branch = new BranchFileStepsChecker({ run: branchFileFake(["analyze"]).run, now: () => 3_000 });
+    await branch.read(DIR, FOLDER, BRANCH_TARGET);
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(3_000);
+  });
+
+  test("with no branch read, the history's own read time is the answer's", async () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
+    await history.read(DIR, FOLDER);
+    const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(5_000);
+  });
+
   /** A `WorkflowHistoryChecker` already warmed with `history`, ready to
    *  `peekHistory` without spawning git again. */
   const warmedHistory = async (...subjects: string[]): Promise<WorkflowHistoryChecker> => {

@@ -441,6 +441,9 @@ export interface ResolvedWorkflowState {
    *  "the work is on the branch" apart from "nothing was written"
    *  (spec 418). */
   historyDone: string[];
+  /** When the two answers above were read, as epoch ms — the older of
+   *  the history's and, when there is one, the branch copy's. */
+  checkedAt: number;
 }
 
 /** Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
@@ -458,7 +461,8 @@ export function resolveWorkflowState(
 ): ResolvedWorkflowState | null {
   const { history: h, checkedAt } = history.peekHistory(dir, specFolder, reopenedAfter);
   if (h === null || checkedAt === null) return null;
-  const branchSteps = branchFileSteps.peekFileSteps(dir, specFolder).steps;
+  const branchPeek = branchFileSteps.peekFileSteps(dir, specFolder);
+  const branchSteps = branchPeek.steps;
   const answer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
   // REQ-4: the state file is what a gate reads, so it is what the pips
   // and the done list read too, once one exists — git's own
@@ -471,5 +475,6 @@ export function resolveWorkflowState(
     fileDisagrees: stepsFileDisagreesOn(answer, h),
     fileSteps: answer.proseSteps,
     historyDone: h.done,
+    checkedAt: branchPeek.checkedAt === null ? checkedAt : Math.min(checkedAt, branchPeek.checkedAt),
   };
 }

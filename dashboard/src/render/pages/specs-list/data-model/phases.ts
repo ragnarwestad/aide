@@ -6,6 +6,7 @@
 import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { archiveHeldBackApplies } from "../../../../project/parse-status";
 import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state";
+import { landingStep } from "../../../ui/job-state/resting.ts";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
 
 /** Every step this job has anything to say about: the ones it finished,
@@ -44,10 +45,14 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       // being merged, never to the steps behind it. Spread whole, it
       // made `inFlight` true for every finished step, and a three-step
       // job waiting for its merge drew three running pips at once.
-      landing: currentStep(r) === step ? r.landing : undefined,
+      landing: landingStep(r) === step ? r.landing : undefined,
     };
   }
   if (currentStep(r) !== step) return null;
+  // Not yet run, while an EARLIER step of the same job is landing: a
+  // chained job has already moved its `stepIndex` on to this step when
+  // the one before it starts merging. The landing is that step's.
+  if (r.landing && landingStep(r) !== step) return { ...r, landing: undefined };
   // What the finished steps did not account for. A job's `spentUsd` is
   // the sum over its steps, so the step in flight owns the remainder.
   const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
@@ -310,13 +315,25 @@ const heldBackFor = (step: string, t: SpecTarget | undefined): { heldBack?: { re
 const historyFor = (
   step: string,
   t: SpecTarget | undefined,
-): { history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean } } => ({
+  latest?: QueueRowView,
+): { history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean; settling?: boolean } } => ({
   history: {
     stopped: t?.stopped?.[step],
     fileDisagrees: t?.fileDisagrees?.includes(step),
     historyDone: t?.historyDone?.includes(step),
+    settling: endedSinceRead(step, t, latest),
   },
 });
+
+/** Did this phase's latest run end after the files and history were
+ *  last read? Then they have not seen it yet, and whatever they say
+ *  about it is the picture from before it ran. Unknown on either side
+ *  answers no: a row with no read time keeps saying what the files say. */
+function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRowView | undefined): boolean {
+  const endedAt = latest?.results?.find((x) => x.step === step)?.at;
+  if (!endedAt || !t?.sourcesCheckedAt) return false;
+  return Date.parse(endedAt) >= Date.parse(t.sourcesCheckedAt);
+}
 
 /** The three-line join `jobGroup` and `emptyGroup` each composed inline
  *  (spec 239): `specPhases` for the lines themselves, then archive's own
@@ -328,6 +345,6 @@ export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): 
   return specPhases(all, target?.dir).map((phase) => ({
     ...phase,
     ...heldBackFor(phase.step, target),
-    ...historyFor(phase.step, target),
+    ...historyFor(phase.step, target, phase.attempts[0]),
   }));
 }

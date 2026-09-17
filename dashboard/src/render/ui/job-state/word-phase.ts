@@ -113,6 +113,10 @@ function decidePhase(
     historyDone?: boolean;
     /** The phase this line is about, for the sentences that name it. */
     step?: string;
+    /** This phase's latest run ended after the files and history were
+     *  last read, so neither has seen it yet: nothing they say about it
+     *  is a disagreement, only a picture from before it ran. */
+    settling?: boolean;
   } = {},
   lang: Language = "en",
 ): PhaseWord {
@@ -122,7 +126,7 @@ function decidePhase(
   // qualifier that has something sharper to say: an attempt that ended
   // badly is the more useful sentence, and two sentences about one
   // phase is the row saying two things at once.
-  const filesDisagree = history.fileDisagrees ? filesDisagreeSentence(lang, history.step) : undefined;
+  const filesDisagree = history.fileDisagrees && !history.settling ? filesDisagreeSentence(lang, history.step) : undefined;
   // A phase that is running says so, whatever happened the last time it
   // ran. The history's "done" is about a previous attempt; this one is
   // in flight, and a line reading "done · 2 attempts" over a spec the
@@ -234,6 +238,11 @@ function decidePhase(
       return { pip: "todo", badge: { variant: "waiting", label: "Stopped" }, qualifier: filesDisagree };
     }
     return { pip: "todo", qualifier: filesDisagree };
+  }
+  // Ended since the files were last read: the run's own word, and no
+  // sentence about files that have not caught up with it yet.
+  if (attempt.state === "done" && history.settling) {
+    return { pip: "past", badge: { variant: "done", label: "Done" } };
   }
   if (attempt.state === "done") {
     return {

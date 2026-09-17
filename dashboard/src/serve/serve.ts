@@ -254,6 +254,12 @@ export function createServer(opts: ServerOptions) {
       schedules.workflowHistory.forget(dir, folder);
       schedules.branchFileSteps.forget(dir, folder);
     },
+    // A macrotask, not now: the step's own result is written right
+    // after this is asked for, and a read stamped before that write
+    // would never count as having seen the step.
+    rereadSpecCaches: (dir, folder) => {
+      setTimeout(() => void schedules.rereadSpec(dir, folder).catch(() => {}), 0);
+    },
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

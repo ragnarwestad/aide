@@ -64,6 +64,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       stopped: resolved.stopped,
       fileDisagrees: resolved.fileDisagrees,
       historyDone: resolved.historyDone,
+      sourcesCheckedAt: new Date(resolved.checkedAt).toISOString(),
       // What the "Started" column holds (spec 199). Null when git
       // could not answer — a shallow clone, a folder moved without
       // `git mv` — and then the cell shows a dash rather than a

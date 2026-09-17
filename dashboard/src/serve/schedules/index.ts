@@ -125,6 +125,19 @@ export async function warmSpec(
   ]);
 }
 
+/** One spec read again now, and the page told — for a step that ended
+ *  with no landing to do it (`implement` above all). Without it, the
+ *  answers the row is drawn from stayed as they were before the step
+ *  until the next pass of the schedule below, and the row drew that gap
+ *  as a fault. The target's own boundary is used, since the history is
+ *  cached per boundary and a warm without it fills a key no row reads. */
+export async function rereadSpec(ctx: ScheduleContext, dir: string, specFolder: string): Promise<void> {
+  const same = ctx.targets().filter((t) => t.specFolder === specFolder);
+  const t = same.find((x) => x.dir === dir) ?? same[0];
+  await warmSpec(ctx, { dir, specFolder, reopenedAfter: t?.reopenedAfter });
+  ctx.notifyQueueChanged();
+}
+
 /** Spec 208: the ONE schedule that feeds every peek on every page.
  *
  *  This is `refreshDrift`'s shape (spec 203) applied to the rest of

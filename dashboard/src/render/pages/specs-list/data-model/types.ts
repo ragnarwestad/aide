@@ -46,6 +46,8 @@ export interface SpecTarget {
   /** The steps the file and the history do not agree about — said on
    *  the phase line it is about, never once per phase. */
   fileDisagrees?: string[];
+  /** When the files and history above were last read; a run ended after this is not yet in them. */
+  sourcesCheckedAt?: string;
   /** Which steps have a completion commit ANYWHERE in git (spec 418) —
    *  the raw answer, before a state file's own claim can override it.
    *  What tells "the work is on the branch, unlanded" apart from
@@ -317,7 +319,7 @@ export interface Phase {
   /** What this phase's own git history says beyond whether it happened
    *  (spec 154): why its last run did not finish, and whether
    *  `4-status.md` agrees that it ran at all. */
-  history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean };
+  history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean; settling?: boolean };
   /** What this phase ran on, when it is a LOCKED phase's own record
    *  (spec 244) — from `ArchivedSpecView.models`, never set for a live
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read

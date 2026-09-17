@@ -56,6 +56,9 @@ export interface RunnerSetupContext {
    *  file steps on its branch) due for a fresh read — see
    *  `forgetSpecCachesFor`. */
   forgetSpecCaches: (dir: string, specFolder: string) => void;
+  /** Reads those answers again once the step's own result is written,
+   *  and tells the page — for a step with no landing to do it. */
+  rereadSpecCaches: (dir: string, specFolder: string) => void;
 }
 
 /** A step that just ended rewrote the spec's files and pushed its
@@ -70,6 +73,18 @@ export function forgetSpecCachesFor(
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;
   ctx.forgetSpecCaches(ctx.peekMachinerySpecDir(job.project, found), job.specFolder);
+}
+
+/** Forgetting alone leaves the old answers served until the schedule's
+ *  next pass: for a step with a landing, the landing reads them again;
+ *  for one without, this does. */
+export function rereadSpecCachesFor(
+  ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir" | "rereadSpecCaches">,
+  job: Pick<Job, "project" | "specFolder">,
+): void {
+  const found = ctx.specDir(job.project, job.specFolder);
+  if (!found) return;
+  ctx.rereadSpecCaches(ctx.peekMachinerySpecDir(job.project, found), job.specFolder);
 }
 
 /** Whether `analyze`'s own invocation of `job` should be told acceptance
@@ -224,72 +239,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     //
     // The returned promise holds the queue for as long as the
     // landing takes; see `Runner.tick()`.
-    onStepDone: (job, step, outcome) => {
-      forgetSpecCachesFor(ctx, job);
-      if (outcome.ok) {
-        if (step === "create") return ctx.landNewSpec(job, outcome);
-        // `reopen` lands for exactly the reason `analyze` does, and
-        // for it the argument is not an improvement but the whole
-        // feature (spec 198): the un-archived folder is what makes
-        // the spec active again, this page reads the MAIN checkout,
-        // and a reopen left on its branch would show nowhere at all
-        // — "reopening is one action" would then still end with
-        // somebody in a terminal.
-        // A finished reset takes the round's phase choice with it, so
-        // the row's boxes and button start over from Analyze rather than
-        // from whatever was ticked for the round just discarded.
-        if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);
-        if (step === "analyze" || step === "reopen" || step === "reset") {
-          return ctx.landStepBranch(job, step, outcome);
-        }
-        // `archive` lands on `completed` alone. A refusal from
-        // `aide-archive-spec` (not implemented yet, an acceptance row
-        // unticked) is ok — the row reads the hold-back from
-        // 4-status.md — but nothing was archived, and landing it merged
-        // implement's code branch into main with the spec still active.
-        // `already-landed` has nothing left to land either.
-        if (step === "archive") {
-          return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
-        }
-        // spec 406: `close` lands on `closed` alone, the same rule
-        // `archive` follows for `completed` — every other terminalReason
-        // (`already-closed`, `already-archived`, `conflict-open`,
-        // `refused`) moved nothing, so there is nothing to land.
-        if (step === "close") {
-          return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
-        }
-        // `implement`, `explore` and `manifest` fall through: the first
-        // by design, the other two because neither leaves a spec branch
-        // for anyone to land.
-        return undefined;
-      }
-      // A step stopped by its own clock still committed and pushed
-      // whatever it had written before the deadline — `aide-run-spec`'s
-      // commit loop runs on every path and the push is gated on the
-      // push mode, not on `ok` (spec 187). Left on the branch, that
-      // work is readable only by checking it out by hand: spec 184
-      // stopped with a finished analysis nothing on this page
-      // mentioned.
-      //
-      // What decides is what the run TOUCHED, never which step it
-      // was. A run that moved a code root's HEAD is left exactly
-      // where a failed run is left — the code waits on its branch for
-      // `archive`, whether the step ran out of time or not — and there
-      // is no second list of "which steps are safe" to keep in step
-      // with the first.
-      //
-      // The wall clock and a provider limit both stop after the
-      // runner has committed the work. A CLI error has no such safe
-      // landing promise.
-      if (
-        !step ||
-        (outcome.terminalReason !== "timeout" && outcome.terminalReason !== "provider-limit")
-      ) return undefined;
-      const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
-      const pushed = outcome.branchUrls ?? [];
-      if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
-      return ctx.landStoppedStepBranch(job, step, outcome);
-    },
+    onStepDone: stepDoneHandler(ctx),
     clearResult: (path) => {
       try {
         rmSync(path, { force: true });
@@ -298,4 +248,85 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       }
     },
   });
+}
+
+/** What the runner does the moment a step ends: mark the spec's cached
+ *  answers due, start the landing the step needs, and — for a step that
+ *  needs none — read those answers again, since nothing else will until
+ *  the schedule's next pass. */
+export function stepDoneHandler(
+  ctx: RunnerSetupContext,
+): (job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>) => void | Promise<unknown> {
+  return (job, step, outcome) => {
+    forgetSpecCachesFor(ctx, job);
+    const landing = landingFor(job, step, outcome);
+    if (!landing) rereadSpecCachesFor(ctx, job);
+    return landing;
+  };
+
+  function landingFor(job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>): Promise<unknown> | undefined {
+    if (outcome.ok) {
+      if (step === "create") return ctx.landNewSpec(job, outcome);
+      // `reopen` lands for exactly the reason `analyze` does, and
+      // for it the argument is not an improvement but the whole
+      // feature (spec 198): the un-archived folder is what makes
+      // the spec active again, this page reads the MAIN checkout,
+      // and a reopen left on its branch would show nowhere at all
+      // — "reopening is one action" would then still end with
+      // somebody in a terminal.
+      // A finished reset takes the round's phase choice with it, so
+      // the row's boxes and button start over from Analyze rather than
+      // from whatever was ticked for the round just discarded.
+      if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);
+      if (step === "analyze" || step === "reopen" || step === "reset") {
+        return ctx.landStepBranch(job, step, outcome);
+      }
+      // `archive` lands on `completed` alone. A refusal from
+      // `aide-archive-spec` (not implemented yet, an acceptance row
+      // unticked) is ok — the row reads the hold-back from
+      // 4-status.md — but nothing was archived, and landing it merged
+      // implement's code branch into main with the spec still active.
+      // `already-landed` has nothing left to land either.
+      if (step === "archive") {
+        return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
+      }
+      // spec 406: `close` lands on `closed` alone, the same rule
+      // `archive` follows for `completed` — every other terminalReason
+      // (`already-closed`, `already-archived`, `conflict-open`,
+      // `refused`) moved nothing, so there is nothing to land.
+      if (step === "close") {
+        return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
+      }
+      // `implement`, `explore` and `manifest` fall through: the first
+      // by design, the other two because neither leaves a spec branch
+      // for anyone to land.
+      return undefined;
+    }
+    // A step stopped by its own clock still committed and pushed
+    // whatever it had written before the deadline — `aide-run-spec`'s
+    // commit loop runs on every path and the push is gated on the
+    // push mode, not on `ok` (spec 187). Left on the branch, that
+    // work is readable only by checking it out by hand: spec 184
+    // stopped with a finished analysis nothing on this page
+    // mentioned.
+    //
+    // What decides is what the run TOUCHED, never which step it
+    // was. A run that moved a code root's HEAD is left exactly
+    // where a failed run is left — the code waits on its branch for
+    // `archive`, whether the step ran out of time or not — and there
+    // is no second list of "which steps are safe" to keep in step
+    // with the first.
+    //
+    // The wall clock and a provider limit both stop after the
+    // runner has committed the work. A CLI error has no such safe
+    // landing promise.
+    if (
+      !step ||
+      (outcome.terminalReason !== "timeout" && outcome.terminalReason !== "provider-limit")
+    ) return undefined;
+    const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
+    const pushed = outcome.branchUrls ?? [];
+    if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
+    return ctx.landStoppedStepBranch(job, step, outcome);
+  }
 }

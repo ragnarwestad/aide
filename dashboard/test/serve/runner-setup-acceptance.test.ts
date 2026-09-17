@@ -8,7 +8,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor } from "../../src/serve/runner-setup.ts";
+import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor, stepDoneHandler } from "../../src/serve/runner-setup.ts";
 import type { Job } from "../../src/queue/queue.ts";
 
 const job = (over: Partial<Job> = {}): Job =>
@@ -84,5 +84,46 @@ describe("forgetSpecCachesFor", () => {
     };
     forgetSpecCachesFor(ctx, job());
     expect(forgotten).toEqual([]);
+  });
+});
+
+// A step with no landing leaves the spec's cached answers as they were
+// before it ran until the schedule's next pass — up to half a minute of
+// the row saying nothing reached the files. The handler reads them
+// again itself for such a step, and leaves it to the landing otherwise.
+describe("stepDoneHandler", () => {
+  const harness = () => {
+    const calls: string[] = [];
+    const ctx = {
+      specDir: (_project: string, folder: string) => folder,
+      peekMachinerySpecDir: (_project: string, found: string) => `/machinery/${found}`,
+      machineryProjectDir: () => "/machinery",
+      forgetSpecCaches: (dir: string) => void calls.push(`forget ${dir}`),
+      rereadSpecCaches: (dir: string) => void calls.push(`reread ${dir}`),
+      landStepBranch: () => {
+        calls.push("land");
+        return Promise.resolve();
+      },
+      store: { forgetPendingSteps: () => {} },
+    };
+    return { calls, handle: stepDoneHandler(ctx as unknown as Parameters<typeof stepDoneHandler>[0]) };
+  };
+
+  test("an implement that finished is read again at once", () => {
+    const { calls, handle } = harness();
+    expect(handle(job() as never, "implement", { ok: true, terminalReason: "completed" })).toBeUndefined();
+    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "reread /machinery/81-queue-and-runner"]);
+  });
+
+  test("a step that failed is read again too", () => {
+    const { calls, handle } = harness();
+    handle(job() as never, "analyze", { ok: false, terminalReason: "cli-error" });
+    expect(calls).toContain("reread /machinery/81-queue-and-runner");
+  });
+
+  test("an analyze that lands leaves the reading to its landing", () => {
+    const { calls, handle } = harness();
+    expect(handle(job() as never, "analyze", { ok: true, terminalReason: "completed" })).toBeInstanceOf(Promise);
+    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land"]);
   });
 });
