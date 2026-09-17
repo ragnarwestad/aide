@@ -155,6 +155,21 @@ describe("spec 108: one rule per phase", () => {
     expect(archive).toContain(PHASE_NOT_RUN);
   });
 
+  // A press on Run that named the wrong step, cancelled at once: the
+  // cancelled attempt is the newest thing the queue knows about
+  // implement, and the files still say implement is done. The line
+  // answers from the files — a cancelled attempt is a qualifier, never
+  // an eraser.
+  test("a cancelled attempt does not make a finished phase read as not run", () => {
+    const html = rows(
+      [row({ id: "oops", specFolder: "471-cancelled", steps: ["implement", "archive"], state: "cancelled" })],
+      [target("471-cancelled", { done: ["analyze", "implement"] })],
+    );
+    const implement = subRow(html, "implement");
+    expect(stateCell(implement)).toContain("Done");
+    expect(stateCell(implement)).not.toContain(PHASE_NOT_RUN);
+  });
+
   test("an archive run in flight outranks a stale held-back note (criterion 6)", () => {
     const html = rows(
       [row({ id: "retry", specFolder: "108-retry", steps: ["archive"], state: "running" })],
