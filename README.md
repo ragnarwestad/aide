@@ -263,7 +263,10 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 ## Resources
 
-- [DEVELOPING.md](DEVELOPING.md) - Developer guide for Aide
-- [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - The spec workflow
-- [core/rules/git.md](core/rules/git.md) - Git rules
 - [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) - Birgitta Böckeler on the levels of spec-driven development and the tools behind them
+- [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
+- [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development)
+- [GitHub Spec Kit](https://github.com/github/spec-kit)
+- [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+- [Kiro](https://kiro.dev)
+- [Tessl](https://tessl.io/)
