@@ -225,14 +225,26 @@ export async function checkRoutes(
       logRefusal("tick", `${project}/${specFolder}`, result.note);
       return specsRedirect({}, { error: result.note }, back);
     }
-    // The branch answer this tick just changed is TTL-cached, and the
-    // Specs list reads it to decide whether to say "held back: the
-    // Acceptance criteria are not all ticked yet". Forgotten here, the
-    // very next render asks git instead of repeating what was true
-    // before the Save (337, 2026-09-04).
-    ctx.forgetBranchFileSteps?.(dir, specFolder!);
+    await afterTick(ctx, dir, specFolder!);
     return specsRedirect({}, undefined, back, { note: result.note, ok: true });
   }
 
   return null;
+}
+
+/** What a saved tick leaves behind for the next page. The branch answer
+ *  it just changed is cached, and the Specs list reads it to decide
+ *  whether to say "held back: the Acceptance criteria are not all ticked
+ *  yet". Marked due alone, it went on being served until the schedule's
+ *  next read — up to half a minute of the list saying the opposite of
+ *  what the reader had just saved. So it is read again before the reader
+ *  is sent back, and the list's own scan, which copied it, is dropped. */
+export async function afterTick(
+  ctx: Pick<RoutesContext, "forgetBranchFileSteps" | "rereadSpec" | "invalidateScan">,
+  dir: string,
+  specFolder: string,
+): Promise<void> {
+  ctx.forgetBranchFileSteps?.(dir, specFolder);
+  await ctx.rereadSpec?.(dir, specFolder).catch(() => {});
+  ctx.invalidateScan();
 }

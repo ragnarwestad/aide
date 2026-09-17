@@ -355,6 +355,7 @@ export function createServer(opts: ServerOptions) {
     nav,
     allowed,
     branchFileSteps: schedules.branchFileSteps,
+    rereadSpec: schedules.rereadSpec,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,
