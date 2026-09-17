@@ -46,4 +46,18 @@ describe("renderScheduleOverview", () => {
     expect(html).not.toContain("<dt>Model</dt>");
     expect(html).not.toContain("<dd>yes</dd>");
   });
+
+  // Spec 484, AC-5: the same English-leak guard, for the three languages
+  // added beside English and Norwegian.
+  test.each(["es", "de", "fr"] as const)("the detail list is not the English words in %s", (lang) => {
+    const html = renderScheduleOverview(
+      "aide",
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true, model: "codex-fast" },
+      { lang },
+    );
+    expect(html).not.toContain("<dt>Next run</dt>");
+    expect(html).not.toContain("<dt>Prompt file</dt>");
+    expect(html).not.toContain("<dt>Model</dt>");
+    expect(html).not.toContain("<dd>yes</dd>");
+  });
 });

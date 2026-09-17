@@ -11,7 +11,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { STEP_LABELS, STEP_LABELS_NB } from "../../src/render/ui/components";
+import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "../../src/render/ui/components";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
 import { PHASE_LINES } from "../../src/render";
@@ -88,12 +88,18 @@ describe("the specs table fits the box that scrolls it", () => {
 
     // The four steps a spec goes through — `PHASE_LINES` is the list of
     // them (`specs-list/data-model/types.ts`).
+    // Spec 484: the same four words measured in Chromium for Spanish,
+    // German and French, against this same stylesheet.
     const MEASURED_PX: Record<string, number> = {
       Create: 38, Analyze: 45, Implement: 60, Archive: 43,
       Opprett: 49, Analyser: 54, Implementer: 78, Arkiver: 45,
+      Crear: 35, Analizar: 51, Implementar: 79, Archivar: 52,
+      Erstellen: 54, Analysieren: 73, Implementieren: 97, Archivieren: 71,
+      Créer: 35, Implémenter: 79, Archiver: 52,
     };
-    const shown = PHASE_LINES.flatMap((step) => [STEP_LABELS[step], STEP_LABELS_NB[step]])
-      .filter((l): l is string => Boolean(l));
+    const shown = PHASE_LINES.flatMap((step) => [
+      STEP_LABELS[step], STEP_LABELS_NB[step], STEP_LABELS_ES[step], STEP_LABELS_DE[step], STEP_LABELS_FR[step],
+    ]).filter((l): l is string => Boolean(l));
     for (const label of shown) {
       expect(`${label}: ${MEASURED_PX[label] ?? "not measured"}`).toBe(`${label}: ${MEASURED_PX[label]}`);
       expect(MEASURED_PX[label]!).toBeLessThanOrEqual(room);

@@ -17,13 +17,19 @@ const windowPhrase = (name: string, lang: Language): string => {
 
 const capitalizeFirst = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+// The `Intl.DateTimeFormat` locale for each language's own date/time
+// conventions.
+const LOCALES: Record<Language, string> = {
+  en: "en-GB", nb: "nb-NO", es: "es-ES", de: "de-DE", fr: "fr-FR",
+};
+
 /** A reset later today reads as a clock time; any other day carries the
  *  day as well. `timeZone` is the server's own unless a caller names one
  *  — the page is drawn on the serving host, in its reader's zone. */
 function when(iso: string, now: number, lang: Language, timeZone?: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return iso;
-  const locale = lang === "nb" ? "nb-NO" : "en-GB";
+  const locale = LOCALES[lang];
   const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(d);
   const clock = new Intl.DateTimeFormat(locale, { timeZone, hour: "2-digit", minute: "2-digit", hour12: false }).format(at);
   if (day(at) === day(new Date(now))) return clock;

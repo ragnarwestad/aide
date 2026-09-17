@@ -55,4 +55,22 @@ describe("the language the reader chose is remembered", () => {
     });
     expect(await projects.text()).toContain('<html lang="nb">');
   });
+
+  // Spec 484, AC-2a/AC-2b: the same mechanism, for the three languages
+  // added beside English and Norwegian.
+  test.each(["es", "de", "fr"] as const)("?lang=%s sets the cookie and renders that language, on that same response", async (lang) => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/?token=${TOKEN}&lang=${lang}`);
+    expect(langCookie(res)).toContain(`aide_lang=${lang}`);
+    const html = await res.text();
+    expect(html).toContain(`<html lang="${lang}">`);
+  });
+
+  test.each(["es", "de", "fr"] as const)("a later GET / with the %s cookie and no ?lang= keeps that language", async (lang) => {
+    const { base, server } = start({ queueToken: TOKEN });
+    const chosen = await fetch(`${base}/?token=${TOKEN}&lang=${lang}`);
+    const jar = langCookie(chosen).split(";")[0]!;
+    const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}; ${jar}` } });
+    expect(await plain.text()).toContain(`<html lang="${lang}">`);
+  });
 });

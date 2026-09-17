@@ -5,29 +5,37 @@
 // rather than silently falling back to English prose in Norwegian mode.
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
-import { GERUND_EN, GERUND_NB, specStateChip, restingChip } from "../../../../src/render/ui/job-state/resting.ts";
+import {
+  GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip, restingChip,
+} from "../../../../src/render/ui/job-state/resting.ts";
 import { specNotice } from "../../../../src/render/ui/job-state";
-import { STEP_LABELS_NB, stepLabel } from "../../../../src/render/ui/components";
+import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../../src/render/ui/components";
 import { stepButton } from "../../../../src/format/step-label.ts";
 import type { QueueRowView } from "../../../../src/render";
 
-describe("GERUND_EN/GERUND_NB (spec 350)", () => {
-  test("every WORKFLOW_STEPS member has an entry in both tables", () => {
+describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR (spec 350, 484)", () => {
+  test("every WORKFLOW_STEPS member has an entry in every table", () => {
     for (const step of WORKFLOW_STEPS) {
       expect(GERUND_EN[step], `GERUND_EN is missing "${step}"`).toBeDefined();
       expect(GERUND_NB[step], `GERUND_NB is missing "${step}"`).toBeDefined();
+      expect(GERUND_ES[step], `GERUND_ES is missing "${step}"`).toBeDefined();
+      expect(GERUND_DE[step], `GERUND_DE is missing "${step}"`).toBeDefined();
+      expect(GERUND_FR[step], `GERUND_FR is missing "${step}"`).toBeDefined();
     }
   });
 });
 
 // The same guard for the phase's NAME. English is the step's own id, so
-// there is nothing to keep in step there; Norwegian is a real table, and
-// a step added to WORKFLOW_STEPS without an entry would read as English
-// on a Norwegian board.
-describe("STEP_LABELS_NB", () => {
-  test("every WORKFLOW_STEPS member has a Norwegian name", () => {
+// there is nothing to keep in step there; every other language is a real
+// table, and a step added to WORKFLOW_STEPS without an entry would read
+// as English on a board that is not.
+describe("STEP_LABELS_NB/STEP_LABELS_ES/STEP_LABELS_DE/STEP_LABELS_FR", () => {
+  test("every WORKFLOW_STEPS member has a name in every language", () => {
     for (const step of WORKFLOW_STEPS) {
       expect(STEP_LABELS_NB[step], `STEP_LABELS_NB is missing "${step}"`).toBeDefined();
+      expect(STEP_LABELS_ES[step], `STEP_LABELS_ES is missing "${step}"`).toBeDefined();
+      expect(STEP_LABELS_DE[step], `STEP_LABELS_DE is missing "${step}"`).toBeDefined();
+      expect(STEP_LABELS_FR[step], `STEP_LABELS_FR is missing "${step}"`).toBeDefined();
     }
   });
 
@@ -46,6 +54,16 @@ describe("STEP_LABELS_NB", () => {
 
   test("row buttons keep their English step word", () => {
     expect(stepButton("archive")).toBe("Archive");
+  });
+
+  // Spec 484: a sanity check that each new language's table carries
+  // real text, not a fallback to English — the completeness loop above
+  // already proves every step is present.
+  test.each(["es", "de", "fr"] as const)("%s phase names are not the English fallback", (lang) => {
+    for (const step of WORKFLOW_STEPS) {
+      expect(stepLabel(step, lang)).not.toBe(step);
+    }
+    expect(stepLabel("analyze", lang)).not.toBe(stepLabel("analyze", "en"));
   });
 });
 

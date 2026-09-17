@@ -89,3 +89,24 @@ describe("the job page's facts, in Norwegian", () => {
     expect(html).not.toContain("The log is missing for this step.");
   });
 });
+
+// Spec 484, AC-5: the same English-leak guard, for the three languages
+// added beside English and Norwegian.
+describe.each(["es", "de", "fr"] as const)("the job page's facts, in %s (spec 484)", (lang) => {
+  test("Started/Model/Cost so far/Tokens so far are not the English words", () => {
+    const html = renderJobDetailPage(
+      detail({ model: "sonnet", effort: "high", spentUsd: 1.2 }),
+      "2026-09-17T00:00:00Z",
+      NAV,
+      { tab: "overview", lang },
+    );
+    expect(html).not.toContain(">Started<");
+    expect(html).not.toContain(">Model<");
+    // "Effort" is French's own word too (a cognate), so it is not part
+    // of this negative check — es/de's own words ("Esfuerzo"/"Aufwand")
+    // are.
+    if (lang !== "fr") expect(html).not.toContain(">Effort<");
+    expect(html).not.toContain("Cost so far");
+    expect(html).not.toContain("Tokens so far");
+  });
+});

@@ -2,7 +2,7 @@
 // shell.ts, which sits at the 500-line cap code-health-limits.test.ts
 // enforces, so marking which option is chosen had somewhere to add its
 // checkmark and its heading.
-import { t, type Language, type TranslationKey } from "../../i18n";
+import { LANGUAGES, t, type Language, type TranslationKey } from "../../i18n";
 import { esc } from "./html.ts";
 import { ICON_CHECK, ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
 
@@ -14,13 +14,16 @@ const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"],
 
 // Each language's own flag — PaceUp's own picker (`ViewControls.tsx`)
 // draws every choice as a flag plus a name, never a bare two-letter
-// code (REQ-1, spec 409). The name itself is translated into the
-// reader's selected language, not each language's own native name
-// (REQ-1..3, spec 413).
-const LANGUAGE_FLAGS: Record<Language, string> = { en: "🇬🇧", nb: "🇳🇴" };
-const LANGUAGE_NAME_KEYS: Record<Language, TranslationKey> = {
-  en: "shell.languageEnglish",
-  nb: "shell.languageNorwegian",
+// code (REQ-1, spec 409).
+const LANGUAGE_FLAGS: Record<Language, string> = {
+  en: "🇬🇧", nb: "🇳🇴", es: "🇪🇸", de: "🇩🇪", fr: "🇫🇷",
+};
+// Each language's OWN name, in its own spelling — never translated into
+// the reader's language (spec 484, AC-1, reversing spec 413's own
+// choice): "Español" reads "Español" whether the reader has chosen
+// English, Norwegian or Spanish itself.
+const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
+  en: "English", nb: "Norsk", es: "Español", de: "Deutsch", fr: "Français",
 };
 
 // Icons keyed by choice — the header control below draws no text label
@@ -108,12 +111,11 @@ function languageHref(currentUrl: string, target: Language): string {
 // page, tab, sort and filter they were already on, wherever the link is
 // reached from.
 export function languageChoiceLinks(lang: Language, currentUrl: string): string {
-  const other: Language = lang === "nb" ? "en" : "nb";
-  const choice = (l: Language) => `${checkMark()}${LANGUAGE_FLAGS[l]} ${t(lang, LANGUAGE_NAME_KEYS[l])}`;
-  return (
-    `<a href="${languageHref(currentUrl, lang)}" aria-current="true">${choice(lang)}</a>` +
-    `<a href="${languageHref(currentUrl, other)}">${choice(other)}</a>`
-  );
+  const choice = (l: Language) => `${checkMark()}${LANGUAGE_FLAGS[l]} ${LANGUAGE_NATIVE_NAMES[l]}`;
+  return LANGUAGES.map(
+    (l) =>
+      `<a href="${languageHref(currentUrl, l)}"${l === lang ? ' aria-current="true"' : ""}>${choice(l)}</a>`,
+  ).join("");
 }
 
 export function languageControl(lang: Language, currentUrl: string): string {

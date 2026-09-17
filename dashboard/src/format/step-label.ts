@@ -21,9 +21,27 @@ export const STEP_LABELS_NB: Record<string, string> = {
   explore: "Utforsk", manifest: "Manifest", reopen: "Gjenåpne", reset: "Tilbakestill",
   schedule: "Kjøring", close: "Lukk",
 };
+export const STEP_LABELS_ES: Record<string, string> = {
+  create: "Crear", analyze: "Analizar", implement: "Implementar", archive: "Archivar",
+  explore: "Explorar", manifest: "Manifest", reopen: "Reabrir", reset: "Restablecer",
+  schedule: "Programación", close: "Cerrar",
+};
+export const STEP_LABELS_DE: Record<string, string> = {
+  create: "Erstellen", analyze: "Analysieren", implement: "Implementieren", archive: "Archivieren",
+  explore: "Erkunden", manifest: "Manifest", reopen: "Wiedereröffnen", reset: "Zurücksetzen",
+  schedule: "Zeitplan", close: "Schließen",
+};
+export const STEP_LABELS_FR: Record<string, string> = {
+  create: "Créer", analyze: "Analyser", implement: "Implémenter", archive: "Archiver",
+  explore: "Explorer", manifest: "Manifest", reopen: "Rouvrir", reset: "Réinitialiser",
+  schedule: "Planification", close: "Fermer",
+};
+const STEP_LABEL_TABLES: Partial<Record<Language, Record<string, string>>> = {
+  nb: STEP_LABELS_NB, es: STEP_LABELS_ES, de: STEP_LABELS_DE, fr: STEP_LABELS_FR,
+};
 
 export const stepLabel = (step: string, lang: Language = "en"): string =>
-  (lang === "nb" ? STEP_LABELS_NB[step] : undefined) ?? STEP_LABELS[step] ?? step;
+  STEP_LABEL_TABLES[lang]?.[step] ?? STEP_LABELS[step] ?? step;
 
 /** The word on the row's own button for a step — an alias for
  *  `stepLabel`, in English whatever the language, because the button

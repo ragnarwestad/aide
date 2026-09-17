@@ -6,9 +6,9 @@ import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
-import { GERUND_EN, GERUND_NB, gerund, landingStepIndex } from "../../../format/gerund.ts";
+import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
 
-export { GERUND_EN, GERUND_NB, gerund, landingStepIndex };
+export { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex };
 
 /** What the badge says when nothing is running: the resting state and
  *  what can happen next, in one sentence. Handed in rather than worked

@@ -6,8 +6,6 @@ import type { TranslationKey } from "./translations.ts";
 export const nb: Record<TranslationKey, string> = {
   "shell.theme": "Tema",
   "shell.language": "Språk",
-  "shell.languageEnglish": "Engelsk",
-  "shell.languageNorwegian": "Norsk",
   "shell.unit": "Enheter",
   "shell.more": "Mer",
   "shell.settings": "Innstillinger",

@@ -71,4 +71,15 @@ describe("the listing on /projects", () => {
     expect(html).not.toContain("Manifest failed to parse");
     expect(html).not.toContain(">Remove<");
   });
+
+  // Spec 484, AC-5: the same English-leak guard, for the three languages
+  // added beside English and Norwegian.
+  test.each(["es", "de", "fr"] as const)("Add and Remove are not the English words in %s", (lang) => {
+    const html = page(
+      [project("alpha", { manifest: { ok: true, data: { name: "alpha" } }, specs: [] })],
+      { lang, createProjects: ["alpha"] },
+    );
+    expect(html).not.toContain(">Add<");
+    expect(html).not.toContain(">Remove<");
+  });
 });
