@@ -22,6 +22,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "no-passing-test-record": "wordPhase.stopNoPassingTestRecord",
   "already-archived": "wordPhase.stopAlreadyArchived",
   "conflict-open": "wordPhase.stopConflictOpen",
+  "provider-limit": "wordPhase.stopProviderLimit",
 };
 
 export const stopSentence = (reason: string, lang: Language = "en"): string => {

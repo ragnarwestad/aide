@@ -36,6 +36,11 @@
 # measure. Unlike the cost, it is never assumed: a killed run reports a
 # cost of 0 and no token count at all.
 #
+# A step a provider's usage limit stopped adds `providerLimit`: {tool,
+# window, resetsAt, windows[{name, usedPercent, resetsAt}], plan, credit},
+# each part present only when the tool said it (lib/run-spec-provider-limit.sh).
+# Absent on every other outcome.
+#
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | timeout | provider-limit | refused | spawn-failed | cli-error
 #   | already-landed
@@ -124,7 +129,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-publish.sh; do need_part "$_part"; done
+for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-publish.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -159,6 +164,8 @@ source "$SCRIPT_DIR/lib/run-spec-worktree.sh"
 source "$SCRIPT_DIR/lib/run-spec-branch.sh"
 
 # --- where the spec folder is, what a step may write, and reading what came back ---
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec-provider-limit.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-spec-paths.sh"
 
@@ -380,6 +387,7 @@ line="$(jq -cn \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
+  --argjson providerLimit "${provider_limit_out:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -407,7 +415,10 @@ line="$(jq -cn \
    # And once more for which of the two files the worktree links were
    # read from (spec 184): absent means none were configured at all,
    # which is not the same claim as either file naming an empty list.
-   + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)')"
+   + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
+   # And for the usage limit a provider reported: present only on a step
+   # such a limit stopped, in the shape run-spec-provider-limit.sh documents.
+   + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

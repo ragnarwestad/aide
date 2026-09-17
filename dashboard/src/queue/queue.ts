@@ -31,6 +31,7 @@ export {
   type Job,
   type ModelChoice,
   type ProjectResolver,
+  type ProviderLimit,
   type QueueDefaults,
   type StepRepoRange,
   type StepResult,

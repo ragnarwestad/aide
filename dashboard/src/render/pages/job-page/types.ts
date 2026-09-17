@@ -3,6 +3,7 @@
 import type { QueueRowView } from "../../ui/job-state";
 import type { StepCommand } from "../../../queue/parse-stream.ts";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
+import type { ProviderLimit } from "../../../queue/queue.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -19,6 +20,8 @@ export interface JobStepResultView {
   tokens?: number;
   costMeasured: boolean;
   terminalReason: string;
+  /** Present only on a step a provider's usage limit stopped. */
+  providerLimit?: ProviderLimit;
   subtype?: string;
   sessionId?: string;
   /** Absent while this step's own work is still landing (spec 395) — see

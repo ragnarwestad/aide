@@ -2,7 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { BranchRef, Job, QueueStore, StepRepoRange, TokenUsage, WorkflowStep } from "../queue.ts";
+import type { BranchRef, Job, ProviderLimit, QueueStore, StepRepoRange, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -77,6 +77,7 @@ export interface StepOutcome {
    *  measure it — there is no over-charge rule for tokens the way there
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
+  providerLimit?: unknown;
   error?: string;
   /** WHY it was refused, when the answer is one the page acts on (spec
    *  153). `"conflict"` — the runner could not bring the spec's branch
@@ -188,4 +189,32 @@ export function stepRepoRanges(raw: unknown): StepRepoRange[] | undefined {
     }
   }
   return out;
+}
+
+/** `outcome.providerLimit`, read the way `tokenUsage` reads its field:
+ *  another process's JSON, so a malformed part is dropped rather than
+ *  shown. A limit with no tool or no window says nothing a reader can
+ *  use and is dropped whole; a window without a number is dropped
+ *  alone. */
+export function providerLimit(raw: unknown): ProviderLimit | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.tool !== "string" || typeof r.window !== "string") return undefined;
+  const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  const windows = Array.isArray(r.windows)
+    ? r.windows.flatMap((w) => {
+        if (w === null || typeof w !== "object") return [];
+        const x = w as Record<string, unknown>;
+        if (typeof x.name !== "string" || typeof x.usedPercent !== "number") return [];
+        return [{ name: x.name, usedPercent: x.usedPercent, ...(text(x.resetsAt) ? { resetsAt: text(x.resetsAt) } : {}) }];
+      })
+    : undefined;
+  return {
+    tool: r.tool,
+    window: r.window,
+    ...(text(r.resetsAt) ? { resetsAt: text(r.resetsAt) } : {}),
+    ...(windows?.length ? { windows } : {}),
+    ...(text(r.plan) ? { plan: text(r.plan) } : {}),
+    ...(text(r.credit) ? { credit: text(r.credit) } : {}),
+  };
 }

@@ -328,6 +328,11 @@ export const MESSAGES = {
     nb: "en merge står åpen i arbeidstreet — arkivering løser den, så kjør arkivering igjen",
     resolve: "run archive again",
   },
+  "wordPhase.stopProviderLimit": {
+    en: "the AI's usage limit was reached — run it again once the limit resets",
+    nb: "AI-ens brukgrense ble nådd — kjør på nytt når grensen er nullstilt",
+    resolve: "run it again once the limit resets",
+  },
   "wordPhase.filesDisagree": {
     // The spec's files and the run record (the state file, or git where
     // there is none) do not agree on whether this phase ran — a status

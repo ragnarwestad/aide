@@ -130,4 +130,16 @@ export const en = {
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",
+
+  // The usage limit that stopped a step, as the tool reported it.
+  "limit.used": "{who}: {limit} is used up",
+  "limit.resets": "resets {when}",
+  "limit.window.five_hour": "the five-hour limit",
+  "limit.window.seven_day": "the weekly limit",
+  "limit.window.minutes": "the {minutes}-minute limit",
+  "limit.window.other": "the usage limit",
+  "limit.otherWindow": "{limit}: {percent} % used",
+  "limit.creditOut": "No extra usage is left.",
+  "limit.credit": "Extra usage: {reason}.",
+  "limit.plan": "Plan: {plan}.",
 } as const;

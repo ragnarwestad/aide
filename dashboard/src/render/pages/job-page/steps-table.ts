@@ -11,6 +11,7 @@ import type { Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { ICON_CHEVRON, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
+import { providerLimitSentence } from "../../ui/job-state/provider-limit.ts";
 
 /** A heading that says "Cost" above a column of token counts is the
  *  wrong word, so it flips with the figures under it — the description
@@ -131,7 +132,10 @@ function stepSummary(r: JobStepResultView): string {
     `<tr><td class="label">At</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
     `<tr><td class="label">${unitLabel("Cost", "Tokens")}</td>` +
     `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}</td></tr>` +
-    `<tr><td class="label">Result</td><td>${esc(r.terminalReason)}</td></tr>` +
+    `<tr><td class="label">Result</td><td>${esc(r.terminalReason)}` +
+    // The usage limit that stopped the step, from the tool's own record.
+    (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : "") +
+    `</td></tr>` +
     `</tbody></table>`;
   // AC-7: a step whose transcript is missing shows whatever the job
   // itself recorded (the facts above) and says so in words, rather than

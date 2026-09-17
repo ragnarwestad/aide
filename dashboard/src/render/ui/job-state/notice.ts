@@ -7,6 +7,7 @@ import { renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { currentStep, inFlight } from "./format.ts";
+import { providerLimitSentence } from "./provider-limit.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The three held-back reasons that resolve on their own — the queue
@@ -158,8 +159,20 @@ export function specNotice(
     // panel saying the same thing twice. Only the held-back family —
     // every other sentence here belongs to the row or to a press, not
     // to one step.
-    const text =
-      lead.errorReason === "held-back"
+    // A step a provider's usage limit stopped is said in full — which
+    // AI, which window, when it starts over — from the tool's own
+    // record, in place of the runner's one-line summary of the same.
+    const limited =
+      lead.state === "stopped" && lead.stopReason === "provider-limit"
+        ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit)
+        : undefined;
+    const text = limited?.providerLimit
+      ? providerLimitSentence(
+          limited.providerLimit,
+          (limited.step && lead.stepModels?.[limited.step]) || lead.model,
+          lang,
+        )
+      : lead.errorReason === "held-back"
         ? `${stepLabel(currentStep(lead), lang)} ${renderSentence(lang, lead.error)!}`
         : renderSentence(lang, lead.error)!;
     if (!said(text)) {

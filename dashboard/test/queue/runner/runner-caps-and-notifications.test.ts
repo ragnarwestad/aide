@@ -57,6 +57,50 @@ describe("a step's token usage", () => {
   });
 });
 
+// The usage limit that stopped a step, as the tool reported it. Another
+// process's JSON, so it is read as a question: a usable limit is kept,
+// a part that is not one is dropped, and a limit naming no tool or
+// window is not a limit at all.
+describe("a step's provider limit", () => {
+  const stopped = (providerLimit: unknown) => ({
+    ...okResult(1.58),
+    ok: false,
+    terminalReason: "provider-limit",
+    providerLimit,
+  });
+
+  test("a result carrying one records it on the step", () => {
+    const job = enqueue();
+    const limit = {
+      tool: "codex", window: "five_hour", resetsAt: "2026-09-17T10:10:00Z",
+      windows: [{ name: "five_hour", usedPercent: 100, resetsAt: "2026-09-17T10:10:00Z" }],
+      plan: "plus",
+    };
+    const runner = makeRunner({ readResult: () => stopped(limit) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.providerLimit).toEqual(limit);
+  });
+
+  test("a malformed window is dropped, the rest kept", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => stopped({ tool: "claude", window: "seven_day", windows: [{ name: "seven_day" }, "junk"], plan: 3 }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.providerLimit).toEqual({ tool: "claude", window: "seven_day" });
+  });
+
+  test("one with no window is no limit at all", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => stopped({ tool: "claude" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.providerLimit).toBeUndefined();
+  });
+});
+
 describe("reconciliation after a restart", () => {
   const runningJob = () => {
     const job = enqueue();

@@ -74,6 +74,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
         : undefined,
     results: job.results.map((r) => ({
       step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, terminalReason: r.terminalReason,
+      providerLimit: r.providerLimit,
       // When the step ENDED (spec 199) — what a phase's own duration
       // is sliced out of, together with its own recorded start below.
       at: r.at,

@@ -259,6 +259,10 @@ session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason="";
 # The tokens the step actually metered, as a JSON object — or empty,
 # which is what makes the field ABSENT rather than zero (spec 118).
 tokens_json=""
+# The provider's own account of a usage limit that stopped this turn, in
+# the one shape `run-spec-provider-limit.sh` writes for every tool — or
+# empty, which leaves `providerLimit` out of the result.
+provider_limit_out=""
 # Did the tool report an outcome of its own at all? For claude this is
 # the same question as "was a cost measured", which is why the branch
 # below used to ask that one — but a Codex step never measures a cost
@@ -313,6 +317,12 @@ if [ "$tool" = "codex" ]; then
         | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
       else empty end
     ' <<<"$result_json" 2>/dev/null)"
+  fi
+  # A turn that did not complete may have been stopped by the account's
+  # own limit, which `codex exec --json` never names. Codex's session
+  # file does.
+  if [ "$subtype" != "success" ]; then
+    provider_limit_out="$(codex_provider_limit "$session_out")"
   fi
 elif [ "$tool" = "opencode" ]; then
   # opencode closes no turn with a single result event. It emits one
@@ -376,6 +386,11 @@ provider_limit_json="$(jq -Rc 'fromjson? | select(
   .rate_limit_info.status == "rejected" and
   (.rate_limit_info.isUsingOverage // false) == false
 )' "$transcript" 2>/dev/null | tail -n 1)"
+if [ -n "$provider_limit_json" ]; then
+  provider_limit_out="$(claude_provider_limit "$provider_limit_json")"
+  # The event IS the stop; a shape that could not be read still is one.
+  [ -n "$provider_limit_out" ] || provider_limit_out='{"tool":"claude","window":"provider"}'
+fi
 
 if [ -n "$result_json" ]; then
   have_result="true"
@@ -432,10 +447,10 @@ if [ -n "$stopped" ]; then
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.
-elif [ -n "${provider_limit_json:-}" ]; then
+elif [ -n "${provider_limit_out:-}" ]; then
   terminal_reason="provider-limit"
-  limit_type="$(jq -r '.rate_limit_info.rateLimitType // "provider" | gsub("_"; " ")' <<<"$provider_limit_json")"
-  reset_at="$(jq -r '.rate_limit_info.resetsAt // empty | if type == "number" then todateiso8601 else tostring end' <<<"$provider_limit_json")"
+  limit_type="$(jq -r '.window // "provider" | gsub("_"; " ")' <<<"$provider_limit_out")"
+  reset_at="$(jq -r '.resetsAt // empty' <<<"$provider_limit_out")"
   error_msg="$limit_type provider limit reached — press $step_button again once it resets"
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then

@@ -215,6 +215,45 @@ describe("provider-limit presentation", () => {
     expect(renderSpecsRows([stopped], { runnerAvailable: true, targets: [] })).toContain(capitalized);
     expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(capitalized);
   });
+
+  // The tool's own record, when the step carries one, is what the row
+  // says: which AI and model, which window ran out, and what else the
+  // tool reported — not the runner's one-line summary of it.
+  const limit = {
+    tool: "claude",
+    window: "five_hour",
+    resetsAt: "2026-09-17T10:10:00Z",
+    windows: [
+      { name: "five_hour", usedPercent: 100, resetsAt: "2026-09-17T10:10:00Z" },
+      { name: "seven_day", usedPercent: 23, resetsAt: "2026-09-20T01:00:00Z" },
+    ],
+    credit: "out_of_credits",
+  };
+
+  test("the specs list says the limit in full when the step recorded it", () => {
+    const stopped = row({
+      state: "stopped",
+      stopReason: "provider-limit",
+      error: "five hour provider limit reached — press Analyze again once it resets; resets 2026-09-17T10:10:00Z",
+      model: "Sonnet",
+      steps: ["analyze"],
+      results: [{ step: "analyze", ok: false, costUsd: 1.58, terminalReason: "provider-limit", providerLimit: limit }],
+    } as never);
+    const html = renderSpecsRows([stopped], { runnerAvailable: true, targets: [] });
+    expect(html).toContain("Claude (Sonnet): the five-hour limit is used up — resets ");
+    expect(html).toContain("The weekly limit: 23 % used. No extra usage is left.");
+    expect(html).not.toContain("five hour provider limit reached");
+  });
+
+  test("the Logs summary names the limit under the step's result", () => {
+    const html = stepResults(
+      [{ step: "analyze", ok: false, costUsd: 1.58, costMeasured: true, terminalReason: "provider-limit",
+        providerLimit: limit, logs: ["Read spec"] }],
+      undefined,
+      { tabHref: "/specs/aide/479-x?tab=steps", openStep: "0" },
+    );
+    expect(html).toContain("Claude: the five-hour limit is used up — resets ");
+  });
 });
 
 // spec 442: the job detail page's own banner bypasses rowMessage, so it

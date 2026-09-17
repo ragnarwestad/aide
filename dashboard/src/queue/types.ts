@@ -20,6 +20,28 @@ export interface TokenUsage {
   total: number;
 }
 
+/** One usage window a provider reported: its name (`five_hour`,
+ *  `seven_day`, or `<n>_minutes`), how much of it is spent, and when it
+ *  starts over. */
+export interface ProviderLimitWindow {
+  name: string;
+  usedPercent: number;
+  resetsAt?: string;
+}
+
+/** The usage limit that stopped a step, as `aide-run-spec` read it from
+ *  the tool itself (`lib/run-spec-provider-limit.sh`) — never from the
+ *  model, which is spent by then. `window` is the one that ran out;
+ *  `plan` and `credit` are there only when the tool said them. */
+export interface ProviderLimit {
+  tool: string;
+  window: string;
+  resetsAt?: string;
+  windows?: ProviderLimitWindow[];
+  plan?: string;
+  credit?: string;
+}
+
 export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
@@ -39,6 +61,8 @@ export interface StepResult {
   tokens?: TokenUsage;
   costMeasured: boolean;
   terminalReason: string;
+  /** Present only on a step a provider's usage limit stopped. */
+  providerLimit?: ProviderLimit;
   subtype?: string;
   sessionId?: string;
   /** Where this step's claude transcript was kept, when one was. Recorded

@@ -233,3 +233,39 @@ def test_the_session_id_we_supplied_is_the_one_the_run_reports(runner, workspace
     assert rc == 0, out
     assert f"--session-id {chosen}" in fake_claude.calls.read_text()
     assert out["sessionId"] == chosen
+
+
+def test_a_provider_limit_reports_every_window_and_the_refused_credit(runner, workspace, fake_claude):
+    """The limit a run stopped on is read into one shape the board shows
+    as-is: which window ran out and when it resets, every other window's
+    figure beside it, and why purchased credit did not carry the request
+    — none of it written by the model, which is spent by then."""
+    limit = {"type": "rate_limit_event",
+             "rate_limit_info": {"status": "rejected", "rateLimitType": "five_hour",
+                                 "resetsAt": 1789639800, "isUsingOverage": False,
+                                 "overageStatus": "rejected", "overageDisabledReason": "out_of_credits",
+                                 "unifiedWindows": {
+                                     "five_hour": {"utilization": 1, "resetsAt": 1789639800},
+                                     "seven_day": {"utilization": 0.23, "resetsAt": 1789866000}}}}
+    result = {**RESULT_OK, "is_error": True, "terminal_reason": "api_error", "api_error_status": 429}
+    claude = fake_claude(stream_body(result, before=[limit], exit_code=1))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["terminalReason"] == "provider-limit"
+    assert out["providerLimit"] == {
+        "tool": "claude",
+        "window": "five_hour",
+        "resetsAt": "2026-09-17T10:10:00Z",
+        "windows": [
+            {"name": "five_hour", "usedPercent": 100, "resetsAt": "2026-09-17T10:10:00Z"},
+            {"name": "seven_day", "usedPercent": 23, "resetsAt": "2026-09-20T01:00:00Z"},
+        ],
+        "credit": "out_of_credits",
+    }
+
+
+def test_a_run_no_limit_stopped_carries_no_provider_limit(runner, workspace, fake_claude):
+    claude = fake_claude(stream_body(RESULT_OK))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "providerLimit" not in out

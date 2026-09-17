@@ -1,6 +1,7 @@
 // What a queued job looks like to a page. Both the list and the
 // single-job page need this, and neither owns it.
 
+import type { ProviderLimit } from "../../../queue/queue.ts";
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
 import type { Sentence } from "../../../i18n/message.ts";
 
@@ -140,6 +141,9 @@ export interface StepResultView {
    *  one. Per STEP, because a phase line speaks for its own attempt and
    *  not for the job's running total. */
   tokens?: number;
+  /** The usage limit that stopped this step, as the tool reported it —
+   *  present only on such a step. */
+  providerLimit?: ProviderLimit;
   /** Whether `costUsd` was READ off the tool's own output or stood in
    *  for it. A killed step reports 0, because a SIGKILLed run prints no
    *  usage and there is nothing to measure it from.
