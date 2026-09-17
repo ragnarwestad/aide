@@ -28,13 +28,13 @@ Aide's answer is spec-driven development (SDD): before any AI assistant writes c
 plain-Markdown files (description, analysis, solution, status) that a user and any AI tool can read, review and
 continue identically, committed to git alongside the code it describes.
 
-**The dashboard is the usual way in.** It lists every spec across every project Aide knows about, and runs each one
-through create, analyze, implement and archive for you — queued and unattended, with a user stepping in only where
-a judgement is needed, such as ticking the acceptance criteria before archive.
-See [The Aide dashboard](#the-aide-dashboard).
+**Everything can be done with the skills.** Each step — create, analyze, implement and archive — is an `aide-*`
+skill you run by hand, one spec at a time, inside Claude Code, Codex, OpenCode or GitHub Copilot.
+See [The aide-\* skills](#the-aide--skills).
 
-**The skills are what it runs.** Each step is an `aide-*` skill, and the same skills work by hand, one spec at a
-time, inside Claude Code, Codex, OpenCode or GitHub Copilot. See [The aide-\* skills](#the-aide--skills).
+**The dashboard is the easier way to use them.** It works one level up: it lists every spec across every project Aide
+knows about and runs the same skills for you — queued and unattended, with a user stepping in only where a judgement
+is needed, such as ticking the acceptance criteria before archive. See [The Aide dashboard](#the-aide-dashboard).
 
 Either way, the spec is what lets any AI assistant:
 
@@ -231,10 +231,10 @@ All AI tools follow the same basic workflow:
 
 ## The Aide dashboard
 
-All Aide skills can be run by hand, one spec at a time, in whichever tool you have open. The dashboard runs them for
-you: it lists every spec across every project Aide knows about, grouped by phase, and queues a spec through
-`create` → `analyze` → `implement` → `archive` without anyone watching. A running job shows its live progress on the
-spec's row, and clicking a spec opens its description, analysis, plan, status and every job that has run against it.
+All Aide skills can be run by hand, one spec at a time, in any of the AI CLI assistants Aide supports. The dashboard
+runs them for you: it lists every spec across every project Aide knows about, grouped by phase, and queues a spec
+through `create` → `analyze` → `implement` → `archive` without anyone watching. A running job shows its live progress on
+the spec's row, and clicking a spec opens its description, analysis, plan, status and every job that has run against it.
 
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
