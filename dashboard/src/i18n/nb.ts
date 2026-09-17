@@ -112,6 +112,7 @@ export const nb: Record<TranslationKey, string> = {
   "state.failed": "feilet",
   "state.cancelled": "avbrutt",
   "state.interrupted": "avbrutt",
+  "state.heldBack": "holdt tilbake",
   "state.stopped": "stoppet",
   "state.stoppedTimeout": "stoppet — {minutes} min",
   "state.stoppedProviderLimit": "stoppet — grense hos leverandøren",
