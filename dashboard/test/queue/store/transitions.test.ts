@@ -187,3 +187,38 @@ describe("no state write outside the store (REQ-6b)", () => {
     expect(offenders.sort()).toEqual([...ALLOWED].sort());
   });
 });
+
+// The two reason unions drift out of the documentation the same way the
+// transition table did: a member is added in code and the prose keeps
+// the old list. Read both sides and compare, exactly as the diagram
+// check above does.
+describe("the documented reasons and the unions agree", () => {
+  const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
+  const stepsPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "steps.ts");
+  const typesPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "types.ts");
+
+  /** The members of a `"a" | "b"` union, read as text off its declaration. */
+  function members(file: string, declaration: RegExp): string[] {
+    const line = readFileSync(file, "utf-8").match(declaration);
+    expect(line).not.toBeNull();
+    return [...line![1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!).sort();
+  }
+
+  /** The values the doc lists for a field: the run of `` `name` `` right
+   *  after "is", up to the ", set" that starts saying when it is written.
+   *  Anything backticked later in the sentence is prose, not a member. */
+  function documented(field: string): string[] {
+    const doc = readFileSync(docPath, "utf-8");
+    const bullet = doc.match(new RegExp(`^- \\*\\*\`${field}\`\\*\\* is ([\\s\\S]*?), set`, "m"));
+    expect(bullet).not.toBeNull();
+    return [...bullet![1]!.matchAll(/`([^`]+)`/g)].map((m) => m[1]!).sort();
+  }
+
+  test("stopReason: every member is named where the field is described", () => {
+    expect(documented("stopReason")).toEqual(members(stepsPath, /export type StopReason =([^;]*);/));
+  });
+
+  test("errorReason: every member is named where the field is described", () => {
+    expect(documented("errorReason")).toEqual(members(typesPath, /^\s*errorReason\?:([^;]*);/m));
+  });
+});
