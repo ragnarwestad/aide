@@ -3,6 +3,7 @@
 // out of serve-helpers.ts by theme (split serve-helpers.ts by theme).
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
+import type { CheckableTool } from "../../render";
 
 /** This step's wall clock. The field is a per-step table since spec 152,
  *  but a job created before that change is still in the store across the
@@ -37,6 +38,17 @@ export function resolveStepPermissionMode(job: Job, step: string, live: Record<s
  *  creation `parseJobRequest` copies `modelChoice` into EVERY step's own
  *  entry, so a step added later has to match its siblings rather than
  *  fall through to whatever the config says for that step alone. */
+/** Which CLI a job's step runs on: its chosen model's tool, and claude
+ *  when the choice names none. */
+export function stepTool(
+  job: Job,
+  step: string,
+  o: { model?: Record<string, string>; modelChoices?: Record<string, ModelChoice> },
+): CheckableTool {
+  const choiceName = resolveStepModel(job, step, o.model ?? {});
+  return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
+}
+
 export function resolveStepModel(job: Job, step: string, live: Record<string, string>): string | undefined {
   return job.model[step] ?? job.modelChoice ?? live[step] ?? live.default;
 }
@@ -94,7 +106,7 @@ export function runnerArgv(
   // The entry's own key stays the model unless the entry says otherwise
   // — which is exactly what every config written before this spec did.
   const model = choice?.model ?? choiceName;
-  const tool = choice?.tool ?? "claude";
+  const tool = stepTool(job, step, o);
   const effort = resolveStepEffort(job, step);
   return [
     o.runnerBin,

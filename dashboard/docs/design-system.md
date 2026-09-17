@@ -37,7 +37,7 @@ the row that carries it carries a `.rowmsg.failed` with its own mark beside the 
 
 A row, job-page or project-page message is one of three kinds, decided by the producer and never by `rowMessage()`'s
 caller reading a colour off a hunch: `info` ("what does the reader have to do?" — nothing), `waiting` (something waits
-on a person or on time; nothing is broken), and `failed` (a step, a landing or a request failed and a person has to
+on a user or on time; nothing is broken), and `failed` (a step, a landing or a request failed and a user has to
 act). `rowMessage()` alone turns a kind into a colour and an icon — never at the call site.
 
 ## Components

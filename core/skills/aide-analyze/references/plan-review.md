@@ -57,7 +57,7 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    Should-fix items are revised or explicitly declined with a reason.
 3. Add a review row to `4-status.md`, ticked ✅ at write time — the review
    the two steps above just finished is already-done work, not something
-   left for a person to confirm later. Write it the same way, with
+   left for a user to confirm later. Write it the same way, with
    `aide-write-spec --file 4-status.md`. The row goes in its OWN `##
    Plan review` section — a `| Task | Status | Notes |` table, one row,
    right after `## Tracking info` and before `## Phase 1`, added to the

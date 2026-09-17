@@ -23,9 +23,10 @@ import {
 import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
 import type { Runner } from "../../queue/runner";
-import type { SpecTarget } from "../../render";
+import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
 import { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
+import { stepTool } from "../serve-helpers/runner-argv.ts";
 
 export { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
@@ -68,6 +69,8 @@ export interface ScheduleContext {
   queue: QueueStore;
   specRoots: (project: string) => string[];
   readRunner: () => Runner | null;
+  /** Checks again whether the tools waiting jobs will run on are usable. */
+  recheckTools?: (tools: CheckableTool[]) => Promise<void>;
   checkoutEnsurer: CheckoutEnsurer;
   /** Told once per tick, and only when a watched root's `openSpecBranches`
    *  answer actually moved (spec 275) — the same "invalidate before you
@@ -304,5 +307,11 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // refuse as unknown. `CheckoutEnsurer` explains what that costs.
   await Promise.all([...new Set(ctx.queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
     .map((project) => ctx.checkoutEnsurer.fresh(project)));
+  // The login a waiting job's tool will use, asked again before the job
+  // can start, so the notice on every page is about the run to come.
+  if (ctx.recheckTools) {
+    const queued = ctx.queue.list().filter((j) => j.state === "queued");
+    await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
+  }
   runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx));
 }

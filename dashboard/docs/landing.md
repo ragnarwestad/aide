@@ -92,7 +92,7 @@ A landing merges the spec branch into each repo's default branch and pushes, one
 ## Archive resolves the conflict itself
 
 A spec's branch is brought up to date with the default branch before a step's own work starts, and every step but one
-treats a conflict there as a person's problem: the merge is aborted and the run refuses on the spot with
+treats a conflict there as a user's problem: the merge is aborted and the run refuses on the spot with
 `errorReason: "conflict"`. `archive` is the exception, because
 `archive` is the step that LANDS the branch — a merge that fails is the merging step's problem, not a phase of its own.
 
@@ -116,7 +116,7 @@ and no control on the page draws off `errorReason`.
   defensible because a resolution that does not pass the project's own tests does not land.
 - **A conflict that still reaches a reader is one no machine could settle.** The row shows it as the failure's own
   text — which names the branch — beside the ordinary re-run control every other failed step offers. Understanding it is
-  a person's job, with the diff in front of them.
+  a user's job, with the diff in front of them.
 - **Archive's cost and duration vary.** A run that meets no conflict is short and cheap; one that does is as big a
   piece of work as the resolution, under the same `timeoutSec.default` and model.
 
@@ -165,7 +165,7 @@ land is not finished, and its row has to say so.**
 - **A failed landing moves the job to `failed`.** Every page reads the state through one path, so it reads as unfinished
   wherever the job is shown. Downgraded only from `done`: the runner may have queued the job's NEXT step in between, and
   a landing must not overwrite a job that has moved on.
-- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a person reads — the row carries one
+- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a user reads — the row carries one
   sentence (several roots are named inside it; a second root's own failure goes behind it as hover detail), so nothing
   may match on it. Declared twice, in
   `src/queue/types.ts` and `src/render/ui/job-state/types.ts`, and pinned to each other by a test in `test/queue/requests/parsing-schedule-and-errors.test.ts` the way
@@ -212,7 +212,7 @@ ran and the merge was built, and what is missing is a green suite. A red suite i
 itself.
 
 This is the one place the suite runs for a change on its way to main. `implement`'s own run during the step is the
-model's TDD loop, not the gate; `aide-archive-spec` checks the person's boxes and moves the folder, and runs no tests.
+model's TDD loop, not the gate; `aide-archive-spec` checks the user's boxes and moves the folder, and runs no tests.
 A code root only: the specs root has nothing to run.
 
 ## A root that is no longer on disk
@@ -240,7 +240,7 @@ describing it, or a pull request merged past moments after it was opened. Four t
   gated position. A specs root INSIDE the project is the same repository and therefore the same branch, so a
   single-repo project leaves its one branch open and that IS the pull request.
 - **`errorReason` has no member for this.** A branch left open on purpose is a success; that pair classifies failures a
-  person can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen` in
+  user can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen` in
   `src/serve/serve.ts` is the subset that is open deliberately, and `PR_OPEN` in
   `src/render/pages/specs-list/row-shared.ts` is what such a row says instead of `NOT_LANDED`. The set itself is the
   same, so the row stays on the list and `archive` stays enqueueable for it. `assessProjectReadiness` never looks at

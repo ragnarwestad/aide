@@ -154,7 +154,7 @@ None of the three phases above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section,
 and never touch a TICKED row's Notes cell either. Those rows name the
 spec's own AC-tagged acceptance criteria, and ticking one is a judgment
-only the person the spec is for can make.
+only the user the spec is for can make.
 
 **One narrow carve-out.** On a held-back spec taking another
 round on its open checks (`core/skills/aide-analyze/references/requirements-tracing.md`'s
@@ -166,8 +166,8 @@ row exactly as you found it, Notes cell included — this carve-out does
 not widen the rule above it.
 
 **The cell is REWRITTEN, never added to, and it is one or two
-sentences: what is missing for a person to tick this row, and nothing
-else.** The cell is a table cell a person reads to decide one thing;
+sentences: what is missing for a user to tick this row, and nothing
+else.** The cell is a table cell a user reads to decide one thing;
 four rounds' worth of appended paragraphs in it is a cell nobody reads
 at all. Whatever the earlier round left there is replaced, not kept —
 what each round found, ran and measured belongs in `2-analysis.md` and

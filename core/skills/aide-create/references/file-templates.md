@@ -27,7 +27,7 @@ Structure - follow the spec structure § 1-description:
   (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
   when nothing was stated. Then, by default (see this skill's own
   "Acceptance" paragraph), a `- **Acceptance:** not required` line —
-  omitted only when the person creating the spec has said they want
+  omitted only when the user creating the spec has said they want
   acceptance ticking required. Nothing about a phase outcome record either —
   the template names none of it, and this file has two writers for it
   now: `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no

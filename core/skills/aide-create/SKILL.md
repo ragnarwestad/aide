@@ -191,7 +191,7 @@ ways.
   flag, and write no acceptance line into Tracking info.
 
 Neither stated (a bare `/aide-create` typed in a session): pass the flag
-by default, and omit it when the person creating the spec has said they
+by default, and omit it when the user creating the spec has said they
 want acceptance ticking required.
 
 The default is what the New-spec form's own unticked box used to be
@@ -280,7 +280,7 @@ Add the `(model: ...)` part only when you can name your own model with
 certainty. A Claude Code session is told which model it is running in
 its own context, so it can write `claude claude-opus-5`; an assistant
 that cannot name itself offers the bare subject without the suffix and
-never guesses. A person writing `1-description.md` by hand and
+never guesses. A user writing `1-description.md` by hand and
 committing it under their own message leaves no such commit at all, and
 no `Model (create)` line is written — an absence, never a guess.
 

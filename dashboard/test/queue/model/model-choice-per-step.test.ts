@@ -15,6 +15,7 @@ import {
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
 import { resolveStepModel } from "../../../src/serve/serve.ts";
+import { stepTool } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 const DEFAULTS: QueueDefaults = {
   // Per step since spec 152: an implement is not an analyze, and one
@@ -303,5 +304,24 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
       model: Record<string, string>;
     }[];
     expect(stored.find((j) => j.id === job.id)!.model.implement).toBe("fable");
+  });
+});
+
+// Which CLI a waiting step will run on is what the check before a job
+// starts asks about, so it follows the same choice the argv does.
+describe("stepTool", () => {
+  const job = (model: Record<string, string> = {}) => ({ model } as never);
+  const choices = { Sonnet: {}, "gpt-6": { tool: "codex" as const } };
+
+  test("the step's chosen model names its tool", () => {
+    expect(stepTool(job({ implement: "gpt-6" }), "implement", { modelChoices: choices })).toBe("codex");
+  });
+
+  test("a choice that names no tool is claude", () => {
+    expect(stepTool(job({ implement: "Sonnet" }), "implement", { modelChoices: choices })).toBe("claude");
+  });
+
+  test("the configured default applies when the job chose nothing", () => {
+    expect(stepTool(job(), "analyze", { model: { default: "gpt-6" }, modelChoices: choices })).toBe("codex");
   });
 });

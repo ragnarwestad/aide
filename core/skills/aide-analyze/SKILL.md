@@ -195,7 +195,7 @@ Sections already filled in per Step 4 are left untouched.
 
 When AC-n ids exist, see `references/requirements-tracing.md` Step 8
 for the `## Acceptance criteria` section this file gains — one row per
-AC-n id, unticked, for the person the spec is for to judge and tick,
+AC-n id, unticked, for the user the spec is for to judge and tick,
 never for this skill or `/aide-implement` to tick themselves.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own

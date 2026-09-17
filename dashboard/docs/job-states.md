@@ -29,7 +29,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `done`        | Every step succeeded and, for a step that lands, the landing succeeded too.                                              |
 | `stopped`     | A step reached its own time limit, a provider limit ended it, or a landing's test run went red. `stopReason` says which. |
 | `failed`      | A step reported failure, or a landing after a successful step did not finish.                                            |
-| `cancelled`   | A person pressed Cancel.                                                                                                 |
+| `cancelled`   | A user pressed Cancel.                                                                                                   |
 | `interrupted` | The step's process died without leaving a result.                                                                        |
 
 Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`). Every other state has released
@@ -71,7 +71,7 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   archived, and tries again next tick. The state does not move.
 - Starts an `archive` whose spec still has an unticked acceptance row, rather than holding it: the step's own
   pre-check (`core/scripts/aide-archive-spec`) refuses it before any model is spawned, the job ends `done` with
-  "archive held back" on its row, and a person presses Archive once the rows are ticked. Held here instead, one row
+  "archive held back" on its row, and a user presses Archive once the rows are ticked. Held here instead, one row
   meant two different things — a tick sometimes started the archive by itself and sometimes started nothing, and
   which one was true depended on whether the hold had been able to see `implement` as finished when it looked.
   The row's own "archive held back" is worked out afresh on every render, never remembered from a refusal, and it
@@ -145,7 +145,7 @@ Three fields say something the state alone does not, and each is read by the pag
 - **`stopReason`** is `timeout`, `provider-limit` or `tests-red`, set with `stopped` and nowhere else.
   `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy outcome, and a red
   suite on a landing is work that is not green yet rather than a broken agent.
-- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when a person can act on the cause —
+- **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when a user can act on the cause —
   re-running `archive` resolves the conflict and the unlanded branch. It is declared in `src/queue/types.ts` and again
   in `src/render/ui/job-state/types.ts`,
   which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.

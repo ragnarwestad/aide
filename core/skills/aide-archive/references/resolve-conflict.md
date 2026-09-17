@@ -26,7 +26,7 @@ beside the five.
 
 A spec's branch is brought up to date with the default branch before the
 step's own work starts. Every other step treats a conflict there as a
-person's problem and refuses on the spot. `archive` is the step that
+user's problem and refuses on the spot. `archive` is the step that
 LANDS the branch, so the conflict is its own to settle: the by-hand
 routine that used to follow was always the same — merge the default
 branch into the spec's branch in a worktree, resolve, run the tests,
@@ -151,7 +151,7 @@ git merge --abort
 git reset --hard <the sha from `git log --oneline` before the merge commit>
 ```
 
-Then say, in one paragraph a person reads on the row: which files
+Then say, in one paragraph a user reads on the row: which files
 conflicted, what the two sides wanted, and what stopped you — the test
 that failed by name, or the judgement you would not make. Name the
 branch, because a conflict that reaches a reader is one no machine could

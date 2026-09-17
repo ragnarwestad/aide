@@ -6,7 +6,9 @@
 // something that was never broken.
 
 import { describe, expect, test } from "bun:test";
-import { checkTool, forgetChecks, lastChecks, recordCheck, stripAnsi, toolsWithFaults } from "../../src/serve/tool-check.ts";
+import {
+  checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
+} from "../../src/serve/tool-check.ts";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -339,6 +341,81 @@ describe("what the header notice is told", () => {
   });
 });
 
+// The notice is for a login a run can actually use: a tool nobody has
+// set a model for would only ever be noise, and a fault is said as what
+// is wrong rather than as the question that found it.
+describe("what the header notice says, and about which tools", () => {
+  const faulty = (tool: "claude" | "codex" | "opencode", problem?: string) =>
+    recordCheck({
+      tool,
+      at: "2026-09-17T08:00:00.000Z",
+      found: true,
+      lines: [],
+      extra: [{ question: "Is it logged in?", ok: false, detail: "…", ...(problem ? { problem } : {}) }],
+    });
+
+  test("only a tool a model is configured for is named", () => {
+    forgetChecks();
+    setConfiguredTools(() => ["claude"]);
+    faulty("claude", "the login in use is another account's");
+    faulty("opencode");
+    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["the login in use is another account's"] }]);
+    forgetChecks();
+  });
+
+  test("with no configuration known, every faulty tool is named as before", () => {
+    forgetChecks();
+    faulty("opencode");
+    expect(toolsWithFaults()).toEqual([{ tool: "opencode", problems: ["is it logged in"] }]);
+    forgetChecks();
+  });
+
+  test("Claude Code's two logins are said as what is wrong", async () => {
+    forgetChecks();
+    const run = fakeRun({
+      "aide-preflight": { stdout: "found\n" },
+      "auth status": {
+        stdout: JSON.stringify({
+          loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
+          orgName: "someone@example.com's Organization", subscriptionType: "team",
+        }),
+      },
+    });
+    recordCheck(await checkTool("claude", opts(run)));
+    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["the login in use is another account's"] }]);
+    forgetChecks();
+  });
+});
+
+// Checked again for the tool a waiting job is about to run on, so the
+// notice describes the login a run will use now rather than the one the
+// board found when it started — the login that changed under a running
+// board is the case that cost seven runs.
+describe("the check before a job starts", () => {
+  test("asks for each tool once, and not again within the minute", async () => {
+    forgetChecks();
+    let clock = Date.parse("2026-09-17T08:00:00.000Z");
+    const asked: string[] = [];
+    const recheck = toolRechecker(() => [], {
+      now: () => new Date(clock),
+      check: async (tool) => {
+        asked.push(tool);
+        return { tool, at: new Date(clock).toISOString(), found: true, lines: [], extra: [] };
+      },
+    });
+    await recheck(["claude", "claude", "codex"]);
+    expect(asked.sort()).toEqual(["claude", "codex"]);
+    clock += 30_000;
+    await recheck(["claude"]);
+    expect(asked).toHaveLength(2);
+    clock += 31_000;
+    await recheck(["claude"]);
+    expect(asked).toEqual(expect.arrayContaining(["claude", "codex"]));
+    expect(asked.filter((t) => t === "claude")).toHaveLength(2);
+    forgetChecks();
+  });
+});
+
 describe("when a server runs the checks at all", () => {
   // The guard this file exists to keep. A default of "on" had every
   // served fixture in the suite spawn four real CLIs; a test that never
@@ -351,6 +428,8 @@ describe("when a server runs the checks at all", () => {
     // which is what failed — `BUN_TEST` was not set the way it was
     // assumed to be.
     expect(source).toContain("if (opts.checkToolsOnStart)");
+    // The check before a job starts is behind the same one flag.
+    expect(source).toMatch(/opts\.checkToolsOnStart \? toolRechecker\(/);
     expect(source).not.toContain("BUN_TEST");
   });
 

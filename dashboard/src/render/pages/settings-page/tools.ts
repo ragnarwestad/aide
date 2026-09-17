@@ -25,6 +25,9 @@ export interface ExtraCheck {
    *  is a different thing from "no", and is never shown as one. */
   ok: boolean | null;
   detail: string;
+  /** What is wrong, in a few words, when `ok` is false — what the notice
+   *  on every page says. Absent, the question itself is said. */
+  problem?: string;
 }
 
 export interface ToolCheck {

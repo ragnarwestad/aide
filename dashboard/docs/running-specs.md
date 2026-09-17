@@ -277,6 +277,15 @@ check reporting a CLI as missing while every real run found it.
 A project can point a run at a particular binary instead, with `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` or
 `AIDE_OPENCODE_BIN` in its `.aide/config`. That override wins over the `PATH` search entirely.
 
+The tool checks run when the board starts, when Check is pressed, and again for the tool a queued job's next step
+will run on — at most once a minute per tool — before the runner looks at the queue. A check that finds something
+wrong puts a line at the top of every page, but only for a tool some model is configured for, and says what is wrong
+rather than which question found it. A Claude Code login that names one account with an organization plan it cannot
+have is reported as the login in use being another account's: `claude auth status` reads the address from one file
+and the plan from the stored login, and on macOS a login left in the keychain outlives a `claude auth login` that
+wrote a new one to the file. All of this happens only on a board started with `checkToolsOnStart`; a server nobody
+asked to check anything never spawns a CLI to do it.
+
 ## Which effort level a step runs at
 
 Every phase line carries an Effort select beside its model select, offering `low`, `medium`, `high`, `xhigh` and
@@ -384,46 +393,46 @@ worktree` checkouts of its own, so the main checkouts never leave their default 
 
 ## The dashboard's own checkouts
 
-**The checkout a run is cut from is not the one a person edits.** Cutting a worktree from
+**The checkout a run is cut from is not the one a user edits.** Cutting a worktree from
 `<projects root>/<project>` — the directory Add clones into and the directory somebody works in — puts two writers on
 one tree: the runner puts every root it touches onto its default branch before it starts, and a landing merges and
-pushes from the same tree, while a person edits it meanwhile. The per-repo lock serializes the dashboard against
-itself; nothing serializes it against a person's own git client, and nothing can.
+pushes from the same tree, while a user edits it meanwhile. The per-repo lock serializes the dashboard against
+itself; nothing serializes it against a user's own git client, and nothing can.
 
 So the dashboard keeps clones of its own, under
 `~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
 project, never one per run;
-`--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the person's
+`--dashboard-checkouts <dir>` moves them. They are made the first time they are needed, by cloning the user's
 checkout's own `origin`, and reused ever after. Everything that MUTATES goes there: `aide-run-spec
---project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The person's
+--project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
 checkout is read for the project list and the manifests, and is otherwise asked one read-only question ever — which
 origin to clone from.
 
-**The spec list itself is read from the dashboard's own checkout, not the person's.** Every reader-facing
+**The spec list itself is read from the dashboard's own checkout, not the user's.** Every reader-facing
 listing —
 `GET /projects/:name`, `GET /projects` and the home page's queue rows, archived rows included — lists from
 `resolvedCheckouts.get(project)?.specs`
-when the dashboard's own clone exists, falling back to the person's checkout otherwise (a new project, or one whose
+when the dashboard's own clone exists, falling back to the user's checkout otherwise (a new project, or one whose
 clone failed). This is the same clone `aide-run-spec` resolves a spec folder against, so a folder that only exists in
-the person's checkout, committed but never pushed, does not appear in the list — a row for it would offer a step that
+the user's checkout, committed but never pushed, does not appear in the list — a row for it would offer a step that
 fails with `unknown spec: ... (not under
 <dashboard-checkout>/specs/<project>)`. The fetch that keeps the dashboard's clone current happens inside
 `refreshSpecCaches`'s existing schedule, never inside a request, so this costs no git spawn on the render path.
 
 Two consequences worth knowing:
 
-- **A landed run and a Save do not show up in a person's own checkout until they pull it.** Nothing auto-syncs into
+- **A landed run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into
   it, deliberately: an auto-pull would recreate exactly the collision this removes. The specs cron pulls it every two
   minutes, which is what closes the gap in practice.
-- **`.aide/config` is gitignored, so a clone never carries it.** It is copied from the person's checkout on every
+- **`.aide/config` is gitignored, so a clone never carries it.** It is copied from the user's checkout on every
   ensure — it is the file an operator edits by hand between merges, and a copy taken once would go on answering with
   whatever was true the day the clone was made.
-  `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the person's checkout, and is
+  `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the user's checkout, and is
   replaced with the dashboard's own specs. The file is written once, finished, through a rename — a run starting for
-  another job never reads a copy that still names the person's path.
+  another job never reads a copy that still names the user's path.
 
-A project whose checkout has no `origin` gets no clone of its own. It runs in the person's checkout, and its readiness
-line says so, so the one project where a run and a person's editing can still
+A project whose checkout has no `origin` gets no clone of its own. It runs in the user's checkout, and its readiness
+line says so, so the one project where a run and a user's editing can still
 meet is named rather than silent.
 
 ## How a run touches the repositories
@@ -437,7 +446,7 @@ and a step that commits its own work (archive does) leaves it at `0` with real c
 
 **It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The real
 checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
-can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a person can use the
+can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
 checkout meanwhile. Two consequences worth knowing before changing anything here:
 
 - The result's `repos[].root` is the MAIN checkout, not the directory the work happened in — the dashboard spawns git
@@ -512,7 +521,7 @@ side works with nothing configured.
 headless run's phases reach the row automatically. Before that existed, every phase report from a headless step
 exited silently and the row sat at `phase: null`.
 
-**A Claude Code `UserPromptSubmit` hook is the other producer, and it is a person's own, opt-in setting** — for
+**A Claude Code `UserPromptSubmit` hook is the other producer, and it is a user's own, opt-in setting** — for
 reporting an `/aide-*` command run BY HAND, in an interactive terminal, outside the queue entirely. `aide-emit-run`
 (installed by Aide to `~/.local/bin`) POSTs one small event per slash-launched command — host, session id, command,
 spec, project; never the prompt text. It is inert until `AIDE_RUN_URL` is set; an `AIDE_RUN_URL` already in the
