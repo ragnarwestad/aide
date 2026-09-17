@@ -73,7 +73,11 @@ export const phaseWordCell = (
     ? badge(
         w.badge.variant,
         attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
-        attempts > 1 ? `${attempts} attempts` : undefined,
+        // Always set, since spec 480 (Round 2): a phone's own state cell
+        // is now a fixed width and can ellipsis-clip the visible label
+        // (narrow.css, tr.subrow[data-step] td[data-col="state"] .badge),
+        // so the full text has to stay reachable through the title.
+        attempts > 1 ? `${w.badge.label} (${attempts}) — ${attempts} attempts` : w.badge.label,
       )
     // A dash, the same one Created and Cost draw for "nothing here"
     // (2026-09-08): the sentence "not run yet" said in words what an

@@ -296,9 +296,28 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     // "implementering" is 98px in this face. --aimodel-w narrowed to
     // 3rem with spec 480 — the compact button shows a bare model name
     // now, not "Tool/model", and the room freed goes to Time (AC-5).
-    expect(NARROW).toMatch(/table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3rem; --tick-w: 31px; \}/);
+    expect(NARROW).toMatch(
+      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
+    );
     // The left one stays — it is the indent under the spec's own name.
     expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
+  });
+
+  // AC-5, Round 2: the state cell's own width is fixed too, on an
+  // ORDINARY phase line, so Time's already-fixed left edge (above)
+  // starts at the same x whatever that phase's own state is — a run
+  // phase's badge, or a not-yet-run phase's bare dash (which carries no
+  // `.badge` at all, so a rule scoped to the badge alone would miss it).
+  test("the phase line's own state cell is a fixed width, badge or dash alike", () => {
+    expect(NARROW).toContain(
+      'table.list tr.subrow[data-step] td[data-col="state"] {\n    flex: 0 0 var(--state-w); width: var(--state-w);',
+    );
+    // The badge inside it still gives way with an ellipsis, not a hard
+    // clip with no indicator — its full text stays reachable via title
+    // (cell-helpers.ts).
+    expect(NARROW).toContain(
+      'table.list tr.subrow[data-step] td[data-col="state"] .badge {\n    max-width: 100%; overflow: hidden; text-overflow: ellipsis;',
+    );
   });
 
   test("no rule is drawn under a phase line", () => {

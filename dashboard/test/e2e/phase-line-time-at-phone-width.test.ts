@@ -66,7 +66,13 @@ afterAll(async () => {
 
 const WIDTHS = [360, 390, 430];
 
-test("the phase line's Time shows on the state's line, at 360/390/430px, without wrapping", async () => {
+// AC-5's own wording (spec 480, Round 2): "the Time values ... SHALL
+// start at the same horizontal position ... on every phase line." The
+// `ran(["create", "analyze"])` fixture above already mixes a run phase
+// (a "Done" badge) with a not-yet-run one (a bare dash, no badge at
+// all) — the exact combination that exposed the gap a single-row check
+// could not see.
+test("the phase line's Time shows on the state's line, at 360/390/430px, without wrapping, and shares one left edge", async () => {
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
     await withTimeout(
@@ -74,15 +80,25 @@ test("the phase line's Time shows on the state's line, at 360/390/430px, without
       10_000,
       `page.goto at ${width}px`,
     );
-    const started = page.locator('table.list tr.subrow[data-step] [data-col="started"]').first();
-    expect(await started.isVisible()).toBe(true);
-    // One line tall: two would be roughly double a line's own height —
-    // the same style of check `specs-page-layout.test.ts` already uses
-    // elsewhere for "did this wrap".
-    const height = await page
+    const rows = await page
       .locator('table.list tr.subrow[data-step]')
-      .first()
-      .evaluate((el) => el.getBoundingClientRect().height);
-    expect(height).toBeLessThan(40);
+      .evaluateAll((trs) =>
+        trs.map((tr) => ({
+          height: tr.getBoundingClientRect().height,
+          startedX: tr.querySelector('[data-col="started"]')?.getBoundingClientRect().x,
+          startedVisible:
+            getComputedStyle(tr.querySelector('[data-col="started"]')!).display !== "none",
+        })),
+      );
+    expect(rows.length).toBeGreaterThan(1);
+    for (const r of rows) {
+      expect(r.startedVisible).toBe(true);
+      // One line tall: two would be roughly double a line's own height —
+      // the same style of check `specs-page-layout.test.ts` already uses
+      // elsewhere for "did this wrap".
+      expect(r.height).toBeLessThan(40);
+    }
+    const xs = new Set(rows.map((r) => r.startedX));
+    expect(xs.size).toBe(1);
   }
 });

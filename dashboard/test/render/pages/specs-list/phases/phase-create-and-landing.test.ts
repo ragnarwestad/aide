@@ -106,7 +106,7 @@ describe("spec 116: create is the first phase line", () => {
     // nobody made — and the same dash the State, Created and Cost
     // columns already draw for "nothing here".
     expect(line).toContain(
-      '<td data-col="state"><span class="badge b-done">Done</span></td>' +
+      '<td data-col="state"><span class="badge b-done" title="Done">Done</span></td>' +
         '<td data-col="started"><span class="muted small">–</span></td>' +
         '<td class="num" data-col="cost"></td><td data-col="created"></td>',
     );

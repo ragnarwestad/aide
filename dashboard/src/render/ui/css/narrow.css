@@ -51,7 +51,16 @@
      still ellipsis-clips at this width (`.aimodelnow`'s own rule,
      below) — a name longer than "sonnet" trims visually, which is the
      trade Time asked for. */
-  table.list { --phase-w: 5.75rem; --aimodel-w: 3rem; --tick-w: 31px; }
+  /* --state-w (spec 480, Round 2): the state column's own fixed width,
+     matching --phase-w on the same footing — both sit on a `<td>` that
+     is a direct flex child of `tr.subrow` (phase-rows.ts:329). Without
+     it, Time's left edge (already fixed, Round 1's own --aimodel-w
+     work) trails a state cell whose own width still varies with its
+     content: a run phase's badge label ("Done", "Running (refactor)")
+     or a not-yet-run phase's bare dash, neither reserving the other's
+     width. VALUE MEASURED against a real/headless browser (Round 2
+     Implementation plan Step 1), the same way --aimodel-w's was. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: 3rem; --tick-w: 31px; --state-w: 3.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
@@ -218,6 +227,32 @@
      state on ONE line down to 360px, and 24px a side was what tipped
      the state onto a second line under 410px. */
   table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }
+  /* An ORDINARY phase line's own state cell (spec 480, Round 2): fixed
+     at --state-w, mirroring .phasecell's own `flex: 0 0 var(--phase-w)`
+     (below) exactly — the same mechanism, on the same kind of element (a
+     `<td>`, a direct flex child of `tr.subrow`), not a new one. Scoped to
+     `tr.subrow[data-step]` (an ordinary phase line's own attribute,
+     phase-rows.ts:324) so it never reaches the caption line
+     (`tr.subrow[data-caption="1"]`, its own `flex: 0 0 100%` above) or
+     the spec-head row's state cell (`tr.spechead`, its own grid rule
+     above) — neither carries `[data-step]`. Time's own `flex: 0 0 auto`
+     rule, already fixed since Round 1, then starts at the same x on
+     every phase line automatically, whatever that phase's own state is
+     — including a not-yet-run phase, which carries no `.badge` at all
+     (`cell-helpers.ts`'s own dash case) and so needed a rule on the CELL
+     itself, not only on `.badge` above. */
+  table.list tr.subrow[data-step] td[data-col="state"] {
+    flex: 0 0 var(--state-w); width: var(--state-w); box-sizing: border-box;
+    overflow: hidden; white-space: nowrap;
+  }
+  /* The badge's own text still needs to give way inside that fixed box —
+     `min-width: 0` above lets it shrink, but with no cap it would keep
+     its full content width and force the CELL's own `overflow: hidden`
+     to hard-clip it with no indicator at all. An ellipsis here instead,
+     recovered in full via the badge's own `title` (cell-helpers.ts). */
+  table.list tr.subrow[data-step] td[data-col="state"] .badge {
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  }
   /* Line 2 is the State cell, whole: the pips at the left and the badge
      in a second column that starts where the caption line's own copy of
      the state starts once the row is open (the same sum as that grid's

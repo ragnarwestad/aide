@@ -217,8 +217,12 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).not.toContain("<div class=\"muted small\">");
     // The count is IN the badge since 2026-09-08 — "done (2)", with the
     // word in the pill's own title. Two marks for one fact read as two
-    // facts, and the pill is where the phase's state is said.
-    expect(line).toMatch(/<span class="badge b-[a-z]+" title="2 attempts">[A-Z][a-z]+ \(2\)<\/span>/);
+    // facts, and the pill is where the phase's state is said. The title
+    // repeats the visible label too, since spec 480 (Round 2): a phone's
+    // fixed-width state cell can ellipsis-clip the label itself.
+    expect(line).toMatch(
+      /<span class="badge b-[a-z]+" title="Done \(2\) — 2 attempts">Done \(2\)<\/span>/,
+    );
   });
 
   // --- the gap the description asked to close --------------------------------

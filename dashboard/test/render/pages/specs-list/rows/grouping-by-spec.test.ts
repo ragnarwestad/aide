@@ -78,8 +78,10 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // The count rides with the phase's own word since 2026-09-08 — in
     // the badge when there is one, and on "not run yet" when the files
     // say nothing happened, as here: two attempts, both failed, and the
-    // spec's own file still names none of them.
-    expect(analyze).toMatch(/title="2 attempts">Done \(2\)<\/span>/);
+    // spec's own file still names none of them. The title repeats the
+    // visible label too, since spec 480 (Round 2): a phone's fixed-width
+    // state cell can ellipsis-clip the label itself.
+    expect(analyze).toMatch(/title="Done \(2\) — 2 attempts">Done \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
