@@ -17,7 +17,7 @@ import {
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { QueueStore } from "../../queue/queue.ts";
-import type { SpecTarget } from "../../render";
+import type { CheckableTool, SpecTarget } from "../../render";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
@@ -52,12 +52,14 @@ export interface ScheduleSetupInputs {
    *  `resolveOpenBranchTarget` — what `warmSpec` needs to ask whether a
    *  live spec's own `aide/<folder>` branch is still open. */
   specsRoot: (dir: string) => Promise<string>;
+  /** Checks again the tools waiting jobs will run on; absent, nothing is. */
+  recheckTools?: (tools: CheckableTool[]) => Promise<void>;
 }
 
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
   const {
     machineryProjectDir, branchStatus, targets, allowed, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
-    notifyQueueChanged, specsRoot,
+    notifyQueueChanged, specsRoot, recheckTools,
   } = inputs;
 
   // How long ONE spec answer stands, and how often it is retaken, are
@@ -109,6 +111,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     readRunner: () => state.runner,
     checkoutEnsurer,
     notifyQueueChanged,
+    recheckTools,
   };
   function refreshDrift() {
     return refreshDriftImpl(scheduleCtx);

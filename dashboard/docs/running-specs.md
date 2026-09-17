@@ -277,6 +277,15 @@ check reporting a CLI as missing while every real run found it.
 A project can point a run at a particular binary instead, with `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` or
 `AIDE_OPENCODE_BIN` in its `.aide/config`. That override wins over the `PATH` search entirely.
 
+The tool checks run when the board starts, when Check is pressed, and again for the tool a queued job's next step
+will run on — at most once a minute per tool — before the runner looks at the queue. A check that finds something
+wrong puts a line at the top of every page, but only for a tool some model is configured for, and says what is wrong
+rather than which question found it. A Claude Code login that names one account with an organization plan it cannot
+have is reported as the login in use being another account's: `claude auth status` reads the address from one file
+and the plan from the stored login, and on macOS a login left in the keychain outlives a `claude auth login` that
+wrote a new one to the file. All of this happens only on a board started with `checkToolsOnStart`; a server nobody
+asked to check anything never spawns a CLI to do it.
+
 ## Which effort level a step runs at
 
 Every phase line carries an Effort select beside its model select, offering `low`, `medium`, `high`, `xhigh` and

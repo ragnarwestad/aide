@@ -14,12 +14,12 @@
 // all, which is why the extra checks cover one tool rather than four.
 
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
-import { forgetChecks, lastChecks, recordCheck, toolsWithFaults } from "../render/ui/tool-checks.ts";
+import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
 // and which may not import this file. Re-exported so a caller has one
 // import site for "check a tool and remember the answer".
-export { forgetChecks, lastChecks, recordCheck, toolsWithFaults };
+export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
 
@@ -186,12 +186,15 @@ async function loginCheck(
       const parsed = JSON.parse(text) as Record<string, unknown>;
       if (typeof parsed.loggedIn === "boolean") {
         const how = typeof parsed.authMethod === "string" ? ` (${parsed.authMethod})` : "";
-        if (!parsed.loggedIn) return { question, ok: false, detail: "No. Run `claude auth login`." };
+        if (!parsed.loggedIn) {
+          return { question, ok: false, detail: "No. Run `claude auth login`.", problem: "not logged in" };
+        }
         const mixed = mixedLogins(parsed);
         return {
           question,
           ok: !mixed,
           detail: `Yes${how}${claudeAccount(parsed)}.${mixed ? ` ${mixed}` : ""}`,
+          ...(mixed ? { problem: "the login in use is another account's" } : {}),
         };
       }
     } catch {
@@ -203,7 +206,7 @@ async function loginCheck(
 
   // Codex: one line, and an exit code that says it.
   if (result.code !== 0) {
-    return { question, ok: false, detail: text || "No. Run `codex login`." };
+    return { question, ok: false, detail: text || "No. Run `codex login`.", problem: "not logged in" };
   }
   return { question, ok: true, detail: text || "Yes." };
 }
@@ -273,4 +276,37 @@ export async function checkAllTools(
       // checked yet", which is true.
     }
   }
+}
+
+/** How long a check answers for a tool before a waiting job asks again. */
+export const RECHECK_MS = 60_000;
+
+/** Asks again, for the tools waiting jobs are about to run on, whether
+ *  each is usable — at most once per `RECHECK_MS` per tool, and never
+ *  twice at once. What the notice on every page says is then the login a
+ *  run will use now, not the one the board found when it started: a
+ *  login changed under a running board is how seven runs were spent on
+ *  the wrong account. */
+export function toolRechecker(
+  configuredModels: (tool: CheckableTool) => string[],
+  opts: { now?: () => Date; check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
+): (tools: CheckableTool[]) => Promise<void> {
+  const inFlight = new Set<CheckableTool>();
+  const now = opts.now ?? (() => new Date());
+  const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool, { configuredModels: configuredModels(tool) }));
+  return async (tools) => {
+    await Promise.all([...new Set(tools)].map(async (tool) => {
+      const last = lastChecks()[tool];
+      if (inFlight.has(tool)) return;
+      if (last && now().getTime() - Date.parse(last.at) < RECHECK_MS) return;
+      inFlight.add(tool);
+      try {
+        recordCheck(await check(tool));
+      } catch {
+        // No answer is no new answer: the last one stands.
+      } finally {
+        inFlight.delete(tool);
+      }
+    }));
+  };
 }
