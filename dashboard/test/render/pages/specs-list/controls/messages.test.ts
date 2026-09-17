@@ -141,6 +141,10 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   // never matched "arkivering …", so the phase word used to appear
   // twice in this exact sentence on the Norwegian board. `stepLabel`'s
   // capitalized, language-correct strip fixes both at once.
+  //
+  // The state word inside the sentence is also Norwegian since spec
+  // 482 (AC-2) — it used to leak the raw English enum value ("siste ny
+  // kjøring failed") even here, where every other word was translated.
   test("the same pair, in Norwegian, has the duplicate phase word stripped too", () => {
     const html = rows(
       [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "failed" })],
@@ -149,7 +153,8 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       { lang: "nb" },
     );
     expect(panel(html)).toContain("Arkiver holdt tilbake");
-    expect(panel(html)).toContain("siste ny kjøring failed");
+    expect(panel(html)).toContain("siste ny kjøring feilet");
+    expect(panel(html)).not.toContain("siste ny kjøring failed");
     expect([...panel(html).matchAll(/arkiver/gi)]).toHaveLength(1);
   });
 

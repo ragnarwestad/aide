@@ -19,6 +19,7 @@ export const en = {
   "shell.themeAuto": "Auto",
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",
+  "shell.tabSchedule": "Schedule",
   "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem — see {path}",
   "shell.toolFault": "{tool}: {problems} — open Settings and press Check on that tab",
@@ -108,6 +109,12 @@ export const en = {
   // step as well ("archiving held back") until 2026-09-08 — the step is
   // already on the line, and the reason is the half a reader acts on.
   "list.lastRerun": "last re-run {state}",
+  "state.queued": "queued",
+  "state.running": "running",
+  "state.done": "done",
+  "state.failed": "failed",
+  "state.cancelled": "cancelled",
+  "state.interrupted": "interrupted",
   "state.stopped": "stopped",
   // A stopped job is not a failed one, and the reason is the half that
   // says which. These read on the row itself, so they are as short as
@@ -130,6 +137,58 @@ export const en = {
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",
+
+  "job.started": "Started",
+  "job.model": "Model",
+  "job.effort": "Effort",
+  "job.costSoFar": "Cost so far",
+  "job.tokensSoFar": "Tokens so far",
+  "job.cost": "Cost",
+  "job.tokens": "Tokens",
+  "job.stepAt": "At",
+  "job.stepResult": "Result",
+  "job.attempt": "Attempt {n}",
+  "job.logMissing": "The log is missing for this step.",
+
+  "schedule.cron": "Cron",
+  "schedule.nextRun": "Next run",
+  "schedule.promptFile": "Prompt file",
+  "schedule.model": "Model",
+  "schedule.ai": "AI",
+  "schedule.enabled": "Enabled",
+  "schedule.yes": "yes",
+  "schedule.no": "no",
+  "schedule.newJob": "New job",
+  "schedule.nothingScheduled": "Nothing is scheduled for this project.",
+  "schedule.colName": "Name",
+  "schedule.colCron": "Cron",
+  "schedule.colPrompt": "Prompt",
+  "schedule.colNextRun": "Next run",
+
+  "project.add": "Add",
+  "project.remove": "Remove",
+  "project.active": "active",
+  "project.archived": "archived",
+  "project.count": "{n} projects",
+  "project.manifestFailed": "Manifest failed to parse: {error}",
+
+  "spec.acceptance": "Acceptance",
+  "spec.acceptanceRequired": "required",
+  "spec.acceptanceNotRequired": "not required",
+  "spec.acceptanceTickingRequired": "acceptance ticking required",
+  "spec.acceptanceLockedTitle": "why this can't change",
+  "spec.acceptanceLockedBody":
+    "Analyze has already decided whether to write the acceptance-criteria table — this cannot change now.",
+  "spec.archivedLine": "This spec has been archived, and cannot be edited until the spec is reopened",
+  "spec.closedLine":
+    "This spec was closed{when}{reason} — it did not work out, and the description and the checks " +
+    "cannot be edited until the spec is reopened",
+
+  "list.captionPhase": "Phase",
+  "list.captionAi": "AI",
+  "list.captionModel": "Model",
+  "list.captionSelect": "Select",
+  "wordPhase.badgeHeldBack": "Held back",
 
   // The usage limit that stopped a step, as the tool reported it.
   "limit.used": "{who}: {limit} is used up",

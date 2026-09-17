@@ -29,12 +29,15 @@ import type { SpecCheckView, SpecPageView } from "./types.ts";
  *  same as an unchecked one — `acceptanceEditable` is a hidden sentinel
  *  precisely so the route can tell those two apart (see
  *  `spec-edit/tracking.ts`). */
-export function trackingControl(view: SpecPageView): string {
+export function trackingControl(view: SpecPageView, lang: Language = "en"): string {
   const folders = view.dependsOn ?? [];
   const options = view.dependsOnOptions ?? [];
   if (view.archived) {
-    const dep = folders.length ? fact("Depends on", folders.map((f) => esc(f)).join(", ")) : "";
-    return dep + fact("Acceptance", view.acceptanceNotRequired ? "not required" : "required");
+    const dep = folders.length ? fact(t(lang, "newSpec.dependsOn"), folders.map((f) => esc(f)).join(", ")) : "";
+    return (
+      dep +
+      fact(t(lang, "spec.acceptance"), view.acceptanceNotRequired ? t(lang, "spec.acceptanceNotRequired") : t(lang, "spec.acceptanceRequired"))
+    );
   }
   const acceptanceLocked = view.done?.includes("analyze") ?? false;
   // A spec this one depends on that is no longer a valid CHOICE is
@@ -78,16 +81,13 @@ export function trackingControl(view: SpecPageView): string {
   const acceptance = acceptanceLocked
     ? `<span class="row" aria-disabled="true">` +
       `<input type="checkbox" disabled${required ? " checked" : ""}>` +
-      `<span>acceptance ticking required</span>` +
-      helpPopover(
-        "why this can't change",
-        "Analyze has already decided whether to write the acceptance-criteria table — this cannot change now.",
-      ) +
+      `<span>${t(lang, "spec.acceptanceTickingRequired")}</span>` +
+      helpPopover(t(lang, "spec.acceptanceLockedTitle"), t(lang, "spec.acceptanceLockedBody")) +
       `</span>`
     : `<label class="row">` +
       `<input type="hidden" name="acceptanceEditable" value="1">` +
       `<input type="checkbox" name="acceptanceRequired" value="1"${required ? " checked" : ""}>` +
-      `<span>acceptance ticking required</span></label>`;
+      `<span>${t(lang, "spec.acceptanceTickingRequired")}</span></label>`;
   // `.trackingform`, never `.specform`: the Checks tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
@@ -131,15 +131,12 @@ export function fact(label: string, value: string): string {
  *  and archive can be run again while the spec's branch is still open.
  *  What IS true is that the description's textarea and the checks'
  *  boxes are gone until it is reopened. */
-export function archivedLine(view: SpecPageView): string {
+export function archivedLine(view: SpecPageView, lang: Language = "en"): string {
   // spec 406, REQ-7: a closed spec is under archive/ too (the same
   // folder move), but must never read as "archived" on its own page —
   // closedLine, below, is what draws for it instead.
   if (!view.archived || view.closed) return "";
-  return (
-    `<p class="desc"><span class="muted">This spec has been archived, ` +
-    `and cannot be edited until the spec is reopened</span></p>`
-  );
+  return `<p class="desc"><span class="muted">${t(lang, "spec.archivedLine")}</span></p>`;
 }
 
 /** What being closed actually means for this spec (spec 406, REQ-7) —
@@ -149,15 +146,11 @@ export function archivedLine(view: SpecPageView): string {
  *  look like archiving, and this is where a reader of the spec's own
  *  page meets that distinction stated as fact rather than left to be
  *  inferred from the folder alone. */
-export function closedLine(view: SpecPageView): string {
+export function closedLine(view: SpecPageView, lang: Language = "en"): string {
   if (!view.closed) return "";
   const when = view.closedDate ? ` on ${esc(view.closedDate)}` : "";
   const reason = view.closeReason ? `: ${esc(view.closeReason)}` : "";
-  return (
-    `<p class="desc"><span class="muted">This spec was closed${when}${reason} — ` +
-    `it did not work out, and the description and the checks cannot be edited ` +
-    `until the spec is reopened</span></p>`
-  );
+  return `<p class="desc"><span class="muted">${t(lang, "spec.closedLine", { when, reason })}</span></p>`;
 }
 
 /** The spec's checks, on the CHECKS tab (specs 182, 188, 212).

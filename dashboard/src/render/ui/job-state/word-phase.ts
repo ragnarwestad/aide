@@ -173,7 +173,7 @@ function decidePhase(
   if (happened) {
     return {
       pip: running ? "now" : "past",
-      badge: { variant: "done", label: "Done" },
+      badge: { variant: "done", label: t(lang, "list.done") },
       qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
@@ -187,7 +187,7 @@ function decidePhase(
       // The sixth variant, not a seventh: "held back" is a common,
       // healthy outcome — notice, not alarm — which is the same reason
       // `stopped` takes this amber.
-      badge: { variant: "waiting", label: "Held back" },
+      badge: { variant: "waiting", label: t(lang, "wordPhase.badgeHeldBack") },
       // Not the reason: it is a sentence, and the row's panel says it
       // once for the whole row (spec 143). Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
@@ -219,7 +219,7 @@ function decidePhase(
       // The word alone in the badge; the reason is the row's error line
       // (spec 339: the State column says where a spec stands, errors go
       // in the error line).
-      badge: { variant: "waiting", label: "Stopped" },
+      badge: { variant: "waiting", label: capitalizeFirst(t(lang, "state.stopped")) },
       qualifier: `${t(lang, "state.stopped")}: ${stopSentence(history.stopped, lang)}`,
     };
   }
@@ -232,17 +232,21 @@ function decidePhase(
   // its own file says ran.
   if (!attempt) {
     if (history.fileResult === "completed") {
-      return { pip: "past", badge: { variant: "done", label: "Done" }, qualifier: filesDisagree };
+      return { pip: "past", badge: { variant: "done", label: t(lang, "list.done") }, qualifier: filesDisagree };
     }
     if (history.fileResult === "stopped") {
-      return { pip: "todo", badge: { variant: "waiting", label: "Stopped" }, qualifier: filesDisagree };
+      return {
+        pip: "todo",
+        badge: { variant: "waiting", label: capitalizeFirst(t(lang, "state.stopped")) },
+        qualifier: filesDisagree,
+      };
     }
     return { pip: "todo", qualifier: filesDisagree };
   }
   // Ended since the files were last read: the run's own word, and no
   // sentence about files that have not caught up with it yet.
   if (attempt.state === "done" && history.settling) {
-    return { pip: "past", badge: { variant: "done", label: "Done" } };
+    return { pip: "past", badge: { variant: "done", label: t(lang, "list.done") } };
   }
   if (attempt.state === "done") {
     return {

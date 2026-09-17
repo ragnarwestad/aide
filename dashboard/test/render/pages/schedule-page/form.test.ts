@@ -117,6 +117,15 @@ describe("renderScheduleForm", () => {
     expect(one).toContain('<select name="model"');
   });
 
+  // Spec 482: the AI/Model field labels were English string literals,
+  // never routed through `t()`.
+  test("the AI and Model field labels read Norwegian, not English", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", modelChoices: TWO_TOOLS }, "nb");
+    expect(html).toContain("<span>AI</span>");
+    expect(html).toContain("<span>Modell</span>");
+    expect(html).not.toContain("<span>Model</span>");
+  });
+
   test("the model row sits under Cron and above the submit button", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule", modelChoices: TWO_TOOLS });
     expect(html.indexOf('name="cron"')).toBeLessThan(html.indexOf('<select name="model"'));

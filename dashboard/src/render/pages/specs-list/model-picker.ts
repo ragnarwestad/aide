@@ -1,5 +1,6 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
+import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { runFormId } from "./cells.ts";
@@ -228,10 +229,14 @@ export function phaseCaptionCells(
    *  it sits at the end of the same line, under the State column it used
    *  to stand in on the row above. */
   action = "",
+  // A genuinely new parameter, not `opts.lang` (spec 482): `PickerOptions`
+  // is narrower than `SpecsPageOptions` and carries no `lang` of its own
+  // — both call sites already resolve one for other purposes.
+  lang: Language = "en",
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
-    `<td class="phasecell"><span class="muted small">Phase</span></td>` +
+    `<td class="phasecell"><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
     // Each caption over the control it heads, not three words bunched
     // at the left of the cell: `data-cap` pairs a caption with its
     // control, and the stylesheet gives the two the same width. Spec
@@ -242,11 +247,11 @@ export function phaseCaptionCells(
     // configured, so the heading and the control under it can never
     // disagree about which column is which.
     (tools.size > 0
-      ? `<span class="muted small" data-cap="ai" data-ai-cap>AI</span>` +
+      ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>` +
         `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
       : "") +
-    `<span class="muted small" data-cap="model">Model</span>` +
-    `<span class="muted small" data-cap="box">Select</span>` +
+    `<span class="muted small" data-cap="model">${t(lang, "list.captionModel")}</span>` +
+    `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` +
     `</span></td>` +
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +

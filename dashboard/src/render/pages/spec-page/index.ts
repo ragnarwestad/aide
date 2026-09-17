@@ -104,9 +104,9 @@ export function renderSpecPage(
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
-    archivedLine(view) +
-    closedLine(view) +
-    trackingControl(view) +
+    archivedLine(view, opts.lang ?? "en") +
+    closedLine(view, opts.lang ?? "en") +
+    trackingControl(view, opts.lang ?? "en") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
