@@ -73,3 +73,8 @@ schedule:
     cron: "0 7 * * 1"
     prompt: "docs/prompts/check-news.md"
     model: "sonnet"
+  - name: "nightly-e2e"
+    cron: "0 3 * * *"
+    prompt: "docs/prompts/nightly-e2e.md"
+    model: "Sonnet"
+    since: "2026-09-17T20:54:52.809Z"
