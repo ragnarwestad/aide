@@ -232,19 +232,30 @@ All AI tools follow the same basic workflow:
 ## The Aide dashboard
 
 All Aide skills can be run by hand, one spec at a time, in any of the AI CLI assistants Aide supports. The dashboard
-runs them for you: it lists every spec across every project Aide knows about, grouped by phase, and queues a spec
-through `create` → `analyze` → `implement` → `archive` without anyone watching. A running job shows its live progress on
-the spec's row, and clicking a spec opens its description, analysis, plan, status and every job that has run against it.
+runs them for you, and adds what running them by hand does not give you:
+
+- **Every spec in one list** — across every project Aide knows about, with search and a state filter
+- **Unattended runs** — a spec is queued through `create` → `analyze` → `implement` → `archive`, potentially in
+  parallel
+- **The AI and model per step** — chosen for each phase of each spec
+- **Live progress** — the running step, its time and its tokens, on the spec's row
+- **Dependencies** — a spec that overlaps with another spec can be configured to wait to be implemented until the
+  first has completed
+- **Acceptance criteria** (optional) can be specified. If desired, the dashboard can stop before archiving and prompt
+  the user to verify them before continuing
+- **Modify and rerun** — if acceptance criteria are specified and not fulfilled by the implementation, the spec
+  description and criteria can be modified to be more precise, and the analyze and implement phases rerun. Criteria
+  that are already ticked are not touched by the rerun
+- **Code that lands itself** — merged into the main branch once the tests pass, or left as a pull request for review
+  (see [How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands))
+- **The whole history** — clicking a spec opens its description, analysis, plan, status and every job that has run
+  against it
 
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
 It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
 so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
 machine that stays on so runs continue after you close the lid.
-
-Per project, a spec's code is either merged into the main branch when the spec is archived, or left as a pull request
-for someone to review first — see
-[How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands).
 
 It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](dashboard/README.md)**.
 
