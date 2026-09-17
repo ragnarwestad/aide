@@ -56,13 +56,14 @@ The four spec-workflow skills, in the order a spec moves through them:
 
 Supporting skills, used around that workflow rather than as a step in it:
 
-| Skill            | Does                                                                                                           |
-|------------------|----------------------------------------------------------------------------------------------------------------|
-| `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing |
-| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)          |
-| `/aide-reopen`   | Takes an archived spec back into the active list for another round, keeping the description and archive trail  |
-| `/aide-reset`    | Resets an invalid active spec work round, keeping its README, description, commits and job history             |
-| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                    |
+| Skill            | Does                                                                                                                    |
+|------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing          |
+| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                   |
+| `/aide-close`    | Closes a spec whose idea did not hold: records the reason, moves it to `archive/`, and deletes its code branch unmerged |
+| `/aide-reopen`   | Takes an archived spec back into the active list for another round, keeping the description and archive trail           |
+| `/aide-reset`    | Resets an invalid active spec work round, keeping its README, description, commits and job history                      |
+| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                             |
 
 ---
 
@@ -75,8 +76,9 @@ Clone the repo, then run the installer for your AI tool:
 | Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
 | GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
+| OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
 
-`./install-all.sh` runs all three at once. Each installer is self-contained: instructions, commands/prompts, scripts and
+`./install-all.sh` runs all four at once. Each installer is self-contained: instructions, commands/prompts, scripts and
 documentation, installed globally so any project can use them.
 
 > **Windows users:** The scripts require WSL or Git Bash.
