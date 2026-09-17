@@ -84,7 +84,7 @@ with an `errorReason`); the spec's own record is unchanged by it.
 stateDiagram-v2
     [*] --> created: create lands, job renamed to the folder
     created --> analyzed: analyze completes and lands
-    analyzed --> implemented: implement completes; code stays on its branch
+    analyzed --> implemented: implement completes — code stays on its branch
     implemented --> archived: archive moves the folder and lands every repo
     archived --> created: reopen (a new work round)
     analyzed --> created: reset (same round discarded)

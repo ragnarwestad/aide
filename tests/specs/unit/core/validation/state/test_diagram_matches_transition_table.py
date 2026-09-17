@@ -25,7 +25,7 @@ DIAGRAM_EDGE_RE = re.compile(r"^\s*(\w+)\s*-->\s*(\w+)\s*:\s*(.+?)\s*$")
 DIAGRAM_LABEL_TO_EVENT = {
     "create lands, job renamed to the folder": None,  # the entry edge, excluded
     "analyze completes and lands": "analyze",
-    "implement completes; code stays on its branch": "implement",
+    "implement completes — code stays on its branch": "implement",
     "archive moves the folder and lands every repo": "archive",
     "reopen (a new work round)": "reopen",
     "reset (same round discarded)": "reset",
@@ -101,7 +101,7 @@ stateDiagram-v2
     [*]     -->     created: create lands, job renamed to the folder
     created --> analyzed: analyze completes and lands
 
-    analyzed --> implemented: implement completes; code stays on its branch
+    analyzed --> implemented: implement completes — code stays on its branch
     implemented --> archived: archive moves the folder and lands every repo
     archived --> created: reopen (a new work round)
     analyzed --> created: reset (same round discarded)
