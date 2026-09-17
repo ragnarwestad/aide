@@ -587,6 +587,25 @@ describe("a held-back spec's row offers the round again", () => {
     for (const step of done) expect(box(line, step)).not.toContain("disabled");
   });
 
+  // The round is offered, never started by default. The choice the row
+  // remembers is the one the LAST run was pressed with — the whole chain
+  // that just ran — and pre-ticking it again made a press on the button
+  // start another round when archive was what the reader meant.
+  test("the round is offered unticked, and archive stays the one ticked", () => {
+    const html = rows(
+      ran,
+      [target({ done, archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
+      { pendingSteps: { "aide/471-another-round": ["analyze", "implement", "archive"] } },
+    );
+    const line = runLine(html, "471-another-round");
+    for (const step of done) {
+      expect(box(line, step)).not.toContain("disabled");
+      expect(box(line, step)).not.toContain(" checked");
+    }
+    expect(box(line, "archive")).toContain(" checked");
+    expect(line).toContain(">Archive</button>");
+  });
+
   test("an archive held back for any other reason leaves them locked", () => {
     const html = rows(ran, [target({ done, archiveHeldBack: { reason: "the Slack webhook" } })]);
     const line = runLine(html, "471-another-round");
