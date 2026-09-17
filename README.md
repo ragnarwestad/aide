@@ -1,8 +1,12 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
+Spec-driven development for AI assistants: every change starts as a spec, and a dashboard runs it through analysis,
+implementation and archiving.
+
 ## Table of contents
 
 - [What it is](#what-it-is)
+- [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
 - [Install](#install)
@@ -21,11 +25,11 @@ reasoning behind a decision disappears with the conversation, the next session s
 review what was actually agreed before the code was written.
 
 Aide's answer is spec-driven development (SDD): before any AI assistant writes code, it writes a specification — four
-plain-Markdown files (description, analysis, solution, status) that a person and any AI tool can read, review and
+plain-Markdown files (description, analysis, solution, status) that a user and any AI tool can read, review and
 continue identically, committed to git alongside the code it describes.
 
 **The dashboard is the usual way in.** It lists every spec across every project Aide knows about, and runs each one
-through create, analyze, implement and archive for you — queued and unattended, with a person stepping in only where
+through create, analyze, implement and archive for you — queued and unattended, with a user stepping in only where
 a judgement is needed, such as ticking the acceptance criteria before archive.
 See [The Aide dashboard](#the-aide-dashboard).
 
@@ -47,10 +51,56 @@ them.
 
 ---
 
+## What a spec looks like
+
+A spec is a folder of four files. The user writes the description, or has `/aide-create` draft it from a title and
+a few sentences; analyze writes `2-analysis.md` and `3-solution.md`; every step records its progress in
+`4-status.md`. This is an archived spec from Aide's own work, shortened where it says `[...]`.
+
+`1-description.md` says what is wrong and what done means:
+
+```markdown
+# A spec's row offers a test server only where one can run - Description
+
+## Problem
+
+When a spec's archive is held back on unticked acceptance criteria, its row on the specs list adds "Test server:
+click the link to start a test server running this branch". [...] The spec page already checks that before it shows
+the start button; the row does not, so a spec in [another project] gets a link that leads to the "this project's own
+checkout does not carry the dashboard's source" page.
+
+## Acceptance criteria
+
+- **AC-1:** For a spec held back on unticked acceptance criteria, belonging to a project whose checkout carries the
+  dashboard's source, the row SHALL show the held-back mark together with a link to start a test server.
+- **AC-2:** [...] belonging to a project whose checkout does NOT carry the dashboard's source, the row SHALL show the
+  held-back mark alone, with no test-server link.
+- **AC-3:** The row's decision of whether the project can run a test server SHALL use the same per-project check the
+  spec page already uses, not a separate or duplicated check.
+```
+
+`4-status.md` records what ran, and ends with the criteria as rows that only a user ticks. Archive waits until
+every row is ticked:
+
+```markdown
+- **Result:** completed
+- **Workflow steps completed:** create, analyze, implement, archive
+
+## Acceptance criteria
+
+| Task                                                              | Status | Notes |
+|-------------------------------------------------------------------|--------|-------|
+| AC-1: For a spec held back on unticked acceptance criteria, [...] | ✅      |       |
+| AC-2: For a spec held back on unticked acceptance criteria, [...] | ✅      |       |
+| AC-3: The row's decision of whether the project can run [...]     | ✅      |       |
+```
+
+---
+
 ## Where Aide sits in spec-driven development
 
 Spec-driven development means writing a spec before an AI assistant writes code, and treating that spec as the
-source of truth for both the person and the assistant. Birgitta Böckeler's
+source of truth for both the user and the assistant. Birgitta Böckeler's
 [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) names
 three levels of it:
 
@@ -58,14 +108,14 @@ three levels of it:
 |----------------|---------------------------------------------------------------------------------|
 | Spec-first     | is written first and guides the work, then is discarded once the feature exists |
 | Spec-anchored  | is kept after the work and edited as the feature evolves                        |
-| Spec-as-source | is the only thing a person edits; the code is generated from it                 |
+| Spec-as-source | is the only thing a user edits; the code is generated from it                   |
 
-Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a person
+Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a user
 declines to accept the result, they edit the spec's acceptance criteria and the same spec runs another round of
 analysis or implementation — a round that may only start once every open criterion is new or changed since the
-last one. When the person is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
+last one. When the user is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
 `archive/` with its history, and what it taught is written back into the project's living documentation, which is
-where the current state of the system is described. It is not spec-as-source: people and assistants still read and
+where the current state of the system is described. It is not spec-as-source: users and assistants still read and
 edit the code.
 
 ---
