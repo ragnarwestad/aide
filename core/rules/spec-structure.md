@@ -492,7 +492,7 @@ nothing here is added to across runs.
 
 **An absent `Model` line does not prove the phase ran without a
 model** — only that no commit could be attributed to it, the ordinary
-case for a file a person wrote and committed by hand under their own
+case for a file a user wrote and committed by hand under their own
 message.
 
 Specs archived before this record existed may still carry the older,
@@ -506,7 +506,7 @@ When `1-description.md` has a `## Acceptance criteria` section,
 implementation phase and before `## Notation`, with exactly one row per
 `AC-n` id from `1-description.md`, in ascending id order, carrying that
 requirement's own SHALL text — never a scenario from `3-solution.md`'s
-Acceptance criteria, which a person cannot judge and which can repeat
+Acceptance criteria, which a user cannot judge and which can repeat
 one id across several scenarios:
 
 ```markdown
@@ -523,7 +523,7 @@ today — no such section, no change to archiving.
 
 **These rows start unticked, and no skill ever ticks one.** Unlike the
 RED/GREEN/REFACTOR rows above, an acceptance-criteria row names a
-judgment only the person the spec is for can make — ticking it is the
+judgment only the user the spec is for can make — ticking it is the
 same one-click Overview-tab action any other recognized row offers.
 Placing the section after the last implementation phase means it only
 becomes tickable once every earlier phase's own rows are done.

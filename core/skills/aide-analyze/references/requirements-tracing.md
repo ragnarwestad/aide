@@ -45,7 +45,7 @@ in ascending id order, starting unticked:
 | AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
-These rows are for the person the spec is for to judge and tick from the
+These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
 tick (spec 285). `aide-archive-spec` refuses to archive while any of
 them is still unticked. No Acceptance criteria section: `4-status.md` is
@@ -96,11 +96,11 @@ found, ticked or not. This is also the one exception to
 rule: see `core/skills/aide-implement/SKILL.md` for the narrow carve-out
 that lets Implement write an open row's Notes cell — rewritten from
 scratch each round, one or two sentences on what is missing for a
-person to tick, with this round's own findings going into the
+user to tick, with this round's own findings going into the
 `## Round N` sections above instead.
 
 **Nothing here is ticked by any skill**, in this round or any other —
-that judgment stays the spec's own person's, exactly as the un-held-back
+that judgment stays the spec's own user's, exactly as the un-held-back
 case above.
 
 ---

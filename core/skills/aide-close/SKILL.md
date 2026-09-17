@@ -20,7 +20,7 @@ Close a spec that turned out not to work: stamp the reason, move it to
 merged.
 
 **Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with,
-plus the reason the person closing it typed)
+plus the reason the user closing it typed)
 
 ## Workflow
 
@@ -33,7 +33,7 @@ own equivalent is — this session never reasons about whether the work is
 
 ```bash
 aide-close-spec --project-dir <project root> --spec <argument> \
-                 --reason <the reason typed by the person closing it> \
+                 --reason <the reason typed by the user closing it> \
                  [--specs-dir <specs repo root, if separate>]
 ```
 
