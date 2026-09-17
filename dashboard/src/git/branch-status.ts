@@ -235,22 +235,29 @@ export class BranchStatusChecker {
    *  `refs/remotes/origin/<base>`, the same idiom `isMerged` already uses
    *  a few lines up, then reads the tree with the SPECS ROOT as `cwd` so
    *  a leading `./` (gitrevisions(7)) resolves the path from wherever
-   *  that root actually sits inside its repository. Fail-open like
-   *  `isMerged`: an unreachable origin answers "not confirmed either
-   *  way," never "confirmed not archived." Not cached — this gate always
-   *  asks fresh, archived dependency or not (REQ-2). */
-  async archivedOnOrigin(specsRoot: string, dependencyFolder: string): Promise<boolean> {
+   *  that root actually sits inside its repository. `null` when origin
+   *  could not be asked — no default branch, a fetch that failed, a git
+   *  that threw — which is "not confirmed either way," never "confirmed
+   *  not archived"; the caller decides what that means for a waiting
+   *  job, and the reason is logged since nothing else would say it. Not
+   *  cached — this gate always asks fresh, archived dependency or not
+   *  (REQ-2). */
+  async archivedOnOrigin(specsRoot: string, dependencyFolder: string): Promise<boolean | null> {
+    const unknown = (why: string): null => {
+      console.error(`queue: cannot tell whether ${dependencyFolder} is archived in ${specsRoot} — ${why}`);
+      return null;
+    };
     try {
       const base = await this.defaultBranch(specsRoot);
-      if (!base) return true;
+      if (!base) return unknown("no default branch");
       const fetched = await this.run(specsRoot, ["fetch", "--quiet", "origin", base]);
-      if (fetched.code !== 0) return true;
+      if (fetched.code !== 0) return unknown(`git fetch failed: ${fetched.stdout.trim().split("\n")[0] ?? ""}`);
       const found = await this.run(specsRoot, [
         "cat-file", "-e", `refs/remotes/origin/${base}:./archive/${dependencyFolder}`,
       ]);
       return found.code === 0;
-    } catch {
-      return true;
+    } catch (err) {
+      return unknown(String(err));
     }
   }
 
