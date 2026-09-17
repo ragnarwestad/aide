@@ -9,6 +9,7 @@ queue that runs its specs is on [Running specs](running-specs.md).
     - [Whether a run can start there](#whether-a-run-can-start-there)
     - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
     - [What Add finishes itself](#what-add-finishes-itself)
+- [How a project's code lands](#how-a-projects-code-lands)
 
 ---
 
@@ -165,3 +166,31 @@ A server started without `--root` has no projects root to list or add to. Its `G
 `projects.html`
 instead of rendering an empty listing, and its nav goes on naming that file — an empty page would read as "no projects
 on this machine" rather than "this server was never told where they are".
+
+---
+
+## How a project's code lands
+
+When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
+the Add form, or under Edit on the project's own page:
+
+| Code landing                        | What happens                                                                                                                                                                                                                                        |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Merge into `<branch>` (the default) | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
+| Create a pull request               | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it for as long as the branch is on origin. |
+
+Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
+repository without review. A project that keeps its specs inside its own repository has one branch for both, so there
+the archived spec waits in the same pull request as the code.
+
+A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
+is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand.
+
+The choice is saved as `codeLanding: merge` or `codeLanding: pr` in the project's committed `.aide/project.yaml`, so
+every machine and every teammate lands the same way. It is never read from `.aide/config`, which stays out of git.
+
+It applies only to what the dashboard lands. `/aide-archive` run by hand in an AI assistant archives the spec and leaves
+the branches as they are; merging them or opening a pull request is then up to you.
+
+How the landing works inside, and what not to get backwards when changing it:
+[A project can ask for its code branch to stay open](landing.md#a-project-can-ask-for-its-code-branch-to-stay-open).

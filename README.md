@@ -242,6 +242,10 @@ It finds projects by scanning for `.aide/project.yaml` manifests and reads each 
 so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
 machine that stays on so runs continue after you close the lid.
 
+Per project, a spec's code is either merged into the main branch when the spec is archived, or left as a pull request
+for someone to review first — see
+[How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands).
+
 It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](dashboard/README.md)**.
 
 ---
