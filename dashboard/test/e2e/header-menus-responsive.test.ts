@@ -54,7 +54,10 @@ const PHONE = { width: 600, height: 900 };
 // theme/lang/unit class of its own — the three standalone triggers
 // are `details.menu` too, and a bare `details.menu` locator names
 // all four.
-const MORE_MENU = "header > span.row > details.menu:not(.theme):not(.lang):not(.unit)";
+// No element name in it: the row holding the four menus has been a
+// `span` and is a `div`, and which one it is says nothing about the
+// behaviour these cases check.
+const MORE_MENU = "header .row > details.menu:not(.theme):not(.lang):not(.unit)";
 const DESKTOP = { width: 1270, height: 800 };
 
 test("AC-1: at desktop width, theme, language and unit each stand as their own header trigger", async () => {
@@ -76,6 +79,9 @@ test("AC-2 criterion 3: at phone width, the three standalone triggers are hidden
 test("AC-2 criterion 4: opening the … menu at phone width reveals all three choice groups", async () => {
   await page.setViewportSize(PHONE);
   await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
+  // Named first, so a header that stops carrying the menu fails here in
+  // one line rather than through a 20-second click timeout.
+  expect(await page.locator(MORE_MENU).count()).toBe(1);
   await page.locator(`${MORE_MENU} > summary`).click();
   const morerows = page.locator("header .menu .morerows");
   // `href*="lang="` rather than `href^="/?lang="` (spec 435): the

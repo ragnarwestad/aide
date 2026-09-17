@@ -49,13 +49,29 @@ async function dirtyTheTrackingForm(): Promise<void> {
   await page.locator(".trackingform input[name=\"acceptanceRequired\"]").click();
 }
 
-/** The tab bar's own Projects link — a same-document, in-app link
- *  (`shell.ts`'s `tabBar()`), the one exit path this fix can intercept. */
-function projectsLink() {
-  return page.locator('nav.tabbar a[href="projects.html"]');
+/** The spec page's own Back link — an in-app link to the specs list
+ *  (`shell.ts`'s `backLink()`). The interceptor takes ANY `a[href]`
+ *  that is not a fragment, a mail/tel link, a download or a new tab
+ *  (`unsaved-changes.ts`), so the exit path only has to be a link that
+ *  is actually on this page. */
+function exitLink() {
+  return page.locator('a.backlink[href="/"]');
 }
 
 describe("the leave-app dialog replaces the native prompt for an in-app link (spec 478)", () => {
+  // Fails in one line when the page stops carrying the link these cases
+  // click, rather than through a 20-second click timeout three cases
+  // deep: the selector went stale once already, and a test whose exit
+  // path has vanished says nothing about the dialog either way.
+  test("the exit path these cases use is on the page", async () => {
+    await withTimeout(
+      page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
+      10_000,
+      "page.goto(spec page)",
+    );
+    expect(await exitLink().count()).toBe(1);
+  });
+
   test("AC-1/AC-2: dialog.leaveapp opens inside the viewport, not off it", async () => {
     await withTimeout(
       page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
@@ -63,7 +79,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
-    await projectsLink().click();
+    await exitLink().click();
 
     const dialog = page.locator("dialog.leaveapp");
     await dialog.waitFor({ state: "visible" });
@@ -86,7 +102,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
-    await projectsLink().click();
+    await exitLink().click();
     const dialog = page.locator("dialog.leaveapp");
     await dialog.waitFor({ state: "visible" });
 
@@ -94,7 +110,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
 
     await dialog.waitFor({ state: "hidden" });
     expect(page.url()).toContain(`/specs/aide/${FOLDER}`);
-    expect(await projectsLink().evaluate((el) => el.classList.contains("awaiting"))).toBe(false);
+    expect(await exitLink().evaluate((el) => el.classList.contains("awaiting"))).toBe(false);
     expect(await page.locator("dialog.pageoverlay").count()).toBe(0);
   });
 
@@ -105,14 +121,14 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
       "page.goto(spec page)",
     );
     await dirtyTheTrackingForm();
-    await projectsLink().click();
+    await exitLink().click();
     const dialog = page.locator("dialog.leaveapp");
     await dialog.waitFor({ state: "visible" });
 
     await Promise.all([
-      page.waitForURL(/projects\.html/),
+      page.waitForURL((url) => new URL(url).pathname === "/"),
       dialog.getByRole("button", { name: "Leave" }).click(),
     ]);
-    expect(page.url()).toContain("projects.html");
+    expect(new URL(page.url()).pathname).toBe("/");
   });
 });
