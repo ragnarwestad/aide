@@ -76,6 +76,12 @@ table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }
    reads as "Timeout is far to the right" rather than beside its
    neighbours. Auto layout sizes the table to its own columns instead. */
 table.settingstable { width: auto; }
+/* A project's settings table: Value and Comment share what the Name
+   column leaves, evenly — the Comment carries the longest text on the
+   page (where a value came from, and the test command's suggestion),
+   and auto layout otherwise handed most of the width to the values. */
+table.list col[data-col="setting-value"],
+table.list col[data-col="setting-comment"] { width: 42%; }
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */

@@ -159,7 +159,9 @@ export function unifiedSettingsTable(
       })
       .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
   const table =
-    `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Value</th>` +
+    `<div class="tablewrap"><table class="list">` +
+    `<colgroup><col data-col="setting-name"><col data-col="setting-value"><col data-col="setting-comment"></colgroup>` +
+    `<thead><tr><th>Name</th><th>Value</th>` +
     `<th>Comment</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   if (!editing) {
     // Two buttons even while reading (spec 301): Cancel sits here too,
