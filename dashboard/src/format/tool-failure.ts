@@ -26,13 +26,22 @@ const TOOL_TABS: Record<string, string> = {
 };
 
 /** The endings where "is this AI usable at all" is the live question.
- *  `refused` never reached a model — the runner would not start one.
- *  `cli-error` is the CLI itself failing rather than the work in it.
- *  Every other ending is about the work: a scope violation, a merge left
- *  open, a suite gone red. Naming the AI helps on all of them; sending a
- *  reader to press Check helps only on these, and a suggestion that
- *  fires on everything is one nobody reads. */
-const TOOL_LEVEL_ENDINGS = new Set(["refused", "cli-error"]);
+ *  `cli-error` is the CLI itself failing rather than the work in it, and
+ *  `spawn-failed` is a CLI that could not be started at all. Every other
+ *  ending is about the work: a scope violation, a merge left open, a
+ *  suite gone red. Naming the AI helps on all of them; sending a reader
+ *  to press Check helps only on these, and a suggestion that fires on
+ *  everything is one nobody reads. */
+const TOOL_LEVEL_ENDINGS = new Set(["cli-error", "spawn-failed"]);
+
+/** `refused` is the runner declining before any model ran, and almost
+ *  always for one of its own rules — a dependency not archived, a step
+ *  not analyzed yet — which the AI's login has nothing to do with. It is
+ *  about the AI only when the runner could not find the CLI, and the
+ *  runner's own sentence says so by naming the binary
+ *  (`core/scripts/lib/run-spec-invocation.sh`). */
+const refusedForTheCli = (f: ToolFailure): boolean =>
+  f.terminalReason === "refused" && /\bbinary\b/.test(f.error ?? "");
 
 export interface ToolFailure {
   /** What the CLI itself said, if anything. */
@@ -55,7 +64,7 @@ export function toolFailureSentence(f: ToolFailure): { text: string; title?: str
   // exactly as the script wrote it: "the step's own work did not reach
   // origin" is not improved by being told which model was running, and a
   // prefix on every failure is a prefix nobody reads.
-  if (!TOOL_LEVEL_ENDINGS.has(f.terminalReason ?? "")) return undefined;
+  if (!TOOL_LEVEL_ENDINGS.has(f.terminalReason ?? "") && !refusedForTheCli(f)) return undefined;
   const label = f.tool ? (TOOL_TABS[f.tool] ?? f.tool) : undefined;
   if (!label && !f.model) return undefined;
 

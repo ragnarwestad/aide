@@ -14,6 +14,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "./";
 
+import type { LogFilter } from "../../queue/parse-stream";
 import { jobDetailView } from "./job-detail.ts";
 
 export async function specPageView(
@@ -21,6 +22,7 @@ export async function specPageView(
   project: string,
   specFolder: string,
   tab?: string,
+  only?: LogFilter,
 ): Promise<SpecPageView | null> {
   const found = ctx.specDir(project, specFolder);
   if (!found) return null;
@@ -160,7 +162,7 @@ export async function specPageView(
     }
   }
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
-  const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
+  const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job, only)));
   // jobs is newest-first; oldest = attempt 1. Only tagged when there is
   // more than one job — a single-attempt spec draws no marker at all
   // (spec 242's own "nothing to show, show nothing" rule, at row level).
@@ -181,7 +183,7 @@ export async function specPageView(
   // Spec 388, REQ-1: "a branch that carries code" is read off the same
   // source `landArchivedSpec` already reads (`branchesFor`) — a spec
   // with no implement step yet, or one already archived, has nothing
-  // there. `roundAvailable` is a capability check on the checkout the
+  // there. `previewAvailable` is a capability check on the checkout the
   // round would actually run FROM, never a hardcoded project name.
   //
   // This answers "may a NEW board be started" only — spec 425, REQ-1:
@@ -194,7 +196,7 @@ export async function specPageView(
   // question into this one.
   const testServerCapable =
     !ref?.archived &&
-    ctx.testServers.roundAvailable(project) &&
+    ctx.testServers.previewAvailable(project) &&
     ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.testServers.aideCheckout(project));
   const testServerEntry = ctx.testServers.store.get(project, specFolder)
     ? refreshTestServerStatus(ctx.testServers, project, specFolder)

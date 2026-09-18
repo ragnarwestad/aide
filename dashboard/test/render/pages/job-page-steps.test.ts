@@ -432,3 +432,62 @@ describe("the Logs tab's per-step summary (spec 452)", () => {
     expect(html).not.toContain("Changed files");
   });
 });
+
+// The Logs tab's filter: four links above an expanded step's raw log.
+// Links rather than a widget, for the reason the open row is a link —
+// the page reloads itself every ten seconds, and anything held only in
+// the browser snaps back to everything while the reader is reading.
+describe("filtering a step's raw log", () => {
+  const RESULT = {
+    step: "implement",
+    ok: true,
+    costUsd: 0.4,
+    costMeasured: true,
+    terminalReason: "completed",
+    at: "2026-09-17T10:05:00Z",
+    logs: ["Bash bun test"],
+  };
+  const HREF = "/specs/aide/1-x?tab=steps";
+
+  test("the links are on the expanded row, and each carries its own answer in the URL", () => {
+    const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep: "0" });
+
+    expect(html).toContain(`href="${HREF}&step=0&only=commands"`);
+    expect(html).toContain(`href="${HREF}&step=0&only=files"`);
+    expect(html).toContain(`href="${HREF}&step=0&only=errors"`);
+    // Unfiltered, "All" is where the reader already is: plain text.
+    expect(html).toContain(">All<");
+    expect(html).not.toContain(`href="${HREF}&step=0"`);
+  });
+
+  test("a collapsed row has no filter links at all", () => {
+    const html = stepResults([RESULT], undefined, { tabHref: HREF });
+
+    expect(html).not.toContain("only=commands");
+  });
+
+  test("the filter in force is not a link back to itself", () => {
+    const html = stepResults([RESULT], undefined, { tabHref: HREF, openStep: "0", only: "commands" });
+
+    expect(html).not.toContain("only=commands\"");
+    expect(html).toContain(`href="${HREF}&step=0&only=files"`);
+    // ...and "All" becomes the way back to the whole log.
+    expect(html).toContain(`href="${HREF}&step=0"`);
+  });
+
+  test("a filter that matched nothing says so, and keeps the links up", () => {
+    const html = stepResults([{ ...RESULT, logs: [] }], undefined, {
+      tabHref: HREF, openStep: "0", only: "errors",
+    });
+
+    expect(html).toContain("No line of this kind");
+    expect(html).toContain("only=commands");
+  });
+
+  test("an unfiltered step with an empty log still says nothing was captured", () => {
+    const html = stepResults([{ ...RESULT, logs: [] }], undefined, { tabHref: HREF, openStep: "0" });
+
+    expect(html).toContain("Nothing has been captured");
+    expect(html).not.toContain("No line of this kind");
+  });
+});

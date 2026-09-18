@@ -1,5 +1,6 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
+import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { runFormId } from "./cells.ts";
@@ -77,7 +78,7 @@ export function modelPicker(
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
-  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const pending = archived ? undefined : pendingPick(g, opts, step, live);
   const chosen = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
@@ -229,10 +230,14 @@ export function phaseCaptionCells(
    *  it sits at the end of the same line, under the State column it used
    *  to stand in on the row above. */
   action = "",
+  // A genuinely new parameter, not `opts.lang` (spec 482): `PickerOptions`
+  // is narrower than `SpecsPageOptions` and carries no `lang` of its own
+  // — both call sites already resolve one for other purposes.
+  lang: Language = "en",
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
-    `<td class="phasecell"><span class="muted small">Phase</span></td>` +
+    `<td class="phasecell"><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
     // Each caption over the control it heads, not three words bunched
     // at the left of the cell: `data-cap` pairs a caption with its
     // control, and the stylesheet gives the two the same width. Spec
@@ -243,11 +248,11 @@ export function phaseCaptionCells(
     // configured, so the heading and the control under it can never
     // disagree about which column is which.
     (tools.size > 0
-      ? `<span class="muted small" data-cap="ai" data-ai-cap>AI</span>` +
+      ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>` +
         `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
       : "") +
-    `<span class="muted small" data-cap="model">Model</span>` +
-    `<span class="muted small" data-cap="box">Select</span>` +
+    `<span class="muted small" data-cap="model">${t(lang, "list.captionModel")}</span>` +
+    `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` +
     `</span></td>` +
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
@@ -255,6 +260,18 @@ export function phaseCaptionCells(
         `<td class="num" data-col="cost"></td><td data-col="created"></td>`
       : "")
   );
+}
+
+/** The pick a phase that has not run yet pre-fills from. A phase the
+ *  running job can still take has its pick on that job — where a pick
+ *  made while it runs is written — ahead of the spec's own record. */
+function pendingPick(
+  g: SpecGroup,
+  opts: { pendingModels?: Record<string, Record<string, string>> },
+  step: string,
+  live: boolean,
+): string | undefined {
+  return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
 }
 
 // The AI a phase will run on, beside the model it will run (spec 179).
@@ -337,7 +354,7 @@ export function aiPicker(
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Spec 308: the same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
-  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const pending = archived ? undefined : pendingPick(g, opts, step, live);
   // The same answer `modelPicker` pre-fills its select with, from the
   // same helper: the AI shown is the tool of the model this line is on,
   // so the two controls cannot disagree about it.

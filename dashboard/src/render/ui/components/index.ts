@@ -19,9 +19,9 @@
 
 import { esc } from "../html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { STEP_LABELS, STEP_LABELS_NB, stepLabel } from "../../../format/step-label.ts";
+import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
 
-export { STEP_LABELS, STEP_LABELS_NB, stepLabel };
+export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
 
 // --- button -------------------------------------------------------------------
 

@@ -342,9 +342,53 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
  *  needs the identical join, and writing it a third time is the exact
  *  hand-copied-list shape `development.md` already names six of. */
 export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
-  return specPhases(all, target?.dir).map((phase) => ({
-    ...phase,
-    ...heldBackFor(phase.step, target),
-    ...historyFor(phase.step, target, phase.attempts[0]),
-  }));
+  const round = roundUnderWayIn(all);
+  return specPhases(all, target?.dir).map((phase) => {
+    const joined = {
+      ...phase,
+      ...heldBackFor(phase.step, target),
+      ...historyFor(phase.step, target, phase.attempts[0]),
+    };
+    return round && comesAfterRoundStart(phase.step, round) ? phaseInRound(joined, round) : joined;
+  });
+}
+
+/** The job in flight that is another round of work on this spec, if
+ *  there is one. */
+export const roundUnderWayIn = (all: QueueRowView[]): QueueRowView | undefined => all.find(roundInFlight);
+
+/** The steps the spec's own files say are done, less every one a round
+ *  under way has made history of. The file keeps "implement" in its
+ *  Workflow steps completed through a round started at analyze, and a
+ *  row reading that as done ticked and locked the very step the round
+ *  exists to run again. */
+export function doneOutsideRound(done: string[], round: QueueRowView | undefined): string[] {
+  return round ? done.filter((step) => !comesAfterRoundStart(step, round)) : done;
+}
+
+/** Whether `step` lies after the step this round began at. A round
+ *  started at analyze makes the implement and archive before it
+ *  history; a round started at implement leaves analyze's own line
+ *  alone. */
+function comesAfterRoundStart(step: string, round: QueueRowView): boolean {
+  const order = ["create", "analyze", "implement", "archive"];
+  const start = order.indexOf(round.steps[0] ?? "");
+  const at = order.indexOf(step);
+  return start >= 0 && at > start;
+}
+
+/** A job in flight with Analyze or Implement still ahead of it: another
+ *  round of work on the spec. */
+const roundInFlight = (r: QueueRowView): boolean =>
+  inFlight(r) && r.steps.slice(r.stepIndex).some((s) => s === "analyze" || s === "implement");
+
+/** A later phase's line while a round is under way. Until the round
+ *  itself reaches that phase, every answer the line has — the hold, the
+ *  stop reason, the last attempt, the file's stamped result and time —
+ *  is the previous round's, and the phase has not run in this one. An
+ *  implement drawn as done here locked the very step the round exists
+ *  to run again. */
+function phaseInRound(phase: Phase, round: QueueRowView): Phase {
+  if (phase.attempts.some((a) => a.id === round.id)) return phase;
+  return { step: phase.step, attempts: [], history: {} };
 }

@@ -17,6 +17,7 @@ export type ProjectStepName =
   | "worktreeLinks"
   | "codeLanding"
   | "installCmd"
+  | "previewCmd"
   | "allowlist"
   | "confirm";
 

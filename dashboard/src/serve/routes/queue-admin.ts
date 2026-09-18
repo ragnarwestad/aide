@@ -5,6 +5,7 @@
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { runningJobNames } from "../land-branch";
@@ -186,7 +187,7 @@ export async function handleQueueAdminRoutes(
       specsPath: text(asked.specsPath),
       worktreeLinks: text(asked.worktreeLinks),
       codeLanding: text(asked.codeLanding),
-    });
+    }, ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT);
     const steps = [...result.steps];
     let readiness = result.readiness;
     if (result.ok) {
@@ -249,6 +250,7 @@ export async function handleQueueAdminRoutes(
       // mentioned.
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
+      ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
     });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
@@ -352,7 +354,7 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
     }
-    if (!ctx.testServers.roundAvailable(name)) {
+    if (!ctx.testServers.previewAvailable(name)) {
       return testServerFailedPage(MAIN_TEST_SERVER_KEY, "this project's own checkout does not carry the dashboard's source");
     }
     const root = ctx.testServers.aideCheckout(name);

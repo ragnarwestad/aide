@@ -4,6 +4,7 @@
 // server-side, so a plain function taking it as its first argument is
 // the whole of what PaceUp's hook gave it that this has any use for.
 export type { Language, TranslationKey } from "./translations.ts";
+export { LANGUAGES } from "./translations.ts";
 
 import { translations, type Language, type TranslationKey } from "./translations.ts";
 

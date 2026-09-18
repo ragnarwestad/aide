@@ -5,10 +5,11 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
+import { heldBackResolvesOnItsOwn } from "./notice.ts";
 import type { QueueRowView } from "./types.ts";
-import { GERUND_EN, GERUND_NB, gerund, landingStepIndex } from "../../../format/gerund.ts";
+import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
 
-export { GERUND_EN, GERUND_NB, gerund, landingStepIndex };
+export { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex };
 
 /** What the badge says when nothing is running: the resting state and
  *  what can happen next, in one sentence. Handed in rather than worked
@@ -109,10 +110,13 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     // Held back (spec 396): not competing for a slot, so no number
     // claims it is next in line for one — the row's own panel
     // (specNotice) already says the actual reason underneath.
-    // The same word every other stop the system made gets: the step is
-    // already named on the line, and the reason — which is the half a
-    // reader acts on — is the sentence on the row's own notice line.
-    if (r.errorReason === "held-back") return badge("waiting", capitalizeFirst(t(lang, "state.stopped")));
+    // Its own word, not "stopped" (spec 485): a hold is a routine wait,
+    // never a stop, and its colour follows the same classification the
+    // notice line already uses — neutral when the hold clears on its
+    // own, amber when it waits on a person — so the two never disagree.
+    if (r.errorReason === "held-back") {
+      return badge(heldBackResolvesOnItsOwn(r) ? "idle" : "waiting", capitalizeFirst(t(lang, "state.heldBack")));
+    }
     const pos = r.queuePosition;
     return badge(
       "idle",

@@ -3,6 +3,7 @@
 
 import { badge, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
@@ -103,7 +104,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action + headState),
+      cells: phaseCaptionCells(opts, true, action + headState, opts.lang ?? "en"),
     });
   } else if (action) {
     // No captions to head — one tool configured, nothing to choose
@@ -401,6 +402,7 @@ function aiModel(
   alreadyRun = false,
   usedTool?: string,
 ): string {
+  const lang = opts.lang ?? "en";
   const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedTool);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun);
   const locked = isArchivedRow(g) || (busy && !live) || alreadyRun;
@@ -417,8 +419,8 @@ function aiModel(
       `<label class="aimodelnow" for="${esc(id)}">${esc(now)}</label>`;
   return (
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
-    (ai ? `<label class="aimodelfield"><span>AI</span>${ai}</label>` : "") +
-    `<label class="aimodelfield"><span>Model</span>${model}</label>` +
+    (ai ? `<label class="aimodelfield"><span>${t(lang, "list.captionAi")}</span>${ai}</label>` : "") +
+    `<label class="aimodelfield"><span>${t(lang, "list.captionModel")}</span>${model}</label>` +
     `</span></span>`
   );
 }

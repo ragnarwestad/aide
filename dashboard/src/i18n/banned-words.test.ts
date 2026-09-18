@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { MESSAGES } from "./messages.ts";
 import { en } from "./en.ts";
 import { nb } from "./nb.ts";
+import { es } from "./es.ts";
+import { de } from "./de.ts";
+import { fr } from "./fr.ts";
 import { BANNED_WORDS, findBannedWord } from "./banned-words.ts";
 
 // Two keys are deliberately not scanned: `shell.tabSpecs` and
@@ -19,8 +22,14 @@ describe("no message uses a word the reader does not (REQ-1, REQ-2)", () => {
   const catalogs: Record<string, Record<string, string>> = {
     "messages.ts (en)": Object.fromEntries(Object.entries(MESSAGES).map(([k, v]) => [k, v.en])),
     "messages.ts (nb)": Object.fromEntries(Object.entries(MESSAGES).map(([k, v]) => [k, v.nb])),
+    "messages.ts (es)": Object.fromEntries(Object.entries(MESSAGES).map(([k, v]) => [k, v.es])),
+    "messages.ts (de)": Object.fromEntries(Object.entries(MESSAGES).map(([k, v]) => [k, v.de])),
+    "messages.ts (fr)": Object.fromEntries(Object.entries(MESSAGES).map(([k, v]) => [k, v.fr])),
     "en.ts": en,
     "nb.ts": nb,
+    "es.ts": es,
+    "de.ts": de,
+    "fr.ts": fr,
   };
   for (const [catalog, entries] of Object.entries(catalogs)) {
     describe(catalog, () => {

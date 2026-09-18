@@ -3,7 +3,7 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { MAX_BODY } from "./config.ts";
-import type { Language } from "../../i18n";
+import { LANGUAGES, type Language } from "../../i18n";
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -138,16 +138,16 @@ export function languageChoice(
 ): { lang: Language; currentUrl: string; setCookie?: string } {
   const currentUrl = `${url.pathname}${url.search}`;
   const requested = url.searchParams.get("lang");
-  if (requested === "en" || requested === "nb") {
+  if (requested && (LANGUAGES as string[]).includes(requested)) {
     return {
-      lang: requested,
+      lang: requested as Language,
       currentUrl,
       setCookie:
         `${LANG_COOKIE}=${requested}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
   const stored = cookieValue(req.headers.get("cookie"), LANG_COOKIE);
-  return { lang: stored === "nb" ? "nb" : "en", currentUrl };
+  return { lang: stored && (LANGUAGES as string[]).includes(stored) ? (stored as Language) : "en", currentUrl };
 }
 
 // A body may arrive as JSON (API) or urlencoded (a no-JS form).

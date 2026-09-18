@@ -82,12 +82,15 @@ with the table's rows.
 ARCHIVED: a dependent spec's held-back steps are released when the
 dependency's `archive` step runs. The dashboard's copy decides whether a
 queued job is PARKED (left `queued` with the reason on its row); the
-script's copy decides whether a run started by hand is REFUSED. The
-acceptance-criteria gate has the same two halves: `blockedForUntickedAcceptance`
-in `dashboard/src/serve/schedules/blocked.ts` parks a queued `archive` while the
-state file has an open row, and `aide-archive-spec` refuses a run that
-reaches it anyway. Both that check and the row's "archive held back"
-read the BRANCH copy of the state file first (`BranchFileStepsChecker`'s
+script's copy decides whether a run started by hand is REFUSED. When
+origin cannot be asked — no default branch, a fetch that failed — the
+two differ on purpose: the script lets the run go ahead, and the
+dashboard parks the job and asks again every tick for up to
+`UNCONFIRMED_HOLD_MS` before releasing it, so a moment's failure does not
+start a job into the script's refusal. The acceptance-criteria gate is
+the script's alone: `aide-archive-spec` refuses an `archive` whose state
+file has an open row, and the row's "archive held back" reads the BRANCH
+copy of the state file first (`BranchFileStepsChecker`'s
 `acceptanceOpen`): a tick on a spec whose `aide/<folder>` is open is
 written there, and the disk copy stays unticked until archive lands.
 `blockedForMissingAnalyze` reads the same branch copy first for the same

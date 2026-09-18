@@ -5,9 +5,10 @@
 // hand-paired-lists problem `development.md` already names three times
 // over.
 
+import type { LogFilter } from "../../../queue/parse-stream";
 import { esc, usdOrTokens } from "../../ui/html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { ICON_CHEVRON, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
@@ -95,14 +96,49 @@ export function resolveOpenStep(query: string | undefined, hasRunning: boolean):
  *  for a run the runner refused before it started; every other note
  *  that function carried is already said elsewhere (`job.error` in the
  *  banner, `archiveHeldBack` in this same row's Outcome cell). */
-function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusal?: string): string {
+/** The filter links above a raw log: the whole log, or one kind of line
+ *  from it. Links carrying the answer in the URL, the same way the tab
+ *  and the open row already do — the page reloads itself every ten
+ *  seconds, so a filter held in a widget would snap back to everything
+ *  while the reader was still reading.
+ *
+ *  Absent when there is no `tabHref` to hang them on, and absent for the
+ *  running step's own panel, whose log is being written as it is read. */
+function logFilterLinks(tabHref: string, stepKey: string, only: LogFilter | undefined): string {
+  const here = only ?? "all";
+  const link = (value: LogFilter, label: string): string =>
+    value === here
+      ? `<span class="muted small">${label}</span>`
+      : `<a class="small" data-nav href="${tabHref}&step=${esc(stepKey)}` +
+        `${value === "all" ? "" : `&only=${value}`}">${label}</a>`;
+  return (
+    `<p class="small">` +
+    [link("all", "All"), link("commands", "Commands"), link("files", "Files"), link("errors", "Errors")].join(" · ") +
+    `</p>`
+  );
+}
+
+function stepLogPanel(
+  logs: string[] | undefined,
+  terminalReason: string,
+  refusal?: string,
+  filters = "",
+  filtered = false,
+): string {
   // The merge's own refusal first: it is the newest thing that happened
   // to this step, and the transcript below it is of the run that
   // succeeded. Without it the page showed four steps reading "ok" and
   // no sign of the tests that refused the merge.
   const merge = refusal ? `<pre class="specfile">${esc(refusal)}</pre>` : "";
-  if (logs && logs.length > 0) return `${merge}<pre class="specfile">${logs.join("\n")}</pre>`;
+  if (logs && logs.length > 0) return `${merge}${filters}<pre class="specfile">${logs.join("\n")}</pre>`;
   if (merge) return merge;
+  // A filter that matched nothing is not an empty transcript: say which
+  // it is, and leave the links up so the reader can get back. Only when
+  // a filter is actually on — an unfiltered step with nothing in it is
+  // the sentence below, exactly as it was.
+  if (filtered && logs) {
+    return `${filters}<p class="muted">No line of this kind is in this step's log.</p>`;
+  }
   if (terminalReason === "refused") {
     return (
       `<p class="muted">This step was refused before it started, so nothing ran and ` +
@@ -125,14 +161,14 @@ function stepLogPanel(logs: string[] | undefined, terminalReason: string, refusa
  *  `small`/`num`/`label` are the same classes the raw log and the row's
  *  own cells already carry — `css-guard-class-vocabulary.test.ts` fails
  *  any render file that introduces a class outside that vocabulary. */
-function stepSummary(r: JobStepResultView): string {
+function stepSummary(r: JobStepResultView, lang: Language = "en"): string {
   const hasLog = !!(r.logs && r.logs.length > 0);
   const facts =
     `<table class="facts"><tbody>` +
-    `<tr><td class="label">At</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
-    `<tr><td class="label">${unitLabel("Cost", "Tokens")}</td>` +
+    `<tr><td class="label">${t(lang, "job.stepAt")}</td><td>${r.at ? esc(r.at) : "–"}</td></tr>` +
+    `<tr><td class="label">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</td>` +
     `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}</td></tr>` +
-    `<tr><td class="label">Result</td><td>${esc(r.terminalReason)}` +
+    `<tr><td class="label">${t(lang, "job.stepResult")}</td><td>${esc(r.terminalReason)}` +
     // The usage limit that stopped the step, from the tool's own record.
     (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : "") +
     `</td></tr>` +
@@ -141,7 +177,7 @@ function stepSummary(r: JobStepResultView): string {
   // itself recorded (the facts above) and says so in words, rather than
   // an empty commands/changed-files list with no explanation.
   if (!hasLog) {
-    return `${facts}<p class="muted">The log is missing for this step.</p>`;
+    return `${facts}<p class="muted">${t(lang, "job.logMissing")}</p>`;
   }
   const files =
     r.changedFiles && r.changedFiles.length > 0
@@ -193,6 +229,7 @@ export function stepResults(
     runningStep?: JobDetailView["runningStep"];
     mark?: string;
     landingRefused?: LandingRefusal;
+    only?: LogFilter;
     lang?: Language;
   } = {},
 ): string {
@@ -221,7 +258,7 @@ export function stepResults(
       const key = String(i);
       const isOpen = open === key;
       const main =
-        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">Attempt ${r.attempt}</span> `}` +
+        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: r.attempt })}</span> `}` +
         `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack, opts.landingRefused, lang)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
@@ -234,10 +271,12 @@ export function stepResults(
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepSummary(r)}${stepLogPanel(
+        ? `<tr class="steplog"><td colspan="6">${stepSummary(r, lang)}${stepLogPanel(
             r.logs,
             r.terminalReason,
             opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined,
+            opts.tabHref ? logFilterLinks(opts.tabHref, key, opts.only) : "",
+            !!opts.only && opts.only !== "all",
           )}</td></tr>`
         : "";
       return main + log;
@@ -247,9 +286,9 @@ export function stepResults(
     if (!opts.runningStep) return "";
     const isOpen = open === "live";
     const main =
-      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">Attempt ${opts.runningStep.attempt}</span> `}` +
+      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.attempt })}</span> `}` +
       `${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
-      `<td>running</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
+      `<td>${t(lang, "state.running")}</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;
     const log = isOpen
@@ -262,7 +301,7 @@ export function stepResults(
   // (spec 155). The spec page's Steps tab is this same table.
   return (
     `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
-    `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
+    `<th class="num">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</th>` +
     `<th>Ended as</th><th>Session</th><th>At${opts.mark ?? ""}</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
   );
 }

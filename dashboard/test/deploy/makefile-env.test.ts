@@ -4,7 +4,7 @@
 // so a value that is plainly set can still be invisible where it is
 // used. This asserts it arrives.
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -37,4 +37,35 @@ describe("the deploy variables reach the scripts that read them", () => {
   test("AIDE_DASH_HOST set the way .env.deploy sets it arrives in the recipe's shell", () => {
     expect(probe("AIDE_DASH_HOST=example-host")).toBe("[example-host]");
   });
+});
+
+// The table in docs/deploying.md is what an operator reads before a
+// deploy, and a default that has moved in the Makefile leaves them
+// setting a variable to what it already was — or, worse, trusting a
+// path that is not the one the deploy uses. `REMOTE_STATE` said
+// `aide-dashboard` while the Makefile said `.aide/dashboard`.
+describe("the deploy table says what the Makefile says", () => {
+  const makefile = readFileSync(join(ROOT, "Makefile"), "utf-8");
+  const doc = readFileSync(join(ROOT, "docs", "deploying.md"), "utf-8");
+
+  /** Every `VAR ?= value` the Makefile declares. */
+  const declared = new Map<string, string>(
+    [...makefile.matchAll(/^([A-Z_]+) \?= (.*)$/gm)].map((m) => [m[1]!, m[2]!.trim()]),
+  );
+  /** Every row of the variables table, as variable and default. */
+  const documented = new Map<string, string>(
+    [...doc.matchAll(/^\| `([A-Z_]+)` *\| `([^`]+)` *\|/gm)].map((m) => [m[1]!, m[2]!.trim()]),
+  );
+
+  test("the table covers the variables an operator overrides", () => {
+    expect([...documented.keys()]).toContain("REMOTE_STATE");
+    expect([...documented.keys()]).toContain("TEST_PORTS");
+  });
+
+  test.each([...documented.keys()].filter((name) => declared.has(name)))(
+    "%s has the Makefile's own default",
+    (name) => {
+      expect(documented.get(name)).toBe(declared.get(name));
+    },
+  );
 });

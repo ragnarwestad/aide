@@ -2,9 +2,10 @@
 // manifest if it has none, and point it at its specs root if one was
 // named.
 
-import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
+import { dashboardCheckoutRoot, dashboardProjectsRoot } from "../../git/dashboard-checkout.ts";
 import {
   addProjectTarget,
   minimalManifest,
@@ -56,6 +57,18 @@ function sshEquivalent(gitUrl: string): string | null {
   return `git@${parsed.host}:${path}${path.endsWith(".git") ? "" : ".git"}`;
 }
 
+/** Where a cloned project's files go. On a host whose projects root is
+ *  the dashboard's own directory of links, the clone IS the dashboard's
+ *  checkout and the projects root gets a link to it — one copy, read and
+ *  written by the same server. Anywhere else the projects root holds the
+ *  checkouts people edit, and the clone goes straight into it. */
+function cloneDestination(projectsRoot: string, name: string, checkoutBase?: string): string {
+  if (checkoutBase && resolve(projectsRoot) === resolve(dashboardProjectsRoot(checkoutBase))) {
+    return dashboardCheckoutRoot(checkoutBase, name);
+  }
+  return join(projectsRoot, name);
+}
+
 /** Clone or register a project under `projectsRoot`, give it a manifest
  *  if it has none, and point it at its specs root if one was named.
  *
@@ -70,6 +83,7 @@ export async function addProject(
   run: GitRunner,
   projectsRoot: string,
   req: AddProjectRequest,
+  checkoutBase?: string,
 ): Promise<ProjectAdminResult> {
   const gitUrl = req.gitUrl?.trim();
   const { name, existingPath } = addProjectTarget(projectsRoot, req);
@@ -97,11 +111,18 @@ export async function addProject(
     if (existsSync(dir)) {
       return stop("clone", `"${name}" is already a directory under the projects root`);
     }
+    const dest = cloneDestination(projectsRoot, name, checkoutBase);
+    // A checkout the dashboard already made (install-serve clones its
+    // own) is linked, not cloned a second time.
+    const alreadyCloned = dest !== dir && existsSync(join(dest, ".git"));
+    if (!alreadyCloned) mkdirSync(dirname(dest), { recursive: true });
     // `-c credential.helper=` on THIS call only, never on the runner:
     // the same runner polls, pulls and merges every already-added
     // project, and one holding an HTTPS token needs its helper for all
     // of those. Here there is nobody to ask, so git must fail instead.
-    const cloned = await run(projectsRoot, ["-c", "credential.helper=", "clone", gitUrl, name]);
+    const cloned = alreadyCloned
+      ? { code: 0, stdout: "" }
+      : await run(dirname(dest), ["-c", "credential.helper=", "clone", gitUrl, basename(dest)]);
     if (cloned.code !== 0) {
       const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
       if (needsAuthentication(said)) {
@@ -114,6 +135,13 @@ export async function addProject(
         );
       }
       return stop("clone", `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`);
+    }
+    if (dest !== dir) {
+      try {
+        symlinkSync(dest, dir);
+      } catch (err) {
+        return stop("clone", `could not link ${dir} to ${dest}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
     steps.push({ step: "clone", ok: true });
   } else {

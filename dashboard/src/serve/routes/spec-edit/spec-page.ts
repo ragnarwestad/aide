@@ -6,6 +6,7 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { resolveLogFilter } from "../../../queue/parse-stream";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
 
@@ -35,7 +36,7 @@ export async function specPageRoutes(
       const ref = ctx.specRef(project!, specFolder!);
       const capable =
         !ref?.archived &&
-        ctx.testServers.roundAvailable(project!) &&
+        ctx.testServers.previewAvailable(project!) &&
         ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.testServers.aideCheckout(project!));
       // A board already up is where the reader wanted to go: straight
       // there, in the tab the link opened. REQ-3 asks for the board's
@@ -70,10 +71,12 @@ export async function specPageRoutes(
       }
       return waitingForTestServerPage(project!, specFolder!);
     }
+    const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
     const view = await ctx.specPageView(
       project!,
       specFolder!,
       url.searchParams.get("tab") ?? undefined,
+      only,
     );
     if (!view) return new Response("not found", { status: 404 });
     // Resolved through the SAME function the render side uses
@@ -96,6 +99,7 @@ export async function specPageRoutes(
       {
         tab,
         step: url.searchParams.get("step") ?? undefined,
+        only,
         currentUrl: langResult.currentUrl,
         // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
         // reference to whichever bundle's own route this tab's panel

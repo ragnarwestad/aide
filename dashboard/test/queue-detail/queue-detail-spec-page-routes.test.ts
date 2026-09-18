@@ -136,6 +136,40 @@ describe("a Codex step's job page", () => {
     const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
     expect(html).toContain("bun test");
   });
+
+  // The Logs filter is read where the transcript is read, so the bound
+  // is per kind — the route has to carry the answer that far.
+  test("only= in the URL reaches the transcript, not just the links", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const stream = join(dir, "filtered.stream.jsonl");
+    writeFileSync(stream, [
+      JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
+      JSON.stringify({ type: "item.completed", item: { id: "i0", item_type: "agent_message", text: "thinking it over" } }),
+      JSON.stringify({ type: "item.completed", item: { id: "i1", item_type: "command_execution", command: "bun test" } }),
+      // The step's own closing word, which the summary above the log
+      // shows whatever the filter says — so the assertion below is
+      // about the LOG, and this is what keeps the two apart.
+      JSON.stringify({ type: "item.completed", item: { id: "i2", item_type: "agent_message", text: "all done" } }),
+    ].join("\n"));
+    const mirror = seed(dir, id, (job) => {
+      job.state = "done";
+      job.results = [
+        {
+          step: "implement", ok: true, costUsd: 0, costMeasured: false,
+          terminalReason: "completed", streamFile: stream, at: "2026-09-17T10:01:00Z",
+        },
+      ];
+    });
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const all = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
+    expect(all).toContain("thinking it over");
+
+    const commands = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`, auth)).text();
+    expect(commands).toContain("bun test");
+    expect(commands).not.toContain("thinking it over");
+  });
 });
 
 // --- spec 408: the job detail page threads and remembers the language -------

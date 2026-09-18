@@ -161,11 +161,12 @@ All paths are relative to the serving host's own `$HOME`.
 | `TS_PORT`        | `443`                                 | port tailscale serve terminates TLS on                            |
 | `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
 | `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
-| `REMOTE_STATE`   | `aide-dashboard`                      | site, mirrors, queue state                                        |
+| `REMOTE_STATE`   | `.aide/dashboard`                     | site, mirrors, queue state                                        |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
 | `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`                 | the allowlist's first-boot seed                                   |
-| `ROOT`           | unset                                 | projects root there (omitted when unset) — see below              |
+| `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
+| `TEST_PORTS`     | `8801 8802 8803 8804 8805 8806`       | test boards' ports, each put behind tailscale serve               |
 | `BIND`           | unset                                 | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
@@ -173,7 +174,8 @@ All paths are relative to the serving host's own `$HOME`.
 lags the landings until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host
 `ROOT` is `.aide/dashboard/projects/`, holding one symlink per project to `.aide/dashboard/checkouts/<project>/code` — the
 one copy the dashboard both reads and writes. A project with no checkout of its own (a scratch project) links to
-wherever it lives. Each linked checkout keeps its own `.aide/config`, written by the dashboard when it clones the
+wherever it lives. With `ROOT` unset, `install-serve` makes that directory and links the `aide` checkout into it, and
+Add on the Projects page clones a new project into its checkout and makes its link. Each linked checkout keeps its own `.aide/config`, written by the dashboard when it clones the
 project.
 
 ## Moving the board's own directories

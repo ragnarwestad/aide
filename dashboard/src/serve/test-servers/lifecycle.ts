@@ -24,11 +24,17 @@ export interface TestServersContext {
    *  checkout `machineryProjectDir(project)` already resolves to
    *  everywhere else on this server. */
   aideCheckout: (project: string) => string;
-  /** Path to `dashboard/test/round/run` for this project's checkout. */
-  roundScript: (project: string) => string;
-  /** Whether the round is even present on this host for this project —
-   *  a capability check (REQ-1), never a hardcoded project name. */
-  roundAvailable: (project: string) => boolean;
+  /** What to run to bring a board up for this project on one branch and
+   *  port. Aide's own answer is its round script; every other project's
+   *  is `aide-preview` with the command its manifest names. Whichever it
+   *  is, what this server depends on is the same two things: the process
+   *  group stays alive while the board serves, and the log carries the
+   *  "board up: pid N, <url>" line `refreshTestServerStatus` reads. */
+  startCommand: (project: string, opts: { branch: string; port: number }) => string[] | undefined;
+  /** Whether a board can be started at all on this host for this
+   *  project — a capability check (REQ-1), never a hardcoded project
+   *  name. */
+  previewAvailable: (project: string) => boolean;
   gitRun: GitRunner;
   spawn: Spawner;
   isAlive: (pid: number) => boolean;
@@ -67,14 +73,14 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
 }
 
 /** The ports a test server may use. A board on a port nobody exposed is
- *  reachable from the serving host and nowhere else — each port here is
- *  put behind `tailscale serve` once, by hand, on the serving host
- *  (`tailscale serve --bg --https <port> http://127.0.0.1:<port>`), so a
- *  board that takes one is reachable the moment it is up.
+ *  reachable from the serving host and nowhere else — `make install-serve`
+ *  puts each port here behind `tailscale serve` (`TEST_PORTS` in the
+ *  Makefile, which a test holds equal to this list), so a board that
+ *  takes one is reachable the moment it is up.
  *
  *  Six: room for more than the three branches a reader could look at
- *  before, without needing a config surface — one more line here, and
- *  the matching `tailscale serve` command run once by hand, is what a
+ *  before, without needing a config surface — one more port here and
+ *  in `TEST_PORTS`, and `make install-serve` run again, is what a
  *  different number costs. */
 export const TEST_SERVER_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
 
@@ -139,8 +145,8 @@ export async function startTestServer(
   specFolder: string,
   opts: { branch?: string } = {},
 ): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
-  if (!ctx.roundAvailable(project)) {
-    return { ok: false, error: "the round is not available on this host" };
+  if (!ctx.previewAvailable(project)) {
+    return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
   }
   const branch = opts.branch ?? `aide/${specFolder}`;
   const aideCheckout = ctx.aideCheckout(project);
@@ -155,9 +161,18 @@ export async function startTestServer(
     existing.branch === branch &&
     existing.commit === commit &&
     existing.status !== "failed" &&
-    ctx.isAlive(existing.wrapperPid)
+    // A board that is up has a wrapper that has exited, which is what
+    // success looks like; its own process is the one to ask.
+    ctx.isAlive(existing.status === "running" && existing.pid ? existing.pid : existing.wrapperPid)
   ) {
     return { ok: true, entry: existing };
+  }
+  // Any other board this spec still has — an older commit, or one that
+  // failed — goes before the new one starts. Registered over, it kept
+  // running where the page could no longer show or stop it, and held a
+  // port the next board then went without.
+  if (existing) {
+    stopTestServer(ctx, project, specFolder, `a board for ${commit.slice(0, 7)} replaces it`);
   }
 
   // REQ-2 (spec 428): the pool being full is a refusal like any other in
@@ -175,14 +190,15 @@ export async function startTestServer(
   }
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");
-  const cmd = [ctx.roundScript(project), aideCheckout, "--branch", branch, "--port", String(port), "--keep"];
+  const cmd = ctx.startCommand(project, { branch, port });
+  if (!cmd) return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
   let proc: SpawnResult;
   try {
     proc = ctx.spawn(cmd, logPath);
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     ctx.log?.(`boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`);
-    return { ok: false, error: `could not start the round: ${why}` };
+    return { ok: false, error: `could not start the board: ${why}` };
   }
   ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
   const entry: TestServer = {

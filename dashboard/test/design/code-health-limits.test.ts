@@ -56,7 +56,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
 // pattern, not drift to clean up.
 const TEST_ONLY_TOP_LEVEL_DIRS = [
   "archived", "deploy", "design", "e2e", "fixtures", "guards",
-  "helpers", "queue-detail", "queue-routes", "round", "routes",
+  "helpers", "preview", "queue-detail", "queue-routes", "round", "routes",
   "spec-page",
 ];
 

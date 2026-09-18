@@ -44,4 +44,42 @@ describe("the listing on /projects", () => {
     expect(html).not.toContain(AT);
     expect(html).not.toContain("<h1>Projects</h1>");
   });
+
+  // Spec 482: Add/Remove/active/archived/the bare word "projects" in the
+  // count line, and the manifest error sentence, were English string
+  // literals, never routed through `t()`.
+  test("Add, the counts and the manifest error read Norwegian, not English", () => {
+    const html = page(
+      [
+        project("alpha", {
+          manifest: { ok: true, data: { name: "alpha" } },
+          specs: [
+            { folder: "01-a", dir: "/x/01-a", archived: false, closed: false, title: "A", description: null, dependsOn: [], status: null },
+            { folder: "02-b", dir: "/x/archive/02-b", archived: true, closed: false, title: "B", description: null, dependsOn: [], status: null },
+          ],
+        }),
+        { name: "brokenproj", manifest: { ok: false, error: "YAML parse error at line 3" }, specs: [] },
+      ],
+      { lang: "nb", createProjects: ["alpha"] },
+    );
+    expect(html).toContain(">Legg til<");
+    expect(html).toContain("2 prosjekter · 1 aktive · 1 arkiverte");
+    expect(html).toContain("Manifest kunne ikke tolkes: YAML parse error at line 3");
+    expect(html).toContain(">Fjern<");
+    expect(html).not.toContain(">Add<");
+    expect(html).not.toContain("projects ·");
+    expect(html).not.toContain("Manifest failed to parse");
+    expect(html).not.toContain(">Remove<");
+  });
+
+  // Spec 484, AC-5: the same English-leak guard, for the three languages
+  // added beside English and Norwegian.
+  test.each(["es", "de", "fr"] as const)("Add and Remove are not the English words in %s", (lang) => {
+    const html = page(
+      [project("alpha", { manifest: { ok: true, data: { name: "alpha" } }, specs: [] })],
+      { lang, createProjects: ["alpha"] },
+    );
+    expect(html).not.toContain(">Add<");
+    expect(html).not.toContain(">Remove<");
+  });
 });

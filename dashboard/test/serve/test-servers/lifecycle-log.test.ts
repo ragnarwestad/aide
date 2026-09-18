@@ -25,8 +25,11 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
   return {
     store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
-    roundScript: () => "/checkout/aide/dashboard/test/round/run",
-    roundAvailable: () => true,
+    startCommand: (_p, { branch, port }) => [
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
+    ],
+    previewAvailable: () => true,
     gitRun: async (_dir, args) =>
       args[0] === "ls-remote"
         ? { code: 0, stdout: "abc1234567\trefs/heads/aide/spec-1\n", stderr: "" }
@@ -61,7 +64,7 @@ describe("the board log says what a start did", () => {
       },
     });
     const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result).toEqual({ ok: false, error: "could not start the round: EACCES" });
+    expect(result).toEqual({ ok: false, error: "could not start the board: EACCES" });
     expect(lines[0]).toContain("boards: could not start aide/spec-1 @ abc1234 on :8801 — EACCES");
     expect(lines[0]).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
   });

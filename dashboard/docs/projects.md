@@ -17,7 +17,8 @@ queue that runs its specs is on [Running specs](running-specs.md).
 The Projects panel on `/projects`, behind the queue token like every other mutating control. It sits under the listing
 it changes, which it can because the overview is a served page with a server behind it to check a token against. Add
 takes a name plus either a git URL (cloned to
-`<projects root>/<name>`) or a path to a checkout already there, and optionally a specs root and a one-line description.
+`<projects root>/<name>` — or, when the projects root is the directory of links beside the dashboard's own checkouts,
+cloned to `checkouts/<name>/code` with a link to it at `<projects root>/<name>`) or a path to a checkout already there, and optionally a specs root and a one-line description.
 It writes a minimal manifest — the name and that description, nothing else — only when the checkout has none; filling in
 the rest is `/aide-manifest`'s job afterwards, and the form says so.
 

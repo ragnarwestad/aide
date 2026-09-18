@@ -69,6 +69,12 @@ TS_PORT ?= 443
 # rather than a lookup, and a variable so a host that keeps it elsewhere
 # can say so.
 TAILSCALE ?= /usr/local/bin/tailscale
+# The test boards' ports, put behind `tailscale serve` beside the main
+# address so a board started from the dashboard is reachable from another
+# machine. Must match TEST_SERVER_PORTS in
+# src/serve/test-servers/lifecycle.ts — test/deploy/tailscale-serve.test.ts
+# reads both.
+TEST_PORTS ?= 8801 8802 8803 8804 8805 8806
 
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.
 # ROOT is optional — serve.ts only needs it to build the project nav,
@@ -147,7 +153,7 @@ install-serve: require-host
 		--runner-bin "$$home/.local/bin/aide-run-spec" \
 		--pdf-bin "$$home/.local/bin/aide-generate-pdf" \
 		--queue-projects "$(QUEUE_PROJECTS)" \
-		$(if $(ROOT),--root "$(ROOT)") \
+		--root "$(if $(ROOT),$(ROOT),$$home/$(REMOTE_STATE)/projects)" \
 		$(if $(BIND),--bind "$(BIND)") \
 		> "$$plist" && \
 	scp -q "$$plist" $(MINI):Library/LaunchAgents/$(LABEL).plist
@@ -158,7 +164,11 @@ install-serve: require-host
 	@# deploys where the old process happened to die fast enough. Wait
 	@# for the label to actually disappear, and say so if it never does
 	@# rather than bootstrapping into a failure.
+	@# With no ROOT the projects root is the directory of links beside
+	@# the checkouts, and the dashboard's own checkout is its first link.
 	ssh $(MINI) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
+		$(if $(ROOT),,mkdir -p $(REMOTE_STATE)/projects; \
+		[ -L $(REMOTE_STATE)/projects/aide ] || [ -e $(REMOTE_STATE)/projects/aide ] || ln -s "$$HOME/$(MINI_REPO)" $(REMOTE_STATE)/projects/aide;) \
 		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true; \
 		for i in $$(seq 1 50); do \
 			launchctl print gui/$$(id -u)/$(LABEL) >/dev/null 2>&1 || break; \
@@ -181,7 +191,8 @@ install-serve: require-host
 	@# leave both branches in the dry run and the guard would be untestable.
 ifeq ($(BIND),127.0.0.1)
 	@if ssh $(MINI) 'test -x $(TAILSCALE)'; then \
-		ssh $(MINI) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT)'; \
+		ssh $(MINI) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT) && \
+			for p in $(TEST_PORTS); do $(TAILSCALE) serve --bg --https $$p http://127.0.0.1:$$p; done'; \
 	else \
 		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
 	fi

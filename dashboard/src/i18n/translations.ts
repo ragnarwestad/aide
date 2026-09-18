@@ -5,8 +5,16 @@
 // incomplete translation a compile error rather than a runtime gap.
 import { en } from "./en.ts";
 import { nb } from "./nb.ts";
+import { es } from "./es.ts";
+import { de } from "./de.ts";
+import { fr } from "./fr.ts";
 
 export type TranslationKey = keyof typeof en;
-export type Language = "en" | "nb";
+export type Language = "en" | "nb" | "es" | "de" | "fr";
 
-export const translations = { en, nb } as const;
+export const translations = { en, nb, es, de, fr } as const;
+
+// The one list every N-way language choice (the header menu, `http.ts`'s
+// query/cookie validation) reads instead of naming languages by hand — a
+// sixth language needs a line here and nowhere else (AC-4).
+export const LANGUAGES = Object.keys(translations) as Language[];

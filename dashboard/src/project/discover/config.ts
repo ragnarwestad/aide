@@ -144,6 +144,14 @@ export function resolveTestCmd(
   return resolveOverride(projectDir, "AIDE_TEST_CMD", (d) => d.testCmd);
 }
 
+/** How this project is started for a look at one branch, and where that
+ *  came from — the same config-wins precedence as `resolveTestCmd`. */
+export function resolvePreviewCmd(
+  projectDir: string,
+): { value: string | null; source: ConfigOverrideSource | null } {
+  return resolveOverride(projectDir, "AIDE_PREVIEW_CMD", (d) => d.previewCmd);
+}
+
 /** This project's own recurring jobs (spec 259), read fresh off the
  *  MACHINERY's checkout — the same root `resolveCodeLanding` reads,
  *  never the dashboard's read-only display clone, and never cached: the

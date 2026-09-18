@@ -8,12 +8,13 @@
 // `createServer` already followed inline.
 
 import { existsSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { TestServerStore } from "../test-servers/store.ts";
 import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
 import { testServerOnPort } from "../test-servers/port-owner.ts";
+import { resolvePreviewCmd } from "../../project/discover";
 import type { ServerState } from "../state.ts";
 
 export interface TestServersSetupInputs {
@@ -44,16 +45,54 @@ export interface TestServersSetupInputs {
   port: number;
 }
 
+/** Aide starts its own round; every other project starts whatever its
+ *  manifest says, through `aide-preview` — which makes the worktree,
+ *  links the gitignored paths into it and reports the board the same
+ *  way the round does.
+ *
+ *  `undefined` is "this host cannot start a board for this project",
+ *  which is the capability check the pages already gate on. */
+export function startCommandFor(root: string, branch: string, port: number): string[] | undefined {
+  if (hasRoundScript(root)) return roundCommand(root, branch, port);
+  const preview = resolvePreviewCmd(root).value;
+  if (!preview) return undefined;
+  return [PREVIEW_BIN, root, "--branch", branch, "--port", String(port), "--cmd", preview];
+}
+
+const hasRoundScript = (root: string): boolean =>
+  existsSync(join(root, "dashboard", "test", "round", "run")) &&
+  existsSync(join(root, "dashboard", "src", "serve", "serve.ts"));
+
+const roundCommand = (root: string, branch: string, port: number): string[] => [
+  join(root, "dashboard", "test", "round", "run"), root,
+  "--branch", branch, "--port", String(port), "--keep",
+];
+
+/** `aide-preview` is installed beside every other shared script. Named
+ *  here as a bare command on purpose: `land-branch/run-script.ts`'s own
+ *  rule — run Aide's scripts from beside the runner — is about a TEST
+ *  BOARD serving a branch, and a preview is started by whichever server
+ *  the reader is looking at. */
+const PREVIEW_BIN = join(homedir(), ".local", "bin", "aide-preview");
+
 export function setupTestServers(state: ServerState, inputs: TestServersSetupInputs) {
   const testServerStore = new TestServerStore({ path: inputs.testServersPath });
   const testServersCtx: TestServersContext = {
     store: testServerStore,
     aideCheckout: (project) => inputs.machineryProjectDir(project),
-    roundScript: (project) => join(inputs.machineryProjectDir(project), "dashboard", "test", "round", "run"),
-    roundAvailable: (project) =>
-      inputs.testServersAvailable ??
-      (existsSync(join(inputs.machineryProjectDir(project), "dashboard", "test", "round", "run")) &&
-        existsSync(join(inputs.machineryProjectDir(project), "dashboard", "src", "serve", "serve.ts"))),
+    startCommand: (project, { branch, port }) => {
+      const root = inputs.machineryProjectDir(project);
+      // `testServersAvailable` is the harness's own seam: a test that
+      // forces a host to have boards has no checkout carrying either
+      // answer, and means the round — the shape every board test was
+      // written against.
+      return (
+        startCommandFor(root, branch, port) ??
+        (inputs.testServersAvailable ? roundCommand(root, branch, port) : undefined)
+      );
+    },
+    previewAvailable: (project) =>
+      inputs.testServersAvailable ?? !!startCommandFor(inputs.machineryProjectDir(project), "x", 0),
     gitRun: inputs.gitRun,
     spawn:
       inputs.testServersSpawn ??

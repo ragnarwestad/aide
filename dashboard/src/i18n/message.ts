@@ -31,8 +31,28 @@ export function renderMessage(lang: Language, m: BoardMessage): string {
  *  message, joined for the one row that reports both. */
 export type Sentence = string | BoardMessage;
 
+/** A sentence that FOLLOWS another one starts with a capital: joined
+ *  with the one before it, a lower-case opening reads as the same
+ *  sentence carrying on.
+ *
+ *  Only a first word that is nothing but letters is touched. A branch,
+ *  a path or a file name is a name, and `aide/04-x` capitalised is a
+ *  different branch — so anything holding a slash, a dot, a dash or a
+ *  digit is left exactly as its own writer spelled it. */
+function opensWithCapital(text: string): string {
+  const first = text.split(/\s/)[0] ?? "";
+  if (!/^\p{Ll}\p{L}*$/u.test(first)) return text;
+  return text[0]!.toUpperCase() + text.slice(1);
+}
+
 export function renderSentence(lang: Language, s: Sentence | Sentence[] | undefined): string | undefined {
   if (s === undefined) return undefined;
-  if (Array.isArray(s)) return s.map((one) => renderSentence(lang, one)).filter((t): t is string => !!t).join("; ");
+  if (Array.isArray(s)) {
+    const rendered = s.map((one) => renderSentence(lang, one)).filter((t): t is string => !!t);
+    return rendered
+      .map((t, i) => (i < rendered.length - 1 && !/[.!?]$/.test(t) ? `${t}.` : t))
+      .map((t, i) => (i === 0 ? t : opensWithCapital(t)))
+      .join(" ");
+  }
   return typeof s === "string" ? s : renderMessage(lang, s);
 }

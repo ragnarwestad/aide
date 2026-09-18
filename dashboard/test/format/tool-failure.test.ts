@@ -43,7 +43,32 @@ describe("toolFailureSentence", () => {
   });
 
   test("a tool with no model still names the tool", () => {
-    expect(toolFailureSentence({ tool: "claude", terminalReason: "refused" })!.text).toContain("Claude Code");
+    expect(toolFailureSentence({ tool: "claude", terminalReason: "cli-error" })!.text).toContain("Claude Code");
+  });
+
+  // Most refusals are the runner's own rules, not the AI: a dependency
+  // not archived, a step not analyzed yet. Sending a reader to check the
+  // AI's login for those sends them the wrong way. Only a refusal that
+  // says the CLI could not be found is about the AI.
+  test("a refusal for one of the runner's rules keeps its own sentence", () => {
+    expect(
+      toolFailureSentence({
+        tool: "claude",
+        model: "Sonnet",
+        error: "spec 484-x depends on 482-y, which is not archived yet",
+        terminalReason: "refused",
+      }),
+    ).toBeUndefined();
+    const out = stepFailure(
+      undefined,
+      { error: "spec 484-x depends on 482-y, which is not archived yet", tool: "claude", terminalReason: "refused" },
+      "Sonnet",
+    );
+    expect(out.error).toBe("spec 484-x depends on 482-y, which is not archived yet");
+  });
+
+  test("a CLI that could not be started is about the AI", () => {
+    expect(toolFailureSentence({ tool: "codex", terminalReason: "spawn-failed" })!.text).toContain("Codex tab");
   });
 
   test("nothing to name is not a tool failure at all", () => {
@@ -63,7 +88,7 @@ describe("toolFailureSentence", () => {
   });
 
   test("an unknown tool name is passed through rather than hidden", () => {
-    expect(toolFailureSentence({ tool: "gemini", terminalReason: "refused" })!.text).toContain("gemini");
+    expect(toolFailureSentence({ tool: "gemini", terminalReason: "cli-error" })!.text).toContain("gemini");
   });
 });
 

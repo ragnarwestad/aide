@@ -47,6 +47,7 @@
 // reset confirmation page). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
 
+import type { LogFilter } from "../../../queue/parse-stream";
 import { badge, helpPopover, rowMessage } from "../../ui/components";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
@@ -78,6 +79,7 @@ export function renderSpecPage(
   opts: {
     tab?: string;
     step?: string;
+    only?: LogFilter;
     now?: number;
     script?: string;
     scriptSrc?: string;
@@ -104,9 +106,9 @@ export function renderSpecPage(
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
-    archivedLine(view) +
-    closedLine(view) +
-    trackingControl(view) +
+    archivedLine(view, opts.lang ?? "en") +
+    closedLine(view, opts.lang ?? "en") +
+    trackingControl(view, opts.lang ?? "en") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view) +
@@ -142,6 +144,7 @@ export function renderSpecPage(
           tabHref,
           openStep: opts.step,
           runningStep: lead?.runningStep,
+          only: opts.only,
           mark,
           // The same table, so the same answer: a step whose merge was
           // refused must not read "ok" here either.

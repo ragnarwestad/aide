@@ -413,6 +413,93 @@ describe("a phase in transition reads as what it is doing", () => {
     expect(html).not.toMatch(FAULTS);
   });
 
+  // Another round on a spec held back on its checks: archive has not run
+  // in it yet, so whatever its line said belongs to the round before.
+  test("archive reads as not run while a new round is under way", () => {
+    const refused = row({
+      id: "before",
+      specFolder: "480-transition",
+      steps: ["archive"],
+      stepIndex: 0,
+      state: "done",
+      startedAt: "2026-09-17T09:00:00Z",
+      results: [{ step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" }],
+    });
+    const round = row({
+      id: "round",
+      specFolder: "480-transition",
+      steps: ["analyze", "implement", "archive"],
+      stepIndex: 0,
+      state: "running",
+      startedAt: "2026-09-17T09:50:00Z",
+    });
+    const html = rows(
+      [refused, round],
+      [target({
+        done: ["create", "analyze", "implement"],
+        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+        stopped: { archive: "acceptance-criteria-unticked" },
+      })],
+    );
+    const archive = stateCell(subRow(html, "archive"));
+    expect(archive).toContain(PHASE_NOT_RUN);
+    expect(archive).not.toContain("Held back");
+    expect(archive).not.toContain("Stopped");
+  });
+
+  // The same round, started from analyze with implement left out so the
+  // reader can read the new plan first (paceup 02, 2026-09-18). The
+  // implement that is done belongs to the round before this analyze —
+  // drawing it as Done, box ticked and locked "already done", took away
+  // the one step the round exists to run again.
+  test("implement reads as not run, and can be chosen, while a round from analyze is under way", () => {
+    const implementedBefore = row({
+      id: "before",
+      specFolder: "480-transition",
+      steps: ["implement", "archive"],
+      stepIndex: 1,
+      state: "done",
+      startedAt: "2026-09-17T09:00:00Z",
+      results: [
+        { step: "implement", ok: true, costUsd: 1, terminalReason: "completed" },
+        { step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" },
+      ],
+    });
+    const round = row({
+      id: "round",
+      specFolder: "480-transition",
+      steps: ["analyze", "archive"],
+      stepIndex: 0,
+      state: "running",
+      startedAt: "2026-09-17T09:50:00Z",
+    });
+    const html = rows(
+      [implementedBefore, round],
+      [target({
+        done: ["create", "analyze", "implement"],
+        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+      })],
+    );
+    const implement = subRow(html, "implement");
+    expect(stateCell(implement)).toContain(PHASE_NOT_RUN);
+    expect(implement).not.toContain("already done");
+  });
+
+  // Analyze sits BEFORE the round's first step, so its own line is the
+  // round's to draw as it always was — nothing here reaches back.
+  test("a round started at implement leaves analyze's line alone", () => {
+    const round = row({
+      id: "round",
+      specFolder: "480-transition",
+      steps: ["implement", "archive"],
+      stepIndex: 0,
+      state: "running",
+      startedAt: "2026-09-17T09:50:00Z",
+    });
+    const html = rows([round], [target({ done: ["create", "analyze", "implement"] })]);
+    expect(stateCell(subRow(html, "analyze"))).toContain("Done");
+  });
+
   // Implement lands nothing: its step ends, and the files and history
   // are read again a moment later. A step that ended after they were
   // last read cannot be contradicted by them yet.

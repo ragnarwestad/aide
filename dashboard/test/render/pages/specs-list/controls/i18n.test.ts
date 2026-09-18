@@ -78,6 +78,31 @@ describe("the Specs list in Norwegian (spec 350)", () => {
   });
 });
 
+// Spec 484, AC-2: the same threading proof, for the three languages
+// added beside English and Norwegian — a lighter slice than the
+// Norwegian describe block above (filter bar + empty-list message),
+// enough to prove `lang` reaches these render surfaces in each of them.
+describe.each(["es", "de", "fr"] as const)("the Specs list in %s (spec 484)", (lang) => {
+  test("the filter bar's New-spec link and column heading are not the English words", () => {
+    const html = page({ lang, createProjects: ["aide"] });
+    expect(html).not.toContain(">New<");
+    expect(html).not.toContain('placeholder="a word in any of three fields"');
+  });
+
+  test("a state word: a running row's badge is not English", () => {
+    const html = renderSpecsRows(
+      [row({ id: "r1", specFolder: "1-x", steps: ["analyze"], stepIndex: 0, state: "running" })],
+      { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-x" }], lang },
+    );
+    expect(html).not.toContain("Analyzing");
+  });
+
+  test("the empty-list message is not English", () => {
+    const html = page({ lang });
+    expect(html).not.toContain("No specs to show");
+  });
+});
+
 // The row's message panel says three things about one spec: the phase
 // whose own last run stopped, the job the scheduler is holding, and the
 // marks beside them. The first reached the page in English whatever the
@@ -128,5 +153,31 @@ describe("the row's message panel", () => {
     const line = html.match(/<tr class="subrow[^"]*"[^>]*data-step="archive">.*?<\/tr>/)?.[0] ?? "";
     expect(line).toContain(">Arkiver<");
     expect(line).not.toContain(">archive<");
+  });
+});
+
+// The caption line above a phase's AI/model picker (spec 482): the four
+// words were literal, never routed through `t()`, so they stayed
+// English whatever the reader's language was.
+describe("the phase-row caption line", () => {
+  const CHOICES = [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" as const }];
+
+  test("Phase/AI/Model/Select read Norwegian, not English", () => {
+    const html = renderSpecsRows(
+      [row({ id: "c1", specFolder: "4-x", steps: ["analyze"], stepIndex: 0, state: "done" })],
+      {
+        runnerAvailable: true,
+        targets: [target("4-x")],
+        filter: { open: "aide/4-x" },
+        modelChoices: CHOICES,
+        lang: "nb",
+      },
+    );
+    expect(html).toContain(">Fase<");
+    expect(html).toContain(">Modell<");
+    expect(html).toContain('data-cap="box">Velg<');
+    expect(html).not.toContain(">Phase<");
+    expect(html).not.toContain(">Model<");
+    expect(html).not.toContain('data-cap="box">Select<');
   });
 });

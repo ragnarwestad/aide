@@ -12,7 +12,7 @@ import {
   summarizeCommands,
   summarizeOpencodeStream,
   summarizeStream,
-} from "../../../src/queue/parse-stream.ts";
+} from "../../../src/queue/parse-stream";
 
 const SESSION = "ses_f5706d229ffeybcta39ML4GY02";
 

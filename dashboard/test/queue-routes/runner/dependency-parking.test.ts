@@ -91,13 +91,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
    *  per-root unmerged-array mock by construction — the fixed gate asks
    *  one root a yes/no question, not several roots an ancestry
    *  question. */
-  function gitFor(archived: () => boolean) {
+  function gitFor(archived: () => boolean, fetchFails = false) {
     const calls: { dir: string; args: string[] }[] = [];
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("fetch")) return { code: 0, stdout: "" };
+      if (a.startsWith("fetch")) return { code: fetchFails ? 128 : 0, stdout: "" };
       if (a.startsWith("cat-file -e")) return { code: archived() ? 0 : 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -162,6 +162,41 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(listed.jobs[0].state).toBe("queued");
     // The number, not the folder: the row names the folder a line
     // above this message, and the sentence says it short.
+    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
+  });
+
+  // A fetch that fails for a moment — a landing holding a lock in the same
+  // checkout — once released the job into the script's refusal, because
+  // "could not ask" was read as "archived". Now the job waits and asks
+  // again, and says the dependency it is waiting on.
+  test("a dependency origin cannot be asked about holds the job rather than releasing it", async () => {
+    const dir = own("aide-queue-unconfirmed-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    const git = gitFor(() => true, true);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: git.run,
+      },
+    });
+    const real = console.error;
+    console.error = () => {};
+    try {
+      expect((await queueImplement(base)).status).toBe(200);
+      await settle();
+    } finally {
+      console.error = real;
+    }
+    expect(existsSync(argvFile)).toBe(false);
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      jobs: { state: string; error?: unknown }[];
+    };
+    expect(listed.jobs[0].state).toBe("queued");
     expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
   });
 

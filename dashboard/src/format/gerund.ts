@@ -27,8 +27,26 @@ export const GERUND_NB: Record<string, string> = {
   explore: "Utforsker", manifest: "Oppdaterer manifestet", reopen: "Gjenåpner", reset: "Tilbakestiller",
   schedule: "Kjører planen", close: "Lukker",
 };
+export const GERUND_ES: Record<string, string> = {
+  create: "Creando", analyze: "Analizando", implement: "Implementando", archive: "Archivando",
+  explore: "Explorando", manifest: "Actualizando el manifest", reopen: "Reabriendo", reset: "Restableciendo",
+  schedule: "Ejecutando la programación", close: "Cerrando",
+};
+export const GERUND_DE: Record<string, string> = {
+  create: "Erstellt", analyze: "Analysiert", implement: "Implementiert", archive: "Archiviert",
+  explore: "Erkundet", manifest: "Aktualisiert das Manifest", reopen: "Öffnet erneut", reset: "Setzt zurück",
+  schedule: "Führt den Zeitplan aus", close: "Schließt",
+};
+export const GERUND_FR: Record<string, string> = {
+  create: "Crée", analyze: "Analyse", implement: "Implémente", archive: "Archive",
+  explore: "Explore", manifest: "Met à jour le manifest", reopen: "Rouvre", reset: "Réinitialise",
+  schedule: "Exécute la planification", close: "Ferme",
+};
+const GERUND_TABLES: Partial<Record<Language, Record<string, string>>> = {
+  nb: GERUND_NB, es: GERUND_ES, de: GERUND_DE, fr: GERUND_FR,
+};
 export function gerund(lang: Language, step: string): string {
-  const table = lang === "nb" ? GERUND_NB : GERUND_EN;
+  const table = GERUND_TABLES[lang] ?? GERUND_EN;
   if (table[step]) return table[step]!;
   const label = stepLabel(step);
   return label.endsWith("e") ? `${label.slice(0, -1)}ing` : `${label}ing`;

@@ -205,12 +205,14 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
  *  through this same form's own error line — the identical channel a
  *  bad cron or a duplicate name already uses (3-solution.md, Risk 2). */
 function scheduleSection(project: string, entries: readonly ScheduleEntry[], opts: ProjectPageOptions): string {
+  const lang = opts.lang ?? "en";
   const now = new Date();
   const table =
     entries.length === 0
-      ? `<p class="muted">Nothing is scheduled for this project.</p>`
-      : `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Cron</th>` +
-        `<th>Prompt</th><th>Next run</th></tr></thead><tbody>` +
+      ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
+      : `<div class="tablewrap"><table class="list"><thead><tr><th>${t(lang, "schedule.colName")}</th>` +
+        `<th>${t(lang, "schedule.colCron")}</th><th>${t(lang, "schedule.colPrompt")}</th>` +
+        `<th>${t(lang, "schedule.colNextRun")}</th></tr></thead><tbody>` +
         entries
           .map((e) => {
             const next = nextFireTime(e.cron, now);
@@ -224,15 +226,18 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
         `</tbody></table></div>`;
   return (
     table +
-    `<h3>New job</h3>` +
-    renderScheduleForm({
-      action: "/api/queue/schedule",
-      fixedProject: project,
-      token: opts.token,
-      error: opts.error,
-      modelChoices: opts.modelChoices,
-      defaultModels: opts.defaultModels,
-    })
+    `<h3>${t(lang, "schedule.newJob")}</h3>` +
+    renderScheduleForm(
+      {
+        action: "/api/queue/schedule",
+        fixedProject: project,
+        token: opts.token,
+        error: opts.error,
+        modelChoices: opts.modelChoices,
+        defaultModels: opts.defaultModels,
+      },
+      lang,
+    )
   );
 }
 

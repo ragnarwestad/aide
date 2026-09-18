@@ -299,6 +299,27 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 
+  // A phase the running job can still be given has its model on that
+  // job: a pick made while it runs goes there, and the line shows it
+  // rather than the default the job has already been told not to use.
+  test("a phase the running job can still take shows the job's own pick", () => {
+    const html = rows(
+      [row({
+        id: "j1",
+        specFolder: "123-picks",
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "running",
+        editableSteps: ["implement", "archive"],
+        stepModels: { analyze: "sonnet", archive: "fable" },
+      })],
+      [target("123-picks")],
+      { defaultModels: { default: "sonnet" } },
+    );
+    expect(subRow(html, "archive")).toMatch(/<option value="fable"[^>]*selected/);
+    expect(subRow(html, "implement")).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+
   // REQ-4: once a phase has actually run, what it ran on wins over any
   // earlier pending pick — a record of what happened outranks a choice
   // about what is to come.

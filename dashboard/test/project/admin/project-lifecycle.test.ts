@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -27,7 +27,7 @@ afterEach(() => {
  *  would have made — everything after the clone step reads that
  *  directory, so a fake that leaves nothing behind would test only the
  *  first step. */
-function cloningGit(projectsRoot: string, files: Record<string, string> = {}) {
+function cloningGit(files: Record<string, string> = {}) {
   const calls: { dir: string; args: string[] }[] = [];
   return {
     calls,
@@ -35,7 +35,7 @@ function cloningGit(projectsRoot: string, files: Record<string, string> = {}) {
       calls.push({ dir, args });
       const clone = args.indexOf("clone");
       if (clone !== -1) {
-        const dest = join(projectsRoot, args[clone + 2]!);
+        const dest = join(dir, args[clone + 2]!);
         mkdirSync(dest, { recursive: true });
         for (const [path, text] of Object.entries(files)) {
           mkdirSync(join(dest, path).replace(/\/[^/]+$/, ""), { recursive: true });
@@ -92,7 +92,7 @@ describe("adding a project by cloning it", () => {
   // Criterion 1.
   test("clones into <root>/<name>, writes a minimal manifest, reports every step", async () => {
     const projectsRoot = root();
-    const git = cloningGit(projectsRoot);
+    const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
@@ -122,7 +122,7 @@ describe("adding a project by cloning it", () => {
   test("a name already taken under the projects root is refused before the clone", async () => {
     const projectsRoot = root();
     mkdirSync(join(projectsRoot, "taken"));
-    const git = cloningGit(projectsRoot);
+    const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "taken",
       gitUrl: "https://example.com/taken.git",
@@ -147,6 +147,65 @@ describe("adding a project by cloning it", () => {
   });
 });
 
+describe("adding a project on a host whose projects root holds links", () => {
+  // The projects root beside the dashboard's own checkouts is a
+  // directory of links: the clone goes into the checkout, and the
+  // project is listed through a link to it — never a second copy.
+  const layout = () => {
+    const home = root();
+    const base = join(home, "checkouts");
+    const projectsRoot = join(home, "projects");
+    mkdirSync(projectsRoot);
+    return { base, projectsRoot };
+  };
+
+  test("clones into the dashboard's own checkout and links the projects root to it", async () => {
+    const { base, projectsRoot } = layout();
+    const git = cloningGit();
+    const result = await addProject(git.run, projectsRoot, {
+      name: "newproj",
+      gitUrl: "https://example.com/newproj.git",
+    }, base);
+    expect(result.ok).toBe(true);
+    expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
+      {
+        dir: join(base, "newproj"),
+        args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "code"],
+      },
+    ]);
+    const link = join(projectsRoot, "newproj");
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(readlinkSync(link)).toBe(join(base, "newproj", "code"));
+    expect(existsSync(join(base, "newproj", "code", ".aide", "project.yaml"))).toBe(true);
+  });
+
+  test("a checkout the dashboard already has is linked, not cloned again", async () => {
+    const { base, projectsRoot } = layout();
+    mkdirSync(join(base, "aide", "code", ".git"), { recursive: true });
+    const git = cloningGit();
+    const result = await addProject(git.run, projectsRoot, {
+      name: "aide",
+      gitUrl: "https://example.com/aide.git",
+    }, base);
+    expect(result.ok).toBe(true);
+    expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([]);
+    expect(readlinkSync(join(projectsRoot, "aide"))).toBe(join(base, "aide", "code"));
+  });
+
+  test("any other projects root keeps the clone itself", async () => {
+    const { base } = layout();
+    const projectsRoot = root();
+    const git = cloningGit();
+    const result = await addProject(git.run, projectsRoot, {
+      name: "newproj",
+      gitUrl: "https://example.com/newproj.git",
+    }, base);
+    expect(result.ok).toBe(true);
+    expect(lstatSync(join(projectsRoot, "newproj")).isDirectory()).toBe(true);
+    expect(existsSync(join(base, "newproj"))).toBe(false);
+  });
+});
+
 // Spec 183: a clone of a private HTTPS repository hung for eleven
 // minutes on the serving host, because git handed the question to the
 // machine's credential helper and a background service has nobody to
@@ -164,7 +223,7 @@ describe("a clone that cannot authenticate", () => {
   // holding an HTTPS token depends on.
   test("the clone clears the credential helper for that one call", async () => {
     const projectsRoot = root();
-    const git = cloningGit(projectsRoot);
+    const git = cloningGit();
     await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
@@ -218,7 +277,7 @@ describe("a clone that cannot authenticate", () => {
   // `credential.helper`, so clearing the helper changes nothing for it.
   test("an SSH address still clones", async () => {
     const projectsRoot = root();
-    const git = cloningGit(projectsRoot);
+    const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "bykey",
       gitUrl: "git@example.com:owner/bykey.git",
@@ -377,7 +436,7 @@ describe("adding a checkout that is already on the host", () => {
 describe("where the project's specs live", () => {
   test("a specs path is written in the format .aide/config is read in", async () => {
     const projectsRoot = root();
-    const git = cloningGit(projectsRoot);
+    const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "withspecs",
       gitUrl: "https://example.com/withspecs.git",

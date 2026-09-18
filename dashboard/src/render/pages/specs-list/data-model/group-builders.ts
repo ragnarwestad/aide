@@ -4,7 +4,7 @@
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
-import { activityMs, attemptsPerStep, phasesFor, totalDurationOf } from "./phases.ts";
+import { activityMs, attemptsPerStep, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -330,6 +330,7 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
     // 1-description.md is the better answer, and the one every other
     // row already uses.
     title: spec.title ?? all.find((r) => r.createTitle)?.createTitle,
+    done: doneOutsideRound(spec.done, roundUnderWayIn(all)),
     // Whether the name above the line is a real folder or a placeholder.
     // A target IS the folder on disk, so a group without one is a create
     // job whose spec has not landed and whose name is a provisional key

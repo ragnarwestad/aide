@@ -13,6 +13,7 @@ and the layout rules that keep them consistent.
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
 - [Theme choice](#theme-choice)
+- [Language choice](#language-choice)
 - [Header and tab bar, not a sidebar](#header-and-tab-bar-not-a-sidebar)
 
 ---
@@ -157,6 +158,41 @@ needs a script that runs before body content, on every page — served and gener
 cannot `import`/`export`, for the same reason `specs-client/index.ts` can't). This is a separate mechanism from `opts.script`
 (end-of-body, served-`/`-only) — a page carries two `<script>` tags, so a test that locates "the"
 script by first occurrence will silently grab the wrong one; find each by a substring unique to its content.
+
+## Language choice
+
+The header carries a language control beside the theme one, offering five languages: English, Norwegian,
+Spanish, German and French. It draws the same N-way `<details class="menu">` pattern the theme control uses —
+one row per choice, a checkmark reserved on every row, `aria-current` on the selected one — rather than the
+two-entry "current, then the other" shape a two-language board could get away with.
+
+Each row is labelled with that language's own native name — "English", "Norsk", "Español", "Deutsch",
+"Français" — never translated into the reader's currently selected language: Spanish always reads "Español",
+whichever of the five languages the reader has chosen. `LANGUAGE_NATIVE_NAMES` in `header-controls.ts` is the
+one place these five names live.
+
+`src/i18n/translations.ts` is the one source of truth every N-way language choice reads from: the `Language`
+union, the `translations` registry (`{ en, nb, es, de, fr }`), and `LANGUAGES` — the list the header menu and
+`serve-helpers/http.ts`'s `?lang=`/cookie validation both iterate, so neither has to name a language by hand.
+Every other file that needs a per-language answer (`provider-limit.ts`'s locale table,
+`format/gerund.ts` and `format/step-label.ts`'s verb/name tables) is a `Record<Language, …>` lookup, with an
+English fallback for the two of those that are not required to cover every language.
+
+**Adding a sixth language is two separate, catalogue-only changes — not one:**
+
+1. **The UI-string catalogue** (`shell.theme`, `list.search`, and the rest of the ~100 keys `en.ts` types):
+   add a `<lang>.ts` file shaped `Record<TranslationKey, string>` (the same shape `nb.ts`/`es.ts`/`de.ts`/`fr.ts`
+   already are) and register it in `translations.ts`'s `translations` object and `LANGUAGES` list. A key
+   missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does.
+2. **The board-message catalogue** (`src/i18n/messages.ts`'s `MESSAGES`, the runner/landing/tab sentences):
+   add the new language's field to the `MessageEntry` interface and then to every one of its entries. This is
+   a different shape from step 1 — an interface change plus per-entry content, not a new file — because
+   `MESSAGES` types its five language fields directly on one shared interface rather than through a
+   `Record<TranslationKey, …>` catalogue file.
+
+No application code outside `src/i18n/` needs to change for either step: the five call sites that once
+branched on a specific language literal (`header-controls.ts`, `http.ts`, `provider-limit.ts`, `gerund.ts`,
+`step-label.ts`) all read `Language`/`LANGUAGES` generically now.
 
 ## Header and tab bar, not a sidebar
 

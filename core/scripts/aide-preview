@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# aide-preview — serve ONE branch of a project so a person can look at
+# it before its checks are ticked.
+#
+# The dashboard already knows how to start a board, keep it in its
+# registry, show its address and stop it again (spec 388) — but what it
+# started was aide's own round script, which only aide has. This is the
+# same contract for every other project: a worktree of the branch, the
+# project's own command in it, and the one line the dashboard reads.
+#
+# The contract with the caller is three things, and nothing else:
+#   * the command serves on $PORT and keeps running until it is killed,
+#   * this script prints "board up: pid N, <url>" once something answers
+#     on that port, and exits,
+#   * the served process stays in THIS script's process group, so the
+#     dashboard's own SIGTERM to the group reaches it (the round leaves
+#     its board the same way).
+#
+#   aide-preview <project checkout> --branch B --port P --cmd "…" [--timeout S]
+#
+# /bin/bash here is 3.2 (macOS): no mapfile, no associative arrays.
+set -uo pipefail
+
+ROOT="${1:-}"; shift || true
+usage() {
+  echo "usage: aide-preview <project checkout> --branch B --port P --cmd \"…\" [--timeout S]" >&2
+  exit 2
+}
+[ -n "$ROOT" ] && [ -d "$ROOT/.git" ] || usage
+ROOT="$(cd "$ROOT" && pwd)"
+
+BRANCH=""; PORT=""; CMD=""; TIMEOUT=180
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --branch) BRANCH="${2:-}"; shift 2 ;;
+    --port) PORT="${2:-}"; shift 2 ;;
+    --cmd) CMD="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT="${2:-}"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; usage ;;
+  esac
+done
+[ -n "$BRANCH" ] && [ -n "$PORT" ] && [ -n "$CMD" ] || usage
+
+# The branch as origin has it, exactly as the round does it: a branch
+# pushed by a run this checkout has not fetched is not "no such branch",
+# and a local copy left behind by an earlier preview is not the truth.
+# `-f` is refused while the branch is checked out in a worktree, and
+# that is the one case where the local copy IS the right one — a
+# preview is already running on it.
+git -C "$ROOT" fetch -q origin "$BRANCH" 2>/dev/null || true
+if git -C "$ROOT" show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+  git -C "$ROOT" branch -q -f "$BRANCH" "origin/$BRANCH" 2>/dev/null ||
+    git -C "$ROOT" branch -q "$BRANCH" "origin/$BRANCH" 2>/dev/null || true
+fi
+git -C "$ROOT" show-ref --verify --quiet "refs/heads/$BRANCH" || {
+  echo "no such branch: $BRANCH in $ROOT or its origin" >&2
+  exit 2
+}
+
+# One directory per project and port, under the dashboard's own area —
+# overridable so a test never writes into the home directory it is run
+# from.
+PREVIEW_DIR="${AIDE_PREVIEW_DIR:-$HOME/.aide/dashboard/previews}"
+WT="$PREVIEW_DIR/$(basename "$(dirname "$ROOT")")-$PORT"
+mkdir -p "$(dirname "$WT")"
+
+# The same lock file `aide-run-spec` takes around every move of a shared
+# checkout (acquire_worktree_lock, run-spec-gates.sh): runs of one
+# project share this checkout, and a `git worktree add` outside the lock
+# loses a ref lock while a run is in its own section.
+LOCK="$ROOT/.git/aide-run-spec-worktree.lock"
+DEADLINE=$(( $(date +%s) + 120 ))
+while ! mkdir "$LOCK" 2>/dev/null; do
+  OWNER="$(cat "$LOCK/pid" 2>/dev/null || true)"
+  if [ -n "$OWNER" ] && ! kill -0 "$OWNER" 2>/dev/null; then
+    rm -rf "$LOCK" 2>/dev/null || true
+    continue
+  fi
+  if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+    echo "timed out waiting for the worktree lock on $ROOT (pid ${OWNER:-unknown} may be stuck)" >&2
+    exit 1
+  fi
+  sleep 0.2
+done
+echo $$ > "$LOCK/pid" 2>/dev/null || true
+git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true
+ADD_ERROR="$(git -C "$ROOT" worktree add --detach "$WT" "$BRANCH" 2>&1)"
+ADD_CODE=$?
+rm -rf "$LOCK" 2>/dev/null || true
+if [ "$ADD_CODE" -ne 0 ]; then
+  echo "cannot check out $BRANCH in $ROOT: $(printf '%s\n' "$ADD_ERROR" | grep -m1 . | head -c 200)" >&2
+  exit 1
+fi
+
+# A worktree carries TRACKED files only, so the gitignored paths the
+# project's own command needs — its dependencies, its local settings —
+# are linked in, the same list and the same precedence `aide-run-spec`
+# reads (manifest first, .aide/config second). A link that cannot be
+# made is not fatal here: the command below says what it is missing far
+# better than a guess from this script would.
+links_of() {
+  local key="$1" file="$2"
+  [ -f "$file" ] || return 0
+  sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//'
+}
+LINKS="$(links_of worktreeLinks "$ROOT/.aide/project.yaml")"
+[ -n "$LINKS" ] || LINKS="$(links_of AIDE_WORKTREE_LINKS "$ROOT/.aide/config" | tr -d '"')"
+for entry in $LINKS; do
+  case "$entry" in
+    /*|*..*) continue ;;
+  esac
+  [ -e "$ROOT/$entry" ] || continue
+  [ -e "$WT/$entry" ] && continue
+  mkdir -p "$(dirname "$WT/$entry")" 2>/dev/null || true
+  ln -s "$ROOT/$entry" "$WT/$entry" 2>/dev/null || true
+done
+
+BASE="http://127.0.0.1:$PORT"
+cd "$WT" || exit 1
+# `bash -lc` rather than a bare exec: the command is written the way a
+# person writes it in a terminal, pipes and all, and a login shell is
+# what puts a version manager's shims on PATH.
+AIDE_PREVIEW_PORT="$PORT"
+export PORT AIDE_PREVIEW_PORT
+bash -lc "$CMD" &
+SERVER=$!
+
+answered() {
+  [ "$(curl -s -m 2 -o /dev/null -w '%{http_code}' "$BASE" 2>/dev/null)" != "000" ]
+}
+WAITED=0
+while [ "$WAITED" -lt "$TIMEOUT" ]; do
+  if ! kill -0 "$SERVER" 2>/dev/null; then
+    echo "the command exited before anything answered on $BASE" >&2
+    exit 1
+  fi
+  if answered; then
+    echo "board up: pid $SERVER, $BASE — serving $BRANCH"
+    # The worktree outlives this script and goes when the served process
+    # does — the same disowned watcher the round leaves behind. Nothing
+    # else knows when a preview ends.
+    ( while kill -0 "$SERVER" 2>/dev/null; do sleep 2; done
+      git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true
+      git -C "$ROOT" worktree prune >/dev/null 2>&1 || true
+    ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+    exit 0
+  fi
+  sleep 1
+  WAITED=$(( WAITED + 1 ))
+done
+echo "nothing answered on $BASE within ${TIMEOUT}s — is the command serving on \$PORT?" >&2
+kill "$SERVER" 2>/dev/null
+exit 1

@@ -233,6 +233,14 @@ commands it ran with their outcome, its full final message, and the same time/co
 numbers shown elsewhere on the row. A step with no log file says so instead of showing an empty
 summary.
 
+**Four links above an open step's raw log filter it: All, Commands, Files, Errors** (`?only=`). Commands are what the
+step ran, Files what it wrote, Errors the calls the tool itself reported as failures — one word for what each CLI
+names differently, decided where the transcript is read (`src/queue/parse-stream/`). The filter is applied BEFORE the
+log's own 40-line bound, so "Commands" is the last forty commands rather than the commands among the last forty
+lines, and the summary above the log — changed files, commands, final message — is unfiltered whatever the links say.
+A filter matching nothing says so and leaves the links up; a link rather than a widget, because the tab reloads itself
+every ten seconds.
+
 **An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
 from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is
 a record.

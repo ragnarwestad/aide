@@ -127,25 +127,33 @@ describe("pageShell language (spec 350)", () => {
 
   // Spec 409, REQ-1: PaceUp draws each language choice as a flag plus
   // a name, never a bare two-letter code.
-  // Spec 413, REQ-1/REQ-3: the name is translated into the SELECTED
-  // language, not left in each choice's own native language.
-  test("the trigger shows the current language's flag, and both dropdown links carry flag + name translated into the selected language", () => {
+  // Spec 484, AC-1: the header offers all five languages, each labelled
+  // with that language's OWN native name — never translated into the
+  // reader's selected language (reversing spec 413's own choice).
+  test("the trigger shows the current language's flag, and all five dropdown links carry flag + native name", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
       lang: "nb",
     });
     const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
     expect(lang).toContain(">🇳🇴</summary>");
+    expect(lang).toContain('href="/?lang=en"><span class="menucheck">');
+    expect(lang).toContain("🇬🇧 English</a>");
     expect(lang).toContain('href="/?lang=nb" aria-current="true"><span class="menucheck">');
     expect(lang).toContain("🇳🇴 Norsk</a>");
-    expect(lang).toContain('href="/?lang=en"><span class="menucheck">');
-    expect(lang).toContain("🇬🇧 Engelsk</a>");
+    expect(lang).toContain('href="/?lang=es"><span class="menucheck">');
+    expect(lang).toContain("🇪🇸 Español</a>");
+    expect(lang).toContain('href="/?lang=de"><span class="menucheck">');
+    expect(lang).toContain("🇩🇪 Deutsch</a>");
+    expect(lang).toContain('href="/?lang=fr"><span class="menucheck">');
+    expect(lang).toContain("🇫🇷 Français</a>");
     expect(lang).not.toMatch(/>NO</);
     expect(lang).not.toMatch(/>EN</);
   });
 
-  // Spec 413, REQ-1/REQ-2: with English selected, both names read in
-  // English — the other language's name translated, not "Norsk".
-  test("with English selected, both dropdown links carry flag + name translated into English", () => {
+  // Spec 484, AC-1: the same five native names show whichever language
+  // is selected — English selected does not translate "Norsk" into
+  // "Norwegian" the way spec 413's mechanism used to.
+  test("with English selected, every dropdown link still carries its OWN native name, not an English translation", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
       lang: "en",
     });
@@ -153,10 +161,25 @@ describe("pageShell language (spec 350)", () => {
     expect(lang).toContain(">🇬🇧</summary>");
     expect(lang).toContain('href="/?lang=en" aria-current="true"><span class="menucheck">');
     expect(lang).toContain("🇬🇧 English</a>");
-    expect(lang).toContain('href="/?lang=nb"><span class="menucheck">');
-    expect(lang).toContain("🇳🇴 Norwegian</a>");
+    expect(lang).toContain("🇳🇴 Norsk</a>");
+    expect(lang).not.toContain("Norwegian");
+    expect(lang).toContain("🇪🇸 Español</a>");
+    expect(lang).toContain("🇩🇪 Deutsch</a>");
+    expect(lang).toContain("🇫🇷 Français</a>");
     expect(lang).not.toMatch(/>NO</);
     expect(lang).not.toMatch(/>EN</);
+  });
+
+  test("es/de/fr each render as the current language with their own aria-current link", () => {
+    for (const [code, flag] of [["es", "🇪🇸"], ["de", "🇩🇪"], ["fr", "🇫🇷"]] as const) {
+      const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", undefined, {
+        lang: code,
+      });
+      expect(html).toContain(`<html lang="${code}">`);
+      const lang = html.match(/<details class="menu lang">[\s\S]*?<\/details>/)![0];
+      expect(lang).toContain(`>${flag}</summary>`);
+      expect(lang).toContain(`href="/?lang=${code}" aria-current="true">`);
+    }
   });
 });
 

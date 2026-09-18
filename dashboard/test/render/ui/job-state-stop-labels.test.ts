@@ -3,7 +3,7 @@
 // while everything else on the row went through the translations.
 
 import { describe, expect, test } from "bun:test";
-import { stateLabel } from "../../../src/render/ui/job-state";
+import { stateLabel, wordPhase } from "../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../src/render";
 
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
@@ -23,13 +23,43 @@ describe("why a job stopped, in the reader's own language", () => {
     expect(stateLabel(stopped("timeout", 2700), "nb")).toBe("stoppet — 45 min");
   });
 
-  // Every other state is the state's own word, which is not a sentence
-  // to translate — it is what the queue calls it.
-  test("a state that is not 'stopped' is its own word", () => {
-    expect(stateLabel({ state: "running" } as QueueRowView, "nb")).toBe("running");
+  // Every other state has its own catalogue entry, in both languages
+  // (spec 482) — it is a word said differently per language, not the
+  // queue's own English enum value read back verbatim.
+  test("every other state is translated, not the raw English enum value", () => {
+    expect(stateLabel({ state: "queued" } as QueueRowView, "nb")).toBe("i kø");
+    expect(stateLabel({ state: "running" } as QueueRowView, "nb")).toBe("kjører");
+    expect(stateLabel({ state: "done" } as QueueRowView, "nb")).toBe("ferdig");
+    expect(stateLabel({ state: "failed" } as QueueRowView, "nb")).toBe("feilet");
+    expect(stateLabel({ state: "cancelled" } as QueueRowView, "nb")).toBe("avbrutt");
+    expect(stateLabel({ state: "interrupted" } as QueueRowView, "nb")).toBe("avbrutt");
+
+    expect(stateLabel({ state: "queued" } as QueueRowView, "en")).toBe("queued");
+    expect(stateLabel({ state: "running" } as QueueRowView, "en")).toBe("running");
+    expect(stateLabel({ state: "done" } as QueueRowView, "en")).toBe("done");
+    expect(stateLabel({ state: "failed" } as QueueRowView, "en")).toBe("failed");
+    expect(stateLabel({ state: "cancelled" } as QueueRowView, "en")).toBe("cancelled");
+    expect(stateLabel({ state: "interrupted" } as QueueRowView, "en")).toBe("interrupted");
   });
 
   test("English is what a caller that names no language gets", () => {
     expect(stateLabel(stopped("tests-red"))).toBe("stopped — tests red");
+  });
+});
+
+// AC-2: the state named INSIDE "last re-run {state}" is translated too,
+// not only the sentence around it.
+describe('the state inside "last re-run {state}" (AC-2)', () => {
+  test("a cancelled re-run reads Norwegian end to end", () => {
+    const attempt = { state: "cancelled" } as unknown as QueueRowView;
+    const w = wordPhase(true, undefined, attempt, {}, "nb");
+    expect(w.qualifier).toBe("siste ny kjøring avbrutt");
+    expect(w.qualifier).not.toContain("cancelled");
+  });
+
+  test("English is unchanged", () => {
+    const attempt = { state: "cancelled" } as unknown as QueueRowView;
+    const w = wordPhase(true, undefined, attempt, {}, "en");
+    expect(w.qualifier).toBe("last re-run cancelled");
   });
 });

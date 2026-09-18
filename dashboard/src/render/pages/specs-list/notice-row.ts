@@ -60,7 +60,14 @@ export function specNoticeRow(
     g.lead,
     archiveHeldBack,
     refusal,
-    phaseDisagreement(g, lang),
+    // A locked row's phases can carry queue-remembered attempts (spec
+    // 410, for the duration/cost cells) from a run that happened before
+    // the spec was archived or closed — nothing on a locked row is
+    // still actionable, so a disagreement between the files and that
+    // leftover attempt is not shown as a warning (spec 483). The mark
+    // and readyToArchive arguments beside this one already carry the
+    // same gate.
+    isArchivedRow(g) ? undefined : phaseDisagreement(g, lang),
     isArchivedRow(g) ? archivedRowNotices(g.archive, now, lang) : errorMarkNotices(g, lang, testServerAvailable),
     lang,
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",

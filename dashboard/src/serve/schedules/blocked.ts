@@ -29,6 +29,16 @@ import type { ScheduleContext } from "./";
  *  every time — refused them. Only `targets()` is still cached here,
  *  for 5 s, and it decides nothing on its own: a spec that names no
  *  dependency is the cheap half. */
+/** How long a job waits on a dependency origin cannot be asked about
+ *  before it is released as it always was. A fetch that fails for a
+ *  moment — a lock taken by a landing in the same checkout — held
+ *  nothing and let the job start into the script's refusal; an origin
+ *  that stays unreachable must not park a job for good (spec 351). */
+export const UNCONFIRMED_HOLD_MS = 10 * 60_000;
+
+/** When each job's dependency first could not be confirmed, by job id. */
+const unconfirmedSince = new Map<string, number>();
+
 export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<string, string>> {
   const blocked = new Map<string, string>();
   if (!ctx.projectRoot) return blocked;
@@ -74,6 +84,17 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
       const specsRoot = roots[roots.length - 1];
       if (!specsRoot) continue;
       const archived = await ctx.branchStatus.archivedOnOrigin(specsRoot, dep.folder);
+      if (archived === null) {
+        const now = (ctx.now ?? Date.now)();
+        const since = unconfirmedSince.get(job.id) ?? now;
+        unconfirmedSince.set(job.id, since);
+        if (now - since < UNCONFIRMED_HOLD_MS) {
+          blocked.set(job.id, dep.folder);
+          break;
+        }
+        continue;
+      }
+      unconfirmedSince.delete(job.id);
       if (!archived) {
         blocked.set(job.id, dep.folder);
         break;
