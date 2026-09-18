@@ -349,8 +349,19 @@ export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): 
       ...heldBackFor(phase.step, target),
       ...historyFor(phase.step, target, phase.attempts[0]),
     };
-    return round && comesAfterRoundStart(phase.step, round) ? phaseInRound(joined, round) : joined;
+    if (round && comesAfterRoundStart(phase.step, round)) return phaseInRound(joined, round);
+    return phase.step === "archive" && refusalAnswered(joined, target) ? { step: phase.step, attempts: [], history: {} } : joined;
   });
+}
+
+/** Archive's last attempt only refused over open criteria, and every
+ *  criterion has been ticked since. A refusal moves nothing, so what the
+ *  line has to say is that archive has not run — not that a run
+ *  "reported done" with nothing to show for it. */
+function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean {
+  if (target?.acceptanceOpen !== false) return false;
+  const latest = phase.attempts[0]?.results?.find((r) => r.step === "archive");
+  return latest?.terminalReason === "acceptance-criteria-unticked";
 }
 
 /** The job in flight that is another round of work on this spec, if

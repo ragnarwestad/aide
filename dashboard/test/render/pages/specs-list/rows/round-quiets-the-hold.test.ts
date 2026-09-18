@@ -102,7 +102,8 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
     filter: { open: openKeys([refused], [target]) },
   });
 
-  test("says nothing about ticking criteria", () => {
+  test("says nothing about ticking criteria, and archive reads as not run", () => {
+    expect(html).not.toContain("reported done");
     expect(html).not.toContain("not all ticked");
     expect(html).not.toContain("Acceptance criteria are not all ticked");
   });
