@@ -33,6 +33,9 @@ header .brand { margin: 0; padding: 0; }
    against its left edge instead. */
 body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
   padding: 0 var(--sp-6); border-bottom: 1px solid var(--line); }
+/* The same bar's copy inside the header, shown only on a phone held
+   sideways (narrow.css). */
+header > nav.tabbar { display: none; }
 /* The SAME bar one level in: a spec's own seven tabs, and a job's
    three. They were filter pills with a caption beside them until
    2026-08-23 — chips choose among values, tabs move between views, and

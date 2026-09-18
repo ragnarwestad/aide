@@ -267,7 +267,11 @@ export function isSpecFolder(folder: string): boolean {
   return /^\d+(-|$)/.test(folder);
 }
 
-function pageHeader(lang: Language, currentUrl: string): string {
+/** `tabs` is the tab bar again, shown in the header's own row on a phone
+ *  held sideways only (narrow.css) — the height a row of its own costs
+ *  is what that screen has least of. Hidden everywhere else, where the
+ *  bar under the header is the one shown. */
+function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   // Theme, language and unit repeat here flat, with no second `<details>`
   // wrapper (spec 436): the "…" menu's own `closeAll()` behaviour
   // (menu-script.ts) closes every open `details.menu`/`details.intro`
@@ -284,7 +288,7 @@ function pageHeader(lang: Language, currentUrl: string): string {
     `<div class="morerows lang"><span class="lbl">${t(lang, "shell.language")}</span>${languageChoiceLinks(lang, currentUrl)}</div>` +
     `<div class="morerows unit">${unitChoiceRows("more")}</div>`;
   return (
-    `<header>${WORDMARK}${boardLine(lang)}` +
+    `<header>${WORDMARK}${tabs}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
     // header's right-hand end (spec 243, spec 350, spec 436) —
     // header-level controls the reader reaches without opening the menu
@@ -405,6 +409,7 @@ export function pageShell(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
+  const tabs = opts.hideTabBar ? "" : tabBar(entries, currentPath, lang);
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -417,11 +422,11 @@ ${PWA_LINKS}
 <script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
-${pageHeader(lang, currentUrl)}
+${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
 ${aboutDialog(opts.buildStamp)}
 ${leaveAppDialog(lang)}
-${opts.hideTabBar ? "" : tabBar(entries, currentPath, lang)}
+${tabs}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
 </main>${script}${scriptSrc}

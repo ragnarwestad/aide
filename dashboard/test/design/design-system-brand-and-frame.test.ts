@@ -141,7 +141,15 @@ describe("the header and the two tabs (spec 119)", () => {
         path,
         ["Specs", "Projects", "Schedule"],
       ]);
-      expect([path, html.indexOf("</header>") < html.indexOf("<nav")]).toEqual([path, true]);
+      // The bar under the header — the header holds a copy of it too,
+      // shown only on a phone held sideways, and it carries the same tabs.
+      const under = html.slice(html.indexOf("</header>"));
+      expect([path, under.includes('<nav class="tabbar">')]).toEqual([path, true]);
+      const inHeader = html.slice(html.indexOf("<header>"), html.indexOf("</header>"));
+      expect([path, [...inHeader.matchAll(/<a class="tab"[^>]*>([^<]*)<\/a>/g)].map((m) => m[1])]).toEqual([
+        path,
+        ["Specs", "Projects", "Schedule"],
+      ]);
       // The generated pages keep their h1 under the tabs; the spec list
       // has none (the Specs tab names it), so only assert where one is.
       if (html.includes("<h1>")) {

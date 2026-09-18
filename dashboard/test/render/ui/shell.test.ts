@@ -78,7 +78,7 @@ describe("pageShell install warning banner", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
     const headerEnd = html.indexOf("</header>");
     const bannerStart = html.indexOf("rowmsg waiting");
-    const tabbarStart = html.indexOf('<nav class="tabbar');
+    const tabbarStart = html.indexOf('<nav class="tabbar', html.indexOf("</header>"));
     expect(headerEnd).toBeGreaterThan(-1);
     expect(bannerStart).toBeGreaterThan(-1);
     expect(tabbarStart).toBeGreaterThan(-1);

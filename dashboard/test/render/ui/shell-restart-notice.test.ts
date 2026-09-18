@@ -25,7 +25,7 @@ describe("pageShell's waiting-Deploy notice", () => {
     // Under the header, before the tab bar: the same slot the install
     // warning already has.
     expect(html.indexOf("</header>")).toBeLessThan(html.indexOf("restart-notice"));
-    expect(html.indexOf("restart-notice")).toBeLessThan(html.indexOf('<nav class="tabbar"'));
+    expect(html.indexOf("restart-notice")).toBeLessThan(html.indexOf('<nav class="tabbar"', html.indexOf("</header>")));
   });
 
   test("shows nothing once the wait is over", () => {
