@@ -8,7 +8,7 @@
 // paths linked into it, "board up: pid N, <url>" on stdout, and a
 // served process that outlives the script.
 import { describe, expect, setDefaultTimeout, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -16,9 +16,10 @@ setDefaultTimeout(30_000);
 
 const SCRIPT = join(import.meta.dir, "..", "..", "..", "core", "scripts", "aide-preview");
 
-const git = (cwd: string, ...args: string[]): void => {
+const git = (cwd: string, ...args: string[]): string => {
   const res = Bun.spawnSync(["git", ...args], { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
   if (res.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${new TextDecoder().decode(res.stderr)}`);
+  return new TextDecoder().decode(res.stdout);
 };
 
 /** A checkout with a branch to look at, and a gitignored directory the
@@ -57,13 +58,14 @@ async function freePort(): Promise<number> {
  *  served process writes into a reader that has gone away the moment
  *  this script exits, and dies of it — which is the test harness, not
  *  the script. */
-function runPreview(dir: string, port: number, cmd: string) {
+function runPreview(dir: string, port: number, cmd: string, timeout = "20") {
   const log = join(mkdtempSync(join(tmpdir(), "aide-preview-log-")), "board.log");
+  const where = previewDir();
   const res = Bun.spawnSync(
-    [SCRIPT, dir, "--branch", "aide/1-demo", "--port", String(port), "--cmd", cmd, "--timeout", "20"],
-    { env: { ...process.env, AIDE_PREVIEW_DIR: previewDir() }, stdout: Bun.file(log), stderr: Bun.file(log) },
+    [SCRIPT, dir, "--branch", "aide/1-demo", "--port", String(port), "--cmd", cmd, "--timeout", timeout],
+    { env: { ...process.env, AIDE_PREVIEW_DIR: where }, stdout: Bun.file(log), stderr: Bun.file(log) },
   );
-  return { code: res.exitCode, log: readFileSync(log, "utf-8") };
+  return { code: res.exitCode, log: readFileSync(log, "utf-8"), where };
 }
 
 describe("aide-preview serves one branch", () => {
@@ -112,8 +114,43 @@ describe("aide-preview serves one branch", () => {
     try {
       const result = runPreview(dir, port, "exit 3");
       expect(result.code).toBe(1);
-      expect(result.log).toContain("exited before anything answered");
+      expect(result.log).toContain("exited with code 3 before anything answered");
       expect(result.log).not.toContain("board up");
+    } finally {
+      cleanup();
+    }
+  });
+
+  // A preview that did not come up leaves nothing behind: its worktree
+  // held the branch checked out, and the next attempt on the same port
+  // was the only thing that ever removed it.
+  test("a command that exits leaves no worktree behind", async () => {
+    const { dir, cleanup } = checkout();
+    const port = await freePort();
+    try {
+      const result = runPreview(dir, port, "exit 3");
+      expect(readdirSync(result.where)).toEqual([]);
+      expect(git(dir, "worktree", "list").trim().split("\n")).toHaveLength(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("a command that never answers leaves no worktree behind either", async () => {
+    const { dir, cleanup } = checkout();
+    const port = await freePort();
+    try {
+      // A duration nothing else on the machine sleeps for, and a second
+      // command after it so the shell has to start `sleep` as a child
+      // rather than become it.
+      const result = runPreview(dir, port, "sleep 31.7; true", "2");
+      expect(result.code).toBe(1);
+      expect(result.log).toContain("nothing answered");
+      expect(readdirSync(result.where)).toEqual([]);
+      // What the command started goes with it: nothing is left to hold
+      // the port the next board is given.
+      await new Promise((r) => setTimeout(r, 300));
+      expect(Bun.spawnSync(["pgrep", "-f", "sleep 31.7"]).stdout.toString().trim()).toBe("");
     } finally {
       cleanup();
     }

@@ -92,6 +92,18 @@ if [ "$ADD_CODE" -ne 0 ]; then
   exit 1
 fi
 
+# From here the worktree is ours to take back on every way out but one:
+# a board that came up keeps it, and the watcher below removes it when
+# the served process ends. A command that failed or never answered
+# left it holding the branch until the next attempt on the same port.
+BOARD_UP=no
+remove_worktree() {
+  [ "$BOARD_UP" = yes ] && return 0
+  git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"
+  git -C "$ROOT" worktree prune >/dev/null 2>&1 || true
+}
+trap remove_worktree EXIT
+
 # A worktree carries TRACKED files only, so the gitignored paths the
 # project's own command needs — its dependencies, its local settings —
 # are linked in, the same list and the same precedence `aide-run-spec`
@@ -131,10 +143,12 @@ answered() {
 WAITED=0
 while [ "$WAITED" -lt "$TIMEOUT" ]; do
   if ! kill -0 "$SERVER" 2>/dev/null; then
-    echo "the command exited before anything answered on $BASE" >&2
+    wait "$SERVER" 2>/dev/null
+    echo "the command exited with code $? before anything answered on $BASE" >&2
     exit 1
   fi
   if answered; then
+    BOARD_UP=yes
     echo "board up: pid $SERVER, $BASE — serving $BRANCH"
     # The worktree outlives this script and goes when the served process
     # does — the same disowned watcher the round leaves behind. Nothing
@@ -150,5 +164,9 @@ while [ "$WAITED" -lt "$TIMEOUT" ]; do
   WAITED=$(( WAITED + 1 ))
 done
 echo "nothing answered on $BASE within ${TIMEOUT}s — is the command serving on \$PORT?" >&2
+# The shell the command runs in, and what it started: a dev server left
+# behind would hold the port the next board is given.
+pkill -TERM -P "$SERVER" 2>/dev/null
 kill "$SERVER" 2>/dev/null
+wait "$SERVER" 2>/dev/null
 exit 1
