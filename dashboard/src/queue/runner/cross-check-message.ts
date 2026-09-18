@@ -25,3 +25,12 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   return undefined;
 }
+
+/** The outcome as the failure's detail should see it. A `no-progress`
+ *  ending's own sentence says exactly what the board's message says, in
+ *  English, so it is dropped rather than kept behind a "(?)" that only
+ *  repeats the row. A red test run's sentence is kept: it carries the
+ *  failing lines. */
+export function withoutRestatedError<T extends { terminalReason?: string; error?: unknown }>(outcome: T): T {
+  return outcome.terminalReason === "no-progress" ? { ...outcome, error: undefined } : outcome;
+}
