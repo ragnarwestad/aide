@@ -29,6 +29,13 @@ specs_root=""; folder=""; file=""; result_file=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-write-spec --specs-root <path> --folder <NN-slug> --file <name>
+                   [--result-file <path>]   # content on stdin
+USAGE
+      exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --folder) folder="${2:-}"; shift 2 ;;
     --file) file="${2:-}"; shift 2 ;;

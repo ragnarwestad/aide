@@ -360,4 +360,10 @@ def test_archiving_removes_a_stale_held_back_section(script, project, specs):
     assert "Archive held back" not in text, text
 
 
+def test_help_flag_prints_usage_and_exits_zero(script):
+    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout
+
+
 # --- AC4: archive still refuses a spec that was never implemented ---------

@@ -125,3 +125,9 @@ def test_no_archive_directory_at_all_is_a_clean_no_op(script, tmp_path):
 def test_refuses_without_specs_root(script):
     proc = subprocess.run([str(script)], capture_output=True, text=True)
     assert proc.returncode == 2
+
+
+def test_help_flag_prints_usage_and_exits_zero(script):
+    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout
