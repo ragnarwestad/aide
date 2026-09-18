@@ -37,12 +37,13 @@ describe("a phone's second line is pips, then the state", () => {
     expect(DESKTOP).toContain('table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none; }');
   });
 
-  test("a phone lays the cell out as the caption line's own two columns", () => {
-    const columns = "grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2)) 1fr;";
+  test("a phone lays the cell out as the caption line's own three columns", () => {
+    const columns =
+      "grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2)) var(--state-w) calc(var(--sp-2) + var(--time-w));";
     // The caption line (action left, state right) and the shut row's
     // line (pips left, state right) share the first column's width, so
     // the state stays put when the fold opens.
-    expect(NARROW).toMatch(new RegExp(`tr\\.subrow\\[data-caption="1"\\] td\\[data-col="state"\\] > \\.actionslot \\{[^}]*${columns.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+    expect(NARROW).toMatch(new RegExp(`tr\\.subrow\\[data-caption="1"\\] td\\[data-col="state"\\] > \\.actionslot \\{[^}]*${columns.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\) var\\\(--state-w/, ")\\s+var\\(--state-w")}`));
     // The shut row's first column is the same sum, but gives way to a
     // long badge instead of pushing it past the screen's edge.
     const shut = "grid-template-columns: minmax(min-content, calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))) auto;";
@@ -71,5 +72,53 @@ describe("a phone's second line is pips, then the state", () => {
   test("an open row drops the whole line, not the badge alone", () => {
     expect(NARROW).toContain('table.list tr.spechead:has(.fold[aria-expanded="true"]) > td[data-col="state"] { display: none; }');
     expect(NARROW).not.toMatch(/aria-expanded="true"\]\) \.badgeslot \{ display: none/);
+  });
+});
+
+// Spec 496: the row's total on the caption line, in the Time column the
+// phase lines use. The figures are measured in a browser; what a unit
+// test can hold is that the rules stay where they are and stay phone-only.
+describe("a phone's caption line carries the total in the phase lines' Time column", () => {
+  const rule = (selector: string, css: string) =>
+    css.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
+
+  test("the total is placed in the grid's third column, on the button's own grid row", () => {
+    const own = rule('table.list tr.subrow[data-caption="1"] .actionslot > .headtime', NARROW);
+    expect(own).toContain("grid-column: 3");
+    expect(own).toContain("grid-row: 1");
+    expect(own).toContain("text-align: left");
+    expect(own).toContain("white-space: nowrap");
+  });
+
+  test("the state column is derived from what the Time column leaves the row", () => {
+    expect(NARROW).toContain("--time-w: 3.25rem;");
+    expect(NARROW).toMatch(/--state-w: min\(5\.25rem, max\(2\.5rem, calc\(100vw - [^;]*var\(--time-w\)\)\)\);/);
+  });
+
+  test("a phase line's state cell gives way to zero, and Time is a fixed, left-aligned box", () => {
+    const state = rule('table.list tr.subrow[data-step] td[data-col="state"]', NARROW);
+    expect(state).toContain("flex: 0 0 var(--state-w)");
+    expect(state).toContain("min-width: 0");
+    const time = rule('table.list tr.subrow [data-col="started"]', NARROW);
+    expect(time).toContain("flex: 0 0 var(--time-w)");
+    expect(time).toContain("width: var(--time-w)");
+    expect(time).toContain("text-align: left");
+  });
+
+  test("the caption line's state copy is trimmed to its column", () => {
+    const copy = rule('table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge', NARROW);
+    expect(copy).toContain("text-overflow: ellipsis");
+    expect(copy).toContain("overflow: hidden");
+  });
+
+  test("a desktop only hides the total; every other rule for it is in a phone block", () => {
+    expect(DESKTOP).toContain(
+      'table.list tr.subrow[data-caption="1"] .actionslot > :is(.headstate, .headtime) { display: none; }',
+    );
+    const desktopNames = DESKTOP.split("\n").filter((l) => l.includes(".headtime") || l.includes("--time-w"));
+    expect(desktopNames).toEqual([
+      'table.list tr.subrow[data-caption="1"] .actionslot > :is(.headstate, .headtime) { display: none; }',
+    ]);
+    expect(NARROW).toContain(".headtime");
   });
 });
