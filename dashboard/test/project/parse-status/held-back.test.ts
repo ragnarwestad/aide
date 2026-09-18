@@ -82,7 +82,7 @@ describe("roundGate", () => {
     expect(gate).toEqual({ ok: true });
   });
 
-  test("held back, one open id unchanged since the boundary: blockedOn names it", async () => {
+  test("held back, one open id unchanged and another changed: ok — one is enough", async () => {
     const { run } = fakeGit(boundaryAnswer);
     const status =
       "- **Round boundary:** 2026-09-01 (history before `abc1234` does not count)\n\n" +
@@ -92,6 +92,18 @@ describe("roundGate", () => {
       ]);
     const description = "- **AC-1:** first requirement\n- **AC-2:** second requirement, reworded\n";
     const gate = await roundGate(run, "/repo", status, description);
-    expect(gate).toEqual({ ok: false, blockedOn: "AC-1" });
+    expect(gate).toEqual({ ok: true });
+  });
+
+  test("held back, no open id changed and nothing added: refused", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const status =
+      "- **Round boundary:** 2026-09-01 (history before `abc1234` does not count)\n\n" +
+      acceptanceStatus([
+        "| AC-1: first requirement | ⬜ | |",
+        "| AC-2: second requirement, original wording | ⬜ | |",
+      ]);
+    const gate = await roundGate(run, "/repo", status, BOUNDARY_DESCRIPTION);
+    expect(gate).toEqual({ ok: false });
   });
 });

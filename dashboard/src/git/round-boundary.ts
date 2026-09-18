@@ -32,32 +32,35 @@ export async function acRowsAt(run: GitRunner, dir: string, sha: string): Promis
 }
 
 /** The current description's own AC-n rows — the other half of the
- *  comparison `firstUnchangedOpenCriterion` makes, read off content the
+ *  comparison `criteriaMovedOn` makes, read off content the
  *  caller already has in hand rather than a second git call. */
 export function acRowsFromText(descriptionText: string): Map<string, string> {
   return parseAcRows(descriptionText);
 }
 
-/** The first OPEN id (in ascending `AC-n` order) whose text is byte-
- *  identical to what it read at the round boundary — the one that
- *  blocks a new round (spec 471, AC-6). `null` when every open id is
- *  either new (absent from `boundaryRows`) or has changed text: the
- *  round may start.
+/** Whether the criteria have moved on since the round boundary: at
+ *  least one OPEN id reads differently from its text there, or is new —
+ *  absent from `boundaryRows` — or the description carries an id the
+ *  boundary did not have at all (added, with no status row yet). One is
+ *  enough: the other open criteria may be right as they stand, and a
+ *  rule that made every one of them change forced edits with no reason
+ *  behind them. `false` only when nothing a new round could act on has
+ *  changed — the same words would give the same result.
  *
  *  Silence — no boundary entry for an id — reads as "new", never as
  *  "unchanged": a criterion that did not exist at the boundary cannot
- *  have failed to change since it (2-analysis.md, Patterns — never
- *  read absence as agreement). */
-export function firstUnchangedOpenCriterion(
+ *  have failed to change since it. */
+export function criteriaMovedOn(
   currentRows: Map<string, string>,
   openIds: Iterable<string>,
   boundaryRows: Map<string, string>,
-): string | null {
-  const sorted = [...openIds].sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)));
-  for (const id of sorted) {
+): boolean {
+  for (const id of openIds) {
     const boundaryText = boundaryRows.get(id);
-    if (boundaryText === undefined) continue;
-    if (boundaryText === currentRows.get(id)) return id;
+    if (boundaryText === undefined || boundaryText !== currentRows.get(id)) return true;
   }
-  return null;
+  for (const id of currentRows.keys()) {
+    if (!boundaryRows.has(id)) return true;
+  }
+  return false;
 }

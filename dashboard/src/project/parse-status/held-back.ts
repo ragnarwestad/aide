@@ -8,7 +8,7 @@
 // archive, and it needs none of that.
 
 import type { GitRunner } from "../../git/branch-status.ts";
-import { acRowsAt, acRowsFromText, firstUnchangedOpenCriterion } from "../../git/round-boundary.ts";
+import { acRowsAt, acRowsFromText, criteriaMovedOn } from "../../git/round-boundary.ts";
 import { parseStatusChecks } from "./";
 
 // --- spec 108: an archive run that declined -----------------------------------
@@ -158,8 +158,9 @@ function openAcceptanceIds(statusText: string): Set<string> {
   return ids;
 }
 
-/** Whether a held-back spec's next Analyze/Implement round may start,
- *  and which criterion blocks it when it may not (spec 471, AC-6).
+/** Whether a held-back spec's next Analyze/Implement round may start:
+ *  once at least one open criterion is new or reworded since the round
+ *  that held it back (`criteriaMovedOn`).
  *
  *  `{ notHeldBack: true }` covers both "not held back on acceptance at
  *  all" and "held back, but never actually declined yet" (no boundary
@@ -174,7 +175,7 @@ export async function roundGate(
   dir: string,
   statusText: string,
   descriptionText: string,
-): Promise<{ ok: true } | { ok: false; blockedOn: string } | { notHeldBack: true }> {
+): Promise<{ ok: true } | { ok: false } | { notHeldBack: true }> {
   if (!acceptanceCriteriaUnticked(statusText)) return { notHeldBack: true };
   const boundarySha = latestRoundBoundary(statusText);
   if (!boundarySha) return { notHeldBack: true };
@@ -182,8 +183,7 @@ export async function roundGate(
   if (openIds.size === 0) return { ok: true };
   const currentRows = acRowsFromText(descriptionText);
   const boundaryRows = await acRowsAt(gitRun, dir, boundarySha);
-  const blockedOn = firstUnchangedOpenCriterion(currentRows, openIds, boundaryRows);
-  return blockedOn ? { ok: false, blockedOn } : { ok: true };
+  return criteriaMovedOn(currentRows, openIds, boundaryRows) ? { ok: true } : { ok: false };
 }
 
 /** Spec 190 — `content` with every `## Archive held back` section
