@@ -472,3 +472,47 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded_when_specs
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
+
+
+def test_an_analyze_that_commits_its_own_folder_is_not_a_scope_violation_when_specs_are_tracked_inside_the_project(
+    runner, fake_claude, tmp_path
+):
+    """The HEAD half of the same rule. A session that COMMITS its own
+    spec folder, where the specs live inside the project's repository,
+    moves the project's HEAD — and "HEAD moved" was read as "the project
+    changed", so every such analyze stopped on scope-violation with the
+    plan it had written sitting on the branch (paceup 02, 2026-09-18).
+    What moved is the step's own folder, which is the whole point of it."""
+    ws = tracked_specs_inside_project_workspace(tmp_path)
+    folder = ws["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + f'echo "analysis" >> "$PWD/specs/{folder}/2-analysis.md"\n'
+        + f'git add "specs/{folder}" && git -c user.email=a@b -c user.name=a commit -qm "analysis"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
+def test_an_analyze_that_commits_a_project_file_is_still_downgraded_when_specs_are_tracked_inside_the_project(
+    runner, fake_claude, tmp_path
+):
+    """The same commit carrying a file OUTSIDE the specs root is the
+    violation it always was: the exception is the step's own folder,
+    never "anything, as long as it was committed"."""
+    ws = tracked_specs_inside_project_workspace(tmp_path)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + 'git add new-code.txt && git -c user.email=a@b -c user.name=a commit -qm "code"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+    # It says what was committed, in those words — not "uncommitted".
+    assert "(committed: new-code.txt" in out["error"], out

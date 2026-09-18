@@ -134,11 +134,28 @@ if [ -n "$status_file" ]; then
     # (empty unless that is the layout) keeps the specs root out of this
     # check; a foreign spec folder under it is still caught, precisely,
     # by run-spec-specs-guard.sh right after this.
-    proj_changed="no"; proj_dirty_list=""
+    proj_changed="no"; proj_dirty_list=""; proj_committed_list=""
     proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
     if [ "$proj_head_now" != "${head_before[0]}" ]; then
-      proj_changed="yes"
-    else
+      # A moved HEAD is the same question the dirty tree below asks, one
+      # step later: a session that COMMITS its own spec folder, where the
+      # specs live inside the project, moves HEAD with nothing but its
+      # own folder in the commits. So the commits are asked what they
+      # touched, with the same excludes — and a HEAD the old one cannot
+      # be diffed against still counts as changed.
+      if [ ${#specs_root_excludes[@]} -gt 0 ] && [ -n "${head_before[0]}" ] && \
+         moved_files="$(git -C "$project_wt" diff --name-only "${head_before[0]}" "$proj_head_now" -- . \
+           ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
+           "${specs_root_excludes[@]}" 2>/dev/null)"; then
+        if [ -n "$moved_files" ]; then
+          proj_changed="yes"
+          proj_committed_list="$(printf '%s\n' "$moved_files" | head -5 | tr '\n' ' ')"
+        fi
+      else
+        proj_changed="yes"
+      fi
+    fi
+    if [ "$proj_changed" = "no" ]; then
       proj_dirty_list="$(git -C "$project_wt" status --porcelain -- . \
         ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
         ${specs_root_excludes[@]+"${specs_root_excludes[@]}"} 2>/dev/null | head -5 | tr '\n' ' ')"
@@ -190,7 +207,7 @@ if [ -n "$status_file" ]; then
       # Says WHICH check tripped, and for a dirty project tree, what was
       # dirty: a generic sentence sent a person to guess (2026-09-03).
       scope_what=""
-      [ "$proj_changed" = "yes" ] && scope_what="the project repo changed${proj_dirty_list:+ (uncommitted: $proj_dirty_list)}"
+      [ "$proj_changed" = "yes" ] && scope_what="the project repo changed${proj_committed_list:+ (committed: $proj_committed_list)}${proj_dirty_list:+ (uncommitted: $proj_dirty_list)}"
       [ "$rows_advanced" = "yes" ] && scope_what="${scope_what:+$scope_what; }a Phase-table row was ticked"
       [ "$claims_extra_step" = "yes" ] && scope_what="${scope_what:+$scope_what; }the Workflow-steps-completed line claims a step that did not run"
       error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press $step_button again for this step."
