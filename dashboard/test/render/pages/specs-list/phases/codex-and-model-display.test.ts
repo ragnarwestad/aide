@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderJobDetailPage, renderSpecsRows, type SpecTarget } from "../../../../../src/render";
-import { compactModelLabel } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
+import { compactModelLabel, compactModelLabelFull } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
 import { detail, NAV, openKeys } from "../../fixtures.ts";
 
 // Split out of listing-and-units.test.ts by theme.
@@ -101,7 +101,10 @@ describe("each phase line shows what that step ran on", () => {
   };
   const line = (html: string, step: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`, "s"))?.[0] ?? "";
-  const now = (l: string) => l.match(/class="aimodelnow"[^>]*>([^<]*)/)?.[1];
+  // Spec 488: the button's label carries two spans now (the short text
+  // and the always tool-prefixed full one) — this reads the short one,
+  // which is what this describe's own assertions are about.
+  const now = (l: string) => l.match(/class="aimodelshort">([^<]*)/)?.[1];
   test("the analyze line names Sonnet, the implement line names the codex model it ran on", () => {
     const html = renderSpecsRows(
       [job],
@@ -141,6 +144,30 @@ describe("compactModelLabel() names the phase's model (spec 480)", () => {
   });
 });
 
+// AC-1 (spec 488): the button's growing FULL text — always tool-prefixed,
+// unlike compactModelLabel()'s own collision-only rule.
+describe("compactModelLabelFull() always names the tool ahead of the model (spec 488)", () => {
+  test("tool-prefixed even when nothing else configured shares the model's name", () => {
+    const models = [{ name: "sonnet" }, { name: "gpt-fast", tool: "codex" as const }];
+    expect(compactModelLabelFull(models, { model: "sonnet", tool: "claude" })).toBe("Claude · sonnet");
+  });
+
+  test("the same tool-prefixed text a collision already forces on compactModelLabel()", () => {
+    const models = [
+      { name: "gpt-6", tool: "claude" as const },
+      { name: "gpt-6", tool: "codex" as const },
+    ];
+    expect(compactModelLabelFull(models, { model: "gpt-6", tool: "codex" })).toBe("Codex · gpt-6");
+    expect(compactModelLabelFull(models, { model: "gpt-6", tool: "codex" })).toBe(
+      compactModelLabel(models, { model: "gpt-6", tool: "codex" }),
+    );
+  });
+
+  test("empty when the phase is on nothing", () => {
+    expect(compactModelLabelFull([{ name: "sonnet" }], undefined)).toBe("");
+  });
+});
+
 // AC-2's own render case: two configured entries sharing one model name
 // (unreachable against today's real config schema, per 2-analysis.md's
 // "Codebase analysis" — proven here with a hand-built array instead).
@@ -162,6 +189,10 @@ describe("two configured entries share one model name (AC-2)", () => {
       Date.parse("2026-09-17T12:00:00Z"),
     );
     const line = html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">.*?<\/tr>/s)?.[0] ?? "";
-    expect(line).toMatch(/class="aimodelnow"[^>]*>Claude · gpt-6/);
+    // Both spans agree here: the collision already forces the tool
+    // prefix on the short one, which is what compactModelLabelFull()
+    // always does regardless (spec 488).
+    expect(line).toMatch(/class="aimodelshort">Claude · gpt-6/);
+    expect(line).toMatch(/class="aimodelfull">Claude · gpt-6/);
   });
 });

@@ -216,6 +216,10 @@ const STRUCTURE = [
   // are inert on a wide screen, where the two selects stand as they
   // always have.
   "phasefold", "aimodel", "aimodelopen", "aimodelnow", "aimodelpanel", "aimodelfield",
+  // spec 488: the button's own text, as two candidate spans — the bare
+  // model name and the always tool-prefixed form — with a media query
+  // deciding which one a phone-width screen shows.
+  "aimodelshort", "aimodelfull",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead

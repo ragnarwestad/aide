@@ -18,6 +18,7 @@ export {
   SHORT_TOOL_NAMES,
   TOOL_NAMES,
   compactModelLabel,
+  compactModelLabelFull,
   defaultModelForTool,
   phaseAiModel,
   resolveChosenModel,

@@ -17,13 +17,14 @@ import {
 } from "../../src/render";
 import { stepResults } from "../../src/render/pages/job-page";
 
-/** The one narrow-width block, brace-matched rather than regex-guessed:
+/** One `@media` block's own text, brace-matched rather than regex-guessed:
  *  it holds nested rules, so `[^}]*` would stop at the first one. Every
- *  claim below about "at phone width" is a claim about THIS text — a
- *  rule that drifted out of the block would still be in `CSS` and would
- *  still apply at every width, which is the failure worth catching. */
-function narrowBlock(css: string): string {
-  const opening = "@media (max-width: 40rem) {";
+ *  claim below about "at phone width" (or, since spec 488, about one of
+ *  the two narrower bands inside it) is a claim about THIS text — a rule
+ *  that drifted out of the block would still be in `CSS` and would still
+ *  apply at every width the block's own condition does not gate, which
+ *  is the failure worth catching. */
+function mediaBlock(css: string, opening: string): string {
   const at = css.indexOf(opening);
   expect(at).toBeGreaterThan(-1);
   let depth = 0;
@@ -31,10 +32,14 @@ function narrowBlock(css: string): string {
     if (css[i] === "{") depth++;
     else if (css[i] === "}" && --depth === 0) return css.slice(at + opening.length, i);
   }
-  throw new Error("the narrow-width media query is never closed");
+  throw new Error(`the media query starting "${opening}" is never closed`);
 }
 
-const NARROW = narrowBlock(CSS);
+const NARROW = mediaBlock(CSS, "@media (max-width: 40rem) {");
+// Spec 488: the two narrower bands the compact AI/model button's own
+// toggle lives in now, below the outer 40rem block above.
+const BELOW_600 = mediaBlock(CSS, "@media (max-width: 37.5rem) {");
+const GROWING_BAND = mediaBlock(CSS, "@media (min-width: 27rem) and (max-width: 37.5rem) {");
 
 const target = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
 
@@ -229,10 +234,13 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // into other rows' columns (the first attempt's bug). The two cells
   // dissolve: .modelcell and its .row become display:contents, so the
   // tick box and the .aimodel pair are flex items of the row itself,
-  // and only .aimodel's own visibility follows the checkbox.
+  // and only .aimodel's own visibility follows the checkbox. Spec 488:
+  // that dissolving is now scoped to the 37.5rem (600px) band, not the
+  // whole 40rem (640px) one — above 600px the two selects stand as they
+  // always have, see "the compact button grows..." below.
   test("every phase line is one flex row, open or shut", () => {
     expect(NARROW).toMatch(/table\.list tr\.subrow \{ display: flex;/);
-    expect(NARROW.replace(/\s+/g, " ")).toContain(
+    expect(BELOW_600.replace(/\s+/g, " ")).toContain(
       "table.list tr.subrow .modelcell, table.list tr.subrow .modelcell > .row " +
         "{ display: contents; }",
     );
@@ -242,24 +250,25 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // a narrow screen draws ONE box saying what the line is on and lays
   // the pair over it when tapped. Nothing is hidden behind a chevron —
   // that control is gone — and nothing is a second copy: the same two
-  // selects are drawn once, for both widths.
+  // selects are drawn once, for both widths. Spec 488: this box's own
+  // rules live in the 600px band now, not the whole 640px one.
   test("the pair is one box on a narrow screen, and a panel over it", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }");
-    expect(NARROW).toContain("table.list tr.subrow .aimodelnow { width: var(--aimodel-w);");
-    expect(NARROW).toContain("table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }");
-    expect(NARROW).not.toContain("foldphase");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodelnow { width: var(--aimodel-w);");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }");
+    expect(BELOW_600).not.toContain("foldphase");
   });
 
   // Over the box, not under it: the panel is placed on the box's own
   // corner, so it covers what was tapped instead of pushing the phase
   // lines below it down the page.
   test("the panel lies on top of the box it opens from", () => {
-    expect(NARROW).toMatch(/\.aimodelpanel \{[^}]*position: absolute;[^}]*top: 0; left: 0;/);
+    expect(BELOW_600).toMatch(/\.aimodelpanel \{[^}]*position: absolute;[^}]*top: 0; left: 0;/);
   });
 
   test("each select in the panel is under a word of its own", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodelfield { display: flex; flex-direction: column;");
-    expect(NARROW).toContain("table.list tr.subrow .aimodelfield > span { display: block;");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodelfield { display: flex; flex-direction: column;");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodelfield > span { display: block;");
     const html = rows({ open: "aide/155-x" }, { modelChoices: [{ name: "opus" }] });
     expect(html).toContain('<label class="aimodelfield"><span>AI</span>');
     expect(html).toContain('<label class="aimodelfield"><span>Model</span>');
@@ -267,13 +276,15 @@ describe("the phase lines stop being pinned columns at phone width", () => {
 
   // The box says what THIS line is on, never a fixed word: the model
   // the select is actually set to, bare, with no tool prefix — nothing
-  // configured shares "opus" here (AC-1, spec 480).
+  // configured shares "opus" here (AC-1, spec 480). Spec 488: the label
+  // now carries two spans (the bare SHORT text and the always
+  // tool-prefixed FULL one), so this checks the short one specifically.
   test("the box names the line's own model", () => {
     const html = rows(
       { open: "aide/155-x" },
       { modelChoices: [{ name: "opus" }, { name: "codex-luna",  tool: "codex" }] },
     );
-    expect(html).toContain(">opus</label>");
+    expect(html).toContain('<span class="aimodelshort">opus</span>');
   });
 
   // A wide screen draws the two selects exactly as it always has: the
@@ -293,11 +304,13 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the phase name's cell gives its right padding back", () => {
     expect(NARROW).toContain(".phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }");
     // Wide enough for the longest phase name in either language:
-    // "implementering" is 98px in this face. The compact button shows a
-    // bare model name, and 3.875rem holds "Sonnet". An English page takes
-    // the name column down to what "Implement" needs.
+    // "implementering" is 98px in this face. An English page takes the
+    // name column down to what "Implement" needs. --aimodel-w is now
+    // three-tiered (spec 488): this outer block's own value is the
+    // 600-640px band's, narrowed again by the two `@media` blocks at the
+    // end of the file for the two bands below it (see next describe).
     expect(NARROW).toMatch(
-      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3\.875rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
+      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: [0-9.]+rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
     );
     expect(NARROW).toContain('html[lang="en"] table.list { --phase-w: 4.5rem; }');
     // The left one stays — it is the indent under the spec's own name.
@@ -327,13 +340,13 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   });
 
   test("the box follows the status, and is not pushed to the line's end", () => {
-    expect(NARROW).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
+    expect(BELOW_600).not.toMatch(/tr\.subrow \.aimodel \{[^}]*margin-left: auto/);
   });
 
   // Inside the panel each select has the panel's own width, not a
   // width of its own: the panel is the box that was sized.
   test("the selects fill the panel", () => {
-    expect(NARROW).toContain("table.list tr.subrow .aimodelpanel select { width: 100%;");
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodelpanel select { width: 100%;");
   });
 
   // Stated in the file, so the next person changing a width here knows
@@ -350,7 +363,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // 50/50 was asked for.
   test("the width the phase lines reserve on a desktop is given back", () => {
     expect(NARROW).not.toContain("toolcell");
-    expect(NARROW).toContain(
+    expect(BELOW_600).toContain(
       'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }',
     );
   });
@@ -361,6 +374,63 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the desktop rule is still declared outside the media query", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
     expect(desktop).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }");
+  });
+});
+
+// --- spec 488: the AI/Model button grows between 400px and 600px -----------
+
+describe("the compact button grows with the width (spec 488)", () => {
+  // AC-6: below 400px the button still shows one span's worth of text,
+  // exactly as before spec 488 — the bare model name, never the
+  // tool-prefixed form.
+  test("below 400px the button still shows the short text, and hides the full one", () => {
+    expect(BELOW_600).toContain("table.list { --aimodel-w: 3.875rem; }");
+    expect(BELOW_600).toMatch(/\.aimodelfull \{ display: none; \}/);
+  });
+
+  // AC-1/AC-2: the 400-600px band widens the button and shows the
+  // tool-prefixed FULL text instead of the bare one.
+  test("400-600px widens the button and shows the tool-prefixed text", () => {
+    expect(GROWING_BAND).toMatch(/table\.list \{ --aimodel-w: [0-9.]+rem; \}/);
+    expect(GROWING_BAND).toContain("table.list tr.subrow .aimodelshort { display: none; }");
+    expect(GROWING_BAND).toContain("table.list tr.subrow .aimodelfull { display: block; }");
+    // Wider than the sub-400px default, or there is nothing to grow into.
+    const belowWidth = Number(/--aimodel-w: ([0-9.]+)rem/.exec(BELOW_600)![1]);
+    const growingWidth = Number(/--aimodel-w: ([0-9.]+)rem/.exec(GROWING_BAND)![1]);
+    expect(growingWidth).toBeGreaterThan(belowWidth);
+  });
+
+  // Both candidate spans carry their own ellipsis fallback (plan-review
+  // finding, 3-solution.md): the parent's own overflow:hidden does not
+  // reliably clip a block-level child's text, only a direct text node.
+  test("each candidate span clips its own overflow", () => {
+    expect(BELOW_600).toMatch(
+      /table\.list tr\.subrow \.aimodelshort,\s*table\.list tr\.subrow \.aimodelfull \{[^}]*overflow: hidden;[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;[^}]*min-width: 0;/,
+    );
+  });
+
+  // AC-3: from 600 to 640px the button/panel toggle, the caption's
+  // AI/Model merge and the selects' own width un-cap all stop applying —
+  // list.css's own unconditional rules are what is left standing, the
+  // same ones a screen above 640px already relies on.
+  test("the button/panel toggle and the caption merge live only below 600px", () => {
+    expect(BELOW_600).toContain("table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }");
+    expect(BELOW_600).toMatch(/\[data-cap="ai"\]::after \{ content: "\/Model"; \}/);
+    expect(BELOW_600).toMatch(/\[data-cap="model"\] \{ display: none; \}/);
+    // Neither rule reaches the outer 40rem block on its own any more —
+    // only the narrower 37.5rem one, captured separately above.
+    expect(NARROW).not.toContain("table.list tr.subrow .aimodel { display: block;");
+  });
+
+  // [data-cap="model"] needs the same `order` as [data-cap="ai"] beside
+  // it (a flex `order` tie falls back to DOM order, which already reads
+  // ai-then-model) or, the moment it stops being hidden at 600px, it
+  // would sort ahead of the whole caption line instead of between AI and
+  // the tick's own "Select" caption.
+  test("the model caption is ready to take its place in the caption line's order", () => {
+    expect(NARROW).toContain(
+      'table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { order: 4; }',
+    );
   });
 });
 

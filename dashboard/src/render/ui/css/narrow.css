@@ -5,11 +5,20 @@
    comes to about 285 of them. The number is what the next person adding
    a width here measures against; the breakpoint itself is the 40rem
    below and does not follow it. */
-/* Every rule the phone layout needs is in this one block, and each one
-   repeats the selector of the desktop rule it overrides rather than
-   writing a shorter one — the override wins by coming later, and a
+/* Almost every rule the phone layout needs is in this one block, and
+   each one repeats the selector of the desktop rule it overrides rather
+   than writing a shorter one — the override wins by coming later, and a
    selector with one class more or fewer would change the specificity
-   and quietly stop applying. */
+   and quietly stop applying. Two narrower `@media` blocks, at the end of
+   this file, are the one exception (spec 488, next paragraph) — they
+   still follow the same convention, one level deeper. */
+/* Spec 488: the compact AI/model button grows between 400px (25rem) and
+   600px (37.5rem), and from 600px to this block's own 640px the AI and
+   model are the two ordinary selects again, side by side, exactly as
+   above 640px — the two `@media` blocks at the end of this file narrow
+   today's single 400-640px cutoff for THAT one toggle down to 600px, and
+   widen `--aimodel-w` for the growing band in between, without touching
+   anything else this block already does across the whole phone range. */
 
 /* The header's three standalone controls come into the "…" menu one at
    a time as the page narrows — unit, then language, then theme — at the
@@ -68,7 +77,14 @@
      ellipsis rather than wrapping Time onto a second line. English phase
      names are short ("Implement", 60px), so an English page gives the
      name column back the room the Norwegian name needs. */
-  table.list { --phase-w: 5.75rem; --aimodel-w: 3.875rem; --tick-w: 31px; --state-w: 5.25rem; }
+  /* --aimodel-w here is the 600-640px band's own value (spec 488): the
+     two selects' combined footprint at their desktop width (8rem each,
+     list.css's own select[name^="model."]/[data-cap="ai"] caps) plus the
+     row's own gap between them (`--sp-2`) — measured with a headless
+     browser at 620px, the same way every other width below is. Below
+     600px the two `@media` blocks at the end of this file override it
+     down again, each narrower one winning by coming later. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --state-w: 5.25rem; }
   html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
@@ -397,32 +413,11 @@
      so it is 12px of nothing. The left padding stays: it is what makes
      the phase lines read as indented under the spec's own name. */
   table.list tr.subrow .phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }
-  table.list tr.subrow .modelcell,
-  table.list tr.subrow .modelcell > .row { display: contents; }
-  /* One box instead of two selects: a 360px phone has room for one of
-     them, not two. It says what the line is ON — "Claude/sonnet" — in
-     8rem less 10px, and a tap lays the two selects OVER it, under its own
-     word. The panel is positioned on the box itself (top/left 0), so it
-     covers what was tapped rather than pushing the line below it down.
-     No auto margin anywhere: free space at the line's end would stand
-     between the status and the box, as wide as the status text left. */
-  table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }
-    table.list tr.subrow .aimodelnow { width: var(--aimodel-w); box-sizing: border-box;
-    height: 28px; padding: 0 var(--sp-2); border: 1px solid var(--line-strong);
-    border-radius: var(--r-s); background: var(--surface); color: var(--text);
-    font: var(--fs-s)/var(--lh) var(--mono); display: flex; align-items: center;
-    white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis; cursor: pointer; }
-    table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
-    background: var(--surface-2); cursor: default; }
-    table.list tr.subrow .aimodelpanel { display: none; position: absolute; top: 0; left: 0;
-    z-index: 20; flex-direction: column; gap: var(--sp-2); min-width: 13rem;
-    padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong);
-    border-radius: var(--r); box-shadow: var(--overlay-shadow); }
-    table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }
-    table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
-    table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
-    table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
+  /* The compact button/panel toggle, the caption's AI/Model merge and
+     the selects' own width un-cap all move to the two `@media` blocks at
+     the end of this file (spec 488) — they are the one thing that now
+     differs between the 400-600px and 600-640px bands, everything else
+     here stays exactly as it reads. */
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
@@ -463,11 +458,17 @@
   table.list tr.spechead:has(.fold[aria-expanded="true"]) > td[data-col="state"] { display: none; }
   table.list tr.subrow[data-caption="1"] > .phasecell { order: 3; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
+  /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM
+     order, and the caption line writes "ai" ahead of "model" — this only
+     matters once [data-cap="model"] stops being hidden, at 600-640px
+     (the block at the end of this file), so it never shows up out of
+     sequence, ahead of "ai" or the whole line, the moment it does. */
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { order: 4; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
-  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] {
-    flex: none; width: var(--aimodel-w); min-width: 0; max-width: none; }
-  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"]::after { content: "/Model"; }
-  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { display: none; }
+  /* The AI/Model merge into one caption, and the two selects' own width
+     un-cap, are the 400-600px band's own doing now (spec 488, end of
+     this file) — the tick's own caption keeps its --tick-w width at
+     every step, unlike the AI one beside it. */
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
     flex: none; width: var(--tick-w); min-width: 0; max-width: none; margin-left: 0; text-align: center; }
 
@@ -479,13 +480,6 @@
      there is no second column inside the cell to line a caption up
      with, and a column that closes when its control is absent is
      better than a scrollbar. */
-  /* The desktop's own caps on the two selects (8rem each, plus 100px on
-     the model) are set at this same specificity — attribute selector
-     plus element type — so they are undone here at it, or they win over
-     the widths above. */
-  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
-  table.list tr.subrow .modelcell > .row > [data-cap],
-  table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
   /* And the box's own desktop width, set so the checkbox centres under
      the "Select" caption. There is no caption row at this width to
      centre under, and the floor would be one more thing holding the
@@ -534,4 +528,94 @@
     .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
+}
+
+/* --- the compact AI/model button, 640px down to 400px (spec 488) ------ */
+/* Everything the button/panel/select toggle needs, moved out of the
+   block above: below THIS block's own 600px (37.5rem), the two ordinary
+   selects do not fit (spec 155's own reasoning still holds), so one box
+   says what the line is ON and a tap lays the pair over it — exactly as
+   the whole 400-640px band drew it before spec 488. From 600px up this
+   block stops applying, and list.css's own unconditional rules
+   (`.aimodelopen, .aimodelnow { display: none; }` and
+   `.aimodelpanel, .aimodelfield { display: contents; }`) are the only
+   thing left standing, which is what puts the two selects back side by
+   side, exactly as above 640px — AC-3 is this cutoff moving, not a new
+   rule of its own. */
+@media (max-width: 37.5rem) {
+  /* The sub-400px default (unchanged, spec 480): 3.875rem holds "Sonnet"
+     bare. The band below, 400-600px, overrides it wider again. */
+  table.list { --aimodel-w: 3.875rem; }
+  table.list tr.subrow .modelcell,
+  table.list tr.subrow .modelcell > .row { display: contents; }
+  /* One box instead of two selects: a 360px phone has room for one of
+     them, not two. It says what the line is ON — "Claude/sonnet" — in
+     8rem less 10px, and a tap lays the two selects OVER it, under its own
+     word. The panel is positioned on the box itself (top/left 0), so it
+     covers what was tapped rather than pushing the line below it down.
+     No auto margin anywhere: free space at the line's end would stand
+     between the status and the box, as wide as the status text left. */
+  table.list tr.subrow .aimodel { display: block; flex: 0 0 var(--aimodel-w); }
+    table.list tr.subrow .aimodelnow { width: var(--aimodel-w); box-sizing: border-box;
+    height: 28px; padding: 0 var(--sp-2); border: 1px solid var(--line-strong);
+    border-radius: var(--r-s); background: var(--surface); color: var(--text);
+    font: var(--fs-s)/var(--lh) var(--mono); display: flex; align-items: center;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: pointer; }
+    table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
+    background: var(--surface-2); cursor: default; }
+  /* Two candidate strings live in the button at once (AC-1/AC-2); which
+     one shows is this band's own choice, below, and the 400-600px block
+     narrows it again. Each gets its own overflow handling — the parent's
+     `overflow: hidden` above does not reliably clip a block-level
+     child's own text, only a direct text node — or an edge-case-long
+     combination would run past the button's edge instead of trimming. */
+  table.list tr.subrow .aimodelshort,
+  table.list tr.subrow .aimodelfull {
+    display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  table.list tr.subrow .aimodelfull { display: none; }
+    table.list tr.subrow .aimodelpanel { display: none; position: absolute; top: 0; left: 0;
+    z-index: 20; flex-direction: column; gap: var(--sp-2); min-width: 13rem;
+    padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: var(--r); box-shadow: var(--overlay-shadow); }
+    table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }
+    table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
+    table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
+    table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
+
+  /* The caption line's own AI/Model merge (spec 155): one word, "AI",
+     heads the button's whole width, since the button is one control for
+     both — undone by list.css's own separate 8rem caps the moment this
+     block stops applying. */
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] {
+    flex: none; width: var(--aimodel-w); min-width: 0; max-width: none; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"]::after { content: "/Model"; }
+  table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { display: none; }
+
+  /* The desktop's own caps on the two selects (8rem each) are set at
+     this same specificity — attribute selector plus element type — so
+     they are undone here, or they win over the button's own width. */
+  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
+  table.list tr.subrow .modelcell > .row > [data-cap="ai"],
+  table.list tr.subrow .modelcell > .row > [data-cap="model"],
+  table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
+}
+
+/* The growing step (AC-1/AC-2, spec 488): once there is enough of the
+   line left to widen the button, it shows the tool ahead of the model
+   ("Claude · Sonnet") instead of the model alone. Measured with a
+   headless browser, walking pixel by pixel with this project's own
+   configured tool/model names (both a single-tool and a two-tool
+   fixture): at 8rem, the button wraps Time onto a second line up to
+   412-416px and fits cleanly from 413-417px on — close enough to the
+   400px (25rem) start of this whole band that ONE step, from 400px,
+   was not safe, contrary to this file's first guess. 27rem (432px) is
+   the inner cutoff instead, with room under that measured edge; below
+   it AC-2 applies (the pair does not fit yet, so the button stays the
+   sub-400px default, unchanged) and this block does not apply at all. */
+@media (min-width: 27rem) and (max-width: 37.5rem) {
+  table.list { --aimodel-w: 8rem; }
+  table.list tr.subrow .aimodelshort { display: none; }
+  table.list tr.subrow .aimodelfull { display: block; }
 }

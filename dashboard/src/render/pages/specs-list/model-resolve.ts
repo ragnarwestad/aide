@@ -176,3 +176,17 @@ export function compactModelLabel(
   const collides = models.filter((m) => m.name === on.model).length > 1;
   return collides ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}` : on.model;
 }
+
+/** The FULL text the growing button shows once there is room for it
+ *  (AC-1, spec 488): always tool-prefixed, unlike `compactModelLabel()`'s
+ *  own collision-only rule. Identical to `compactModelLabel()`'s own
+ *  output whenever a collision already forces the prefix there. Mirrored
+ *  client-side by `refreshAiModelBox()` (`specs-client/ai-sync.ts`), the
+ *  same hand-paired arrangement `compactModelLabel()` itself is in. */
+export function compactModelLabelFull(
+  _models: NonNullable<SpecsPageOptions["modelChoices"]>,
+  on: { model: string; tool: string } | undefined,
+): string {
+  if (!on) return "";
+  return `${SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}`;
+}
