@@ -114,8 +114,11 @@ with the tests and assertions that pin all of them.
   archive started in that window brings its branch up to a main the
   merge has not reached yet. An analyze or implement landing moves the
   specs repository alone and holds nothing — `landStepBranch` leaves the
-  code root out even when the run's own catch-up merge moved it, unless
-  the specs live inside that root.
+  code root out even when the run's own catch-up merge moved it. Where
+  the specs live inside that root, an analyze, reopen, reset or close
+  landing copies the spec's own folder onto main and nothing else of the
+  branch (`landSpecFolderOnly`, `git/spec-folder-landing.ts`, chosen in
+  `handed-to-merge.ts`): code reaches main through `archive` alone.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the
@@ -187,7 +190,8 @@ unticked` gates: Close is legal from every phase Archive would refuse.
   `mergeBranchIntoDefault` — steps 1, 7 and 8 of that function alone, no
   merge, no gate, no push. The specs root still merges normally, carrying
   the folder move and the `**Closed:**` stamp into the specs repo's own
-  history.
+  history. Specs inside the code root have no specs root of their own:
+  there the folder is copied onto main first, then the branch deleted.
 - **A discarded root reports and installs nothing.** `RepoMergeResult.discarded`
   is what tells `landBranch`'s per-repo success branch a root was deleted
   rather than merged — the merge-events report and `installAfterMerge`
