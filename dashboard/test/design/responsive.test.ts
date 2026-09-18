@@ -293,12 +293,13 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the phase name's cell gives its right padding back", () => {
     expect(NARROW).toContain(".phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }");
     // Wide enough for the longest phase name in either language:
-    // "implementering" is 98px in this face. --aimodel-w narrowed to
-    // 3rem with spec 480 — the compact button shows a bare model name
-    // now, not "Tool/model", and the room freed goes to Time (AC-5).
+    // "implementering" is 98px in this face. The compact button shows a
+    // bare model name, and 3.875rem holds "Sonnet". An English page takes
+    // the name column down to what "Implement" needs.
     expect(NARROW).toMatch(
-      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
+      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: 3\.875rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
     );
+    expect(NARROW).toContain('html[lang="en"] table.list { --phase-w: 4.5rem; }');
     // The left one stays — it is the indent under the spec's own name.
     expect(NARROW).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });
@@ -310,7 +311,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // `.badge` at all, so a rule scoped to the badge alone would miss it).
   test("the phase line's own state cell is a fixed width, badge or dash alike", () => {
     expect(NARROW).toContain(
-      'table.list tr.subrow[data-step] td[data-col="state"] {\n    flex: 0 0 var(--state-w); width: var(--state-w);',
+      'table.list tr.subrow[data-step] td[data-col="state"] {\n    flex: 0 1 var(--state-w); width: var(--state-w); min-width: 3rem;',
     );
     // The badge inside it still gives way with an ellipsis, not a hard
     // clip with no indicator — its full text stays reachable via title

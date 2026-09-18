@@ -60,7 +60,16 @@
      or a not-yet-run phase's bare dash, neither reserving the other's
      width. VALUE MEASURED against a real/headless browser (Round 2
      Implementation plan Step 1), the same way --aimodel-w's was. */
-  table.list { --phase-w: 5.75rem; --aimodel-w: 3rem; --tick-w: 31px; --state-w: 3.5rem; }
+  /* Measured at 360, 390 and 430px with a headless browser: 3.875rem
+     holds "Sonnet" in the model button, and 5.25rem holds "Running (3)"
+     in the state column. Fixed, so the columns stay where they are as a
+     screen widens and the spare room sits at the end of the line; the
+     state column alone gives way on a 360px screen, trimmed with an
+     ellipsis rather than wrapping Time onto a second line. English phase
+     names are short ("Implement", 60px), so an English page gives the
+     name column back the room the Norwegian name needs. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: 3.875rem; --tick-w: 31px; --state-w: 5.25rem; }
+  html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
@@ -79,7 +88,7 @@
      this selector is more specific (spec 480), but neither of the other
      two declarations here touches `display`, and a property no rule
      here sets is a property that rule still decides. */
-  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 auto; padding-left: 0; }
+  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 auto; padding-left: 0; padding-right: var(--sp-3); }
 
 
   /* The spec LIST leaves table layout entirely at this width — found
@@ -241,10 +250,22 @@
      — including a not-yet-run phase, which carries no `.badge` at all
      (`cell-helpers.ts`'s own dash case) and so needed a rule on the CELL
      itself, not only on `.badge` above. */
+  /* Left-aligned, where desktop centres: the spec's own state above the
+     phases starts at this column's left edge (the caption line's grid,
+     below), and a badge centred in a column that wide sat off to the
+     right of it. */
   table.list tr.subrow[data-step] td[data-col="state"] {
-    flex: 0 0 var(--state-w); width: var(--state-w); box-sizing: border-box;
-    overflow: hidden; white-space: nowrap;
+    flex: 0 1 var(--state-w); width: var(--state-w); min-width: 3rem; box-sizing: border-box;
+    overflow: hidden; white-space: nowrap; text-align: left;
   }
+  /* The last phase line's air belongs to the ROW on a phone: given to
+     every cell (list.css), it made the name's cell taller than the
+     button beside it, and the centred line put "Archive" above the
+     rest of its own line. */
+  table.list tr.subrow:last-child > td,
+  table.list tr.subrow:has(+ tr.spechead) > td { padding-bottom: 2px; }
+  table.list tr.subrow:last-child,
+  table.list tr.subrow:has(+ tr.spechead) { padding-bottom: var(--sp-3); }
   /* The badge's own text still needs to give way inside that fixed box —
      `min-width: 0` above lets it shrink, but with no cap it would keep
      its full content width and force the CELL's own `overflow: hidden`
