@@ -37,6 +37,7 @@ import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from
 import { providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool } from "../steps.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
+import { endUntickedArchive } from "./unticked-archive.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -100,8 +101,9 @@ export class Runner {
    *  `notAnalyzed` is `blocked`'s sibling (spec 344): a job id SET, not
    *  a Map, since the reason it names carries no per-job detail — every
    *  job in it gets the identical fixed sentence, unlike a dependency's
-   *  own folder name. */
-  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>): void {
+   *  own folder name. `acceptanceOpen` names the queued archives
+   *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`). */
+  tick(blocked?: Map<string, string>, notAnalyzed?: Set<string>, acceptanceOpen?: Set<string>): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -127,6 +129,12 @@ export class Runner {
     // questions, and fast-forwarded once at the end in well under a
     // second — nothing a run's own start can be caught by. So the hold
     // that existed for it is gone, and the board runs its six at once.
+    // Ended on the spot with the refusal it would get, taking no slot,
+    // rather than held behind another archive with two reasons on one
+    // row. Never started later by a tick: a person presses Archive.
+    for (const job of this.o.store.list()) {
+      if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id)) endUntickedArchive(this.o.store, job, this.o.now());
+    }
     // Quick steps before slow ones, oldest first within each group
     // (REQ-1); list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
@@ -201,15 +209,6 @@ export class Runner {
         hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specNumber(dependency) } });
         continue;
       }
-      // An `archive` whose acceptance rows are not all ticked is NOT
-      // held here: it starts, and `aide-archive-spec`'s own pre-check
-      // refuses it before any model is spawned, so the job ends with
-      // the reason on its row and a person presses Archive once they
-      // have ticked. Held here instead, the same row meant two
-      // different things — sometimes a tick started the archive by
-      // itself, sometimes nothing did, and which one was true depended
-      // on whether the hold had been able to see `implement` as
-      // finished at the moment it looked.
       this.startOne(job);
     }
     this.clearStaleHolds(held);

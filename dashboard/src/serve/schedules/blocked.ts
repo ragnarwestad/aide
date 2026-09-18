@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { discoverProjects } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { parseStatus } from "../../project/parse-status";
+import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import type { ScheduleContext } from "./";
 
@@ -145,6 +145,28 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze")) blocked.add(job.id);
   }
   return blocked;
+}
+
+/** Which queued `archive` jobs `aide-archive-spec` would only refuse,
+ *  because the spec's acceptance rows are not all ticked. Only on a
+ *  branch answer read since the last tick: the Checks tab ticks the
+ *  BRANCH copy, so an unread or stale one is left to the script's own
+ *  pre-check rather than judged off a disk copy archive has not
+ *  updated yet. */
+export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
+  const open = new Set<string>();
+  if (!ctx.projectRoot) return open;
+  const waiting = ctx.queue.list().filter((job) => job.state === "queued" && job.steps[job.stepIndex] === "archive");
+  if (waiting.length === 0) return open;
+  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  for (const job of waiting) {
+    const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    if (!spec) continue;
+    const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
+    if (peek.checkedAt === null || peek.stale) continue;
+    if (acceptanceStillOpen(peek.steps?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) open.add(job.id);
+  }
+  return open;
 }
 
 /** Which workflow steps this spec has actually completed.

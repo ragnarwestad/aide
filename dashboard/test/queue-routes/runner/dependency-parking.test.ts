@@ -419,11 +419,11 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["archive"] }),
       });
 
-    // It is NOT parked here any more: the step starts, and
-    // `aide-archive-spec`'s own pre-check refuses it without spending a
-    // model, so the job ends with the reason on its row and a person
-    // presses Archive once the rows are ticked.
-    test("the step starts rather than being parked for the tick", async () => {
+    // Not parked for the tick, and not started either: the runner ends
+    // it with the refusal `aide-archive-spec`'s own pre-check would have
+    // given (490, 2026-09-18), so the row carries one reason and a
+    // person presses Archive once the rows are ticked.
+    test("the job ends with the acceptance refusal, and nothing is started", async () => {
       const dir = own("aide-queue-unticked-acceptance-");
       const { bin, argvFile } = stub(dir);
       const paths = rootWithOpenRow(dir);
@@ -438,7 +438,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         },
       });
       expect((await queueArchive(base)).status).toBe(200);
-      expect(await spawned(argvFile)).toBe(true);
+      await settle();
+      expect(existsSync(argvFile)).toBe(false);
+      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+        jobs: { state: string; results: { terminalReason: string }[] }[];
+      };
+      expect(listed.jobs[0].state).toBe("done");
+      expect(listed.jobs[0].results.at(-1)?.terminalReason).toBe("acceptance-criteria-unticked");
     });
   });
 
