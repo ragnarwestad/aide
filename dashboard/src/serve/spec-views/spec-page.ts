@@ -183,7 +183,7 @@ export async function specPageView(
   // Spec 388, REQ-1: "a branch that carries code" is read off the same
   // source `landArchivedSpec` already reads (`branchesFor`) — a spec
   // with no implement step yet, or one already archived, has nothing
-  // there. `roundAvailable` is a capability check on the checkout the
+  // there. `previewAvailable` is a capability check on the checkout the
   // round would actually run FROM, never a hardcoded project name.
   //
   // This answers "may a NEW board be started" only — spec 425, REQ-1:
@@ -196,7 +196,7 @@ export async function specPageView(
   // question into this one.
   const testServerCapable =
     !ref?.archived &&
-    ctx.testServers.roundAvailable(project) &&
+    ctx.testServers.previewAvailable(project) &&
     ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.testServers.aideCheckout(project));
   const testServerEntry = ctx.testServers.store.get(project, specFolder)
     ? refreshTestServerStatus(ctx.testServers, project, specFolder)

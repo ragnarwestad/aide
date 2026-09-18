@@ -36,7 +36,7 @@ export async function specPageRoutes(
       const ref = ctx.specRef(project!, specFolder!);
       const capable =
         !ref?.archived &&
-        ctx.testServers.roundAvailable(project!) &&
+        ctx.testServers.previewAvailable(project!) &&
         ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.testServers.aideCheckout(project!));
       // A board already up is where the reader wanted to go: straight
       // there, in the tab the link opened. REQ-3 asks for the board's

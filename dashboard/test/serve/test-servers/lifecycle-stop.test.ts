@@ -32,8 +32,11 @@ function makeCtx(store: TestServerStore): TestServersContext {
   return {
     store,
     aideCheckout: () => "/checkout/aide",
-    roundScript: () => "/checkout/aide/dashboard/test/round/run",
-    roundAvailable: () => true,
+    startCommand: (_p, { branch, port }) => [
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
+    ],
+    previewAvailable: () => true,
     gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
     spawn: () => ({ pid: 1 }),
     isAlive: () => true,

@@ -38,8 +38,11 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
   return {
     store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
-    roundScript: () => "/checkout/aide/dashboard/test/round/run",
-    roundAvailable: () => true,
+    startCommand: (_p, { branch, port }) => [
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
+    ],
+    previewAvailable: () => true,
     gitRun: async (_dir, args) => {
       if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/aide/spec-1\n", stderr: "" };
       return { code: 1, stdout: "", stderr: "" };
@@ -180,10 +183,13 @@ describe("startTestServer", () => {
     expect(spawnCalls[0]!.cmd).toContain("9002");
   });
 
-  test("no board control possible when the round is unavailable on this host", async () => {
-    const ctx = makeCtx({ roundAvailable: () => false });
+  test("no board control possible when this host cannot start one for the project", async () => {
+    const ctx = makeCtx({ previewAvailable: () => false });
     const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result).toEqual({ ok: false, error: "the round is not available on this host" });
+    expect(result).toEqual({
+      ok: false,
+      error: "aide says nothing about how to start a board for a branch",
+    });
     expect(spawnCalls).toHaveLength(0);
   });
 

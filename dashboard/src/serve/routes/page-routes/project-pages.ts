@@ -287,7 +287,7 @@ export async function projectPages(
         restartWaiting: ctx.readPendingRestart()?.jobs,
         // AC-8: the same capability check the spec-page's own
         // test-server link already gates on.
-        testServerAvailable: ctx.testServers.roundAvailable(name),
+        testServerAvailable: ctx.testServers.previewAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,

@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolveTestCmd } from "./discover";
+import { configValue, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin";
 
@@ -84,6 +84,7 @@ export const SETTING_KEYS = [
   "AIDE_LINT_CMD",
   "AIDE_BUILD_CMD",
   "AIDE_INSTALL_CMD",
+  "AIDE_PREVIEW_CMD",
 ] as const;
 
 const PURPOSE: Record<string, string> = {
@@ -93,6 +94,7 @@ const PURPOSE: Record<string, string> = {
   AIDE_LINT_CMD: "the project's own lint command",
   AIDE_BUILD_CMD: "the project's own build command",
   AIDE_INSTALL_CMD: "what installing this project means on this machine, run after its code merges",
+  AIDE_PREVIEW_CMD: "how to start this project so a spec's branch can be looked at, serving on $PORT",
 };
 
 /** The three keys a lockfile can answer, and which command each is.
@@ -134,8 +136,10 @@ function configuredValue(projectDir: string, key: string): { value: string; sour
     const { links, source } = resolveWorktreeLinks(projectDir);
     return links ? { value: links, source: source ?? undefined } : null;
   }
-  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD") {
-    const { value, source } = (key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : resolveTestCmd)(projectDir);
+  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "AIDE_PREVIEW_CMD") {
+    const resolve =
+      key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : key === "AIDE_TEST_CMD" ? resolveTestCmd : resolvePreviewCmd;
+    const { value, source } = resolve(projectDir);
     return value ? { value, source: source ?? undefined } : null;
   }
   const value = configValue(projectDir, key);

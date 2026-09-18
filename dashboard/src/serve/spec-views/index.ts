@@ -53,7 +53,7 @@ export interface SpecViewsContext {
    *  `pdfGeneratorBin` live only on `RoutesContext`, where the
    *  route that actually spawns the script runs. */
   pdfToolAvailable: boolean;
-  /** The board registry and `roundAvailable`/status-refresh primitives
+  /** The board registry and `previewAvailable`/status-refresh primitives
    *  (spec 388) — the only new field `specPageView` itself reads;
    *  the routes that start/stop a board live on `RoutesContext`. */
   testServers: TestServersContext;

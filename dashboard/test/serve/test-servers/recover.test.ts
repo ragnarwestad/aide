@@ -37,8 +37,11 @@ function makeCtx(o: {
   return {
     store: o.store ?? new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
-    roundScript: () => "/checkout/aide/dashboard/test/round/run",
-    roundAvailable: () => true,
+    startCommand: (_p, { branch, port }) => [
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
+    ],
+    previewAvailable: () => true,
     gitRun: async (_dir, args) =>
       args[0] === "worktree"
         ? { code: 0, stdout: o.worktrees ?? "", stderr: "" }
@@ -178,7 +181,7 @@ describe("finding a test server again", () => {
   test("a project the round cannot run on is not asked about at all", async () => {
     const asked: string[][] = [];
     const ctx = makeCtx({ worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e") });
-    ctx.roundAvailable = () => false;
+    ctx.previewAvailable = () => false;
     ctx.gitRun = async (_dir, args) => {
       asked.push(args);
       return { code: 1, stdout: "", stderr: "" };

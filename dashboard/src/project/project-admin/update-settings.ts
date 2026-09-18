@@ -54,6 +54,13 @@ export async function updateProjectSettings(
      *  posting only some fields must not blank ones it never intended
      *  to touch (spec 255). */
     installCmd?: string;
+    /** Read the same way, written to the MANIFEST rather than
+     *  `.aide/config`: how a project is started for a look at one
+     *  branch is a fact about the project, and a fresh clone that knows
+     *  it can offer the board. A machine that starts it differently
+     *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
+     *  keeps winning. */
+    previewCmd?: string;
   },
 ): Promise<ProjectAdminResult> {
   const links = (req.worktreeLinks ?? "").trim();
@@ -172,6 +179,32 @@ export async function updateProjectSettings(
     }
   };
   writeConfigField("installCmd", "AIDE_INSTALL_CMD", req.installCmd);
+
+  // The manifest again, and the same changed-only rule: compared
+  // against what the manifest itself says, never the resolved value, so
+  // a machine whose `.aide/config` shadows it does not rewrite the
+  // manifest on every save.
+  if (req.previewCmd !== undefined) {
+    const storedPreview = existsSync(manifest)
+      ? (() => {
+          const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+          return parsed.ok ? (parsed.data.previewCmd ?? "").trim() : "";
+        })()
+      : "";
+    const preview = req.previewCmd.trim();
+    if (preview !== storedPreview) {
+      try {
+        upsertManifestScalar(manifest, "previewCmd", preview);
+        steps.push({ step: "previewCmd", ok: true });
+      } catch (err) {
+        steps.push({
+          step: "previewCmd",
+          ok: false,
+          error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+  }
 
   return done();
 }

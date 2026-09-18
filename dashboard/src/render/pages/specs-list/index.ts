@@ -157,7 +157,7 @@ export interface SpecsPageOptions {
    *  this page. Empty or absent means the form is not offered at all. */
   createProjects?: string[];
   /** Which projects can run a test server — the exact capability check
-   *  `ctx.testServers.roundAvailable` already gates the spec page's own
+   *  `ctx.testServers.previewAvailable` already gates the spec page's own
    *  start link on (`spec-page.ts:198`, one conjunct of that page's own
    *  three-way AND — the other two are per-spec, not per-project) and the
    *  project page's Deploy tab on (`project-pages.ts:280`), passed

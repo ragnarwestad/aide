@@ -250,6 +250,7 @@ export async function handleQueueAdminRoutes(
       // mentioned.
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
+      ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
     });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
@@ -353,7 +354,7 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
     }
-    if (!ctx.testServers.roundAvailable(name)) {
+    if (!ctx.testServers.previewAvailable(name)) {
       return testServerFailedPage(MAIN_TEST_SERVER_KEY, "this project's own checkout does not carry the dashboard's source");
     }
     const root = ctx.testServers.aideCheckout(name);

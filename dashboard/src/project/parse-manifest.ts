@@ -104,6 +104,18 @@ export interface ManifestData {
    *  shell needs, say) in a way a worktree link cannot. */
   installCmd?: string;
   testCmd?: string;
+  /** How to start this project so a person can LOOK at a spec's branch
+   *  before its checks are ticked (spec: previews beyond aide). The
+   *  dashboard runs it in a worktree of that branch, on a port from its
+   *  own pool, and the command is expected to serve on `$PORT` and keep
+   *  running until it is stopped.
+   *
+   *  Read like `installCmd` and `testCmd`: `.aide/config`'s
+   *  `AIDE_PREVIEW_CMD` overrides it per machine, because how an app is
+   *  started locally can legitimately differ on one machine. A project
+   *  that carries `dashboard/test/round/run` (aide itself) needs none —
+   *  that script is what its own preview starts. */
+  previewCmd?: string;
 }
 
 /** Whether `path`, read relative to the project root, could resolve
@@ -183,6 +195,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
   if (r.installCmd != null) data.installCmd = toStr(r.installCmd);
   if (r.testCmd != null) data.testCmd = toStr(r.testCmd);
+  if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the
   // safe default the same way an absent key does.

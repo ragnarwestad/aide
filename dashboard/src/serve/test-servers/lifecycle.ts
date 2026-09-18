@@ -24,11 +24,17 @@ export interface TestServersContext {
    *  checkout `machineryProjectDir(project)` already resolves to
    *  everywhere else on this server. */
   aideCheckout: (project: string) => string;
-  /** Path to `dashboard/test/round/run` for this project's checkout. */
-  roundScript: (project: string) => string;
-  /** Whether the round is even present on this host for this project —
-   *  a capability check (REQ-1), never a hardcoded project name. */
-  roundAvailable: (project: string) => boolean;
+  /** What to run to bring a board up for this project on one branch and
+   *  port. Aide's own answer is its round script; every other project's
+   *  is `aide-preview` with the command its manifest names. Whichever it
+   *  is, what this server depends on is the same two things: the process
+   *  group stays alive while the board serves, and the log carries the
+   *  "board up: pid N, <url>" line `refreshTestServerStatus` reads. */
+  startCommand: (project: string, opts: { branch: string; port: number }) => string[] | undefined;
+  /** Whether a board can be started at all on this host for this
+   *  project — a capability check (REQ-1), never a hardcoded project
+   *  name. */
+  previewAvailable: (project: string) => boolean;
   gitRun: GitRunner;
   spawn: Spawner;
   isAlive: (pid: number) => boolean;
@@ -139,8 +145,8 @@ export async function startTestServer(
   specFolder: string,
   opts: { branch?: string } = {},
 ): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
-  if (!ctx.roundAvailable(project)) {
-    return { ok: false, error: "the round is not available on this host" };
+  if (!ctx.previewAvailable(project)) {
+    return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
   }
   const branch = opts.branch ?? `aide/${specFolder}`;
   const aideCheckout = ctx.aideCheckout(project);
@@ -184,14 +190,15 @@ export async function startTestServer(
   }
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");
-  const cmd = [ctx.roundScript(project), aideCheckout, "--branch", branch, "--port", String(port), "--keep"];
+  const cmd = ctx.startCommand(project, { branch, port });
+  if (!cmd) return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
   let proc: SpawnResult;
   try {
     proc = ctx.spawn(cmd, logPath);
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     ctx.log?.(`boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`);
-    return { ok: false, error: `could not start the round: ${why}` };
+    return { ok: false, error: `could not start the board: ${why}` };
   }
   ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
   const entry: TestServer = {

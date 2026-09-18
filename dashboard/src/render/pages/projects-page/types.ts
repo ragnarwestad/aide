@@ -75,7 +75,7 @@ export interface ProjectPageOptions {
    *  running jobs (spec 385) — undefined everywhere `serving` is. */
   restartWaiting?: string[];
   /** Whether this project's own machinery checkout carries the
-   *  dashboard's source (`ctx.testServers.roundAvailable`) — the same
+   *  dashboard's source (`ctx.testServers.previewAvailable`) — the same
    *  capability check the spec-page's test-server link already gates on.
    *  Undefined only where the test-servers context was never wired (should not
    *  happen outside a test that omits it on purpose). */

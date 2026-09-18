@@ -99,7 +99,7 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
   for (const project of projects) {
     // A project the round cannot run on has never had a test server, so
     // there is nothing to find and no reason to ask git anything.
-    if (!ctx.roundAvailable(project)) continue;
+    if (!ctx.previewAvailable(project)) continue;
     const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
@@ -188,7 +188,7 @@ export async function sweepDeadTestServers(
   const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));
   const removed: string[] = [];
   for (const project of projects) {
-    if (!ctx.roundAvailable(project)) continue;
+    if (!ctx.previewAvailable(project)) continue;
     const root = ctx.aideCheckout(project);
     const listed = await ctx.gitRun(root, ["worktree", "list", "--porcelain"]);
     if (listed.code !== 0) continue;

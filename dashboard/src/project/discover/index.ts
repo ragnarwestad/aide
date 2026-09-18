@@ -12,7 +12,7 @@
 
 export {
   configValue, resolveWorktreeLinks, resolveCodeLanding, resolveSchedule,
-  resolveInstallCmd, resolveTestCmd,
+  resolveInstallCmd, resolveTestCmd, resolvePreviewCmd,
   type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
 } from "./config.ts";
 

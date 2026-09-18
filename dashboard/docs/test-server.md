@@ -120,19 +120,35 @@ on it: that one is left alone.
 
 ## Which projects this works for
 
-Only `aide` itself, today. Starting a test server means running that project's own dashboard code
-from a branch, which only makes sense for a project whose checkout — the one this dashboard's own
-automation works from — actually contains the dashboard's source. In practice that is Aide alone,
-self-hosting; the dashboard checks for this rather than naming the project directly, so it would
-extend automatically to any other project in the same position. For a spec in a project this
-doesn't apply to, or one archived in the meantime, the link falls back to the spec's own Steps tab
-instead. The Deploy tab's own "Testserver med testspecene" section follows the same check: on a
-project it doesn't apply to, the heading stays, with a sentence saying a test server cannot start
-from there — and no button.
+Any project that says how to start itself. Aide is its own case: its checkout carries the
+dashboard's source and the round script, and a test server there is that round left running. Every
+other project names a **Preview command** — the Settings table on its project page writes it, as
+`previewCmd:` in the committed `.aide/project.yaml`, and a machine that starts the project
+differently overrides it with `AIDE_PREVIEW_CMD` in its own `.aide/config`, the same precedence the
+install and test commands have.
+
+The command is expected to serve on `$PORT` and keep running until it is stopped, for example
+`pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the
+project's `worktreeLinks` paths linked in — a worktree carries tracked files only, so the
+dependencies and the local settings a dev server needs get there that way and no other. Database
+migrations are not run for you: a branch that adds one is served against the database as it stands.
+
+A project that names no command can have no board: the spec's link falls back to its own Logs tab,
+and the Deploy tab's "Testserver med testspecene" section keeps its heading with a sentence saying
+a test server cannot start from there — and no button.
 
 ## Under the hood
 
-This reuses `dashboard/test/round/run` — a script normally used to test the dashboard end to end:
+For a project with a Preview command, `core/scripts/aide-preview` is what starts it: it fetches the
+branch, makes the worktree under `~/.aide/dashboard/previews/` (`AIDE_PREVIEW_DIR` moves that),
+links the gitignored paths in, starts the command with `PORT` set, and waits until something
+answers on that port before printing the one line this dashboard reads — `board up: pid N, <url>`.
+A command that exits first, or never answers, is a refusal with that reason on the page. The
+worktree is removed by a watcher it leaves behind, when the served process ends. It takes the same
+`.git/aide-run-spec-worktree.lock` a run takes, because a `git worktree add` outside that lock
+loses a ref lock while a run is in its own section.
+
+For aide itself, this reuses `dashboard/test/round/run` — a script normally used to test the dashboard end to end:
 it builds a fresh, throwaway copy of it from a given checkout, feeds it a small set of sample specs
 end to end, and checks each one came out as expected. Starting a test server is that same script,
 told to leave the result running (`--keep`) instead of finishing and cleaning up — the same real

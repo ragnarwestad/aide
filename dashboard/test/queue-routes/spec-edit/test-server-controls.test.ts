@@ -90,7 +90,7 @@ describe("spec 388: the board start/stop routes", () => {
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("the round is not available");
+    expect(body.error).toContain("says nothing about how to start a board");
   });
 
   test("a start/stop round-trip against a fake spawn", async () => {
