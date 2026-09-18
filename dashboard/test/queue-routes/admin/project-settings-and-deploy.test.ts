@@ -39,7 +39,36 @@ describe("a project's settings route (spec 184)", () => {
     extra: Record<string, unknown> = {},
   ): Promise<{ base: string; dir: string; project: string }> => {
     const { base, dir } = start({ queueToken: TOKEN, ...extra });
-    return { base, dir, project: join(dir, "root", "aide") };
+    const project = join(dir, "root", "aide");
+    onItsOwnOrigin(project, join(dir, "aide-origin.git"));
+    return { base, dir, project };
+  };
+
+  /** The manifest as origin holds it: where a Settings save's manifest
+   *  keys land, committed and pushed from the dashboard's own checkout. */
+  const onOrigin = (dir: string): string =>
+    Bun.spawnSync(["git", "--git-dir", join(dir, "aide-origin.git"), "show", "main:.aide/project.yaml"]).stdout.toString();
+
+  /** A Settings save commits and pushes the manifest keys it changes, so
+   *  the project is a repository with an origin to push to — as every
+   *  project the dashboard serves is. */
+  const onItsOwnOrigin = (project: string, origin: string): void => {
+    const git = (cwd: string, ...args: string[]) => {
+      const res = Bun.spawnSync(["git", ...args], { cwd });
+      if (res.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${res.stderr.toString()}`);
+    };
+    git(join(project, ".."), "init", "-q", "--bare", "-b", "main", origin);
+    git(project, "init", "-q", "-b", "main");
+    // `.aide/config` is personal and never committed — a global ignore
+    // rule keeps it out on every real machine, and the dashboard writes
+    // one into its own checkout of the project.
+    writeFileSync(join(project, ".gitignore"), ".aide/config\n");
+    git(project, "config", "user.email", "t@example.com");
+    git(project, "config", "user.name", "T");
+    git(project, "add", "-A");
+    git(project, "commit", "-qm", "first", "--allow-empty");
+    git(project, "remote", "add", "origin", origin);
+    git(project, "push", "-q", "-u", "origin", "main");
   };
 
   test("the legacy form URL redirects to the project detail page", async () => {
@@ -64,7 +93,7 @@ describe("a project's settings route (spec 184)", () => {
   // Criterion 4: the whole point — a project brought to runnable without
   // leaving the dashboard.
   test("a save writes the links to the manifest and answers with the new readiness", async () => {
-    const { base, project } = await settled();
+    const { base, dir, project } = await settled();
     mkdirSync(join(project, "node_modules"), { recursive: true });
     const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
@@ -74,9 +103,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
-    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).toContain(
-      "worktreeLinks: node_modules",
-    );
+    expect(onOrigin(dir)).toContain("worktreeLinks: node_modules");
     expect(body.readiness!.checks.find((c) => c.check === "worktreeLinks")!.ok).toBe(true);
   });
 
@@ -109,7 +136,7 @@ describe("a project's settings route (spec 184)", () => {
   // can carry one — the same handover the Add form has had since spec
   // 138, back to the page the form is ON when it was refused.
   test("a no-script save and refusal return to the inline editor", async () => {
-    const { base, project } = await settled();
+    const { base, dir, project } = await settled();
     mkdirSync(join(project, "node_modules"), { recursive: true });
     const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
     const ok = await fetch(`${base}/api/queue/projects/aide/settings`, {
@@ -123,7 +150,7 @@ describe("a project's settings route (spec 184)", () => {
     // Criterion 3: the page the save lands on is the page the new value
     // is on. A redirect to the right address that then renders what the
     // project used to be would satisfy the line above and nothing else.
-    const saved = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");
+    const saved = onOrigin(dir);
     expect(saved).toContain("worktreeLinks: node_modules");
     // Spec 255: the redirect lands on the read-only view — the value is
     // plain text in the table now, not an editable input.
@@ -150,16 +177,20 @@ describe("a project's settings route (spec 184)", () => {
     expect(refusalHtml).toContain("/etc");
     // Criterion 5: the refusal wrote nothing — the manifest is still what
     // the save before it left behind.
-    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).toBe(saved);
+    expect(onOrigin(dir)).toBe(saved);
   });
 
   // Spec 220, acceptance criterion 5. A third field on the same form,
   // written to the same committed file the links go to — never to
   // `.aide/config`, which no clone on a second machine ever sees.
   test("the code-landing choice is on the form and saved to the manifest", async () => {
-    const { base, project } = await settled();
+    const { base, dir, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\ncodeLanding: pr\n");
+    // The stored choice is a committed one, as a manifest is.
+    for (const args of [["add", "-A"], ["commit", "-qm", "codeLanding"], ["push", "-q"]]) {
+      Bun.spawnSync(["git", ...args], { cwd: project });
+    }
     // Spec 255: Code landing's `<select>` only exists in edit mode now.
     const form = await (await fetch(`${base}/projects/aide?edit=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(form).toContain('name="codeLanding"');
@@ -171,7 +202,7 @@ describe("a project's settings route (spec 184)", () => {
       body: JSON.stringify({ codeLanding: "merge", worktreeLinks: "", specsPath: "" }),
     });
     expect(res.status).toBe(200);
-    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
+    expect(onOrigin(dir)).not.toContain("codeLanding");
     expect(existsSync(join(project, ".aide", "config"))).toBe(false);
   });
 

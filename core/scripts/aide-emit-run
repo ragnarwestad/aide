@@ -24,6 +24,12 @@
 #   * stdout is injected into the model's context -> silence it, line one
 #   * a non-zero exit blocks the prompt -> always exit 0
 #   * never block: curl is backgrounded with a 1 s cap
+[ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ] && { cat <<'USAGE'
+Usage:
+  aide-emit-run                                  # hook mode, reads UserPromptSubmit JSON on stdin
+  aide-emit-run --phase red|green|refactor [--spec N] [--command implement|archive]
+USAGE
+exit 0; }
 exec >/dev/null 2>&1
 trap 'exit 0' EXIT
 

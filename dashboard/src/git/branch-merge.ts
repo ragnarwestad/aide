@@ -92,7 +92,7 @@ export interface RepoMergeResult {
  *  this says where: the branch being merged, or — on the deploy path,
  *  which has no feature branch — the default branch it is bringing up
  *  to date. */
-const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
+export const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
   root,
   ok: false,
   error: { key: why.key, values: { ...why.values, ref, root } },
@@ -119,15 +119,15 @@ export function mergeWorktreePath(root: string, branch: string): string {
  *  prune), and a landing in the same second met `packed-refs.lock` and
  *  `cannot lock ref` — refused as "cannot fast-forward", with git's own
  *  words thrown away (2026-09-03, twice in a row). */
-const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
+export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
 /** Five retries, two seconds at most: a run's ref writes take well under
  *  that, and a lock that is genuinely stuck still refuses in seconds
  *  rather than holding the request open. */
-const LOCK_RETRIES = 5;
-const LOCK_WAIT_MS = 400;
+export const LOCK_RETRIES = 5;
+export const LOCK_WAIT_MS = 400;
 
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
-type Wait = (ms: number) => Promise<void>;
+export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+export type Wait = (ms: number) => Promise<void>;
 
 /** REQ-2/REQ-5 (spec 359): the same bound `aide-run-spec`'s
  *  `push_with_retry` uses (`PUSH_RETRY_WAITS`) — two extra tries,
@@ -155,7 +155,7 @@ interface PushRetryResult {
  *  `pull --rebase` can settle on its own (REQ-1) — unless the rebase
  *  itself conflicts, which is a person's call and never this
  *  function's (REQ-3). */
-async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
+export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
   const refspec = `HEAD:refs/heads/${base}`;
   let pushed = await run(root, ["push", "-q", "origin", refspec]);
   if (pushed.code === 0) return { ok: true };

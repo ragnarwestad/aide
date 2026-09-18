@@ -279,7 +279,11 @@ describe("every step lands its own work (spec 149)", () => {
   // 171 retired it, and `review-plan` was the other, until spec 181
   // folded it into analyze; the rule it proves belongs to
   // `landStepBranch`, which still lands `analyze`.)
-  test("analyze lands the repos its own run reports, and installs a code root among them", async () => {
+  // Where the specs live inside the code repo (this fixture), analyze
+  // lands the spec's own folder from that repo and nothing else of the
+  // branch: code reaches main through archive alone, so nothing is
+  // installed either.
+  test("analyze lands the spec's folder from a code repo holding the specs, and installs nothing", async () => {
     const dir = own("aide-149-analyze-lands-");
     const paths = repos(dir);
     const git = gitFor();
@@ -291,10 +295,10 @@ describe("every step lands its own work (spec 149)", () => {
     });
 
     expect(landed.error).toBeFalsy();
-    expect(merges(git.calls, paths.project).length).toBeGreaterThan(0);
-    expect(landed.branchUrls).toEqual([]);
-    for (let i = 0; i < 40 && !existsSync(marker); i++) await Bun.sleep(25);
-    expect(existsSync(marker)).toBe(true);
+    expect(git.calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${SPEC}`))).toBe(true);
+    expect(git.calls.some((c) => c.args[0] === "merge" && c.args.some((a) => a.startsWith("refs/remotes/origin/aide/")))).toBe(false);
+    await Bun.sleep(200);
+    expect(existsSync(marker)).toBe(false);
   });
 
   // The other half of criterion 6, and the whole of the risk this spec

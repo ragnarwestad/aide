@@ -121,6 +121,9 @@ echo "================="
 echo ""
 
 case "$TOOL" in
+  -h|--help)
+    sed -n '9,15p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0 ;;
   claude)  preflight_claude; preflight_drift ;;
   copilot) preflight_copilot; preflight_drift ;;
   codex)   preflight_codex; preflight_drift ;;

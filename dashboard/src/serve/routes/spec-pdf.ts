@@ -9,6 +9,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import type { RoutesContext } from "./";
+import { scriptArgv } from "../../integrations/script-argv.ts";
 
 /** Homedir, sibling of `queueResultDir`'s own default — never inside a
  *  checkout, which is the exact bug REQ-4 exists to prevent. */
@@ -44,7 +45,7 @@ export async function handleSpecPdfRoute(
   if (!existsSync(cachePath)) {
     mkdirSync(dirname(cachePath), { recursive: true });
     const proc = Bun.spawn({
-      cmd: [ctx.pdfGeneratorBin, scriptSpecId, cachePath],
+      cmd: scriptArgv([ctx.pdfGeneratorBin, scriptSpecId, cachePath]),
       cwd: ctx.machineryProjectDir(project!),
       stdout: "ignore",
       stderr: "pipe",

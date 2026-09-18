@@ -275,3 +275,9 @@ def test_conflict_open_in_the_specs_dir_alone(script, project, specs):
     make_conflict(specs)
     rc, out, _ = run(script, project, "81-x", specs_dir=specs)
     assert out["terminalReason"] == "conflict-open", out
+
+
+def test_help_flag_prints_usage_and_exits_zero(script):
+    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

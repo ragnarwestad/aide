@@ -67,7 +67,8 @@ A status file carrying no such line has had nothing as far as the page is concer
 that reads as unfinished is visible and is fixed by running the step, where a silent guess is neither.
 
 The State column answers what a reader came to find out, and its FIRST line is one of two things, always: the
-verb for what is happening — "analyzing", "implementing", "implementing 7/11" — or, once nothing is running, the
+verb for what is happening — "analyzing", "implementing" — or its place in the queue, "queued 7/11", with the pips
+saying which phase it waits for — or, once nothing is running, the
 resting state and what can happen next —
 "ready for implement", "implementing held back", "archive held back — the Slack webhook", "done — nothing
 waiting on you". The bare words

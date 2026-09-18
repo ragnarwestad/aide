@@ -104,13 +104,9 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 // #jobrows so a half-typed git URL survives the five-second swap.
 //
 // No refusal here has a row to land on: an Add names a project that was
-// never added, a Remove that failed leaves the project exactly where the
-// reader can already see it, and a Settings save that was refused wrote
-// nothing. All go into the form's own `.refused` slot, like New spec's.
-//
-// The Settings page (spec 184) rides on this unchanged: it posts the
-// same two fields and gets the same readiness answer back, so saving
-// again re-assesses on the page the reader is already standing on.
+// never added, and a Remove that failed leaves the project exactly where
+// the reader can already see it. Both go into the form's own `.refused`
+// slot, like New spec's.
 export async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -145,6 +141,27 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   );
 }
 
+// The project page's own Save (spec 486). It used to fall through to
+// `submitCreate` by accident — nothing excluded it from `NEW_SPEC_FORM`,
+// so it was bound as though it were the New-spec form, and a successful
+// save sent the reader to `/` instead of back to their own project. A
+// successful save has nothing further to say beyond what the fresh page
+// already shows: the new values, the form closed, the readiness
+// recomputed — so it goes back to the bare project path, dropping
+// `?edit=1`, and lets the server draw that page as it always does on a
+// GET. A refusal stays exactly where every other form's does, in its
+// own `.refused` slot.
+export async function submitProjectSettings(form: HTMLFormElement, event: Event): Promise<void> {
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  await postForm(
+    form,
+    async () => {
+      location.href = location.pathname;
+    },
+    (why) => formNote(form, why),
+  );
+}
 
 /** Spec 184: the Add form's two settings, proposed for whichever
  *  checkout is picked. The server works one proposal out per offered

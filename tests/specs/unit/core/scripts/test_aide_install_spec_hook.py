@@ -201,3 +201,9 @@ def test_the_installed_installer_can_find_its_own_hook_body(workspace_root, tmp_
 
     assert result.returncode == 0, result.stderr
     assert (repo / ".git" / "hooks" / "commit-msg").is_file()
+
+
+def test_help_flag_prints_usage_and_exits_zero(installer):
+    result = subprocess.run([str(installer), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

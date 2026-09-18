@@ -423,9 +423,12 @@ export class BranchFileStepsChecker {
    *  covers two different truths the caller does not need to tell
    *  apart: no open branch, and "not warmed yet" — both mean "fall back
    *  to the disk read" (REQ-3's own behavior, unchanged). */
-  peekFileSteps(dir: string, specFolder: string): { steps: FileStepsAnswer | null; checkedAt: number | null } {
+  peekFileSteps(
+    dir: string,
+    specFolder: string,
+  ): { steps: FileStepsAnswer | null; checkedAt: number | null; stale?: boolean } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
-    return hit ? { steps: hit.steps, checkedAt: hit.at } : { steps: null, checkedAt: null };
+    return hit ? { steps: hit.steps, checkedAt: hit.at, stale: hit.stale } : { steps: null, checkedAt: null };
   }
 }
 
