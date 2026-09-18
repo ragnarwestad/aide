@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
-import { row } from "../../fixtures.ts";
+import { openKeys, row } from "../../fixtures.ts";
 
 // --- spec 471: the hold is quiet while the round that clears it runs --------
 //
@@ -70,5 +70,50 @@ describe("a round under way silences the held-back marks", () => {
     const html = notice([row({ specFolder: FOLDER, steps: ["archive"], stepIndex: 0, state: "done" })]);
     expect(html).toContain(HOLD);
     expect(html).toContain(LINK);
+  });
+});
+
+// The same marks once the Checks tab has answered them: every criterion
+// ticked since the last archive run refused, and archive not pressed
+// again. The refusal on the old job and the stop in git are both about
+// that last run; the row went on reading "not all ticked" and offering
+// another round over a spec waiting on nobody (paceup 02, 2026-09-18).
+describe("a spec whose criteria have all been ticked since archive refused", () => {
+  const FOLDER = "02-selvregistrering-med-provetid";
+  const refused = row({
+    specFolder: FOLDER,
+    steps: ["implement", "archive"],
+    stepIndex: 1,
+    state: "done",
+    results: [
+      { step: "implement", ok: true, costUsd: 1, terminalReason: "completed" },
+      { step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" },
+    ],
+  });
+  const target: SpecTarget = {
+    project: "aide",
+    specFolder: FOLDER,
+    done: ["create", "analyze", "implement"],
+    acceptanceOpen: false,
+  };
+  const html = renderSpecsRows([refused], {
+    runnerAvailable: true,
+    targets: [target],
+    filter: { open: openKeys([refused], [target]) },
+  });
+
+  test("says nothing about ticking criteria", () => {
+    expect(html).not.toContain("not all ticked");
+    expect(html).not.toContain("Acceptance criteria are not all ticked");
+  });
+
+  test("offers archive, not another round of analyze and implement", () => {
+    const box = (step: string) =>
+      html.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
+    expect(box("archive")).toContain("checked");
+    expect(box("archive")).not.toContain("disabled");
+    // Implement reads as the phase behind it, not as a round to run
+    // again: done, and not a box a press would post.
+    expect(box("implement")).toContain("disabled");
   });
 });

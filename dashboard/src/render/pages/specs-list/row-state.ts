@@ -235,8 +235,11 @@ const refusedForChecks = (a: QueueRowView): boolean =>
 /** Is this spec waiting on a person to judge its acceptance criteria?
  *  Two records say so and either may be the only one there: the note
  *  `4-status.md` carries once an archive RUN wrote it, and the step
- *  result a run refused before that. */
+ *  result a run refused before that. Both are about the LAST run; the
+ *  Checks tab answers for now, and a spec whose every criterion has
+ *  been ticked since is waiting on nobody. */
 export function heldBackOnChecks(g: SpecGroup): boolean {
+  if (g.acceptanceOpen === false) return false;
   const archive = g.phases.find((p) => p.step === "archive");
   if (!archive) return false;
   return archive.heldBack?.reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE ||

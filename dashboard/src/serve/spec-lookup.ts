@@ -140,6 +140,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         found.push({
           project: p.name,
           specFolder: s.folder,
+          acceptanceOpen,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.

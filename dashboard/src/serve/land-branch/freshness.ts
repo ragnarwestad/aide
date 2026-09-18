@@ -34,6 +34,16 @@ import type { LandContext } from "./types.ts";
  *  A spec with no `dir` — a create job's spec, which is the folder the
  *  job is making — has no history to read and keeps the empty
  *  done-set it arrived with. */
+/** The stops git remembers, less archive's "not all ticked" once no
+ *  criterion is open any more. The commit says why the LAST archive run
+ *  stopped; whether that still holds is the Checks tab's to say, and it
+ *  says so in `acceptanceOpen`, read fresh on every render. */
+function stillStopped(stopped: Record<string, string>, t: SpecTarget): Record<string, string> {
+  if (stopped.archive !== "acceptance-criteria-unticked" || t.acceptanceOpen !== false) return stopped;
+  const { archive: _archive, ...rest } = stopped;
+  return rest;
+}
+
 export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[] {
   return list.map((t) => {
     if (!t.dir) return t;
@@ -61,7 +71,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       // it would overwrite `t.fileSteps`'s own `FileStepsAnswer` with a
       // bare array, which is not what that field is typed to hold.
       done: resolved.done,
-      stopped: resolved.stopped,
+      stopped: stillStopped(resolved.stopped, t),
       fileDisagrees: resolved.fileDisagrees,
       historyDone: resolved.historyDone,
       sourcesCheckedAt: new Date(resolved.checkedAt).toISOString(),

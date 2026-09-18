@@ -96,6 +96,8 @@ export interface SpecTarget {
    *  whose folder moved has left the list — so "held back, and why" is
    *  the only file-side answer archive has to give. */
   archiveHeldBack?: { reason: string };
+  /** An acceptance criterion open NOW, as the Checks tab last wrote it. */
+  acceptanceOpen?: boolean;
   /** No `4-status.json` exists for this spec yet (spec 355, REQ-10) — a
    *  spec no writer script (aide-run-spec, aide-archive-spec,
    *  aide-write-spec) has touched since this feature shipped. The row
@@ -474,6 +476,8 @@ export interface SpecGroup {
    *  row's checkboxes, never forbidden — re-analyzing after the code
    *  moved on is a legitimate thing to want. */
   done: string[];
+  /** The target's `acceptanceOpen`: whether an old refusal still holds. */
+  acceptanceOpen?: boolean;
   /** What the spec is and how far it has got, from its own 4-status.md.
    *  It used to be one summary line for whichever spec the top form's
    *  dropdown had selected; every row now answers for itself. */

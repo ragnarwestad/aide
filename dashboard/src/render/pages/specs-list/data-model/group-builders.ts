@@ -45,6 +45,7 @@ function fromTarget(
 ): Pick<
   SpecGroup,
   | "done"
+  | "acceptanceOpen"
   | "title"
   | "description"
   | "phase"
@@ -56,6 +57,7 @@ function fromTarget(
 > {
   return {
     done: t?.done ?? [],
+    acceptanceOpen: t?.acceptanceOpen,
     title: t?.title,
     // Read but not drawn: the search's third field (spec 221).
     description: t?.description,
