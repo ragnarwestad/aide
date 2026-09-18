@@ -72,7 +72,7 @@ schedule:
   - name: "Nyhetssjekk"
     cron: "0 7 * * 1"
     prompt: "docs/prompts/check-news.md"
-    model: "sonnet"
+    model: "Sonnet"
   - name: "nightly-e2e"
     cron: "0 3 * * *"
     prompt: "docs/prompts/nightly-e2e.md"
