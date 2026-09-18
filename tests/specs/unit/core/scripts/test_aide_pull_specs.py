@@ -202,3 +202,9 @@ def test_the_script_is_installed_with_the_other_shared_scripts(workspace_root):
         capture_output=True, text=True, check=True,
     ).stdout.split()
     assert "aide-pull-specs" in listed
+
+
+def test_help_flag_prints_usage_and_exits_zero(puller):
+    result = subprocess.run([str(puller), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

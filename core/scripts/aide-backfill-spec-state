@@ -38,6 +38,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 specs_root=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-backfill-spec-state --specs-root <path>
+USAGE
+      exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac

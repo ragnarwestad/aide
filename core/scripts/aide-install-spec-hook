@@ -24,6 +24,11 @@ usage() {
   exit 2
 }
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: aide-install-spec-hook <repo-path> [<repo-path> ...]"
+  exit 0
+fi
+
 [ "$#" -gt 0 ] || usage
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

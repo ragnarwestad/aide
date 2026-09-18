@@ -208,6 +208,20 @@ class TestCiWorkflow:
         assert "brew install shellcheck" in result.stderr, \
             f"The refusal never says how to install it: {result.stderr!r}"
 
+    def test_check_bash_help_works_without_shellcheck_installed(self, workspace_root):
+        """AC-2: --help must sit above the shellcheck-installed probe, so
+        it never depends on shellcheck being on PATH at all."""
+        import os
+        import subprocess
+        result = subprocess.run(
+            [str(workspace_root / "scripts" / "check-bash"), "--help"],
+            env={**os.environ, "PATH": "/usr/bin:/bin"},
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, \
+            f"Expected exit 0 for --help, got {result.returncode}: {result.stderr}"
+        assert "usage" in result.stdout.lower(), result.stdout
+
     def test_biome_job_runs_lint_only(self, workspace_root):
         """Criterion 10: lint alone, not check/format — this codebase was
         never run through biome's formatter, and a gate on its existing

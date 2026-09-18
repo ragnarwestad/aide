@@ -275,3 +275,9 @@ class TestEmitterIsShipped:
             "install.sh must print the ready-to-paste UserPromptSubmit block — "
             "aide never edits ~/.claude/settings.json itself"
         )
+
+
+def test_help_flag_prints_usage_and_exits_zero(emitter):
+    result = subprocess.run([str(emitter), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

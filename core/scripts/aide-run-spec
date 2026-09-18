@@ -69,6 +69,23 @@
 
 set -uo pipefail
 
+for _a in "$@"; do
+  case "$_a" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-run-spec --project-dir <path> --command <create|analyze|implement|archive>
+                 --spec <arg> [--title T] [--description D] [--depends-on D]
+                 [--reason R] [--acceptance-not-required] [--no-ai-formulate]
+                 [--prompt-file F] [--timeout-sec S] [--permission-mode M]
+                 [--result-file F] [--model M] [--effort E] [--tool T]
+                 [--session-id S] [--stream-file F] [--kill-grace-sec S]
+                 [--push always|never] [--worktree-base P] [--pull] [--dry-run]
+USAGE
+      exit 0 ;;
+  esac
+done
+
 # Run from a private copy of ourselves. Bash reads a script
 # incrementally from disk by byte offset, so replacing the file
 # mid-execution kills the run — and an aide `implement` step reinstalls

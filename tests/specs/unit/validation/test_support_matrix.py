@@ -108,6 +108,12 @@ class TestStampVersions:
             "A missing tool must not have its row stamped"
         assert "2.9.9" in content, "The found tool must still be stamped"
 
+    def test_help_flag_prints_usage_and_exits_zero(self, workspace_root):
+        script = workspace_root / "scripts" / "stamp-versions"
+        result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert "usage" in result.stdout.lower(), result.stdout
+
 
 @pytest.mark.validation
 class TestFidelityLevels:
