@@ -61,6 +61,10 @@ export async function updateProjectSettings(
      *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
      *  keeps winning. */
     previewCmd?: string;
+    /** The command a run and a landing test with — the manifest's
+     *  `testCmd`, read by `aide-resolve-test-cmd`. Gated on presence the
+     *  same way: the Settings page's "Use this" posts it alone. */
+    testCmd?: string;
   },
   opts: { saveManifest?: SaveManifest } = {},
 ): Promise<ProjectAdminResult> {
@@ -84,7 +88,7 @@ export async function updateProjectSettings(
   });
 
   const specsPath = (req.specsPath ?? "").trim();
-  if (specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
+  if (req.specsPath !== undefined && specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
     // Made where it is not there yet, `archive/` and all — the same
     // thing Add does, for the same reason: a path configured and absent
     // is a refusal over something known the moment it was written.
@@ -143,7 +147,7 @@ export async function updateProjectSettings(
         return parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
       })()
     : "";
-  if (links !== stored) writeManifest("worktreeLinks", links, "worktreeLinks");
+  if (req.worktreeLinks !== undefined && links !== stored) writeManifest("worktreeLinks", links, "worktreeLinks");
 
   // Spec 220, and the same rule again: compared against what the
   // MANIFEST says, and written only when it differs. `merge` is the
@@ -193,6 +197,16 @@ export async function updateProjectSettings(
       : "";
     const preview = req.previewCmd.trim();
     if (preview !== storedPreview) writeManifest("previewCmd", preview, "previewCmd");
+  }
+  if (req.testCmd !== undefined) {
+    const storedTest = existsSync(manifest)
+      ? (() => {
+          const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+          return parsed.ok ? (parsed.data.testCmd ?? "").trim() : "";
+        })()
+      : "";
+    const test = req.testCmd.trim();
+    if (test !== storedTest) writeManifest("testCmd", test, "testCmd");
   }
 
   if (opts.saveManifest && manifestEdits.length) {

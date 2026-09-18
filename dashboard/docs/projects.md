@@ -136,7 +136,9 @@ a browser with no script gets the help too; with several, the proposals ride on 
 of a file nothing on the page can act on, and a manifest that fails to parse already says so on the project's
 `/projects` row, which is the live view of the same thing. Each of the seven recognized config keys is marked
 configured, worked out (naming the lockfile that decided it, hedged as a default rather than a verified command) or
-not set; a checkout with no `.aide/config` says so in as many words, because "no file" and "a file setting nothing"
+not set. The test command is the exception: a run and a landing test with a configured one only
+(`aide-resolve-test-cmd`), so an unset one reads "not set — no tests run when a spec lands", with the worked-out command
+beside it as a suggestion that **Use this** saves to the manifest's `testCmd`. A checkout with no `.aide/config` says so in as many words, because "no file" and "a file setting nothing"
 are different states and the first is what a project cloned onto a second machine is in. Below that, the same checks
 `assessProjectReadiness` runs at Add time, on every load rather than once in a notice gone by the next page. Nothing
 is executed and nothing is moved: a git that cannot answer leaves the settings standing, with no readiness section.

@@ -234,6 +234,18 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toContain("the usual pnpm default");
   });
 
+  // A worked-out test command runs nothing: the runner and a landing
+  // read a configured one only. The row said "the project's own test
+  // command" over one no run used, and nobody saw that nothing tested.
+  test("an unset test command says no tests run, and offers the worked-out one to save", async () => {
+    const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    const row = html.slice(html.indexOf("AIDE_TEST_CMD"), html.indexOf("</tr>", html.indexOf("AIDE_TEST_CMD")));
+    expect(row).toContain("not set — no tests run when a spec lands");
+    expect(row).toContain('name="testCmd" value="pnpm test -- --run"');
+    expect(row).not.toContain("not a verified command");
+  });
+
   test("a key with neither a value nor anything to work it out from reads not set (criterion 7)", async () => {
     const root = projectsRoot({ aide: "" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();

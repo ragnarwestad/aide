@@ -33,6 +33,28 @@ function originText(r: SettingRow): string {
   return `worked out from ${esc(r.source ?? "")} — the usual ${esc(r.toolchain ?? "")} default, not a verified command`;
 }
 
+/** The test command's Comment when nothing is configured. The runner
+ *  and a landing test with a configured command ONLY
+ *  (`aide-resolve-test-cmd`), so a worked-out one runs nothing: the row
+ *  says so, and offers it as a suggestion one press saves — outside
+ *  edit mode only, since a form cannot sit inside the edit form. */
+function unsetTestComment(r: SettingRow, name: string, editing: boolean, opts: ProjectPageOptions): string {
+  const none = "not set — no tests run when a spec lands";
+  if (r.origin !== "derived" || r.value === null) return none;
+  const suggestion =
+    `${none}. Suggested from ${esc(r.source ?? "")}, the usual ${esc(r.toolchain ?? "")} default: ` +
+    `<code>${esc(r.value)}</code>`;
+  if (editing) return suggestion;
+  return (
+    suggestion +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings">` +
+    tokenField(opts.token) +
+    `<input type="hidden" name="testCmd" value="${esc(r.value)}">` +
+    btn({ label: "Use this", pending: "saving…" }) +
+    `</form>`
+  );
+}
+
 /** The two values Code landing can take, and the words the page uses
  *  for each — shared between the row's read-only text and its `<select>`
  *  (spec 255; unchanged from the choices `runConfigurationBlock`'s old
@@ -128,10 +150,11 @@ export function unifiedSettingsTable(
         // here exactly as it does above the table, so the two never
         // disagree about the same fact's colour.
         const problem = r.problem ? rowMessage(r.problem.blocking ? "failed" : "waiting", r.problem.text) : "";
+        const unsetTest = r.key === "AIDE_TEST_CMD" && r.origin !== "configured";
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
-          `<td>${settingValueCell(r, editing, opts)}</td>` +
-          `<td>${esc(r.purpose)} — ${originText(r)}${problem}</td></tr>`
+          `<td>${unsetTest ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
+          `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r, name, editing, opts) : originText(r)}${problem}</td></tr>`
         );
       })
       .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);

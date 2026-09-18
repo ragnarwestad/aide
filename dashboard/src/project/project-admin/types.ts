@@ -18,6 +18,7 @@ export type ProjectStepName =
   | "codeLanding"
   | "installCmd"
   | "previewCmd"
+  | "testCmd"
   | "allowlist"
   | "confirm";
 
