@@ -32,6 +32,51 @@ def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
     assert out["terminalReason"] == "no-progress", out
     assert recorded_line(workspace) == "create, analyze"
 
+def _branch_with_earlier_implement_code(workspace):
+    """The spec's branch already holding code an earlier implement wrote
+    — a run stopped on the clock or on red tests leaves it there."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "feature.txt").write_text("written by the earlier run\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "earlier implement")
+    git(project, "switch", "-q", "main")
+    return branch
+
+
+def test_a_rerun_over_code_already_on_the_branch_is_not_no_progress(
+    runner, workspace, fake_claude
+):
+    """An earlier implement stopped on the clock or on red tests, its code
+    on the branch. Pressed again, the session finds the work done, sees
+    the tests green and changes nothing — and the step is done, not a
+    failure (488, 491, 2026-09-18). Measured against the project's
+    default branch, not only against this run's own start."""
+    status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
+    _branch_with_earlier_implement_code(workspace)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_branch_holding_only_what_main_has_is_still_no_progress(
+    runner, workspace, fake_claude
+):
+    """The branch exists but adds nothing to the project beyond main: a
+    run that changes nothing is still no progress."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    git(workspace["project"], "branch", "aide/81-queue-and-runner")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+
+
 def test_a_completed_claim_that_ticks_no_row_still_counts(
     runner, workspace, fake_claude
 ):
