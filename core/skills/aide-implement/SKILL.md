@@ -88,15 +88,25 @@ step wrote is green (Phase 2). Red in the full suite is then something
 the change BROKE — an existing test that still expects the old
 behaviour, or a file another scope covers — and it is this step's to
 fix, back through Phase 2, before anything is reported. Never tick the
-full-suite row, and never report "done", with a red run on the record:
-`aide-run-spec` runs the same commands itself on the step's result
-afterwards. A red run there comes back to this session as a follow-up
-turn with the failing lines — fix them and run the suite again — and
-only a run still red after that ends the step `tests-red`, with
-`implement` not recorded as run. The runner accepts your own green
-record instead of running again when it was made on exactly the tree
-you deliver — so run the suite LAST, after every edit and before the
-commit; a file touched after the run means the whole suite runs twice.
+full-suite row with a red run on the record: `aide-run-spec` runs the
+same commands itself on the step's result afterwards. A red run there
+comes back to this session as a follow-up turn with the failing lines —
+fix them — and only a run still red after that ends the step
+`tests-red`, with `implement` not recorded as run. The runner accepts
+your own green record instead of running again when it was made on
+exactly the tree you deliver — so run the suite LAST, after every edit
+and before the commit; a file touched after the run means the whole
+suite runs twice.
+
+**One full run, in the foreground.** Start it once and wait for it where
+you started it — never in the background to poll, and never a second run
+while one is going. Several steps run their suites at once on the
+machine that runs them, and two runs from one step fight each other as
+well. A red test that has nothing to do with this change and passes when
+run on its own is the machine's load, not a fault: do not run the whole
+suite again for it. Leave the full-suite row unticked, name the test and
+that it passed on its own in the row's Notes cell, and report done — the
+runner's own run on your result is what decides.
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`
 2. Resolve the full-suite command(s) with `aide-resolve-test-cmd

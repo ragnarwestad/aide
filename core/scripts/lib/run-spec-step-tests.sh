@@ -68,8 +68,8 @@ EOF_CMDS
     # red — and the runner runs.
     step_record="$specs_root_wt/$step_tests_folder/test-run.json"
     # Asked twice: before the runner's first run, and again after every
-    # turn the session is handed red lines to fix — it was told to run
-    # the suite through aide-record-test-run until it is green, and
+    # turn the session is handed red lines to fix — it may run the suite
+    # once through aide-record-test-run, and
     # running it once more ourselves on the very tree it just recorded
     # green cost a whole suite for nothing (spec 480's archive ran it
     # four times, 2026-09-18).
@@ -118,10 +118,17 @@ $step_tests_failing"
         fi
         step_fix_round=$((step_fix_round + 1))
         echo "aide-run-spec: the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)" >&2
+        # The failing tests, then ONE full run: the runner runs the whole
+        # suite again after this turn anyway. "Until it is green" sent
+        # 486's archive and 491's implement round and round the full
+        # suite under the load of five jobs, rerunning for timing tests
+        # that passed on their own, until both hit their time limit with
+        # the change long done (2026-09-18).
+        step_fix_how="Run the tests that failed, and the tests covering your fix, until they pass. Then run the full suite at most once, through aide-record-test-run, in the foreground — never start a second run while one is going. A failing test that has nothing to do with this change and passes on its own is load on the machine, not a fault: do not run the suite again for it — say so, and report done. The runner runs the suite itself after this turn."
         if [ "$command_name" = "archive" ]; then
-          step_fix_ask="Fix it — the merge with main, or what that merge broke — and run the suite again through aide-record-test-run until it is green, then report done. Round $step_fix_round of $step_fix_rounds."
+          step_fix_ask="Fix it — the merge with main, or what that merge broke. $step_fix_how Round $step_fix_round of $step_fix_rounds."
         else
-          step_fix_ask="Fix it — your own tests and any existing test the change broke — and run the suite again through aide-record-test-run until it is green, tick the row, then report done. Round $step_fix_round of $step_fix_rounds."
+          step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Tick the row if that full run is green, then report done. Round $step_fix_round of $step_fix_rounds."
         fi
         printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
