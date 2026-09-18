@@ -16,11 +16,14 @@ export function renderScheduleOverview(
     modelChoices?: ScheduleFormOptions["modelChoices"];
     defaultModels?: ScheduleFormOptions["defaultModels"];
     lang?: Language;
+    /** The report panel (`report.ts`), drawn first. */
+    reportPanel?: string;
   },
 ): string {
   const lang = opts.lang ?? "en";
   const next = nextFireTime(entry.cron, new Date());
   return (
+    (opts.reportPanel ?? "") +
     `<dl class="kv">` +
     `<dt>${t(lang, "schedule.cron")}</dt><dd><code>${esc(entry.cron)}</code></dd>` +
     `<dt>${t(lang, "schedule.nextRun")}</dt><dd>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</dd>` +

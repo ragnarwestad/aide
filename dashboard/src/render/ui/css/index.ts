@@ -54,3 +54,11 @@ const SECTIONS = [
 
 export const CSS =
   "\n" + SECTIONS.map((file) => readFileSync(join(import.meta.dir, file), "utf-8")).join("");
+
+/** The board's tokens on their own, for the report frame's document: the
+ *  same file the page's stylesheet starts from, so no colour is copied. */
+export const TOKENS_CSS = readFileSync(join(import.meta.dir, "tokens.css"), "utf-8");
+
+/** Element rules for a report shown in its sandboxed frame. Not one of
+ *  `SECTIONS`: it belongs to the framed document, not to the page. */
+export const REPORT_FRAME_CSS = readFileSync(join(import.meta.dir, "report-frame.css"), "utf-8");

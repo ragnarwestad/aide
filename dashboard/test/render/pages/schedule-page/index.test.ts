@@ -36,14 +36,14 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
           project: "aide",
           entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
           lastState: "done",
-          outputHref: "/schedule-output/aide/schedule-nightly-report/index.html",
+          outputHref: "/schedule/aide/nightly-report#report",
           projectScheduleHref: "/projects/aide?tab=schedule",
         },
       ],
     });
     expect(html).toContain('href="/projects/aide?tab=schedule">aide:nightly-report</a>');
     expect(html).toContain("done");
-    expect(html).toContain("/schedule-output/aide/schedule-nightly-report/index.html");
+    expect(html).toContain('href="/schedule/aide/nightly-report#report"');
     // Deliberately NOT on the list row — it moved to the detail page.
     expect(html).not.toContain("0 3 * * *");
   });

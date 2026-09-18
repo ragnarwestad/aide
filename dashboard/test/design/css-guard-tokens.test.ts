@@ -1,6 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
+import { REPORT_FRAME_CSS } from "../../src/render/ui/css";
 import { CSS, RENDER_FILES, COLOUR, outsideTokens, tokensAfter, oneRule } from "./css-guard-fixtures.ts";
 
 describe("css.ts uses tokens and nothing else", () => {
@@ -146,5 +147,25 @@ describe("a class is declared in one place", () => {
     const base = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
     expect((base.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
     expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(2);
+  });
+});
+
+// Spec 495. The report frame's stylesheet is not one of the page's
+// sections (it goes into the framed document), so the guard above never
+// sees it; it holds itself to the same rules here.
+describe("the report frame's stylesheet uses tokens and nothing else (spec 495)", () => {
+  test("it exists and styles the elements a report is made of", () => {
+    for (const el of ["h1", "table", "pre", "code", "img"]) expect(REPORT_FRAME_CSS).toContain(el);
+  });
+
+  test("no colour literal, and no font-size that is not a scale step", () => {
+    expect([...REPORT_FRAME_CSS.matchAll(COLOUR)].map((m) => m[0])).toEqual([]);
+    const sizes = [...REPORT_FRAME_CSS.matchAll(/font-size:\s*([^;}]+)/g)].map((m) => m[1]!.trim());
+    expect(sizes.filter((v) => !/^var\(--fs-[a-z]+\)$/.test(v))).toEqual([]);
+  });
+
+  test("no raw length outside a var(--…), but the 1px hairline the page's own borders use", () => {
+    const flat = REPORT_FRAME_CSS.replace(/\/\*[\s\S]*?\*\//g, "").replace(/var\([^)]*\)/g, "").replace(/\b1px\b/g, "");
+    expect(flat.match(/\d+(\.\d+)?(px|rem|em)\b/g) ?? []).toEqual([]);
   });
 });

@@ -291,6 +291,9 @@ const STRUCTURE = [
   // questions the check answered, and the block holding what the
   // preflight printed.
   "toolpanel", "checklist", "checkoutput",
+  // spec 495: a scheduled run's report on the entry's page — the panel,
+  // its header line and the sandboxed frame.
+  "reportpanel", "reporthead", "reportframe",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

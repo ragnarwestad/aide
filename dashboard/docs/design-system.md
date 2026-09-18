@@ -159,6 +159,12 @@ cannot `import`/`export`, for the same reason `specs-client/index.ts` can't). Th
 (end-of-body, served-`/`-only) — a page carries two `<script>` tags, so a test that locates "the"
 script by first occurrence will silently grab the wrong one; find each by a substring unique to its content.
 
+A scheduled run's report is shown in an `<iframe sandbox srcdoc>`, which is its own document. Its stylesheet is
+`css/report-frame.css` — element rules, tokens only, held to the same guard — placed in the framed document after
+`tokens.css`. It is not one of the page's `SECTIONS`. `specs-client/report-frame.ts` copies the page's `data-theme`
+into the frame's `<html>` (and removes it when the page has none, the Auto choice) and sizes the frame to its content.
+Without script the frame keeps a fixed height and follows the operating system's dark/light setting.
+
 ## Language choice
 
 The header carries a language control beside the theme one, offering five languages: English, Norwegian,

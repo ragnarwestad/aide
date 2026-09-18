@@ -40,6 +40,7 @@ import { formatElapsed } from "./elapsed.ts";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
 import { postPendingModel } from "./pending-model.ts";
+import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { relabelRunButton } from "./row-swap.ts";
 import {
@@ -242,3 +243,5 @@ offerEachToItsTool(document);
 // against a different mechanism — the browser's own tools cannot be
 // used on a page that redraws under them.
 connect();
+
+for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindReportFrame(el as HTMLIFrameElement);
