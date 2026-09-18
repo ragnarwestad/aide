@@ -160,7 +160,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
   });
 
-  test("?edit=1 keeps the three derivable keys read-only, even when one is unset (criterion 3)", async () => {
+  test("?edit=1 keeps lint and build read-only, even when one is unset, and fills a configured test command (criterion 3)", async () => {
     // No lockfile at all: AIDE_LINT_CMD, a DERIVABLE key, is `unset` —
     // the gate must read key membership, not the row's current origin.
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
@@ -169,6 +169,9 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     expect(html).not.toContain('name="AIDE_TEST_CMD"');
     expect(html).not.toContain('name="AIDE_LINT_CMD"');
     expect(html).not.toContain('name="AIDE_BUILD_CMD"');
+    // The test command is what runs use, so it is an input, holding the
+    // configured value.
+    expect(html).toMatch(/name="testCmd"[^>]*value="make test"/);
     // Meanwhile a non-derivable, currently-unset key does become an input.
     expect(html).toMatch(/name="installCmd"[^>]*value=""/);
   });
@@ -237,13 +240,23 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   // A worked-out test command runs nothing: the runner and a landing
   // read a configured one only. The row said "the project's own test
   // command" over one no run used, and nobody saw that nothing tested.
-  test("an unset test command says no tests run, and offers the worked-out one to save", async () => {
+  test("an unset test command says no tests run, and names the worked-out one as the suggestion", async () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     const row = html.slice(html.indexOf("AIDE_TEST_CMD"), html.indexOf("</tr>", html.indexOf("AIDE_TEST_CMD")));
     expect(row).toContain("not set — no tests run when a spec lands");
-    expect(row).toContain('name="testCmd" value="pnpm test -- --run"');
+    expect(row).toContain("<code>pnpm test -- --run</code>");
     expect(row).not.toContain("not a verified command");
+  });
+
+  // Edit offers the worked-out command as a placeholder, never as the
+  // field's value: a save that never touched the row must not configure
+  // a command nobody chose.
+  test("?edit=1 leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
+    const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    expect(html).toMatch(/name="testCmd"[^>]*value=""[^>]*placeholder="pnpm test -- --run"/);
   });
 
   test("a key with neither a value nor anything to work it out from reads not set (criterion 7)", async () => {
