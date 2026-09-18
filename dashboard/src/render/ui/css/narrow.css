@@ -110,6 +110,34 @@
      around them drew a horizontal scrollbar over content that had
      nothing to the right of it. `width: auto` on a block is the
      container's width. */
+  /* A project's settings table stacks: name, then the value (or its
+     field, full width), then the comment. As three columns its fields and
+     paths are wider than the screen, and the page or the table's own box
+     scrolled sideways, with the comments off to the right. Picked out by
+     its own column, not by a class of its own (the class vocabulary is
+     closed). */
+  table.list:has(> colgroup > col[data-col="setting-name"]),
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody,
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr,
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr > td { display: block; }
+  table.list:has(> colgroup > col[data-col="setting-name"]) { width: auto; }
+  table.list:has(> colgroup > col[data-col="setting-name"]) > thead { display: none; }
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr > td {
+    border-bottom: 0;
+    padding: var(--sp-1) var(--sp-3);
+    overflow-wrap: anywhere;
+  }
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr {
+    border-bottom: 1px solid var(--line);
+    padding: var(--sp-2) 0;
+  }
+  table.list:has(> colgroup > col[data-col="setting-name"]) :is(input, select) { width: 100%; box-sizing: border-box; }
+
+  /* A checkout's path, under a project page's readiness line, is one
+     word as far as the browser knows; unbroken, it widened the page
+     past a 360px screen. */
+  .tabpanel p { overflow-wrap: anywhere; }
+
   table.speclist, table.speclist tbody { display: block; }
   table.speclist { width: auto; }
   table.speclist tr:not(.spechead):not(.subrow) { display: block; }
