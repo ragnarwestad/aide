@@ -51,10 +51,11 @@ const EVERY_SECONDS = 5;
  *
  *  No way back to the spec on either: this tab was opened from the spec
  *  page, which is still standing in the one behind it. */
-export function testServerFailedPage(specFolder: string, why?: string): Response {
+export function testServerFailedPage(specFolder: string, why?: string, retryHref?: string): Response {
   return htmlPage(
     `Could not start a test server for "${esc(specFolder)}"`,
-    why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>",
+    (why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>") +
+      (retryHref ? `<p><a class="btn" href="${esc(retryHref)}">Try again</a></p>` : ""),
     { refresh: false },
   );
 }
@@ -102,6 +103,9 @@ ${o.refresh ? `<meta http-equiv="refresh" content="${EVERY_SECONDS}">` : ""}
   .spin { width: 28px; height: 28px; margin: 0 auto 1.25rem; border-radius: 50%;
     border: 3px solid currentColor; border-top-color: transparent; opacity: .5;
     animation: turn 1s linear infinite; }
+  .btn { display: inline-block; margin-top: .25rem; padding: .4rem 1rem; border-radius: 6px;
+    border: 1px solid currentColor; color: inherit; text-decoration: none; opacity: .85; }
+  .btn:hover { opacity: 1; }
   @keyframes turn { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 </style>
