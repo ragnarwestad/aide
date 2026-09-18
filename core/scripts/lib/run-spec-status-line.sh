@@ -39,6 +39,23 @@ if [ -n "$status_file" ]; then
         ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
       [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
     fi
+    # Code an EARLIER implement left on this branch counts too: a run
+    # stopped on the clock or on red tests keeps its work there, and one
+    # pressed again that finds it done and the tests green writes
+    # nothing — it has not made no progress (488, 491). Asked against
+    # the project's default branch, which the run merged in at its
+    # start, so only the branch's own change is left; the specs root is
+    # excluded, since a spec's own files are not the project's code.
+    if [ "$proj_changed" != "yes" ]; then
+      proj_base="$(default_branch "$project_root")"
+      proj_base_ref="$proj_base"
+      git -C "$project_wt" show-ref --verify --quiet "refs/remotes/origin/$proj_base" \
+        && proj_base_ref="origin/$proj_base"
+      git -C "$project_wt" diff --quiet "$proj_base_ref" HEAD -- . \
+        ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
+        ${specs_root_excludes[@]+"${specs_root_excludes[@]}"} 2>/dev/null
+      [ $? -eq 1 ] && proj_changed="yes"
+    fi
     # A CHANGE IN THE PROJECT is the whole test. Whether the run also
     # ticked its own Phase rows used to be half of it, and is not any
     # more: a Phase table is the run's own record of its work, gating

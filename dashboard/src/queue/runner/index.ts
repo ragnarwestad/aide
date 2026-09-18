@@ -29,7 +29,7 @@
 // here, re-exporting them for every existing importer.
 
 import { specNumber } from "../../project/spec-folder.ts";
-import { noProgressMessage } from "./cross-check-message.ts";
+import { noProgressMessage, withoutRestatedError } from "./cross-check-message.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
@@ -481,7 +481,7 @@ export class Runner {
       return;
     }
     if (!outcome.ok) {
-      const failure = stepFailure(noProgressMessage(step, outcome), outcome, job.model[step] ?? job.modelChoice);
+      const failure = stepFailure(noProgressMessage(step, outcome), withoutRestatedError(outcome), job.model[step] ?? job.modelChoice);
       const result = this.o.store.transition(job.id, "step-failed", {
         ...base,
         finishedAt: this.o.now(),
