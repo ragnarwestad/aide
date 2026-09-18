@@ -155,3 +155,20 @@ describe("QueueStore.renamePendingModel() (spec 465)", () => {
     expect(second.pendingModels["aide/94-a-new-spec"]).toEqual({ implement: "fable" });
   });
 });
+
+describe("QueueStore.setPendingModel() with a differently-cased name (spec 494)", () => {
+  test("stores the listed spelling", () => {
+    const store = new QueueStore({ defaults: { ...DEFAULTS, modelChoices: { Sonnet: {} } }, resolve });
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "sonnet").ok).toBe(true);
+    expect(store.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe("Sonnet");
+  });
+
+  test("several case-only matches are refused, naming both", () => {
+    const store = new QueueStore({ defaults: { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } }, resolve });
+    const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "sonnet");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("Sonnet");
+    expect(result.error).toContain("SONNET");
+  });
+});

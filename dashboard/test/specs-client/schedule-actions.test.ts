@@ -65,13 +65,19 @@ function fakeStateCell(): HTMLElement {
   return { textContent: "never run" } as unknown as HTMLElement;
 }
 
-function fakeRunForm(action: string, stateCell: HTMLElement): HTMLFormElement {
+function fakeSlot(): HTMLElement {
+  return { textContent: "", className: "refused" } as unknown as HTMLElement;
+}
+
+/** Answers `closest("tr")` and `closest("main")` by selector, and `querySelector` by what is asked for. */
+function fakeRunForm(action: string, stateCell: HTMLElement, slot: HTMLElement = fakeSlot()): HTMLFormElement {
   const button = { disabled: false };
-  const tr = { querySelector: () => stateCell };
+  const tr = { querySelector: (sel: string) => (sel === "[data-schedule-state]" ? stateCell : null) };
+  const main = { querySelector: (sel: string) => (sel === ".refused" ? slot : null) };
   return {
     action,
     querySelector: () => button,
-    closest: () => tr,
+    closest: (sel: string) => (sel === "tr" ? tr : sel === "main" ? main : null),
   } as unknown as HTMLFormElement;
 }
 
@@ -84,12 +90,33 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     expect(stateCell.textContent).toBe("queued");
   });
 
-  test("a refusal leaves the row's state untouched", async () => {
+  test("a refusal leaves the row's state untouched and its reason in the page's slot (spec 494)", async () => {
     const stateCell = fakeStateCell();
-    const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", stateCell);
+    const slot = fakeSlot();
+    const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", stateCell, slot);
     const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
     await postScheduleRun(form, fetchImpl);
     expect(stateCell.textContent).toBe("never run");
+    expect(slot.textContent).toBe("refused");
+    expect(slot.className).toBe("refused rowmsg failed");
+  });
+
+  test("a later accepted press empties the slot (spec 494)", async () => {
+    const stateCell = fakeStateCell();
+    const slot = fakeSlot();
+    const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", stateCell, slot);
+    await postScheduleRun(form, fakeFetch(() => ({ ok: false, body: { error: "refused" } })));
+    await postScheduleRun(form, fakeFetch(() => ({ ok: true, body: { ok: true, job: { state: "queued" } } })));
+    expect(slot.textContent).toBe("");
+    expect(slot.className).toBe("refused");
+    expect(stateCell.textContent).toBe("queued");
+  });
+
+  test("a request that fails outright says so in the slot (spec 494)", async () => {
+    const slot = fakeSlot();
+    const form = fakeRunForm("/x", fakeStateCell(), slot);
+    await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
+    expect(slot.textContent).toBe("the request failed");
   });
 });
 

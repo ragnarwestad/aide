@@ -150,6 +150,8 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.nextRun": "Prochaine exécution",
   "schedule.promptFile": "Fichier de prompt",
   "schedule.model": "Modèle",
+  "schedule.modelNotOffered": "le modèle {model} ne fait pas partie de ceux que la file propose — elle propose {choices}. Choisissez-en un sur la page de l'entrée ; d'ici là, ses exécutions sont refusées.",
+  "schedule.modelNoneOffered": "le modèle {model} ne fait pas partie de ceux que la file propose — elle ne propose aucun modèle. Choisissez-en un autre sur la page de l'entrée dès que la configuration de la file en liste un ; d'ici là, ses exécutions sont refusées.",
   "schedule.ai": "IA",
   "schedule.enabled": "Activé",
   "schedule.yes": "oui",

@@ -4,6 +4,7 @@ import { renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../..
 import { notLandedTitle } from "../../../src/render/pages/specs-list/cell-helpers.ts";
 import { wordPhase } from "../../../src/render/ui/job-state";
 import { worktreeLinksError } from "../../../src/project/project-admin";
+import { t } from "../../../src/i18n";
 import { row } from "../pages/fixtures.ts";
 
 /** One sentence the board can show, and the claim this registry makes
@@ -324,6 +325,11 @@ const PHASE_5_SPEC_372: RegistryEntry[] = [
     name: "a configured worktree-links value fails validation (project-admin/manifest-io.ts, worktreeLinksError — surfaced as the settings-table's blocking problem cell)",
     text: worktreeLinksError("/abs/node_modules", "AIDE_WORKTREE_LINKS") ?? "",
     resolve: "must name repo-relative paths",
+  },
+  {
+    name: "a schedule entry names a model the queue does not offer (schedule-page/model-flag.ts, schedule.modelNotOffered)",
+    text: t("en", "schedule.modelNotOffered", { model: "retired", choices: "Sonnet, Opus" }),
+    resolve: "Choose one on the entry's page",
   },
 ];
 

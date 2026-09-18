@@ -150,6 +150,8 @@ export const es: Record<TranslationKey, string> = {
   "schedule.nextRun": "Próxima ejecución",
   "schedule.promptFile": "Archivo de prompt",
   "schedule.model": "Modelo",
+  "schedule.modelNotOffered": "el modelo {model} no es uno de los que ofrece la cola — ofrece {choices}. Elige uno en la página de la entrada; hasta entonces sus ejecuciones se rechazan.",
+  "schedule.modelNoneOffered": "el modelo {model} no es uno de los que ofrece la cola — no ofrece ningún modelo. Elige otro en la página de la entrada cuando la configuración de la cola liste alguno; hasta entonces sus ejecuciones se rechazan.",
   "schedule.ai": "IA",
   "schedule.enabled": "Activado",
   "schedule.yes": "sí",

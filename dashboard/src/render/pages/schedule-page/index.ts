@@ -33,6 +33,10 @@ export interface SchedulePageOptions {
   /** Spec 435. The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
+  /** A refusal for the slot above the list (spec 494). */
+  error?: string;
+  /** The model names the queue offers; absent draws no flag. */
+  modelNames?: readonly string[];
 }
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {

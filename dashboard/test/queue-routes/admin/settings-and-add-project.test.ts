@@ -228,6 +228,34 @@ describe("Settings routes (spec 232)", () => {
     expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
   });
 
+  // Spec 494: a default typed in a different case is stored as listed.
+  test("a differently-cased default is saved under the listed spelling", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const res = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "CODEX-FAST" } }),
+    });
+    expect(res.status).toBe(200);
+    const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string> };
+    expect(saved.model.default).toBe("codex-fast");
+  });
+
+  test("several case-only matches are refused, naming both, and nothing is written", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
+    const { base } = start({ queueToken: TOKEN, queueDefaults: defaults, queueConfigFile: file });
+    const res = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "sonnet" } }),
+    });
+    expect(res.status).toBe(400);
+    const error = ((await res.json()) as { error: string }).error;
+    expect(error).toContain("Sonnet");
+    expect(error).toContain("SONNET");
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
+  });
+
   test("invalid input and missing config leave live defaults unchanged", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });

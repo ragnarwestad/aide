@@ -212,6 +212,23 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
   // The other half of `tailEdits()`: a phase this job does not have at
   // all. Writing it is inert until the step is added through the box's
   // own route, and read by the same `resolveStepModel` when it is.
+  test("a differently-cased name is stored under the listed spelling (spec 494)", () => {
+    const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, Fable: {} } };
+    const job = running(["analyze", "implement"], 0, defaults);
+    expect(job.store.editTailModel(job.id, "implement", "fable").ok).toBe(true);
+    expect(job.model().implement).toBe("Fable");
+  });
+
+  test("several case-only matches are refused, naming both (spec 494)", () => {
+    const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
+    const job = running(["analyze", "implement"], 0, defaults);
+    const answer = job.store.editTailModel(job.id, "implement", "sonnet");
+    expect(answer.ok).toBe(false);
+    if (answer.ok) return;
+    expect(answer.error).toContain("Sonnet");
+    expect(answer.error).toContain("SONNET");
+  });
+
   test("a phase the job does not have takes one too (criterion 4)", () => {
     const job = running(["analyze"]);
     expect(job.store.editTailModel(job.id, "archive", "fable").ok).toBe(true);

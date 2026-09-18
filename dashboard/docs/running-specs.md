@@ -352,9 +352,19 @@ previews a cron expression's next fire time for the form.
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
 since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
 forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
-config does not grant is refused at the form rather than at 03:00. An entry that names no model is enqueued without one
+config does not grant is refused at the form rather than at 03:00. A name that differs from a listed one only in
+upper and lower case is matched to the listed spelling and stored as that (in a job request, a per-step or pending
+pick, a tail-model edit, the Settings save and this form alike); a name matching several listed spellings that differ
+only in case is refused, naming them. An entry that names no model is enqueued without one
 and the queue config's own `schedule` default decides. "Run now"
-reads the same field, so pressing it tests what the schedule actually does. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder
+reads the same field, so pressing it tests what the schedule actually does.
+
+An entry whose model the queue config does not offer (the manifest was edited by hand, or the config changed) is
+flagged in its Name cell on `/schedule` and above the Overview on its own page, naming the model and the ones the queue
+offers. Its runs are refused: Run now writes the queue's reason into the message slot above the list (`Run now was
+refused for <project>:<entry>: …`, or in `?error=` for a press made without script) and logs `queue: run now refused for
+<project>/<entry> — <reason>`; the timer logs `queue: scheduled fire refused for <project>/<entry> — <reason>` once per
+fire window and reason, not once per tick. The step sends the named file's contents to the model verbatim, with no Aide skill or spec folder
 involved at all; write it the way you would write a prompt by hand.
 
 **Due is computed from the most recent fire time alone — there is no backfill.** If the dashboard is down across a whole
@@ -366,7 +376,8 @@ overview names the soonest across a project's entries.
 `since` counts as already used, the same way a tracked job does — so a freshly created or freshly edited entry's first
 real run is its next fire after the save, not whatever the cron's most recent fire already was. An entry with no
 `since` — written by hand, or saved before this field existed — fires on its very first eligible window, exactly as
-every entry did before.
+every entry did before. A window whose fire the queue refused made no job, so it is still due: an entry with no
+`since` fires for it once the cause is fixed, an entry saved from a form does not.
 
 **A cron expression is evaluated in the SERVING HOST's local timezone**, the same as an ordinary crontab — there is no
 `tz:` field. Check what

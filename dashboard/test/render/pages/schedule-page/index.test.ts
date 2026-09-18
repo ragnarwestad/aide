@@ -267,3 +267,36 @@ describe("renderScheduleDetailPage (spec 296)", () => {
     expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
 });
+
+describe("Schedule list: the refusal slot and the model flag (spec 494)", () => {
+  const row = (name: string, model?: string) => ({
+    project: "aide",
+    entry: { name, cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true, ...(model ? { model } : {}) },
+    projectScheduleHref: "/projects/aide?tab=schedule",
+  });
+  const list = (o: object) =>
+    renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+      rows: [row("retired-one", "retired"), row("listed", "Sonnet"), row("lower", "sonnet"), row("plain")],
+      ...o,
+    });
+
+  test("?error= fills the slot; without it the slot is there and empty", () => {
+    expect(list({ error: "Run now was refused for aide:x: boom" })).toContain(
+      '<p class="refused rowmsg failed" aria-live="polite">Run now was refused for aide:x: boom</p>',
+    );
+    expect(list({})).toContain('<p class="refused" aria-live="polite"></p>');
+  });
+
+  test("the flag sits in the unlisted entry's Name cell and links to the entry's own page", () => {
+    const html = list({ modelNames: ["Sonnet", "Opus"] });
+    expect(html.match(/rowmsg failed/g)?.length).toBe(1);
+    const cell = html.match(/<td><a href="[^"]*">aide:retired-one<\/a>[\s\S]*?<\/td>/)?.[0] ?? "";
+    expect(cell).toContain("retired");
+    expect(cell).toContain("Sonnet, Opus");
+    expect(cell).toContain('href="/schedule/aide/retired-one"');
+  });
+
+  test("no model list passed draws no flag", () => {
+    expect(list({})).not.toContain("is not one the queue offers");
+  });
+});

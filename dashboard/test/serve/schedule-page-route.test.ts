@@ -302,3 +302,35 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
+  const withModel = (model: string) => `${NIGHTLY}    model: ${model}\n`;
+  const AUTH = { "x-aide-token": TOKEN };
+
+  test("?error= is drawn in the slot, escaped", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const html = await (await fetch(`${base}/schedule?error=${encodeURIComponent("bad <b>")}`, { headers: AUTH })).text();
+    expect(html).toContain('<p class="refused rowmsg failed" aria-live="polite">bad &lt;b&gt;</p>');
+    expect(await (await fetch(`${base}/schedule`, { headers: AUTH })).text()).toContain('<p class="refused" aria-live="polite"></p>');
+  });
+
+  test("an entry naming a model the queue does not offer is flagged on the list and on its own page", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeSchedule(dir, "aide", withModel("retired"));
+    const list = await (await fetch(`${base}/schedule`, { headers: AUTH })).text();
+    expect(list).toContain("retired");
+    expect(list).toContain("sonnet, codex-fast");
+    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`, { headers: AUTH })).text();
+    expect(detail).toContain("sonnet, codex-fast");
+    expect(detail).toContain("is not one the queue offers");
+  });
+
+  test("an entry naming a listed model in another case is not flagged", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeSchedule(dir, "aide", withModel("SONNET"));
+    const list = await (await fetch(`${base}/schedule`, { headers: AUTH })).text();
+    expect(list).not.toContain("is not one the queue offers");
+    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`, { headers: AUTH })).text();
+    expect(detail).not.toContain("is not one the queue offers");
+  });
+});

@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
+import { modelFlag } from "./model-flag.ts";
 import { renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
 
 export function renderScheduleOverview(
@@ -20,7 +21,9 @@ export function renderScheduleOverview(
 ): string {
   const lang = opts.lang ?? "en";
   const next = nextFireTime(entry.cron, new Date());
+  const offered = opts.modelChoices?.map((c) => c.name);
   return (
+    modelFlag(lang, entry.model, offered) +
     `<dl class="kv">` +
     `<dt>${t(lang, "schedule.cron")}</dt><dd><code>${esc(entry.cron)}</code></dd>` +
     `<dt>${t(lang, "schedule.nextRun")}</dt><dd>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</dd>` +

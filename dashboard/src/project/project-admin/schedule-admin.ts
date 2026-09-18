@@ -10,6 +10,7 @@ import { CronExpressionParser } from "cron-parser";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { saveSpecFile } from "../../git/specs-pull.ts";
+import { listedModelName } from "../../queue/model-name.ts";
 import { escapesRoot, parseManifest, SCHEDULE_NAME_RE, type ScheduleEntry } from "../parse-manifest.ts";
 import { scheduleListText } from "./manifest-io.ts";
 
@@ -112,11 +113,25 @@ export function scheduleEntryError(
   const model = req.model?.trim();
   if (model) {
     if (!SCHEDULE_NAME_RE.test(model)) return `"${model}" is not a usable model name`;
-    if (knownModels && !knownModels.includes(model)) {
-      return `"${model}" is not a model this dashboard offers`;
+    if (knownModels) {
+      const listed = listedModelName(knownModels, model);
+      if ("candidates" in listed) {
+        return listed.candidates.length
+          ? `"${model}" matches several models this dashboard offers: ${listed.candidates.join(", ")}`
+          : `"${model}" is not a model this dashboard offers`;
+      }
     }
   }
   return null;
+}
+
+/** The model an entry stores: the spelling the dashboard lists, when the
+ *  posted one differs from it only in case. */
+function storedModel(model: string | undefined, knownModels?: readonly string[]): string | undefined {
+  const posted = model?.trim();
+  if (!posted || !knownModels) return posted || undefined;
+  const listed = listedModelName(knownModels, posted);
+  return "name" in listed ? listed.name : posted;
 }
 
 /** Add a new entry, enabled by default (acceptance criteria 5, 6, 7). */
@@ -129,7 +144,7 @@ export async function createScheduleEntry(
   const existing = readEntries(projectDir);
   const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels);
   if (error) return { ok: false, error };
-  const model = req.model?.trim();
+  const model = storedModel(req.model, knownModels);
   const entry: ScheduleEntry = {
     name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
     // Stamped on every save (spec 461): a fire at or before this floor
@@ -157,7 +172,7 @@ export async function updateScheduleEntry(
   if (!current) return { ok: false, error: `no schedule entry named "${currentName}"` };
   const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels);
   if (error) return { ok: false, error };
-  const model = req.model?.trim();
+  const model = storedModel(req.model, knownModels);
   const updated = existing.map((e) =>
     e.name === currentName
       ? {

@@ -10,8 +10,9 @@
 //     something an HTTP body gets to decide
 
 import { errorSentence } from "../format/error-sentence.ts";
+import { listedModelName } from "./model-name.ts";
 import { ARCHIVE_ONLY_STEP, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
-import type { CreateProjectAllower, Job, ModelChoice, ProjectResolver, QueueDefaults } from "./types.ts";
+import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
 
@@ -55,16 +56,12 @@ function tighten(raw: unknown, limit: number, name: string): number | Error {
  *  Two different answers, deliberately: a name that is merely not on the
  *  list, and a server that offers no list at all. Everything the choice
  *  is GRANTED comes from here; the request supplies only the name. */
-function lookUpModel(defaults: QueueDefaults, name: string): ModelChoice | { error: string } {
-  const found = defaults.modelChoices?.[name];
-  if (found) return found;
-  return {
-    error: invalidRequest(
-      defaults.modelChoices
-        ? `unknown or not-allowed model: ${name}`
-        : "no model choice is configured on this server",
-    ),
-  };
+export function lookUpModel(defaults: QueueDefaults, name: string): { name: string } | { error: string } {
+  if (!defaults.modelChoices) return { error: invalidRequest("no model choice is configured on this server") };
+  const listed = listedModelName(Object.keys(defaults.modelChoices), name);
+  if ("name" in listed) return listed;
+  const hint = listed.candidates.length ? ` (listed as ${listed.candidates.join(" or ")})` : "";
+  return { error: invalidRequest(`unknown or not-allowed model: ${name}${hint}`) };
 }
 
 export function parseJobRequest(
@@ -172,7 +169,7 @@ export function parseJobRequest(
     if (!NAME_RE.test(r.model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = lookUpModel(defaults, r.model);
     if ("error" in found) return { ok: false, error: found.error };
-    modelChoice = r.model;
+    modelChoice = found.name;
   } else if (r.model !== undefined && r.model !== null && r.model !== "") {
     // The per-step shape. An empty string keeps meaning "use the
     // configuration" — the branch above lets it fall through here, and
@@ -191,7 +188,7 @@ export function parseJobRequest(
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
-      stepModels[step] = name;
+      stepModels[step] = found.name;
     }
   }
 
@@ -422,8 +419,8 @@ export function parseCreateRequest(
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
-      if (runsNow) stepModels[step] = name;
-      else pendingStepModels[step] = name;
+      if (runsNow) stepModels[step] = found.name;
+      else pendingStepModels[step] = found.name;
     }
   }
 

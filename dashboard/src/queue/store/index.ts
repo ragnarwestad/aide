@@ -23,6 +23,7 @@ import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
   NAME_RE,
   invalidRequest,
+  lookUpModel,
   parseCreateRequest,
   parseJobRequest,
   type CreateParseResult,
@@ -371,10 +372,8 @@ export class QueueStore {
    *  `tailEdits()` and be refused by name, rather than land too late
    *  and silently.
    *
-   *  The name is checked against the SAME table `parseJobRequest` reads
-   *  at job creation, in the same words — a small duplication, chosen
-   *  over extracting a shared helper out of a working, tested path
-   *  nothing here asked to change. */
+   *  The name is checked by the SAME `lookUpModel` `parseJobRequest`
+   *  reads at job creation, and the job stores the listed spelling. */
   editTailModel(id: string, step: string, model: string): ParseResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, error: invalidRequest("no such job") };
@@ -393,18 +392,9 @@ export class QueueStore {
       };
     }
     if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
-    const found = this.defaults.modelChoices?.[model];
-    if (!found) {
-      return {
-        ok: false,
-        error: invalidRequest(
-          this.defaults.modelChoices
-            ? `unknown or not-allowed model: ${model}`
-            : "no model choice is configured on this server",
-        ),
-      };
-    }
-    const next = { ...job, model: { ...job.model, [wanted]: model } };
+    const found = lookUpModel(this.defaults, model);
+    if ("error" in found) return { ok: false, error: found.error };
+    const next = { ...job, model: { ...job.model, [wanted]: found.name } };
     this.jobs.set(id, next);
     this.mirror();
     this.changed();
@@ -432,18 +422,9 @@ export class QueueStore {
     const wanted = WORKFLOW_STEPS.find((s) => s === step);
     if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
     if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
-    const found = this.defaults.modelChoices?.[model];
-    if (!found) {
-      return {
-        ok: false,
-        error: invalidRequest(
-          this.defaults.modelChoices
-            ? `unknown or not-allowed model: ${model}`
-            : "no model choice is configured on this server",
-        ),
-      };
-    }
-    this.writePendingModel(project, specFolder, wanted, model);
+    const found = lookUpModel(this.defaults, model);
+    if ("error" in found) return { ok: false, error: found.error };
+    this.writePendingModel(project, specFolder, wanted, found.name);
     this.changed();
     return { ok: true };
   }

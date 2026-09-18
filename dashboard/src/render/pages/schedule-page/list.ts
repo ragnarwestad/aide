@@ -7,7 +7,9 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { deleteSchedulePath } from "./tabs.ts";
+import type { Language } from "../../../i18n";
+import { modelFlag } from "./model-flag.ts";
+import { deleteSchedulePath, schedulePagePath } from "./tabs.ts";
 
 export interface SchedulePageRow {
   project: string;
@@ -83,9 +85,16 @@ export interface ScheduleListOptions {
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
   token?: string;
+  /** A refusal to show in the slot above the table — what a Run now made
+   *  without script was sent back with. */
+  error?: string;
+  /** The model names the queue offers. Absent means nothing is flagged. */
+  modelNames?: readonly string[];
+  lang?: Language;
 }
 
-function row(r: SchedulePageRow, now: Date, token?: string): string {
+function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "token" | "modelNames" | "lang">): string {
+  const { token } = o;
   const next = nextFireTime(r.entry.cron, now);
   const state = r.lastState ?? "never run";
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
@@ -97,7 +106,9 @@ function row(r: SchedulePageRow, now: Date, token?: string): string {
     // list is no longer scoped to one project, so the row has to say
     // which one it belongs to. AC-5 (spec 468): the link goes to the
     // project's own Schedule tab, not the entry's own detail page.
-    `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a></td>` +
+    `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
+    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, schedulePagePath(r.project, r.entry.name)) +
+    `</td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +
     // A standalone checkbox with no surrounding form, the same shape
@@ -221,6 +232,10 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
   const table =
     visible.length === 0
       ? rowMessage("info", opts.rows.length === 0 ? "No schedule entry exists yet." : `No schedule entry matches "${term}".`)
-      : `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${visible.map((r) => row(r, now, opts.token)).join("")}</tbody></table></div>`;
-  return searchForm(f) + table;
+      : `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${visible.map((r) => row(r, now, opts)).join("")}</tbody></table></div>`;
+  // Always drawn, empty when there is nothing to say: the browser code
+  // writes a refused Run now into it, and a press made without script
+  // arrives with the sentence in `?error=`.
+  const slot = `<p class="refused${opts.error ? " rowmsg failed" : ""}" aria-live="polite">${esc(opts.error ?? "")}</p>`;
+  return searchForm(f) + slot + table;
 }

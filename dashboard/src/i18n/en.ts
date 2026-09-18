@@ -159,6 +159,8 @@ export const en = {
   "schedule.nextRun": "Next run",
   "schedule.promptFile": "Prompt file",
   "schedule.model": "Model",
+  "schedule.modelNotOffered": "model {model} is not one the queue offers — it offers {choices}. Choose one on the entry's page; until then its runs are refused.",
+  "schedule.modelNoneOffered": "model {model} is not one the queue offers — it offers no models. Choose another on the entry's page once the queue config lists one; until then its runs are refused.",
   "schedule.ai": "AI",
   "schedule.enabled": "Enabled",
   "schedule.yes": "yes",

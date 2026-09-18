@@ -449,3 +449,34 @@ describe("deleteScheduleEntry (spec 277, acceptance criteria 1, 3, 5)", () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe("a model name that differs from a listed one only in case (spec 494)", () => {
+  const req = (model: string) => ({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model });
+  const EXISTING = "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n";
+
+  test("create stores the listed spelling", async () => {
+    const dir = projectDir();
+    const { git } = scheduleGit(dir);
+    const result = await createScheduleEntry(git, dir, req("sonnet"), ["Sonnet", "Opus"]);
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)[0]!.model).toBe("Sonnet");
+  });
+
+  test("edit stores the listed spelling", async () => {
+    const dir = projectDir(EXISTING);
+    const { git } = scheduleGit(dir);
+    const result = await updateScheduleEntry(git, dir, "nightly", req("sonnet"), ["Sonnet", "Opus"]);
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)[0]!.model).toBe("Sonnet");
+  });
+
+  test("several case-only matches are refused, naming both", async () => {
+    const dir = projectDir();
+    const { git } = scheduleGit(dir);
+    const result = await createScheduleEntry(git, dir, req("sonnet"), ["Sonnet", "SONNET"]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("Sonnet");
+    expect(result.error).toContain("SONNET");
+  });
+});

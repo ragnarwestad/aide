@@ -12,6 +12,7 @@ import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { runningJobNames } from "../land-branch";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
+import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render";
@@ -107,8 +108,12 @@ export async function handleQueueAdminRoutes(
       const value = table[step];
       if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
       if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
-      if (!ctx.queue.defaults.modelChoices?.[value]) return refuse(`unknown or not-allowed model for ${step}: ${value}`);
-      next[step] = value;
+      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
+      if ("candidates" in listed) {
+        const hint = listed.candidates.length ? ` (listed as ${listed.candidates.join(" or ")})` : "";
+        return refuse(`unknown or not-allowed model for ${step}: ${value}${hint}`);
+      }
+      next[step] = listed.name;
     }
 
     // timeoutSec: the ceiling a per-job request can only tighten

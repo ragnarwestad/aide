@@ -61,3 +61,31 @@ describe("renderScheduleOverview", () => {
     expect(html).not.toContain("<dd>yes</dd>");
   });
 });
+
+describe("the flag on an entry naming a model the queue does not offer (spec 494)", () => {
+  const entry = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true };
+  const choices = [{ name: "Sonnet" }, { name: "Opus" }];
+
+  test("names the model and the choices, without a link", () => {
+    const html = renderScheduleOverview("aide", { ...entry, model: "retired" }, { modelChoices: choices });
+    expect(html).toContain("retired");
+    expect(html).toContain("Sonnet, Opus");
+    expect(html).toContain("rowmsg failed");
+    expect(html).not.toContain("<a href=\"/schedule/aide/nightly\"");
+  });
+
+  test("a listed name, a case-only match and no model draw no flag", () => {
+    for (const model of ["Sonnet", "sonnet", undefined]) {
+      expect(renderScheduleOverview("aide", { ...entry, model }, { modelChoices: choices })).not.toContain("is not one the queue offers");
+    }
+  });
+
+  test("a queue that offers no models gets the no-models sentence", () => {
+    const html = renderScheduleOverview("aide", { ...entry, model: "retired" }, { modelChoices: [] });
+    expect(html).toContain("it offers no models");
+  });
+
+  test("no model list passed draws no flag", () => {
+    expect(renderScheduleOverview("aide", { ...entry, model: "retired" }, {})).not.toContain("is not one the queue offers");
+  });
+});

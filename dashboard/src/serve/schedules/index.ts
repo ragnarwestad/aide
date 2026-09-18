@@ -20,13 +20,14 @@ import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-che
 import {
   SPEC_FILES, buildProjectViews, resolveInstallCmd, resolveSchedule, specArchivedDate,
 } from "../../project/discover";
-import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
+import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
 import { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
+import { logRefusal } from "../serve-helpers/redirect.ts";
 
 export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
@@ -72,6 +73,10 @@ export interface ScheduleContext {
   /** The clock the dependency hold measures its wait with; `Date.now`
    *  unless a test sets one. */
   now?: () => number;
+  /** The scheduled fires already logged as refused, keyed `project/entry`
+   *  and holding the fire window and reason last logged. Created on first
+   *  use by `refreshSchedules`. */
+  refusedFires?: Map<string, string>;
   /** Checks again whether the tools waiting jobs will run on are usable. */
   recheckTools?: (tools: CheckableTool[]) => Promise<void>;
   checkoutEnsurer: CheckoutEnsurer;
@@ -255,41 +260,59 @@ function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {
 /** Spec 259: does any project's own `schedule:` entry have a fire due
  *  right now, and if so enqueue it. `refreshDrift`'s shape again — a
  *  SCHEDULE, not a cache window, and nothing but this timer ever asks
- *  the question (a manual "run now" goes through the ordinary queue
- *  form instead, `POST /api/queue`, and is unaffected by this).
+ *  the question.
  *
  *  Each project's manifest is read fresh on every tick
  *  (`resolveSchedule`, off the MACHINERY checkout), never cached: an
  *  operator who edits a cron expression sees the next tick honour it,
- *  not the next restart. Due-ness is `isDue`'s alone (acceptance
- *  criteria 1-3) — this loop supplies it the queue's own job history
- *  for the entry's tracking key and nothing else. `queue.enqueue`'s
- *  own refusal (an unknown project, a clash, a cap) is swallowed: a
- *  poll that cannot start a job this tick tries again next tick, the
- *  same as every other best-effort schedule in this file. */
+ *  not the next restart. Due-ness is `isDue`'s alone — this loop
+ *  supplies it the queue's own job history for the entry's tracking key
+ *  and nothing else.
+ *
+ *  A fire the queue refuses makes no job, so the entry stays due and is
+ *  tried again next tick. The refusal is logged once per fire window and
+ *  reason (`ctx.refusedFires`), not once per tick: a weekly entry refused
+ *  for the same reason is logged again the week after, and an entry that
+ *  leaves the manifest is forgotten. */
 export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
   if (!ctx.projectRoot) return;
-  const now = new Date();
+  const now = new Date((ctx.now ?? Date.now)());
+  const refused = (ctx.refusedFires ??= new Map<string, string>());
+  const live = new Set<string>();
   for (const project of ctx.allowed) {
     const entries = resolveSchedule(ctx.machineryProjectDir(project));
     for (const entry of entries) {
       const key = scheduleTrackingKey(entry.name);
+      const memoKey = `${project}/${entry.name}`;
+      live.add(memoKey);
       const jobs: ScheduleJobRef[] = ctx.queue
         .list()
         .filter((j) => j.project === project && j.specFolder === key)
         .map((j) => ({ specFolder: j.specFolder, createdAt: j.createdAt, startedAt: j.startedAt }));
-      if (!isDue(entry, now, jobs)) continue;
+      if (!isDue(entry, now, jobs)) {
+        refused.delete(memoKey);
+        continue;
+      }
       // The entry's own model, when it names one: a whole-job pick, which
       // is what `parseJobRequest` copies onto every step of the job — and
       // a scheduled job has exactly one. An entry that names none is
       // enqueued byte for byte as before, and the config's own `schedule`
       // default decides.
-      ctx.queue.enqueue({
+      const result = ctx.queue.enqueue({
         project, specFolder: key, steps: ["schedule"],
         ...(entry.model ? { model: entry.model } : {}),
       });
+      if (result.ok) {
+        refused.delete(memoKey);
+        continue;
+      }
+      const said = `${mostRecentFireTime(entry.cron, now)?.toISOString()}|${result.error}`;
+      if (refused.get(memoKey) === said) continue;
+      refused.set(memoKey, said);
+      logRefusal("scheduled fire", memoKey, result.error);
     }
   }
+  for (const key of refused.keys()) if (!live.has(key)) refused.delete(key);
 }
 
 /** Every `tick()` goes through here: the map has to be computed with

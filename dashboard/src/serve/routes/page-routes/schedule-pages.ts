@@ -63,6 +63,8 @@ export async function schedulePages(
         sort: url.searchParams.get("sort") ?? undefined,
         dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
       },
+      error: url.searchParams.get("error") ?? undefined,
+      modelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

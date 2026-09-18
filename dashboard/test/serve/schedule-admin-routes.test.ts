@@ -418,6 +418,60 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   });
 });
 
+describe("Run now on an entry the queue refuses (spec 494)", () => {
+  const entryNaming = (model: string) =>
+    `name: aide\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs-nightly.md\n    model: ${model}\n`;
+
+  /** `console.error` swapped for the length of one case. */
+  async function withLoggedErrors<T>(run: () => Promise<T>): Promise<{ value: T; lines: string[] }> {
+    const original = console.error;
+    const lines: string[] = [];
+    console.error = (...args: unknown[]) => void lines.push(args.join(" "));
+    try {
+      return { value: await run(), lines };
+    } finally {
+      console.error = original;
+    }
+  }
+
+  test("a JSON press names the entry and gives the queue's reason, and is logged once", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    writeManifest(dir, "aide", entryNaming("retired"));
+    const { value: res, lines } = await withLoggedErrors(() =>
+      fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson }),
+    );
+    expect(res.status).toBe(400);
+    const { error } = (await res.json()) as { error: string };
+    expect(error.startsWith("Run now was refused for aide:nightly:")).toBe(true);
+    expect(error).toContain("unknown or not-allowed model: retired");
+    const logged = lines.filter((l) => l.includes("run now refused for aide/nightly"));
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toContain("unknown or not-allowed model: retired");
+  });
+
+  test("a press with no script is redirected to /schedule carrying the same sentence", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    writeManifest(dir, "aide", entryNaming("retired"));
+    const { value: res } = await withLoggedErrors(() =>
+      fetch(`${base}/api/queue/schedule/aide/nightly/run`, {
+        method: "POST", headers: { "x-aide-token": TOKEN }, redirect: "manual",
+      }),
+    );
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location") ?? "";
+    expect(location.startsWith("/schedule?error=")).toBe(true);
+    expect(decodeURIComponent(location.slice("/schedule?error=".length))).toContain("Run now was refused for aide:nightly:");
+  });
+
+  test("an entry naming the model in another case runs on the listed spelling", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    writeManifest(dir, "aide", entryNaming("SONNET"));
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { job: { modelChoice: string } }).job.modelChoice).toBe("sonnet");
+  });
+});
+
 describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   test("a matching confirm deletes the entry and answers {ok: true} (criterion 1)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });

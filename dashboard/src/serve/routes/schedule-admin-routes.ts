@@ -8,7 +8,7 @@ import type { ScheduleGit } from "../../project/project-admin/schedule-admin.ts"
 import { resolveSchedule } from "../../project/discover";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { deleteSchedulePath, projectPagePath, SCHEDULE_ROUTE } from "../../render";
-import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers";
+import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
 /** The `git` seam every write route below hands to `schedule-admin.ts`
@@ -97,7 +97,11 @@ export async function handleScheduleAdminRoutes(
       ...(entry?.model ? { model: entry.model } : {}),
     });
     const back = SCHEDULE_ROUTE;
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect({}, { error: result.error }, back);
+    if (!result.ok) {
+      const error = `Run now was refused for ${project}:${name}: ${result.error}`;
+      logRefusal("run now", `${project}/${name}`, result.error);
+      return wantsJson ? json({ error }, 400) : specsRedirect({}, { error }, back);
+    }
     await ctx.tickRunner();
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect({}, undefined, back);
   }
