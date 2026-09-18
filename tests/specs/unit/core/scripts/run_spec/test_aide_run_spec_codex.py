@@ -8,7 +8,7 @@ unchanged and keep their names.
 import json
 import pytest
 import pytest
-from ..conftest import run
+from ..conftest import STOP_DEADLINE_SEC, run
 from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits
 
 
@@ -147,7 +147,7 @@ def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace,
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
-                     timeout_sec="8", kill_grace_sec="2")
+                     timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert out["ok"] is False
     assert out["tool"] == "codex"

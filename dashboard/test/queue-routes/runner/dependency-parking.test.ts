@@ -131,6 +131,16 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     return true;
   };
 
+  /** `spawned()`'s wait for any condition, bounded the same way. */
+  const until = async (cond: () => boolean, ms = 8_000): Promise<boolean> => {
+    const deadline = Date.now() + ms;
+    while (!cond()) {
+      if (Date.now() >= deadline) return false;
+      await Bun.sleep(25);
+    }
+    return true;
+  };
+
   function own(prefix: string) {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     ownDirs.push(dir);
@@ -257,15 +267,15 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       },
     });
     expect((await queueImplement(base)).status).toBe(200);
-    await settle();
     const asked = () => git.calls.filter((c) => c.args[0] === "cat-file").length;
+    expect(await until(() => asked() > 0)).toBe(true);
     const first = asked();
-    expect(first).toBeGreaterThan(0);
 
-    // One 2 s tick interval plus margin: the question has to have been
-    // put to git again, since there is no cache to expire.
-    await Bun.sleep(2500);
-    expect(asked()).toBeGreaterThan(first);
+    // The question has to be put to git again on a later tick, since
+    // there is no cache to expire. Waited for, not slept for: a 2 s tick
+    // on an idle machine is a much longer one beside other suites'
+    // load, and a fixed 2.5 s pause failed there (491, 2026-09-18).
+    expect(await until(() => asked() > first)).toBe(true);
     expect(existsSync(argvFile)).toBe(false);
 
     // The dependency lands. The job starts on the next tick — a fixed

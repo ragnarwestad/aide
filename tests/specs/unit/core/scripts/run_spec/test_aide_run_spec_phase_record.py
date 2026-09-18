@@ -11,7 +11,7 @@ import json
 import pathlib
 import re
 import time
-from ..conftest import READ_SPECS, git, run
+from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import analyzing_claude
 from .run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits
 from .run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
@@ -127,7 +127,7 @@ def test_an_implement_run_stopped_by_timeout_records_the_stop(
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, command="implement",
-                     timeout_sec="8", kill_grace_sec="2")
+                     timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     text = phase_file_text(workspace, f"{workspace['folder']}/3-solution.md")
     result_line = bullet(text, "Result")

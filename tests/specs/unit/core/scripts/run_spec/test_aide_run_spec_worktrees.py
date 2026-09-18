@@ -8,7 +8,7 @@ in conftest.py beside them.
 import json
 import pathlib
 import pytest
-from ..conftest import READ_SPECS, git, run
+from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import probing_claude, specs_only_claude, writing_claude
 from .run_spec_invoking import BRANCH, worktrees
 from .run_spec_origins import is_ancestor
@@ -131,7 +131,7 @@ def test_no_worktree_survives_a_completed_run(runner, workspace, fake_claude):
 
 def test_no_worktree_survives_a_deadline_kill(runner, workspace, fake_claude):
     claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
     assert worktrees(workspace["specs"]) == [str(workspace["specs"])]
@@ -196,7 +196,7 @@ def test_a_run_that_stops_early_deletes_its_empty_branches_too(runner, workspace
     is the worst version of the leftover — two repositories to clean by
     hand for one spec."""
     claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout", out
     for repo in (workspace["project"], workspace["specs"]):
         assert git(repo, "branch", "--list", BRANCH) == "", \

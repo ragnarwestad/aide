@@ -8,7 +8,7 @@ in conftest.py beside them.
 import json
 import re
 import subprocess
-from ..conftest import READ_SPECS, git, run
+from ..conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
 from .run_spec_results import RESULT_OK
 from .run_spec_status_files import already_ran, bullet, phase_file_text, recorded_line, recorded_model, subject, with_status
@@ -92,7 +92,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, command="implement",
-                     timeout_sec="8", kill_grace_sec="2")
+                     timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert recorded_line(workspace) == "create, analyze"
     # And the stop is on the record that DOES carry it.

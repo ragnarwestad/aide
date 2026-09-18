@@ -51,11 +51,18 @@ export async function specPageRoutes(
       if (already?.status === "running" && already.url) {
         return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
+      // AC-1/AC-2 (spec 489): set only by the failed page's own "Try
+      // again" link — the one thing that tells a deliberate press apart
+      // from a passive reload of the same URL, which must never clear
+      // and restart a board on its own (this page carries no meta
+      // refresh, but a person can still hit reload by hand).
+      const retry = url.searchParams.get("retryTestServer") === "1";
+      const retryHref = `${specTabPath(project!, specFolder!, "steps")}&startTestServer=1&retryTestServer=1`;
       // A round that died says so and stops. Refreshing for ever in
       // front of a reader who can do nothing about it is worse than
       // naming what happened and leaving the tab to them.
-      if (already?.status === "failed") {
-        return testServerFailedPage(specFolder!, already.error);
+      if (already?.status === "failed" && !retry) {
+        return testServerFailedPage(specFolder!, already.error, retryHref);
       }
       // Otherwise it has to be started, and that takes minutes — so the
       // tab the reader opened WAITS here rather than being sent back to
@@ -65,9 +72,21 @@ export async function specPageRoutes(
       if (!capable) {
         return specsRedirect({}, undefined, specTabPath(project!, specFolder!, "steps"));
       }
-      if (!already) {
+      if (!already || (already.status === "failed" && retry)) {
         const result = await startTestServer(ctx.testServers, project!, specFolder!);
-        if (!result.ok) return testServerFailedPage(specFolder!, result.error);
+        if (!result.ok) return testServerFailedPage(specFolder!, result.error, retryHref);
+      }
+      // AC-3: never at a URL still carrying `retryTestServer=1` — the
+      // waiting page's own 5-second self-refresh reloads exactly the
+      // URL the browser is on, and a board that fails again later would
+      // otherwise be cleared and restarted on every one of those polls,
+      // forever, instead of stopping and offering its OWN fresh "Try
+      // again" the way a first failure does.
+      if (retry) {
+        return new Response(null, {
+          status: 303,
+          headers: { location: `${specTabPath(project!, specFolder!, "steps")}&startTestServer=1` },
+        });
       }
       return waitingForTestServerPage(project!, specFolder!);
     }
