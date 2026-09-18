@@ -259,8 +259,8 @@ export async function handleQueueAdminRoutes(
         ),
       );
     const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
-      specsPath: str(asked.specsPath),
-      worktreeLinks: str(asked.worktreeLinks),
+      ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
+      ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
       // Only when the form actually sent one (spec 220, then 255 for
       // the one that joined it): a caller posting only the older
       // fields must not be read as clearing the ones it never
@@ -268,6 +268,7 @@ export async function handleQueueAdminRoutes(
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
+      ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
     }, { saveManifest });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
