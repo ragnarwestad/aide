@@ -61,6 +61,9 @@ const JS_HOOKS = [
   // spec 112: the Projects panel — the Add form and one Remove per
   // allowlisted project.
   "addprojectform", "removeform",
+  // spec 486: the project page's own Settings Save form, excluded from
+  // NEW_SPEC_FORM the same way the Add form already is.
+  "projectsettingsform",
   // spec 258: the Deploy button on a project's own page.
   "deployform",
   // spec 441: the Deploy tab's "Testserver med testspecene" button.

@@ -38,6 +38,6 @@ describe("t()", () => {
   });
 
   test.each(["es", "de", "fr"] as const)("%s substitutes a {param} placeholder", (lang) => {
-    expect(t(lang, "list.stateQueuedTooltip", { n: 1, total: 2, step: "x" })).not.toContain("{n}");
+    expect(t(lang, "list.stateQueuedPosition", { n: 1, total: 2 })).not.toContain("{n}");
   });
 });

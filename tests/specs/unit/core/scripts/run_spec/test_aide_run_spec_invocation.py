@@ -8,8 +8,9 @@ in conftest.py beside them.
 import json
 import os
 import subprocess
+import tempfile
 import pytest
-from ..conftest import git, run
+from ..conftest import STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import writing_claude
 from .run_spec_invoking import BRANCH, _standalone_runner_copy
 from .run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK
@@ -359,7 +360,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
         "trap '' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
 
     assert out["terminalReason"] == "timeout"
     assert out["ok"] is False
@@ -386,7 +387,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # `error` is read verbatim by the row's panel and the job page's
     # banner, so this string is the whole of what either one says.
     assert "time limit" in out["error"]
-    assert "8s" in out["error"], "the limit's own number belongs in the sentence"
+    assert f"{STOP_DEADLINE_SEC}s" in out["error"], "the limit's own number belongs in the sentence"
     assert "committed" in out["error"]
     assert "killed" not in out["error"], "a limit we set is not something that happened to us"
 
@@ -408,7 +409,7 @@ def test_a_stopped_run_reports_unmeasured_cost_even_when_it_flushes_json(runner,
         f"trap 'echo {json.dumps(json.dumps(flushed))}; exit 143' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="5")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="5")
     assert out["terminalReason"] == "timeout"
     assert out["costUsd"] == pytest.approx(0), "the flushed $0 must not be believed as a MEASURED figure"
     assert out["costMeasured"] is False
@@ -421,7 +422,7 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
         f"trap 'echo yes > {marker}; exit 0' TERM\n"
         "while true; do sleep 0.2; done"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="30")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="30")
     assert marker.exists(), "SIGTERM must reach the child"
     assert out["terminalReason"] == "timeout"
 
@@ -542,3 +543,21 @@ def test_a_session_that_failed_closes_nothing(runner, workspace, fake_claude):
     rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
     assert out["terminalReason"] != "closed", out
     assert not (workspace["specs"] / "archive" / workspace["folder"]).exists()
+
+def test_help_flag_prints_usage_without_any_setup(runner):
+    """AC-1: --help works with no --project-dir, no --spec, no real
+    specs root and no AIDE_CLAUDE_BIN configured at all."""
+    result = subprocess.run([str(runner), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout
+
+def test_help_flag_never_runs_the_self_copy(runner):
+    """AC-2: --help must exit before the mktemp self-copy (the
+    "Run from a private copy of ourselves" block) ever runs."""
+    tmpdir = tempfile.gettempdir()
+    before = set(os.listdir(tmpdir))
+    result = subprocess.run([str(runner), "--help"], capture_output=True, text=True)
+    after = set(os.listdir(tmpdir))
+    assert result.returncode == 0, result.stderr
+    leaked = [n for n in (after - before) if n.startswith("aide-run-spec")]
+    assert not leaked, f"self-copy ran despite --help: {leaked}"

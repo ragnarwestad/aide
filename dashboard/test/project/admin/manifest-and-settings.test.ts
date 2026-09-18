@@ -315,6 +315,20 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(links.blocking).toBe(false);
   });
 
+  // The Settings page's "Use this" posts the test command alone. A save
+  // that read the two fields it never sent as empty cleared the specs
+  // path and the links along with it.
+  test("a test command saved alone lands in the manifest and touches nothing else", async () => {
+    const { dir } = added("testcmd", { specsPath: "/kept/specs" });
+    mkdirSync(join(dir, "node_modules"), { recursive: true });
+    await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "node_modules" });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { testCmd: "pnpm test" });
+    expect(result.ok).toBe(true);
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("testCmd: pnpm test\n");
+    expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/kept/specs");
+    expect(resolveWorktreeLinks(dir).links).toBe("node_modules");
+  });
+
   // Criterion 8: the other half of the same form, and it goes to the
   // other file — the specs path names a directory on THIS machine.
   test("the specs path can be changed afterwards, and the manifest is untouched", async () => {

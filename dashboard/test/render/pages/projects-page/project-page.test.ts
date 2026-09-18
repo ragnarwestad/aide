@@ -265,3 +265,21 @@ describe("renderProjectPage: no site-level tab bar (spec 437)", () => {
     expect(html).not.toContain('<nav class="tabbar">');
   });
 });
+
+// Spec 486: the Save form still wears "newspecform" for its look, but
+// needs a class of its own so specs-client's NEW_SPEC_FORM selector can
+// exclude it — the same treatment the Add-project form got under spec
+// 115 (test/specs-client/projects-panel.test.ts).
+describe("renderProjectPage: the settings form carries its own JS hook (spec 486)", () => {
+  test('the Save form is class="newspecform projectsettingsform", not "newspecform" alone', () => {
+    const html = renderProjectPage(
+      project(),
+      { hasConfigFile: false, rows: [] },
+      null,
+      "2026-08-31T00:00:00Z",
+      NAV,
+      { worktreeLinkCandidates: [], editing: true },
+    );
+    expect(html).toContain('class="newspecform projectsettingsform"');
+  });
+});

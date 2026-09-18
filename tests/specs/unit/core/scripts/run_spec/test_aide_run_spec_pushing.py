@@ -9,7 +9,7 @@ import json
 import re
 import subprocess
 import pytest
-from ..conftest import git, run
+from ..conftest import STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import landing_beside_claude, partially_committing_claude, self_committing_claude, specs_only_claude, writing_claude
 from .run_spec_origins import is_ancestor, run_with_gh
 from .run_spec_results import RESULT_OK
@@ -347,7 +347,7 @@ def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace,
     claude = partially_committing_claude(
         fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
     )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec="8", kill_grace_sec="2")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     branch = "aide/81-queue-and-runner"
     project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]

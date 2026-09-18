@@ -361,9 +361,12 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     expect(chip(html)).toBe("Implementing queued");
   });
 
-  // Spec 353, REQ-4/REQ-5: a row that carries its place in the queue
-  // says so in the State column, and the full sentence is on hover.
-  test("a queued job with a queuePosition names its place instead of the bare word", () => {
+  // Spec 353: a row that carries its place in the queue says so in the
+  // State column. "Queued", not the step's own verb: "Implementing 7/11"
+  // read as a step under way for a job still waiting its turn — the pips
+  // already say which phase it waits for. No hover text: it said nothing
+  // the word and the number do not, and a phone has no hover.
+  test("a queued job with a queuePosition says it is queued, and its place", () => {
     const html = rows(
       [
         row({
@@ -377,9 +380,8 @@ describe("spec 132: the State line says what is happening, or what is next", () 
       ],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Implementing 7/11");
-    expect(chipTitle(html)).toContain("7 of 11 queued");
-    expect(chipTitle(html)).toContain("Implement");
+    expect(chip(html)).toBe("Queued 7/11");
+    expect(chipTitle(html)).toBeFalsy();
   });
 
   // Criterion 1: the one action that used to live outside the panel.

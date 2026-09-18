@@ -261,6 +261,33 @@ def test_the_lines_handed_back_are_the_failures_not_every_line_with_error_in_it(
     assert "(pass)" not in prompt
 
 
+def test_the_fix_turn_asks_for_the_failing_tests_not_a_full_suite_until_green(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The runner runs the whole suite again after the turn. A session
+    told to run it "until it is green" spent 486's archive and 491's
+    implement on repeated full runs under load, and both hit their time
+    limit with the change done (2026-09-18). The turn is asked for the
+    failing tests and the ones covering the fix, one full run at most,
+    and no rerun for a test that passes on its own."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    seen = tmp_path / "prompt-seen.txt"
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"printf '%s\\n----\\n' \"$prompt\" >> {seen}\n"
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step' 2>/dev/null\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    fix_turn = seen.read_text().split("----")[1]
+    assert "until it is green" not in fix_turn, fix_turn
+    assert "the tests that failed" in fix_turn, fix_turn
+    assert "at most once" in fix_turn, fix_turn
+    assert "passes on its own" in fix_turn, fix_turn
+
+
 # --- the session's own green record spares the runner's run ------------------
 
 

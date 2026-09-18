@@ -27,6 +27,7 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { scriptArgv } from "../integrations/script-argv.ts";
 
 export interface AideWriteSpecResult {
   ok: boolean;
@@ -75,7 +76,7 @@ export async function runAideWriteSpec(folder: string, file: string, content: st
     let proc;
     try {
       proc = Bun.spawn({
-        cmd: [bin, "--specs-root", scratchDir, "--folder", folder, "--file", file],
+        cmd: scriptArgv([bin, "--specs-root", scratchDir, "--folder", folder, "--file", file]),
         stdin: "pipe",
         stdout: "pipe",
         stderr: "pipe",

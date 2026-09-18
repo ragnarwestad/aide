@@ -10,7 +10,7 @@ import os
 import subprocess
 import time
 import pytest
-from ..conftest import run
+from ..conftest import STOP_DEADLINE_SEC, run
 from .run_spec_results import RESULT_OK, STREAM_NOISE, stream_body
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
@@ -131,7 +131,7 @@ def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, f
         "while true; do sleep 0.2; done"
     )
     rc, out, _ = run(runner, workspace, claude, stream_file=str(stream),
-                     timeout_sec="8", kill_grace_sec="2")
+                     timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert stream.exists(), "a killed run's transcript must survive too"
     assert '"init"' in stream.read_text()

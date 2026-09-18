@@ -121,6 +121,14 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
   });
 
+  // AC-1: 10 lines by default, not 4 — the box a spec author gets before
+  // any manual resize.
+  test("AC-1: the Description field defaults to 10 rows", () => {
+    const html = newPage();
+    expect(html).toContain('<textarea name="description" rows="10"');
+    expect(html).not.toContain('<textarea name="description" rows="4"');
+  });
+
   // --- spec 228: the model the FIRST step runs on ----------------------------
   //
   // The four steps that follow `create` each have a phase line with a

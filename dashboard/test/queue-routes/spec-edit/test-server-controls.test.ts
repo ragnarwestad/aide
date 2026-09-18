@@ -491,5 +491,269 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     expect(html).toContain(`Could not start a test server for "${folder}"`);
     expect(html).toContain("Test servers");
     expect(html).not.toMatch(/http-equiv="refresh"/);
+    // AC-1 (spec 489): the outright-refusal shape — nothing was ever
+    // stored — still carries a "Try again" link.
+    expect(html).toContain('href="');
+    expect(html).toContain("retryTestServer=1");
+  });
+
+  // Spec 489: a stored "failed" entry's own page now carries a way back
+  // in, and following it actually clears and restarts the board — the
+  // same fake-spawn/fake-`git` harness the "starts a board and 303s..."
+  // test above builds, since the retry has to reach a real `capable`
+  // spec and a real branch on origin the same way a first start does.
+  test("spec 489: a failed board's retry link clears it and starts a new one, landing on the waiting page", async () => {
+    const spawnCalls: { cmd: string[] }[] = [];
+    const spawned: number[] = [];
+    let boardLog = "";
+    const results = mkdtempSync(join(tmpdir(), "aide-489-retry-"));
+    ownDirs.push(results);
+    const gitRun = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
+        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+      }
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+        return new Promise(() => {
+          // Held open for the life of the test, as the sibling tests do.
+        });
+      }
+      return { code: 0, stdout: "" };
+    };
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      testServersAvailable: true,
+      gitRun: gitRun as never,
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+      testServersSpawn: (cmd, logPath) => {
+        spawnCalls.push({ cmd });
+        boardLog = logPath;
+        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        proc.unref();
+        spawned.push(proc.pid);
+        return { pid: proc.pid };
+      },
+    });
+    const root = join(dir, "root", "aide");
+
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+      })
+    ).json()) as { job: { id: string } };
+    await Bun.write(
+      join(results, `${made.job.id}.json`),
+      JSON.stringify({
+        ok: true,
+        exitCode: 0,
+        costUsd: 0.1,
+        costMeasured: true,
+        terminalReason: "completed",
+        branch: `aide/${folder}`,
+        branchUrls: [{ root, url: "https://example.test/aide" }],
+        repos: [],
+      }),
+    );
+    await settleDone(base, made.job.id);
+
+    try {
+      // The first attempt: starts a board.
+      const first = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(first.status).toBe(200);
+      expect(spawnCalls).toHaveLength(1);
+
+      // It dies without ever reporting an address — the round's own log
+      // has no "left running" line, and its wrapper has exited.
+      writeFileSync(boardLog, "boom: the round never started a listener\n");
+      process.kill(-spawned[0]!, "SIGKILL");
+      await new Promise((r) => setTimeout(r, 100));
+
+      // AC-1: the plain URL now shows the failed page, carrying its own
+      // retry link.
+      const failedRes = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(failedRes.status).toBe(200);
+      const failedHtml = await failedRes.text();
+      expect(failedHtml).toContain(`Could not start a test server for "${folder}"`);
+      expect(failedHtml).toContain('href="');
+      expect(failedHtml).toContain("retryTestServer=1");
+      expect(spawnCalls).toHaveLength(1);
+
+      // AC-2/AC-3: following the retry link — built from known parts,
+      // never scraped out of `esc()`'s escaped HTML — clears the failed
+      // entry and starts a new one for the SAME branch.
+      const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
+      const retryRes = await fetch(retryUrl, { headers: auth, redirect: "manual" });
+      expect(spawnCalls).toHaveLength(2);
+      expect(spawnCalls[1]!.cmd).toContain(`aide/${folder}`);
+      expect(retryRes.status).toBe(303);
+      expect(retryRes.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps&startTestServer=1`);
+
+      // Following that redirect lands on the identical waiting page a
+      // first start renders — never a URL still carrying the flag.
+      const waitingRes = await fetch(`${base}${retryRes.headers.get("location")}`, {
+        headers: auth,
+        redirect: "manual",
+      });
+      expect(waitingRes.status).toBe(200);
+      expect(await waitingRes.text()).toContain("Starting a test server");
+    } finally {
+      for (const pid of spawned) {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // already gone, which is the outcome either way
+        }
+      }
+    }
+  });
+
+  // Spec 489, AC-3's capability-refused path (Risk analysis item 2): a
+  // retry pressed against a spec no longer capable of a board is
+  // refused exactly as a first-time start already is, never sent to the
+  // waiting page. Seeded straight into the registry, the same shortcut
+  // REQ-1's test above uses — nothing about this outcome depends on a
+  // real spawn or a real branch on origin.
+  test("spec 489: a retry on a spec that is no longer capable of a board is refused, not sent to the waiting page", async () => {
+    const archivedFolder = "82-archived";
+    const { base, server } = harness.start({
+      extra: { queueToken: TOKEN },
+      archivedSpecs: { [archivedFolder]: {} },
+    });
+    server.testServersStore().set("aide", archivedFolder, {
+      branch: `aide/${archivedFolder}`,
+      commit: "abc1234deadbeef",
+      port: 8801,
+      wrapperPid: 1,
+      workDir: "/tmp/aide-board-489-capability-test",
+      logPath: "/tmp/aide-board-489-capability-test/board.log",
+      status: "failed",
+      error: "could not start the board",
+      startedAt: "2026-09-09T00:00:00.000Z",
+    });
+
+    const res = await fetch(
+      `${base}/specs/aide/${archivedFolder}?tab=steps&startTestServer=1&retryTestServer=1`,
+      { headers: auth, redirect: "manual" },
+    );
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(`/specs/aide/${archivedFolder}?tab=steps`);
+  });
+
+  // Spec 489, Risk analysis item 1 (loop-safety): the waiting page's own
+  // 5-second self-refresh reloads the PLAIN URL, never the one carrying
+  // `retryTestServer=1` — so a board that fails again after a successful
+  // retry must stop and offer its own fresh "Try again", not be cleared
+  // and respawned on every poll forever.
+  test("spec 489: a board that fails again after a retry is never auto-retried by the waiting page's own refresh", async () => {
+    const spawnCalls: { cmd: string[] }[] = [];
+    const spawned: number[] = [];
+    let boardLog = "";
+    const results = mkdtempSync(join(tmpdir(), "aide-489-loop-safety-"));
+    ownDirs.push(results);
+    const gitRun = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
+        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+      }
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+        return new Promise(() => {
+          // Held open for the life of the test, as the sibling tests do.
+        });
+      }
+      return { code: 0, stdout: "" };
+    };
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      testServersAvailable: true,
+      gitRun: gitRun as never,
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+      testServersSpawn: (cmd, logPath) => {
+        spawnCalls.push({ cmd });
+        boardLog = logPath;
+        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        proc.unref();
+        spawned.push(proc.pid);
+        return { pid: proc.pid };
+      },
+    });
+    const root = join(dir, "root", "aide");
+
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+      })
+    ).json()) as { job: { id: string } };
+    await Bun.write(
+      join(results, `${made.job.id}.json`),
+      JSON.stringify({
+        ok: true,
+        exitCode: 0,
+        costUsd: 0.1,
+        costMeasured: true,
+        terminalReason: "completed",
+        branch: `aide/${folder}`,
+        branchUrls: [{ root, url: "https://example.test/aide" }],
+        repos: [],
+      }),
+    );
+    await settleDone(base, made.job.id);
+
+    try {
+      // First attempt, first failure, one retry — the same round-trip
+      // the test above pins, brought here only far enough to reach a
+      // SECOND failure to test the loop-safety guarantee against.
+      await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { headers: auth, redirect: "manual" });
+      writeFileSync(boardLog, "boom: the round never started a listener\n");
+      process.kill(-spawned[0]!, "SIGKILL");
+      await new Promise((r) => setTimeout(r, 100));
+      const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
+      await fetch(retryUrl, { headers: auth, redirect: "manual" });
+      expect(spawnCalls).toHaveLength(2);
+
+      // The retried board fails too.
+      writeFileSync(boardLog, "boom again: still no listener\n");
+      process.kill(-spawned[1]!, "SIGKILL");
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Ten reloads of the PLAIN URL — the waiting page's own refresh,
+      // never the retry link — and not one of them spawns again.
+      for (let i = 0; i < 10; i++) {
+        const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
+          headers: auth,
+          redirect: "manual",
+        });
+        expect(res.status).toBe(200);
+        const html = await res.text();
+        expect(html).toContain(`Could not start a test server for "${folder}"`);
+        expect(html).toContain("retryTestServer=1");
+      }
+      expect(spawnCalls).toHaveLength(2);
+    } finally {
+      for (const pid of spawned) {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // already gone, which is the outcome either way
+        }
+      }
+    }
   });
 });

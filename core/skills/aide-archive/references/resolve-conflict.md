@@ -110,7 +110,11 @@ Use the project's own test command, in single-run mode:
 3. otherwise detect it from what the project ships (the lockfile or
    build file), exactly as `/aide-implement` does
 
-Run it in the worktree you are standing in. If the project has no test
+Run it in the worktree you are standing in, once, in the foreground —
+never in the background to poll, and never a second run while one is
+going. A failing test that has nothing to do with the merge and passes
+when run on its own is the machine's load, not a fault: do not run the
+suite again for it; say so in the report. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
 

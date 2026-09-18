@@ -12,6 +12,11 @@
 
 set -e
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: scripts/check-bash"
+  exit 0
+fi
+
 if ! command -v shellcheck >/dev/null 2>&1; then
   echo "shellcheck is not installed — brew install shellcheck (see DEVELOPING.md, \"Tools you need\")" >&2
   exit 2

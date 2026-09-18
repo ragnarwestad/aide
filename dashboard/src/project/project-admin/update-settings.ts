@@ -7,7 +7,7 @@ import { configValue } from "../discover";
 import { parseManifest } from "../parse-manifest.ts";
 import { upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
-import { fail, type ProjectAdminResult, type ProjectStep } from "./types.ts";
+import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
 
 /** What a project may say about where its archived code goes (spec
  *  220). Two values, not the runner's three: `none` is an operational
@@ -61,7 +61,12 @@ export async function updateProjectSettings(
      *  still sets `AIDE_PREVIEW_CMD` in its own config by hand, which
      *  keeps winning. */
     previewCmd?: string;
+    /** The command a run and a landing test with — the manifest's
+     *  `testCmd`, read by `aide-resolve-test-cmd`. Gated on presence the
+     *  same way: the Settings page's "Use this" posts it alone. */
+    testCmd?: string;
   },
+  opts: { saveManifest?: SaveManifest } = {},
 ): Promise<ProjectAdminResult> {
   const links = (req.worktreeLinks ?? "").trim();
   if (links) {
@@ -83,7 +88,7 @@ export async function updateProjectSettings(
   });
 
   const specsPath = (req.specsPath ?? "").trim();
-  if (specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
+  if (req.specsPath !== undefined && specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
     // Made where it is not there yet, `archive/` and all — the same
     // thing Add does, for the same reason: a path configured and absent
     // is a refusal over something known the moment it was written.
@@ -115,24 +120,34 @@ export async function updateProjectSettings(
   // the repo. Compared against the resolved value, that save would find
   // nothing changed and the migration would never happen.
   const manifest = join(projectDir, ".aide", "project.yaml");
+  // Where a manifest edit goes: into the file here, or — when the
+  // caller commits it (the Settings route, into the dashboard's own
+  // checkout) — gathered and handed over once at the end, so three keys
+  // changed in one save are one commit and nothing is left on disk.
+  const manifestEdits: { key: string; value: string; step: ProjectStepName }[] = [];
+  const writeManifest = (key: string, value: string, step: ProjectStepName): void => {
+    if (opts.saveManifest) {
+      manifestEdits.push({ key, value, step });
+      return;
+    }
+    try {
+      upsertManifestScalar(manifest, key, value);
+      steps.push({ step, ok: true });
+    } catch (err) {
+      steps.push({
+        step,
+        ok: false,
+        error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  };
   const stored = existsSync(manifest)
     ? (() => {
         const parsed = parseManifest(readFileSync(manifest, "utf-8"));
         return parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
       })()
     : "";
-  if (links !== stored) {
-    try {
-      upsertManifestScalar(manifest, "worktreeLinks", links);
-      steps.push({ step: "worktreeLinks", ok: true });
-    } catch (err) {
-      steps.push({
-        step: "worktreeLinks",
-        ok: false,
-        error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
-  }
+  if (req.worktreeLinks !== undefined && links !== stored) writeManifest("worktreeLinks", links, "worktreeLinks");
 
   // Spec 220, and the same rule again: compared against what the
   // MANIFEST says, and written only when it differs. `merge` is the
@@ -146,18 +161,7 @@ export async function updateProjectSettings(
       })()
     : "";
   const wanted = landing === "merge" ? "" : landing;
-  if (req.codeLanding !== undefined && wanted !== storedLanding) {
-    try {
-      upsertManifestScalar(manifest, "codeLanding", wanted);
-      steps.push({ step: "codeLanding", ok: true });
-    } catch (err) {
-      steps.push({
-        step: "codeLanding",
-        ok: false,
-        error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
-  }
+  if (req.codeLanding !== undefined && wanted !== storedLanding) writeManifest("codeLanding", wanted, "codeLanding");
 
   // One more `.aide/config` key, spec 255: same file, same
   // changed-only-write rule `specsPath` above follows, gated on
@@ -192,19 +196,33 @@ export async function updateProjectSettings(
         })()
       : "";
     const preview = req.previewCmd.trim();
-    if (preview !== storedPreview) {
-      try {
-        upsertManifestScalar(manifest, "previewCmd", preview);
-        steps.push({ step: "previewCmd", ok: true });
-      } catch (err) {
-        steps.push({
-          step: "previewCmd",
-          ok: false,
-          error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
+    if (preview !== storedPreview) writeManifest("previewCmd", preview, "previewCmd");
+  }
+  if (req.testCmd !== undefined) {
+    const storedTest = existsSync(manifest)
+      ? (() => {
+          const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+          return parsed.ok ? (parsed.data.testCmd ?? "").trim() : "";
+        })()
+      : "";
+    const test = req.testCmd.trim();
+    if (test !== storedTest) writeManifest("testCmd", test, "testCmd");
+  }
+
+  if (opts.saveManifest && manifestEdits.length) {
+    const saved = await opts.saveManifest(manifestEdits.map(({ key, value }) => ({ key, value })));
+    for (const edit of manifestEdits) {
+      steps.push(
+        saved.ok
+          ? { step: edit.step, ok: true }
+          : { step: edit.step, ok: false, error: `could not commit .aide/project.yaml: ${saved.note ?? "no reason given"}` },
+      );
     }
   }
 
   return done();
 }
+
+/** How a caller commits the manifest keys a save changed, instead of
+ *  leaving them on disk. `ok: false` carries the reason in `note`. */
+export type SaveManifest = (edits: { key: string; value: string }[]) => Promise<{ ok: boolean; note?: string }>;

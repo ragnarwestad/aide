@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
+import { archiveWithOpenAcceptance, blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
 import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
 
@@ -187,5 +187,42 @@ describe("the queue's analyze gate", () => {
     const { root } = unanalyzedOnDisk();
     const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
     expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(true);
+  });
+});
+
+// A queued archive the script would only refuse is ended by the runner
+// (490, 2026-09-18) — but only on a branch answer read since the last
+// tick, since the Checks tab ticks the branch and disk lags behind it.
+describe("the queue's unticked-archive check", () => {
+  const queuedArchive = { id: "job-3", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement", "archive"], stepIndex: 1 };
+  function ctxFor(root: string, checker: BranchFileStepsChecker): ScheduleContext {
+    return {
+      projectRoot: root,
+      queue: { list: () => [queuedArchive] },
+      readBranchFileSteps: () => checker,
+    } as unknown as ScheduleContext;
+  }
+
+  test("an open row on the branch names the job", async () => {
+    const { root, specDir } = projectsRoot();
+    expect(archiveWithOpenAcceptance(ctxFor(root, await warmedChecker(specDir, false))).has("job-3")).toBe(true);
+  });
+
+  test("every row ticked on the branch leaves it to start, though disk is unticked", async () => {
+    const { root, specDir } = projectsRoot();
+    expect(archiveWithOpenAcceptance(ctxFor(root, await warmedChecker(specDir, true))).has("job-3")).toBe(false);
+  });
+
+  test("an unread branch answer decides nothing: the script's own pre-check does", () => {
+    const { root } = projectsRoot();
+    const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
+  });
+
+  test("an answer a tick has marked stale decides nothing either", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, false);
+    checker.forget(specDir, FOLDER);
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
   });
 });

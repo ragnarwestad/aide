@@ -6,6 +6,7 @@
 import { renderCloseSpecPage, specPagePath } from "../../../render";
 import { bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
 
+import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 
 export async function closeControlRoutes(
@@ -57,7 +58,7 @@ export async function closeControlRoutes(
     if (!ref) return new Response("not found", { status: 404 });
     if (ref.archived) return refuseClose(`${specFolder} is archived — Close is only for active specs`);
     // REQ-11: the same job-in-flight check Reset's own POST makes.
-    if (ctx.queue.list().some((job) => job.landing)) return refuseClose("a landing is in progress");
+    if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
     if (ctx.queue.list().some((job) =>
       job.project === project && job.specFolder === specFolder &&
       (job.state === "queued" || job.state === "running")

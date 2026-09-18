@@ -2,6 +2,7 @@
 // queue's model defaults, and add/settings/deploy/remove
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
@@ -12,7 +13,7 @@ import { runningJobNames } from "../land-branch";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { addProject, addProjectTarget, assessProjectReadiness, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
+import { addProject, addProjectTarget, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
 import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
@@ -241,9 +242,25 @@ export async function handleQueueAdminRoutes(
     }
     const asked = (raw ?? {}) as Record<string, unknown>;
     const str = (v: unknown): string => (typeof v === "string" ? v : "");
-    const result = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), {
-      specsPath: str(asked.specsPath),
-      worktreeLinks: str(asked.worktreeLinks),
+    // The manifest keys are committed and pushed in the checkout the
+    // settings are read from and written to, the moment they are saved —
+    // never left on disk for the next pull there to refuse over. On a
+    // serving host that entry is a link to the dashboard's own checkout
+    // (projects.md), so the lock is taken on the directory it resolves
+    // to: the same key a landing into that checkout takes.
+    const settingsDir = join(ctx.opts.projectRoot, name);
+    const codeRoot = realpathOr(settingsDir);
+    const saveManifest = (edits: { key: string; value: string }[]) =>
+      ctx.mergeLock.run(codeRoot, () =>
+        commitManifestEdits(
+          { run: ctx.gitRun, resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root) },
+          codeRoot,
+          edits,
+        ),
+      );
+    const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
+      ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
+      ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
       // Only when the form actually sent one (spec 220, then 255 for
       // the one that joined it): a caller posting only the older
       // fields must not be read as clearing the ones it never
@@ -251,7 +268,8 @@ export async function handleQueueAdminRoutes(
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
-    });
+      ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
+    }, { saveManifest });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
     // would still read the old one.
@@ -422,4 +440,14 @@ export async function handleQueueAdminRoutes(
   }
 
   return null;
+}
+
+/** The directory a path resolves to, or the path itself when it cannot
+ *  be resolved — the lock key a landing into the same checkout uses. */
+function realpathOr(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
 }

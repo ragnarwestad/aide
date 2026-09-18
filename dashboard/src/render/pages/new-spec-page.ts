@@ -380,7 +380,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     `<span class="frow">` +
     field(
       "Description",
-      `<textarea name="description" rows="4" maxlength="2000" required ` +
+      `<textarea name="description" rows="10" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>`,
       { wide: true },
     ) +

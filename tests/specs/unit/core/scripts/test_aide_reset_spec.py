@@ -90,3 +90,9 @@ def test_writes_the_result_file_when_asked(script, tmp_path):
     rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82-x", "--result-file", str(result))
     assert rc == 0
     assert json.loads(result.read_text()) == out
+
+
+def test_help_flag_prints_usage_and_exits_zero(script):
+    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

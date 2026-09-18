@@ -33,6 +33,19 @@ function originText(r: SettingRow): string {
   return `worked out from ${esc(r.source ?? "")} — the usual ${esc(r.toolchain ?? "")} default, not a verified command`;
 }
 
+/** The test command's Comment when nothing is configured. A run and a
+ *  landing test with a configured command ONLY (`aide-resolve-test-cmd`),
+ *  so a worked-out one runs nothing: the row says so, and names the
+ *  worked-out command as the suggestion Edit offers in the field. */
+function unsetTestComment(r: SettingRow): string {
+  const none = "not set — no tests run when a spec lands";
+  if (r.origin !== "derived" || r.value === null) return none;
+  return (
+    `${none}. Suggested from ${esc(r.source ?? "")}, the usual ${esc(r.toolchain ?? "")} default: ` +
+    `<code>${esc(r.value)}</code> — Edit to set it`
+  );
+}
+
 /** The two values Code landing can take, and the words the page uses
  *  for each — shared between the row's read-only text and its `<select>`
  *  (spec 255; unchanged from the choices `runConfigurationBlock`'s old
@@ -52,23 +65,32 @@ export const codeLandingChoices = (defaultBranch: string | null): { value: "merg
 ];
 
 /** Which `SETTING_KEYS` entry posts under which form field name, in
- *  edit mode. The three `DERIVABLE` keys are absent on purpose — they
- *  never become an `<input>`, whatever `editing` says. */
+ *  edit mode. Lint and build are absent on purpose — nothing a run does
+ *  reads them, so they never become an `<input>`. The test command is
+ *  here: it is what a run and a landing test with, saved to the
+ *  manifest's `testCmd`. */
 const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
   AIDE_INSTALL_CMD: "installCmd",
   AIDE_PREVIEW_CMD: "previewCmd",
+  AIDE_TEST_CMD: "testCmd",
 };
 
-/** A row's Value cell: plain text in view mode and for the three
- *  `DERIVABLE` keys always (criterion 3 — gated on KEY membership in
- *  `DERIVABLE`, never on the row's current `origin`, so a derivable key
- *  that happens to be `unset` right now still stays read-only); a text
- *  `<input>`, pre-filled from the row's own current value, otherwise. */
+/** A row's Value cell: plain text in view mode and for lint and build
+ *  always (gated on KEY membership, never on the row's current
+ *  `origin`); a text `<input>`, pre-filled from the row's own current
+ *  value, otherwise. */
 function settingValueCell(r: SettingRow, editing: boolean, opts: ProjectPageOptions): string {
-  if (!editing || r.key in DERIVABLE) {
+  if (!editing || (r.key in DERIVABLE && !(r.key in EDITABLE_FIELD))) {
     return r.value === null ? `<span class="muted">–</span>` : esc(r.value);
+  }
+  // The test command: only a CONFIGURED value fills the field. A
+  // worked-out one is the placeholder, so a save that never touched the
+  // row does not quietly configure it.
+  if (r.key === "AIDE_TEST_CMD" && r.origin !== "configured") {
+    const hint = r.origin === "derived" && r.value ? ` placeholder="${esc(r.value)}"` : "";
+    return `<input type="text" name="testCmd" maxlength="300" value=""${hint}>`;
   }
   const field = EDITABLE_FIELD[r.key]!;
   const value = esc(r.value ?? "");
@@ -128,15 +150,18 @@ export function unifiedSettingsTable(
         // here exactly as it does above the table, so the two never
         // disagree about the same fact's colour.
         const problem = r.problem ? rowMessage(r.problem.blocking ? "failed" : "waiting", r.problem.text) : "";
+        const unsetTest = r.key === "AIDE_TEST_CMD" && r.origin !== "configured";
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
-          `<td>${settingValueCell(r, editing, opts)}</td>` +
-          `<td>${esc(r.purpose)} — ${originText(r)}${problem}</td></tr>`
+          `<td>${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
+          `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r) : originText(r)}${problem}</td></tr>`
         );
       })
       .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
   const table =
-    `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Value</th>` +
+    `<div class="tablewrap"><table class="list">` +
+    `<colgroup><col data-col="setting-name"><col data-col="setting-value"><col data-col="setting-comment"></colgroup>` +
+    `<thead><tr><th>Name</th><th>Value</th>` +
     `<th>Comment</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   if (!editing) {
     // Two buttons even while reading (spec 301): Cancel sits here too,
@@ -150,7 +175,7 @@ export function unifiedSettingsTable(
     );
   }
   return (
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform projectsettingsform">` +
     tokenField(opts.token) +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
     // `.configactions` carries its own `flex-basis: 100%`, so it stacks
