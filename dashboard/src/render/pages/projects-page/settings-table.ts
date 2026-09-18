@@ -150,7 +150,7 @@ export function unifiedSettingsTable(
     );
   }
   return (
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform">` +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform projectsettingsform">` +
     tokenField(opts.token) +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
     // `.configactions` carries its own `flex-basis: 100%`, so it stacks

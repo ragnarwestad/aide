@@ -99,6 +99,16 @@ export function minimalManifest(name: string, description?: string): string {
  *  a guess is the wrong answer to it. */
 export function upsertManifestScalar(file: string, key: string, value: string): void {
   const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
+  const next = manifestWithScalar(text, key, value, file);
+  if (next === text) return; // nothing to clear, and nothing to write
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, next);
+}
+
+/** The same edit on the manifest's TEXT, for a caller that commits the
+ *  result itself rather than leaving it on disk (Settings, through
+ *  `saveSpecFile`). `label` names the file in the one refusal. */
+export function manifestWithScalar(text: string, key: string, value: string, label: string): string {
   const lines = text.split("\n");
   // A trailing newline splits into a final empty element; it is put back
   // by the join, so the file's shape survives a no-op.
@@ -108,7 +118,7 @@ export function upsertManifestScalar(file: string, key: string, value: string): 
     const next = lines[at + 1];
     if (next !== undefined && /^\s+-\s/.test(next)) {
       throw new Error(
-        `${key} in ${file} is a YAML list, and this writes a single line — edit it by hand or make it a scalar first`,
+        `${key} in ${label} is a YAML list, and this writes a single line — edit it by hand or make it a scalar first`,
       );
     }
     if (value) lines[at] = `${key}: ${value}`;
@@ -120,10 +130,9 @@ export function upsertManifestScalar(file: string, key: string, value: string): 
     while (lines.length && lines[lines.length - 1] === "") lines.pop();
     lines.push(`${key}: ${value}`);
   } else {
-    return; // nothing to clear, and nothing to write
+    return text; // nothing to clear, and nothing to write
   }
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : ""));
+  return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
 }
 
 /** One serialized `schedule:` list entry. `name`, `cron` and `prompt` are

@@ -32,6 +32,7 @@ import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
+import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { specFileText } from "../../project/discover";
 import { STATUS_SPEC_FILE } from "../../render";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
@@ -139,12 +140,9 @@ export async function landBranch(
     const leaveOpen = (root: string): boolean =>
       what.step === "archive" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
     /** The code root's branch on a `close` landing (spec 406): deleted,
-     *  never merged, since Close records that the work will not be used
-     *  — the specs root still merges normally through the ordinary
-     *  path below, carrying the folder move and the `**Closed:**`
-     *  stamp into the specs repo's own history. `close` alone, by the
-     *  literal step name, and the code root alone — mirrors `leaveOpen`
-     *  above exactly in shape. */
+     *  never merged — the specs root merges normally, carrying the move
+     *  and the `**Closed:**` stamp. Specs inside the code root land
+     *  their folder alone first (`handed.specOnly`). */
     const discard = (root: string): boolean => what.step === "close" && codeRoots.has(root);
     if (!branch || repos.length === 0) {
       if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
@@ -200,9 +198,11 @@ export async function landBranch(
       const merge = () =>
         ctx.mergeLock.run(
           repo.root,
-          () => discard(repo.root)
-            ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
-            : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
+          () => handed.specOnly
+            ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
+            : discard(repo.root)
+              ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
+              : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
         );
       let result = await merge();
       // A red suite is an answer, not a hiccup: never re-run it here.

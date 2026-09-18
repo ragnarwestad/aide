@@ -17,6 +17,7 @@ import { testServerOnPort } from "../test-servers/port-owner.ts";
 import { portExposed } from "../test-servers/tailscale-exposure.ts";
 import { resolvePreviewCmd } from "../../project/discover";
 import type { ServerState } from "../state.ts";
+import { scriptArgv } from "../../integrations/script-argv.ts";
 
 export interface TestServersSetupInputs {
   testServersPath?: string;
@@ -101,7 +102,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
     spawn:
       inputs.testServersSpawn ??
       ((cmd, logPath) => {
-        const proc = Bun.spawn({ cmd, stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
+        const proc = Bun.spawn({ cmd: scriptArgv(cmd), stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
         proc.unref();
         return { pid: proc.pid };
       }),

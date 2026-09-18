@@ -229,3 +229,9 @@ def test_refuses_without_project_dir(script):
     out = json.loads(proc.stdout.strip())
     assert proc.returncode == 2
     assert out["terminalReason"] == "refused"
+
+
+def test_help_flag_prints_usage_and_exits_zero(script):
+    result = subprocess.run([str(script), "--help"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower(), result.stdout

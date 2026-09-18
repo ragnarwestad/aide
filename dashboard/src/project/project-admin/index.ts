@@ -42,3 +42,4 @@ export { assessProjectReadiness } from "./readiness.ts";
 export { addProject } from "./add-project.ts";
 export { updateProjectSettings } from "./update-settings.ts";
 export { removeProject } from "./remove-project.ts";
+export { commitManifestEdits } from "./manifest-commit.ts";

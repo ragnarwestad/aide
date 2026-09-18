@@ -2,6 +2,12 @@
 # Upgrades all AI tools installed via mise
 # Can be run manually or via cron (see .claude/rules/development.md)
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: upgrade-ai-tools"
+  echo "Upgrades every AI tool and CLI dependency this machine keeps current via mise."
+  exit 0
+fi
+
 export PATH="$HOME/.local/bin:$PATH"
 
 echo "Upgrading AI tools via mise..."

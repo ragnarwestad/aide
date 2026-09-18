@@ -273,6 +273,59 @@ class TestJqRequiredContractStaysConsistent:
             assert "jq" in payload.get("error", ""), f"{name}: {payload}"
 
 
+def _help_checked_scripts(directory):
+    """Every executable, top-level file an AI session can invoke by
+    name — the same boundary `_install-bin.sh`'s own `_core_bin_scripts`
+    draws for what actually reaches `~/.local/bin` (a sourced-only file
+    like `_aide-spec-lib.sh` is excluded by not being executable; the
+    installers themselves and the repo-only `build-agents-md.sh` build
+    step are excluded by the same name pattern that script uses)."""
+    if not directory.exists():
+        return []
+    scripts = []
+    for p in sorted(directory.iterdir()):
+        if not p.is_file() or not os.access(p, os.X_OK):
+            continue
+        if p.name.startswith("_install-") or p.name == "build-agents-md.sh":
+            continue
+        scripts.append(p)
+    return scripts
+
+
+@pytest.mark.validation
+class TestCoreScriptsSupportHelp:
+    """Every script in core/scripts/ and scripts/ answers --help and -h
+    with its own usage text and exits 0 (AC-1) — swept once over every
+    executable file so a script added later with no help arm fails this
+    same test, naming itself (AC-3)."""
+
+    def _all_scripts(self, workspace_root):
+        return (
+            _help_checked_scripts(workspace_root / "core" / "scripts")
+            + _help_checked_scripts(workspace_root / "scripts")
+        )
+
+    def test_help_flag_prints_usage_and_exits_zero(self, workspace_root):
+        scripts = self._all_scripts(workspace_root)
+        assert scripts, "no scripts found to check"
+        for script in scripts:
+            result = subprocess.run(
+                [str(script), "--help"], capture_output=True, text=True,
+            )
+            assert result.returncode == 0, \
+                f"{script.name} --help exited {result.returncode}: {result.stderr}"
+            assert "usage" in result.stdout.lower(), \
+                f"{script.name} --help printed no usage text: {result.stdout!r}"
+
+    def test_h_flag_prints_usage_and_exits_zero(self, workspace_root):
+        for script in self._all_scripts(workspace_root):
+            result = subprocess.run(
+                [str(script), "-h"], capture_output=True, text=True,
+            )
+            assert result.returncode == 0, \
+                f"{script.name} -h exited {result.returncode}: {result.stderr}"
+            assert "usage" in result.stdout.lower(), \
+                f"{script.name} -h printed no usage text: {result.stdout!r}"
 
 
 

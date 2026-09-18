@@ -278,7 +278,7 @@ describe("every row answers for itself", () => {
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain('class="badge b-idle"');
-    expect(rows).toContain("queued");
+    expect(rows).toContain("Queued 1/1");
   });
 });
 

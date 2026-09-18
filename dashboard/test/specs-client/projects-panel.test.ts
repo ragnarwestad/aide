@@ -3,6 +3,7 @@ import {
   SOURCE,
   harness,
 } from "./fixtures.ts";
+import { makeFakeFormData } from "./fixtures-runtime.ts";
 
 // --- spec 112: the Projects panel --------------------------------------------
 
@@ -173,5 +174,89 @@ describe("on /projects, where there is no New-spec form", () => {
     picker.value = "skjer";
     onChange();
     expect([specs.value, links.value]).toEqual(["/repos/aide-specs/skjer", "deps"]);
+  });
+});
+
+// --- spec 486: the project settings form's own Save ---------------------------
+//
+// The Save form borrows `newspecform` for its look, exactly the way the
+// Add form does, and on `/projects/<name>?edit=1` there is no New-spec
+// form either — so before this fix `NEW_SPEC_FORM`'s selector picked the
+// settings form up and bound it to `submitCreate`, whose success always
+// runs `location.href = "/"`. `submitProjectSettings` (forms.ts) is its
+// own handler, bound to `form.projectsettingsform`: a successful save
+// reloads the reader's own project path, dropping `?edit=1`; a refusal
+// writes into the form's own `.refused` slot and leaves the page put.
+describe("the project settings form's own Save (spec 486)", () => {
+  /** Only the settings form on the page — there is no New-spec form and
+   *  no Add/Remove form on `/projects/<name>` — so the binding count this
+   *  proves is unambiguous: exactly one `submit` listener, and (via the
+   *  reply passed in) exactly what it does with the answer. */
+  const buildHarness = (reply: () => { ok: boolean; body?: unknown }) => {
+    const refusedSlot = { textContent: "" };
+    const bound: [string, EventListener][] = [];
+    const form = {
+      dataset: {} as Record<string, string>,
+      className: "newspecform projectsettingsform",
+      action: "http://dash.test/api/queue/projects/aide/settings",
+      fields: [] as [string, string][],
+      closest: () => null,
+      querySelector: (sel: string) => (sel === ".refused" ? refusedSlot : null),
+      querySelectorAll: () => [],
+      addEventListener: (type: string, fn: EventListener) => void bound.push([type, fn]),
+    };
+    const document = {
+      getElementById: () => null,
+      querySelector: () => null,
+      querySelectorAll: (sel: string) => (sel.includes("projectsettingsform") ? [form] : []),
+      addEventListener: () => {},
+      visibilityState: "hidden",
+    };
+    const location = { search: "", href: "http://dash.test/projects/aide?edit=1", pathname: "/projects/aide" };
+    const fetchCalls: { url: string; init: Record<string, unknown> }[] = [];
+    const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
+      fetchCalls.push({ url: String(url), init });
+      const r = reply();
+      return { ok: r.ok, json: async () => r.body, text: async () => "" };
+    };
+    // eslint-disable-next-line no-new-func -- the file under test IS a script
+    new Function(
+      "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+      SOURCE,
+    )(
+      document,
+      location,
+      fetchStub,
+      () => 0,
+      { replaceState: () => {} },
+      makeFakeFormData(),
+      class {
+        addEventListener(): void {}
+        close(): void {}
+      },
+    );
+    const submit = bound.find(([type]) => type === "submit")?.[1];
+    return { bound, form, location, refusedSlot, fetchCalls, submit };
+  };
+
+  test("a successful save reloads the reader's own project path, dropping ?edit=1", async () => {
+    const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
+    await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
+    expect(h.location.href).toBe("/projects/aide");
+  });
+
+  test("a refusal is written into the form's own .refused slot, and the page stays put", async () => {
+    const h = buildHarness(() => ({
+      ok: false,
+      body: { ok: false, results: [{ step: "specsPath", error: "not a directory" }] },
+    }));
+    await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
+    expect(h.location.href).toBe("http://dash.test/projects/aide?edit=1");
+    expect(h.refusedSlot.textContent).toContain("not a directory");
+  });
+
+  test("the settings form is bound exactly once, as its own handler", () => {
+    const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
+    expect(h.bound.map(([type]) => type)).toEqual(["submit"]);
   });
 });

@@ -268,9 +268,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(asked()).toBeGreaterThan(first);
     expect(existsSync(argvFile)).toBe(false);
 
-    // The dependency lands. The job starts on the next tick.
+    // The dependency lands. The job starts on the next tick — a fixed
+    // pause here is a guess about how long a tick takes, and a guess
+    // that holds on an idle machine does not hold beside other suites'
+    // load (the same reasoning the Makefile's own `test` target gives
+    // for raising bun's default timeout on this class of test).
     archived = true;
-    for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
+    for (let i = 0; i < 120 && !existsSync(argvFile); i++) await Bun.sleep(100);
     expect(existsSync(argvFile)).toBe(true);
   }, 20000);
   // Criterion 10 (spec 149; spec 351). A dependency's ANALYZE lands
@@ -319,8 +323,9 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
 
     // Nothing landed: parked, as spec 122 already had it.
     expect(await startsWith(false, "aide-queue-release-none-")).toBe(false);
-    // Archived: the dependent starts.
-    expect(await startsWith(true, "aide-queue-release-archived-", 6000)).toBe(true);
+    // Archived: the dependent starts. Given the same margin as the
+    // gate-refresh test above, for the same reason.
+    expect(await startsWith(true, "aide-queue-release-archived-", 12000)).toBe(true);
   }, 20000);
 
   test("a parked job's row shows the queued badge and the reason it is held back", async () => {
@@ -414,11 +419,11 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["archive"] }),
       });
 
-    // It is NOT parked here any more: the step starts, and
-    // `aide-archive-spec`'s own pre-check refuses it without spending a
-    // model, so the job ends with the reason on its row and a person
-    // presses Archive once the rows are ticked.
-    test("the step starts rather than being parked for the tick", async () => {
+    // Not parked for the tick, and not started either: the runner ends
+    // it with the refusal `aide-archive-spec`'s own pre-check would have
+    // given (490, 2026-09-18), so the row carries one reason and a
+    // person presses Archive once the rows are ticked.
+    test("the job ends with the acceptance refusal, and nothing is started", async () => {
       const dir = own("aide-queue-unticked-acceptance-");
       const { bin, argvFile } = stub(dir);
       const paths = rootWithOpenRow(dir);
@@ -433,7 +438,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         },
       });
       expect((await queueArchive(base)).status).toBe(200);
-      expect(await spawned(argvFile)).toBe(true);
+      await settle();
+      expect(existsSync(argvFile)).toBe(false);
+      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+        jobs: { state: string; results: { terminalReason: string }[] }[];
+      };
+      expect(listed.jobs[0].state).toBe("done");
+      expect(listed.jobs[0].results.at(-1)?.terminalReason).toBe("acceptance-criteria-unticked");
     });
   });
 
@@ -501,9 +512,13 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
         JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
           acceptanceCriteria: [], phaseCounts: {} }),
       );
-      for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
+      // Same margin, and an explicit test timeout to match, as the
+      // dependency-gate release tests above: a fixed short budget
+      // here is a guess about how long a tick takes under load, not
+      // just on an idle machine.
+      for (let i = 0; i < 120 && !existsSync(argvFile); i++) await Bun.sleep(100);
       expect(existsSync(argvFile)).toBe(true);
-    });
+    }, 20000);
   });
 
   // --- spec 398: a job reaching the gate by CHAINING parks exactly like one

@@ -39,6 +39,14 @@ cmds=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-record-test-run --project-dir <path> --specs-root <path> \
+    --folder <NN-slug> --cmd "<command, or empty for none found>" \
+    [--cmd "<command>" ...] [--result-file <path>]
+USAGE
+      exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --folder) folder="${2:-}"; shift 2 ;;

@@ -6,6 +6,7 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
 import type { LandContext } from "./types.ts";
+import { scriptArgv } from "../../integrations/script-argv.ts";
 
 /** Run the project's own install, once its code has landed. Bounded by
  *  a timeout of its own — never trusting the server's idle timeout to
@@ -36,7 +37,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
   try {
     // argv, no shell — the same shape the notify command already has,
     // so nothing here has to get quoting right on someone's behalf.
-    const proc = Bun.spawn({ cmd: cmd.split(/\s+/), cwd: result.root, stdout: "ignore", stderr: "pipe" });
+    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: result.root, stdout: "ignore", stderr: "pipe" });
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;

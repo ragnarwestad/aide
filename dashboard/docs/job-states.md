@@ -69,11 +69,12 @@ queued `create` or `archive` step before any queued `analyze` or `implement`, ol
   spec's `analyze` step has not completed, and tries again next tick. The state does not move.
 - Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
   archived, and tries again next tick. The state does not move.
-- Starts an `archive` whose spec still has an unticked acceptance row, rather than holding it: the step's own
-  pre-check (`core/scripts/aide-archive-spec`) refuses it before any model is spawned, the job ends `done` with
-  "archive held back" on its row, and a user presses Archive once the rows are ticked. Held here instead, one row
-  meant two different things — a tick sometimes started the archive by itself and sometimes started nothing, and
-  which one was true depended on whether the hold had been able to see `implement` as finished when it looked.
+- Ends an `archive` whose spec still has an unticked acceptance row `done`, before anything else and without
+  taking a slot, with the result `core/scripts/aide-archive-spec`'s own pre-check would have written
+  (`terminalReason: acceptance-criteria-unticked`, no process, no cost). The row reads the one reason, "archive held
+  back", and a user presses Archive once the rows are ticked — a tick never starts it. It is judged only on the
+  BRANCH copy read since the last tick (`archiveWithOpenAcceptance`, `schedules/blocked.ts`); an unread or stale
+  answer starts the step, and the script's own pre-check decides.
   The row's own "archive held back" is worked out afresh on every render, never remembered from a refusal, and it
   asks the BRANCH's copy of `4-status.md` before the disk's (`spec-lookup.ts`): a tick on a spec whose
   `aide/<folder>` is open lands there, and the disk copy stays unticked until archive lands. It says nothing while
