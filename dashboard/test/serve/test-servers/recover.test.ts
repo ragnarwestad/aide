@@ -53,6 +53,7 @@ function makeCtx(o: {
     reservedPorts: () => [],
     findFreePort: async () => 8801,
     testServerOnPort: o.onPort ?? (async () => undefined),
+    portExposed: async () => true,
   };
 }
 

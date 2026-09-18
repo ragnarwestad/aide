@@ -55,6 +55,7 @@ function makeCtx(): TestServersContext {
     reservedPorts: () => [],
     findFreePort: async () => 9000,
     testServerOnPort: async () => undefined,
+    portExposed: async () => true,
   };
 }
 
@@ -76,6 +77,7 @@ describe("a board's start/stop round-trip", () => {
       [
         "aideCheckout",
         "testServerOnPort",
+        "portExposed",
         "findFreePort",
         "gitRun",
         "isAlive",

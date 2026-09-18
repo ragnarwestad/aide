@@ -40,6 +40,7 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
     makeWorkDir: () => dir,
     reservedPorts: () => [],
     testServerOnPort: async () => undefined,
+    portExposed: async () => true,
     findFreePort: async () => 8801,
     log: (line) => lines.push(line),
     ...overrides,

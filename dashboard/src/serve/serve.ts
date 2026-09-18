@@ -42,6 +42,7 @@ import { setupProjectResolution } from "./setup/project-resolution.ts";
 import { setupSchedules } from "./setup/schedules.ts";
 import { setupLand } from "./setup/land.ts";
 import { setupTestServers } from "./setup/test-servers.ts";
+import { createProjectResolver } from "./setup/resolve-project.ts";
 import { setupSpecViews } from "./setup/spec-views.ts";
 import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
@@ -107,35 +108,7 @@ export function createServer(opts: ServerOptions) {
     // rejection that takes the server down.
     .catch(() => {});
 
-  const resolveProject: ProjectResolver = (project) => {
-    if (!allowed.has(project)) return null;
-    const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
-    // The way out (spec 193). An archived spec whose branch is still on
-    // origin can have `archive` enqueued again — the runner hands that
-    // step the open merge, the skill resolves it, and the landing that
-    // follows merges cleanly.
-    const prefix = `${project}/`;
-    for (const key of state.unlanded) {
-      if (key.startsWith(prefix)) folders.push(key.slice(prefix.length));
-    }
-    // The second way out (spec 198). An archived spec can be REOPENED,
-    // in a list of its OWN, never appended to `specFolders` — widening
-    // that list would take spec 193's guarantee with it.
-    const archived: string[] = [];
-    // The CLOSED subset of the same list (spec 406, REQ-7): read off
-    // the scan's own `refs` rather than a second walk — `archived`,
-    // above, is already the exact key set this filters, and `SpecRef`
-    // already carries `closed` for every one of them.
-    const closed: string[] = [];
-    for (const key of state.scan?.archived ?? []) {
-      if (!key.startsWith(prefix)) continue;
-      archived.push(key.slice(prefix.length));
-      if (state.scan?.refs.get(key)?.closed) closed.push(key.slice(prefix.length));
-    }
-    return folders.length > 0 || archived.length > 0
-      ? { specFolders: folders, archivedFolders: archived, closedFolders: closed }
-      : null;
-  };
+  const resolveProject: ProjectResolver = createProjectResolver(state, allowed, targets);
 
   const watch = setupWatch(opts, allowed, state);
 
@@ -199,6 +172,7 @@ export function createServer(opts: ServerOptions) {
     testServersIsAlive: opts.testServersIsAlive,
     testServersPortProbe: opts.testServersPortProbe,
     testServersOnPort: opts.testServersOnPort,
+    testServersPortExposed: opts.testServersPortExposed,
     port: opts.port,
   });
 
