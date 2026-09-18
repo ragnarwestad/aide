@@ -1,4 +1,4 @@
-.PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve
+.PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve install-local
 
 # Your machine's answers to the questions this Makefile refuses to guess
 # — MINI, ROOT, BIND. Gitignored, because naming them here
@@ -118,6 +118,12 @@ LABEL ?= com.aide-dashboard.serve
 # here does not change the allowlist on a host that has one.
 QUEUE_PROJECTS ?= aide,aide-dashboard
 REPO_URL := $(shell git config --get remote.origin.url)
+# How install-serve reaches the host: a shell there, started in its
+# $HOME, and where the rendered plist is copied to. install-local points
+# all three at this machine instead; every step between is the same.
+ON_HOST = ssh $(MINI)
+COPY_PLIST = scp -q
+PLIST_DEST = $(MINI):Library/LaunchAgents/$(LABEL).plist
 
 require-host:
 	@if [ -z "$(MINI)" ]; then \
@@ -130,10 +136,11 @@ require-host:
 # install deps, render and install the plist, (re)start the launchd job.
 # Idempotent.
 install-serve: require-host
-	ssh $(MINI) 'if [ -d $(MINI_REPO)/.git ]; then git -C $(MINI_REPO) pull -q --ff-only; \
+	$(ON_HOST) 'bash -s -- $(REMOTE_BUN)' < "$(CURDIR)/deploy/check-prerequisites.sh"
+	$(ON_HOST) 'if [ -d $(MINI_REPO)/.git ]; then git -C $(MINI_REPO) pull -q --ff-only; \
 		else git clone -q $(REPO_URL) $(MINI_REPO); fi && \
 		cd $(MINI_SRC) && ~/$(REMOTE_BUN) install --silent'
-	@home=$$(ssh $(MINI) 'echo $$HOME') && \
+	@home=$$($(ON_HOST) 'echo $$HOME') && \
 	plist=$$(mktemp -t aide-dashboard-plist) && \
 	trap 'rm -f "$$plist"' EXIT && \
 	bun run deploy/render-plist.ts \
@@ -155,7 +162,7 @@ install-serve: require-host
 		--root "$(if $(ROOT),$(ROOT),$$home/$(REMOTE_STATE)/projects)" \
 		$(if $(BIND),--bind "$(BIND)") \
 		> "$$plist" && \
-	scp -q "$$plist" $(MINI):Library/LaunchAgents/$(LABEL).plist
+	$(COPY_PLIST) "$$plist" $(PLIST_DEST)
 	@# `bootout` returns before the job is gone. Bootstrapping into that
 	@# gap fails with "Bootstrap failed: 5: Input/output error" and
 	@# leaves NOTHING running — the old job is already dead. Measured on
@@ -165,7 +172,7 @@ install-serve: require-host
 	@# rather than bootstrapping into a failure.
 	@# With no ROOT the projects root is the directory of links beside
 	@# the checkouts, and the dashboard's own checkout is its first link.
-	ssh $(MINI) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
+	$(ON_HOST) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
 		$(if $(ROOT),,mkdir -p $(REMOTE_STATE)/projects; \
 		[ -L $(REMOTE_STATE)/projects/aide ] || [ -e $(REMOTE_STATE)/projects/aide ] || ln -s "$$HOME/$(MINI_REPO)" $(REMOTE_STATE)/projects/aide;) \
 		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true; \
@@ -189,14 +196,14 @@ install-serve: require-host
 	@# -n` expands variables but never runs a shell, so a shell `if` would
 	@# leave both branches in the dry run and the guard would be untestable.
 ifeq ($(BIND),127.0.0.1)
-	@if ssh $(MINI) 'test -x $(TAILSCALE)'; then \
-		ssh $(MINI) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT) && \
+	@if $(ON_HOST) 'test -x $(TAILSCALE)'; then \
+		$(ON_HOST) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT) && \
 			for p in $(TEST_PORTS); do $(TAILSCALE) serve --bg --https $$p http://127.0.0.1:$$p; done'; \
 	else \
 		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
 	fi
 else
-	@if ssh $(MINI) 'test -x $(TAILSCALE)'; then \
+	@if $(ON_HOST) 'test -x $(TAILSCALE)'; then \
 		echo "tailscale is at $(TAILSCALE) on $(MINI), but BIND is '$(BIND)', not 127.0.0.1 —" >&2; \
 		echo "tailscaled will not proxy to the host's own tailnet address" >&2; \
 		echo "(measured 2026-08-21: a 75s hang, then a 502)." >&2; \
@@ -209,3 +216,12 @@ endif
 
 # Update an already-installed server: pull, deps, restart.
 deploy-serve: install-serve
+
+# install-serve on the machine this runs on, with no ssh: the same
+# checkout, plist, launchd job and prerequisite check. MINI only names
+# the host in its messages here.
+install-local: MINI = this machine
+install-local: ON_HOST = cd && /bin/sh -c
+install-local: COPY_PLIST = mkdir -p "$$HOME/Library/LaunchAgents" && cp
+install-local: PLIST_DEST = "$$HOME/Library/LaunchAgents/$(LABEL).plist"
+install-local: install-serve

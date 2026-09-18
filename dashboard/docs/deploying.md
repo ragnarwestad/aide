@@ -109,7 +109,8 @@ The manifest and the icons are served either way, and the tags on the page are i
 
 ## On a second host
 
-`MINI=<host> make install-serve` clones or pulls the repo there (the clone URL comes from this checkout's own `origin`),
+`MINI=<host> make install-serve` first runs `deploy/check-prerequisites.sh` there, and stops if Aide, bun, jq or git
+is missing. Then it clones or pulls the repo there (the clone URL comes from this checkout's own `origin`),
 installs deps, renders a launchd plist and starts the job. No plist is committed:
 `deploy/render-plist.ts` builds it per invocation from the target's own
 `$HOME`, resolved over ssh at install time. Logs go to
@@ -255,10 +256,14 @@ tracked repo names nobody's machine, and this is where yours lives instead.
 
 ## On one machine
 
+`dashboard/install.sh` (`make install-local`) is `install-serve` on the machine it runs on: the same prerequisite
+check, checkout, plist and launchd job, with a local shell in place of ssh. It takes the same variables, except
+`MINI`.
+
 `make serve-local` generates the site and serves `out/` from the same machine — no ssh, no rsync, no launchd, no second
 host involved. `PORT=`
-and an optional `ROOT=` (the directory to scan for projects) are the only knobs. This is the whole thing running in one
-place.
+and an optional `ROOT=` (the directory to scan for projects) are the only knobs. It serves the checkout it is run
+in, for trying a change, not as a service.
 
 ## Keeping the host's specs current
 

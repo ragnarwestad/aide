@@ -38,14 +38,33 @@ between them.
 
 ## Installation
 
+The machine that serves the dashboard needs these first:
+
+| Needed               | Why                                                                      | Install                              |
+|----------------------|--------------------------------------------------------------------------|--------------------------------------|
+| macOS                | the dashboard runs as a launchd job                                      |                                      |
+| git                  | the dashboard keeps its own checkout of this repo                        | `xcode-select --install`             |
+| mise, with node      | Aide's installer puts bun, jq, gh, pandoc and md-to-pdf in place with it | [mise.jdx.dev](https://mise.jdx.dev) |
+| Aide                 | every step runs through Aide's scripts and skills                        | `./install-all.sh` at the repo root  |
+| An AI CLI, signed in | the steps run in Claude Code, Codex, OpenCode or Copilot                 | that tool's own installer            |
+
+Optional: [tailscale](https://tailscale.com), for HTTPS
+(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Without gh a project set to
+`codeLanding: pr` cannot open its pull request, and without md-to-pdf the PDF button fails; Aide's installer puts
+both in place.
+
+Then install it, on that machine or on another one over ssh:
+
 ```bash
-MINI=<host> make install-serve      # clone/pull + deps + launchd job there — first install
+dashboard/install.sh                # on this machine — first install and every update
+MINI=<host> make install-serve      # on <host>, from dashboard/ — first install
 MINI=<host> make deploy-serve       # same — for updates
 ```
 
-Both required, no default: a sync aimed at a machine nobody named is worse than one that refuses
-to start. See [Deploying](docs/deploying.md) for HTTPS, the serving host, and installing it as a
-browser app.
+Both check the table above on the serving machine before they change anything. They stop on anything
+required that is missing, saying how to install it, and warn about the optional ones. `MINI` has no default: a
+deploy aimed at a machine nobody named is worse than one that refuses to start. See
+[Deploying](docs/deploying.md) for HTTPS, the serving host, and installing it as a browser app.
 
 A server is not required — `make serve-local` generates the site and serves it on this machine
 with no launchd job, and `AIDE_DASH_HOST=<host> make publish` generates it and rsyncs it to a host

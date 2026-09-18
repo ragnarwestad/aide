@@ -164,9 +164,9 @@ Clone the repo, then run the installer for your AI tool:
 `./install-all.sh` runs all four at once. Each installer is self-contained: instructions, commands/prompts, scripts and
 documentation, installed globally so any project can use them.
 
-The dashboard is installed after this, on the machine that will run it: it starts every step through Aide's own
-scripts and skills, so they have to be there first. See
-[Installation in the dashboard's README](dashboard/README.md#installation).
+The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`: it starts every
+step through Aide's own scripts and skills, so they have to be there first, and the script checks that they are. See
+[Installation in the dashboard's README](dashboard/README.md#installation) for what else it needs.
 
 > **Windows users:** The scripts require WSL or Git Bash.
 > See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
