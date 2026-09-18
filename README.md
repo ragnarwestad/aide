@@ -246,6 +246,7 @@ runs them for you, and adds what running them by hand does not give you:
 - **Modify and rerun** — if acceptance criteria are specified and not fulfilled by the implementation, the spec
   description and criteria can be modified to be more precise, and the analyze and implement phases rerun. Criteria
   that are already ticked are not touched by the rerun
+  (see [Another round on the same spec](dashboard/docs/spec-lifecycle.md#another-round-on-the-same-spec))
 - **Code that lands itself** — merged into the main branch once the tests pass, or left as a pull request for review
   (see [How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands))
 - **The whole history** — clicking a spec opens its description, analysis, plan, status and every job that has run

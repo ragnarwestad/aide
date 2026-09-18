@@ -14,6 +14,7 @@ post-step checks in `core/scripts/aide-run-spec`, the gates in `core/scripts/aid
 - [The transitions](#the-transitions)
 - [What holds a phase back](#what-holds-a-phase-back)
 - [Where the work is between phases](#where-the-work-is-between-phases)
+- [Another round on the same spec](#another-round-on-the-same-spec)
 - [Going backwards: reopen and reset](#going-backwards-reopen-and-reset)
 - [Closing: a different terminal move from archive](#closing-a-different-terminal-move-from-archive)
 - [What the list makes of it](#what-the-list-makes-of-it)
@@ -159,6 +160,31 @@ until `archive` is run again — see [Branches and landing](landing.md).
 `implement` is the one phase whose work is deliberately left on its branch, in both repos: the branch is the
 inspection point, and `archive` is what lands it. A project that sets `codeLanding: pr` in its manifest keeps the CODE
 root's branch open through `archive` too, as the pull request; the specs root still lands.
+
+## Another round on the same spec
+
+A spec whose acceptance criteria are not all ticked can take another round of analysis or implementation without being
+reopened or reset. It is the one way back that keeps everything: the analysis, the plan, the status and every ticked
+row stay as they are.
+
+- **The round begins where archive declines.** `aide-archive-spec` refuses an archive while any row under
+  `## Acceptance criteria` in `4-status.md` is open, and at that moment writes
+  `- **Round boundary:** <date> (history before <sha> does not count)` into `4-status.md`. A second decline with
+  nothing changed in between writes nothing; a later real round appends its own, and the last one is the one read.
+- **The user edits the criteria.** The open `AC-n` rows in `1-description.md` are rewritten to say more precisely what
+  was missing, or new ones are added.
+- **Analyze or Implement then runs again on the same active spec — once every open criterion is new or changed since
+  the boundary.** The server compares each open row's text in `1-description.md` with its text at the boundary's commit
+  (`roundGate`, `src/project/parse-status/held-back.ts`) and otherwise refuses the round, naming the first unchanged
+  criterion: a round on the same words would give the same result.
+- **The round touches only what is open.** Analyze appends a `## Round N` section to `2-analysis.md` and
+  `3-solution.md` for the open and new ids, and `4-status.md` gains a row for each new id; no existing row's text or
+  tick changes. A ticked criterion is approved, and nothing in the round traces to it. Implement may rewrite an open
+  row's Notes cell with what is still missing. No skill ticks a row.
+- **On the specs list**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
+  plain press archives, and another round is a choice made by ticking it.
+
+When the user is satisfied, they tick the rows on the spec's Checks tab and press Archive.
 
 ## Going backwards: reopen and reset
 
