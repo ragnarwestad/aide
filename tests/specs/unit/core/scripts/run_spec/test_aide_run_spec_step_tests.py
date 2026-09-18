@@ -4,6 +4,7 @@ word — the record on the branch is the runner's own.
 """
 
 import json
+import subprocess
 from ..conftest import READ_SPECS, git, run
 from .run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, RESULT_OK, emits
 from .run_spec_status_files import with_status
@@ -330,3 +331,67 @@ def test_a_record_written_by_hand_does_not_count(runner, workspace, fake_claude,
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "completed", out
     assert marker.exists() and marker.read_text().count("run") == 1, "the runner must run when the record carries no tree"
+
+
+def test_a_green_record_after_a_fix_round_spares_the_runners_run_too(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The same question, asked after the session was handed red lines:
+    it fixed them and ran the suite through aide-record-test-run until
+    green, on exactly the tree it delivered. The runner's own run is
+    red once, the session's is green once — and a third, the runner's
+    check of a tree it has just seen recorded green, is not run (spec
+    480's archive ran the suite four times, 2026-09-18)."""
+    with_status(workspace, ["create", "analyze"])
+    marker = tmp_path / "runs.txt"
+    cmd = f"echo run >> {marker}; test -f fixed.txt"
+    _project_with_test_cmd(workspace, cmd)
+    record = runner.parent / "aide-record-test-run"
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        + 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
+        + "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        + "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        + f'  "{record}" --project-dir . --specs-root "$specs" --folder 81-queue-and-runner --cmd "{cmd}" > /dev/null\n'
+        + "else\n"
+        + "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        + "fi\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert marker.read_text().count("run") == 2, "the runner ran the suite again on a tree the session had just recorded green"
+
+
+def test_a_green_step_reports_the_tree_and_commands_it_saw_green(runner, workspace, fake_claude, tmp_path):
+    """What the landing needs to know it would test the same code: the
+    tree the step saw green — hashed the way the landing will hash the
+    branch it merges, links left out — and the commands it ran. A landing
+    about to run the same commands on the same tree skips its own run."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "true")
+    rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert out["testedGreen"]["commands"] == ["true"], out
+    checkout = tmp_path / "the-branch"
+    git(workspace["project"], "worktree", "add", "-q", "--detach", str(checkout), BRANCH)
+    lib = runner.parent / "_aide-spec-lib.sh"
+    # The links the main checkout names, handed over the way the landing
+    # hands them: a fresh worktree carries no `.aide/config` to read.
+    hashed = subprocess.run(
+        ["/bin/bash", "-c",
+         'source "$1"; aide_tree_hash "$2" "$(aide_config_get AIDE_WORKTREE_LINKS "$3")"',
+         "_", str(lib), str(checkout), str(workspace["project"])],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    diff = git(workspace["project"], "diff-tree", "-r", "--name-status", out["testedGreen"]["tree"], hashed)
+    assert out["testedGreen"]["tree"] == hashed, diff
+
+
+def test_a_red_step_reports_nothing_seen_green(runner, workspace, fake_claude):
+    """Red is not a tree anyone may skip testing: the field is absent."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    assert "testedGreen" not in out, out

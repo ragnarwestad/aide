@@ -15,6 +15,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover";
 import { runScript, scriptFor } from "./run-script.ts";
+import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -47,7 +48,7 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
 
 export async function runProjectSuiteBeforePush(
   root: string,
-  job: { project: string; specFolder: string },
+  job: GatedJob,
   branch: string,
   opts: { scriptDir?: string } = {},
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
@@ -126,7 +127,7 @@ async function mainCheckoutOf(root: string): Promise<string> {
 async function runSuiteIn(
   root: string,
   liveRoot: string,
-  job: { project: string; specFolder: string },
+  job: GatedJob,
   branch: string,
   opts: { scriptDir?: string },
 ): Promise<{ ok: boolean; error?: string; detail?: string }> {
@@ -153,6 +154,25 @@ async function runSuiteIn(
     // project's readiness check already says so on its page.
     return { ok: true };
   }
+  const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
+  // The step this landing merges may already have seen these commands
+  // green on this very tree (seen-green.ts) — main has not moved since
+  // its own run. Said in the same log a run would have written to, so a
+  // landing that ran nothing still leaves its answer where people look.
+  const seen = await alreadySeenGreen(root, liveRoot, job, commands, opts);
+  if (seen) {
+    try {
+      mkdirSync(join(log, ".."), { recursive: true });
+      appendFileSync(
+        log,
+        `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n` +
+          `not run: the step already saw ${commands.join(" && ")} green on this tree (${seen})\n`,
+      );
+    } catch {
+      // A log that cannot be written must not turn a skipped run red.
+    }
+    return { ok: true };
+  }
   const scratch = mkdtempSync(join(tmpdir(), "aide-landing-gate-"));
   try {
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
@@ -161,7 +181,6 @@ async function runSuiteIn(
     const gate = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
     // The run's own output, kept where the archive step used to keep it,
     // under the same header a reader already knows.
-    const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
     try {
       mkdirSync(join(log, ".."), { recursive: true });
       appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n${gate.stdout}${gate.stderr}\n`);

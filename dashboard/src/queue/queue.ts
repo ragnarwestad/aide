@@ -32,6 +32,7 @@ export {
   type ModelChoice,
   type ProjectResolver,
   type ProviderLimit,
+  type TestedGreen,
   type QueueDefaults,
   type StepRepoRange,
   type StepResult,

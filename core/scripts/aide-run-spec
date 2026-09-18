@@ -388,6 +388,7 @@ line="$(jq -cn \
   --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
+  --argjson testedGreen "${tested_green_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -418,7 +419,11 @@ line="$(jq -cn \
    + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
    # And for the usage limit a provider reported: present only on a step
    # such a limit stopped, in the shape run-spec-provider-limit.sh documents.
-   + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)')"
+   + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)
+   # And for the tree and the commands this step saw green
+   # (run-spec-step-tests.sh): the landing skips its own run of the same
+   # commands on the same tree.
+   + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

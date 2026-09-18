@@ -42,6 +42,12 @@ export interface ProviderLimit {
   credit?: string;
 }
 
+/** What `testedGreen` on a step result holds. */
+export interface TestedGreen {
+  tree: string;
+  commands: string[];
+}
+
 export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
@@ -63,6 +69,11 @@ export interface StepResult {
   terminalReason: string;
   /** Present only on a step a provider's usage limit stopped. */
   providerLimit?: ProviderLimit;
+  /** The tree and the test commands this step saw green, hashed the way
+   *  `aide_tree_hash` hashes a checkout. A landing about to run the same
+   *  commands on the same tree skips its own run. Absent on a red step,
+   *  and on one that had no tests to run. */
+  testedGreen?: TestedGreen;
   subtype?: string;
   sessionId?: string;
   /** Where this step's claude transcript was kept, when one was. Recorded

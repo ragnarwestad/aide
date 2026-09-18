@@ -34,7 +34,7 @@ import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import { providerLimit, stepRepoRanges, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { providerLimit, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { asResultTool } from "../steps.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 
@@ -387,7 +387,7 @@ export class Runner {
         // "codex" — and must not be silently collapsed into "claude".
         // Checked against the one list rather than a copy of it.
         tool: asResultTool(outcome.tool) ?? "claude",
-        tokens, providerLimit: providerLimit(outcome.providerLimit),
+        tokens, providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",
         subtype: outcome.subtype,

@@ -66,17 +66,26 @@ EOF_CMDS
     # record, a record without a tree (written by hand), another tree
     # (the session changed something after the run), other commands,
     # red — and the runner runs.
-    step_tests_spared="no"
     step_record="$specs_root_wt/$step_tests_folder/test-run.json"
-    if [ -f "$step_record" ] && declare -f aide_tree_hash >/dev/null 2>&1; then
-      step_tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
-      if [ -n "$step_tree" ] && jq -e --arg tree "$step_tree" --argjson resolved "$step_tests_resolved" '
+    # Asked twice: before the runner's first run, and again after every
+    # turn the session is handed red lines to fix — it was told to run
+    # the suite through aide-record-test-run until it is green, and
+    # running it once more ourselves on the very tree it just recorded
+    # green cost a whole suite for nothing (spec 480's archive ran it
+    # four times, 2026-09-18).
+    session_record_covers_tree() {
+      [ -f "$step_record" ] && declare -f aide_tree_hash >/dev/null 2>&1 || return 1
+      local tree
+      tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
+      [ -n "$tree" ] && jq -e --arg tree "$tree" --argjson resolved "$step_tests_resolved" '
            .exitCode == 0 and .tree == $tree
            and (((.commands // [{command: .command}]) | map(.command) | sort) == ($resolved.commands | sort))
-         ' "$step_record" >/dev/null 2>&1; then
-        step_tests_spared="yes"
-        echo "aide-run-spec: the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
-      fi
+         ' "$step_record" >/dev/null 2>&1
+    }
+    step_tests_spared="no"
+    if session_record_covers_tree; then
+      step_tests_spared="yes"
+      echo "aide-run-spec: the session's own green run covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
     fi
     if [ "$step_test_count" -gt 0 ] && [ "$step_tests_spared" = "no" ]; then
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
@@ -153,7 +162,21 @@ $step_tests_failing"
         # A turn that did not end cleanly keeps its own verdict (timeout,
         # cli-error): nothing to test.
         [ "$terminal_reason" = "completed" ] || break
+        if session_record_covers_tree; then
+          echo "aide-run-spec: the session's own green run after round $step_fix_round covers the delivered tree ($step_tests_folder/test-run.json) — not run again" >&2
+          break
+        fi
       done
+    fi
+    # What was seen green, for the landing: the tree (links left out, the
+    # same hash the record carries) and the commands. A landing that is
+    # about to test exactly this tree with exactly these commands has
+    # nothing to learn from a run of its own.
+    if [ "$terminal_reason" = "completed" ] && [ "$step_test_count" -gt 0 ] && \
+       declare -f aide_tree_hash >/dev/null 2>&1; then
+      tested_tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
+      [ -n "$tested_tree" ] && tested_green_json="$(jq -cn --arg tree "$tested_tree" \
+        --argjson resolved "$step_tests_resolved" '{tree:$tree, commands:$resolved.commands}')"
     fi
   fi
 fi

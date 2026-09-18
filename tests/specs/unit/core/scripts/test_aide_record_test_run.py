@@ -203,3 +203,68 @@ def test_single_cmd_shape_is_unchanged_even_when_passed_through_the_repeatable_f
     assert record["exitCode"] == 0
     assert "commands" not in record, record
 
+
+
+def head_tree(repo):
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"], capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+
+def recorded_tree(specs_root):
+    return json.loads((specs_root / "81-x" / "test-run.json").read_text())["tree"]
+
+
+def _linking_project(project, tmp_path):
+    """A project whose manifest names `node_modules` as a worktree link,
+    ignored with the trailing slash that does not match a symlink, and
+    the link itself in place the way a run leaves it."""
+    (project / ".aide").mkdir(exist_ok=True)
+    (project / ".aide" / "project.yaml").write_text("name: demo\nworktreeLinks: node_modules\n")
+    (project / ".gitignore").write_text("node_modules/\n")
+    subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-qm", "manifest"], check=True)
+    deps = tmp_path / "deps"
+    deps.mkdir()
+    (project / "node_modules").symlink_to(deps)
+
+
+def test_the_recorded_tree_leaves_out_a_worktree_link(script, project, specs_root, tmp_path):
+    """A run's worktree links (`.venv`, `node_modules`) are symlinks the
+    runner's commit never carries — and a `node_modules/` ignore rule,
+    trailing slash and all, does not match one. Counted, they made the
+    tree a run recorded differ from the tree that landed with nothing
+    else between them (spec 480's archive, 2026-09-18)."""
+    _linking_project(project, tmp_path)
+
+    rc, out, _ = run(script, project, specs_root, "81-x", "true")
+
+    assert rc == 0, out
+    assert recorded_tree(specs_root) == head_tree(project)
+
+
+def test_a_worktree_link_a_session_committed_leaves_the_tree_the_same(script, project, specs_root, tmp_path):
+    """The same tree hashed before and after the session's own
+    `git add -A` swept the link into a commit: the link is out either
+    way, so one tree is one hash."""
+    _linking_project(project, tmp_path)
+    rc, out, _ = run(script, project, specs_root, "81-x", "true")
+    before = recorded_tree(specs_root)
+    subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-qm", "swept the link in"], check=True)
+
+    rc, out, _ = run(script, project, specs_root, "81-x", "true")
+
+    assert rc == 0, out
+    assert recorded_tree(specs_root) == before
+
+
+def test_an_untracked_file_still_changes_the_recorded_tree(script, project, specs_root):
+    """Only a symlink is left out: an untracked FILE is work the run
+    tested, and a tree that forgot it would vouch for code it never saw."""
+    (project / "new.txt").write_text("not committed yet\n")
+
+    rc, out, _ = run(script, project, specs_root, "81-x", "true")
+
+    assert rc == 0, out
+    assert recorded_tree(specs_root) != head_tree(project)

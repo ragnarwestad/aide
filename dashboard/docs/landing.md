@@ -211,6 +211,12 @@ origin/<base>`, nothing reaches origin, the branch stays where the step left it,
 ran and the merge was built, and what is missing is a green suite. A red suite is never retried by the landing
 itself.
 
+**A run the step already made is not made again.** A step that ended green reports what it saw green —
+`testedGreen` on its result: the tree, hashed by `aide_tree_hash` with the project's worktree links left out, and
+the commands. When the landing is about to run exactly those commands on exactly that tree (the archive's own run
+was on main merged in, and main has not moved since), it runs nothing, and the gate log says so
+(`src/serve/land-branch/seen-green.ts`). Another tree — main moved — or other commands, and it runs as above.
+
 This is the one place the suite runs for a change on its way to main. `implement`'s own run during the step is the
 model's TDD loop, not the gate; `aide-archive-spec` checks the user's boxes and moves the folder, and runs no tests.
 A code root only: the specs root has nothing to run.

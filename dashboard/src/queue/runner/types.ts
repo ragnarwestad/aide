@@ -2,7 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { BranchRef, Job, ProviderLimit, QueueStore, StepRepoRange, TokenUsage, WorkflowStep } from "../queue.ts";
+import type { BranchRef, Job, ProviderLimit, QueueStore, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -78,6 +78,7 @@ export interface StepOutcome {
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
   providerLimit?: unknown;
+  testedGreen?: unknown;
   error?: string;
   /** WHY it was refused, when the answer is one the page acts on (spec
    *  153). `"conflict"` — the runner could not bring the spec's branch
@@ -189,6 +190,19 @@ export function stepRepoRanges(raw: unknown): StepRepoRange[] | undefined {
     }
   }
   return out;
+}
+
+/** `outcome.testedGreen`, read as defensively: a tree that is not a
+ *  hash or a command list with anything but strings in it says nothing a
+ *  landing may skip a run on, so the whole answer is dropped. */
+export function testedGreen(raw: unknown): TestedGreen | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.tree !== "string" || !/^[0-9a-f]{40,64}$/.test(r.tree)) return undefined;
+  if (!Array.isArray(r.commands) || r.commands.length === 0 || !r.commands.every((c) => typeof c === "string")) {
+    return undefined;
+  }
+  return { tree: r.tree, commands: r.commands as string[] };
 }
 
 /** `outcome.providerLimit`, read the way `tokenUsage` reads its field:
