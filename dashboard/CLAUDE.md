@@ -201,6 +201,16 @@ unticked` gates: Close is legal from every phase Archive would refuse.
   every caller's real question is "is this row locked", true of a closed
   row the same way.
 
+## Starting a script
+
+- **A script is started through its own interpreter, never exec'd
+  directly** (`scriptArgv`, `src/integrations/script-argv.ts`). macOS
+  checks a freshly written executable for 10-13 seconds the first time it
+  is exec'd, once per new file; every install and every test stub is one.
+  A test that puts a stub on PATH for a bash script to call hands it down
+  as an exported function (`BASH_FUNC_<name>%%`) instead of a file, and a
+  stub that must be a file is written once per test file, not per test.
+
 ## Code health
 
 The dashboard's own source keeps five limits, checked by

@@ -13,7 +13,7 @@
 // out, and `run` fails fast on its own "port already held" check right
 // after — well before it would otherwise reach queuing the fixture
 // specs.
-import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -45,14 +45,19 @@ function decoyPort() {
   return { port: server.port, stop: () => server.stop(true) };
 }
 
-/** Records every invocation's argv to `logPath`; for a `serve.ts serve`
- *  invocation it also tries to bind `--port`, which fails fast against
- *  the decoy already holding it. */
-function writeFakeBun(binPath: string, logPath: string): void {
+/** Records every invocation's argv to `$FAKE_BUN_LOG`; for a `serve.ts
+ *  serve` invocation it also tries to bind `--port`, which fails fast
+ *  against the decoy already holding it. Written ONCE per file and
+ *  reused: `run` execs it, and macOS checks a freshly written executable
+ *  for seconds the first time it is exec'd — once per new file. */
+let fakeBunPath: string | undefined;
+function fakeBun(): string {
+  if (fakeBunPath) return fakeBunPath;
+  const binPath = join(mkdtempSync(join(tmpdir(), "aide-round-fakebun-")), "fake-bun");
   writeFileSync(
     binPath,
     `#!/usr/bin/env bash\n` +
-      `printf '%s\\n' "$*" >> "${logPath}"\n` +
+      `printf '%s\\n' "$*" >> "$FAKE_BUN_LOG"\n` +
       `if [ "\${2:-}" = "src/serve/serve.ts" ]; then\n` +
       `  port=""; prev=""\n` +
       `  for a in "$@"; do [ "$prev" = "--port" ] && port="$a"; prev="$a"; done\n` +
@@ -62,7 +67,13 @@ function writeFakeBun(binPath: string, logPath: string): void {
       `exit 0\n`,
   );
   chmodSync(binPath, 0o755);
+  fakeBunPath = binPath;
+  return binPath;
 }
+
+afterAll(() => {
+  if (fakeBunPath) rmSync(join(fakeBunPath, ".."), { recursive: true, force: true });
+});
 
 /** The served checkout's own argument parser, with or without the
  *  `--test-board` flag — what `run` reads to decide whether the branch
@@ -114,14 +125,13 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
 
     const scratch = tmp("aide-round-fakebun-");
     const logPath = join(scratch, "argv.log");
-    const binPath = join(scratch, "fake-bun");
-    writeFakeBun(binPath, logPath);
+    const binPath = fakeBun();
 
     const decoy = decoyPort();
     try {
       const { code } = await runToExit(
         [aide, "--branch", "424-headeren-sier-hvilket-board", "--port", String(decoy.port), "--keep", "--timeout", "5"],
-        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token" },
+        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token", FAKE_BUN_LOG: logPath },
       );
       // The decoy's own port-already-held refusal — proof this test never
       // waited out a real board coming up, not proof of the round's own
@@ -164,14 +174,13 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
 
     const scratch = tmp("aide-round-fakebun-");
     const logPath = join(scratch, "argv.log");
-    const binPath = join(scratch, "fake-bun");
-    writeFakeBun(binPath, logPath);
+    const binPath = fakeBun();
 
     const decoy = decoyPort();
     try {
       await runToExit(
         [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--keep", "--timeout", "5"],
-        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token" },
+        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token", FAKE_BUN_LOG: logPath },
       );
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
@@ -202,14 +211,14 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
 
     const scratch = tmp("aide-round-fakebun-");
     const logPath = join(scratch, "argv.log");
-    const binPath = join(scratch, "fake-bun");
-    writeFakeBun(binPath, logPath);
+    const binPath = fakeBun();
 
     const decoy = decoyPort();
     try {
       await runToExit([aide, "--port", String(decoy.port), "--keep", "--timeout", "5"], {
         AIDE_ROUND_BUN: binPath,
         AIDE_ROUND_TOKEN: "test-token",
+        FAKE_BUN_LOG: logPath,
       });
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
