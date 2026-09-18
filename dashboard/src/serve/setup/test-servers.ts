@@ -14,6 +14,7 @@ import type { GitRunner } from "../../git/branch-status.ts";
 import { TestServerStore } from "../test-servers/store.ts";
 import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
 import { testServerOnPort } from "../test-servers/port-owner.ts";
+import { portExposed } from "../test-servers/tailscale-exposure.ts";
 import { resolvePreviewCmd } from "../../project/discover";
 import type { ServerState } from "../state.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
@@ -40,6 +41,9 @@ export interface TestServersSetupInputs {
   /** A test seam, like `testServersSpawn`: the real one reads the process
    *  table. */
   testServersOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  /** A test seam, like `testServersOnPort`: no test should shell out to a
+   *  real `tailscale` binary. */
+  testServersPortExposed?: (port: number) => Promise<boolean | undefined>;
   /** The served board's own port, reserved before probing for a free
    *  one (REQ-10) — read off `state.server` once it exists, this
    *  fallback until then. */
@@ -130,6 +134,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
     // directory it was started with. `--root <work>/root` is the round's
     // own invocation, and the work directory is what identifies it.
     testServerOnPort: inputs.testServersOnPort ?? testServerOnPort,
+    portExposed: inputs.testServersPortExposed ?? portExposed,
     log: (line) => console.log(line),
   };
   return { testServerStore, testServersCtx };

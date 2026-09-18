@@ -215,6 +215,10 @@ export interface ServerOptions {
    *  A test seam, like `testServersSpawn`: the real one reads the process
    *  table with `lsof` and `ps`. */
   testServersOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  /** Whether Tailscale exposes a test-server pool port on this host
+   *  right now (spec 491). A test seam, like `testServersOnPort`: no
+   *  test should shell out to a real `tailscale` binary. */
+  testServersPortExposed?: (port: number) => Promise<boolean | undefined>;
   /** Whether one of the test-server ports can be bound right now. A
    *  test seam, like `testServersSpawn` — and the one that keeps this suite
    *  off the machine's real ports: the default probe BINDS 8801-8806 to

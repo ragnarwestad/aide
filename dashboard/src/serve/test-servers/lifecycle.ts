@@ -51,6 +51,11 @@ export interface TestServersContext {
    *  implementation reads the process table, and a test injects an
    *  answer. `undefined` for a free port, or one held by anything else. */
   testServerOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  /** Whether Tailscale exposes `port` on this host right now (spec 491)
+   *  — `undefined` when there is no Tailscale here at all, which AC-3
+   *  reads as "the check does not apply, start as before". Asked once,
+   *  for the port `findFreePort` (above) just picked. */
+  portExposed: (port: number) => Promise<boolean | undefined>;
   /** The board's own log line — what a start spawned, and why one did
    *  not come up. Four presses of the start link left four empty work
    *  directories and no trace of what happened (2026-09-09), and the
@@ -186,6 +191,17 @@ export async function startTestServer(
       error:
         `${running} of ${TEST_SERVER_PORTS.length} test servers are already running — ` +
         `open Test servers (⋯ menu) and stop one before starting another`,
+    };
+  }
+  const exposed = await ctx.portExposed(port);
+  if (exposed === false) {
+    ctx.log?.(`boards: :${port} is not exposed through Tailscale on this host — refusing to start ${branch}`);
+    return {
+      ok: false,
+      error:
+        `:${port} is not exposed through Tailscale on this host — ` +
+        `run "make install-serve" there to expose it (or "tailscale serve --bg --https ${port} http://127.0.0.1:${port}"), ` +
+        `then try again`,
     };
   }
   const workDir = ctx.makeWorkDir();

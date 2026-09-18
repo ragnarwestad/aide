@@ -4,7 +4,7 @@
 // process.
 
 import { describe, expect, test } from "bun:test";
-import { acRowsAt, acRowsFromText, firstUnchangedOpenCriterion } from "../../src/git/round-boundary.ts";
+import { acRowsAt, acRowsFromText, criteriaMovedOn } from "../../src/git/round-boundary.ts";
 import { fakeGit } from "../helpers/fake-git.ts";
 
 const BOUNDARY_DESCRIPTION = [
@@ -40,39 +40,47 @@ describe("acRowsFromText", () => {
   });
 });
 
-describe("firstUnchangedOpenCriterion (AC-6)", () => {
+describe("criteriaMovedOn", () => {
   const boundaryRows = acRowsFromText(BOUNDARY_DESCRIPTION);
 
-  test("every open id changed since the boundary: the round may start (null)", () => {
+  test("every open id changed since the boundary: moved on", () => {
     const current = acRowsFromText(
       "- **AC-1:** first requirement, reworded\n- **AC-2:** second requirement, reworded\n",
     );
-    expect(firstUnchangedOpenCriterion(current, ["AC-1", "AC-2"], boundaryRows)).toBeNull();
+    expect(criteriaMovedOn(current, ["AC-1", "AC-2"], boundaryRows)).toBe(true);
   });
 
-  test("every open id is new (absent from the boundary): silence reads as new, never as unchanged", () => {
+  test("an open id absent from the boundary is new: silence reads as new, never as unchanged", () => {
     const current = acRowsFromText("- **AC-3:** a brand new criterion\n");
-    expect(firstUnchangedOpenCriterion(current, ["AC-3"], boundaryRows)).toBeNull();
+    expect(criteriaMovedOn(current, ["AC-3"], boundaryRows)).toBe(true);
   });
 
-  test("one open id byte-identical to its boundary text: names it", () => {
+  // One open criterion reworded is enough: the others may be fine as they
+  // stand, and a rule that made every open one change forced edits with
+  // no reason behind them (PaceUp 04, 2026-09-18).
+  test("one open id changed and another unchanged: moved on", () => {
     const current = acRowsFromText(
       "- **AC-1:** first requirement\n- **AC-2:** second requirement, reworded\n",
     );
-    expect(firstUnchangedOpenCriterion(current, ["AC-1", "AC-2"], boundaryRows)).toBe("AC-1");
+    expect(criteriaMovedOn(current, ["AC-1", "AC-2"], boundaryRows)).toBe(true);
   });
 
-  test("several unchanged: picks the FIRST in ascending AC-n order, not iteration order", () => {
+  test("a criterion added to the description, with no status row yet, is new: moved on", () => {
+    const current = acRowsFromText(
+      "- **AC-1:** first requirement\n- **AC-2:** second requirement, original wording\n- **AC-3:** added\n",
+    );
+    expect(criteriaMovedOn(current, ["AC-1", "AC-2"], boundaryRows)).toBe(true);
+  });
+
+  test("every open id byte-identical to its boundary text, nothing added: not moved on", () => {
     const current = acRowsFromText(
       "- **AC-1:** first requirement\n- **AC-2:** second requirement, original wording\n",
     );
-    // Passed in descending order on purpose — the function's own order,
-    // not the caller's, must decide which one is "first".
-    expect(firstUnchangedOpenCriterion(current, ["AC-2", "AC-1"], boundaryRows)).toBe("AC-1");
+    expect(criteriaMovedOn(current, ["AC-2", "AC-1"], boundaryRows)).toBe(false);
   });
 
   test("a ticked (closed) id is never checked, whatever its text", () => {
-    const current = acRowsFromText("- **AC-1:** first requirement\n");
-    expect(firstUnchangedOpenCriterion(current, [], boundaryRows)).toBeNull();
+    const current = acRowsFromText("- **AC-1:** first requirement, reworded\n- **AC-2:** second requirement, original wording\n");
+    expect(criteriaMovedOn(current, ["AC-2"], boundaryRows)).toBe(false);
   });
 });

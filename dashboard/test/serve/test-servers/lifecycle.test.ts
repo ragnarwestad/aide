@@ -56,6 +56,7 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-test-")),
     reservedPorts: () => [],
     testServerOnPort: async () => undefined,
+    portExposed: async () => true,
     findFreePort: async (reserved) => {
       let port = 9000;
       while (reserved.includes(port)) port++;
@@ -257,6 +258,33 @@ describe("startTestServer", () => {
     expect(!result.ok && result.error).toContain("0");
     expect(!result.ok && result.error).toContain(String(TEST_SERVER_PORTS.length));
     expect(spawnCalls).toHaveLength(0);
+  });
+
+  // Spec 491, AC-2: a port that is free but not exposed through
+  // Tailscale is refused before anything is spawned.
+  test("AC-2: a port that is not exposed is refused, and nothing is spawned", async () => {
+    const ctx = makeCtx({ portExposed: async () => false });
+    const result = await startTestServer(ctx, "aide", "spec-1");
+    expect(result.ok).toBe(false);
+    expect(spawnCalls).toHaveLength(0);
+    expect(!result.ok && result.error).toContain("9000");
+  });
+
+  // Spec 491, AC-3: no Tailscale on this host at all reads as "the
+  // check does not apply" — the board starts exactly as before.
+  test("AC-3: a port with no Tailscale on this host still starts, exactly as before", async () => {
+    const ctx = makeCtx({ portExposed: async () => undefined });
+    const result = await startTestServer(ctx, "aide", "spec-1");
+    expect(result.ok).toBe(true);
+    expect(spawnCalls).toHaveLength(1);
+  });
+
+  // Spec 491, AC-1: an exposed port starts as it does today.
+  test("AC-1: an exposed port starts as it does today", async () => {
+    const ctx = makeCtx({ portExposed: async () => true });
+    const result = await startTestServer(ctx, "aide", "spec-1");
+    expect(result.ok).toBe(true);
+    expect(spawnCalls).toHaveLength(1);
   });
 });
 

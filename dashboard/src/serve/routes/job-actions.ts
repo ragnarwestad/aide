@@ -36,7 +36,7 @@ function proseStatusText(dir: string): string {
 }
 
 /** `1-description.md`'s raw text, for the same check — the CURRENT
- *  wording `firstUnchangedOpenCriterion` compares against the round
+ *  wording `criteriaMovedOn` compares against the round
  *  boundary's own git-read copy. */
 function proseDescriptionText(dir: string): string {
   try {
@@ -130,8 +130,8 @@ export async function handleJobActionRoutes(
           if (typeof step !== "string") continue;
           // Spec 471: a spec already held back on unticked acceptance
           // criteria may take another round on Analyze or Implement,
-          // when every currently open AC-n row is new-or-changed since
-          // the round that held it back (AC-6) — checked AHEAD of
+          // once at least one open AC-n row is new or reworded since
+          // the round that held it back — checked AHEAD of
           // `isLegalMove`, for both steps, rather than only inside
           // analyze's own `!move.ok` branch: `implement`'s
           // `implemented,implement` row is an unconditional self-loop
@@ -150,7 +150,7 @@ export async function handleJobActionRoutes(
                   continue;
                 }
                 const spec = `${askedFor.project}/${askedFor.specFolder}`;
-                const message = `${askedFor.specFolder}'s round cannot start — ${gate.blockedOn} has not changed since it was held back`;
+                const message = `${askedFor.specFolder}'s round cannot start — none of its open acceptance criteria has changed since it was held back. Reword or add at least one first.`;
                 logRefusal("run", spec, message);
                 return wantsJson
                   ? json({ error: message, spec }, 400)

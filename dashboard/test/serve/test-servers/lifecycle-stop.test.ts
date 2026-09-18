@@ -45,6 +45,7 @@ function makeCtx(store: TestServerStore): TestServersContext {
     reservedPorts: () => [],
     findFreePort: async () => 9000,
     testServerOnPort: async () => undefined,
+    portExposed: async () => true,
   };
 }
 

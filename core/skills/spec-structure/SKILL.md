@@ -549,9 +549,9 @@ and Notes cells are left exactly as they are; only an OPEN row's Notes
 cell may gain text naming what the round still finds missing; and a
 genuinely new `AC-n` id, numbered after the highest one already
 written, may be appended as a new unticked row. The round may start
-only once every currently open row's own requirement text has changed
-since the round that held it back — an open row whose text has not
-moved keeps the spec held back on Analyze and Implement alike, not only
+once at least one open row's own requirement text has changed since the
+round that held it back, or a new `AC-n` id has been added — when none
+has, the spec stays held back on Analyze and Implement alike, not only
 on Archive.
 
 ---
