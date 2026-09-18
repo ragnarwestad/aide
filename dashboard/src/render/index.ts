@@ -64,6 +64,7 @@ export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers
 // project's own Schedule tab (spec 468).
 export {
   renderSchedulePage, renderScheduleDetailPage, renderDeleteSchedulePage,
+  renderReportPanel, buildReportDocument,
   SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, deleteSchedulePath,
 } from "./pages/schedule-page";
 export type {

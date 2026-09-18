@@ -84,7 +84,15 @@
      browser at 620px, the same way every other width below is. Below
      600px the two `@media` blocks at the end of this file override it
      down again, each narrower one winning by coming later. */
-  table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --state-w: 5.25rem; }
+  /* --time-w and --state-w (spec 496): Time is one fixed column on every
+     line of an open row, the caption line's total included, and the state
+     column is whatever a Time column leaves the row, between 2.5rem and
+     the 5.25rem it had before. 4px of slack keeps a rounding pixel from
+     wrapping the line; the phase lines and the caption grid use the same
+     two widths, so the state and the total start at one x on every line. */
+  table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
+    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--phase-w)
+      - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
   html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
@@ -104,7 +112,11 @@
      this selector is more specific (spec 480), but neither of the other
      two declarations here touches `display`, and a property no rule
      here sets is a property that rule still decides. */
-  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 auto; padding-left: 0; padding-right: var(--sp-3); }
+  /* A fixed, left-aligned box (spec 496): the desktop rule centres Time
+     (list.css), and a centred text in a fixed box moves its left edge
+     whenever it changes. */
+  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 var(--time-w);
+    width: var(--time-w); box-sizing: border-box; text-align: left; padding-left: 0; padding-right: 0; }
 
 
   /* The spec LIST leaves table layout entirely at this width — found
@@ -289,7 +301,7 @@
      below), and a badge centred in a column that wide sat off to the
      right of it. */
   table.list tr.subrow[data-step] td[data-col="state"] {
-    flex: 0 1 var(--state-w); width: var(--state-w); min-width: 3rem; box-sizing: border-box;
+    flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0; box-sizing: border-box;
     overflow: hidden; white-space: nowrap; text-align: left;
   }
   /* The last phase line's air belongs to the ROW on a phone: given to
@@ -453,7 +465,8 @@
      the second. */
   table.list tr.subrow[data-caption="1"] > td[data-col="state"] { order: 1; flex: 0 0 100%; }
   table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { display: grid; width: 100%;
-    grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2)) 1fr;
+    grid-template-columns: calc(var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 3 * var(--sp-2))
+                           var(--state-w) calc(var(--sp-2) + var(--time-w));
     align-items: center; padding-left: var(--sp-3); box-sizing: border-box; }
   /* The button keeps the same air from the left edge as a shut row's
      pips do; the padding comes off the first column again, so the state
@@ -469,6 +482,12 @@
      its button sits in the middle of it. */
   table.list tr.subrow[data-caption="1"] .actionslot > .actionform { grid-column: 1; grid-row: 1; justify-self: start; }
     table.list tr.subrow[data-caption="1"] .actionslot > .headstate { grid-column: 2; grid-row: 1; }
+  /* The row's total, in the Time column the phase lines use (spec 496),
+     and the state copy trimmed to its column. */
+  table.list tr.subrow[data-caption="1"] .actionslot > .headtime { display: block; grid-column: 3; grid-row: 1;
+    padding-left: var(--sp-2); text-align: left; white-space: nowrap; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate { min-width: 0; max-width: 100%; overflow: hidden; }
+  table.list tr.subrow[data-caption="1"] .actionslot > .headstate .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* An open row's own second line comes off: the caption line carries
      the state, over the phases' states, and the phase lines say what the
      pips say — one state twice on one screen is one too many. A shut

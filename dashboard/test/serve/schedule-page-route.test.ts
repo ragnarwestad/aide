@@ -6,8 +6,10 @@
 // actually wires the token guard and `ctx.allowed`/`resolveSchedule`
 // together (acceptance criterion 12).
 import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 import { savable } from "../spec-page/spec-save-fixtures.ts";
 
@@ -332,5 +334,131 @@ describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
     expect(list).not.toContain("is not one the queue offers");
     const detail = await (await fetch(`${base}/schedule/aide/nightly-report`, { headers: AUTH })).text();
     expect(detail).not.toContain("is not one the queue offers");
+  });
+});
+
+// Spec 495: the entry's page shows a run's report. Real files under a
+// fixture output root, jobs seeded through the queue's own mirror file so
+// each has the id and state the test names.
+describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () => {
+  const KEY = "schedule-nightly-report";
+  const tmp: string[] = [];
+  afterEach(() => {
+    for (const d of tmp.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  interface Seed { id: string; state: string; at: string; report?: string }
+
+  function setup(seeds: Seed[]): { base: string; outputRoot: string } {
+    const scratch = mkdtempSync(join(tmpdir(), "aide-schedule-report-"));
+    tmp.push(scratch);
+    const outputRoot = join(scratch, "out");
+    const mirror = join(scratch, "queue.json");
+    writeFileSync(
+      mirror,
+      JSON.stringify(
+        seeds.map((s) => ({
+          id: s.id, project: "aide", specFolder: KEY, steps: ["schedule"], stepIndex: 0, state: s.state,
+          timeoutSec: {}, permissionMode: {}, model: {}, createdAt: s.at, startedAt: s.at,
+        })),
+      ),
+    );
+    for (const s of seeds) {
+      if (s.report === undefined) continue;
+      const dir = scheduleRunOutputDir(outputRoot, "aide", KEY, s.id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "index.html"), s.report);
+    }
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot, queueMirrorPath: mirror },
+    });
+    writeSchedule(dir, "aide", NIGHTLY);
+    return { base, outputRoot };
+  }
+
+  const get = async (base: string, path: string): Promise<string> =>
+    (await fetch(`${base}${path}`, { headers: { "x-aide-token": TOKEN } })).text();
+  const PAGE = "/schedule/aide/nightly-report";
+
+  test("the newest run's report is in a frame, with its time, outcome and a link to the bare file", async () => {
+    const { base } = setup([
+      { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
+      { id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" },
+    ]);
+    const html = await get(base, PAGE);
+    expect(html).toMatch(/<iframe\b[^>]*data-report-frame/);
+    expect(html).toContain("NEW-TEXT");
+    expect(html).not.toContain("OLD-TEXT");
+    expect(html).toContain("2026-09-02T03:00:00Z");
+    expect(html).toContain(`href="/schedule-output/aide/${KEY}/runs/new/index.html"`);
+  });
+
+  test("a newest run with no report shows its sentence, never an older run's report, even while it runs", async () => {
+    const { base } = setup([
+      { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
+      { id: "new", state: "running", at: "2026-09-02T03:00:00Z" },
+    ]);
+    const html = await get(base, PAGE);
+    expect(html).toContain("No report from this run (running)");
+    expect(html).not.toContain("OLD-TEXT");
+    expect(html).not.toContain("<iframe");
+  });
+
+  test("an entry that has never run says so, and ?run= is ignored", async () => {
+    const { base } = setup([]);
+    const html = await get(base, `${PAGE}?run=anything`);
+    expect(html).toContain("This entry has not run yet.");
+    expect(html).not.toContain("<iframe");
+  });
+
+  test("?run= picks that run's report, with that run's own time, and neither of the others'", async () => {
+    const { base } = setup([
+      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>FIRST-TEXT</p>" },
+      { id: "r2", state: "failed", at: "2026-09-02T03:00:00Z", report: "<p>SECOND-TEXT</p>" },
+      { id: "r3", state: "done", at: "2026-09-03T03:00:00Z", report: "<p>THIRD-TEXT</p>" },
+    ]);
+    const html = await get(base, `${PAGE}?run=r2`);
+    expect(html).toContain("SECOND-TEXT");
+    expect(html).toContain("2026-09-02T03:00:00Z");
+    expect(html).not.toContain("FIRST-TEXT");
+    expect(html).not.toContain("THIRD-TEXT");
+  });
+
+  test("History links every row to its run", async () => {
+    const { base } = setup([
+      { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
+      { id: "r2", state: "failed", at: "2026-09-02T03:00:00Z" },
+    ]);
+    const html = await get(base, `${PAGE}?tab=history`);
+    expect(html).toContain(`href="${PAGE}?run=r1#report"`);
+    expect(html).toContain(`href="${PAGE}?run=r2#report"`);
+  });
+
+  test("a ?run= naming no job of this entry shows the newest run, and nothing outside the run's directory", async () => {
+    const { base, outputRoot } = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" }]);
+    writeFileSync(join(outputRoot, "aide", KEY, "index.html"), "<p>SENTINEL-OUTSIDE</p>");
+    for (const run of ["nope", "../../etc/passwd", "..%2F..%2Findex.html"]) {
+      const html = await get(base, `${PAGE}?run=${run}`);
+      expect(html).toContain("NEW-TEXT");
+      expect(html).not.toContain("SENTINEL-OUTSIDE");
+    }
+  });
+
+  test("the bare file is served as text/html with the token", async () => {
+    const { base } = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" }]);
+    const res = await fetch(`${base}/schedule-output/aide/${KEY}/runs/new/index.html`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(await res.text()).toContain("NEW-TEXT");
+  });
+
+  test("the list's output link goes to the entry's page, and only when the newest run has a report", async () => {
+    const withReport = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>x</p>" }]);
+    expect(await get(withReport.base, "/schedule")).toContain(`href="${PAGE}#report"`);
+    const without = setup([
+      { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>x</p>" },
+      { id: "new", state: "done", at: "2026-09-02T03:00:00Z" },
+    ]);
+    expect(await get(without.base, "/schedule")).not.toContain("#report");
   });
 });

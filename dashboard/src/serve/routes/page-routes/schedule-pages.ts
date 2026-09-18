@@ -5,11 +5,12 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { resolveSchedule } from "../../../project/discover";
-import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../../queue/schedule.ts";
-import { SCHEDULE_ROUTE, projectPagePath, renderDeleteSchedulePage, renderScheduleDetailPage, renderSchedulePage, resolveBackHref } from "../../../render";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
+import {
+  SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderDeleteSchedulePage, renderReportPanel,
+  renderScheduleDetailPage, renderSchedulePage, resolveBackHref, schedulePagePath,
+} from "../../../render";
 import { languageChoice, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
@@ -40,13 +41,14 @@ export async function schedulePages(
         const key = scheduleTrackingKey(entry.name);
         const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
         const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
-        const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
+        const wroteReport = last ? readScheduleRunReport(outputRoot, project, key, last.id) !== null : false;
         return {
           project,
           entry,
           lastState: last?.state,
           lastRunAt: last?.startedAt ?? last?.createdAt,
-          outputHref: outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+          // The report is shown on the entry's own page, not linked bare.
+          outputHref: wroteReport ? `${schedulePagePath(project, entry.name)}#report` : undefined,
           // AC-5: the project's own Schedule tab — where the New-job
           // form and this entry's own row both now live (spec 468).
           projectScheduleHref: `${projectPagePath(project)}?tab=schedule`,
@@ -110,17 +112,34 @@ export async function schedulePages(
       .filter((j) => j.project === project && j.specFolder === key)
       .sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt));
     const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
-    const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
-    const history = jobs.map((job, i) => ({
+    const page = schedulePagePath(project, name);
+    const history = jobs.map((job) => ({
       job,
-      outputHref: i === 0 && outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+      outputHref: `${page}?run=${encodeURIComponent(job.id)}#report`,
     }));
     const langResult = languageChoice(url, req);
+    // `?run=` is only ever compared with this entry's own job ids, never
+    // joined into a path; anything else shows the newest run.
+    const runParam = url.searchParams.get("run");
+    const shown = jobs.find((j) => j.id === runParam) ?? jobs[0];
+    let run: Parameters<typeof renderReportPanel>[0]["run"];
+    if (shown) {
+      const report = readScheduleRunReport(outputRoot, project, key, shown.id);
+      const runDir = `/schedule-output/${project}/${key}/runs/${shown.id}/`;
+      run = {
+        view: await ctx.jobRow(shown),
+        startedAt: shown.startedAt ?? shown.createdAt,
+        ...(report !== null
+          ? { document: await buildReportDocument(report, runDir), bareHref: `${runDir}index.html` }
+          : {}),
+      };
+    }
     const html = renderScheduleDetailPage(ctx.nav(), new Date().toISOString(), {
       project,
       entry,
       tab: url.searchParams.get("tab") ?? undefined,
       history,
+      reportPanel: renderReportPanel({ lang: langResult.lang, run }),
       token: ctx.queueToken,
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,

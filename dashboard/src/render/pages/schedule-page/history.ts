@@ -1,7 +1,6 @@
 // The detail page's History tab (spec 276): every past run for this
-// entry, newest first. `scheduleOutputDir` is keyed on the tracking key
-// alone, so each new run overwrites the previous run's output — only
-// the newest row can link to it (Behavior delta, `3-solution.md`).
+// entry, newest first. Each run writes into a directory of its own, so
+// every row links to its own run's report on the entry's page.
 import type { Job } from "../../../queue/types.ts";
 import { durationLabel } from "../../ui/job-state";
 import { rowMessage } from "../../ui/components";
@@ -9,7 +8,7 @@ import { esc } from "../../ui/html.ts";
 
 export interface ScheduleHistoryRow {
   job: Job;
-  /** Present only on the newest row — see the module comment above. */
+  /** The entry's page showing this run's report (`?run=<id>#report`). */
   outputHref?: string;
 }
 

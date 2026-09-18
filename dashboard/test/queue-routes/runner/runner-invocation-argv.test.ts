@@ -7,7 +7,7 @@ import { existsSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
-import { scheduleOutputDir } from "../../../src/queue/schedule.ts";
+import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 
@@ -243,7 +243,7 @@ describe("the schedule step's output directory (spec 272)", () => {
     return { bin, envFile };
   }
 
-  test("a schedule step's spawn carries AIDE_SCHEDULE_OUTPUT_DIR, pointed at scheduleOutputDir(), and the directory already exists", async () => {
+  test("a schedule step's spawn carries AIDE_SCHEDULE_OUTPUT_DIR, pointed at the run's own directory under runs/<jobId>, and the directory already exists", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-schedule-env-"));
     ownDirs.push(dir);
     const { bin, envFile } = scheduleEnvStub(dir);
@@ -261,7 +261,8 @@ describe("the schedule step's output directory (spec 272)", () => {
     });
     expect(res.status).toBe(200);
     const env = await fileOnceWritten(envFile, "the runner was never invoked");
-    const expected = scheduleOutputDir(outputRoot, "aide", "schedule-nightly-report");
+    const { job } = await res.json();
+    const expected = scheduleRunOutputDir(outputRoot, "aide", "schedule-nightly-report", job.id);
     expect(env.trim()).toBe(expected);
     expect(existsSync(expected)).toBe(true);
   });

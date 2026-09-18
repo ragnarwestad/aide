@@ -16,6 +16,8 @@ import { renderScheduleOverview } from "./overview.ts";
 import { deleteSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
+export { renderReportPanel } from "./report.ts";
+export { buildReportDocument } from "./report-document.ts";
 export { SCHEDULE_TABS, deleteSchedulePath, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
@@ -62,6 +64,8 @@ export interface ScheduleDetailPageOptions {
   defaultModels?: ScheduleFormOptions["defaultModels"];
   tab?: string;
   history: readonly ScheduleHistoryRow[];
+  /** The report panel's markup (`renderReportPanel`), shown on top of Overview. */
+  reportPanel?: string;
   token?: string;
   script?: string;
   error?: string;
@@ -91,6 +95,7 @@ export function renderScheduleDetailPage(
           modelChoices: opts.modelChoices,
           defaultModels: opts.defaultModels,
           lang: opts.lang,
+          reportPanel: opts.reportPanel,
         });
   const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {

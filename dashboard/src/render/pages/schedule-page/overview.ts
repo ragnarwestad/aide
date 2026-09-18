@@ -17,12 +17,15 @@ export function renderScheduleOverview(
     modelChoices?: ScheduleFormOptions["modelChoices"];
     defaultModels?: ScheduleFormOptions["defaultModels"];
     lang?: Language;
+    /** The report panel (`report.ts`), drawn first. */
+    reportPanel?: string;
   },
 ): string {
   const lang = opts.lang ?? "en";
   const next = nextFireTime(entry.cron, new Date());
   const offered = opts.modelChoices?.map((c) => c.name);
   return (
+    (opts.reportPanel ?? "") +
     modelFlag(lang, entry.model, offered) +
     `<dl class="kv">` +
     `<dt>${t(lang, "schedule.cron")}</dt><dd><code>${esc(entry.cron)}</code></dd>` +

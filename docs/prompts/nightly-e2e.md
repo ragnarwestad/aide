@@ -6,8 +6,8 @@ report, and stop.
    because Chromium is missing, run `bunx playwright install chromium` once
    and run the suite again.
 2. Write the result to `$AIDE_SCHEDULE_OUTPUT_DIR/index.html` — that directory
-   is where the dashboard serves this run's own output from, and the file is
-   what its "output" link opens. Plain HTML, no styling:
+   is this run's own directory, and the file is what the entry's page shows
+   as the run's report. Plain HTML, no styling:
    - a first line saying green or red, with the pass and fail counts,
    - the name of every test that failed, each with the assertion lines
      underneath it,

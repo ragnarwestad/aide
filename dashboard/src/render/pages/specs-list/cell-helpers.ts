@@ -16,7 +16,7 @@ import {
   type QueueRowView,
   type RestingState,
 } from "../../ui/job-state";
-import { phaseDuration, type Phase, type SpecGroup } from "./data-model";
+import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data-model";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -115,6 +115,13 @@ export function activeDurationCell(g: SpecGroup): string {
   return g.totalDurationSince
     ? `<span class="archive-duration" data-elapsed="${esc(g.totalDurationSince)}">${text}</span>`
     : `<span class="archive-duration">${text}</span>`;
+}
+
+/** The row's total as the head row's Time cell holds it, for the caption
+ *  line's phone copy (spec 496): a locked row's figure is the archived
+ *  one, every other row's counts while a phase runs. */
+export function specTotalCell(g: SpecGroup): string {
+  return isArchivedRow(g) ? archiveDateCell(g.totalDurationMs ?? 0) : activeDurationCell(g);
 }
 
 /** One phase line's time cell: how long that phase took, or how long it

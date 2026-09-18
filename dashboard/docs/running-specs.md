@@ -343,11 +343,22 @@ whenever an entry is due and nothing is already queued or running for it.
 
 `/schedule` lists every allowed project's entries, flattened into one list (`?q=`, `?sort=` and `?dir=` filter and
 sort it); `/schedule/new` makes an entry and `/schedule/<project>/<name>` is one entry's own page (Overview and
-History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. A run's own recorded output is
-served as static files under `/schedule-output/<project>/<key>/...`. The pages post to
+History tabs), with `/schedule/<project>/<name>/delete` its delete confirmation. The pages post to
 `POST /api/queue/schedule` (create), `POST /api/queue/schedule/<project>/<name>` (edit), and
 `POST .../enabled`, `.../run` and `.../delete` (toggle, fire now, remove); `GET /api/queue/schedule/cron-next`
 previews a cron expression's next fire time for the form.
+
+**A run's report.** Each `schedule` run writes into a directory of its own,
+`<output root>/<project>/<key>/runs/<jobId>/`, named in `AIDE_SCHEDULE_OUTPUT_DIR` and made before the run starts.
+The run's report is its `index.html` there; a missing file, an empty one, whitespace or tags with no text and no
+`<img>` count as no report. The top of an entry's Overview tab shows the newest run's report in a sandboxed frame
+(`sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"`, so nothing in a report runs and its links
+open in a new tab), headed by the run's start time and outcome. A History row opens the same page with that run's
+report (`?run=<jobId>`, matched against the entry's own jobs and never used as a path; an unknown value shows the
+newest run). A run that wrote no report shows a sentence with how it ended, and an entry that has not run says so. The
+report's own styling, scripts and event attributes are removed and the board's tokens put in their place; the frame
+follows the page's Dark/Light/Auto choice through `specs-client/report-frame.ts`. The file on its own is served under
+`/schedule-output/<project>/<key>/runs/<jobId>/index.html`.
 
 `model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
 since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit

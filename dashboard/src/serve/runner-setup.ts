@@ -15,7 +15,7 @@ import { scriptArgv } from "../integrations/script-argv.ts";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner";
-import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir } from "../queue/schedule.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleRunOutputDir } from "../queue/schedule.ts";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
@@ -149,16 +149,17 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
       };
       // Spec 272. Only a `schedule` step's own spawn gets this: the
-      // directory a schedule job's prompt writes its output to, made
+      // directory THIS run's prompt writes its output to, made
       // ahead of time so a prompt with no `mkdir -p` of its own still
-      // lands its file. `scheduleOutputDir()` is the one function both
+      // lands its file. `scheduleRunOutputDir()` is the one function both
       // this write side and the serving route's read side import — see
       // its own comment for why that matters.
       if (step === "schedule") {
-        const outputDir = scheduleOutputDir(
+        const outputDir = scheduleRunOutputDir(
           ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
           job.project,
           job.specFolder,
+          job.id,
         );
         mkdirSync(outputDir, { recursive: true });
         env.AIDE_SCHEDULE_OUTPUT_DIR = outputDir;

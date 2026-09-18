@@ -5,6 +5,7 @@
 // behaviour `driftPollMs`/`specCachePollMs` already have when a restart
 // leaves an answer stale until the next tick.
 
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
@@ -91,4 +92,33 @@ export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard"
  *  mode `dashboard/CLAUDE.md` already names six instances of. */
 export function scheduleOutputDir(root: string, project: string, specFolder: string): string {
   return join(root, project, specFolder);
+}
+
+/** Where ONE run writes its output: a directory of its own under the
+ *  entry's, named by the job id. An earlier run's report survives the
+ *  next run, and a directory that starts empty means "no `index.html`"
+ *  is "this run wrote none". */
+export function scheduleRunOutputDir(root: string, project: string, specFolder: string, jobId: string): string {
+  return join(scheduleOutputDir(root, project, specFolder), "runs", jobId);
+}
+
+/** Whether a report has anything to read: some text, or an image, once
+ *  its tags are removed. An empty file, whitespace and a document of
+ *  empty tags all say nothing. */
+function hasContent(html: string): boolean {
+  if (/<img\b/i.test(html)) return true;
+  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim() !== "";
+}
+
+/** The one function that says a run "wrote a report": the run's own
+ *  `index.html`, or `null` when it is missing or blank. */
+export function readScheduleRunReport(root: string, project: string, specFolder: string, jobId: string): string | null {
+  const file = join(scheduleRunOutputDir(root, project, specFolder, jobId), "index.html");
+  if (!existsSync(file)) return null;
+  try {
+    const html = readFileSync(file, "utf-8");
+    return hasContent(html) ? html : null;
+  } catch {
+    return null;
+  }
 }

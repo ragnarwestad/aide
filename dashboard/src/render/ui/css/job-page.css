@@ -15,3 +15,13 @@ tr.steplog td { padding-top: 0; }
 .tabpanel { padding-top: var(--sp-4); }
 .tabpanel > h2:first-child { margin-top: var(--sp-2); }
 
+
+/* A scheduled run's report on the entry's page (spec 495): the header
+   line, and the sandboxed frame that holds the report. The frame's own
+   document is styled by report-frame.css. */
+.reportpanel { margin-bottom: var(--sp-5); }
+.reporthead { margin: 0 0 var(--sp-2); }
+.reportframe {
+  display: block; width: 100%; min-height: var(--sp-6); height: 60vh;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--bg);
+}
