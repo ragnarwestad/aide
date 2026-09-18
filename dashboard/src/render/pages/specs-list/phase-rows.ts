@@ -9,7 +9,7 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
+import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
@@ -411,12 +411,18 @@ function aiModel(
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
   const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool);
-  const now = compactModelLabel(opts.modelChoices ?? [], on);
+  // Two candidate strings, always both rendered (AC-1/AC-2, spec 488): the
+  // SHORT one exactly as before, and a FULL one, always tool-prefixed.
+  // Which of the two spans shows is a `narrow.css` media query's own
+  // decision, not a runtime one — see that file's 400-600px band.
+  const short = compactModelLabel(opts.modelChoices ?? [], on);
+  const full = compactModelLabelFull(opts.modelChoices ?? [], on);
+  const now = `<span class="aimodelshort">${esc(short)}</span><span class="aimodelfull">${esc(full)}</span>`;
   const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
   const button = locked
-    ? `<span class="aimodelnow" aria-disabled="true">${esc(now)}</span>`
+    ? `<span class="aimodelnow" aria-disabled="true">${now}</span>`
     : `<input type="checkbox" class="aimodelopen" id="${esc(id)}">` +
-      `<label class="aimodelnow" for="${esc(id)}">${esc(now)}</label>`;
+      `<label class="aimodelnow" for="${esc(id)}">${now}</label>`;
   return (
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
     (ai ? `<label class="aimodelfield"><span>${t(lang, "list.captionAi")}</span>${ai}</label>` : "") +

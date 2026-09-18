@@ -558,6 +558,7 @@
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }
 
+<<<<<<< HEAD
 /* The acceptance criteria unfolded on a row (spec 493), at a phone's
    width: no indent to spend, and the note gives back its margin so the
    criterion's text keeps every pixel the box leaves it. */
@@ -565,8 +566,7 @@
   .rowchecks { padding-left: 0; }
   .rowchecks .check .checknote { margin-left: 0; }
   .checksunread { padding-left: 0; }
-}
-
+=======
 /* --- the compact AI/model button, 640px down to 400px (spec 488) ------ */
 /* Everything the button/panel/select toggle needs, moved out of the
    block above: below THIS block's own 600px (37.5rem), the two ordinary
@@ -655,4 +655,5 @@
   table.list { --aimodel-w: 8rem; }
   table.list tr.subrow .aimodelshort { display: none; }
   table.list tr.subrow .aimodelfull { display: block; }
+>>>>>>> origin/main
 }
