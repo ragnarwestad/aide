@@ -100,8 +100,7 @@ export const en = {
   "list.archiveHeldBackWord": "{step} held back",
   "list.done": "Done",
   "list.stateQueued": "{step} queued",
-  "list.stateQueuedPosition": "{step} {n}/{total}",
-  "list.stateQueuedTooltip": "{n} of {total} queued — waiting for a free slot to run {step}",
+  "list.stateQueuedPosition": "Queued {n}/{total}",
   // The bare word, for every stop the SYSTEM made: the badge says the
   // state and the row's own notice line says why, in full. It named the
   // step as well ("archiving held back") until 2026-09-08 — the step is

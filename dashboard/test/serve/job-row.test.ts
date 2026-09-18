@@ -53,7 +53,7 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
     expect(archiveRow.queuePosition?.n).toBe(1);
   });
 
-  test("the jobRow() -> specStateChip() composition renders '<step> n/total'", async () => {
+  test("the jobRow() -> specStateChip() composition renders 'Queued n/total'", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
     const archive = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
@@ -67,7 +67,7 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
 
     const n = row.queuePosition?.n;
     const total = row.queuePosition?.total;
-    expect(html).toContain(`Implementing ${n}/${total}`);
+    expect(html).toContain(`Queued ${n}/${total}`);
   });
 });
 

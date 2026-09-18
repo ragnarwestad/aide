@@ -27,6 +27,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 specs_root=""; spec_arg=""; result_file=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-reset-spec --specs-root <path> --spec <arg> [--result-file <path>]
+USAGE
+      exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;

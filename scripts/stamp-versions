@@ -11,6 +11,11 @@
 
 set -e
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: scripts/stamp-versions [path-to-matrix]   # default: docs/AI_SUPPORT_MATRIX.md"
+  exit 0
+fi
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 MATRIX="${1:-$SCRIPT_DIR/../docs/AI_SUPPORT_MATRIX.md}"
 

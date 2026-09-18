@@ -18,7 +18,10 @@ decides whether a landing finished, and how a project keeps its code branch open
 A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard` exists
 in the project and in the specs repo, with different contents and two separate compare pages. Merging one does nothing
 for the other: each repo's branch is landed independently, asked of that repo's own checkout. A project whose specs
-live inside it has one repo to land, not two — the same code path, not a special case.
+live inside it has one repo and one branch for both, so a step that lands no code — `analyze`, `reopen`, `reset`,
+`close` — copies the spec's own folder (and its `archive/` twin) from that branch onto the default branch as one
+commit, and leaves every other path as it was. The branch stays open for the next step, whose run merges the default
+branch in before it starts; a `close` deletes it afterwards. Code reaches the default branch through `archive` alone.
 
 The badge says what the reader needs, not merely what git answered. A flat "not merged" is a fact about the BRANCH
 that reads as a verdict on the spec, and in the same amber while the step writing that branch

@@ -60,6 +60,22 @@ acceptance_not_required="no"
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
+                    --title <title> --description <text>
+                    [--depends-on <value>] [--result-file <path>]
+  aide-create-spec --specs-root <path> --folder-name <name>
+                    --title <title> --description <text>
+                    [--depends-on <value>] [--result-file <path>]
+  aide-create-spec --specs-root <path> --assign-number --folder <name>
+                    [--result-file <path>]
+  aide-create-spec --specs-root <path> --stamp-outcome --folder <NN-slug>
+                    --start-epoch <epoch-seconds> [--model <text>]
+                    [--result-file <path>]
+USAGE
+      exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --number) number="${2:-}"; shift 2 ;;
     --slug) slug="${2:-}"; shift 2 ;;

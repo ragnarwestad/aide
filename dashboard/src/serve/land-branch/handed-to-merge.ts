@@ -10,11 +10,13 @@
 // and the cached open-branch set still named the branch (the archived
 // row read "still on origin — re-run archive").
 
-import { resolve, sep } from "node:path";
+import { realpathSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type { CreateFinalizer } from "../../git/create-finalizer.ts";
 import type { LandingGate } from "../../git/branch-merge.ts";
 import type { MergeHooks } from "../../git/merge-hooks.ts";
+import type { SpecFolderLanding } from "../../git/spec-folder-landing.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { LandContext, Landing } from "./types.ts";
 
@@ -54,7 +56,7 @@ export function handedToMerge(
   root: string,
   branch: string,
   codeRoots: Pick<Set<string>, "has">,
-): { gate?: LandingGate; finalizeCreate?: CreateFinalizer; hooks: MergeHooks } {
+): { gate?: LandingGate; finalizeCreate?: CreateFinalizer; hooks: MergeHooks; specOnly?: SpecFolderLanding } {
   const gate = codeRoots.has(root) && ctx.landingGate
     ? (r: string) => ctx.landingGate!(r, job, branch)
     : undefined;
@@ -85,5 +87,34 @@ export function handedToMerge(
       for (const r of cacheRootsWithin(ctx, job.project, root)) ctx.branchStatus.forgetOpenSpecBranch(r, branch);
     },
   };
-  return { gate, finalizeCreate, hooks };
+  const paths = SPEC_ONLY_STEPS.has(what.step) && codeRoots.has(root)
+    ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), job.specFolder)
+    : undefined;
+  const specOnly = paths
+    ? { paths, message: `Land ${job.specFolder}'s spec files from ${branch}`, deleteBranch: what.step === "close", hooks }
+    : undefined;
+  return { gate, finalizeCreate, hooks, specOnly };
+}
+
+/** Steps whose landing carries no code. Where the specs live inside the
+ *  code repo, their branch is also the code's, and merging it whole
+ *  would put an earlier `implement`'s code on the default branch before
+ *  `archive` — so these land the spec's own folder alone. */
+const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "reset", "close"]);
+
+/** The spec's folder and its `archive/` twin relative to `root`, or
+ *  `undefined` when the specs root is not inside `root` at all. */
+function specPathsIn(root: string, specsRoot: string | undefined, folder: string): string[] | undefined {
+  if (!specsRoot) return undefined;
+  const real = (p: string): string => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return p;
+    }
+  };
+  const rel = relative(real(root), real(specsRoot));
+  if (rel.startsWith("..") || isAbsolute(rel)) return undefined;
+  const prefix = rel ? `${rel.split(sep).join("/")}/` : "";
+  return [`${prefix}${folder}`, `${prefix}archive/${folder}`];
 }

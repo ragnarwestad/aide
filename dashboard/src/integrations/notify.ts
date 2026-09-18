@@ -9,6 +9,8 @@
 // Nothing here knows about Slack. The wrapper named in the config does,
 // so the target can be swapped by editing one config line.
 
+import { scriptArgv } from "./script-argv.ts";
+
 // `gate` was the fourth until spec 149: a job parked between two steps,
 // waiting for a person to press Approve. There is no stop between steps
 // any more, so nothing can announce one.
@@ -49,7 +51,7 @@ export interface NotifierOptions {
 // unref() so a wrapper can never hold the server open.
 const defaultSpawn: NotifySpawn = (argv, line) => {
   const proc = Bun.spawn({
-    cmd: argv,
+    cmd: scriptArgv(argv),
     stdin: new TextEncoder().encode(line),
     stdout: "ignore",
     stderr: "ignore",

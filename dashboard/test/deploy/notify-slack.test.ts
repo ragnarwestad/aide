@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { scriptArgv } from "../../src/integrations/script-argv.ts";
 
 const SCRIPT = join(import.meta.dir, "..", "..", "deploy", "notify-slack.sh");
 
@@ -42,7 +43,7 @@ async function run(payload: unknown, opts: { webhookUrl?: string } = {}): Promis
   if (opts.webhookUrl !== undefined) writeFileSync(file, `${opts.webhookUrl}\n`);
   chmodSync(SCRIPT, 0o755);
   const proc = Bun.spawn({
-    cmd: [SCRIPT],
+    cmd: scriptArgv([SCRIPT]),
     env: { ...process.env, AIDE_SLACK_WEBHOOK_FILE: file },
     stdin: new TextEncoder().encode(`${JSON.stringify(payload)}\n`),
     stdout: "ignore",

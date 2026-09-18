@@ -21,6 +21,10 @@
 # /bin/bash here is 3.2 (macOS): no mapfile, no associative arrays.
 set -uo pipefail
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo 'usage: aide-preview <project checkout> --branch B --port P --cmd "…" [--timeout S]'
+  exit 0
+fi
 ROOT="${1:-}"; shift || true
 usage() {
   echo "usage: aide-preview <project checkout> --branch B --port P --cmd \"…\" [--timeout S]" >&2

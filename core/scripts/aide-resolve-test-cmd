@@ -38,6 +38,12 @@ project_dir=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-resolve-test-cmd --project-dir <path>
+USAGE
+      exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac

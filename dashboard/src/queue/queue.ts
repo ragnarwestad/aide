@@ -15,6 +15,7 @@ export {
   UNFINISHED,
   WORKFLOW_STEPS,
   currentWorkRoundJobs,
+  landingInProject,
   queuePriorityOrder,
   tailEdits,
   type EffortLevel,

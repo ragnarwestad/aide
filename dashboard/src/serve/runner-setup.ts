@@ -11,6 +11,7 @@
 
 import { dirname, join } from "node:path";
 import { spawnEnv } from "./tool-path.ts";
+import { scriptArgv } from "../integrations/script-argv.ts";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner";
@@ -163,7 +164,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         env.AIDE_SCHEDULE_OUTPUT_DIR = outputDir;
       }
       const proc = Bun.spawn({
-        cmd: runnerArgv(
+        cmd: scriptArgv(runnerArgv(
           job,
           step,
           resultFile,
@@ -196,7 +197,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
           },
           sessionId,
           streamFile,
-        ),
+        )),
         env,
         detached: true,
         // stdout is ignored (the result FILE is the contract), but

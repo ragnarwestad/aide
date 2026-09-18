@@ -10,6 +10,17 @@ import { join } from "node:path";
 
 const SCRIPT = join(import.meta.dir, "..", "..", "deploy", "rsync-publish.sh");
 
+
+/** `ssh` and `rsync` as bash functions handed down in the environment,
+ *  each logging its own name — never files on PATH. A freshly written
+ *  executable costs seconds on macOS the first time it is exec'd; a
+ *  function is never exec'd at all. */
+function stubCommands(log: string): Record<string, string> {
+  const stubs: Record<string, string> = {};
+  for (const name of ["ssh", "rsync"]) stubs[`BASH_FUNC_${name}%%`] = `() {  echo ${name} >> '${log}'; }`;
+  return stubs;
+}
+
 /**
  * Runs the script with AIDE_DASH_HOST removed. `ssh` and `rsync` are
  * shadowed by stubs that record being called: the point is not only
@@ -18,17 +29,11 @@ const SCRIPT = join(import.meta.dir, "..", "..", "deploy", "rsync-publish.sh");
 async function runWithoutHost(): Promise<{ code: number; stderr: string; called: string[] }> {
   const dir = mkdtempSync(join(tmpdir(), "aide-rsync-guard-"));
   try {
-    const bin = join(dir, "bin");
     const log = join(dir, "called.log");
-    mkdirSync(bin);
-    for (const name of ["ssh", "rsync"]) {
-      const stub = join(bin, name);
-      writeFileSync(stub, `#!/bin/sh\necho ${name} >> '${log}'\nexit 0\n`, { mode: 0o755 });
-    }
     const { AIDE_DASH_HOST: _drop, ...env } = process.env;
     const proc = Bun.spawn({
       cmd: ["/bin/bash", SCRIPT],
-      env: { ...env, PATH: `${bin}:${process.env.PATH}` },
+      env: { ...env, ...stubCommands(log) },
       stdout: "ignore",
       stderr: "pipe",
     });
@@ -61,19 +66,14 @@ async function runWithOut(
 ): Promise<{ code: number; stderr: string; called: string[] }> {
   const dir = mkdtempSync(join(tmpdir(), "aide-rsync-out-"));
   try {
-    const bin = join(dir, "bin");
     const log = join(dir, "called.log");
-    mkdirSync(bin);
     mkdirSync(join(dir, "deploy"));
     mkdirSync(join(dir, "out"));
-    writeFileSync(join(dir, "deploy", "rsync-publish.sh"), readFileSync(SCRIPT, "utf-8"), { mode: 0o755 });
+    writeFileSync(join(dir, "deploy", "rsync-publish.sh"), readFileSync(SCRIPT, "utf-8"));
     for (const f of files) writeFileSync(join(dir, "out", f), "<p>x</p>");
-    for (const name of ["ssh", "rsync"]) {
-      writeFileSync(join(bin, name), `#!/bin/sh\necho ${name} >> '${log}'\nexit 0\n`, { mode: 0o755 });
-    }
     const proc = Bun.spawn({
       cmd: ["/bin/bash", join(dir, "deploy", "rsync-publish.sh")],
-      env: { ...process.env, AIDE_DASH_HOST: "stub-host", PATH: `${bin}:${process.env.PATH}` },
+      env: { ...process.env, AIDE_DASH_HOST: "stub-host", ...stubCommands(log) },
       stdout: "ignore",
       stderr: "pipe",
     });

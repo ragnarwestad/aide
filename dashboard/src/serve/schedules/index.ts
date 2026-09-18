@@ -25,10 +25,10 @@ import type { QueueStore } from "../../queue/queue.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
-import { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
+import { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 
-export { blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
+export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
@@ -316,5 +316,5 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     const queued = ctx.queue.list().filter((j) => j.state === "queued");
     await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
   }
-  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx));
+  runner.tick(await blockedDependencies(ctx), blockedForMissingAnalyze(ctx), archiveWithOpenAcceptance(ctx));
 }

@@ -36,6 +36,11 @@ usage() {
   exit 2
 }
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: aide-pull-specs <repo-path> [<repo-path> ...]"
+  exit 0
+fi
+
 [ "$#" -gt 0 ] || usage
 
 # A skipped repo is not a failure — a person may be mid-edit in it, and

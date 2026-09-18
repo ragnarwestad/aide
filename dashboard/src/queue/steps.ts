@@ -262,3 +262,11 @@ export function asRunnableTool(value: unknown): RunnableTool | undefined {
 export function asResultTool(value: unknown): RunnableTool | "none" | undefined {
   return value === "none" ? "none" : asRunnableTool(value);
 }
+
+/** Whether a landing is under way in `project`. A landing moves that
+ *  project's own checkouts and no other's, so Reset, Close and a test
+ *  server wait for this one — never for a landing somewhere else on the
+ *  board. */
+export function landingInProject(jobs: Job[], project: string): boolean {
+  return jobs.some((job) => job.landing && job.project === project);
+}
