@@ -94,7 +94,7 @@ const STRUCTURE = [
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot",
   // The spec's own state drawn again inside the caption line's action
   // slot, for a phone (2026-09-10).
-  "headstate", "current", "lbl",
+  "headstate", "headtime", "current", "lbl",
   // The check mark beside the theme/language menus' own chosen row
   // (spec 475) — a name of its own since "check" below already means
   // two other things under this same .menupanel shape.

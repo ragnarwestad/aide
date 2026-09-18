@@ -310,7 +310,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     // 600-640px band's, narrowed again by the two `@media` blocks at the
     // end of the file for the two bands below it (see next describe).
     expect(NARROW).toMatch(
-      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: [0-9.]+rem; --tick-w: 31px; --state-w: [0-9.]+rem; \}/,
+      /table\.list \{ --phase-w: 5\.75rem; --aimodel-w: [0-9.]+rem; --tick-w: 31px; --time-w: [0-9.]+rem;/,
     );
     expect(NARROW).toContain('html[lang="en"] table.list { --phase-w: 4.5rem; }');
     // The left one stays — it is the indent under the spec's own name.
@@ -324,7 +324,7 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // `.badge` at all, so a rule scoped to the badge alone would miss it).
   test("the phase line's own state cell is a fixed width, badge or dash alike", () => {
     expect(NARROW).toContain(
-      'table.list tr.subrow[data-step] td[data-col="state"] {\n    flex: 0 1 var(--state-w); width: var(--state-w); min-width: 3rem;',
+      'table.list tr.subrow[data-step] td[data-col="state"] {\n    flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0;',
     );
     // The badge inside it still gives way with an ellipsis, not a hard
     // clip with no indicator — its full text stays reachable via title

@@ -8,7 +8,7 @@ import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup } from "./data-model";
-import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
+import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
@@ -101,10 +101,14 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // stands over the phases' states, with the action button at the
   // line's left — narrow.css lays the slot out.
   const headState = `<span class="headstate">${headStateBadge(g, opts.lang ?? "en")}</span>`;
+  // The row's total beside it, the head row's own figure (spec 496): the
+  // head row's Time cell is hidden on a phone, and this copy stands in
+  // the Time column the phase lines use.
+  const headTime = `<span class="headtime">${specTotalCell(g)}</span>`;
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action + headState, opts.lang ?? "en"),
+      cells: phaseCaptionCells(opts, true, action + headState + headTime, opts.lang ?? "en"),
     });
   } else if (action) {
     // No captions to head — one tool configured, nothing to choose
@@ -113,9 +117,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
         `<td class="phasecell"></td><td class="modelcell"></td>` +
-        `<td data-col="state"><span class="actionslot">${action}</span></td>` +
-        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>` +
-        headState,
+        `<td data-col="state"><span class="actionslot">${action}${headState}${headTime}</span></td>` +
+        `<td data-col="started"></td><td class="num" data-col="cost"></td><td data-col="created"></td>`,
     });
   }
   g.phases

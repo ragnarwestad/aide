@@ -483,3 +483,115 @@ describe("spec 161: the row's one action is primary", () => {
     expect(classes(html)).toEqual(["btn primary"]);
   });
 });
+
+// --- spec 496: the caption line carries the row's total for a phone ---------
+//
+// The head row's Time cell is hidden on a phone; the caption line draws
+// the same figure in its action slot (narrow.css lays it out), beside
+// the button and the state copy. What breaks silently is the copy
+// drifting from the head row's own figure, or losing the `data-elapsed`
+// the page's one-second clock rewrites.
+describe("spec 496: the caption line's total is the head row's own", () => {
+  const NOW = "2026-08-16T12:00:00Z";
+  const job = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id: "a1",
+    project: "aide",
+    specFolder: "496-total",
+    steps: ["analyze", "implement"],
+    stepIndex: 1,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T08:00:00Z",
+    ...extra,
+  });
+  const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
+    project: "aide",
+    specFolder: "496-total",
+    ...extra,
+  });
+  const render = (list: QueueRowView[], targets: SpecTarget[], extra: Partial<SpecsPageOptions> = {}) =>
+    renderSpecsRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        projects: ["aide"],
+        modelChoices: [{ name: "sonnet" }],
+        filter: { open: `aide/496-total` },
+        ...extra,
+      },
+      Date.parse(NOW),
+    );
+  const captionLine = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const slot = (html: string) => captionLine(html).match(/<span class="actionslot">([\s\S]*?)<\/span><\/td>/)?.[1] ?? "";
+  const headTime = (html: string) => captionLine(html).match(/<span class="headtime">([\s\S]*?)<\/span><\/span>(?=<\/td>)/)?.[1];
+  const headCell = (html: string) =>
+    html.match(/<tr class="spechead[^"]*"[^>]*data-folder="496-total">[\s\S]*?<\/tr>/)?.[0]
+      ?.match(/<td[^>]*data-col="started"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+
+  const done = job({
+    state: "done",
+    startedAt: "2026-08-16T09:00:00Z",
+    results: [
+      { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" },
+      { step: "implement", ok: true, costUsd: 1, at: "2026-08-16T09:12:00Z" },
+    ],
+  });
+  const running = job({
+    state: "running",
+    startedAt: "2026-08-16T11:00:00Z",
+    results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T11:30:00Z" }],
+  });
+  const fixtures: [string, QueueRowView[], SpecTarget[]][] = [
+    ["idle", [], [target()]],
+    ["settled", [done], [target({ done: ["analyze", "implement"] })]],
+    ["running", [running], [target()]],
+  ];
+
+  test("the slot holds the button, the state copy and the total, in that order (AC-1)", () => {
+    const html = render([], [target()]);
+    const inner = slot(html);
+    const at = (needle: string) => inner.indexOf(needle);
+    expect(at("<button")).toBeGreaterThan(-1);
+    expect(at('class="headstate"')).toBeGreaterThan(at("<button"));
+    expect(at('class="headtime"')).toBeGreaterThan(at('class="headstate"'));
+  });
+
+  test.each(fixtures)("a %s row's total is byte-equal to the head row's cell (AC-2)", (_name, list, targets) => {
+    const html = render(list, targets);
+    expect(headCell(html)).toBeDefined();
+    expect(headTime(html)).toBe(headCell(html));
+  });
+
+  test("a running row's copy carries the start the page's clock counts from (AC-2)", () => {
+    const html = render([running], [target()]);
+    expect(headTime(html)).toMatch(/data-elapsed="2026-08-16T11:00:00\.000Z"/);
+    expect(headTime(html)).toBe(headCell(html));
+  });
+
+  test("an archived row's total is the head row's own too (AC-2)", () => {
+    const archived = {
+      project: "aide",
+      folder: "496-total",
+      archivedAt: "2026-08-16T09:20:00Z",
+      done: ["analyze", "implement", "archive"],
+      models: {},
+      phaseOutcomes: { analyze: { timeSpentMs: 5 * 60 * 1000 }, implement: { timeSpentMs: 7 * 60 * 1000 } },
+    };
+    const html = render([], [], { archivedSpecs: [archived], filter: { state: "archived", open: "aide/496-total" } });
+    expect(headTime(html)).toBeDefined();
+    expect(headTime(html)).toContain("12m");
+    expect(headTime(html)).toBe(headCell(html));
+  });
+
+  test("with no model choices the state copy and the total are inside the slot, not loose in the row (AC-1)", () => {
+    const html = render([], [target()], { modelChoices: [] });
+    const line = captionLine(html);
+    expect(line).toContain('class="headstate"');
+    expect(slot(html)).toContain('class="headstate"');
+    expect(slot(html)).toContain('class="headtime"');
+    expect(line.indexOf('class="headstate"')).toBeLessThan(line.lastIndexOf('<td data-col="started">'));
+  });
+});
