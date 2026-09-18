@@ -162,13 +162,15 @@ def test_a_failed_codex_turn_is_reported_not_swallowed(runner, workspace, fake_c
     assert out["terminalReason"] == "cli-error"
     assert "refused the turn" in (out["error"] or "")
 
-def _codex_session(home, rate_limits):
+def _codex_session(home, *rate_limits):
     """Codex's own session file for the thread the fake reports, holding
-    one `token_count` event — the only place Codex states its limits."""
+    one `token_count` event per `rate_limits` — the only place Codex
+    states its limits."""
     day = home / "sessions" / "2026" / "09" / "17"
     day.mkdir(parents=True, exist_ok=True)
-    event = {"type": "event_msg", "payload": {"type": "token_count", "rate_limits": rate_limits}}
-    (day / f"rollout-2026-09-17T09-00-00-{CODEX_THREAD_ID}.jsonl").write_text(json.dumps(event) + "\n")
+    events = [{"type": "event_msg", "payload": {"type": "token_count", "rate_limits": r}} for r in rate_limits]
+    (day / f"rollout-2026-09-17T09-00-00-{CODEX_THREAD_ID}.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in events))
 
 
 def test_a_codex_turn_stopped_by_a_full_window_is_a_provider_limit(runner, workspace, fake_codex, tmp_path, monkeypatch):
@@ -196,6 +198,25 @@ def test_a_codex_turn_stopped_by_a_full_window_is_a_provider_limit(runner, works
         ],
         "plan": "plus",
     }
+
+
+def test_a_codex_limit_is_read_past_a_later_count_with_no_windows(runner, workspace, fake_codex, tmp_path, monkeypatch):
+    """A real Codex session that ran out (2026-08-25) ended on a second
+    count, for its `premium` limit, with no window at all. The spent
+    `codex` window came one event before it, and that is the one read."""
+    home = tmp_path / "codex-home"
+    _codex_session(
+        home,
+        {"limit_id": "codex", "primary": {"used_percent": 100.0, "window_minutes": 10080, "resets_at": 1788156893},
+         "secondary": None, "plan_type": "plus", "rate_limit_reached_type": None},
+        {"limit_id": "premium", "primary": None, "secondary": None, "plan_type": "plus", "rate_limit_reached_type": None},
+    )
+    monkeypatch.setenv("CODEX_HOME", str(home))
+    codex = fake_codex(emits(CODEX_STREAM_FAILED))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "provider-limit"
+    assert out["providerLimit"]["window"] == "seven_day"
+    assert "seven day provider limit reached" in out["error"]
 
 
 def test_a_codex_turn_that_failed_with_room_left_is_still_a_cli_error(runner, workspace, fake_codex, tmp_path, monkeypatch):

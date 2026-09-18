@@ -39,14 +39,19 @@ claude_provider_limit() {   # $1: the event, as JSON
 # the plan, and which window ran out — and it is named after the thread
 # the turn already reported, under CODEX_HOME the way Codex itself
 # resolves it. Prints nothing unless a window is full or Codex says one
-# was reached: a failed turn with room left is some other failure.
+# was reached: a failed turn with room left is some other failure. The
+# newest count that CARRIES a window is read: a spent session ends on a
+# count for another limit (`premium`) with none, after the one that ran out.
 codex_provider_limit() {   # $1: the thread id
   local thread="$1" home="${CODEX_HOME:-$HOME/.codex}" file=""
   [ -n "$thread" ] && [ -d "$home/sessions" ] || return 0
   file="$(find "$home/sessions" -type f -name "rollout-*-$thread.jsonl" 2>/dev/null | head -n 1)"
   [ -n "$file" ] || return 0
   jq -Rc 'fromjson? | select(type == "object" and (.payload | type) == "object"
-            and .payload.type == "token_count" and (.payload.rate_limits | type) == "object")
+            and .payload.type == "token_count" and (.payload.rate_limits | type) == "object"
+            and ((.payload.rate_limits.primary | type) == "object"
+                 or (.payload.rate_limits.secondary | type) == "object"
+                 or .payload.rate_limits.rate_limit_reached_type != null))
           | .payload.rate_limits' "$file" 2>/dev/null \
     | tail -n 1 \
     | jq -c '
