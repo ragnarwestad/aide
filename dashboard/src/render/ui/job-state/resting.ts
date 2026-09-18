@@ -1,6 +1,6 @@
 // What a row's chip says when nothing is running on it.
 
-import { badge, stepLabel } from "../components";
+import { badge } from "../components";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
@@ -121,9 +121,8 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     return badge(
       "idle",
       pos
-        ? t(lang, "list.stateQueuedPosition", { step: gerund(lang, step), n: pos.n, total: pos.total })
+        ? t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total })
         : t(lang, "list.stateQueued", { step: gerund(lang, step) }),
-      pos ? t(lang, "list.stateQueuedTooltip", { n: pos.n, total: pos.total, step: stepLabel(step) }) : undefined,
     );
   }
   // The step finished and `state` already reads "done", but its branch
