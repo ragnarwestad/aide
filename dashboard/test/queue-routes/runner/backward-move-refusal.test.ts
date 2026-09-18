@@ -35,7 +35,7 @@ const heldBackStatus = (acRow: string) =>
 
 describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implement", () => {
   for (const step of ["analyze", "implement"]) {
-    test(`${step}: an open AC-n row unchanged since the round boundary is refused, naming it`, async () => {
+    test(`${step}: no open AC-n row changed since the round boundary is refused, saying so`, async () => {
       const { run } = fakeGit({ "show abc1234:1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
       const { base } = harness.start({
         extra: { queueToken: TOKEN, gitRun: run },
@@ -45,7 +45,7 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
       const res = await queue(base, [step]);
       expect(res.status).toBe(400);
       const body = (await res.json()) as { error: string };
-      expect(body.error).toContain("AC-1");
+      expect(body.error).toContain("none of its open acceptance criteria has changed");
 
       const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
       expect(listed.jobs).toHaveLength(0);

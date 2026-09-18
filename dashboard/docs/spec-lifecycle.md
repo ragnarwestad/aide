@@ -173,10 +173,11 @@ row stay as they are.
   nothing changed in between writes nothing; a later real round appends its own, and the last one is the one read.
 - **The user edits the criteria.** The open `AC-n` rows in `1-description.md` are rewritten to say more precisely what
   was missing, or new ones are added.
-- **Analyze or Implement then runs again on the same active spec — once every open criterion is new or changed since
-  the boundary.** The server compares each open row's text in `1-description.md` with its text at the boundary's commit
-  (`roundGate`, `src/project/parse-status/held-back.ts`) and otherwise refuses the round, naming the first unchanged
-  criterion: a round on the same words would give the same result.
+- **Analyze or Implement then runs again on the same active spec — once at least one criterion is new or reworded
+  since the boundary.** The server compares each open row's text in `1-description.md` with its text at the
+  boundary's commit (`roundGate`, `src/project/parse-status/held-back.ts`), and refuses the round only when none has
+  changed and none was added: a round on the same words would give the same result. The other open criteria may stay
+  as they are.
 - **The round touches only what is open.** Analyze appends a `## Round N` section to `2-analysis.md` and
   `3-solution.md` for the open and new ids, and `4-status.md` gains a row for each new id; no existing row's text or
   tick changes. A ticked criterion is approved, and nothing in the round traces to it. Implement may rewrite an open

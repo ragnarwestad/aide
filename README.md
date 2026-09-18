@@ -118,7 +118,7 @@ three levels of it:
 
 Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a user
 declines to accept the result, they edit the spec's acceptance criteria and the same spec runs another round of
-analysis or implementation — a round that may only start once every open criterion is new or changed since the
+analysis or implementation — a round that may only start once at least one criterion is new or reworded since the
 last one. When the user is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
 `archive/` with its history, and what it taught is written back into the project's living documentation, which is
 where the current state of the system is described. It is not spec-as-source: users and assistants still read and
