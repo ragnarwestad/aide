@@ -88,6 +88,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.prError":
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
+  "list.landedAfterRetry": "Merget etter et nytt forsøk: testene var røde første gang og grønne andre gang.",
   "list.branchLeftBehind":
     "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +
     "Slett den for hånd, i det lokale repoet på serveren.",

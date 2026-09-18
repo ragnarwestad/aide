@@ -46,12 +46,21 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
   return out.length <= budget ? out : out.slice(-budget);
 }
 
+/** `retriedAfter`: green only on the second run, and these are the
+ *  lines the first run failed on. */
+export interface GateVerdict {
+  ok: boolean;
+  error?: string;
+  detail?: string;
+  retriedAfter?: string;
+}
+
 export async function runProjectSuiteBeforePush(
   root: string,
   job: GatedJob,
   branch: string,
   opts: { scriptDir?: string } = {},
-): Promise<{ ok: boolean; error?: string; detail?: string }> {
+): Promise<GateVerdict> {
   // The suite runs in a throwaway worktree of the merge commit, never in
   // the live checkout: a run's own git and a fast-forward of main moved
   // that checkout under a running suite once (2026-09-03), so the tests
@@ -130,7 +139,7 @@ async function runSuiteIn(
   job: GatedJob,
   branch: string,
   opts: { scriptDir?: string },
-): Promise<{ ok: boolean; error?: string; detail?: string }> {
+): Promise<GateVerdict> {
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
   const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
@@ -178,14 +187,27 @@ async function runSuiteIn(
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
-    const gate = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
-    // The run's own output, kept where the archive step used to keep it,
-    // under the same header a reader already knows.
-    try {
-      mkdirSync(join(log, ".."), { recursive: true });
-      appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n${gate.stdout}${gate.stderr}\n`);
-    } catch {
-      // A log that cannot be written must not turn a green suite red.
+    const runOnce = async (label: string) => {
+      const out = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
+      // The run's own output, kept where the archive step used to keep
+      // it, under the same header a reader already knows.
+      try {
+        mkdirSync(join(log, ".."), { recursive: true });
+        appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot}${label} ---\n${out.stdout}${out.stderr}\n`);
+      } catch {
+        // A log that cannot be written must not turn a green suite red.
+      }
+      return out;
+    };
+    let gate = await runOnce("");
+    // A red run gets the WHOLE command once more: a test that lost to a
+    // busy host passes the second time, and a real failure fails twice.
+    // A run that timed out is not retried — a second one would hold the
+    // landing for as long again.
+    if (gate.code !== 0 && !gate.timedOut) {
+      const first = failingLines(gate.stdout, gate.stderr);
+      gate = await runOnce(" (retry)");
+      if (gate.code === 0) return { ok: true, retriedAfter: first };
     }
     if (gate.timedOut) {
       return {

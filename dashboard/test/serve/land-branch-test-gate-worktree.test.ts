@@ -153,4 +153,44 @@ describe("the landing's test gate", () => {
     // other, and a blind tail of the two streams caught the wrong end.
     expect(verdict.detail).toContain("FAILED test_x");
   });
+
+  // A test that lost to a busy host passes the second time; a real
+  // failure fails twice. The whole command is run again once, and the
+  // lines the first run failed on travel with the green verdict.
+  test("a suite red once and green on its retry lands, carrying what the first run failed on", async () => {
+    const root = project();
+    const record = join(root, "..", `gate-retry-${Date.now()}.txt`);
+    dirs.push(record);
+    fakeScripts(record);
+    const count = join(root, "..", `gate-runs-${Date.now()}.txt`);
+    dirs.push(count);
+    writeFileSync(
+      process.env.AIDE_RECORD_TEST_RUN_BIN!,
+      `#!/bin/sh\necho run >> ${count}\n[ "$(wc -l < ${count})" -gt 1 ] && exit 0\necho '(fail) flaky > times out'\nexit 1\n`,
+      { mode: 0o755 },
+    );
+
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+
+    expect(verdict.ok).toBe(true);
+    expect(verdict.retriedAfter).toContain("(fail) flaky > times out");
+    expect(readFileSync(count, "utf-8").trim().split("\n")).toHaveLength(2);
+    expect(readFileSync(process.env.AIDE_TEST_GATE_LOG!, "utf-8")).toContain("(retry)");
+  });
+
+  test("a suite red twice stays red, and runs no third time", async () => {
+    const root = project();
+    const record = join(root, "..", `gate-red-twice-${Date.now()}.txt`);
+    dirs.push(record);
+    fakeScripts(record);
+    const count = join(root, "..", `gate-runs-red-${Date.now()}.txt`);
+    dirs.push(count);
+    writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, `#!/bin/sh\necho run >> ${count}\necho 'FAILED test_x'\nexit 1\n`, { mode: 0o755 });
+
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.retriedAfter).toBeUndefined();
+    expect(readFileSync(count, "utf-8").trim().split("\n")).toHaveLength(2);
+  });
 });

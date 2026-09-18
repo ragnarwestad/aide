@@ -264,6 +264,9 @@ export interface Job {
    *  Cleared, like `error`, the moment a later landing for the same spec
    *  deletes the branch cleanly. */
   branchDeleteError?: Sentence | Sentence[];
+  /** The landing's suite was red once and green on its one retry: the
+   *  lines the red run failed on. */
+  testsGreenOnRetry?: string;
   stopReason?: StopReason;
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a

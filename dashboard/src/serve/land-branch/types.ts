@@ -53,7 +53,7 @@ export interface LandContext {
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+  landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
   /** Landing's own finalize step for a `create` job (spec 453): renames
    *  the folder off its literal provisional key to its real `NN-slug`
    *  inside the merge worktree, under the specs repo's own merge lock.

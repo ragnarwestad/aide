@@ -205,7 +205,7 @@ export async function landBranch(
               : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
         );
       let result = await merge();
-      // A red suite is an answer, not a hiccup: never re-run it here.
+      // A red suite is an answer: the gate already gave it its retry.
       const first = result;
       for (let retry = 0; !result.ok && result.reason !== "tests-red" && retry < 2; retry++) {
         await new Promise((r) => setTimeout(r, 700 * (retry + 1)));

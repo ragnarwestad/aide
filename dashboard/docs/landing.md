@@ -208,11 +208,12 @@ running suite once, so the tests on disk changed while the code they import was 
 carries the project's `worktreeLinks` and its `.aide/config`, and is removed when the gate is over.
 `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
 `aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
-run's output goes to the gate log). Green pushes. Red drops the local merge with `reset --hard
+run's output goes to the gate log). A red run gets the whole command once more — a run that timed out does not — and
+green on that second run lands like any green one, with the archived row reading "merged after a retry" and the
+job keeping the lines the first run failed on (`testsGreenOnRetry`). Green pushes. Red on both runs drops the local merge with `reset --hard
 origin/<base>`, nothing reaches origin, the branch stays where the step left it, and the job STOPS with
 `errorReason: tests-red`, `stopReason: tests-red` and the sentence that says what to do — amber, not red: the step
-ran and the merge was built, and what is missing is a green suite. A red suite is never retried by the landing
-itself.
+ran and the merge was built, and what is missing is a green suite.
 
 **A run the step already made is not made again.** A step that ended green reports what it saw green —
 `testedGreen` on its result: the tree, hashed by `aide_tree_hash` with the project's worktree links left out, and

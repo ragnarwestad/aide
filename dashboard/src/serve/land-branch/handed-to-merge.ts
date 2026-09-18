@@ -58,7 +58,13 @@ export function handedToMerge(
   codeRoots: Pick<Set<string>, "has">,
 ): { gate?: LandingGate; finalizeCreate?: CreateFinalizer; hooks: MergeHooks; specOnly?: SpecFolderLanding } {
   const gate = codeRoots.has(root) && ctx.landingGate
-    ? (r: string) => ctx.landingGate!(r, job, branch)
+    ? async (r: string) => {
+        const verdict = await ctx.landingGate!(r, job, branch);
+        // Green only on a second run: the archived row says so, and the
+        // lines the first run failed on are kept with it.
+        if (verdict.ok && verdict.retriedAfter) ctx.queue.update(job.id, { testsGreenOnRetry: verdict.retriedAfter });
+        return verdict;
+      }
     : undefined;
   // Spec 453: a `create` job's folder exists only under its literal
   // provisional key until this runs, under the SAME per-repo lock the

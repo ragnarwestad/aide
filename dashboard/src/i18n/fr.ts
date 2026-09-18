@@ -86,6 +86,7 @@ export const fr: Record<TranslationKey, string> = {
     "Le push d'une étape n'a pas atteint origin. — Récupérez la branch dans le checkout sur le serveur, " +
     "puis repoussez-la depuis un terminal.",
   "list.prError": "Aucune pull request n'a pu être ouverte pour cette branch. — Ouvrez-en une à la main, dans le checkout sur le serveur.",
+  "list.landedAfterRetry": "Intégrée après une nouvelle tentative : les tests étaient rouges au premier passage et verts au second.",
   "list.branchLeftBehind":
     "Cette spec a été mergée, mais sa branch n'a pas pu être supprimée sur origin. — " +
     "Supprimez-la à la main, dans le checkout sur le serveur.",

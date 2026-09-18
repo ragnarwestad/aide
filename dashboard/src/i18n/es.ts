@@ -86,6 +86,7 @@ export const es: Record<TranslationKey, string> = {
     "El push de un paso no llegó a origin. — Actualiza la branch en el checkout del servidor, " +
     "y vuelve a hacer push desde una terminal.",
   "list.prError": "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
+  "list.landedAfterRetry": "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
   "list.branchLeftBehind":
     "Esta spec se mergeó, pero su branch no se pudo borrar en origin. — " +
     "Bórrala a mano, en el checkout del servidor.",

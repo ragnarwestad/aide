@@ -119,6 +119,12 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
   const everyOne = filterShowsArchived(state);
   const rows: ArchivedSpecView[] = [];
   const scan = ctx.readScan();
+  // A landing whose suite was green only on its retry, per spec: the
+  // lines the first run failed on, off whichever job recorded them.
+  const retried = new Map<string, string>();
+  for (const job of ctx.queue.list()) {
+    if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
+  }
   for (const key of scan?.archived ?? []) {
     // The two marks come from one fact and mean opposite things (spec
     // 220), so the deliberate one wins outright rather than both being
@@ -158,6 +164,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
       branchDeleteError,
+      testsGreenOnRetry: retried.get(key),
       prOpen: prWaiting,
       // Off the newest job that reported one. The queue keeps two
       // hundred jobs and the archive grows past that, so an old row
