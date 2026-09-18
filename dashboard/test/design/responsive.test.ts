@@ -544,16 +544,14 @@ describe("every wide table scrolls inside its own box", () => {
       expect(bareMain![1]).not.toMatch(/overflow:\s*hidden/);
     });
 
-    // Risk 3: at phone width `.speclist` leaves table layout for
-    // stacked flex blocks, and REQ-4 wants the box gone entirely there
-    // — a fixed-height box makes no sense once the table is stacked
-    // blocks. The narrow block now overrides the desktop chain back to
-    // normal flow instead of leaving it untouched.
-    test("the narrow-width block undoes the box (REQ-4)", () => {
-      expect(NARROW).toMatch(/#jobrows \.tablewrap \{[^}]*overflow-y:\s*visible/);
-      expect(NARROW).not.toMatch(/#jobrows \.tablewrap \{[^}]*flex:\s*1/);
-      expect(NARROW).toMatch(/body:has\(#jobrows\) \{[^}]*display:\s*block/);
-      expect(NARROW).toMatch(/body:has\(#jobrows\) \{[^}]*overflow:\s*visible/);
+    // At phone width too the box stays: the header, the tabs and the
+    // filter row keep their place and only the rows scroll, as they do
+    // held sideways and on a desktop (2026-09-18, reversing spec 320's
+    // REQ-4, which let the whole page scroll on a phone).
+    test("the narrow-width block keeps the box, so the top of the page stays put on a phone", () => {
+      expect(NARROW).not.toMatch(/#jobrows \.tablewrap \{[^}]*overflow-y:\s*visible/);
+      expect(NARROW).not.toMatch(/body:has\(#jobrows\) \{[^}]*display:\s*block/);
+      expect(NARROW).not.toMatch(/body:has\(#jobrows\) \{[^}]*overflow:\s*visible/);
     });
 
     // Criterion 2's other half: the chips, the "?", New spec and the
