@@ -120,6 +120,7 @@ export async function specsPages(
         sort: chosenSort.sort,
         dir: chosenSort.dir,
         open: url.searchParams.get("open") ?? undefined,
+        checks: url.searchParams.get("checks") ?? undefined,
         // The search term (spec 221), a query-string citizen like the
         // rest of the view — so it survives a reload, can be pasted to
         // someone else, and rides along on the SSE-driven row swap,

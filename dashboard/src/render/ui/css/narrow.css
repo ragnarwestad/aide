@@ -563,3 +563,12 @@
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; flex-direction: column; gap: 2px; }
 }
+
+/* The acceptance criteria unfolded on a row (spec 493), at a phone's
+   width: no indent to spend, and the note gives back its margin so the
+   criterion's text keeps every pixel the box leaves it. */
+@media (max-width: 40rem) {
+  .rowchecks { padding-left: 0; }
+  .rowchecks .check .checknote { margin-left: 0; }
+  .checksunread { padding-left: 0; }
+}

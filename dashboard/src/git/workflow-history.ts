@@ -23,7 +23,7 @@
 
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import { acceptanceCriteriaUnticked, parseStatus } from "../project/parse-status";
+import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
@@ -273,6 +273,9 @@ export interface FileStepsAnswer {
    *  row's "archive held back" and the queue's archive hold-back read
    *  this before the disk copy; absent when the answer came off disk. */
   acceptanceOpen?: boolean;
+  /** The Acceptance section's rows off that same file, for the Specs
+   *  list's unfold — the row draws them without reading git. */
+  acceptance?: StatusCheck[];
 }
 
 /** The steps `4-status.md`'s own line and the history do not agree
@@ -390,6 +393,7 @@ export class BranchFileStepsChecker {
             acceptanceOpen: state
               ? state.acceptanceCriteria.some((row) => !row.done)
               : acceptanceCriteriaUnticked(file.text),
+            acceptance: acceptanceRowsOf(file.text),
           };
           break;
         }

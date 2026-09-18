@@ -241,3 +241,57 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
     expect(h.rows.innerHTML).toBe(STALE);
   });
 });
+
+// --- spec 493: an unsaved tick in the unfolded criteria survives a redraw ----
+//
+// The list is drawn again every few seconds, and the server draws the boxes
+// from the file. A reader half-way through ticking would otherwise have the
+// boxes reset under them, and then Save the file's own state back.
+describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493)", () => {
+  const ticks = (h: ReturnType<typeof harness>) => h.tickBoxes.map((b) => b.checked);
+  const swap = async (h: ReturnType<typeof harness>) => {
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+  };
+
+  test("a ticked and an unticked box are both still as the reader left them after a group swap", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeTick(0, true); // the reader ticks AC-1
+    h.changeTick(1, false); // and takes AC-2 back off
+    await swap(h);
+    expect(ticks(h)).toEqual([true, false, false]);
+  });
+
+  test("and after the whole table is replaced", async () => {
+    const h = harness(() => ({ ok: true, text: "<table><tbody><tr>fresh</tr></tbody></table>" }));
+    h.changeTick(0, true);
+    await swap(h);
+    expect(ticks(h)).toEqual([true, true, false]);
+  });
+
+  test("two specs with the same criterion text keep separate ticks", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeTick(2, true); // AC-1 of the OTHER spec
+    await swap(h);
+    expect(ticks(h)).toEqual([false, true, true]);
+  });
+
+  test("a box nobody touched follows the server", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    await swap(h);
+    expect(ticks(h)).toEqual([false, true, false]);
+  });
+
+  test("once that list's own Save has gone through its remembered ticks are dropped", async () => {
+    const h = harness(() => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }), "actionform", "", {
+      formId: "rowchecks-aide/493-a",
+    });
+    h.changeTick(0, true);
+    h.changeTick(2, true);
+    await h.submit();
+    await swap(h);
+    // Its own list is the server's again; the other spec's is still the reader's.
+    expect(ticks(h)).toEqual([false, true, true]);
+  });
+});

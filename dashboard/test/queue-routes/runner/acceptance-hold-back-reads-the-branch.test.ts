@@ -60,7 +60,13 @@ async function warmedChecker(specDir: string, done: boolean): Promise<BranchFile
     if (line.startsWith("fetch")) return { code: 0, stdout: "" };
     if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
     if (line.endsWith("4-status.md")) {
-      return { code: 0, stdout: "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze, implement\n" };
+      return {
+        code: 0,
+        stdout:
+          "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze, implement\n\n" +
+          "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
+          `| REQ-1: it works on the branch | ${done ? "✅" : "⬜"} | |\n`,
+      };
     }
     if (line.endsWith("4-status.json")) {
       return {
@@ -100,6 +106,29 @@ describe("the row's own archive held back", () => {
     const { root } = projectsRoot();
     const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
     expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+  });
+});
+
+// Spec 493: the Specs list unfolds these rows, so they ride on the target.
+describe("the rows the list unfolds", () => {
+  test("the target's rows are the branch's when it has an answer", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, false);
+    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works on the branch"]);
+  });
+
+  test("and the checkout's own file otherwise", () => {
+    const { root } = projectsRoot();
+    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
+    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
+  });
+
+  test("a spec with no open criterion carries none", async () => {
+    const { root, specDir } = projectsRoot();
+    const checker = await warmedChecker(specDir, true);
+    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    expect(target?.acceptance).toBeUndefined();
   });
 });
 

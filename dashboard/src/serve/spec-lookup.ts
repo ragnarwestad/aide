@@ -21,7 +21,7 @@ import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
-  acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
+  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { SpecTarget } from "../render";
@@ -141,6 +141,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           project: p.name,
           specFolder: s.folder,
           acceptanceOpen,
+          // The rows the list unfolds, from the same source order as
+          // `acceptanceOpen`: the branch answer's, else the checkout's.
+          acceptance: acceptanceOpen ? (branchAnswer?.acceptance ?? acceptanceRowsOf(statusText)) : undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.

@@ -43,3 +43,36 @@ describe("rowMessage/rowMessageParts capitalize their rendered text (spec 442)",
     expect(html).toContain("Landing failed");
   });
 });
+
+// spec 493: a part that asks for a line of its own is its own box.
+describe("rowMessageParts — an `own` part is its own box (spec 493)", () => {
+  test("a single box is drawn exactly as before", () => {
+    const html = rowMessageParts("waiting", [{ text: "a" }, { text: "b" }]);
+    expect(html).not.toContain("msgstack");
+    expect(html).toContain("A · B");
+  });
+
+  test("own parts stand alone with their own variant; the rest join", () => {
+    const html = rowMessageParts("failed", [
+      { text: "push failed", variant: "failed" },
+      { text: "landing failed", variant: "failed" },
+      { text: "held back", variant: "waiting", own: true },
+      { text: "test server", variant: "waiting", own: true },
+    ]);
+    expect(html).toContain("msgstack");
+    expect(html.match(/class="rowmsg /g)?.length).toBe(3);
+    expect(html).toContain("Push failed · Landing failed");
+    expect(html).toMatch(/class="rowmsg waiting">[\s\S]*Held back/);
+    expect(html).not.toContain("Held back · ");
+  });
+
+  test("a part's lead control goes inside its box and its `after` content under it", () => {
+    const html = rowMessageParts("waiting", [
+      { text: "held back", own: true, lead: "<a id=lead></a>", after: "<p id=under></p>" },
+      { text: "server", own: true },
+    ]);
+    expect(html).toMatch(/<div class="rowmsg waiting"><a id=lead><\/a>/);
+    expect(html.indexOf("id=under")).toBeGreaterThan(html.indexOf("Held back"));
+    expect(html.indexOf("id=under")).toBeLessThan(html.indexOf("Server"));
+  });
+});

@@ -225,7 +225,10 @@ function groupRows(
       // collapsed row is told what went wrong without being opened.
       const head =
         specHeadRow(g, opts, opened) +
-        specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable);
+        specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
+          filter: opts.filter,
+          token: opts.token,
+        });
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;

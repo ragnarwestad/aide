@@ -8,7 +8,7 @@
 // full rationale.
 
 import { join } from "node:path";
-import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox } from "./fixtures-controls.ts";
+import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox, tickCheckbox } from "./fixtures-controls.ts";
 import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
 import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
@@ -70,7 +70,7 @@ export function harness(
   reply: (url: string) => Reply,
   control_ = "actionform",
   search = "",
-  o: { offRow?: boolean; pathname?: string } = {},
+  o: { offRow?: boolean; pathname?: string; formId?: string } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -145,7 +145,7 @@ export function harness(
     className: formClass,
     // The run form is the only one with an id, because it is the only
     // one whose controls are written outside it.
-    id: formClass === "rowrun" ? ROW_FORM : "",
+    id: o.formId ?? (formClass === "rowrun" ? ROW_FORM : ""),
     // The phase boxes ARE the Run form's fields — a real `FormData`
     // reads the checkboxes that are in the form at that moment. So the
     // fake reads them out of the same element the press overwrites: a
@@ -209,6 +209,14 @@ export function harness(
     stepCheckbox(ROW_FORM, "implement", false),
     stepCheckbox(ROW_FORM, "archive", false),
   ];
+  // Spec 493: two specs' unfolded lists, one criterion text in common.
+  const TICK_FORM = "rowchecks-aide/493-a";
+  const TICK_ROW = "| AC-1: it folds | ⬜ | |";
+  const tickBoxes = [
+    tickCheckbox(TICK_FORM, TICK_ROW, false),
+    tickCheckbox(TICK_FORM, "| AC-2: it saves | ✅ | |", true),
+    tickCheckbox("rowchecks-aide/493-b", TICK_ROW, false),
+  ];
   const tailBoxEl = tailBox(ROW_FORM);
   const { removeButton, confirmInput, removeSlot, addButton, addSlot, addForm, removeForm, getTyped } =
     buildProjectsPanel(tokenInput, on);
@@ -226,6 +234,7 @@ export function harness(
     for (const m of modelSelects) m.redraw();
     otherRowSelect.redraw();
     for (const b of stepBoxes) b.redraw();
+    for (const b of tickBoxes) b.redraw();
     tailBoxEl.redraw();
   };
   // Spec 204: `#jobrows` is a STRING here and a tree of nodes in the
@@ -273,7 +282,7 @@ export function harness(
       sel.includes("model.")
         ? [...modelSelects, otherRowSelect]
         : sel.includes('name="steps"')
-          ? stepBoxes
+          ? sel.includes('name="tick"') ? [...stepBoxes, ...tickBoxes] : stepBoxes
           : sel.startsWith("button")
             ? [runButton]
             : [],
@@ -472,6 +481,13 @@ export function harness(
      *  the row a swap used to wash away. */
     changeStep: (index: number, checked: boolean) => {
       const box = stepBoxes[index]!;
+      box.checked = checked;
+      on["change"]?.({ target: box });
+    },
+    /** An acceptance criterion's box ticked or unticked by hand (spec 493). */
+    tickBoxes, TICK_FORM,
+    changeTick: (index: number, checked: boolean) => {
+      const box = tickBoxes[index]!;
       box.checked = checked;
       on["change"]?.({ target: box });
     },

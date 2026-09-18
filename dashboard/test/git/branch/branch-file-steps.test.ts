@@ -79,7 +79,7 @@ describe("BranchFileStepsChecker", () => {
     const git = fake(branchFile(["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
-    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false });
+    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
   });
 
   // REQ-1/REQ-4, the branch half of spec 349's own class of bug: the
@@ -94,6 +94,7 @@ describe("BranchFileStepsChecker", () => {
       proseSteps: ["create", "analyze"],
       stateSteps: ["create", "analyze", "implement"],
       acceptanceOpen: false,
+      acceptance: [],
     });
   });
 
@@ -103,7 +104,7 @@ describe("BranchFileStepsChecker", () => {
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     const { steps, checkedAt } = checker.peekFileSteps(DIR, FOLDER);
-    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptanceOpen: false });
+    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
     expect(checkedAt).toBe(1000);
     expect(git.calls.length).toBe(before);
   });
@@ -240,5 +241,22 @@ describe("the branch's own acceptance rows", () => {
     const git = fake(answers);
     const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptanceOpen).toBe(true);
+  });
+});
+
+// Spec 493: the rows themselves ride on the same answer, so the Specs list
+// can unfold them without reading git while it draws.
+describe("the branch's acceptance rows, as text", () => {
+  test("the answer carries the Acceptance section's rows read from the same file", async () => {
+    const answers = branchFile(["create", "analyze", "implement"]);
+    answers[`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`] = {
+      code: 0,
+      stdout:
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n\n" +
+        "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| Write it | ✅ | |\n\n" +
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|---|---|---|\n| AC-1: it folds | ⬜ | |\n",
+    };
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acceptance?.map((r) => r.task)).toEqual(["AC-1: it folds"]);
   });
 });

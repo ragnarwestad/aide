@@ -58,6 +58,9 @@ interface LiveMark {
   label: string;
   sentence: string;
   href?: string;
+  /** Stands on a line of its own (spec 493). */
+  own?: boolean;
+  kind?: "acceptance-hold";
 }
 
 /** Every mark a LIVE row's own fields carry right now, highest priority
@@ -113,12 +116,13 @@ function liveMarks(g: SpecGroup, lang: Language, testServerAvailable: (project: 
   // two — it offers a board built from a branch the run is moving.
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
-    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason) });
+    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason), own: true, kind: "acceptance-hold" });
     if (testServerAvailable(g.project)) {
       marks.push({
         variant: "waiting",
         label: TEST_SERVER(lang),
         sentence: testServerStartLinkSentence(lang),
+        own: true,
         href: `${specPagePath(g.project, g.specFolder)}?tab=steps&startTestServer=1`,
       });
     }
@@ -137,6 +141,8 @@ export interface RowMarkNotice {
   variant: MessageVariant;
   text: string;
   href?: string;
+  own?: boolean;
+  kind?: "acceptance-hold";
 }
 
 /** The four things a LIVE row's own fields can say, ranked exactly as
@@ -162,6 +168,8 @@ export function errorMarkNotices(
     variant: m.variant === "waiting" ? ("waiting" as MessageVariant) : ("failed" as MessageVariant),
     text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence,
     href: m.href,
+    own: m.own,
+    kind: m.kind,
   }));
 }
 

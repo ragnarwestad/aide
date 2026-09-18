@@ -15,3 +15,10 @@
 .rowmsg:empty { display: none; }
 p.rowmsg { margin: 0 0 var(--sp-3); }
 
+
+/* Several messages on one notice line, each in a box of its own (spec
+   493). The list of acceptance criteria unfolded under the held-back one
+   is the second child of the stack. */
+.msgstack { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+/* The › that opens the criteria sits inside the message it belongs to. */
+.rowmsg .fold { margin-right: 0; flex: none; }

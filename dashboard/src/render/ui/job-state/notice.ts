@@ -58,7 +58,18 @@ export interface RowNotice {
    *  row, so it does not have `title`'s "only when parts.length===1"
    *  problem: each mark keeps its own link regardless of how many
    *  others are joined beside it with " · " (REQ-2, spec 403). */
-  parts?: { text: string; href?: string }[];
+  parts?: NoticePart[];
+}
+
+/** One sentence of a notice, with what the row needs to draw it: its own
+ *  colour, whether it stands on a line of its own, and which kind of mark
+ *  it is when a control belongs beside it (`"acceptance-hold"`). */
+export interface NoticePart {
+  text: string;
+  href?: string;
+  variant?: MessageVariant;
+  own?: boolean;
+  kind?: "acceptance-hold";
 }
 
 /** Which of the five applies, if any. The order is the row's own: the
@@ -141,7 +152,7 @@ export function specNotice(
    *  the row is not moving, so neither waits for "nothing in flight"
    *  (spec 327's own row already shows `landingError` while a later step
    *  runs). */
-  marks: { variant: MessageVariant; text: string; href?: string }[] = [],
+  marks: (NoticePart & { variant: MessageVariant })[] = [],
   lang: Language = "en",
   /** Nothing else applies, no job is in flight on this spec, and archive
    *  is the one phase left (spec 467) — see this function's own header
@@ -149,7 +160,7 @@ export function specNotice(
   readyToArchive?: boolean,
 ): RowNotice | undefined {
   if (refusal) return { variant: "failed", text: refusal, hook: "refused" };
-  const parts: { variant: MessageVariant; text: string; title?: string; href?: string }[] = [];
+  const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.
@@ -212,7 +223,7 @@ export function specNotice(
       variant: parts[0]!.variant,
       text: parts.map((p) => p.text).join(" · "),
       title: parts.length === 1 ? parts[0]!.title : undefined,
-      parts: parts.map((p) => ({ text: p.text, href: p.href })),
+      parts: parts.map((p) => ({ text: p.text, href: p.href, variant: p.variant, own: p.own, kind: p.kind })),
     };
   }
   if (lead && inFlight(lead)) return undefined;

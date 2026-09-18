@@ -9,7 +9,7 @@
 
 import type { GitRunner } from "../../git/branch-status.ts";
 import { acRowsAt, acRowsFromText, criteriaMovedOn } from "../../git/round-boundary.ts";
-import { parseStatusChecks } from "./";
+import { parseStatusChecks, type StatusCheck } from "./";
 
 // --- spec 108: an archive run that declined -----------------------------------
 
@@ -65,6 +65,13 @@ export function archiveHeldBackReason(content: string): string | null {
  *  already treat that field as "a reason, or nothing to say". */
 export function acceptanceCriteriaUnticked(content: string): boolean {
   return parseStatusChecks(content).some((c) => /^acceptance\b/i.test(c.phase) && !c.done);
+}
+
+/** The `## Acceptance criteria` rows and nothing else: the rows a person
+ *  ticks, drawn by the Specs list's unfold. Each keeps its verbatim line,
+ *  which is how the tick route finds it again. */
+export function acceptanceRowsOf(content: string): StatusCheck[] {
+  return parseStatusChecks(content).filter((c) => /^acceptance\b/i.test(c.phase));
 }
 
 /** The one string this reason is always reported as. Shared so

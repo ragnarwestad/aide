@@ -147,12 +147,15 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is
   // not a value a select can be restored from (spec 141).
-  const step = target?.closest?.('input[name="steps"]') as HTMLInputElement | null;
+  // The acceptance criteria unfolded on a row (spec 493) are remembered
+  // the same way: a `tick` box keyed by its own list's form, so an unsaved
+  // tick outlives a redraw. Only a phase box has a Run button to relabel.
+  const step = target?.closest?.('input[name="steps"], input[name="tick"]') as HTMLInputElement | null;
   if (step) {
     chosenSteps.set(checkboxKey(step), step.checked);
     const rows = document.getElementById("jobrows");
     const formId = step.getAttribute("form");
-    if (rows && formId) relabelRunButton(rows, formId);
+    if (step.name === "steps" && rows && formId) relabelRunButton(rows, formId);
   }
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its

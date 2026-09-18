@@ -100,7 +100,7 @@ export function restoreChosen(body: Element): void {
     // every time, which is what stops the two disagreeing (spec 179).
     syncAiToModel(model);
   }
-  for (const el of body.querySelectorAll('input[name="steps"]')) {
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;

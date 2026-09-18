@@ -7,12 +7,13 @@
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
 
-import { helpPopover, rowMessageParts, stepLabel } from "../../ui/components";
+import { helpPopover, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { specNotice, wordPhase } from "../../ui/job-state";
 import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
-import { isArchivedRow, type SpecGroup } from "./data-model";
+import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
+import { checksFold, checksPanel } from "./row-checks.ts";
 import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 
@@ -54,6 +55,9 @@ export function specNoticeRow(
   now: number,
   lang: Language,
   testServerAvailable: (project: string) => boolean,
+  /** The view the row is drawn in and the token its forms post with: what
+   *  the unfolded acceptance criteria (spec 493) need to keep both. */
+  view: { filter?: SpecsFilter; token?: string } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const notice = specNotice(
@@ -73,9 +77,17 @@ export function specNoticeRow(
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
   );
   if (!notice) return "";
+  const filter = view.filter ?? {};
+  // The held-back part is led by the › and carries the unfolded list
+  // directly under its own box.
+  const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
+    "kind" in p && p.kind === "acceptance-hold"
+      ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, view.token, lang) }
+      : p,
+  );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, notice.parts ?? [{ text: notice.text }], { hook: notice.hook })}${detail}</td></tr>`
+    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>`
   );
 }

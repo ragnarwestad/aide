@@ -102,6 +102,9 @@ const STRUCTURE = [
   // where the pips sit on a spec's name line, since the Progress
   // column went and they moved in beside the name (2026-08-22)
   "pipslot",
+  // Spec 493: several messages on a notice line, each in its own box, and
+  // the acceptance criteria unfolded under the held-back one.
+  "msgstack", "rowchecks", "checksunread",
   "tabbar", "tab",
   // The same bar one level in: a spec's seven tabs and a job's three,
   // which were filter pills until 2026-08-23 (2026-08-23, "IKKE bruke

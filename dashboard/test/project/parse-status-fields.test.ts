@@ -11,6 +11,7 @@ import { join } from "node:path";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
   acceptanceCriteriaUnticked,
+  acceptanceRowsOf,
   acceptanceStillOpen,
   archiveHeldBackApplies,
   archiveHeldBackReason,
@@ -331,3 +332,40 @@ describe("acceptanceStillOpen", () => {
 });
 
 // --- spec 139: the one record of how far a spec has got ---------------------
+
+// --- spec 493: the rows the Specs list unfolds -------------------------------
+
+describe("acceptanceRowsOf", () => {
+  const FILE = [
+    "## Phase 1: RED",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| Write the test | ✅ | |",
+    "",
+    "## Acceptance criteria",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| AC-1: it folds | ⬜ | |",
+    "| AC-2: it saves | ✅ | 12 pass |",
+    "",
+  ].join("\n");
+
+  test("returns the Acceptance rows and nothing from a Phase table", () => {
+    expect(acceptanceRowsOf(FILE).map((r) => [r.task, r.done, r.note])).toEqual([
+      ["AC-1: it folds", false, ""],
+      ["AC-2: it saves", true, "12 pass"],
+    ]);
+  });
+
+  test("keeps each row's verbatim line and the section's heading", () => {
+    const [first] = acceptanceRowsOf(FILE);
+    expect(first?.line).toBe("| AC-1: it folds | ⬜ | |");
+    expect(first?.phase).toBe("Acceptance criteria");
+  });
+
+  test("a file with no Acceptance section has no rows", () => {
+    expect(acceptanceRowsOf("## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| x | ⬜ | |\n")).toEqual([]);
+  });
+});

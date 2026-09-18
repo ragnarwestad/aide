@@ -23,9 +23,9 @@ import type { RoutesContext } from "..";
 export async function checkRoutes(
   ctx: RoutesContext,
   req: Request,
-  _url: URL,
+  url: URL,
   path: string,
-  _wantsJson: boolean,
+  wantsJson: boolean,
 ): Promise<Response | null> {
   const tick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/);
   if (tick) {
@@ -34,13 +34,35 @@ export async function checkRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
+    // The Checks tab, which is where the boxes are — not the bare spec
+    // path, which spec 294 also made default to Description instead.
+    const back = specTabPath(project!, specFolder!, "checks");
+    // A press from the Specs list (spec 493) says so on the action URL,
+    // not in the body: the two refusals below answer before the body is read.
+    const fromList = url.searchParams.get("fromList") === "1";
+    const spec = `${project}/${specFolder}`;
+    // One answer for the three callers. JSON when asked; the list when the
+    // press came from it (with the view the body carried, once it is read);
+    // the Checks tab otherwise, exactly as it always was.
+    const refuse = (error: string, sent?: unknown): Response =>
+      wantsJson
+        ? json({ error, spec }, 409)
+        : fromList
+          ? specsRedirect(sent, { error, spec })
+          : specsRedirect({}, { error }, back);
+    const succeed = (sent: unknown, notice?: { note: string; ok: boolean }): Response =>
+      wantsJson
+        ? json({ ok: true, note: notice?.note ?? "" })
+        : fromList
+          ? specsRedirect(sent)
+          : specsRedirect({}, undefined, back, notice);
     // Before the body is even read: this one WRITES, commits and
     // pushes, and an archived spec's folder is in `archive/`. Hiding
     // the boxes leaves this route reachable for anyone who already
     // has the URL, so the refusal is here and not only on the page.
     if (ctx.specRef(project!, specFolder!)?.archived) {
       logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-      return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specTabPath(project!, specFolder!, "checks"));
+      return refuse(ARCHIVED_REFUSAL);
     }
     // A step that is RUNNING, or a landing in flight, is writing the
     // file this tick would commit onto. A job that is merely queued is
@@ -54,7 +76,7 @@ export async function checkRoutes(
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";
       logRefusal("tick", `${project}/${specFolder}`, reason);
-      return specsRedirect({}, { error: reason }, specTabPath(project!, specFolder!, "checks"));
+      return refuse(reason);
     }
     const sent = await readBounded(req, MAX_SAVE_BODY);
     if ("refusal" in sent) return sent.refusal;
@@ -64,10 +86,6 @@ export async function checkRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    // The Checks tab (renamed from Overview by spec 294), which is
-    // where the boxes are — not the bare spec path, which spec 294
-    // also made default to Description instead.
-    const back = specTabPath(project!, specFolder!, "checks");
     // `bodyToObject` wraps a lone value in an array for the New-spec
     // form's chip set, exactly as it does for `dependsOn`, so both
     // shapes are taken apart the same way.
@@ -88,7 +106,7 @@ export async function checkRoutes(
     // Boxes with no phase to read them against is a request that
     // never came from this form.
     if (typeof body.checksPhase !== "string") {
-      return specsRedirect({}, { error: "no phase was submitted — nothing was saved" }, back);
+      return refuse("no phase was submitted — nothing was saved", body);
     }
     // REQ-1/REQ-4/REQ-6: the same "is this branch open" question the
     // read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
@@ -113,10 +131,10 @@ export async function checkRoutes(
     // one character moves per tick and the cell keeps its padding:
     // a tick never reflows the table, so every other row's text is
     // still what it was.
-    let ticked = branchTarget
-      ? ((await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))
-          ?.text ?? "")
-      : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
+    const branchRead = branchTarget
+      ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
+      : null;
+    let ticked = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
     // What the file says now, so the press can be read as a state rather
     // than as a list: a row the reader left ticked that is already done
     // needs nothing, and a row that is done and no longer ticked is a
@@ -132,11 +150,7 @@ export async function checkRoutes(
     for (const line of drawn) {
       const done = state.get(line);
       if (done === undefined) {
-        return specsRedirect(
-          {},
-          { error: "that check is not there to change any more — reload the page and look again" },
-          back,
-        );
+        return refuse("that check is not there to change any more — reload the page and look again", body);
       }
       if (wanted.has(line) === done) continue;
       const next = done
@@ -146,18 +160,14 @@ export async function checkRoutes(
       // beside it included — never applied silently while one of them
       // is dropped.
       if (next === null) {
-        return specsRedirect(
-          {},
-          { error: "that check is not there to change any more — reload the page and look again" },
-          back,
-        );
+        return refuse("that check is not there to change any more — reload the page and look again", body);
       }
       ticked = next;
     }
     // A press that moved nothing: the reader opened the tab, pressed
     // Save and changed their mind about nothing. Not a refusal, and not
     // a commit either.
-    if (ticked === asRead) return specsRedirect({}, undefined, back);
+    if (ticked === asRead) return succeed(body);
     // Spec 190: the hold-back note goes with the last check it was
     // waiting on. A declined archive run writes `## Archive held
     // back` naming one open row and where to close it out; ticking
@@ -175,7 +185,16 @@ export async function checkRoutes(
       const cleared = clearArchiveHeldBack(ticked);
       if (cleared !== null) ticked = cleared;
     }
-    const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
+    // A press from the list draws no file-level base sha: it takes the sha
+    // of the read it has just made, and the row-level guard above is what
+    // refuses a row that moved.
+    const statusBaseSha = fromList
+      ? branchTarget
+        ? (branchRead?.sha ?? null)
+        : ((await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE))?.sha ?? null)
+      : typeof body.statusBaseSha === "string" && body.statusBaseSha
+        ? body.statusBaseSha
+        : null;
     // spec 355 (REQ-4): the tick lands through the same spawned
     // aide-write-spec every skill's own write already goes through —
     // never a second, TypeScript-side computation of the derived state.
@@ -185,7 +204,7 @@ export async function checkRoutes(
     if (!derived.ok || !derived.stateJson) {
       const reason = derived.error ?? "the state file could not be derived";
       logRefusal("tick", `${project}/${specFolder}`, reason);
-      return specsRedirect({}, { error: `${reason} — nothing was saved` }, back);
+      return refuse(`${reason} — nothing was saved`, body);
     }
     const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
     // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
@@ -223,10 +242,10 @@ export async function checkRoutes(
         );
     if (!result.ok) {
       logRefusal("tick", `${project}/${specFolder}`, result.note);
-      return specsRedirect({}, { error: result.note }, back);
+      return refuse(result.note, body);
     }
     await afterTick(ctx, dir, specFolder!);
-    return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    return succeed(body, { note: result.note, ok: true });
   }
 
   return null;

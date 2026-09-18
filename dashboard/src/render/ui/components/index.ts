@@ -232,6 +232,18 @@ export function rowMessage(
   return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(capitalizeFirst(text))}</span></${tag}>`;
 }
 
+/** One sentence of a row's message, and how it is drawn. `own` stands it
+ *  on a box of its own; `lead` is a control drawn inside that box before
+ *  its icon, and `after` is content drawn directly under it. */
+export interface MessagePart {
+  text: string;
+  href?: string;
+  variant?: MessageVariant;
+  own?: boolean;
+  lead?: string;
+  after?: string;
+}
+
 /** `rowMessage()` for more than one ranked part, each keeping its own
  *  link (REQ-2, spec 403) rather than flattening to one string first —
  *  a link lives inside a part's own sentence, so it survives being
@@ -245,19 +257,35 @@ export function rowMessage(
  *  it. */
 export function rowMessageParts(
   variant: MessageVariant,
-  parts: { text: string; href?: string }[],
+  parts: MessagePart[],
   o: { hook?: string; tag?: "div" | "p" } = {},
 ): string {
   const tag = o.tag ?? "div";
-  const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  const body = parts
-    .map((p) =>
-      p.href
-        ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
-        : esc(capitalizeFirst(p.text)),
-    )
-    .join(" · ");
-  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${body}</span></${tag}>`;
+  const link = (p: MessagePart): string =>
+    p.href
+      ? `<a href="${esc(p.href)}" target="_blank" rel="noopener">${esc(capitalizeFirst(p.text))}</a>`
+      : esc(capitalizeFirst(p.text));
+  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook): string =>
+    `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span></${tag}>`;
+  if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "));
+  // A part that asks for a line of its own is its own box; the parts
+  // between two of them still join with " · " into one, as they always did.
+  const boxes: string[] = [];
+  let joined: MessagePart[] = [];
+  const flush = (): void => {
+    if (joined.length) boxes.push(box(joined[0]!.variant ?? variant, joined.map(link).join(" · "), "", boxes.length ? undefined : o.hook));
+    joined = [];
+  };
+  for (const p of parts) {
+    if (!p.own) {
+      joined.push(p);
+      continue;
+    }
+    flush();
+    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook) + (p.after ?? ""));
+  }
+  flush();
+  return `<div class="msgstack">${boxes.join("")}</div>`;
 }
 
 /** The slot a refusal is WRITTEN into by the browser code, as opposed

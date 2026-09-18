@@ -87,7 +87,16 @@ landed it at all) are facts about the work, not a second state the spec is IN, s
 column. Each is said once in the row's own notice line instead, ranked, joined with " · " when more than one
 applies, in a sentence written for a user — what happened and what to do, never git's own stderr — and each
 keeping its own link where it has one, so a reader never loses one fact's link by another fact joining it on the
-same line.
+same line. The exception is the held-back message and the test server's: each stands in a box of its own, never joined
+on one line.
+
+**A held-back archive can be judged from the row.** The held-back message carries a › to its left. It adds or removes
+the spec's key in `?checks=<project>/<folder>,…`, kept by every sort and filter link like `?open=`, and unfolds the
+spec's acceptance criteria under the message: every criterion with its Notes cell and a checkbox for its state, and
+nothing from the phase tables. The one Save posts to the Checks tab's own tick route with `?fromList=1`, so the
+ticks are stored the same way, and the message goes once every criterion is ticked. Saving does not start the archive.
+Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
+link to its Checks tab, in place of the list.
 
 The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
 New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT

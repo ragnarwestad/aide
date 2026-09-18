@@ -285,3 +285,29 @@ describe("the specs table fits the box that scrolls it", () => {
     expect(nb["list.colSpec"]).toBe("Spesifikasjon");
   });
 });
+
+// --- spec 493: the acceptance criteria unfolded on a row --------------------
+//
+// The list holds a criterion's text of any length. The browser test proves
+// it at 375px; these pin the properties that make it hold, so the rule
+// cannot lose one unseen.
+describe("the criteria unfolded on a row fit a phone (spec 493)", () => {
+  const checks = readFileSync(new URL("../../src/render/ui/css/remaining-checks.css", import.meta.url), "utf8");
+  const narrow = readFileSync(new URL("../../src/render/ui/css/narrow.css", import.meta.url), "utf8");
+  const block = (source: string, selector: string) =>
+    source.match(new RegExp(`^${selector.replace(/[.\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`, "m"))?.[1] ?? "";
+
+  test("the list may shrink below its content, so long text wraps inside it", () => {
+    expect(block(checks, ".rowchecks")).toContain("min-width: 0");
+    expect(block(checks, ".rowchecks .check")).toContain("min-width: 0");
+  });
+
+  test("none of its rules states a width", () => {
+    const rules = checks.split("\n").filter((l) => l.includes(".rowchecks") || l.includes(".checksunread")).join("\n");
+    expect(rules).not.toMatch(/(^|[^-])width:/);
+  });
+
+  test("a phone rule takes the indent and the note's margin off it", () => {
+    expect(narrow).toMatch(/@media \(max-width: 40rem\) \{\s*\.rowchecks \{ padding-left: 0; \}/);
+  });
+});

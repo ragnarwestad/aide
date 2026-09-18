@@ -7,6 +7,7 @@ import type { PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import type { QueueRowView } from "../../../ui/job-state";
 import type { FileStepsAnswer } from "../../../../git/workflow-history.ts";
 import type { Sentence } from "../../../../i18n/message.ts";
+import type { StatusCheck } from "../../../../project/parse-status";
 
 export interface SpecTarget {
   project: string;
@@ -98,6 +99,8 @@ export interface SpecTarget {
   archiveHeldBack?: { reason: string };
   /** An acceptance criterion open NOW, as the Checks tab last wrote it. */
   acceptanceOpen?: boolean;
+  /** The Acceptance rows the list unfolds, present only while one is open. */
+  acceptance?: StatusCheck[];
   /** No `4-status.json` exists for this spec yet (spec 355, REQ-10) — a
    *  spec no writer script (aide-run-spec, aide-archive-spec,
    *  aide-write-spec) has touched since this feature shipped. The row
@@ -269,12 +272,15 @@ export interface SpecsFilter {
    *  sends `location.search` back on every tick. Never rendered as text:
    *  only compared for membership, and re-encoded through `queueHref`. */
   open?: string;
+  /** Which held-back specs have their acceptance criteria unfolded, in
+   *  the same `<project>/<folder>,…` form as `open`. */
+  checks?: string;
 }
 
 /** How the list is cut and ordered. One list, exported so `serve.ts`
  *  builds the redirect after a POST from the same five keys the forms
  *  send — two copies would eventually disagree about what "the view" is. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "q"] as const;
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks", "q"] as const;
 
 /** The prefix a filter key rides under as a form field. Prefixed
  *  because one of the five is `project`, which is ALSO what the Run
@@ -478,6 +484,8 @@ export interface SpecGroup {
   done: string[];
   /** The target's `acceptanceOpen`: whether an old refusal still holds. */
   acceptanceOpen?: boolean;
+  /** The target's Acceptance rows, for the unfold under the held-back message. */
+  acceptance?: StatusCheck[];
   /** What the spec is and how far it has got, from its own 4-status.md.
    *  It used to be one summary line for whichever spec the top form's
    *  dropdown had selected; every row now answers for itself. */

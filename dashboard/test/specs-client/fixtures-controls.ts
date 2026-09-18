@@ -216,6 +216,24 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
   return self;
 };
 
+// Spec 493: an acceptance criterion's box in the list unfolded under a
+// held-back message. It is named `tick`, belongs to its own list's form
+// by `form=`, and is redrawn from what the server saw last.
+export const tickCheckbox = (formId: string, value: string, served: boolean) => {
+  const self = {
+    name: "tick",
+    value,
+    checked: served,
+    tagName: "INPUT",
+    disabled: false,
+    isConnected: true,
+    getAttribute: (n: string) => (n === "form" ? formId : null),
+    closest: (sel: string): unknown => (sel.includes('name="tick"') ? self : null),
+    redraw: () => void (self.checked = served),
+  };
+  return self;
+};
+
 // Spec 160: a box for a phase the RUNNING job has not reached yet. It
 // names the run form the way every other control on the row does —
 // that is how a press finds the row to lock — but carries no `name`,
