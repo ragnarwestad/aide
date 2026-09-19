@@ -12,7 +12,7 @@ const stepsOf = (css: string, body: RegExp) =>
   [...css.matchAll(new RegExp(`@media \\(max-width: ([\\d.]+)rem\\) \\{\\s*${body.source}`, "g"))].map((m) => [parseFloat(m[1]!), m[2]!]);
 
 describe("unit, language and theme leave the header one at a time", () => {
-  const header = stepsOf(narrow, /\.menu\.(\w+) \{ display: none; \}\s*\.menu \.morerows\.\w+ \{ display: flex; flex-direction: column; gap: 2px; \}/);
+  const header = stepsOf(narrow, /\.menu\.(\w+) \{ display: none; \}\s*\.menu \.morerows\.\w+ \{ display: flex; \}/);
 
   test("unit first, then language, then theme", () => {
     expect(header.map((s) => s[1])).toEqual(["unit", "lang", "theme"]);
@@ -28,6 +28,25 @@ describe("unit, language and theme leave the header one at a time", () => {
     for (const m of narrow.matchAll(/\.menu\.(\w+) \{ display: none; \}\s*\.menu \.morerows\.(\w+) \{ display: flex/g)) {
       expect(m[2]).toBe(m[1]);
     }
+  });
+});
+
+describe("each setting is one row and the separator arrives with the first (spec 507)", () => {
+  const rows = readFileSync(new URL("../../src/render/ui/css/rows-and-forms.css", import.meta.url), "utf8");
+  const steps = [...narrow.matchAll(/@media \(max-width: ([\d.]+)rem\) \{([^@]*?)\n\}/g)];
+
+  test("a .morerows block is a flex row, name left and control right (AC-1)", () => {
+    expect(rows).toMatch(/\.menu \.morerows \{[^}]*align-items: center;[^}]*justify-content: space-between;[^}]*\}/);
+    expect(rows).not.toMatch(/\.menu \.morerows[^{]*\{[^}]*flex-direction: column/);
+  });
+
+  test("the separator is hidden by default (AC-7)", () => {
+    expect(rows).toMatch(/\.menupanel > \.menusep \{ display: none;/);
+  });
+
+  test("only the first step, at 59.5rem, shows the separator (AC-5)", () => {
+    const showing = steps.filter((m) => m[2]!.includes(".menupanel > .menusep { display: block; }"));
+    expect(showing.map((m) => parseFloat(m[1]!))).toEqual([59.5]);
   });
 });
 

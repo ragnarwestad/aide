@@ -148,53 +148,74 @@ td form { margin: 0; display: inline-block; }
   min-width: 13rem; padding: var(--sp-1); background: var(--surface);
   border: 1px solid var(--line-strong); border-radius: var(--r);
   box-shadow: var(--overlay-shadow); }
-/* The "…" menu's own flat mobile copy (spec 436): the same rows as a
-   control's own standalone panel, repeated one level deeper (inside
-   .morerows) so they reach phone width without a second, nested
-   <details> — see menu-script.ts's closeAll() hazard. Every rule below
-   extends its selector list to also match .menu .morerows > *, so the
-   two locations style identically; hidden by default here, shown only
-   inside narrow.css's breakpoint. */
-.menupanel > *, .menu .morerows > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
-.menupanel > a, .menu .morerows > a { color: var(--text); }
-.menupanel > a:hover, .menu .morerows > a:hover { background: var(--surface-2); text-decoration: none; }
+/* The "…" menu's own flat mobile rows (spec 436, reshaped by spec 507):
+   one `.morerows` block per setting inside the panel, so they reach
+   phone width without a second, nested <details> — see menu-script.js's
+   closeAll() hazard. Each is a flex row, the name left and a compact
+   control right; hidden by default here, shown only inside narrow.css's
+   breakpoint. Their controls are styled by the `.seg` rules below, not
+   by the panel's own row rules. */
+.menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
+.menupanel > a { color: var(--text); }
+.menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
 /* The language menu's own rows (spec 475): a check mark, a flag and the
    name in one row, needing the flex layout the base rule above does not
    give an <a> — scoped to `.menu.lang` alone, so Settings, About, Test
    servers and the state dropdown's own `<a role="radio">` rows (all
    sharing the same `.menupanel > a` ancestor shape) keep their current
    block layout untouched. */
-.menu.lang .menupanel > a, .menu .morerows.lang > a { display: flex; align-items: center; gap: var(--sp-2); }
+.menu.lang .menupanel > a { display: flex; align-items: center; gap: var(--sp-2); }
 /* Theme's own rows (spec 243): a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
    nothing about being a <button> instead of an <a> should read as a
    lesser row in the same menu. The icon and its label share the row
    the way every other icon-plus-word control on this site does. */
-.menupanel > button, .menu .morerows > button { display: flex; align-items: center; gap: var(--sp-2);
+.menupanel > button { display: flex; align-items: center; gap: var(--sp-2);
   width: 100%; text-align: left; background: none; border: 0; color: var(--text);
   font: var(--fs-m)/1 var(--sans); cursor: pointer; }
-.menupanel > button:hover, .menu .morerows > button:hover { background: var(--surface-2); }
-.menupanel > button[aria-current], .menu .morerows > button[aria-current],
-.menupanel > a[aria-current], .menu .morerows > a[aria-current] { font-weight: 600; }
+.menupanel > button:hover { background: var(--surface-2); }
+.menupanel > button[aria-current],
+.menupanel > a[aria-current] { font-weight: 600; }
 /* AC-4 (spec 475): the chosen row also gets a text colour distinct from
    the other rows in the SAME menu — scoped to the theme and language
    menus alone, so Settings, About, Test servers and the unit radios
    keep their current colour. */
-.menu.theme .menupanel > button, .menu .morerows.theme > button,
-.menu.lang .menupanel > a, .menu .morerows.lang > a { color: var(--muted); }
-.menu.theme .menupanel > button[aria-current], .menu .morerows.theme > button[aria-current],
-.menu.lang .menupanel > a[aria-current], .menu .morerows.lang > a[aria-current] { color: var(--text); }
+.menu.theme .menupanel > button,
+.menu.lang .menupanel > a { color: var(--muted); }
+.menu.theme .menupanel > button[aria-current],
+.menu.lang .menupanel > a[aria-current] { color: var(--text); }
 /* Unit's own rows (spec 436): a <label> wrapping a radio, the shape
    Settings' own Units block already used — this shape has never
    rendered inside a .menupanel before, so there is no prior rule to
-   break. Styled to match the button/a rows beside it. */
-.menupanel > label, .menu .morerows > label { display: flex; align-items: center; gap: var(--sp-2);
+   break. Styled to match the button/a rows beside them. */
+.menupanel > label { display: flex; align-items: center; gap: var(--sp-2);
   padding: 6px 10px; border-radius: var(--r-s); cursor: pointer; color: var(--text);
   font: var(--fs-m)/1 var(--sans); }
-.menupanel > label:hover, .menu .morerows > label:hover { background: var(--surface-2); }
-/* Desktop default: the mobile-only copy stays out of the way entirely
-   — narrow.css reveals it at phone width. */
-.menu .morerows { display: none; }
+.menupanel > label:hover { background: var(--surface-2); }
+/* Desktop default: the mobile-only rows stay out of the way entirely
+   — narrow.css reveals them at phone width. */
+.menu .morerows { display: none; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: 2px 10px; }
+/* A segmented control: word buttons side by side, one border round the
+   group. `.seg > button` and `.seg > label` are not direct children of
+   the panel, so the panel's own row rules above do not reach them. */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-s); overflow: hidden; }
+.seg > * + * { border-left: 1px solid var(--line-strong); }
+.seg > button, .seg > label { position: relative; display: inline-flex; align-items: center; height: 28px;
+  padding: 0 var(--sp-3); margin: 0; border: 0; border-radius: 0; background: var(--surface); color: var(--muted);
+  font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.seg > label > span { display: inline-flex; align-items: center; height: 100%; }
+.seg > button[aria-current], .seg > label > input:checked + span { color: var(--text); font-weight: 600; }
+.seg > button[aria-current], .seg > label:has(> input:checked) { background: var(--surface-2); }
+/* The radio stays a real, focusable input laid over its own label and
+   drawn as nothing — not display:none, which would take it out of the
+   keyboard's reach. The page's one focus ring then lands on the whole
+   label, since the input fills it. */
+.seg > label > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+  appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: pointer; }
+/* The rule between the three setting rows and the links; narrow.css
+   shows it together with the first row. */
+.menupanel > .menusep { display: none; height: 1px; padding: 0; margin: var(--sp-1) 0; background: var(--line); }
 
 /* The check mark beside the chosen row in the theme and language menus
    (spec 475, AC-1..3): always rendered, opacity-toggled rather than

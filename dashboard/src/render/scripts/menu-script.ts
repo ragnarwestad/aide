@@ -44,6 +44,31 @@
     }
     closeAll(target?.closest?.(DISCLOSURES) ?? null);
   });
+  // The phone menu's language is a dropdown (spec 507), which does not
+  // navigate by itself as the header's links do. The page reloads, so a
+  // one-shot flag asks the next load to open the "…" menu again: a
+  // setting changed in the menu leaves the menu open.
+  document.addEventListener("change", (e) => {
+    const select = (e.target as Element | null)?.closest?.("select[data-lang-select]") as HTMLSelectElement | null;
+    if (!select) return;
+    try {
+      sessionStorage.setItem("menu-open", "1");
+    } catch {
+      /* no storage: the menu just comes back closed */
+    }
+    window.location.href = select.value;
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    let flagged = false;
+    try {
+      flagged = sessionStorage.getItem("menu-open") === "1";
+      sessionStorage.removeItem("menu-open");
+    } catch {
+      /* no storage: nothing to reopen */
+    }
+    const menu = flagged ? (document.querySelector(".morerows")?.closest("details.menu") as HTMLDetailsElement | null) : null;
+    if (menu) menu.open = true;
+  });
   document.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).key !== "Escape") return;
     closeAll();

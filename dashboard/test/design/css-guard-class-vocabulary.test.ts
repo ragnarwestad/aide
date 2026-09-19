@@ -130,6 +130,9 @@ const STRUCTURE = [
   // closeAll() would close the outer menu on the same click) — a plain
   // wrapper div instead, shown only at phone width.
   "morerows",
+  // a row's compact control in that copy (spec 507): the theme and unit
+  // buttons side by side, and the rule between the three rows and the links.
+  "seg", "menusep",
   // The board line in the header, and its copy at the top of the "…"
   // menu for phones (2026-09-10).
   "boardline", "boardrow",

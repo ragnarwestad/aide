@@ -53,10 +53,8 @@ function checkMark(): string {
   return `<span class="menucheck">${ICON_CHECK}</span>`;
 }
 
-// The theme choice rows, shared (spec 436) by themeControl()'s own
-// standalone panel (desktop) and the "…" menu's flat mobile copy — the
-// same markup either way, so a reader's choice looks identical wherever
-// it is reached from.
+// The theme choice rows of themeControl()'s own standalone panel
+// (desktop). The "…" menu's phone rows are menuSettingRows() below.
 export function themeChoiceRows(lang: Language): string {
   return THEME_CHOICES.map(
     ([choice]) =>
@@ -104,12 +102,11 @@ function languageHref(currentUrl: string, target: Language): string {
   return esc(`${path}?${kept.join("&")}`);
 }
 
-// The language choice links, shared (spec 436) by languageControl()'s own
-// standalone panel (desktop) and the "…" menu's flat mobile copy — the
-// same markup either way, each targeting `currentUrl` with only `lang`
-// swapped (spec 435), so switching language keeps the reader on the
-// page, tab, sort and filter they were already on, wherever the link is
-// reached from.
+// The language choice links of languageControl()'s own standalone panel
+// (desktop), each targeting `currentUrl` with only `lang` swapped (spec
+// 435), so switching language keeps the reader on the page, tab, sort
+// and filter they were already on. The "…" menu's phone rows use the
+// same addresses as a dropdown's option values.
 export function languageChoiceLinks(lang: Language, currentUrl: string): string {
   const choice = (l: Language) => `${checkMark()}${LANGUAGE_FLAGS[l]} ${LANGUAGE_NATIVE_NAMES[l]}`;
   return LANGUAGES.map(
@@ -123,5 +120,57 @@ export function languageControl(lang: Language, currentUrl: string): string {
   return (
     `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_FLAGS[lang]}</summary>` +
     `<div class="menupanel"><span class="lbl">${langLabel}</span>${languageChoiceLinks(lang, currentUrl)}</div></details>`
+  );
+}
+
+// The "…" menu's phone rows (spec 507): one row per setting — the name
+// on the left, a compact control on the right — then a separator before
+// the links. Markup of their own, not the standalone panels' rows: a
+// dropdown for language cannot be made of five links, and the theme and
+// unit choices are words side by side, with no icon or check mark. The
+// buttons keep `data-theme-choice`/`aria-current` and the radios
+// `data-unit-choice`, so theme-script.ts and unit-script.ts mark them
+// unchanged. The groups are <span>s so a `.morerows` block still ends at
+// its own first `</div>`.
+function menuRow(kind: string, caption: string, control: string): string {
+  return `<div class="morerows ${kind}"><span class="lbl">${caption}</span>${control}</div>`;
+}
+
+function themeSegment(lang: Language): string {
+  const buttons = ["auto", "light", "dark"]
+    .map(
+      (choice) =>
+        `<button type="button" data-theme-choice="${choice}"${choice === "auto" ? ' aria-current="true"' : ""}>` +
+        `${t(lang, THEME_LABELS[choice]!)}</button>`,
+    )
+    .join("");
+  return `<span class="seg" role="group" aria-label="${t(lang, "shell.theme")}">${buttons}</span>`;
+}
+
+function languageSelect(lang: Language, currentUrl: string): string {
+  const options = LANGUAGES.map(
+    (l) =>
+      `<option value="${languageHref(currentUrl, l)}"${l === lang ? " selected" : ""}>` +
+      `${LANGUAGE_FLAGS[l]} ${LANGUAGE_NATIVE_NAMES[l]}</option>`,
+  ).join("");
+  return `<select data-lang-select aria-label="${t(lang, "shell.language")}">${options}</select>`;
+}
+
+function unitSegment(lang: Language): string {
+  const radio = (value: string, word: string, checked: boolean) =>
+    `<label><input type="radio" name="unit-more" value="${value}" data-unit-choice="${value}"${checked ? " checked" : ""}>` +
+    `<span>${word}</span></label>`;
+  return (
+    `<span class="seg" role="radiogroup" aria-label="${t(lang, "shell.unit")}">` +
+    `${radio("usd", "$", true)}${radio("tokens", "Tokens", false)}</span>`
+  );
+}
+
+export function menuSettingRows(lang: Language, currentUrl: string): string {
+  return (
+    menuRow("theme", t(lang, "shell.theme"), themeSegment(lang)) +
+    menuRow("lang", t(lang, "shell.language"), languageSelect(lang, currentUrl)) +
+    menuRow("unit", t(lang, "shell.unit"), unitSegment(lang)) +
+    `<div class="menusep" role="separator"></div>`
   );
 }

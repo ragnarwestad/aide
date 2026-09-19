@@ -733,17 +733,18 @@ describe("header menus collapse into the … menu at phone width (spec 436)", ()
   });
 
   test("AC-2 criterion 4: the narrow-width block reveals the morerows block", () => {
-    expect(NARROW).toContain(".menu .morerows { display: flex; flex-direction: column; gap: 2px; }");
+    expect(NARROW).toContain(".menu .morerows { display: flex; }");
   });
 
   test("the desktop CSS keeps morerows hidden by default", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toContain(".menu .morerows { display: none; }");
+    expect(desktop).toMatch(/\.menu \.morerows \{ display: none;/);
   });
 
   test("the desktop CSS styles label rows the same as the button/link rows beside them", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toMatch(/\.menupanel > label, \.menu \.morerows > label \{/);
+    expect(desktop).toMatch(/\.menupanel > label \{/);
+    expect(desktop).toMatch(/\.seg > button, \.seg > label \{/);
   });
 });
 
