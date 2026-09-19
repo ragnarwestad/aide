@@ -18,7 +18,6 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
 const DESKTOP = { width: 1270, height: 800 };
 
 const harness = queueHarness("aide-e2e-chosen-option-");
@@ -38,11 +37,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
-  const started = harness.start({ extra: { queueToken: TOKEN } });
+  const started = harness.start();
   base = started.base;
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
-  await withTimeout(page.goto(`${base}/?token=${TOKEN}&live=0`), 10_000, "page.goto(/?token=)");
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
 });
 
 afterAll(async () => {

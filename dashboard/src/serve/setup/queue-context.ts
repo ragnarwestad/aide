@@ -49,7 +49,6 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     mergeLock: inputs.mergeLock,
     runner: inputs.runner,
     tickRunner: inputs.tickRunner,
-    queueToken: inputs.queueToken,
     serverPort: inputs.serverPort,
     jobRow: inputs.jobRow,
     installAfterMerge: inputs.installAfterMerge,

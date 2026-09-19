@@ -16,10 +16,8 @@ import { CSS } from "../../../src/render/ui/css";
 import { APPLE_TOUCH_ICON, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
-const TOKEN = "s3cret-token";
-
 const harness = queueHarness("aide-pwa-");
-const start = () => harness.start({ extra: { queueToken: TOKEN } });
+const start = () => harness.start();
 
 afterEach(() => harness.cleanup());
 
@@ -120,10 +118,7 @@ describe("the icons (criterion 3)", () => {
   });
 });
 
-describe("none of the five is behind the token", () => {
-  // Gating them would make installability depend on how fresh the
-  // cookie is: the manifest fetch that drives the install prompt does
-  // not always carry it, and a worker whose script 401s never installs.
+describe("the five answer any request with a Host of the dashboard's own", () => {
   const PATHS = [
     "/manifest.webmanifest",
     "/sw.js",
@@ -137,13 +132,6 @@ describe("none of the five is behind the token", () => {
     for (const path of PATHS) {
       expect([path, (await fetch(`${base}${path}`)).status]).toEqual([path, 200]);
     }
-  });
-
-  test("and the guard they sit beside is still on", async () => {
-    // The control: without this, a server with no token configured
-    // would make the test above pass for the wrong reason.
-    const { base } = start();
-    expect((await fetch(`${base}/`)).status).toBe(401);
   });
 
   test("a POST to one of them is refused rather than answered", async () => {

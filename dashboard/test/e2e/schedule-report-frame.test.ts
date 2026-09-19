@@ -12,7 +12,6 @@ import { queueHarness } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
 const KEY = "schedule-nightly-report";
 const REPORT =
   `<html><body style="background:#ff00ff;color:#00ff00"><h1>Findings</h1>` +
@@ -39,7 +38,7 @@ beforeAll(async () => {
     ]),
   );
   const started = harness.start({
-    extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json") },
+    extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json") },
   });
   base = started.base;
   writeFileSync(
@@ -57,7 +56,7 @@ afterAll(async () => {
 
 async function frameColours(scheme: "light" | "dark"): Promise<{ frame: string[]; page: string[] }> {
   await page.emulateMedia({ colorScheme: scheme });
-  await page.goto(`${base}/schedule/aide/nightly-report?token=${TOKEN}&live=0`);
+  await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");
   await frame.locator("h1").waitFor();
   const read = (el: Element): string[] => {
@@ -79,7 +78,7 @@ for (const scheme of ["light", "dark"] as const) {
 }
 
 test("a script in the report does not run, and a click on its link opens a new tab", async () => {
-  await page.goto(`${base}/schedule/aide/nightly-report?token=${TOKEN}&live=0`);
+  await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");
   await frame.locator("h1").waitFor();
   expect(await page.title()).not.toBe("script-ran");

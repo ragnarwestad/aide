@@ -32,9 +32,6 @@ const harness = queueHarness("aide-cache-warmer-");
 
 afterEach(() => harness.cleanup());
 
-const TOKEN = "s3cret-token";
-const AUTH = { "x-aide-token": TOKEN };
-
 /** A runner that records everything and answers plausibly for every
  *  question the warmer asks. `hold` lets a case keep calls in flight,
  *  which is how concurrency and tick overlap are observed without a
@@ -112,7 +109,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
   test("one tick fills every checker for the live spec and the archived spec's root", async () => {
     const git = recordingGit();
     harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 25 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 25 },
       archivedSpecs: { "77-old-thing": {} },
     });
     // The workflow history, the created-at date, the description's
@@ -131,7 +128,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
   test("no archived spec is warmed as if it were live", async () => {
     const git = recordingGit();
     harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 25 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 25 },
       archivedSpecs: { "77-old-thing": {} },
     });
     await until(() => lsRemotes(git.calls).length > 0);
@@ -175,7 +172,6 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     harness.start({
       extra: {
         gitRun: git.run,
-        queueToken: TOKEN,
         driftPollMs: 0,
         specCachePollMs: 25,
         queueProjects: ["aide", "atlasaurus"],
@@ -197,7 +193,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     const gate = new Promise<void>((r) => (release = r));
     const git = recordingGit({ hold: async () => await gate });
     harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 15 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 15 },
       archivedSpecs: { "77-old-thing": {} },
     });
     await until(() => warmerCalls(git.calls).length > 0);
@@ -215,7 +211,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
   test("stop() ends the schedule", async () => {
     const git = recordingGit();
     const { server } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 15 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 15 },
     });
     // Settled, not merely started: `stop()` clears the interval, and a
     // tick already in flight still finishes the awaits it is holding.
@@ -236,12 +232,12 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     const { base } = harness.start({
       // The schedule off entirely: nothing has ever been asked, which
       // is the state this criterion is about.
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
       archivedSpecs: { "77-old-thing": {} },
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { ...AUTH, "content-type": "application/json" },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "77-old-thing", steps: ["archive"] }),
     });
     // Refused by name — the archived spec is not a folder any step but
@@ -286,7 +282,6 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       const { base, dir } = harness.start({
         extra: {
           gitRun: landingGit,
-          queueToken: TOKEN,
           driftPollMs: 0,
           specCachePollMs: 60_000,
           queueRunnerBin: "/usr/bin/true",
@@ -299,7 +294,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       const made = (await (
         await fetch(`${base}/api/queue/create`, {
           method: "POST",
-          headers: { ...AUTH, "content-type": "application/json", accept: "application/json" },
+          headers: { "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify({ project: "aide", title: "A new spec", description: "Do the thing" }),
         })
       ).json()) as { job: { id: string } };

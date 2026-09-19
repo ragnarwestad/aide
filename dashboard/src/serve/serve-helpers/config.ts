@@ -10,8 +10,7 @@ export const MAX_BODY = 4096;
  *  bytes before a single character of form-urlencoding overhead, so
  *  `MAX_BODY` would have refused the very file the editor was written
  *  for. 64 KiB is roughly fifteen times that — headroom for a
- *  description that grows, without becoming an unbounded body on a
- *  token-gated internal server. */
+ *  description that grows, without becoming an unbounded body. */
 export const MAX_SAVE_BODY = 65536;
 
 /** How long the project's own install may run after its code merged.

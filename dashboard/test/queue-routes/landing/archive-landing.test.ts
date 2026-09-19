@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../../archived/archived-specs-fixtures.ts";
-import { TOKEN, specHead } from "../fixtures.ts";
+import { specHead } from "../fixtures.ts";
 import {
   ARCHIVE_RESULT,
   AUTH,
@@ -27,9 +27,6 @@ import {
 } from "./archive-landing-fixtures.ts";
 
 describe("landing an archived spec (spec 136)", () => {
-
-
-
 
   // Criterion 1. This archive job is the FIRST the queue has ever run
   // for this spec, so `branchesFor()` — read synchronously inside the
@@ -85,7 +82,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(failed.branchUrls).toEqual([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     // The spec is still in the active list, exactly as it was.
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   });
 
@@ -263,7 +260,7 @@ describe("landing an archived spec (spec 136)", () => {
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
     // The page is read once first, so the scan is cached WITHOUT the note.
-    const before = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const before = await (await fetch(`${base}/`, )).text();
     expect(before).not.toContain("archive held back");
 
     // What the merge brings into the main checkout.
@@ -279,7 +276,7 @@ describe("landing an archived spec (spec 136)", () => {
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(html).toContain("Archive held back: the implementation was reverted");
   });
 
@@ -340,7 +337,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
   const enqueueArchiveWhenResolvable = async (base: string, specFolder: string): Promise<{ id: string }> => {
     const deadline = Date.now() + 15_000;
     for (;;) {
-      await fetch(`${base}/${ARCHIVED_VIEW}`, { headers: { "x-aide-token": TOKEN } });
+      await fetch(`${base}/${ARCHIVED_VIEW}`, );
       const res = await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
@@ -395,7 +392,6 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     const { base, dir } = harness.start({
       archivedSpecs: { [FOLDER]: {}, [SIBLING]: {} },
       extra: {
-        queueToken: TOKEN,
         gitRun: run as never,
         queueRunnerBin: "/usr/bin/true",
         queueResultDir: results,

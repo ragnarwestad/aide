@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** The message a job carries, as text. Since spec 380 a job stores
@@ -184,7 +184,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       paths.archiveSpec();
       const git = gitFor({ openOn: branchStillOpen ? [paths.project] : [] });
       const { base } = serverWithHarness(dir, paths, git);
-      await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } });
+      await fetch(`${base}/`, );
       return { base, paths };
     }
 
@@ -240,7 +240,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       const { base } = await archivedServer("aide-198-reopen-back-", false);
       const res = await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "x-aide-token": TOKEN, "content-type": "application/x-www-form-urlencoded" },
+        headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ project: "aide", specFolder: SPEC, steps: "reopen" }),
         redirect: "manual",
       });

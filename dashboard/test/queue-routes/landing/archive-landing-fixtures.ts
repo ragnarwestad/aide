@@ -21,17 +21,14 @@ export function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 export const { harness, start } = setupQueueRoutesHarness();
 
 /** Temp directories this suite makes for itself, outside the harness. */
 export const ownDirs: string[] = [];
 
-export const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+export const AUTH = { "content-type": "application/json", accept: "application/json" };
 export const SPECS_REPO = "/repos/aide-specs";
 
 export function gitFor({
@@ -91,7 +88,6 @@ export function serverWithRunner(
   const results = mkdtempSync(join(tmpdir(), prefix));
   ownDirs.push(results);
   const { base, dir } = start({
-    queueToken: TOKEN,
     gitRun: git.run as never,
     queueRunnerBin: "/usr/bin/true",
     queueResultDir: results,
@@ -128,7 +124,6 @@ afterEach(() => {
 // So archive lands its own work, the way `create` has since spec 93 —
 // the same helper, the same per-repo report, the same visible refusal
 // when a merge genuinely cannot be made.
-
 
 /** The result `aide-run-spec` writes for an archive step that moved the
  *  folder and pushed the specs repo. No `specFolder`: that field is

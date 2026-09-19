@@ -4,7 +4,7 @@
 
 import { join } from "node:path";
 import { specBranch, type GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, TOKEN, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
+import { SPEC, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "../helpers/queue-server.ts";
 
 // spec 355 (REQ-4): the tick route now spawns a real `aide-write-spec`
@@ -120,7 +120,7 @@ export const heldBack = (rows: string[]) =>
 export const statusPath = (dir: string, folder = SPEC) => join(dir, "root", "aide", "specs", folder, "4-status.md");
 
 export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status = STATUS) {
-  return harness.start({ description: DESCRIPTION, status, extra: { queueToken: TOKEN, gitRun } });
+  return harness.start({ description: DESCRIPTION, status, extra: { gitRun } });
 }
 
 /** The checks form's own body, and nothing else: the one shared phase
@@ -144,7 +144,7 @@ export const tick = (
   ]);
   return fetch(`${base}${TICK}`, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/x-www-form-urlencoded" },
     redirect: "manual",
     body: body.toString(),
   });

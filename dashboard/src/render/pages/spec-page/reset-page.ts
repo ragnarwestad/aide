@@ -1,6 +1,6 @@
 // The reset confirmation page.
 
-import { backLink, btn, rowMessage, tokenField } from "../../ui/components";
+import { backLink, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -11,7 +11,7 @@ export function renderResetSpecPage(
   specFolder: string,
   entries: NavEntry[],
   generatedAt: string,
-  opts: { token?: string; error?: string; script?: string; lang?: Language; currentUrl?: string } = {},
+  opts: { error?: string; script?: string; lang?: Language; currentUrl?: string } = {},
 ): string {
   const back = specPagePath(project, specFolder);
   const title = `Reset ${specFolder}`;
@@ -39,7 +39,6 @@ export function renderResetSpecPage(
     }) +
     `<form method="post" action="/api/queue${back}/reset" class="newspecform" ` +
       `data-overlay="${t(opts.lang ?? "en", "shell.overlayResetting")}">` +
-    tokenField(opts.token) +
     // Cancel is a LINK wearing the button's look: it submits nothing,
     // and where it goes is the page the reader came from. Inside the
     // form so the two answers sit on one line, the way every other

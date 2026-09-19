@@ -31,11 +31,8 @@ export function onChanged(): void {
   if (press.inFlight === 0) void swapRows();
 }
 
-// The page's own query string goes with it. On the first load of a
-// bookmarked page the token is in the address bar and nowhere else,
-// and `EventSource` has no other way to carry one: it cannot set a
-// header, and the cookie the page is about to be given is not there
-// yet. Afterwards the cookie answers for it, same-origin, by itself.
+// The page's own query string goes with it, so the stream is asked
+// with the same filter and state the page was.
 export function connect(): void {
   // `?live=0` is asked HERE and not only at start-up: the tab going
   // hidden and visible again comes back through this, and a page told

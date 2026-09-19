@@ -6,7 +6,7 @@
 
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { Language } from "../../../i18n";
-import { backLink, btn, rowMessage, tokenField } from "../../ui/components";
+import { backLink, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import type { ScheduleFormOptions } from "./form.ts";
@@ -27,7 +27,6 @@ export interface SchedulePageOptions {
   /** Every allowed project's entries, flattened together. */
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
-  token?: string;
   script?: string;
   /** Spec 408. Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
@@ -66,7 +65,6 @@ export interface ScheduleDetailPageOptions {
   history: readonly ScheduleHistoryRow[];
   /** The report panel's markup (`renderReportPanel`), shown on top of Overview. */
   reportPanel?: string;
-  token?: string;
   script?: string;
   error?: string;
   backHref?: string;
@@ -90,7 +88,6 @@ export function renderScheduleDetailPage(
     tab === "history"
       ? renderScheduleHistory(opts.history)
       : renderScheduleOverview(opts.project, opts.entry, {
-          token: opts.token,
           error: opts.error,
           modelChoices: opts.modelChoices,
           defaultModels: opts.defaultModels,
@@ -109,7 +106,6 @@ export function renderScheduleDetailPage(
 export interface DeleteSchedulePageOptions {
   project: string;
   entryName: string;
-  token?: string;
   script?: string;
   error?: string;
   /** Spec 408. Absent means English — the same default `pageShell`'s
@@ -137,7 +133,6 @@ export function renderDeleteSchedulePage(
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue${deleteSchedulePath(opts.project, opts.entryName)}" class="scheduledeleteform">` +
-    tokenField(opts.token) +
     // The question in a sentence and the two answers (2026-09-08); it
     // was a field the reader had to type the name back into, on a page
     // whose own heading is that name. Cancel is a LINK wearing the

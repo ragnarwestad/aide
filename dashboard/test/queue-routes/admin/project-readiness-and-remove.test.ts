@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -33,7 +33,7 @@ interface StepBody {
 // both reach the caller: `ok` says the registration completed, `readiness`
 // says whether `aide-run-spec` would start.
 describe("POST /api/queue/projects reports readiness (spec 138)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   /** A git that answers for a checkout which is its own root, clean, on
    *  its default branch — with `answers` layered over it. */
@@ -62,7 +62,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 10: additive. A caller that reads `ok`, `project` and
   // `results` sees exactly what it saw before.
   test("a successful add carries readiness beside the steps it always carried", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit() });
     const path = join(dir, "root", "ready-one");
     mkdirSync(join(path, "specs"), { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -82,7 +82,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 10, the other half: the two answers are independent. This
   // is Skjer — added, allowlisted, and unable to run.
   test("registration succeeds while the run is blocked, and the answer says both", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit() });
     // No specs root, and none named on the form — one of the four
     // things that refused the real Skjer, and the one still left of
     // them that a bare Add cannot put right itself.
@@ -104,20 +104,20 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(join(path, "specs"));
     // And it is on the allowlist regardless: registration is what puts
     // it there, and the readiness answer is about a later moment.
-    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/new`, )).text();
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="skjer"');
   });
 
   // Criterion 11, the no-JavaScript half: the result cannot be left in a
   // response body the redirect throws away.
   test("a form POST carries the whole readiness answer to the page it lands on", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit() });
     const path = join(dir, "root", "noscript");
     mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ name: "noscript", existingPath: path }),
     });
     expect(res.status).toBe(303);
@@ -135,7 +135,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(notice).toContain(join(path, "specs"));
     expect(notice).toContain("worktree links");
     // And the page renders what it was handed.
-    const page = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const page = await (await fetch(`${base}${location}`, )).text();
     expect(page).toContain("cannot run yet");
   });
 
@@ -145,7 +145,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // and `.aide/config` is dropped by a global ignore rule, so a clone
   // arrived on the next machine with the answer gone.
   test("worktree links are written to the project's own committed manifest", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit() });
     const path = join(dir, "root", "withlinks");
     mkdirSync(join(path, "node_modules"), { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -161,7 +161,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   });
 
   test("a worktree link that would leave the repository is refused", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const { base, dir } = start({ gitRun: readyGit() });
     const path = join(dir, "root", "badlinks");
     mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -182,16 +182,16 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
 // page read and remember the language the same way `/` already does.
 describe("GET /projects and GET /projects/<name>/remove (spec 408)", () => {
   test("GET /projects: ?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/projects?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = start();
+    const res = await fetch(`${base}/projects?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
   });
 
   test("GET /projects/<name>/remove: ?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/projects/aide/remove?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = start();
+    const res = await fetch(`${base}/projects/aide/remove?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -199,11 +199,11 @@ describe("GET /projects and GET /projects/<name>/remove (spec 408)", () => {
 });
 
 describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   // Criterion 7.
   test("the name typed back removes it from the allowlist and touches no file", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
       method: "POST",
       headers: AUTH,
@@ -217,7 +217,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
     // And the page no longer offers it.
-    const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/projects`, )).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
@@ -227,7 +227,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
   // A name that is not on the allowlist is still refused, which is what
   // stands between a stray request and a removal.
   test("a project that is not on the allowlist is refused and changes nothing", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/never-added/remove`, {
       method: "POST",
       headers: AUTH,
@@ -236,14 +236,14 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.results.find((r) => r.step === "allowlist")!.ok).toBe(false);
-    const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/projects`, )).text();
     // The row still stands, its Remove link with it (the form itself
     // lives on the row's own confirm page since 2026-08-19).
     expect(html).toContain('href="/projects/aide/remove"');
   });
 
   test("a project that was never on the allowlist is refused", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/nosuch/remove`, {
       method: "POST",
       headers: AUTH,
@@ -253,16 +253,8 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
   });
 
   // Criterion 4, for the second route.
-  test("it is behind the same token, and POST only", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const body = JSON.stringify({ confirm: "aide" });
-    expect(
-      (await fetch(`${base}/api/queue/projects/aide/remove`, { method: "POST", body })).status,
-    ).toBe(401);
+  test("it answers POST only", async () => {
+    const { base } = start();
     expect((await fetch(`${base}/api/queue/projects/aide/remove`, { headers: AUTH })).status).toBe(405);
-    const off = start({});
-    expect(
-      (await fetch(`${off.base}/api/queue/projects/aide/remove`, { method: "POST", body })).status,
-    ).toBe(503);
   });
 });

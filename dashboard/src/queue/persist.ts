@@ -95,6 +95,15 @@ export function parseHeaderAuth(raw: unknown): { header: string; users: string[]
   return { header: r.header, users: r.users as string[] };
 }
 
+/** The `allowedHosts` list in `queue-config.json`: host names (no port, no
+ *  path) the dashboard answers to besides its loopback names and its Tailscale
+ *  name, lower-cased. `null` for anything malformed. */
+export function parseAllowedHosts(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  if (!raw.every((h) => typeof h === "string" && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(h))) return null;
+  return (raw as string[]).map((h) => h.toLowerCase());
+}
+
 /** Write the allowlist back, keeping everything else in the file.
  *
  *  `projects` is passed in from the server's live `Set` — never read

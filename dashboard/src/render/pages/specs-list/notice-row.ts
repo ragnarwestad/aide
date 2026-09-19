@@ -55,9 +55,9 @@ export function specNoticeRow(
   now: number,
   lang: Language,
   testServerAvailable: (project: string) => boolean,
-  /** The view the row is drawn in and the token its forms post with: what
-   *  the unfolded acceptance criteria (spec 493) need to keep both. */
-  view: { filter?: SpecsFilter; token?: string } = {},
+  /** The view the row is drawn in: what the unfolded acceptance
+   *  criteria (spec 493) need to keep. */
+  view: { filter?: SpecsFilter } = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const notice = specNotice(
@@ -82,7 +82,7 @@ export function specNoticeRow(
   // directly under its own box.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
     "kind" in p && p.kind === "acceptance-hold"
-      ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, view.token, lang) }
+      ? { ...p, lead: checksFold(g, filter, lang), after: checksPanel(g, filter, lang) }
       : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";

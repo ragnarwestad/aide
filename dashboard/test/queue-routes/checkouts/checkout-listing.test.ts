@@ -8,10 +8,7 @@ import {
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -50,7 +47,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
 
   /** A page's HTML, through the token like a reader's browser. */
   const page = async (base: string, path: string): Promise<string> =>
-    await (await fetch(`${base}${path}`, { headers: { "x-aide-token": TOKEN } })).text();
+    await (await fetch(`${base}${path}`, )).text();
 
   /** Fetch a page until it says what is expected, and hand back the
    *  last thing it said either way.
@@ -135,8 +132,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, driftPollMs: 0,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
@@ -163,8 +159,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, driftPollMs: 0,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
@@ -192,8 +187,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, driftPollMs: 0, gitRun: noOrigin,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, gitRun: noOrigin,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
@@ -225,8 +219,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 250,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 250,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
@@ -267,8 +260,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000, gitRun: recorded.run,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000, gitRun: recorded.run,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {

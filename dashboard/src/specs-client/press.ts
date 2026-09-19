@@ -201,12 +201,7 @@ export async function postForm(
     primary.insertAdjacentHTML("afterbegin", SPINNER);
   };
   try {
-    // The token rides in the query string, as it does for a bookmarked
-    // page: the guard reads a header, the query string or the cookie,
-    // and never the form body.
     const url = new URL(form.action, location.href);
-    const token = form.querySelector('input[name="token"]') as HTMLInputElement | null;
-    if (token?.value) url.searchParams.set("token", token.value);
     const body = new URLSearchParams();
     new FormData(form).forEach((value, key) => {
       if (typeof value === "string") body.append(key, value);

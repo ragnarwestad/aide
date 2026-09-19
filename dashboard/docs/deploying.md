@@ -6,7 +6,7 @@ move it to another host or run the whole thing on one machine.
 ## Table of contents
 
 - [HTTPS, and the one address](#https-and-the-one-address)
-- [Signing in from a proxy's own header](#signing-in-from-a-proxys-own-header)
+- [A proxy's own header](#a-proxys-own-header)
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
 - [Moving the board's own directories](#moving-the-boards-own-directories)
@@ -22,8 +22,9 @@ move it to another host or run the whole thing on one machine.
 The dashboard is reached at `https://<serving-host>.<tailnet>.ts.net/`, and only there. The Bun server binds `127.0.0.1`
 and a `tailscale serve`
 proxy terminates TLS in front of it, with a certificate Tailscale issues and renews itself. Nothing in the server does
-any of this — no certificate handling, no scheme awareness, no host check anywhere in
-`serve.ts`.
+any of this — no certificate handling, no scheme awareness. It does check the `Host` of every request against its own
+names (see "Who may call it" in `running-specs.md`), and the proxy passes the client's `Host` on, so the Tailscale name
+is one of them; `allowedHosts` in `queue-config.json` names any other.
 
 `make install-serve` sets the proxy up, so it is not a step anybody has to remember:
 
@@ -48,12 +49,12 @@ for something else.
 Why it matters beyond a nicer URL: a service worker needs a secure context, so installing the dashboard as an app on a
 phone or a desktop depends on it.
 
-## Signing in from a proxy's own header
+## A proxy's own header
 
 A `tailscale serve` proxy in front of the dashboard already knows who the reader is — it sends the signed-in user's
 name as a request header on every request it forwards. `headerAuth`, an optional block in `queue-config.json`, names
-that header and the identifiers allowed in it; a request carrying one of them is let in with no token and no cookie
-at all:
+that header and the identifiers allowed in it. The dashboard asks for no sign-in, so the block is read and checked at
+start-up and gates nothing:
 
 ```json
 {
@@ -80,8 +81,8 @@ Other proxies that send an equivalent header, for a `headerAuth` block that name
 - **oauth2-proxy** — `X-Forwarded-Email`
 - **Cloudflare Access** — `Cf-Access-Authenticated-User-Email`
 
-The token and its cookie keep working exactly as before, whether or not `headerAuth` is set — API callers and the
-spec 80 emitter, which never pass through the proxy, still need one of them.
+Every caller — the proxy's readers, API callers and the spec 80 emitter — is held to the same rule, whether or not
+`headerAuth` is set.
 
 ## Installing it as an app
 
@@ -89,18 +90,14 @@ The served dashboard is a web app you can install: Chrome and Edge offer it from
 Share → "Add to Home Screen". It then opens in a window of its own, with the mark as its icon and the page's own
 background behind the title bar.
 
-**Install it after signing in, not before.** An installed app is launched on `start_url` — `/`, with no query string —
-so the token has to be in the cookie already. Open `/?token=<the token>` once in the browser, and the installed app
-opens straight into the spec list. The other order gives a 401 as the app's first screen, and the fix is the same: open
-it with `?token=` once.
+An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the spec list.
 
 Five routes make it work, and none of them is a file:
 `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`,
 `/icon-512-maskable.svg` and `/apple-touch-icon.png` are all computed in `src/render/ui/pwa.ts` and answered from memory,
 so nothing has to be kept in sync with the mark by hand and nothing is published by rsync. They are the only things on
 this site a page fetches rather than carries inline — a browser will not install a page whose manifest is a data URI —
-and they are outside the token, because a manifest fetch that answers 401 is a page the browser will not offer to
-install at all.
+and they answer any request with a `Host` of the dashboard's own.
 
 The service worker caches **nothing**. Every line of this dashboard is live state, and a queue served out of yesterday's
 storage would be worse than no app at all: it passes every request through to the server and answers a page load with a
@@ -132,7 +129,7 @@ running the restart waits for them (two hours at most), and every page shows a w
 them until it fires. Point the job anywhere else and a restart
 reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
-never refreshed — unauthenticated, so a restart check nobody set up a token for can still reach it. The path is written once in the Makefile (`MINI_REPO`) and once in
+never refreshed — it needs no credential, so a restart check can reach it. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
 `test/git/checkout/install-serve-paths.test.ts` reads both and fails if they disagree.
 

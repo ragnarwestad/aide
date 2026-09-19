@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { sourceWithParts } from "../helpers/source-with-parts.ts";
-import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, auth, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
+import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
 
@@ -63,12 +63,12 @@ describe("building the archived rows", () => {
   test("the rows fragment the live refresh asks for is gated the same way", async () => {
     const { base } = start();
     // Default (All): the fragment carries the archived rows too.
-    const rows = await (await fetch(`${base}/?rows=1`, auth)).text();
+    const rows = await (await fetch(`${base}/?rows=1`)).text();
     for (const folder of Object.keys(ARCHIVED)) expect(rows).toContain(folder);
     // Active: the chip that cuts them cuts them here as well.
-    const activeRows = await (await fetch(`${base}/?rows=1&state=not-archived`, auth)).text();
+    const activeRows = await (await fetch(`${base}/?rows=1&state=not-archived`)).text();
     for (const folder of Object.keys(ARCHIVED)) expect(activeRows).not.toContain(folder);
-    const archivedRows = await (await fetch(`${base}/?rows=1&state=archived`, auth)).text();
+    const archivedRows = await (await fetch(`${base}/?rows=1&state=archived`)).text();
     expect(archivedRows).toContain(STAMPED);
   });
 });
@@ -107,7 +107,7 @@ describe("an archive bigger than the page", () => {
   // after it was drawn.
   test("the five-second refresh sends the same thirty", async () => {
     const { base } = start({}, MANY);
-    const rows = await (await fetch(`${base}/?rows=1&state=archived`, auth)).text();
+    const rows = await (await fetch(`${base}/?rows=1&state=archived`)).text();
     expect(order(rows)).toHaveLength(30);
     expect(rows).not.toContain("not shown");
   });

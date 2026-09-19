@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -33,12 +33,12 @@ interface StepBody {
 // added without them could only be fixed by removing and re-adding it,
 // or by editing a file on the serving host.
 describe("a project's settings route (spec 184)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   const settled = async (
     extra: Record<string, unknown> = {},
   ): Promise<{ base: string; dir: string; project: string }> => {
-    const { base, dir } = start({ queueToken: TOKEN, ...extra });
+    const { base, dir } = start({ ...extra });
     const project = join(dir, "root", "aide");
     onItsOwnOrigin(project, join(dir, "aide-origin.git"));
     return { base, dir, project };
@@ -78,7 +78,7 @@ describe("a project's settings route (spec 184)", () => {
     writeFileSync(join(project, ".aide", "config"), "AIDE_SPECS_PATH=/repos/aide-specs/aide\n");
     const res = await fetch(`${base}/projects/aide/settings`, {
       redirect: "manual",
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/projects/aide");
@@ -86,7 +86,7 @@ describe("a project's settings route (spec 184)", () => {
 
   test("a project the allowlist does not know is a mistyped address", async () => {
     const { base } = await settled();
-    const res = await fetch(`${base}/projects/nosuch/settings`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/projects/nosuch/settings`, );
     expect(res.status).toBe(404);
   });
 
@@ -138,7 +138,7 @@ describe("a project's settings route (spec 184)", () => {
   test("a no-script save and refusal return to the inline editor", async () => {
     const { base, dir, project } = await settled();
     mkdirSync(join(project, "node_modules"), { recursive: true });
-    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const ok = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -155,7 +155,7 @@ describe("a project's settings route (spec 184)", () => {
     // Spec 255: the redirect lands on the read-only view — the value is
     // plain text in the table now, not an editable input.
     const afterSave = await (await fetch(`${base}${ok.headers.get("location")}`, {
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     })).text();
     expect(afterSave).toContain("<td>node_modules</td>");
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
@@ -170,7 +170,7 @@ describe("a project's settings route (spec 184)", () => {
     // read-only view, where nothing could show it.
     expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=1")).toBe(true);
     const refusalPage = await fetch(`${base}${refused.headers.get("location")}`, {
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     });
     const refusalHtml = await refusalPage.text();
     expect(refusalHtml).toContain(">Save<");
@@ -192,7 +192,7 @@ describe("a project's settings route (spec 184)", () => {
       Bun.spawnSync(["git", ...args], { cwd: project });
     }
     // Spec 255: Code landing's `<select>` only exists in edit mode now.
-    const form = await (await fetch(`${base}/projects/aide?edit=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const form = await (await fetch(`${base}/projects/aide?edit=1`, )).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
 
@@ -227,7 +227,7 @@ describe("a project's settings route (spec 184)", () => {
 // is `mergeLock`. This route is the wiring that puts a button on top of
 // them — see `deploySection` in `site.ts` for the markup it answers to.
 describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   /** A checkout that answers `main` for both `defaultBranch`'s own
    *  `symbolic-ref` and `fastForwardToOrigin`'s `rev-parse` check, then
@@ -269,7 +269,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
 
   test("success: the checkout moves, the install runs, and the very next load shows level (criterion 6)", async () => {
     const git = onMain(0);
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base, dir } = start({ gitRun: git.run });
     const project = projectDir(dir);
     const marker = installsOk(project);
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
@@ -279,14 +279,14 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(body.installError).toBeUndefined();
     expect(existsSync(marker)).toBe(true);
     const page = await (
-      await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/projects/aide?tab=deploy`, )
     ).text();
     expect(page).toContain("This checkout matches origin.");
   });
 
   test("refuses, naming both branches, when the checkout moved off its default branch (criterion 7)", async () => {
     const git = movedOffMain();
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base, dir } = start({ gitRun: git.run });
     const project = projectDir(dir);
     const marker = installsOk(project);
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
@@ -303,7 +303,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
 
   test("an install failure is reported as installError, distinct from a pull refusal (criterion 8)", async () => {
     const git = onMain(0);
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base, dir } = start({ gitRun: git.run });
     const project = projectDir(dir);
     installFails(project);
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
@@ -314,14 +314,14 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(body.installError).toBeDefined();
     // The checkout DID move, so the drift count is refreshed either way.
     const page = await (
-      await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/projects/aide?tab=deploy`, )
     ).text();
     expect(page).toContain("This checkout matches origin.");
   });
 
   test("refuses when no AIDE_INSTALL_CMD is configured — deploying stays a hand step", async () => {
     const git = onMain(0);
-    const { base } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base } = start({ gitRun: git.run });
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { ok: boolean; error?: string };
@@ -336,7 +336,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
   });
 
   test("refuses for a project this dashboard does not know", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/nosuch/deploy`, { method: "POST", headers: AUTH });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { ok: boolean; error?: string };
@@ -349,12 +349,12 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
   // (Config) tab where it would go unseen without an extra click.
   test("a no-script press gets the answer as a redirect carrying deployError, opening the Deploy tab (AC8)", async () => {
     const git = movedOffMain();
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base, dir } = start({ gitRun: git.run });
     installsOk(projectDir(dir));
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "",
     });
     expect(res.status).toBe(303);
@@ -368,12 +368,12 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
   // so the refreshed drift state is what the browser lands on.
   test("a successful no-script press redirects to the Deploy tab (AC9)", async () => {
     const git = onMain(0);
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const { base, dir } = start({ gitRun: git.run });
     installsOk(projectDir(dir));
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "",
     });
     expect(res.status).toBe(303);
@@ -381,7 +381,7 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
   });
 
   test("only POST — the button's route takes no other method", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { headers: AUTH });
     expect(res.status).toBe(405);
   });

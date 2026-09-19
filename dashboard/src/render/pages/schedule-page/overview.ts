@@ -12,7 +12,6 @@ export function renderScheduleOverview(
   project: string,
   entry: ScheduleEntry,
   opts: {
-    token?: string;
     error?: string;
     modelChoices?: ScheduleFormOptions["modelChoices"];
     defaultModels?: ScheduleFormOptions["defaultModels"];
@@ -43,7 +42,6 @@ export function renderScheduleOverview(
         entryName: entry.name,
         entry,
         action: `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(entry.name)}`,
-        token: opts.token,
         error: opts.error,
         modelChoices: opts.modelChoices,
         defaultModels: opts.defaultModels,

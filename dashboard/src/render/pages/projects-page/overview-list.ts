@@ -6,7 +6,7 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
 
-// `removeHref` only on the served page: a generated file has no token
+// `removeHref` only on the served page: a generated file has no server
 // behind it, so its rows carry no control (asked for 2026-08-19 —
 // Remove lives ON the row, at the right of the description).
 function overviewRow(

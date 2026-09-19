@@ -2,11 +2,11 @@
 // tracked ANYWHERE on this machine, in one place — a spec's own page
 // only ever showed the one it belongs to, and there was nowhere at all
 // to see the three-port pool as a whole. Modeled on `settings-page.ts`,
-// the one existing precedent for "a global, token-guarded page with a
+// the one existing precedent for "a global page with a
 // table of rows", and reached the same way Settings is: the "…" menu.
 
 import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
-import { backLink, tokenField } from "../ui/components";
+import { backLink } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";
 
@@ -30,7 +30,6 @@ export interface TestServerRow {
 }
 
 export interface TestServersPageOptions {
-  token?: string;
   backHref?: string;
   lang?: Language;
   /** Spec 435. The request's own address, threaded to `pageShell` so its
@@ -43,7 +42,7 @@ export interface TestServersPageOptions {
 // "running" one does, and a "failed" entry otherwise has no way to be
 // cleared from this page at all, so every row gets the same form
 // regardless of status (Plan review, Scope guardian must-fix).
-const row = (r: TestServerRow, token?: string): string => {
+const row = (r: TestServerRow): string => {
   const address =
     r.status === "running" && r.url
       ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">Open</a>`
@@ -58,7 +57,6 @@ const row = (r: TestServerRow, token?: string): string => {
     `<td>${esc(r.status)}</td>` +
     `<td>${address}</td>` +
     `<td><form class="actionform" method="post" action="${esc(r.stopAction)}">` +
-    tokenField(token) +
     `<button class="btn" type="submit">Stop</button></form></td>` +
     `</tr>`
   );
@@ -78,7 +76,7 @@ export function renderTestServersPage(
     ? `<main>${back}<p class="muted">No test server is running right now.</p></main>`
     : `<main>${back}<table class="settingstable"><thead><tr>` +
       `<th>Project</th><th>Spec</th><th>Branch</th><th>Status</th><th>Address</th><th></th>` +
-      `</tr></thead><tbody>${rows.map((r) => row(r, opts.token)).join("")}</tbody></table></main>`;
+      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></main>`;
   return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
     hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

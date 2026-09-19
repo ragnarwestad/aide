@@ -52,6 +52,7 @@ export {
 export {
   mergeQueueDefaults,
   parseHeaderAuth,
+  parseAllowedHosts,
   parsePendingEffort,
   parsePendingModels,
   parseQueueProjects,

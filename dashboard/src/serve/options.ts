@@ -19,9 +19,13 @@ export interface ServerOptions {
   /** Where to listen. Default 0.0.0.0; the mini pins its Tailscale
    *  address, the way claude-usage's plist does. */
   bindHost?: string;
-  /** Without it the queue surface answers 503: off loudly, rather than
-   *  open quietly. */
-  queueToken?: string;
+  /** Host names the dashboard answers to besides `localhost`, `127.0.0.1`,
+   *  `[::1]` and its Tailscale name — from `queue-config.json`'s
+   *  `allowedHosts`. */
+  allowedHosts?: string[];
+  /** Looks up the machine's Tailscale name on the first request that needs
+   *  it. Only `cli.ts` sets it, so no test spawns a process. */
+  tailscaleName?: () => Promise<string | undefined>;
   queueMirrorPath?: string;
   /** Where a model picked for a phase before any job exists survives to
    *  (spec 308) — the `pending-models.json` sibling of the queue
@@ -172,10 +176,9 @@ export interface ServerOptions {
   pdfToolAvailable?: boolean;
   /** A request header a proxy in front of this server sets to the
    *  signed-in user's name (spec 363) — the tailnet proxy's own header
-   *  is the worked example in `deploying.md`. When a request's `header`
-   *  carries one of `users`, it is admitted with no token and no
-   *  cookie. Off unless set; refused at start-up unless `bindHost` is
-   *  loopback (`127.0.0.1` or `::1`), since a header from anywhere else
+   *  is the worked example in `deploying.md`. It gates nothing
+   *  now that no token check is left for it to skip; it is still read,
+   *  and refused at start-up unless `bindHost` is loopback (`127.0.0.1` or `::1`), since a header from anywhere else
    *  can be forged by anyone who can reach the port. */
   headerAuth?: { header: string; users: string[] };
   /** Where the board registry persists (spec 388) — the `boards.json`

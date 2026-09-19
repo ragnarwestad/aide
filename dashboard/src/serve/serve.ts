@@ -34,7 +34,8 @@ import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleRoutes, type RoutesContext } from "./routes";
 import { DEFAULT_PDF_CACHE_DIR } from "./routes/spec-pdf.ts";
 import { type SpecViewsContext } from "./spec-views";
-import { isLoopbackBind, isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
+import { isLoopbackBind, isQueuePath } from "./queue-guard.ts";
+import { checkRequest, createHostAllowlist } from "./serve-helpers";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
@@ -51,9 +52,9 @@ import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover
 import { setBoardInfo } from "../render/ui/board-info.ts";
 
 export function createServer(opts: ServerOptions) {
-  // Spec 363: a header this process trusts without a token is only
-  // trustworthy because nothing OTHER than the proxy in front of it can
-  // reach the port carrying it. Checked once, here, before anything
+  // Spec 363: a header this process trusts is only trustworthy because
+  // nothing OTHER than the proxy in front of it can reach the port
+  // carrying it. Checked once, here, before anything
   // else runs and before `Bun.serve()` binds a socket — an unconditional
   // throw, not a per-request branch that a future new route could
   // forget to add.
@@ -278,13 +279,10 @@ export function createServer(opts: ServerOptions) {
   }, 45_000);
   keepAlive.unref?.();
 
-  const queueToken = opts.queueToken;
   // `state.server` is not set yet — see state.ts's own doc comment, and
   // `runnerSetupCtx.readServerPort` above for the identical shape.
   const currentPort = () => state.server?.port ?? opts.port;
-  function queueGuard(req: Request, url: URL): Response | null {
-    return queueGuardImpl(req, url, queueToken, currentPort(), opts.headerAuth);
-  }
+  const hosts = createHostAllowlist({ extra: opts.allowedHosts ?? [], lookup: opts.tailscaleName });
 
   const projectActionsCtx: ProjectActionsContext = { queueConfigFile: opts.queueConfigFile, allowed };
   function persistAllowlist(what: string) {
@@ -311,7 +309,6 @@ export function createServer(opts: ServerOptions) {
     gitRun,
     withFreshness: land.withFreshness,
     jobRow: land.jobRow,
-    queueToken,
     specFileCommits: schedules.specFileCommits,
     branchStatus,
     specsRoot: resolution.specsRoot,
@@ -348,7 +345,6 @@ export function createServer(opts: ServerOptions) {
     mergeLock: schedules.mergeLock,
     runner,
     tickRunner: schedules.tickRunner,
-    queueToken,
     serverPort: currentPort,
     jobRow: land.jobRow,
     installAfterMerge: land.installAfterMerge,
@@ -375,11 +371,17 @@ export function createServer(opts: ServerOptions) {
     // and a two-repo merge under load takes longer than that.
     idleTimeout: 120,
     async fetch(req) {
+      // One check in front of EVERY route, the static site and /live
+      // included, so no route can be added outside it. First, before
+      // `new URL(req.url)`, which throws for a request with no Host.
+      const refused = await checkRequest(req, hosts);
+      if (refused) return compressResponse(req, refused);
+
       const url = new URL(req.url);
       const path = url.pathname;
 
       const response = isQueuePath(path)
-        ? (queueGuard(req, url) ?? (await handleRoutes(routesCtx, req, url, path)))
+        ? await handleRoutes(routesCtx, req, url, path)
         : await handleCore(coreCtx, req, url, path);
 
       return compressResponse(req, response);

@@ -130,13 +130,11 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     expect(h.sources[0]!.url).toContain("/api/queue/events");
   });
 
-  // The address bar carries the token on the first load of a bookmarked
-  // page, and `EventSource` has no other way to send one — it cannot set
-  // a header, and the cookie is not there yet.
+  // The stream is asked with the filter and state the page was.
   test("the connection carries the page's own query string", () => {
-    const h = harness(() => ({ ok: true }), "actionform", "?token=abc&state=active");
+    const h = harness(() => ({ ok: true }), "actionform", "?state=active");
     h.visibility("visible");
-    expect(h.sources[0]!.url).toBe("/api/queue/events?token=abc&state=active");
+    expect(h.sources[0]!.url).toBe("/api/queue/events?state=active");
   });
 
   // Criterion 1, said the only way it can be said: with the connection

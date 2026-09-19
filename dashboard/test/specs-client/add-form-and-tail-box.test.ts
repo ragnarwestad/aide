@@ -87,8 +87,6 @@ describe("a tail box's tick posts itself (spec 160)", () => {
     expect(posted.init.method).toBe("POST");
     expect(String(posted.init.body)).toContain("step=archive");
     expect(String(posted.init.body)).toContain("checked=1");
-    // The token rides in the query string, as every other press does.
-    expect(posted.url).toContain("token=s3cret");
     // And never the create route.
     expect(h.requests.some((r) => r.url.endsWith("/api/queue"))).toBe(false);
   });

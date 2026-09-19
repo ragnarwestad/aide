@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import { TOKEN, openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
+import { openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const ownDirs: string[] = [];
@@ -22,7 +22,7 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+const AUTH = { "content-type": "application/json", accept: "application/json" };
 const SPEC = "81-queue-and-runner";
 const FAULTS = /nothing reached the files|disagree|run it again/;
 
@@ -115,7 +115,6 @@ describe("a chained job's row between its phases", () => {
     mkdirSync(results, { recursive: true });
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         gitRun: git.run,
@@ -124,7 +123,7 @@ describe("a chained job's row between its phases", () => {
       },
     });
     const page = async () =>
-      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`, { headers: { "x-aide-token": TOKEN } })).text();
+      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`, )).text();
 
     const made = (await (
       await fetch(`${base}/api/queue`, {

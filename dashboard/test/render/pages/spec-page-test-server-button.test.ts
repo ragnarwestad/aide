@@ -44,10 +44,10 @@ describe("the board on the spec page", () => {
         status: "running",
         branch: "aide/150-one-page",
         commit: "abc1234",
-        url: "http://127.0.0.1:9001/?token=t0ken",
+        url: "http://127.0.0.1:9001/",
       },
     });
-    expect(html).toContain('href="http://127.0.0.1:9001/?token=t0ken"');
+    expect(html).toContain('href="http://127.0.0.1:9001/"');
     expect(html).toContain("The specs shown are from the test suite, not the ones on the prod dashboard");
     expect(html).toContain(`action="${TEST_SERVER_STOP_ACTION}"`);
     expect(html).toContain("Stop test server");
@@ -67,15 +67,15 @@ describe("the board on the spec page", () => {
     expect(html).not.toContain("the round");
   });
 
-  // A loopback host, a port and a token: three things a reader does not
+  // A loopback host and a port: two things a reader does not
   // read. The link says where it goes instead.
   test("the link carries a name, not the address", () => {
     const html = withBoard({
       testServerStopAction: TEST_SERVER_STOP_ACTION,
-      testServer: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/?token=t0ken" },
+      testServer: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/" },
     });
     expect(html).toContain(">Open the test server</a>");
-    expect(html).not.toContain(">http://127.0.0.1:9001/?token=t0ken</a>");
+    expect(html).not.toContain(">http://127.0.0.1:9001/</a>");
   });
 
   // The round only ever knows loopback, and a reader on another device
@@ -87,7 +87,7 @@ describe("the board on the spec page", () => {
     const html = withBoard({
       testServerOpenHref: "/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&startTestServer=1",
       testServerStopAction: TEST_SERVER_STOP_ACTION,
-      testServer: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/?token=t0ken" },
+      testServer: { status: "running", branch: "aide/150-one-page", commit: "abc1234", url: "http://127.0.0.1:9001/" },
     });
     expect(html).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;startTestServer=1"');
     expect(html).not.toContain("127.0.0.1:9001");
@@ -123,7 +123,7 @@ describe("the board on the spec page", () => {
           status: "running",
           branch: "aide/150-one-page",
           commit: "abc1234",
-          url: "http://127.0.0.1:9001/?token=t0ken",
+          url: "http://127.0.0.1:9001/",
         },
       }),
     );

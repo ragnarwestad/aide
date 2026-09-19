@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TOKEN, JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -17,8 +17,8 @@ afterEach(() => harness.cleanup());
 // and nothing else would notice.
 describe("a job's token count reaches the page", () => {
   async function seeded(): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base, dir } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
       await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
@@ -41,17 +41,17 @@ describe("a job's token count reaches the page", () => {
 
   test("the spec list shows both figures, and the model dropdown stays in dollars", async () => {
     const { mirror } = await seeded();
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
     expect(html).toContain('<span class="u-usd">$0.54</span>');
     expect(html).toContain('<span class="u-tok">1.2M</span>');
   });
 
   test("the job page shows both figures for the step and the job", async () => {
     const { mirror, id } = await seeded();
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const { base } = start({ queueMirrorPath: mirror });
     const html = await (
-      await fetch(`${base}/specs/${id}?tab=steps`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/specs/${id}?tab=steps`, )
     ).text();
     expect(html).toContain('<span class="u-usd">$0.54</span>');
     expect(html).toContain('<span class="u-tok">1.2M</span>');
@@ -66,7 +66,7 @@ describe("a job's token count reaches the page", () => {
 // it stands at that instant rather than against whatever the page
 // believed when the box was ticked.
 describe("POST /api/queue/:id/steps (spec 160)", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
 
   /** One job in the mirror, RUNNING the step at `stepIndex`, served by
    *  a second server started on that mirror. No runner is configured,
@@ -77,7 +77,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     stepIndex = 0,
     opts: { description?: string; alsoSpecs?: string[] } = {},
   ): Promise<{ base: string; id: string }> {
-    const first = start({ queueToken: TOKEN });
+    const first = start();
     const made = (await (
       await fetch(`${first.base}/api/queue`, {
         method: "POST",
@@ -92,7 +92,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     job.stepIndex = stepIndex;
     writeFileSync(mirror, JSON.stringify(jobs));
     const second = harness.start({
-      extra: { queueToken: TOKEN, queueMirrorPath: mirror },
+      extra: { queueMirrorPath: mirror },
       ...(opts.description ? { description: opts.description } : {}),
       ...(opts.alsoSpecs ? { alsoSpecs: opts.alsoSpecs } : {}),
     });
@@ -103,7 +103,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     fetch(`${base}/api/queue/${id}/steps`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, checked }),
     });
@@ -162,7 +162,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
   test("a job that is not running is refused (criterion 6)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const made = (await (
       await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
@@ -206,7 +206,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   test("the row draws the live boxes and points them here", async () => {
     const { base, id } = await running(["analyze"]);
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     const group = specControls(html, "81-queue-and-runner");
     expect(group).toContain(`data-post-to="/api/queue/${id}/steps"`);
@@ -225,7 +225,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
 // branch on which fields it was handed, and `checked`'s absence would
 // have to mean something other than `false`.
 describe("POST /api/queue/:id/model (spec 225)", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
@@ -242,7 +242,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     stepIndex = 0,
     pendingModelsPath?: string,
   ): Promise<{ base: string; id: string }> {
-    const first = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const first = start({ queueDefaults: DEFAULTS });
     const made = (await (
       await fetch(`${first.base}/api/queue`, {
         method: "POST",
@@ -257,7 +257,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     job.stepIndex = stepIndex;
     writeFileSync(mirror, JSON.stringify(jobs));
     const second = harness.start({
-      extra: { queueToken: TOKEN, queueMirrorPath: mirror, queueDefaults: DEFAULTS, pendingModelsPath },
+      extra: { queueMirrorPath: mirror, queueDefaults: DEFAULTS, pendingModelsPath },
     });
     return { base: second.base, id: made.job.id };
   }
@@ -266,7 +266,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     fetch(`${base}/api/queue/${id}/model`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, model }),
     });
@@ -330,7 +330,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
   });
 
   test("a job that is not running is refused (criterion 8)", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const made = (await (
       await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
@@ -350,7 +350,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
   test("the row draws the live model select and points it here (criteria 1-3)", async () => {
     const { base, id } = await running(["analyze"]);
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     const group = specControls(html, "81-queue-and-runner");
     const select = (step: string) =>
@@ -368,7 +368,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
 // the spec-scoped sibling of `POST /api/queue/:id/model` above, recording
 // a pick before any run exists for it to ride along on.
 describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
@@ -380,13 +380,13 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
     fetch(`${base}/api/queue/specs/${project}/${folder}/model`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, model }),
     });
 
   test("REQ-1: records a pick for a phase that has no job yet", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
     expect(res.status).toBe(200);
     const answer = (await res.json()) as { ok: boolean };
@@ -394,7 +394,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
   });
 
   test("the form encoding the page posts is understood too", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(
       base, "aide", "81-queue-and-runner", "", "", new URLSearchParams({ step: "analyze", model: "fable" }),
     );
@@ -402,10 +402,10 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
   });
 
   test("REQ-2: the pick is reflected back on the very next render", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     const group = specControls(html, "81-queue-and-runner");
     const select = group.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
@@ -413,7 +413,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
   });
 
   test("an unknown spec is a 404, and GET is not a way in", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     expect((await pick(base, "aide", "nope", "analyze", "fable")).status).toBe(404);
     expect(
       (await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, { headers: JSON_HEADERS })).status,
@@ -422,7 +422,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
 
   test("an archived spec's phases are locked", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS },
+      extra: { queueDefaults: DEFAULTS },
       archivedSpecs: { "82-archived": {} },
     });
     const res = await pick(base, "aide", "82-archived", "analyze", "fable");
@@ -437,7 +437,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
 // on the same terms: a pick made before any job exists, persisted the
 // same way. No tail-edit counterpart (scope decision, 3-solution.md).
 describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
@@ -449,13 +449,13 @@ describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
     fetch(`${base}/api/queue/specs/${project}/${folder}/effort`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, effort }),
     });
 
   test("REQ-2: records a pick for a phase that has no job yet", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "high");
     expect(res.status).toBe(200);
     const answer = (await res.json()) as { ok: boolean };
@@ -468,17 +468,17 @@ describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
   // itself, which the runner reads: a second pick lands on the same
   // phase without complaint, and the page renders as it did before.
   test("REQ-2: the pick is recorded, and the row draws no effort control", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     expect((await pick(base, "aide", "81-queue-and-runner", "analyze", "high")).status).toBe(200);
     expect((await pick(base, "aide", "81-queue-and-runner", "analyze", "low")).status).toBe(200);
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     expect(specControls(html, "81-queue-and-runner")).not.toContain('name="effort.analyze"');
   });
 
   test("an unknown level is refused", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "turbo");
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("turbo");
@@ -486,7 +486,7 @@ describe("POST /api/queue/specs/:project/:folder/effort (spec 364)", () => {
 
   test("an archived spec's phases are locked", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS },
+      extra: { queueDefaults: DEFAULTS },
       archivedSpecs: { "82-archived": {} },
     });
     const res = await pick(base, "aide", "82-archived", "analyze", "high");

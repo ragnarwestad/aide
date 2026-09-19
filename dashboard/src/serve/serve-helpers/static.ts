@@ -239,10 +239,7 @@ export function serveStatic(siteDir: string, pathname: string): Response {
 /** What makes this page an app you install (spec 173): five answers
  *  built in `render/pwa.ts` and served from memory, the same shape
  *  /api/aide-run has — a computed string, an explicit content type, no
- *  file on disk. None of them is behind the token, deliberately: the
- *  manifest fetch that drives the install prompt does not always carry
- *  the cookie, and a worker whose script answers 401 never installs at
- *  all. There is nothing in any of them a reader could not already see
+ *  file on disk. There is nothing in any of them a reader could not already see
  *  in the page's own <head>.
  *
  *  `null` for every other path — the caller falls through to

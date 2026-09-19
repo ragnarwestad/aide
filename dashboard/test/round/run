@@ -152,19 +152,6 @@ git -C "$SPECS" push -q origin main
 echo "== preparing the board's own files"
 mkdir -p "$WORK/site" "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
 ln -sfn "$CODE" "$WORK/root/aide-test"
-# The same token every round, kept outside the throwaway directory. A
-# fresh one per round meant a fresh link per round: the browser's cookie
-# is scoped to the port (spec 363) and a new token invalidates it, so
-# whoever was watching had to be handed a new URL every few minutes.
-# `AIDE_ROUND_TOKEN` overrides it; the file is made once and reused.
-TOKEN_FILE="${AIDE_ROUND_TOKEN_FILE:-$HOME/.aide-round-token}"
-if [ -n "${AIDE_ROUND_TOKEN:-}" ]; then
-  printf '%s' "$AIDE_ROUND_TOKEN" > "$WORK/token"
-else
-  [ -s "$TOKEN_FILE" ] || head -c 24 /dev/urandom | base64 | tr -d '/+=\n' > "$TOKEN_FILE"
-  cat "$TOKEN_FILE" > "$WORK/token"
-fi
-TOKEN="$(cat "$WORK/token")"
 # `concurrency` matches the serving board's own, so the queue behaves the
 # way it does there: how many rows run at once, and which are held back,
 # is the whole of what a round is watched for.
@@ -207,7 +194,7 @@ echo "== starting the dashboard from $SERVE_FROM on :$PORT"
 ( cd "$SERVE_FROM/dashboard" && exec "$BUN" run src/serve/serve.ts serve \
     --port "$PORT" --bind 127.0.0.1 --root "$WORK/root" --site "$WORK/site" \
     --queue-config "$WORK/queue-config.json" --queue-mirror "$WORK/queue.json" \
-    --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" --token-file "$WORK/token" \
+    --mirror "$WORK/runs.json" --result-dir "$WORK/jobs" \
     --dashboard-checkouts "$WORK/checkouts" --runner-bin "$SERVE_FROM/core/scripts/aide-run-spec" \
     --queue-projects aide-test ${TEST_BOARD_ARGS[@]+"${TEST_BOARD_ARGS[@]}"} ) > "$WORK/serve.log" 2>&1 &
 SERVER=$!
@@ -217,7 +204,7 @@ SERVER=$!
 stop() {
   if [ "$KEEP" = yes ] && kill -0 "$SERVER" 2>/dev/null; then
     if [ -n "$BRANCH" ]; then
-      echo "left running: pid $SERVER, $BASE/?token=$TOKEN — serving $BRANCH @ $COMMIT (this board's specs are the round's own fixtures, not yours), $WORK"
+      echo "left running: pid $SERVER, $BASE/ — serving $BRANCH @ $COMMIT (this board's specs are the round's own fixtures, not yours), $WORK"
       # $SERVER is already bun's own pid (the subshell above execs into
       # it), so `kill $SERVER` keeps working exactly as it does without a
       # branch — this watcher only adds cleanup for the worktree once
@@ -230,7 +217,7 @@ stop() {
         git -C "$AIDE" worktree remove --force "$WT" >/dev/null 2>&1 || true
         git -C "$AIDE" worktree prune >/dev/null 2>&1 || true
         # And the board's own files with it (2026-09-08): the queue, the
-        # jobs, the log and the token are of no use once the server they
+        # jobs and the log are of no use once the server they
         # belong to is gone, and a --keep'd round used to leave the whole
         # directory behind — 1900 of them had piled up in the machine's
         # temp by then.
@@ -238,7 +225,7 @@ stop() {
       ) >/dev/null 2>&1 &
       disown 2>/dev/null || true
     else
-      echo "left running: pid $SERVER, $BASE/?token=$TOKEN, $WORK"
+      echo "left running: pid $SERVER, $BASE/, $WORK"
     fi
   else
     kill "$SERVER" 2>/dev/null; wait "$SERVER" 2>/dev/null
@@ -251,11 +238,10 @@ stop() {
 }
 trap stop EXIT
 
-for _ in $(seq 1 40); do curl -s -m 2 -o /dev/null "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" && break; sleep 0.5; done
-curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" | grep -q 200 \
+for _ in $(seq 1 40); do curl -s -m 2 -o /dev/null "$BASE/api/queue" && break; sleep 0.5; done
+curl -s -m 5 -o /dev/null -w '%{http_code}\n' "$BASE/api/queue" | grep -q 200 \
   || { echo "the server did not come up; see $WORK/serve.log" >&2; tail -20 "$WORK/serve.log" >&2; exit 1; }
-# The check above only proves SOMETHING answers on $PORT with the round's
-# own token — the same value on purpose across every round (line ~106), so
+# The check above only proves SOMETHING answers on $PORT, so
 # an older, --keep'd board answers it just as well as the one this round
 # just started. A held port answers this instantly, before our own bun
 # process has even finished loading its module graph to reach the
@@ -279,10 +265,10 @@ done
 # kept: a round that tears its own server down at the end has no address
 # worth handing anybody.
 if [ "$KEEP" = yes ] && [ -n "$BRANCH" ]; then
-  echo "board up: pid $SERVER, $BASE/?token=$TOKEN — serving $BRANCH @ $COMMIT"
+  echo "board up: pid $SERVER, $BASE/ — serving $BRANCH @ $COMMIT"
 fi
 
-api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -H "X-Aide-Token: $TOKEN" -d "$2"; }
+api() { curl -s -m 60 -X POST "$BASE$1" -H "content-type: application/json" -H "accept: application/json" -d "$2"; }
 
 echo "== queue the specs, each through create"
 # The board owns the round since 2026-09-11: `POST /api/self-run` puts
@@ -331,7 +317,7 @@ seed_from_script() {
     # both: the real folder AND the landing flag gone.
     spec_folder=""
     for _ in $(seq 1 90); do
-      spec_folder="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN" \
+      spec_folder="$(curl -s -m 20 "$BASE/api/queue" \
         | jq -r --arg id "$create_job" '.jobs[] | select(.id==$id) | select(.landing != true) | .specFolder // empty')"
       case "$spec_folder" in new-????????) spec_folder="" ;; esac
       [ -n "$spec_folder" ] && break
@@ -354,7 +340,7 @@ started="$(api /api/self-run '{}')"
 if printf '%s' "$started" | jq -e '.ok' >/dev/null 2>&1; then
   round=""
   for _ in $(seq 1 600); do
-    round="$(curl -s -m 20 "$BASE/api/self-run" -H "accept: application/json" -H "X-Aide-Token: $TOKEN")"
+    round="$(curl -s -m 20 "$BASE/api/self-run" -H "accept: application/json")"
     case "$(printf '%s' "$round" | jq -r .stage)" in
       running|done|failed) break ;;
     esac
@@ -381,7 +367,7 @@ fi
 echo "== wait for the queue to drain (up to ${TIMEOUT}s)"
 start=$(date +%s)
 while :; do
-  jobs="$(curl -s -m 20 "$BASE/api/queue" -H "X-Aide-Token: $TOKEN")"
+  jobs="$(curl -s -m 20 "$BASE/api/queue")"
   live="$(printf '%s' "$jobs" | jq '[.jobs[] | select(.state=="queued" or .state=="running" or .landing==true)] | length')"
   [ "$live" = "0" ] && break
   # What the specs cron does on the production host every two minutes:

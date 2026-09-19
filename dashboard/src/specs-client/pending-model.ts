@@ -30,10 +30,7 @@ export async function postPendingModel(select: HTMLSelectElement, step: string, 
   const formId = select.getAttribute("form") ?? "";
   const spec = specFromFormId(formId);
   if (!spec) return;
-  const form = document.querySelector(`form[id="${formId.replace(/["\\]/g, "\\$&")}"]`) as HTMLFormElement | null;
-  const token = form?.querySelector('input[name="token"]') as HTMLInputElement | null;
   const url = new URL(`/api/queue/specs/${spec.project}/${spec.specFolder}/model`, location.href);
-  if (token?.value) url.searchParams.set("token", token.value);
   const body = new URLSearchParams();
   body.append("step", step);
   body.append("model", model);

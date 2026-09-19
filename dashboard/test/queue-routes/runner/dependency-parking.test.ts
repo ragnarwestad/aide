@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TOKEN, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import { OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** The message a job carries, as text. Since spec 380 a job stores
@@ -13,7 +13,6 @@ import { renderSentence } from "../../../src/i18n/message.ts";
 function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
-
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -34,7 +33,7 @@ afterEach(() => {
 // spawning anything, and leaves the job queued with the reason on its
 // row until the answer changes.
 describe("a job parked on an unmerged dependency (spec 122)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const DEPENDENT = "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
 
   /** A projects root this suite owns, so the paths git is asked about
@@ -154,7 +153,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const git = gitFor(() => false);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -186,7 +184,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const git = gitFor(() => true, true);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -220,7 +217,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const git = gitFor(() => false);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -258,7 +254,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const git = gitFor(() => archived);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -299,7 +294,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const paths = root(dir);
     const mirror = join(dir, "queue.json");
     const common = {
-      queueToken: TOKEN,
       projectRoot: paths.root,
       queueProjectRoot: paths.root,
       queueMirrorPath: mirror,
@@ -344,7 +338,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const paths = root(dir);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -355,7 +348,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect((await queueImplement(base)).status).toBe(200);
     await settle();
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     // The ordinary queued badge, with the reason underneath it — no
     // seventh badge variant and no new job state were introduced. The
@@ -371,7 +364,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     const paths = root(dir);
     const { base } = harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         queueRunnerBin: bin,
@@ -394,7 +386,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(job?.error).toBeUndefined();
     expect(job?.errorReason).toBeUndefined();
     const html = await (
-      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${OPEN_81}`, )
     ).text();
     // Nor go on rendering on the row (REQ-2).
     expect(html).not.toContain("held back: depends on 80, which is not archived yet");
@@ -439,7 +431,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const paths = rootWithOpenRow(dir);
       const { base } = harness.start({
         extra: {
-          queueToken: TOKEN,
           projectRoot: paths.root,
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
@@ -475,7 +466,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const paths = rootWithoutAnalyze(dir);
       const { base } = harness.start({
         extra: {
-          queueToken: TOKEN,
           projectRoot: paths.root,
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
@@ -500,7 +490,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const paths = rootWithoutAnalyze(dir);
       const { base } = harness.start({
         extra: {
-          queueToken: TOKEN,
           projectRoot: paths.root,
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
@@ -593,7 +582,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const { bin, argvFile } = appendingStub(dir);
       const { base } = harness.start({
         extra: {
-          queueToken: TOKEN,
           projectRoot: paths.root,
           queueProjectRoot: paths.root,
           queueRunnerBin: bin,
@@ -645,7 +633,6 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
       const { bin: freshBin } = stub(freshDir);
       const fresh = harness.start({
         extra: {
-          queueToken: TOKEN,
           projectRoot: paths.root,
           queueProjectRoot: paths.root,
           queueRunnerBin: freshBin,

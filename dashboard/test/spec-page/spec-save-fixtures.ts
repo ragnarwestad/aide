@@ -8,7 +8,6 @@ import { join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { queueHarness, type QueueHarness } from "../helpers/queue-server.ts";
 
-export const TOKEN = "s3cret-token";
 export const SPEC = "81-queue-and-runner";
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 // Spec 394: the banner's own tracking route — what the spec depends on
@@ -28,8 +27,6 @@ export const HEAD_SHA = "1111111bbbbbbb";
 
 export const DESCRIPTION = "# Queue and runner - Description\n\n## Description\n\nAs it was.\n";
 export const NEW_TEXT = "# Queue and runner - Description\n\n## Description\n\nAs it is now.\n";
-
-export const auth = { headers: { "x-aide-token": TOKEN } };
 
 export const descriptionPath = (dir: string, folder = SPEC) => specFilePath(dir, "1-description.md", folder);
 
@@ -65,12 +62,12 @@ export const archivedDescriptionPath = (dir: string) =>
 export function createSpecSaveHarness(prefix = "aide-spec-save-") {
   const harness: QueueHarness = queueHarness(prefix);
   const start = (gitRun: GitRunner, extra = {}) =>
-    harness.start({ description: DESCRIPTION, extra: { queueToken: TOKEN, gitRun, ...extra } });
+    harness.start({ description: DESCRIPTION, extra: { gitRun, ...extra } });
   const startArchived = (gitRun: GitRunner) =>
     harness.start({
       description: DESCRIPTION,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
-      extra: { queueToken: TOKEN, gitRun },
+      extra: { gitRun },
     });
   return { harness, start, startArchived };
 }
@@ -108,13 +105,10 @@ export const savable = (root: string, extra: Record<string, { code: number; stdo
   };
 };
 
-export const post = (base: string, body: Record<string, string>, path = SAVE, token: string | null = TOKEN) =>
+export const post = (base: string, body: Record<string, string>, path = SAVE) =>
   fetch(`${base}${path}`, {
     method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      ...(token ? { "x-aide-token": token } : {}),
-    },
+    headers: { "content-type": "application/x-www-form-urlencoded" },
     redirect: "manual",
     body: new URLSearchParams(body).toString(),
   });

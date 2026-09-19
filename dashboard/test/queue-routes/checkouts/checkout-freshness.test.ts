@@ -6,10 +6,7 @@ import {
 } from "../../../src/serve/serve.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -30,7 +27,7 @@ afterEach(() => {
 // tests and the checkout-listing (spec 218) tests are their own sibling
 // files, sharing `git` and `realProject` via ./checkout-safety-fixtures.ts.
 describe("the dashboard works in checkouts of its own (spec 205)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   /** Poll until `check` says yes, or give up. Nothing here can be
    *  awaited directly: what is under test is a background tick. */
@@ -99,8 +96,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, gitRun: gated,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: gated,
       queueRunnerBin: bin, queueResultDir: join(site, "jobs"),
     });
     try {

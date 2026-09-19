@@ -419,11 +419,10 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // and every box it posts are written OUTSIDE its tags, reaching it by
   // `form="…"` alone (the trick spec 123 introduced for the model).
   test("the Run form carries the hidden fields, and the button posts it by id", () => {
-    const cell = actionCell(group(rows([], [target("124-stack")], { token: "s3cret" }), "124-stack"));
+    const cell = actionCell(group(rows([], [target("124-stack")], {}), "124-stack"));
     expect(cell).toContain('<form id="rowrun-aide/124-stack" method="post" action="/api/queue"');
     expect(cell).toContain('name="project" value="aide"');
     expect(cell).toContain('name="specFolder" value="124-stack"');
-    expect(cell).toContain('name="token" value="s3cret"');
     expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Analyze<\/button>/);
     // Open, so the boxes on the phase lines are the only source of
     // `steps` — the form carries none of its own.

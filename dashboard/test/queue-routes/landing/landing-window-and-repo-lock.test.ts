@@ -8,10 +8,7 @@ import {
 import { type GitRunner } from "../../../src/git/branch-status.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -23,14 +20,13 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-
 // Spec 254: `Runner.complete()` writes `state: "done"` and `landing: true`
 // in the same update — the merge into the default branch has not
 // happened yet. This holds that merge open the way
 // `cache-warmer.test.ts`'s `recordingGit({ hold })` holds `ls-remote`,
 // long enough to observe the job mid-landing.
 describe("a step reads busy for the whole landing window (spec 254)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPEC = "81-queue-and-runner";
 
   function own(prefix: string): string {
@@ -106,7 +102,6 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     mkdirSync(results, { recursive: true });
     return { ...harness.start({
       extra: {
-        queueToken: TOKEN,
         projectRoot: paths.root,
         queueProjectRoot: paths.root,
         gitRun: git.run,
@@ -205,7 +200,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
 // specs repo can finish within seconds of each other under queue
 // concurrency. So the same measurement is taken over two LANDINGS.
 describe("two landings against one repo run one at a time (criteria 6, 10)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SHARED_REPO = "/repos/aide-specs";
   const SECOND_SPEC = "82-second-spec";
 
@@ -241,7 +236,6 @@ describe("two landings against one repo run one at a time (criteria 6, 10)", () 
     const git = gitCounting();
     const { base } = start(
       {
-        queueToken: TOKEN,
         gitRun: git.run,
         queueRunnerBin: "/usr/bin/true",
         queueResultDir: results,

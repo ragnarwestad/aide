@@ -15,7 +15,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-spec-page-checks-phase-");
 
@@ -23,8 +23,6 @@ afterEach(() => harness.cleanup());
 
 const FOLDER = "81-queue-and-runner";
 const PATH = `/specs/aide/${FOLDER}`;
-const auth = { headers: { "x-aide-token": TOKEN } };
-
 /** A `4-status.md` with one open Acceptance row, naming `task` — the
  *  Acceptance section because that is the one the Checks tab draws as
  *  boxes, the Phase tables being the implement run's own record. */
@@ -76,24 +74,22 @@ const isTickable = (html: string, task: string): boolean => {
 describe("specPageView's Checks tab: rows and phase agree, from one parse", () => {
   test("a spec ticked only on its own open branch draws the branch's tickable row, not the stale disk one", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: true, branchText: statusWithOpenRow("write branch-only test") }),
     });
     // The disk copy is behind: this row sits only on the branch until
     // archive lands it (spec 298).
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
-    const html = await (await fetch(`${base}${PATH}?tab=checks`, auth)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=checks`)).text();
     expect(isTickable(html, "write branch-only test")).toBe(true);
     expect(html).not.toContain("write disk-only test");
   });
 
   test("a spec with no open branch falls back to the disk copy's row, unchanged", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: false }),
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
-    const html = await (await fetch(`${base}${PATH}?tab=checks`, auth)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=checks`)).text();
     expect(isTickable(html, "write disk-only test")).toBe(true);
   });
 
@@ -105,13 +101,12 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
   // proving the two tabs' own async work does not interfere.
   test("visiting the Description tab first changes nothing about the Checks tab afterwards", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: true, branchText: statusWithOpenRow("write branch-only test") }),
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
-    const description = await fetch(`${base}${PATH}?tab=description`, auth);
+    const description = await fetch(`${base}${PATH}?tab=description`);
     expect(description.status).toBe(200);
-    const checks = await (await fetch(`${base}${PATH}?tab=checks`, auth)).text();
+    const checks = await (await fetch(`${base}${PATH}?tab=checks`)).text();
     expect(isTickable(checks, "write branch-only test")).toBe(true);
     expect(checks).not.toContain("write disk-only test");
   });

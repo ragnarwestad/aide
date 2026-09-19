@@ -10,11 +10,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  TOKEN, SPEC, PAGE, ANALYSIS_TAB, SOLUTION_TAB, STATUS_TAB, DESCRIPTION, FILE_SHA,
-  createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, savable, post,
-  ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath,
-} from "./spec-save-fixtures.ts";
+import { SPEC, PAGE, ANALYSIS_TAB, SOLUTION_TAB, STATUS_TAB, DESCRIPTION, FILE_SHA, createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, savable, post, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath } from "./spec-save-fixtures.ts";
 import { branchAwareGitRunner, BRANCH_FILE_SHA } from "./spec-checks-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
@@ -207,7 +203,7 @@ describe("a queued job gates a save on the newly-editable tabs too (REQ-6)", () 
     fillAnalysisAndSolution(dir);
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);

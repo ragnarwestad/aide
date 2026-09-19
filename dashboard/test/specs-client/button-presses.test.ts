@@ -8,15 +8,12 @@ import {
 
 
 describe("a row button posts from the page (criteria 10-12)", () => {
-  test("it asks for JSON on the form's own route, and carries the token", async () => {
+  test("it asks for JSON on the form's own route", async () => {
     const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
     await h.submit();
     const posted = h.requests.find((r) => r.url.includes("/cancel"))!;
     expect(posted.init.method).toBe("POST");
     expect((posted.init.headers as Record<string, string>).accept).toBe("application/json");
-    // The guard reads a header, the query string or the cookie — never
-    // the form body, which is where the hidden field would have gone.
-    expect(posted.url).toContain("token=s3cret");
   });
 
   // Spec 104: it says so by CHANGING, not by changing its word. The
@@ -114,16 +111,13 @@ describe("a refused action keeps the view and names its spec (criteria 7, 8)", (
     const h = harness(
       (url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }),
       "actionform",
-      "?state=active&sort=cost&token=s3cret",
+      "?state=active&sort=cost",
     );
     await h.submit();
     const to = new URL(h.replaced[0]!, "http://dash.test");
     expect(to.pathname).toBe("/");
     expect(to.searchParams.get("state")).toBe("active");
     expect(to.searchParams.get("sort")).toBe("cost");
-    // The token is handed over once as a cookie; carrying it back into
-    // the address bar would put it in history for no reason.
-    expect(to.searchParams.get("token")).toBeNull();
   });
 
   test("the spec the server named rides along, so the row can show it", async () => {

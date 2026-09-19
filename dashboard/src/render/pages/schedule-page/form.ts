@@ -6,7 +6,7 @@
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, field, tokenField } from "../../ui/components";
+import { btn, field } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
@@ -18,7 +18,6 @@ export interface ScheduleFormOptions {
   entryName?: string;
   entry?: { name: string; cron: string; prompt: string; model?: string };
   action: string;
-  token?: string;
   error?: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -111,7 +110,6 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
   return (
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
-    tokenField(opts.token) +
     (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
     `<p class="rowmsg failed scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     `<div class="frow">` +

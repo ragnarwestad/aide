@@ -11,11 +11,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 import { statusSaying, type QueueHarness } from "../../helpers/queue-server.ts";
-import { TOKEN } from "../fixtures.ts";
 
 export const SPEC = "81-queue-and-runner";
 export const BRANCH = `aide/${SPEC}`;
-export const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+export const AUTH = { "content-type": "application/json", accept: "application/json" };
 
 /** Temp directories a test file makes for itself, outside the harness —
  *  one tracker per file, so `afterEach` in one file never sweeps
@@ -135,7 +134,6 @@ export function serverWith(
   mkdirSync(results, { recursive: true });
   return harness.start({
     extra: {
-      queueToken: TOKEN,
       projectRoot: paths.root,
       queueProjectRoot: paths.root,
       gitRun: git.run as never,

@@ -11,7 +11,6 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
 const FOLDER = "81-queue-and-runner";
 
 const harness = queueHarness("aide-e2e-leave-app-");
@@ -31,7 +30,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
-  const started = harness.start({ extra: { queueToken: TOKEN } });
+  const started = harness.start();
   base = started.base;
   ran(started.dir, []);
 });
@@ -65,7 +64,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
   // path has vanished says nothing about the dialog either way.
   test("the exit path these cases use is on the page", async () => {
     await withTimeout(
-      page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
+      page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
       "page.goto(spec page)",
     );
@@ -74,7 +73,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
 
   test("AC-1/AC-2: dialog.leaveapp opens inside the viewport, not off it", async () => {
     await withTimeout(
-      page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
+      page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
       "page.goto(spec page)",
     );
@@ -97,7 +96,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
 
   test('pressing "Stay" leaves no stray .awaiting link and no open pageoverlay behind', async () => {
     await withTimeout(
-      page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
+      page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
       "page.goto(spec page)",
     );
@@ -116,7 +115,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
 
   test('pressing "Leave" navigates to the link\'s destination', async () => {
     await withTimeout(
-      page.goto(`${base}/specs/aide/${FOLDER}?token=${TOKEN}&live=0`),
+      page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
       "page.goto(spec page)",
     );

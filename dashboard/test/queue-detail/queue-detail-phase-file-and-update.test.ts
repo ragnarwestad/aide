@@ -6,8 +6,6 @@ import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-const TOKEN = "s3cret-token";
-
 const DESCRIPTION =
   "# A running job is a black box - Description\n\n" +
   "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
@@ -18,16 +16,14 @@ const DESCRIPTION =
 const harness = queueHarness("aide-queue-detail-");
 
 const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { queueToken: TOKEN, ...extra } });
+  harness.start({ description: DESCRIPTION, extra: { ...extra } });
 
 afterEach(() => harness.cleanup());
-
-const auth = { headers: { "x-aide-token": TOKEN } };
 
 async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
@@ -55,7 +51,7 @@ describe("a phase job's page shows that phase's file", () => {
     const { base, dir } = start();
     withFiles(dir);
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    const html = await (await fetch(`${base}/specs/${id}`)).text();
     expect(html).toContain("One must-fix.");
     expect(html).toContain("Medium.");
     expect(html).not.toContain("Seven files.");
@@ -66,7 +62,7 @@ describe("a phase job's page shows that phase's file", () => {
     const { base, dir } = start();
     withFiles(dir);
     const id = await enqueue(base, ["implement"]);
-    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    const html = await (await fetch(`${base}/specs/${id}`)).text();
     expect(html).toContain("Workflow steps completed");
   });
 });
@@ -81,7 +77,7 @@ describe("POST the Update action", () => {
   const press = (base: string) =>
     fetch(`${base}${UPDATE}`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/x-www-form-urlencoded" },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: "",
     });
@@ -154,7 +150,7 @@ describe("POST the Update action", () => {
   test("the refusal is on the page the button was pressed from, not in a JSON body", async () => {
     const { base } = start({ gitRun: pullable({ "diff --quiet HEAD": { code: 1 } }) });
     const location = decodeURIComponent((await press(base)).headers.get("location")!);
-    const html = await (await fetch(`${base}${location}`, auth)).text();
+    const html = await (await fetch(`${base}${location}`)).text();
     expect(html).toContain("uncommitted");
   });
 
@@ -162,7 +158,7 @@ describe("POST the Update action", () => {
     const { base } = start({ gitRun: pullable() });
     const res = await fetch(`${base}/api/queue/specs/aide/99-no-such-spec/update`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
       redirect: "manual",
     });
     expect(res.status).toBe(404);
@@ -170,12 +166,7 @@ describe("POST the Update action", () => {
 
   test("GET is not an update — a pull is a POST like every other action", async () => {
     const { base } = start({ gitRun: pullable() });
-    expect((await fetch(`${base}${UPDATE}`, auth)).status).toBe(405);
-  });
-
-  test("it is behind the token like every other queue path", async () => {
-    const { base } = start({ gitRun: pullable() });
-    expect((await fetch(`${base}${UPDATE}`, { method: "POST", redirect: "manual" })).status).toBe(401);
+    expect((await fetch(`${base}${UPDATE}`)).status).toBe(405);
   });
 
   test("approve, cancel and merge still answer — the new action does not swallow them", async () => {
@@ -183,7 +174,7 @@ describe("POST the Update action", () => {
     const id = await enqueue(base);
     const res = await fetch(`${base}/api/queue/${id}/cancel`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, accept: "application/json" },
+      headers: { accept: "application/json" },
     });
     expect(res.status).toBe(200);
   });
@@ -226,7 +217,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     expect((await report(base2, "sess-210-green", "green")).status).toBe(200);
     const html = await (
-      await fetch(`${base2}/?open=aide/81-queue-and-runner`, auth)
+      await fetch(`${base2}/?open=aide/81-queue-and-runner`)
     ).text();
     expect(html).toContain("Running (green)");
     expect(html).toContain('data-third="1"');
@@ -245,7 +236,7 @@ describe("a running implement's TDD phase reaches the page", () => {
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const rows = await (
-      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`, auth)
+      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`)
     ).text();
     expect(rows).toContain("running");
     expect(rows).not.toContain("running (");
@@ -265,7 +256,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     expect((await report(base2, "sess-210-analyze", "green")).status).toBe(200);
     const rows = await (
-      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`, auth)
+      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`)
     ).text();
     expect(rows).toContain("running");
     expect(rows).not.toContain("running (");

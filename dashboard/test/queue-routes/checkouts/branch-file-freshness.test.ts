@@ -14,14 +14,7 @@ import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.
 import { withFreshness } from "../../../src/serve/land-branch";
 import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
-import {
-  TOKEN,
-  specControls,
-  phaseDone,
-  listUntil,
-  dated,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specControls, phaseDone, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -119,7 +112,6 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
 
   test("REQ-1: a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze", "implement"]) }),
     });
     // The disk copy — the default-branch checkout's own — has not caught
@@ -134,7 +126,6 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
 
   test("REQ-2: a branch copy that genuinely disagrees with the history still says so", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze"]) }),
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
@@ -156,7 +147,6 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
   // and `aide-run-spec` (spec 202) already resolve.
   test("a folder archive has already moved on the branch is still read from the branch", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({
         open: true,
         archivedText: statusSaying(["create", "analyze", "implement", "archive"]),
@@ -173,7 +163,6 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
 
   test("REQ-3: no open branch falls back to the disk read, exactly as before this fix", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({ open: false }),
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
@@ -188,7 +177,6 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
   // through this path, not the disk one above.
   test("REQ-1: the branch's own state file claiming a phase git has no commit for raises no qualifier (spec 362)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: branchReadingGitRun({
         open: true,
         branchText: statusSaying(["create", "analyze"]),

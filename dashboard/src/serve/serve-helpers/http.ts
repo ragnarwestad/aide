@@ -1,7 +1,6 @@
 // Plain request/response plumbing: JSON responses, a bounded body read,
-// token comparison, cookies, and the sort-column cookie.
+// cookies, and the sort-column cookie.
 
-import { createHash, timingSafeEqual } from "node:crypto";
 import { MAX_BODY } from "./config.ts";
 import { LANGUAGES, type Language } from "../../i18n";
 
@@ -30,16 +29,6 @@ export async function readBounded(
   const text = await req.text();
   if (text.length > cap) return { refusal: json({ error: "payload too large" }, 413) };
   return { text };
-}
-
-// Digest both sides first: timingSafeEqual throws on unequal lengths,
-// so comparing raw strings would leak length and crash on a mismatch.
-export function tokenMatches(provided: string | null | undefined, expected: string): boolean {
-  if (!provided) return false;
-  return timingSafeEqual(
-    createHash("sha256").update(provided).digest(),
-    createHash("sha256").update(expected).digest(),
-  );
 }
 
 export function cookieValue(header: string | null, name: string): string | null {

@@ -15,7 +15,6 @@ import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
 import { connect as connectStream, type Stream } from "../helpers/sse.ts";
 import { flippingGit } from "../helpers/fake-git.ts";
 
-const TOKEN = "s3cret-token";
 
 const harness = queueHarness("aide-queue-events-");
 
@@ -30,13 +29,12 @@ afterEach(async () => {
 
 const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
-const auth = { "x-aide-token": TOKEN };
-const postJson = { "content-type": "application/json", accept: "application/json", ...auth };
+const postJson = { "content-type": "application/json", accept: "application/json" };
 
 /** One held-open connection, read frame by frame — `connectStream`
  *  (`helpers/sse.ts`) plus this file's own default query and cleanup
  *  registration. */
-async function connect(base: string, query = `?token=${TOKEN}`): Promise<Stream> {
+async function connect(base: string, query = ``): Promise<Stream> {
   const s = await connectStream(base, query);
   open_.push(s);
   return s;
@@ -63,29 +61,8 @@ async function enqueue(base: string): Promise<string> {
 }
 
 describe("GET /api/queue/events", () => {
-  test("is behind the token like every other queue route (criterion 9)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    expect((await fetch(`${base}/api/queue/events`)).status).toBe(401);
-    expect((await fetch(`${base}/api/queue/events?token=wrong`)).status).toBe(401);
-  });
-
-  test("is 503, not a held-open stream, when no token is configured", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/api/queue/events`);
-    expect(res.status).toBe(503);
-    expect((await res.text()).toLowerCase()).toContain("token");
-  });
-
-  test("the cookie the page already carries is enough — EventSource cannot send a header", async () => {
-    const { base, server } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/api/queue/events`, { headers: { cookie: `aide_token_${server.port}=${TOKEN}` } });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/event-stream");
-    await res.body!.cancel();
-  });
-
   test("answers as an event stream, not as a page", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const s = await connect(base);
     expect(s.contentType).toContain("text/event-stream");
   });
@@ -93,21 +70,21 @@ describe("GET /api/queue/events", () => {
   // The whole point of the spec: an open page that is looking at
   // nothing in particular makes no noise and redraws not at all.
   test("says nothing at all while nothing changes (criterion 1)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     await settled();
     const s = await connect(base);
     await s.quiet(400);
   });
 
   test("a `changed` event follows an enqueue (criterion 2)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const s = await connect(base);
     await enqueue(base);
     expect(await s.next()).toContain("event: changed");
   });
 
   test("a `changed` event follows a cancel (criterion 2)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const s = await connect(base);
     const id = await enqueue(base);
     expect(await s.next()).toContain("event: changed");
@@ -122,7 +99,7 @@ describe("GET /api/queue/events", () => {
   // fresh by accident, and a push driven by the queue alone would have
   // let them sit still for the whole of a long step.
   test("a `changed` event follows POST /api/aide-run (criterion 3)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const s = await connect(base);
     const reported = await fetch(`${base}/api/aide-run`, {
       method: "POST",
@@ -133,7 +110,7 @@ describe("GET /api/queue/events", () => {
   });
 
   test("every open page is told, not just the first", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const a = await connect(base);
     const b = await connect(base);
     await enqueue(base);
@@ -145,7 +122,7 @@ describe("GET /api/queue/events", () => {
   // as the server is up, and a broadcast that throws on the first dead
   // one would stop the live ones being told at all.
   test("a page that goes away does not take the others with it", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const gone = await connect(base);
     const still = await connect(base);
     await gone.close();
@@ -189,7 +166,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
   };
 
   test("a folder written straight to disk broadcasts `changed` (criterion 4)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     // Let the start-up echo pass first, so the event read below is the
     // one this test caused and not the fixture's own.
     await settled();
@@ -205,18 +182,18 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
   // say when the next event would come. The watch drops that cache
   // before it speaks.
   test("the rows the page then asks for hold the new spec (criterion 4)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     await settled();
     const s = await connect(base);
     // Draw the page once, so the five-second scan is warm and stale.
-    const first = await fetch(`${base}/?rows=1&token=${TOKEN}`);
+    const first = await fetch(`${base}/?rows=1`);
     expect(first.status).toBe(200);
     expect(await first.text()).not.toContain("206-made-by-hand");
 
     madeByHand(dir, "206-made-by-hand");
     expect(await s.next()).toContain("event: changed");
 
-    const again = await fetch(`${base}/?rows=1&token=${TOKEN}`);
+    const again = await fetch(`${base}/?rows=1`);
     expect(await again.text()).toContain("206-made-by-hand");
   });
 
@@ -224,7 +201,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
   // process — and `cleanup()` removes the very directories these point
   // at, in the same breath.
   test("stop() closes every watcher it opened (criterion 6)", () => {
-    const { server } = harness.start({ extra: { queueToken: TOKEN } });
+    const { server } = harness.start();
     expect(server.specWatchCount()).toBe(1);
     server.stop();
     expect(server.specWatchCount()).toBe(0);
@@ -281,7 +258,7 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     const gate = new Promise<void>((r) => (release = r));
     const git = flippingGit([true], { hold: () => gate, branch: "aide/77-old-thing" });
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 30_000 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 30_000 },
       archivedSpecs: { "77-old-thing": {} },
     });
     const lsRemotes = () => git.calls.filter((c) => c.args[0] === "ls-remote");
@@ -293,14 +270,14 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     // row's own point of view — an unwarmed archived spec reads as
     // ordinary "archived", not as a problem (spec 208's own contract:
     // fail closed, never claim a mark it cannot back up).
-    const before = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
+    const before = await fetch(`${base}/?rows=1&state=archived`);
     expect(await before.text()).not.toContain("its branch is still on origin — re-run archive");
 
     const s = await connect(base);
     release();
     expect(await s.next()).toContain("event: changed");
 
-    const after = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
+    const after = await fetch(`${base}/?rows=1&state=archived`);
     const html = await after.text();
     expect(html).toContain('data-folder="77-old-thing"');
     expect(html).toContain("Its branch is still on origin — re-run archive");

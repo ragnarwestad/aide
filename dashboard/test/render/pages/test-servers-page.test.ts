@@ -16,7 +16,7 @@ const row = (extra: Partial<TestServerRow> = {}): TestServerRow => ({
   specHref: "/specs/aide/150-one-page-shows-the-whole-spec",
   branch: "aide/150-one-page-shows-the-whole-spec",
   status: "running",
-  url: "http://127.0.0.1:8801/?token=t0ken",
+  url: "http://127.0.0.1:8801/",
   stopAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/test-server/stop",
   ...extra,
 });
@@ -64,7 +64,7 @@ describe("the test servers overview", () => {
 
   test("a running row links to the board, by name, not by its raw address", () => {
     const html = renderTestServersPage(NAV, GENERATED, [row()]);
-    expect(html).toContain('href="http://127.0.0.1:8801/?token=t0ken"');
+    expect(html).toContain('href="http://127.0.0.1:8801/"');
     expect(html).toContain(`action="${row().stopAction}"`);
   });
 

@@ -4,7 +4,7 @@
 // see 3-solution.md's own "Confirmation shape, within Approach A" for
 // why this page, not a modal, is the right shape for Close.
 
-import { backLink, field, rowMessage, saveCancelActions, tokenField } from "../../ui/components";
+import { backLink, field, rowMessage, saveCancelActions } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
@@ -22,7 +22,7 @@ export function renderCloseSpecPage(
   specFolder: string,
   entries: NavEntry[],
   generatedAt: string,
-  opts: { token?: string; error?: string; script?: string; lang?: Language; currentUrl?: string } = {},
+  opts: { error?: string; script?: string; lang?: Language; currentUrl?: string } = {},
 ): string {
   const back = specPagePath(project, specFolder);
   const title = `Close ${specFolder}`;
@@ -36,7 +36,6 @@ export function renderCloseSpecPage(
     ) +
     `<form method="post" action="/api/queue${back}/close" class="newspecform specform" ` +
       `data-overlay="${t(opts.lang ?? "en", "shell.overlayClosing")}">` +
-    tokenField(opts.token) +
     `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
     `<span class="frow">` +
     field("Reason", `<textarea name="reason" rows="4" required></textarea>`) +

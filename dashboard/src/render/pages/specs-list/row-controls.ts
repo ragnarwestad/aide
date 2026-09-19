@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, stepLabel, tokenField } from "../../ui/components";
+import { ICON_CHEVRON, btn, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -62,11 +62,10 @@ export function foldControl(g: SpecGroup, f: SpecsFilter, opened: Set<string>, l
 // table in the script.
 function actionForm(
   r: QueueRowView,
-  token: string | undefined,
   filter: SpecsFilter | undefined,
   lang: Language,
 ): string {
-  const hidden = tokenField(token) + filterFields(filter);
+  const hidden = filterFields(filter);
   // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
   // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
   // wrong question on an ordinary row queued for its NEXT step with no
@@ -120,7 +119,6 @@ function actionForm(
 function reopenForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
   return (
     `<form method="post" action="/api/queue" class="actionform">` +
-    tokenField(opts.token) +
     filterFields(opts.filter) +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
@@ -190,7 +188,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // has to lock with it (`rowControls`, spec 151).
   const runForm =
     `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
-    `${tokenField(opts.token)}${filterFields(opts.filter)}` +
+    filterFields(opts.filter) +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `</form>`;
@@ -201,7 +199,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // and the description with nothing left on the board to run again
     // from. The step's own timeout is what ends a create that hangs.
     if (busy && currentStep(g.lead!) === "create") return "";
-    if (busy) return actionForm(g.lead!, opts.token, opts.filter, lang);
+    if (busy) return actionForm(g.lead!, opts.filter, lang);
     if (!action) return "";
     // Primary, like every row's one action (spec 161). It was
     // secondary until then, on the argument that a column of primary

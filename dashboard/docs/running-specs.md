@@ -10,7 +10,7 @@ between them — [A job's states](job-states.md) — the job's state machine, in
 ## Table of contents
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
-- [The token](#the-token)
+- [Who may call it](#who-may-call-it)
 - [The time limit](#the-time-limit)
 - [Which AI runs a step](#which-ai-runs-a-step)
 - [How the board finds a CLI](#how-the-board-finds-a-cli)
@@ -85,25 +85,34 @@ Nothing is guessed at across a restart: the runner spawns detached, in its own p
 A run that hits its own time limit is **stopped**, never **failed**. With tight timeouts a time-stop is a common,
 healthy outcome, and a reader who cannot tell it from a broken agent will start ignoring both.
 
-## The token
+## Who may call it
 
-The whole queue surface — `GET /`, `GET /new` and `GET /projects`, and the old addresses `/specs` and `/queue`,
-included — needs a token; a token a page hands to anyone who can load the page is not a secret. Open
-`/?token=<the token>` once and the browser keeps an `HttpOnly`
-cookie; API callers send `X-Aide-Token`. The generated pages (`/projects.html`, `/<slug>.html`, `/about.html`) and
-`/live` stay open:
-they carry nothing that needs the token. The token is read from a file (`--token-file`), never an argument: `ps` shows
-arguments to every user on the machine.
+The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every
+route — the static site, `/live` and `POST /api/aide-run` included:
 
-**The cookie is `SameSite=Lax`, and it has to be.** A `Strict` cookie is withheld on a top-level navigation that STARTED
-somewhere else, and an installed app launched from the home screen is exactly that — so with
-`Strict` the dashboard installed on a phone opens on "unauthorized" while the same browser is signed in. `Lax` is
-still withheld from a cross-site POST, which is what `Strict` was guarding here, and every form on this page posts
-same-site. Tightening it again breaks the installed app and nothing will say so until someone opens it.
+- **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the machine's Tailscale name (asked
+  of `tailscale status --json` on the first request that needs it, retried every 30 seconds while it has not
+  answered), and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
+  answer as `<name>:8801`. Anything else answers 403 with the refused host in the body, so a page cannot reach the
+  dashboard through a DNS name of its own.
+- **A request that changes something must come from the dashboard's own address.** That is any method but GET, HEAD
+  and OPTIONS, and the one GET that starts a test board (`?startTestServer=1`). Its `Origin`, when it has one, must
+  equal its own `Host` (host and port; the scheme is ignored, because `tailscale serve` ends TLS), and its
+  `Sec-Fetch-Site`, when it has one, must be `same-origin` or `none`. A page on another site, or on another port of
+  the same machine, answers 403.
+- **A header that is absent passes.** `curl`, the run emitter and the round script send no `Origin`, so they are
+  admitted.
 
-**With no token configured every queue route answers 503** — off loudly, rather than open quietly. `/live`,
-`POST /api/aide-run` and the static site are unaffected: the run emitter sends no credential and swallows the answer,
-so a 401 there would silently empty `/live`.
+Each name the dashboard answers to is written once to the log when it is added, so the serving host's log says which
+addresses work. `headerAuth` in `queue-config.json` is still read, and refused unless the server binds loopback; it
+admits nobody the rule above does not.
+
+**The rule stops web pages, not another machine.** `Host`, `Origin` and `Sec-Fetch-Site` are set by whoever sends the
+request, so a machine that can reach the port and sends `Host: localhost` is admitted. Bind loopback
+(`--bind 127.0.0.1`), which `make install-serve` does on a host with Tailscale.
+
+When a change drops an argument the launchd job passes, the job's arguments are re-rendered with
+`MINI=<host> make -C dashboard install-serve`; the service refuses an argument it no longer knows.
 
 ## The time limit
 
@@ -572,8 +581,7 @@ server's own environment (the case above) is left alone, so pointing reporting a
 ```
 
 The address in that block is the HTTPS one; the `:8788` address answers on the serving host itself and nowhere
-else. A bookmark carrying `?token=` works on the HTTPS address, and a browser signed in on the old one signs in
-once more, because the token cookie belongs to the origin it was set on.
+else.
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and

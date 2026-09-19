@@ -7,8 +7,6 @@
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-export const TOKEN = "s3cret-token";
-
 export const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 export function setupQueueRoutesHarness(prefix = "aide-queue-routes-") {
@@ -99,7 +97,7 @@ export const listUntil = async (
   const deadline = Date.now() + budgetMs;
   let html = "";
   for (;;) {
-    html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
     if (ok(html)) return html;
     if (Date.now() > deadline) {
       throw new Error(`the specs list never reached ${what} within ${budgetMs}ms`);
@@ -117,5 +115,4 @@ export const dated = (html: string): boolean =>
 /** The commonest of those predicates: this phase's own line says done. */
 export const rowSaysDone = (step: string, folder = "81-queue-and-runner") => (html: string): boolean =>
   phaseDone(specControls(html, folder), step);
-
 

@@ -27,7 +27,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { specWriteInFlight } from "../../src/serve/routes/spec-edit";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { PAGE, TICK, SAVE, TOKEN, FILE_SHA, DESCRIPTION, NEW_TEXT, auth, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
+import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE,
   CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, phaseSection,
@@ -43,7 +43,7 @@ describe("the checks on the Overview tab", () => {
   // --- criterion 1: which checks Overview offers as boxes -------------------
 
   describe("GET the Overview tab", () => {
-    const overview = (base: string) => fetch(`${base}${PAGE}?tab=checks`, auth).then((r) => r.text());
+    const overview = (base: string) => fetch(`${base}${PAGE}?tab=checks`).then((r) => r.text());
 
     // The Phase tables are the implement RUN's own record, not a
     // person's to tick: nothing anywhere gates on them (archive's only
@@ -124,7 +124,7 @@ describe("the checks on the Overview tab", () => {
     // not an error.
     test("a status file with no phase sections at all opens all the same", async () => {
       const { base } = startWithChecks(savable("/host"), "# Queue - Status\n\n- [ ] something\n");
-      const res = await fetch(`${base}${PAGE}`, auth);
+      const res = await fetch(`${base}${PAGE}`);
       expect(res.status).toBe(200);
       expect(await res.text()).not.toContain('name="tick"');
     });
@@ -194,7 +194,7 @@ describe("the checks on the Overview tab", () => {
     const { base, dir } = startWithChecks(git.run);
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": "s3cret-token" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(queued.status).toBe(200);
@@ -242,7 +242,7 @@ describe("the checks on the Overview tab", () => {
     const { base, dir } = startWithChecks(savable("/host"));
     const res = await fetch(`${base}${TICK}`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([
         ["text", NEW_TEXT],
@@ -262,7 +262,7 @@ describe("the checks on the Overview tab", () => {
     const { base, dir } = startWithChecks(savable("/host"));
     const res = await fetch(`${base}${SAVE}`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([
         ["text", NEW_TEXT],
@@ -286,24 +286,14 @@ describe("the checks on the Overview tab", () => {
     expect(decodeURIComponent(res.headers.get("location")!)).toContain(`${PAGE}?tab=checks`);
   });
 
-  test("it is a POST behind the token, like every other writing route here", async () => {
+  test("it is a POST like every other writing route here", async () => {
     const { base } = startWithChecks(savable("/host"));
-    expect((await fetch(`${base}${TICK}`, auth)).status).toBe(405);
-    expect(
-      (
-        await fetch(`${base}${TICK}`, {
-          method: "POST",
-          headers: { "content-type": "application/x-www-form-urlencoded" },
-          redirect: "manual",
-          body: new URLSearchParams({ checksPhase: PHASE, statusBaseSha: "a3f9c21aaaaaaa", tick: OPEN_ROW }).toString(),
-        })
-      ).status,
-    ).toBe(401);
+    expect((await fetch(`${base}${TICK}`)).status).toBe(405);
     expect(
       (
         await fetch(`${base}/api/queue/specs/aide/99-no-such/tick`, {
           method: "POST",
-          headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": "s3cret-token" },
+          headers: { "content-type": "application/x-www-form-urlencoded" },
           redirect: "manual",
           body: new URLSearchParams({ checksPhase: PHASE, statusBaseSha: "a3f9c21aaaaaaa", tick: OPEN_ROW }).toString(),
         })

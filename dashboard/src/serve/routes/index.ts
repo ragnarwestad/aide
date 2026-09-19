@@ -88,12 +88,11 @@ export interface RoutesContext {
   mergeLock: ReturnType<typeof createRootLock>;
   runner: Runner | null;
   tickRunner: () => Promise<void>;
-  queueToken: string | undefined;
   /** The port this server actually listens on (spec 363), read lazily
    *  the same way `runner-setup.ts`'s `readServerPort` is: `Bun.serve()`
    *  has not returned yet when this context is first assembled, so a
    *  captured value would be `undefined` for the request that fires
-   *  before it does. Names the port-scoped token/sort/state cookies. */
+   *  before it does. Names the port-scoped sort/state cookies. */
   serverPort: () => number;
   jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
   /** Runs the install; the restart it may call for comes back as a

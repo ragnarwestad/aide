@@ -10,7 +10,7 @@
 
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
-import { harness, ownDirs, projectsRoot, settled, serve, TOKEN } from "../project/project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, serve } from "../project/project-detail-route-fixtures.ts";
 import { rmSync } from "node:fs";
 
 setDefaultTimeout(30_000);
@@ -30,7 +30,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
-  page = await browser.newPage({ extraHTTPHeaders: { "x-aide-token": TOKEN } });
+  page = await browser.newPage({ extraHTTPHeaders: {} });
   // A long configured path and a lockfile, so the table carries a long
   // value, two notices and the test command's suggestion — its widest
   // content.

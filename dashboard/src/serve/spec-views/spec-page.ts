@@ -292,8 +292,5 @@ export async function specPageView(
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
     tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
     trackingAction: `/api/queue${specPagePath(project, specFolder)}/tracking`,
-    // The Reopen control on an archived spec posts to `/api/queue`,
-    // which checks the token like every other enqueue (spec 198).
-    token: ctx.queueToken,
   };
 }

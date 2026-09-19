@@ -7,8 +7,8 @@
 // The listing (`projects-page/overview-list.ts`) is served now, not
 // generated — the generated overview drew exactly these rows until
 // spec 115, and draws a redirect here now, because adding and removing
-// a project is a mutating action behind the queue's token, checked per
-// request by a server. The controls follow the New-spec pattern
+// a project is a mutating action, which needs a server
+// behind it. The controls follow the New-spec pattern
 // (2026-08-19): Add is a real button at the top right of the list that
 // opens a page of its own with Save and Cancel, and each project row
 // carries its own Remove.
@@ -28,8 +28,7 @@ import {
   field,
   messageSlot,
   rowMessage,
-  tokenField,
-} from "../../ui/components";
+  } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, aboutProse, buildStampLine, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language } from "../../../i18n";
@@ -70,8 +69,8 @@ export function renderSite(_projects: ProjectView[], generatedAt: string): Page[
   const entries = navEntries();
 
   // The overview is served now (spec 115), because the controls that
-  // change the project list need a token checked per request and a file
-  // has no server behind it to do that. What is written HERE is the way
+  // change the project list need a server behind them and a file
+  // has none. What is written HERE is the way
   // on: the script for a browser, the link for everything else. Both are
   // in the generated content rather than in the server, so a site
   // rsynced behind a plain file server sends the reader on too.
@@ -84,8 +83,7 @@ export function renderSite(_projects: ProjectView[], generatedAt: string): Page[
       // overview, the one page that is about aide itself.
       html: pageShell("Projects", entries, PROJECTS_ROUTE, moved, generatedAt, undefined, {
         docTitle: "aide -board — from spec to merge",
-        // The query string comes along: a bookmark that carried the
-        // token is how a reader arrives here with one.
+        // The query string comes along, so a bookmarked filter survives.
         script: `location.replace('${PROJECTS_ROUTE}' + location.search);`,
         // No request exists at generate time to read a language from
         // (spec 408) — this page is static output, permanently English.
@@ -117,9 +115,6 @@ export const removeProjectRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/remove`;
 
 export interface ProjectsPageOptions {
-  /** Carried into every form on the page, for a browser that got here
-   *  with the token in the address rather than in a cookie. */
-  token?: string;
   /** Every project the queue may run — the RAW allowlist, which is what
    *  the Add and Remove pages exist to change. */
   createProjects?: string[];
@@ -284,7 +279,6 @@ export function renderAddProjectPage(
     `<form method="post" action="/api/queue/projects" class="newspecform addprojectform"` +
     (Object.keys(proposals).length ? ` data-proposals="${esc(JSON.stringify(proposals))}"` : "") +
     `>` +
-    tokenField(opts.token) +
     `<span class="frow">` +
     field(
       "Name",
@@ -412,7 +406,6 @@ export function renderRemoveProjectPage(
     ) +
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/remove" class="newspecform removeform" ` +
       `data-overlay="${t(opts.lang ?? "en", "shell.overlayRemoving")}">` +
-    tokenField(opts.token) +
     rowMessage("waiting", `Are you sure you want to remove ${name}? This cannot be undone.`, {
       tag: "p",
     }) +

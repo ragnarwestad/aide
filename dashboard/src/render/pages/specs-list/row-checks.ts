@@ -3,7 +3,7 @@
 // Save. The state is in the URL (`?checks=`), like the row's own fold, so
 // it survives the live redraw and works with script off.
 
-import { ICON_CHEVRON, btn, tokenField } from "../../ui/components";
+import { ICON_CHEVRON, btn } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
@@ -31,7 +31,7 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language): string
 }
 
 /** The list under the message, or nothing while it is folded. */
-export function checksPanel(g: SpecGroup, f: SpecsFilter, token: string | undefined, lang: Language): string {
+export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): string {
   const key = groupKey(g.project, g.specFolder);
   if (!unfoldedKeys(f).has(key)) return "";
   const rows = g.acceptance ?? [];
@@ -61,7 +61,6 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, token: string | undefi
   return (
     `<form class="actionform rowchecks" id="${esc(formId)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tick?fromList=1">` +
-    tokenField(token) +
     filterFields(f) +
     `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
     `<ul class="checklist">${rows.map(item).join("")}</ul>` +

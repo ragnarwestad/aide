@@ -63,10 +63,10 @@ describe("GET /api/version — this process's own boot-time commit (spec 269)", 
     expect(await pollVersion(base, null)).toBeNull();
   });
 
-  test("no token, no cookie — still 200, matching the unauthenticated PWA routes (criterion 6)", async () => {
+  test("no credential at all — still 200 (criterion 6)", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });
-    // Deliberately no `x-aide-token` header and no cookie.
+    // Deliberately no header and no cookie of any kind.
     const res = await fetch(`${base}/api/version`);
     expect(res.status).toBe(200);
   });

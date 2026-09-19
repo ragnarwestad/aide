@@ -131,7 +131,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     try {
       const { code } = await runToExit(
         [aide, "--branch", "424-headeren-sier-hvilket-board", "--port", String(decoy.port), "--keep", "--timeout", "5"],
-        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token", FAKE_BUN_LOG: logPath },
+        { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
       // The decoy's own port-already-held refusal — proof this test never
       // waited out a real board coming up, not proof of the round's own
@@ -180,7 +180,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     try {
       await runToExit(
         [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--keep", "--timeout", "5"],
-        { AIDE_ROUND_BUN: binPath, AIDE_ROUND_TOKEN: "test-token", FAKE_BUN_LOG: logPath },
+        { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
@@ -217,7 +217,6 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     try {
       await runToExit([aide, "--port", String(decoy.port), "--keep", "--timeout", "5"], {
         AIDE_ROUND_BUN: binPath,
-        AIDE_ROUND_TOKEN: "test-token",
         FAKE_BUN_LOG: logPath,
       });
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");

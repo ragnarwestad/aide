@@ -6,10 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
-import {
-  TOKEN, SPEC, TRACKING, FILE_SHA, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath,
-  descriptionPath, savable, post,
-} from "./spec-save-fixtures.ts";
+import { SPEC, TRACKING, FILE_SHA, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath, descriptionPath, savable, post } from "./spec-save-fixtures.ts";
 
 const harness = queueHarness("aide-spec-tracking-");
 afterEach(() => harness.cleanup());
@@ -31,7 +28,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("REQ-10: the box CLEARED writes the not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
@@ -42,7 +39,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("REQ-10: the box TICKED removes an existing not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(ACCEPT_LINE),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
@@ -57,7 +54,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("no acceptanceEditable sentinel leaves the acceptance record untouched", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(ACCEPT_LINE),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceNotRequired: "0", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
@@ -72,7 +69,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       status: statusSaying(["create", "analyze"]),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
@@ -89,7 +86,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       description: TRACKED(),
       status: statusSaying(["create", "analyze"]),
       alsoSpecs: [OTHER],
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { dependsOn: OTHER, baseSha: FILE_SHA });
     expect(res.status).toBe(303);
@@ -101,7 +98,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await post(
       base,
@@ -118,7 +115,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   test("a stale baseSha is refused, and nothing is written", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await track(base, { acceptanceEditable: "1", acceptanceNotRequired: "1", baseSha: "stale-sha" });
     expect(res.status).toBe(303);
@@ -127,13 +124,4 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
-  test("no token, no save", async () => {
-    const { base, dir } = harness.start({
-      description: TRACKED(),
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
-    });
-    const res = await post(base, { acceptanceEditable: "1", baseSha: FILE_SHA }, TRACKING, null);
-    expect(res.status).toBe(401);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
-  });
 });

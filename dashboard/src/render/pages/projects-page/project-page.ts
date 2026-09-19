@@ -6,7 +6,7 @@ import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components";
+import { btn, messageSlot, rowMessage } from "../../ui/components";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t } from "../../../i18n";
@@ -147,7 +147,6 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const button =
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform" ` +
       `data-overlay="${t(opts.lang ?? "en", "shell.overlayDeploying")}">` +
-    tokenField(opts.token) +
     btn({
       label: "Deploy",
       variant: "primary",
@@ -183,7 +182,6 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   const button =
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/test-server" ` +
     `target="_blank" class="testserverform">` +
-    tokenField(opts.token) +
     btn({ label: t(lang, "project.testServerButton"), variant: "primary" }) +
     `</form>`;
   return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
@@ -231,7 +229,6 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
       {
         action: "/api/queue/schedule",
         fixedProject: project,
-        token: opts.token,
         error: opts.error,
         modelChoices: opts.modelChoices,
         defaultModels: opts.defaultModels,

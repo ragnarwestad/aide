@@ -5,7 +5,7 @@
 // spec-page control and the specs-list row's forms post through.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
@@ -13,7 +13,7 @@ const { harness } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+const AUTH = { "content-type": "application/json", accept: "application/json" };
 
 const queue = (base: string, steps: string[]) =>
   fetch(`${base}/api/queue`, {
@@ -38,7 +38,7 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
     test(`${step}: no open AC-n row changed since the round boundary is refused, saying so`, async () => {
       const { run } = fakeGit({ "show abc1234:1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
       const { base } = harness.start({
-        extra: { queueToken: TOKEN, gitRun: run },
+        extra: { gitRun: run },
         status: heldBackStatus("| AC-1: first requirement | ⬜ | |"),
         description: "# Queue - Description\n\n- **AC-1:** first requirement\n",
       });
@@ -54,7 +54,7 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
     test(`${step}: an open AC-n row reworded since the round boundary is accepted`, async () => {
       const { run } = fakeGit({ "show abc1234:1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
       const { base } = harness.start({
-        extra: { queueToken: TOKEN, gitRun: run },
+        extra: { gitRun: run },
         status: heldBackStatus("| AC-1: first requirement, reworded | ⬜ | |"),
         description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
       });
@@ -70,7 +70,7 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
 describe("REQ-9: a backward move is refused before it reaches the queue", () => {
   test("analyze requested on an already-implemented spec is refused, naming reset", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN },
+      extra: {},
       status: statusSaying(["create", "analyze", "implement"]),
     });
 
@@ -85,7 +85,7 @@ describe("REQ-9: a backward move is refused before it reaches the queue", () => 
 
   test("analyze requested again on a spec still analyzed (same phase) is accepted", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN },
+      extra: {},
       status: statusSaying(["create", "analyze"]),
     });
 

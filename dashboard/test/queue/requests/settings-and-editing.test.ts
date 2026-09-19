@@ -18,7 +18,6 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-
 const DEFAULTS: QueueDefaults = {
   // Per step since spec 152: an implement is not an analyze, and one
   // number for both stopped 149 mid-sentence with its tests green.
@@ -45,7 +44,6 @@ beforeEach(() => {
 });
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
-
 
 // --- spec 112: the allowlist lives in the config file ------------------------
 //

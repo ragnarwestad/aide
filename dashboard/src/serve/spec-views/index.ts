@@ -34,7 +34,6 @@ export interface SpecViewsContext {
   gitRun: GitRunner;
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
   jobRow: (job: Job) => Promise<QueueRowView>;
-  queueToken: string | undefined;
   specFileCommits: SpecFileCommitChecker;
   /** REQ-1/REQ-6: the same "is this branch open" primitive
    *  `rootsStillHolding()` already calls, reused here so the Checks

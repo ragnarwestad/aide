@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -80,14 +80,13 @@ describe("the runner invocation", () => {
     ownDirs.push(dir);
     const { bin, envFile } = stub(dir);
     const { base, server } = start({
-      queueToken: TOKEN,
       queueRunnerBin: bin,
       queueResultDir: join(dir, "jobs"),
       queuePush: "branch",
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(res.status).toBe(200);
@@ -104,14 +103,13 @@ describe("the runner invocation", () => {
     ownDirs.push(dir);
     const { bin, argvFile } = stub(dir);
     const { base } = start({
-      queueToken: TOKEN,
       queueRunnerBin: bin,
       queueResultDir: join(dir, "jobs"),
       queuePush: "branch",
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(res.status).toBe(200);
@@ -198,7 +196,6 @@ describe("the runner invocation", () => {
     const { root, dir } = projectSaying(`aide-queue-landing-${landing ?? "unset"}-`, landing);
     const { bin, argvFile } = stub(dir);
     const { base } = start({
-      queueToken: TOKEN,
       queueRunnerBin: bin,
       queueResultDir: join(dir, "jobs"),
       queuePush,
@@ -208,7 +205,7 @@ describe("the runner invocation", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(res.status).toBe(200);
@@ -249,14 +246,13 @@ describe("the schedule step's output directory (spec 272)", () => {
     const { bin, envFile } = scheduleEnvStub(dir);
     const outputRoot = join(dir, "schedule-output");
     const { base } = start({
-      queueToken: TOKEN,
       queueRunnerBin: bin,
       queueResultDir: join(dir, "jobs"),
       scheduleOutputRoot: outputRoot,
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] }),
     });
     expect(res.status).toBe(200);
@@ -278,7 +274,6 @@ describe("the schedule step's output directory (spec 272)", () => {
       { mode: 0o755 },
     );
     const { base } = start({
-      queueToken: TOKEN,
       queueRunnerBin: bin,
       queueResultDir: join(dir, "jobs"),
       queuePush: "branch",
@@ -286,7 +281,7 @@ describe("the schedule step's output directory (spec 272)", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
     });
     expect(res.status).toBe(200);

@@ -16,8 +16,7 @@ import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
 import { resetRoundState, settledCreateFolder } from "../../src/serve/routes/self-run.ts";
 
-const TOKEN = "s3cret-token";
-const auth = { headers: { "x-aide-token": TOKEN, accept: "application/json" } };
+const auth = { headers: { accept: "application/json" } };
 const TEST_BOARD = "aide-wt-run";
 
 const harness = queueHarness("aide-self-run-");
@@ -69,14 +68,14 @@ function repoWithHistory(dir: string, origin: string, tag: boolean): void {
 }
 
 describe("POST /api/self-run", () => {
-  test("requires the token like every other queue route", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD } });
-    const res = await fetch(`${base}/api/self-run`, { method: "POST" });
-    expect(res.status).toBe(401);
+  test("refuses a press from another site like every other queue route", async () => {
+    const { base } = harness.start({ extra: { testBoardSpec: TEST_BOARD } });
+    const res = await fetch(`${base}/api/self-run`, { method: "POST", headers: { origin: "https://evil.example" } });
+    expect(res.status).toBe(403);
   });
 
   test("with no board info, answers 404 to both the press and the status", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start({ extra: {} });
     expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(404);
     expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(404);
   });
@@ -89,7 +88,7 @@ describe("POST /api/self-run", () => {
   // SECOND round: no Run button is drawn, and a press by hand is refused.
   test("on a board started from a spec's branch, the first press seeds the round and a second is refused", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, testBoardSpec: "424-headeren-sier-hvilket-board", roundFixturesDir: fixtures },
+      extra: { testBoardSpec: "424-headeren-sier-hvilket-board", roundFixturesDir: fixtures },
     });
     const code = join(dir, "root", "aide");
     const specs = join(dir, "specs-repo");
@@ -116,7 +115,7 @@ describe("POST /api/self-run", () => {
 
   test("a board that serves no project ends the round as failed, saying so", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, queueProjects: [] },
+      extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, queueProjects: [] },
     });
     const pressed = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
     expect(pressed.status).toBe(200);
@@ -129,7 +128,7 @@ describe("POST /api/self-run", () => {
   });
 
   test("before any press the status is idle", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD } });
+    const { base } = harness.start({ extra: { testBoardSpec: TEST_BOARD } });
     const res = await fetch(`${base}/api/self-run`, auth);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ stage: "idle", specs: [] });
@@ -137,7 +136,7 @@ describe("POST /api/self-run", () => {
 
   test("a press resets both repositories to their start, drops the project's jobs, and queues the round", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures },
+      extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures },
     });
     // The harness's project is `aide` at root/aide; its specs go to a
     // repository of their own, the way a round's `.aide/config` says.
@@ -202,7 +201,7 @@ describe("POST /api/self-run", () => {
 
   test("a second press while the first is still queueing is refused", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures },
+      extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures },
     });
     const code = join(dir, "root", "aide");
     const specs = join(dir, "specs-repo");

@@ -24,7 +24,6 @@ export async function closeControlRoutes(
     if (!ref || ref.archived) return new Response("not found", { status: 404 });
     const langResult = languageChoice(url, req);
     const html = renderCloseSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
-      token: ctx.queueToken,
       error: url.searchParams.get("error") ?? undefined,
       script: await specsClientScript(),
       lang: langResult.lang,

@@ -13,7 +13,7 @@
 // died: a file says what was true when it was written, and the answer
 // wanted here is what is true now.
 
-import { readFileSync, realpathSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { TEST_SERVER_PORTS, MAIN_TEST_SERVER_KEY, type TestServersContext } from "./lifecycle.ts";
 import type { TestServer } from "./store.ts";
@@ -136,14 +136,6 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
       continue;
     }
     if (!specFolder) continue;
-    // The round keeps its token beside the board's own files, and the
-    // address is no use without it.
-    let token = "";
-    try {
-      token = readFileSync(join(live.workDir, "token"), "utf-8").trim();
-    } catch {
-      token = "";
-    }
     const entry: TestServer = {
       branch,
       commit: wt.commit,
@@ -158,7 +150,7 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
       workDir: live.workDir,
       logPath: join(live.workDir, "serve.log"),
       status: "running",
-      url: `http://127.0.0.1:${port}/${token ? `?token=${token}` : ""}`,
+      url: `http://127.0.0.1:${port}/`,
       startedAt: ctx.now(),
     };
     ctx.store.set(wt.project, specFolder, entry);

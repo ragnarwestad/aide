@@ -159,18 +159,16 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
 // here through a real server the way `row-phase-run.test.ts` already
 // does for the rest of that route's behaviour.
 describe("POST /api/queue records the row's own choice (spec 439)", () => {
-  const TOKEN = "s3cret-pending-steps";
   const harness = queueHarness("aide-pending-steps-route-");
   afterEach(() => harness.cleanup());
 
   const openQuery = "open=" + encodeURIComponent("aide/81-queue-and-runner");
 
   test("a Run submission's ticks are what the row shows on its next render", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const auth = { headers: { "x-aide-token": TOKEN } };
+    const { base } = harness.start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { ...auth.headers, "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
       body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "archive" }).toString(),
     });
     expect(res.status).toBe(200);
@@ -182,8 +180,8 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
     // reason. Cancelling settles the job so the row goes idle, which is
     // the render this test is actually about: what the row shows once
     // there is no job left to speak for it.
-    await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", ...auth });
-    const html = await (await fetch(`${base}/?${openQuery}`, auth)).text();
+    await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST" });
+    const html = await (await fetch(`${base}/?${openQuery}`)).text();
     const ticked = [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map(
       (m) => m[1],
     );
@@ -191,11 +189,10 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
   });
 
   test("a refused submission (an unknown step) records nothing", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -205,7 +202,7 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
     // Nothing was ticked before this, and the refused press must not
     // have written an empty choice over what a later, real Run would
     // otherwise have found unset — the fallback stays available for it.
-    const html = await (await fetch(`${base}/?${openQuery}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${openQuery}`, )).text();
     expect(html).toContain('value="analyze" checked');
   });
 });

@@ -220,14 +220,12 @@ describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
     const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
       project: "aide",
       entryName: "nightly-report",
-      token: "t0ken",
     });
     expect(html).toContain("nightly-report");
     expect(html.toLowerCase()).toContain("run history");
     expect(html).toContain("Are you sure you want to delete nightly-report? This cannot be undone.");
     expect(html).not.toContain("data-confirm=");
     expect(html).not.toContain('name="confirm"');
-    expect(html).toContain('name="token" value="t0ken"');
     expect(html).toContain('class="btn danger"');
     expect(html).toContain(">Cancel</a>");
   });

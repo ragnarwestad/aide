@@ -14,7 +14,6 @@ import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 
-const TOKEN = "s3cret-token";
 const SPEC = "81-queue-and-runner";
 
 const harness = queueHarness("aide-spec-pdf-");
@@ -56,7 +55,6 @@ function start(extra: Partial<ServerOptions> = {}) {
   const cacheDir = join(scratch, "pdf-cache");
   const { base, dir, server } = harness.start({
     extra: {
-      queueToken: TOKEN,
       pdfGeneratorBin: binPath,
       pdfCacheDir: cacheDir,
       pdfToolAvailable: true,
@@ -67,26 +65,17 @@ function start(extra: Partial<ServerOptions> = {}) {
   return { base, dir, server, logPath, cacheDir };
 }
 
-const auth = { headers: { "x-aide-token": TOKEN } };
-
 describe("spec 358: GET a spec's PDF", () => {
-  // REQ-8
-  test("the route requires the token like every other /specs/ route", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
-    expect(res.status).toBe(401);
-  });
-
   test("an unknown spec is 404", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs/aide/does-not-exist/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/does-not-exist/pdf`);
     expect(res.status).toBe(404);
   });
 
   // REQ-7
   test("the tool being unavailable answers 503, and spawns nothing", async () => {
     const { base, logPath } = start({ pdfToolAvailable: false });
-    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(503);
     expect(invocations(logPath)).toHaveLength(0);
   });
@@ -95,7 +84,7 @@ describe("spec 358: GET a spec's PDF", () => {
   test("an active spec's PDF is generated inline with the right headers", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
-    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/pdf");
     expect(res.headers.get("content-disposition")).toBe(`inline; filename="${SPEC}.pdf"`);
@@ -109,7 +98,7 @@ describe("spec 358: GET a spec's PDF", () => {
   test("an archived spec is generated with the archive/ prefix", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
-    const res = await fetch(`${base}/specs/aide/77-old-spec/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/77-old-spec/pdf`);
     expect(res.status).toBe(200);
     const calls = invocations(logPath);
     expect(calls).toHaveLength(1);
@@ -120,9 +109,9 @@ describe("spec 358: GET a spec's PDF", () => {
   test("a second press with no new commit serves the cache and spawns nothing more", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
-    await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(invocations(logPath)).toHaveLength(1);
-    const res2 = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res2 = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res2.status).toBe(200);
     expect(invocations(logPath)).toHaveLength(1);
   });
@@ -131,13 +120,13 @@ describe("spec 358: GET a spec's PDF", () => {
   test("a commit landing on the spec folder invalidates the cache", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
-    await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(invocations(logPath)).toHaveLength(1);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
     writeFileSync(join(specDir, "1-description.md"), "# Queue - Description\n\nUpdated.\n");
     git(join(dir, "root"), "add", "-A");
     git(join(dir, "root"), "commit", "-qm", "edit description");
-    const res2 = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res2 = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res2.status).toBe(200);
     expect(invocations(logPath)).toHaveLength(2);
   });
@@ -148,7 +137,7 @@ describe("spec 358: GET a spec's PDF", () => {
     ran(dir, []);
     const root = join(dir, "root");
     const before = Bun.spawnSync({ cmd: ["git", "-C", root, "status", "--porcelain"], stdout: "pipe" }).stdout.toString();
-    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(200);
     const after = Bun.spawnSync({ cmd: ["git", "-C", root, "status", "--porcelain"], stdout: "pipe" }).stdout.toString();
     expect(after).toBe(before);
@@ -161,7 +150,7 @@ describe("spec 358: GET a spec's PDF", () => {
     chmodSync(binPath, 0o755);
     const { base, dir, cacheDir } = start({ pdfGeneratorBin: binPath });
     ran(dir, []);
-    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`, auth);
+    const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(502);
     expect(await res.text()).toContain("boom");
     // The parent directory is made ahead of the spawn (so the generator

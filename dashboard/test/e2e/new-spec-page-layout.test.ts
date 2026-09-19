@@ -9,8 +9,6 @@ import { queueHarness } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
-
 const harness = queueHarness("aide-e2e-new-spec-layout-");
 let browser: Browser;
 let page: Page;
@@ -52,7 +50,6 @@ beforeAll(async () => {
   // here (255px past the right edge at 760, 115px at 900).
   const started = harness.start({
     extra: {
-      queueToken: TOKEN,
       queueDefaults: {
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
@@ -104,7 +101,7 @@ function rectsIntersect(
 // on a full-width line below it.
 test("AC-1: the acceptance switches' column sits beside the phase table, not below it", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
-  await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+  await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
   const [table, col] = await Promise.all([
     page.locator("#new-spec-form table.list").evaluate((el) => el.getBoundingClientRect()),
     page.locator(".acceptance-col").evaluate((el) => el.getBoundingClientRect()),
@@ -133,7 +130,7 @@ for (const viewport of [
     // position beside the phase table.
     test("AC-3: the acceptance switch's popover stays within the viewport", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+      await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
       await page.locator(ACCEPT_SUMMARY).click();
       await settle(page);
       const rect = await page.locator(ACCEPT_POPOVER).evaluate((el) => el.getBoundingClientRect());
@@ -145,7 +142,7 @@ for (const viewport of [
 
     test("AC-3: the AI-formulate switch's popover stays within the viewport", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+      await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
       await page.locator(FORMULATE_SUMMARY).click();
       await settle(page);
       const rect = await page.locator(FORMULATE_POPOVER).evaluate((el) => el.getBoundingClientRect());
@@ -161,7 +158,7 @@ for (const viewport of [
     // left edge.
     test("AC-1/AC-4: the Depends-on field's popover stays within the viewport", async () => {
       await page.setViewportSize(viewport);
-      await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+      await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
       await page.locator(DEPENDS_SUMMARY).click();
       await settle(page);
       const rect = await page.locator(DEPENDS_POPOVER).evaluate((el) => el.getBoundingClientRect());
@@ -177,7 +174,7 @@ for (const viewport of [
 // phase table.
 test("AC-4: the acceptance switch's popover does not overlap the AI-formulate switch or the phase table", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
-  await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+  await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
   await page.locator(ACCEPT_SUMMARY).click();
   await settle(page);
   const [popover, table, formulateLabel] = await Promise.all([
@@ -191,7 +188,7 @@ test("AC-4: the acceptance switch's popover does not overlap the AI-formulate sw
 
 test("AC-4: the AI-formulate switch's popover does not overlap the acceptance switch or the phase table", async () => {
   await page.setViewportSize({ width: 1270, height: 900 });
-  await withTimeout(page.goto(`${base}/new?token=${TOKEN}&live=0`), 10_000, "page.goto(/new)");
+  await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
   await page.locator(FORMULATE_SUMMARY).click();
   await settle(page);
   const [popover, table, acceptLabel] = await Promise.all([

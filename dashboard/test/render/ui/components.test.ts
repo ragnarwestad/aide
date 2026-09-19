@@ -1,5 +1,5 @@
 // Spec 252: the shared "← Back" primitives — `backLink()`'s markup and
-// `resolveBackHref()`'s same-origin, token-stripping resolution of the
+// `resolveBackHref()`'s same-origin resolution of the
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
@@ -54,13 +54,6 @@ describe("resolveBackHref", () => {
   // Criterion 5.
   test("a foreign-origin referer is discarded, not followed", () => {
     expect(resolveBackHref("https://evil.example/", ORIGIN, "/fallback")).toBe("/fallback");
-  });
-
-  // Criterion 6.
-  test("a same-origin referer carrying token= has it stripped", () => {
-    expect(resolveBackHref(`${ORIGIN}/specs/aide/01-first?token=s3cret`, ORIGIN, "/")).toBe(
-      "/specs/aide/01-first",
-    );
   });
 
   test("a malformed referer falls back rather than throwing", () => {

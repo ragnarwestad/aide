@@ -162,28 +162,11 @@ export async function specsPages(
       view,
     );
     const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
-    // Hand the token over ONCE, as an HttpOnly cookie, so the forms
-    // never have to carry it in their markup.
-    //
-    // `Lax`, not `Strict` (2026-08-22). A Strict cookie is withheld on
-    // a top-level navigation that STARTED somewhere else, and an
-    // installed app launched from the home screen is exactly that — so
-    // the dashboard installed on a phone opened on "unauthorized"
-    // while the same browser was signed in. Lax is sent on an ordinary
-    // top-level navigation and still withheld from a cross-site POST,
-    // which is what Strict was guarding here; every form on this page
-    // posts same-site and is unaffected.
-    // A `Headers` rather than the record it was built from: two
-    // cookies can be handed over on one response — the token on the
-    // first visit and the sort a shared link carried — and a record
-    // has room for one `set-cookie`.
+    // A `Headers` rather than the record it was built from: several
+    // cookies can be handed over on one response — the sort, the state
+    // and the language a shared link carried — and a record has room
+    // for one `set-cookie`.
     const pageHeaders = new Headers(headers);
-    if (url.searchParams.get("token") && ctx.queueToken) {
-      pageHeaders.append(
-        "set-cookie",
-        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
-      );
-    }
     if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
     if (stateResult.setCookie) pageHeaders.append("set-cookie", stateResult.setCookie);
     if (langResult.setCookie) pageHeaders.append("set-cookie", langResult.setCookie);
@@ -194,7 +177,6 @@ export async function specsPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
     const html = renderNewSpecPage(ctx.nav(), new Date().toISOString(), {
-      token: ctx.queueToken,
       createProjects: [...ctx.allowed].sort(),
       targets: ctx.withFreshness(ctx.targets()),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
@@ -211,14 +193,6 @@ export async function specsPages(
       currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    // The same one-time handover `/` and `/projects` do, for a reader
-    // who arrived with the token in the address.
-    if (url.searchParams.get("token") && ctx.queueToken) {
-      headers.append(
-        "set-cookie",
-        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
-      );
-    }
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }

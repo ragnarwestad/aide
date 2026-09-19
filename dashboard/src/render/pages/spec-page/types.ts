@@ -125,11 +125,6 @@ export interface SpecPageView {
    *  route, and therefore its own commit: a person no longer has to
    *  open the description's editor in order to tick a box. */
   tickAction: string;
-  /** The queue's token, when the site has one — the Reopen control
-   *  posts to `/api/queue` like every other lifecycle action, and that
-   *  route checks it. Absent leaves the field out entirely rather than
-   *  posting an empty one, exactly as `tokenField` does on the list. */
-  token?: string;
   /** The spec's own checks (spec 182). Absent for a spec whose
    *  `4-status.md` has no phase section at all. */
   checks?: SpecChecksView;

@@ -9,10 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  SPEC, TICK, PAGE, TOKEN, FILE_SHA, DESCRIPTION, NEW_TEXT, auth, createSpecSaveHarness,
-  ARCHIVED, ARCHIVED_TEXT, savable,
-} from "./spec-save-fixtures.ts";
+import { SPEC, TICK, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, DONE_ROW, STATUS, statusPath, startWithChecks as start, tick, save,
   recording, messageOf,
@@ -122,7 +119,7 @@ describe("the checks on the Overview tab", () => {
     const { base, dir } = startWithChecks(savable("/host"));
     const res = await fetch(`${base}${TICK}`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([["statusBaseSha", FILE_SHA], ["tick", OPEN_ROW]]).toString(),
     });
@@ -137,11 +134,11 @@ describe("the checks on the Overview tab", () => {
       description: DESCRIPTION,
       status: STATUS,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([
         ["checksPhase", PHASE],
@@ -159,12 +156,12 @@ describe("the checks on the Overview tab", () => {
       description: DESCRIPTION,
       status: STATUS,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     // ?tab=checks, not the bare URL: spec 294 (landed the same day)
     // made Description the default tab and renamed this one from
     // "Overview" to "Checks" — the bare URL no longer serves it.
-    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=checks`, auth)).text();
+    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=checks`)).text();
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(html).not.toContain('name="tick"');
   });
@@ -180,7 +177,7 @@ describe("4-status.md cannot be saved as a document", () => {
     const { base, dir } = startWithChecks(savable("/host"));
     const res = await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: new URLSearchParams([["file", "4-status.md"], ["text", "# rewritten\n"], ["baseSha", FILE_SHA]]).toString(),
     });

@@ -6,7 +6,7 @@
 // "it may already be checked out there, or in a leftover worktree".
 
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
@@ -18,10 +18,9 @@ import { workDirOf } from "../../../src/serve/test-servers/port-owner.ts";
  *  own `tmp.XXXX` name, the board's worktree inside it, and the token it
  *  serves with beside that. The NAME is part of the shape — nothing is
  *  removed unless it looks like this. */
-function roundWorkDir(token = "t0ken"): string {
+function roundWorkDir(): string {
   const work = mkdtempSync(join(tmpdir(), "tmp."));
   mkdirSync(join(work, "checkout"), { recursive: true });
-  writeFileSync(join(work, "token"), token);
   return work;
 }
 
@@ -74,7 +73,7 @@ describe("git worktree list --porcelain", () => {
 
 describe("finding a test server again", () => {
   test("the port names the process, the worktree names the spec", async () => {
-    const work = roundWorkDir("s3cret");
+    const work = roundWorkDir();
     const store = new TestServerStore();
     const ctx = makeCtx({
       store,
@@ -91,8 +90,7 @@ describe("finding a test server again", () => {
       "aide/415-x",
       "b67707e",
     ]);
-    // The address is no use without the token the round serves with.
-    expect(entry?.url).toBe("http://127.0.0.1:8801/?token=s3cret");
+    expect(entry?.url).toBe("http://127.0.0.1:8801/");
   });
 
   // The Deploy tab's own test server (spec 441) serves the serving
@@ -100,7 +98,7 @@ describe("finding a test server again", () => {
   // the next press then failed to start a second one on a port the
   // first still held (2026-09-13).
   test("a detached round worktree is the main board, serving the checkout's own branch", async () => {
-    const work = roundWorkDir("s3cret");
+    const work = roundWorkDir();
     const store = new TestServerStore();
     const ctx = makeCtx({
       store,

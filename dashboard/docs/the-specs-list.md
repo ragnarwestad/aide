@@ -331,9 +331,8 @@ The list does not re-ask the server on a timer. Polling every five seconds and r
 or not costs twice: a reader with the browser's own tools open has the ground move under them twelve times a minute,
 and a step that finished waits up to five seconds to show. The server says when instead.
 
-`GET /api/queue/events` is held open and answers `text/event-stream`. It is behind the queue token like every other
-route on this surface, and `EventSource` reaches it with the cookie the page was given on load — it cannot set a header,
-so the cookie is the whole of its auth. The event it writes is a bare `changed` signal with no payload: the browser
+`GET /api/queue/events` is held open and answers `text/event-stream`. It answers any request with a `Host` of the
+dashboard's own, like every other route, and `EventSource` needs no cookie for it. The event it writes is a bare `changed` signal with no payload: the browser
 already knows how to fetch a fresh `#jobrows`, so
 `renderSpecsRows` stays the one place a row is described and there is no second format to keep in step with it.
 

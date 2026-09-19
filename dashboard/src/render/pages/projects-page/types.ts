@@ -27,7 +27,6 @@ export interface ProjectPageOptions {
    *  rather than naming a term from GitHub's settings that is nowhere
    *  on this page. Absent when the checkout could not be asked. */
   defaultBranch?: string;
-  token?: string;
   script?: string;
   codeLanding?: "merge" | "pr";
   /** This project's own recurring jobs (spec 259). Absent or empty

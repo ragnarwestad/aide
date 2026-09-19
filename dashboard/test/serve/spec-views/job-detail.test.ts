@@ -63,7 +63,6 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
     gitRun: fakeGit({}).run,
     withFreshness: (list) => list,
     jobRow: async (job) => ({ ...job }) as never,
-    queueToken: undefined,
     specFileCommits: {} as never,
     branchStatus: {} as never,
     specsRoot: async (dir) => dir,

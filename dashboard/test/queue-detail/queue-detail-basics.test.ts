@@ -14,8 +14,6 @@ import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-const TOKEN = "s3cret-token";
-
 const DESCRIPTION =
   "# A running job is a black box - Description\n\n" +
   "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
@@ -28,16 +26,14 @@ const harness = queueHarness("aide-queue-detail-");
 // Every test here is behind the token, so it is part of the fixture
 // rather than something each call has to remember.
 const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { queueToken: TOKEN, ...extra } });
+  harness.start({ description: DESCRIPTION, extra: { ...extra } });
 
 afterEach(() => harness.cleanup());
-
-const auth = { headers: { "x-aide-token": TOKEN } };
 
 async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
@@ -56,7 +52,7 @@ describe("GET /specs/<id>", () => {
       "# Q - Solution\n\n## Steps\n\nSeven files, one route.\n",
     );
     const id = await enqueue(base);
-    const res = await fetch(`${base}/specs/${id}`, auth);
+    const res = await fetch(`${base}/specs/${id}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -67,32 +63,17 @@ describe("GET /specs/<id>", () => {
 
   test("an unknown id is a 404, not an empty page (criterion 6)", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs/no-such-job`, auth);
+    const res = await fetch(`${base}/specs/no-such-job`);
     expect(res.status).toBe(404);
   });
 
-  test("without the token it is refused exactly like every other queue path (criterion 7)", async () => {
-    const { base } = start();
-    const id = await enqueue(base);
-    for (const path of [`/specs/${id}`, `/api/queue/${id}`, "/specs/no-such-job"]) {
-      const res = await fetch(`${base}${path}`);
-      expect(res.status).toBe(401);
-    }
-  });
-
-  test("with no token configured at all the whole surface is 503, these routes included", async () => {
-    const { base } = start({ queueToken: undefined });
-    for (const path of ["/specs/abc", "/api/queue/abc"]) {
-      expect((await fetch(`${base}${path}`)).status).toBe(503);
-    }
-  });
 });
 
 describe("GET /api/queue/<id>", () => {
   test("returns the one job, in the same shape the list route uses", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    const res = await fetch(`${base}/api/queue/${id}`, auth);
+    const res = await fetch(`${base}/api/queue/${id}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { job: { id: string; specFolder: string; results: unknown[] } };
     expect(body.job.id).toBe(id);
@@ -102,7 +83,7 @@ describe("GET /api/queue/<id>", () => {
 
   test("an unknown id is a 404 (criterion 6)", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/no-such-job`, auth);
+    const res = await fetch(`${base}/api/queue/no-such-job`);
     expect(res.status).toBe(404);
     expect((await res.json()) as { error: string }).toHaveProperty("error");
   });
@@ -112,10 +93,10 @@ describe("GET /api/queue/<id>", () => {
     const id = await enqueue(base);
     const res = await fetch(`${base}/api/queue/${id}/cancel`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, accept: "application/json" },
+      headers: { accept: "application/json" },
     });
     expect(res.status).toBe(200);
-    const after = (await (await fetch(`${base}/api/queue/${id}`, auth)).json()) as {
+    const after = (await (await fetch(`${base}/api/queue/${id}`)).json()) as {
       job: { state: string };
     };
     expect(after.job.state).toBe("cancelled");
@@ -140,7 +121,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
 
     // A fresh server reloads the mirror.
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
     expect(html).toContain("Analyze");
     expect(html).toContain("Implement");
     expect(html).toContain("$0.42");
@@ -153,7 +134,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
   test("the route opens the tab the link asked for", async () => {
     const { base } = start();
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/specs/${id}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base}/specs/${id}?tab=steps`)).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
     expect(html).toContain("No step has finished yet");
   });
@@ -182,7 +163,7 @@ describe("the page resolves a step its job's tables never named", () => {
     writeFileSync(mirror, JSON.stringify(jobs));
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}`)).text();
     // `implement`'s own configured model and its own 90-minute limit —
     // not "as configured" and not "NaN min".
     expect(html).toContain("opus");

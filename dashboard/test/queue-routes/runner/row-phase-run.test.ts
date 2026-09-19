@@ -4,14 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import {
-  TOKEN,
-  specControls,
-  OPEN_81,
-  listUntil,
-  rowSaysDone,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specControls, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -21,7 +14,6 @@ afterEach(() => harness.cleanup());
 // where you run them. Any subset of the four, one job, on the model the
 // row picked.
 describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
-  const auth = { headers: { "x-aide-token": TOKEN } };
   const CHOICES = {
     timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
@@ -35,7 +27,6 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       method: "POST",
       redirect: "manual",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -47,7 +38,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // is enforced for anything still holding the old body — a bookmark,
   // a script, a stale page left open in a tab.
   test("a body still naming the retired resolve step is refused (spec 171)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -57,7 +48,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   });
 
   test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -76,7 +67,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   });
 
   test("the default option queues no override at all (criterion 4)", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -93,10 +84,10 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // gives it more clock than the fallback every unnamed step falls to
   // — `archive` is not in the table, so its limit IS that fallback.
   test("analyze's own time limit is longer than the default (spec 181)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "archive"] }),
     });
     expect(res.status).toBe(200);
@@ -105,8 +96,8 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   });
 
   test("every row offers all three steps — the row is the way a spec starts (criterion 11)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     const line = specControls(html, "81-queue-and-runner");
     for (const step of ["analyze", "implement", "archive"]) {
       expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
@@ -121,9 +112,9 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // the other four have one made the line read as a different kind of
   // thing. What must still hold is that no press can post it.
   test("a created spec reads create as done, and its box cannot be posted (spec 116)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     ran(dir, ["create"]);
-    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
     expect(create).toContain("b-done");
     const controls = specControls(html, "81-queue-and-runner");
@@ -135,7 +126,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   });
 
   test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     // A browser sends one `steps` value per ticked box, in the order the
     // boxes are drawn — never in the order they were clicked.
     const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
@@ -144,7 +135,6 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -161,7 +151,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // stray from somewhere else. It is ignored, like any other unknown
   // key, and the job runs straight through.
   test("a stray gate key is ignored (criterion 3)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
     body.append("steps", "implement");
@@ -169,7 +159,6 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -186,7 +175,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // is untouched (2-analysis.md, "API dependencies: None") — a rerun
   // sent straight to it, bypassing the row's own box, still succeeds.
   test("a done phase's box is locked on the row; a direct rerun still reaches the queue (criterion 4)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
@@ -213,8 +202,8 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // it deliberately: the dropdown and the list held the same things, and
   // a spec crossing from one to the other told the reader nothing.
   test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
     const line = specControls(html, "81-queue-and-runner");
@@ -229,14 +218,14 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   });
 
   test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     // The refresh the page performs on itself sends `location.search`
     // back, so the row the reader opened is still open in the swap —
     // and a row nobody opened is still shut (spec 103's default).
-    const shut = await (await fetch(`${base}/?rows=1`, auth)).text();
+    const shut = await (await fetch(`${base}/?rows=1`)).text();
     expect(shut).toContain('data-folder="81-queue-and-runner"');
     expect(shut).not.toContain('<tr class="subrow');
-    const opened = await (await fetch(`${base}/?rows=1&${OPEN_81}`, auth)).text();
+    const opened = await (await fetch(`${base}/?rows=1&${OPEN_81}`)).text();
     expect(opened).toContain('data-folder="81-queue-and-runner"');
     expect(opened).toContain('<tr class="subrow');
   });

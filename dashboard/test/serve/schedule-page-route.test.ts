@@ -16,8 +16,6 @@ import { savable } from "../spec-page/spec-save-fixtures.ts";
 const harness = queueHarness("aide-schedule-page-route-");
 afterEach(() => harness.cleanup());
 
-const TOKEN = "s3cret-token";
-
 function writeSchedule(dir: string, project: string, yaml: string): void {
   writeFileSync(join(dir, "root", project, ".aide", "project.yaml"), yaml);
 }
@@ -33,26 +31,14 @@ const DEFAULTS = {
 const TRAFFIC = 'name: other\nschedule:\n  - name: traffic-analysis\n    cron: "0 0 * * *"\n    prompt: docs/traffic.md\n';
 
 describe("GET /schedule (spec 272)", () => {
-  test("no token is 401", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule`);
-    expect(res.status).toBe(401);
-  });
-
-  test("the wrong token is 401", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule`, { headers: { "x-aide-token": "wrong-token" } });
-    expect(res.status).toBe(401);
-  });
-
   test("every allowed project's entries appear together, in one table (criterion 1)", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] },
+      extra: { queueProjects: ["aide", "other"] },
       alsoProjects: ["other"],
     });
     writeSchedule(dir, "aide", NIGHTLY);
     writeSchedule(dir, "other", TRAFFIC);
-    const res = await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("nightly-report");
@@ -64,8 +50,8 @@ describe("GET /schedule (spec 272)", () => {
   // renders with no visible `<h1>` at all (the title stays "Jobs" only
   // in `<title>`, via `pageShell`'s `hideHeading`).
   test("the page renders with no visible heading of its own", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const html = await (await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = harness.start();
+    const html = await (await fetch(`${base}/schedule`, )).text();
     expect(html).not.toContain("<h1>Jobs</h1>");
     expect(html).not.toContain("<h1>Schedule</h1>");
     expect(html).toContain("· Jobs</title>");
@@ -73,12 +59,12 @@ describe("GET /schedule (spec 272)", () => {
 
   test("?q= narrows rows to a term matching project:name or the prompt path (criterion 4)", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] },
+      extra: { queueProjects: ["aide", "other"] },
       alsoProjects: ["other"],
     });
     writeSchedule(dir, "aide", NIGHTLY);
     writeSchedule(dir, "other", TRAFFIC);
-    const res = await fetch(`${base}/schedule?q=aide`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule?q=aide`, );
     const html = await res.text();
     expect(html).toContain("nightly-report");
     expect(html).not.toContain("traffic-analysis");
@@ -86,17 +72,17 @@ describe("GET /schedule (spec 272)", () => {
 
   test("the default view (no ?sort=) orders rows by project:name ascending (criterion 7)", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] },
+      extra: { queueProjects: ["aide", "other"] },
       alsoProjects: ["other"],
     });
     writeSchedule(dir, "aide", NIGHTLY);
     writeSchedule(dir, "other", TRAFFIC);
-    const html = await (await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/schedule`, )).text();
     expect(html.indexOf("aide:nightly-report")).toBeLessThan(html.indexOf("other:traffic-analysis"));
   });
 
   test("?sort=next orders soonest-first by default, and ?dir=desc reverses it (criterion 8)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     // Two entries whose next fire time is genuinely different, so the
     // sort key is unambiguous regardless of when the test happens to run.
     writeSchedule(
@@ -106,16 +92,16 @@ describe("GET /schedule (spec 272)", () => {
         '  - name: soon\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n' +
         '  - name: later\n    cron: "0 0 1 1 *"\n    prompt: docs/nightly.md\n',
     );
-    const asc = await (await fetch(`${base}/schedule?sort=next`, { headers: { "x-aide-token": TOKEN } })).text();
+    const asc = await (await fetch(`${base}/schedule?sort=next`, )).text();
     expect(asc.indexOf("aide:soon")).toBeLessThan(asc.indexOf("aide:later"));
     const desc = await (
-      await fetch(`${base}/schedule?sort=next&dir=desc`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/schedule?sort=next&dir=desc`, )
     ).text();
     expect(desc.indexOf("aide:later")).toBeLessThan(desc.indexOf("aide:soon"));
   });
 
   test("?sort=last orders most-recent-run first by default, with a never-run entry sorting last (criterion 9)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(
       dir,
       "aide",
@@ -125,18 +111,18 @@ describe("GET /schedule (spec 272)", () => {
     );
     const run = await fetch(`${base}/api/queue/schedule/aide/has-run/run`, {
       method: "POST",
-      headers: { accept: "application/json", "x-aide-token": TOKEN },
+      headers: { accept: "application/json" },
     });
     expect(run.status).toBe(200);
-    const html = await (await fetch(`${base}/schedule?sort=last`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/schedule?sort=last`, )).text();
     expect(html.indexOf("aide:has-run")).toBeLessThan(html.indexOf("aide:never-run"));
   });
 
   test("sort links and the search-clear control carry no data-nav attribute (criterion 10)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
     const html = await (
-      await fetch(`${base}/schedule?q=nightly`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/schedule?q=nightly`, )
     ).text();
     // Scoped to `<main>`, not the whole page: `pageShell`'s own
     // site-wide nav tabs legitimately carry `data-nav` and are not
@@ -146,17 +132,17 @@ describe("GET /schedule (spec 272)", () => {
   });
 
   test("no schedule entry in any allowed project renders 200 with the exists-yet message (criterion 5)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = harness.start();
+    const res = await fetch(`${base}/schedule`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("No schedule entry exists yet.");
   });
 
   test("entries exist but a search term matches none renders the no-match message with the term (criterion 6)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule?q=ghost`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule?q=ghost`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("No schedule entry matches &quot;ghost&quot;.");
@@ -165,8 +151,8 @@ describe("GET /schedule (spec 272)", () => {
   // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
   // the same way `/` already does.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = harness.start();
+    const res = await fetch(`${base}/schedule?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -175,9 +161,9 @@ describe("GET /schedule (spec 272)", () => {
 
 describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   test("the Overview tab shows the cron and prompt path", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("0 3 * * *");
@@ -188,13 +174,13 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   // show what the entry is actually on — otherwise a Save silently
   // moves a job onto whatever the form happened to draw.
   test("the Edit form shows the entry's own model, pre-selected", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule(
       dir, "aide",
       'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n' +
         "    model: codex-fast\n",
     );
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<select name="model"');
@@ -204,9 +190,9 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   });
 
   test("an unknown entry is 404", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule/aide/ghost`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/ghost`, );
     expect(res.status).toBe(404);
   });
 
@@ -215,10 +201,10 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   // string — the name read twice, once above the Back link and once
   // below it.
   test("the entry's name is the page's ONE heading, not drawn twice", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
     const html = await (
-      await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/schedule/aide/nightly-report`, )
     ).text();
     expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
@@ -229,10 +215,10 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
   // heading is hidden and the one heading left is drawn AFTER Back,
   // inside the body.
   test("the Back link is the first thing on the page, above the heading", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
     const html = await (
-      await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/schedule/aide/nightly-report`, )
     ).text();
     expect(html).not.toContain('class="pagehead"');
     const backAt = html.indexOf('class="backlink"');
@@ -243,9 +229,9 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
 
   // Spec 408, REQ-1/REQ-4.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule/aide/nightly-report?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/nightly-report?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -254,9 +240,9 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
 
 describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
   test("renders the confirmation, naming the entry (criterion 8)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule/aide/nightly-report/delete`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/nightly-report/delete`, );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("nightly-report");
@@ -267,11 +253,10 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
 
   // Spec 408, REQ-1/REQ-4.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
     const res = await fetch(
       `${base}/schedule/aide/nightly-report/delete?lang=nb`,
-      { headers: { "x-aide-token": TOKEN } },
     );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
@@ -279,60 +264,58 @@ describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("an unknown entry in an allowed project is 404 (criterion 5)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base, dir } = harness.start();
     writeSchedule(dir, "aide", NIGHTLY);
-    const res = await fetch(`${base}/schedule/aide/ghost/delete`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/ghost/delete`, );
     expect(res.status).toBe(404);
   });
 
   test("an unallowed project is 404 (criterion 6)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/schedule/ghost-project/nightly/delete`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = harness.start();
+    const res = await fetch(`${base}/schedule/ghost-project/nightly/delete`, );
     expect(res.status).toBe(404);
   });
 
   test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeSchedule(dir, "aide", NIGHTLY);
     const del = await fetch(`${base}/api/queue/schedule/aide/nightly-report/delete`, {
       method: "POST",
-      headers: { accept: "application/json", "x-aide-token": TOKEN, "content-type": "application/json" },
+      headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify({ confirm: "nightly-report" }),
     });
     expect(del.status).toBe(200);
-    const res = await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule/aide/nightly-report`, );
     expect(res.status).toBe(404);
   });
 });
 
 describe("GET /schedule with a refusal or an unlisted model (spec 494)", () => {
   const withModel = (model: string) => `${NIGHTLY}    model: ${model}\n`;
-  const AUTH = { "x-aide-token": TOKEN };
-
   test("?error= is drawn in the slot, escaped", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const html = await (await fetch(`${base}/schedule?error=${encodeURIComponent("bad <b>")}`, { headers: AUTH })).text();
+    const { base } = harness.start();
+    const html = await (await fetch(`${base}/schedule?error=${encodeURIComponent("bad <b>")}`)).text();
     expect(html).toContain('<p class="refused rowmsg failed" aria-live="polite">bad &lt;b&gt;</p>');
-    expect(await (await fetch(`${base}/schedule`, { headers: AUTH })).text()).toContain('<p class="refused" aria-live="polite"></p>');
+    expect(await (await fetch(`${base}/schedule`)).text()).toContain('<p class="refused" aria-live="polite"></p>');
   });
 
   test("an entry naming a model the queue does not offer is flagged on the list and on its own page", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule(dir, "aide", withModel("retired"));
-    const list = await (await fetch(`${base}/schedule`, { headers: AUTH })).text();
+    const list = await (await fetch(`${base}/schedule`)).text();
     expect(list).toContain("retired");
     expect(list).toContain("sonnet, codex-fast");
-    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`, { headers: AUTH })).text();
+    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`)).text();
     expect(detail).toContain("sonnet, codex-fast");
     expect(detail).toContain("is not one the queue offers");
   });
 
   test("an entry naming a listed model in another case is not flagged", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule(dir, "aide", withModel("SONNET"));
-    const list = await (await fetch(`${base}/schedule`, { headers: AUTH })).text();
+    const list = await (await fetch(`${base}/schedule`)).text();
     expect(list).not.toContain("is not one the queue offers");
-    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`, { headers: AUTH })).text();
+    const detail = await (await fetch(`${base}/schedule/aide/nightly-report`)).text();
     expect(detail).not.toContain("is not one the queue offers");
   });
 });
@@ -370,14 +353,14 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
       writeFileSync(join(dir, "index.html"), s.report);
     }
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot, queueMirrorPath: mirror },
+      extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: mirror },
     });
     writeSchedule(dir, "aide", NIGHTLY);
     return { base, outputRoot };
   }
 
   const get = async (base: string, path: string): Promise<string> =>
-    (await fetch(`${base}${path}`, { headers: { "x-aide-token": TOKEN } })).text();
+    (await fetch(`${base}${path}`, )).text();
   const PAGE = "/schedule/aide/nightly-report";
 
   test("the newest run's report is in a frame, with its time, outcome and a link to the bare file", async () => {
@@ -446,7 +429,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
 
   test("the bare file is served as text/html with the token", async () => {
     const { base } = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" }]);
-    const res = await fetch(`${base}/schedule-output/aide/${KEY}/runs/new/index.html`, { headers: { "x-aide-token": TOKEN } });
+    const res = await fetch(`${base}/schedule-output/aide/${KEY}/runs/new/index.html`, );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     expect(await res.text()).toContain("NEW-TEXT");

@@ -8,10 +8,7 @@ import { navEntries } from "../../src/render";
 import { parseArgs } from "../../src/serve/serve.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { fakeGit } from "../helpers/fake-git.ts";
-import {
-  harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil,
-  AUTH,
-} from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -203,7 +200,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     const base = serve(root, settled(root, "aide"), 0);
     const html = await (
       await fetch(`${base}/projects/aide?deployError=${encodeURIComponent("could not deploy")}&tab=deploy`, {
-        headers: AUTH,
       })
     ).text();
     expect(html).toContain("Could not deploy");
@@ -576,7 +572,7 @@ describe("the Deploy tab asks for itself again while the origin answer is missin
   test("in Norwegian (nb), the overlay text is the Norwegian one", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, settled(root, "aide"), 0);
-    const html = await (await fetch(`${base}/projects/aide?tab=deploy&lang=nb`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?tab=deploy&lang=nb`)).text();
     const form = html.match(/<form[^>]*class="deployform"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="deployer…"');
   });

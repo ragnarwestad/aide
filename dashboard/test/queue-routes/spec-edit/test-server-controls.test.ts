@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-board-routes-");
 const ownDirs: string[] = [];
@@ -20,7 +20,7 @@ afterEach(() => {
  *  on the job. */
 async function settleDone(base: string, id: string): Promise<void> {
   for (let n = 0; n < 100; n++) {
-    const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: auth })).json()) as {
+    const body = (await (await fetch(`${base}/api/queue/${id}`)).json()) as {
       job: { state: string };
     };
     if (body.job.state === "done") return;
@@ -29,15 +29,13 @@ async function settleDone(base: string, id: string): Promise<void> {
   throw new Error("the job never settled");
 }
 
-const auth = { "x-aide-token": TOKEN };
 const folder = "81-queue-and-runner";
 
 describe("spec 388: the board start/stop routes", () => {
   test("404 for an unknown spec", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/never-existed/test-server`, {
       method: "POST",
-      headers: auth,
     });
     expect(res.status).toBe(404);
   });
@@ -45,13 +43,13 @@ describe("spec 388: the board start/stop routes", () => {
   test("an archived spec refuses with ARCHIVED_REFUSAL, for both start and stop", async () => {
     const archivedFolder = "82-archived";
     const { base } = harness.start({
-      extra: { queueToken: TOKEN },
+      extra: {},
       archivedSpecs: { [archivedFolder]: {} },
     });
     for (const path of [`test-server`, `test-server/stop`]) {
       const res = await fetch(`${base}/api/queue/specs/aide/${archivedFolder}/${path}`, {
         method: "POST",
-        headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+        headers: { accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
       if (path === "test-server") {
@@ -69,10 +67,10 @@ describe("spec 388: the board start/stop routes", () => {
   });
 
   test("a spec whose branch never made it to origin refuses without starting a process", async () => {
-    const { base } = start({ queueToken: TOKEN, testServersAvailable: true });
+    const { base } = start({ testServersAvailable: true });
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
-      headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+      headers: { accept: "application/json", "content-type": "application/json" },
       body: "{}",
     });
     expect(res.status).toBe(400);
@@ -82,10 +80,10 @@ describe("spec 388: the board start/stop routes", () => {
   });
 
   test("the round being unavailable on this host refuses cleanly", async () => {
-    const { base } = start({ queueToken: TOKEN, testServersAvailable: false });
+    const { base } = start({ testServersAvailable: false });
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
-      headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+      headers: { accept: "application/json", "content-type": "application/json" },
       body: "{}",
     });
     expect(res.status).toBe(400);
@@ -112,7 +110,6 @@ describe("spec 388: the board start/stop routes", () => {
     // (2026-09-09).
     const probed: number[] = [];
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       testServersPortProbe: (port: number) => {
         probed.push(port);
@@ -144,7 +141,7 @@ describe("spec 388: the board start/stop routes", () => {
     try {
       const startRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
         method: "POST",
-        headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+        headers: { accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
       expect(startRes.status).toBe(200);
@@ -160,7 +157,7 @@ describe("spec 388: the board start/stop routes", () => {
 
       const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
         method: "POST",
-        headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+        headers: { accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
       expect(stopRes.status).toBe(200);
@@ -169,7 +166,7 @@ describe("spec 388: the board start/stop routes", () => {
       // was cleared.
       const restartRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
         method: "POST",
-        headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+        headers: { accept: "application/json", "content-type": "application/json" },
         body: "{}",
       });
       expect(restartRes.status).toBe(200);
@@ -199,7 +196,7 @@ describe("spec 388: the board start/stop routes", () => {
   test("REQ-1: an archived spec's already-tracked board keeps its link and Stop form", async () => {
     const archivedFolder = "82-archived";
     const { base, server } = harness.start({
-      extra: { queueToken: TOKEN, testServersIsAlive: () => true },
+      extra: { testServersIsAlive: () => true },
       archivedSpecs: { [archivedFolder]: {} },
     });
     server.testServersStore().set("aide", archivedFolder, {
@@ -215,7 +212,7 @@ describe("spec 388: the board start/stop routes", () => {
       startedAt: "2026-09-09T00:00:00.000Z",
     });
 
-    const res = await fetch(`${base}/specs/aide/${archivedFolder}`, { headers: auth });
+    const res = await fetch(`${base}/specs/aide/${archivedFolder}`);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("This spec has been archived");
@@ -230,7 +227,6 @@ describe("spec 388: the board start/stop routes", () => {
   // anything on this machine.
   test("REQ-5: every test-server port already in use refuses with a message, not a 500", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       testServersPortProbe: () => false,
     });
@@ -248,7 +244,7 @@ describe("spec 388: the board start/stop routes", () => {
 
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
       method: "POST",
-      headers: { ...auth, accept: "application/json", "content-type": "application/json" },
+      headers: { accept: "application/json", "content-type": "application/json" },
       body: "{}",
     });
     expect(res.status).toBe(400);
@@ -297,7 +293,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       return { code: 0, stdout: "" };
     };
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
@@ -328,7 +323,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
@@ -349,7 +344,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
 
     try {
       const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        headers: auth,
         redirect: "manual",
       });
       // REQ-4: the tab the reader opened WAITS here. It used to be sent
@@ -366,7 +360,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // spawning again — and goes back to the tab where the wait is
       // visible, because there is no address yet to go to.
       const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        headers: auth,
         redirect: "manual",
       });
       // The reload the waiting page makes: still waiting, still no
@@ -380,7 +373,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // Ten more reloads, and still one round.
       for (let i = 0; i < 10; i++) {
         await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-          headers: auth,
           redirect: "manual",
         });
       }
@@ -394,7 +386,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
         `left running: pid 4242, http://127.0.0.1:8801/?token=t0ken — serving aide/${folder} @ abc1234\n`,
       );
       const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        headers: auth,
         redirect: "manual",
       });
       expect(res3.status).toBe(303);
@@ -414,9 +405,8 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
   });
 
   test("the round being unavailable skips the call and still redirects cleanly", async () => {
-    const { base } = start({ queueToken: TOKEN, testServersAvailable: false });
+    const { base } = start({ testServersAvailable: false });
     const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-      headers: auth,
       redirect: "manual",
     });
     expect(res.status).toBe(303);
@@ -451,7 +441,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       return { code: 0, stdout: "" };
     };
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       testServersPortProbe: () => false,
       gitRun: gitRun as never,
@@ -463,7 +452,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
@@ -483,7 +472,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     await settleDone(base, made.job.id);
 
     const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-      headers: auth,
       redirect: "manual",
     });
     expect(res.status).toBe(200);
@@ -524,7 +512,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       return { code: 0, stdout: "" };
     };
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
@@ -543,7 +530,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
@@ -565,7 +552,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     try {
       // The first attempt: starts a board.
       const first = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        headers: auth,
         redirect: "manual",
       });
       expect(first.status).toBe(200);
@@ -580,7 +566,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // AC-1: the plain URL now shows the failed page, carrying its own
       // retry link.
       const failedRes = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        headers: auth,
         redirect: "manual",
       });
       expect(failedRes.status).toBe(200);
@@ -594,7 +579,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // never scraped out of `esc()`'s escaped HTML — clears the failed
       // entry and starts a new one for the SAME branch.
       const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
-      const retryRes = await fetch(retryUrl, { headers: auth, redirect: "manual" });
+      const retryRes = await fetch(retryUrl, { redirect: "manual" });
       expect(spawnCalls).toHaveLength(2);
       expect(spawnCalls[1]!.cmd).toContain(`aide/${folder}`);
       expect(retryRes.status).toBe(303);
@@ -603,7 +588,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // Following that redirect lands on the identical waiting page a
       // first start renders — never a URL still carrying the flag.
       const waitingRes = await fetch(`${base}${retryRes.headers.get("location")}`, {
-        headers: auth,
         redirect: "manual",
       });
       expect(waitingRes.status).toBe(200);
@@ -628,7 +612,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
   test("spec 489: a retry on a spec that is no longer capable of a board is refused, not sent to the waiting page", async () => {
     const archivedFolder = "82-archived";
     const { base, server } = harness.start({
-      extra: { queueToken: TOKEN },
+      extra: {},
       archivedSpecs: { [archivedFolder]: {} },
     });
     server.testServersStore().set("aide", archivedFolder, {
@@ -645,7 +629,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
 
     const res = await fetch(
       `${base}/specs/aide/${archivedFolder}?tab=steps&startTestServer=1&retryTestServer=1`,
-      { headers: auth, redirect: "manual" },
+      { redirect: "manual" },
     );
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe(`/specs/aide/${archivedFolder}?tab=steps`);
@@ -678,7 +662,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       return { code: 0, stdout: "" };
     };
     const { base, dir } = start({
-      queueToken: TOKEN,
       testServersAvailable: true,
       gitRun: gitRun as never,
       queueRunnerBin: "/usr/bin/true",
@@ -697,7 +680,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { ...auth, "content-type": "application/json", accept: "application/json" },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
       })
     ).json()) as { job: { id: string } };
@@ -720,12 +703,12 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // First attempt, first failure, one retry — the same round-trip
       // the test above pins, brought here only far enough to reach a
       // SECOND failure to test the loop-safety guarantee against.
-      await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { headers: auth, redirect: "manual" });
+      await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { redirect: "manual" });
       writeFileSync(boardLog, "boom: the round never started a listener\n");
       process.kill(-spawned[0]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
       const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
-      await fetch(retryUrl, { headers: auth, redirect: "manual" });
+      await fetch(retryUrl, { redirect: "manual" });
       expect(spawnCalls).toHaveLength(2);
 
       // The retried board fails too.
@@ -737,7 +720,6 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       // never the retry link — and not one of them spawns again.
       for (let i = 0; i < 10; i++) {
         const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-          headers: auth,
           redirect: "manual",
         });
         expect(res.status).toBe(200);

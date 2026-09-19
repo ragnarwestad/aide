@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -36,7 +36,7 @@ afterEach(() => {
 // is. That way there is no second list of "which steps are safe" to keep in
 // step with the first.
 describe("landing a stopped step's specs-only work (spec 187)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPECS_REPO = "/repos/aide-specs";
   const CODE_REPO = "/repos/aide";
   const SPEC = "81-queue-and-runner";
@@ -85,7 +85,6 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     // here has to actually start.
     const { base, dir } = start(
       {
-        queueToken: TOKEN,
         gitRun: git.run as never,
         queueRunnerBin: "/usr/bin/true",
         queueResultDir: results,

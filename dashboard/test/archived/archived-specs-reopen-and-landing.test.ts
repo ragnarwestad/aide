@@ -2,10 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  ARCHIVED_VIEW, OTHER, SAME_DAY, STAMPED, UNDATED, UNSTAMPED, auth, blockFor, gitDated, harness,
-  listUntil, opened, phaseLines, rowFor, specsList, start,
-} from "./archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, OTHER, SAME_DAY, STAMPED, UNDATED, UNSTAMPED, blockFor, gitDated, harness, listUntil, opened, phaseLines, rowFor, specsList, start } from "./archived-specs-fixtures.ts";
 
 // The reason a not-landed row carries moved from the badge itself
 // (spec 275's "archived, not landed") to the notice line beneath it
@@ -160,7 +157,7 @@ describe("pressing Reopen", () => {
     fetch(`${base}/api/queue`, {
       method: "POST",
       redirect: "manual",
-      headers: { ...auth.headers, "content-type": "application/x-www-form-urlencoded" },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ project: "aide", specFolder: STAMPED, steps: "reopen", ...fields }),
     });
 

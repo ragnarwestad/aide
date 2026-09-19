@@ -97,13 +97,11 @@ describe("TDD phases in /api/aide-runs (criterion 10, spec 81)", () => {
 // the same guard `/` has, for the same reason.
 describe("GET /projects (spec 115)", () => {
   const harness = queueHarness("aide-projects-route-");
-  const TOKEN = "s3cret";
-  const AUTH = { "x-aide-token": TOKEN };
   afterEach(() => harness.cleanup());
 
   test("it lists the projects and carries both controls", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/projects`, { headers: AUTH });
+    const { base } = harness.start();
+    const res = await fetch(`${base}/projects`);
     expect(res.status).toBe(200);
     const html = await res.text();
     // The listing, from the same rows the generated page drew.
@@ -120,45 +118,25 @@ describe("GET /projects (spec 115)", () => {
     expect(html).toContain('href="/projects/aide/remove"');
   });
 
-  test("the Add page and a row's Remove page are served behind the same guard", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const add = await fetch(`${base}/projects/new`, { headers: AUTH });
+  test("the Add page and a row's Remove page are served", async () => {
+    const { base } = harness.start();
+    const add = await fetch(`${base}/projects/new`);
     expect(add.status).toBe(200);
     expect(await add.text()).toContain('action="/api/queue/projects"');
-    const remove = await fetch(`${base}/projects/aide/remove`, { headers: AUTH });
+    const remove = await fetch(`${base}/projects/aide/remove`);
     expect(remove.status).toBe(200);
     expect(await remove.text()).toContain('action="/api/queue/projects/aide/remove"');
     // A name the allowlist does not know is a mistyped address.
-    const nosuch = await fetch(`${base}/projects/nosuch/remove`, { headers: AUTH });
+    const nosuch = await fetch(`${base}/projects/nosuch/remove`);
     expect(nosuch.status).toBe(404);
-    // And no token means no page, exactly as /projects itself.
-    expect((await fetch(`${base}/projects/new`)).status).toBe(401);
-  });
-
-  test("the same guard as `/`: no token 503, wrong token 401", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    expect((await fetch(`${base}/projects`)).status).toBe(401);
-    expect((await fetch(`${base}/projects`, { headers: { "x-aide-token": "wrong" } })).status).toBe(401);
-    const off = harness.start({});
-    expect((await fetch(`${off.base}/projects`)).status).toBe(503);
-  });
-
-  // The bookmark path: projects.html hands the address on with its query
-  // string, so a reader arriving with the token gets the same cookie `/`
-  // would have given them.
-  test("a token in the address is handed over as the cookie, as on `/`", async () => {
-    const { base, server } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/projects?token=${TOKEN}`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get("set-cookie")).toContain(`aide_token_${server.port}=`);
   });
 
   // With no --root there is no project set to list, and an empty listing
   // would read as "no projects" rather than "this server was not told
   // where they are". The generated file is what it showed before.
   test("without --root it falls back to the generated page", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, projectRoot: undefined } });
-    const res = await fetch(`${base}/projects`, { headers: AUTH, redirect: "manual" });
+    const { base } = harness.start({ extra: { projectRoot: undefined } });
+    const res = await fetch(`${base}/projects`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/projects.html");
   });
@@ -167,8 +145,8 @@ describe("GET /projects (spec 115)", () => {
   // separate, hand-written fallback that deliberately does not call
   // `navEntries()`, which is what lets the two answer differently.
   test("the no---root nav still points at projects.html", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, projectRoot: undefined } });
-    const html = await (await fetch(`${base}/`, { headers: AUTH })).text();
+    const { base } = harness.start({ extra: { projectRoot: undefined } });
+    const html = await (await fetch(`${base}/`)).text();
     const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
     expect(navHtml).toContain('href="projects.html"');
     expect(navHtml).not.toContain('href="/projects"');

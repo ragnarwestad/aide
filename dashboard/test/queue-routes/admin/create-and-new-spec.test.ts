@@ -5,11 +5,7 @@ import {
   renderSpecsPage,
   type NewSpecPageOptions,
 } from "../../../src/render";
-import {
-  TOKEN,
-  specHead,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -20,7 +16,6 @@ afterEach(() => {
   harness.cleanup();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
-
 
 // Spec 83 let a job name other repos a run would also watch, commit and
 // push, and they reached the runner as --extra-project-dir. Both went
@@ -135,11 +130,10 @@ describe("a chosen dependency reaches the runner and the page", () => {
   });
 
   test("one ticked chip arrives as a list, not a bare string", async () => {
-    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide"] });
+    const { base } = start({ queueProjects: ["aide"] });
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -233,11 +227,11 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
 // branch lands on the default branch — a landing step that merges through
 // the very same function the Merge button already uses.
 describe("POST /api/queue/create (spec 93)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
   test("a create request is accepted and queued as a create job", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: AUTH,
@@ -253,7 +247,7 @@ describe("POST /api/queue/create (spec 93)", () => {
   test("a project that is allowlisted but has never had a spec is still accepted", async () => {
     // `resolveProject` answers "not found" for such a project — the gap
     // that makes a project's FIRST spec uncreatable today.
-    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
+    const { base } = start({ queueProjects: ["aide", "brandnew"] });
     const ok = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: AUTH,
@@ -271,7 +265,7 @@ describe("POST /api/queue/create (spec 93)", () => {
   });
 
   test("a project outside the allowlist is refused, and so is a half-filled form", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     for (const body of [
       { ...CREATE, project: "someone-elses" },
       { project: "aide", description: "Do the thing" },
@@ -286,11 +280,8 @@ describe("POST /api/queue/create (spec 93)", () => {
     }
   });
 
-  test("it is behind the same token as the rest of the queue, and POST only", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    expect(
-      (await fetch(`${base}/api/queue/create`, { method: "POST", body: JSON.stringify(CREATE) })).status,
-    ).toBe(401);
+  test("it answers POST only", async () => {
+    const { base } = start();
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
@@ -301,8 +292,8 @@ describe("POST /api/queue/create (spec 93)", () => {
   // form is ON (`/new`), where the reader can read the reason and try
   // again — the same rule `/projects`' own forms follow.
   test("a form submit lands on /new when refused and / when accepted", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const { base } = start();
+    const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const refused = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       redirect: "manual",
@@ -327,7 +318,6 @@ describe("POST /api/queue/create (spec 93)", () => {
   // `bodyToObject` folds `model.create` into the per-step shape on.
   test("a model picked on the form reaches the stored job (spec 228)", async () => {
     const { base } = start({
-      queueToken: TOKEN,
       queueDefaults: {
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
@@ -338,7 +328,6 @@ describe("POST /api/queue/create (spec 93)", () => {
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -353,7 +342,6 @@ describe("POST /api/queue/create (spec 93)", () => {
     const bad = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -367,7 +355,6 @@ describe("POST /api/queue/create (spec 93)", () => {
   // draws a dropdown the server would refuse every entry of.
   test("GET /new offers the configured models, grouped by AI (spec 228)", async () => {
     const { base } = start({
-      queueToken: TOKEN,
       queueDefaults: {
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
@@ -375,7 +362,7 @@ describe("POST /api/queue/create (spec 93)", () => {
         modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" } },
       },
     });
-    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/new`, )).text();
     expect(html).toContain('name="model.create"');
     expect(html).toContain('data-ai="model.create"');
     expect(html).toContain('<optgroup label="Codex">');
@@ -383,8 +370,8 @@ describe("POST /api/queue/create (spec 93)", () => {
   });
 
   test("the form offers every allowlisted project, spec or no spec", async () => {
-    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
-    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start({ queueProjects: ["aide", "brandnew"] });
+    const html = await (await fetch(`${base}/new`, )).text();
     const form = html.slice(html.indexOf('action="/api/queue/create"'));
     expect(form).toContain('value="brandnew"');
     expect(form).toContain('name="title"');
@@ -399,17 +386,14 @@ describe("POST /api/queue/create (spec 93)", () => {
 // it carries a real form and a real form needs a token checked per
 // request.
 describe("GET /new (spec 121)", () => {
-  const auth = { headers: { "x-aide-token": TOKEN } };
-
-  test("it is behind the same token as the rest of the queue, and GET only", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    expect((await fetch(`${base}/new`, { redirect: "manual" })).status).toBe(401);
-    expect((await fetch(`${base}/new`, { method: "POST", ...auth })).status).toBe(405);
+  test("it answers GET only", async () => {
+    const { base } = start();
+    expect((await fetch(`${base}/new`, { method: "POST" })).status).toBe(405);
   });
 
   test("it carries the create form and nothing about the spec list", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/new`, { ...auth, redirect: "manual" });
+    const { base } = start();
+    const res = await fetch(`${base}/new`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('action="/api/queue/create"');
@@ -424,31 +408,31 @@ describe("GET /new (spec 121)", () => {
   // Spec 252, Criterion 2: a reader who pressed "New spec" from a
   // filtered specs list returns to that exact filter, not to bare `/`.
   test("with a same-origin Referer, ← Back tracks it instead of the bare fallback", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const html = await (
-      await fetch(`${base}/new`, { headers: { ...auth.headers, referer: `${base}/?state=all&q=archive` } })
+      await fetch(`${base}/new`, { headers: { referer: `${base}/?state=all&q=archive` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // Criterion 5: a foreign-origin Referer is never followed.
   test("a foreign-origin Referer is discarded, falling back to /", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const html = await (
-      await fetch(`${base}/new`, { headers: { ...auth.headers, referer: "https://evil.example/" } })
+      await fetch(`${base}/new`, { headers: { referer: "https://evil.example/" } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   test("the chips name every spec the new one may build on", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/new`, auth)).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/new`)).text();
     expect(html).toContain('value="81-queue-and-runner"');
   });
 
   test("with no project on the allowlist it says so instead of drawing an empty form", async () => {
-    const { base } = start({ queueToken: TOKEN, queueProjects: [] });
-    const html = await (await fetch(`${base}/new`, auth)).text();
+    const { base } = start({ queueProjects: [] });
+    const html = await (await fetch(`${base}/new`)).text();
     expect(html).not.toContain('action="/api/queue/create"');
     expect(html).toContain("No project on this machine");
   });
@@ -456,25 +440,19 @@ describe("GET /new (spec 121)", () => {
   // Spec 408, REQ-1/REQ-4: this page reads and remembers the language
   // the same way `/` already does.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/new?lang=nb`, auth);
+    const { base } = start();
+    const res = await fetch(`${base}/new?lang=nb`);
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
   });
 
   test("a refusal carried back in the query string is shown on the page", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const html = await (
-      await fetch(`${base}/new?error=${encodeURIComponent("no such project: nope")}`, auth)
+      await fetch(`${base}/new?error=${encodeURIComponent("no such project: nope")}`)
     ).text();
     expect(html).toContain("No such project: nope");
   });
 
-  test("the token handover works here too, the way it does on / and /projects", async () => {
-    const { base, server } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/new?token=${TOKEN}`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("set-cookie")).toContain(`aide_token_${server.port}=`);
-  });
 });

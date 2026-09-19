@@ -147,7 +147,6 @@ install-serve: require-host
 		--port $(PORT) \
 		--mirror "$$home/$(REMOTE_STATE)/aide-runs.json" \
 		--queue-mirror "$$home/$(REMOTE_STATE)/aide-queue.json" \
-		--token-file "$$home/$(REMOTE_STATE)/queue-token" \
 		--result-dir "$$home/$(REMOTE_STATE)/jobs" \
 		--queue-config "$$home/$(REMOTE_STATE)/queue-config.json" \
 		--runner-bin "$$home/.local/bin/aide-run-spec" \

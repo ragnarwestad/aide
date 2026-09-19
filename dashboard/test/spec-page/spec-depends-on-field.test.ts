@@ -12,10 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  TOKEN, SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, auth,
-  ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post,
-} from "./spec-save-fixtures.ts";
+import { SPEC, PAGE, TRACKING, FILE_SHA, DESCRIPTION, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable, post } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -38,7 +35,7 @@ describe("the Depends on field", () => {
       description,
       alsoSpecs: [OTHER],
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
-      extra: { queueToken: TOKEN, gitRun },
+      extra: { gitRun },
     });
 
   /** `savable`, wrapped to count what it was asked to commit: "one
@@ -58,7 +55,7 @@ describe("the Depends on field", () => {
 
   test("a spec that depends on nothing opens with nothing ticked", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     // Spec 174: a box per spec in the project, as on the New-spec page
     // — never a line to type an identifier into.
     expect(html).toContain(`value="${OTHER}"`);
@@ -73,7 +70,7 @@ describe("the Depends on field", () => {
 
   test("an existing line ticks its box and leaves the textarea", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
     // The raw markdown is gone from the box: one control for one fact.
     expect(html).not.toContain("Depends on:**");
@@ -86,7 +83,7 @@ describe("the Depends on field", () => {
   // to, not the one whose folder happens to match the text.
   test("a dependency written as a bare number ticks the spec it resolves to", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
   });
 
@@ -95,7 +92,7 @@ describe("the Depends on field", () => {
   // one box that would say it is not drawn.
   test("the spec being edited is not among the boxes", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).not.toContain(`value="${SPEC}"`);
   });
 
@@ -105,7 +102,7 @@ describe("the Depends on field", () => {
   // the line still resolves and still gates the run.
   test("an archived spec is not offered as a new dependency", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).not.toContain(`value="${ARCHIVED}"`);
   });
 
@@ -113,7 +110,7 @@ describe("the Depends on field", () => {
 
   test("the page says the change applies from the next gated step", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).toContain("next gated step");
     expect(html).toContain("already running");
   });
@@ -159,7 +156,7 @@ describe("the Depends on field", () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       alsoSpecs: [OTHER, THIRD],
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const body = new URLSearchParams([
       ["baseSha", FILE_SHA],
@@ -168,7 +165,7 @@ describe("the Depends on field", () => {
     ]);
     const res = await fetch(`${base}${TRACKING}`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       redirect: "manual",
       body: body.toString(),
     });

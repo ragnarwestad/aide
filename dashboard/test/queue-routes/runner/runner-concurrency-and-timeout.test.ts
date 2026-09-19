@@ -5,7 +5,7 @@ import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseQueueConcurrency } from "../../../src/serve/serve.ts";
-import { JOB, TOKEN, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -58,7 +58,6 @@ describe("the queue config decides how many run at once", () => {
     );
     const specs = ["82-second", "83-third"];
     const { base } = start({
-      queueToken: TOKEN,
       queueRunnerBin: fakeRunner,
       queueResultDir: join(own, "jobs"),
       queueConcurrency: 3,
@@ -67,7 +66,7 @@ describe("the queue config decides how many run at once", () => {
       for (const specFolder of ["81-queue-and-runner", ...specs]) {
         const res = await fetch(`${base}/api/queue`, {
           method: "POST",
-          headers: { "content-type": "application/json", "x-aide-token": TOKEN },
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
         });
         expect(res.status).toBe(200);
@@ -76,7 +75,7 @@ describe("the queue config decides how many run at once", () => {
       const deadline = Date.now() + 15000;
       let running: unknown[] = [];
       while (Date.now() < deadline) {
-        const res = await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } });
+        const res = await fetch(`${base}/api/queue`, );
         const body = (await res.json()) as { jobs: { state: string }[] };
         running = body.jobs.filter((j) => j.state === "running");
         if (running.length >= 3) break;
@@ -374,8 +373,8 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
 
 describe("an over-charged cost survives the row mapping", () => {
   async function seeded(costMeasured: boolean): Promise<string> {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base, dir } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST", headers, body: JSON.stringify({ ...JOB, steps: ["implement"] }),
@@ -400,14 +399,14 @@ describe("an over-charged cost survives the row mapping", () => {
   const MARKER = '<summary title="why this is an estimate"';
 
   test("the spec row's total carries no (?) marker even when it could not be measured", async () => {
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(false) });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start({ queueMirrorPath: await seeded(false) });
+    const html = await (await fetch(`${base}/`, )).text();
     expect(specHead(html, "81-queue-and-runner")).not.toContain(MARKER);
   });
 
   test("a measured total through the same seam carries no mark", async () => {
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(true) });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start({ queueMirrorPath: await seeded(true) });
+    const html = await (await fetch(`${base}/`, )).text();
     const head = specHead(html, "81-queue-and-runner");
     expect(head).toContain("$35.00");
     expect(head).not.toContain(MARKER);

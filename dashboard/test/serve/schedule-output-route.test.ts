@@ -16,8 +16,6 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-const TOKEN = "s3cret-token";
-
 function freshOutputRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "aide-schedule-output-"));
   ownDirs.push(root);
@@ -34,9 +32,9 @@ describe("GET /schedule-output/... (spec 272)", () => {
   test("a file written under the fixture root is served with a valid token", async () => {
     const outputRoot = freshOutputRoot();
     writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");
-    const { base } = harness.start({ extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot } });
+    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
     const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`, {
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
@@ -45,29 +43,11 @@ describe("GET /schedule-output/... (spec 272)", () => {
 
   test("a missing file is 404, not a crash", async () => {
     const outputRoot = freshOutputRoot();
-    const { base } = harness.start({ extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot } });
+    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
     const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`, {
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     });
     expect(res.status).toBe(404);
-  });
-
-  test("no token is 401", async () => {
-    const outputRoot = freshOutputRoot();
-    writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");
-    const { base } = harness.start({ extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot } });
-    const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`);
-    expect(res.status).toBe(401);
-  });
-
-  test("the wrong token is 401", async () => {
-    const outputRoot = freshOutputRoot();
-    writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");
-    const { base } = harness.start({ extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot } });
-    const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`, {
-      headers: { "x-aide-token": "wrong-token" },
-    });
-    expect(res.status).toBe(401);
   });
 
   test("a path-traversal attempt is 404, matching serveStatic's existing guard", async () => {
@@ -76,9 +56,9 @@ describe("GET /schedule-output/... (spec 272)", () => {
     // request ever reaches the server, which would prove nothing about
     // the route's own guard.
     const outputRoot = freshOutputRoot();
-    const { base } = harness.start({ extra: { queueToken: TOKEN, scheduleOutputRoot: outputRoot } });
+    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
     const res = await fetch(`${base}/schedule-output/..%2F..%2Fetc%2Fpasswd`, {
-      headers: { "x-aide-token": TOKEN },
+      headers: {},
     });
     expect(res.status).toBe(404);
   });

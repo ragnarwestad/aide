@@ -26,7 +26,7 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
 });
 
 const notice = (filter: SpecsFilter = {}, t: SpecTarget = target(), list = [row({ specFolder: FOLDER, steps: ["archive"], state: "done" })]) =>
-  renderSpecsRows(list, { runnerAvailable: true, targets: [t], filter, token: "tok" })
+  renderSpecsRows(list, { runnerAvailable: true, targets: [t], filter })
     .match(/<tr class="specnotice"[^>]*>[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 const foldLink = (html: string) => html.match(/<a class="fold[^"]*"[^>]*aria-expanded[^>]*>/)?.[0] ?? "";
@@ -86,7 +86,6 @@ describe("the unfolded list", () => {
     expect(html).toContain(`action="/api/queue/specs/aide/${FOLDER}/tick?fromList=1"`);
     expect(html).toContain('name="checksPhase" value="Acceptance criteria"');
     expect(html).toContain(`name="view.checks" value="${KEY}"`);
-    expect(html).toContain('name="token" value="tok"');
     expect(html).toContain('class="actionform rowchecks"');
   });
 

@@ -6,18 +6,7 @@ import { join } from "node:path";
 import { renderSpecsPage, renderSite, OVERVIEW_PAGE, type QueueRowView } from "../../../src/render";
 import { CSS } from "../../../src/render/ui/css";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import {
-  TOKEN,
-  JOB,
-  specHead,
-  specPanel,
-  specControls,
-  phaseDone,
-  OPEN_81,
-  listUntil,
-  rowSaysDone,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { JOB, specHead, specPanel, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -25,10 +14,10 @@ afterEach(() => harness.cleanup());
 
 describe("GET / (the spec list, HTML)", () => {
   test("layout, forms, labels, and the runner notice", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
     expect(html).toContain("<nav");
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
@@ -60,20 +49,20 @@ describe("GET / (the spec list, HTML)", () => {
   // with "unknown specFolder". Its own history belongs on `/schedule`'s
   // detail page, never here.
   test("draws no row for a schedule job (spec 259/276/277)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, {
       method: "POST",
       headers,
       body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }),
     });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(html).not.toContain("schedule-nightly");
   });
 
   test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/`, )).text();
     // A page with a form must not reload underneath someone filling it
     // in; the script swaps the table body instead.
     expect(html).toContain("<noscript><meta http-equiv=\"refresh\"");
@@ -106,11 +95,11 @@ describe("GET / (the spec list, HTML)", () => {
   });
 
   test("?rows=1 returns the table body alone, for the script to swap in", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const rows = await (
-      await fetch(`${base}/?rows=1&${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?rows=1&${OPEN_81}`, )
     ).text();
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
@@ -209,7 +198,7 @@ describe("every row answers for itself", () => {
   // the way from a real 4-status.md on disk to the served HTML, so it is
   // the one that can still go red if the figure ever creeps back.
   test("a spec's progress stays off its own row (criterion 9)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     // A status file that DOES carry a percentage: the row must ignore it.
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
@@ -221,7 +210,7 @@ describe("every row answers for itself", () => {
     // Open: the row's one action rides the caption line the fold opens
     // (2026-09-08), and its label is what this reads off the file.
     const html = await (
-      await fetch(`${base}/?open=aide%2F81-queue-and-runner`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?open=aide%2F81-queue-and-runner`, )
     ).text();
     // Server-rendered on the row itself: there is no selection left to
     // answer, and no data block for a script to answer it from.
@@ -250,12 +239,12 @@ describe("every row answers for itself", () => {
   // it onto the row that posted it — the same reason, read off the same
   // query string, one row further down.
   test("a refusal is shown once, on the row that posted it (criterion 6)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const post = () =>
       fetch(`${base}/api/queue`, {
         method: "POST",
         redirect: "manual",
-        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+        headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
       });
     await post();
@@ -263,7 +252,7 @@ describe("every row answers for itself", () => {
     expect(refused.status).toBe(303);
     const location = refused.headers.get("location") ?? "";
     expect(location.startsWith("/?error=")).toBe(true);
-    const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}${location}`, )).text();
     // In the row's own panel since spec 151, not in the name cell.
     expect(specPanel(html, "81-queue-and-runner")).toContain("already queued");
     expect(specHead(html, "81-queue-and-runner")).not.toContain("already queued");
@@ -273,10 +262,10 @@ describe("every row answers for itself", () => {
   });
 
   test("state is a chip with its own class, so a failure is not a wall of grey", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (await fetch(`${base}/?rows=1`, )).text();
     expect(rows).toContain('class="badge b-idle"');
     expect(rows).toContain("Queued 1/1");
   });
@@ -295,8 +284,8 @@ describe("page code placement", () => {
   };
 
   test("the script comes AFTER the elements it wires up", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/`, )).text();
     const rows = html.indexOf('id="jobrows"');
     const script = scriptAt(html, "jobrows");
     expect(rows).toBeGreaterThan(-1);
@@ -311,8 +300,8 @@ describe("page code placement", () => {
   // theme has to be on the html element before the first paint, so this
   // script deliberately goes where the one above must not.
   test("the theme switcher comes BEFORE anything it could be seen to change", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/`, )).text();
     const theme = scriptAt(html, "data-theme-choice");
     expect(theme).toBeGreaterThan(-1);
     expect(theme).toBeLessThan(html.indexOf("</head>"));
@@ -321,8 +310,8 @@ describe("page code placement", () => {
   });
 
   test("the two scripts are two, and each is found by what it says", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(html.match(/<script/g)).toHaveLength(2);
     expect(scriptAt(html, "jobrows")).not.toBe(scriptAt(html, "data-theme-choice"));
   });
@@ -330,7 +319,7 @@ describe("page code placement", () => {
 
 describe("the step boxes on a row follow that spec", () => {
   test("a step the spec has already had is marked done and shown ticked and locked (spec 267, criterion 1)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
@@ -346,21 +335,21 @@ describe("the step boxes on a row follow that spec", () => {
   });
 
   test("a spec nothing has run yet offers analyze (criterion 1a)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
     // Created and nothing else: the record, not the file's size, is
     // what says so (spec 139).
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, )).text();
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(phaseDone(line, "analyze")).toBe(false);
   });
 
   test("with the analysis already on disk, implement is pre-ticked (criterion 1b)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     // Analysed by hand and committed with the subject the runner uses
     // (spec 154), so the row must not tick and mark the same box at
     // once.

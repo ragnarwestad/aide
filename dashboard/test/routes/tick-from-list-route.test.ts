@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { SPEC, TICK, TOKEN, DESCRIPTION, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "../spec-page/spec-save-fixtures.ts";
+import { SPEC, TICK, DESCRIPTION, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "../spec-page/spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, STATUS, heldBack, statusPath, startWithChecks, recording, messageOf, tick, ticked,
 } from "../spec-page/spec-checks-fixtures.ts";
@@ -24,7 +24,6 @@ const listPress = (
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
-      "x-aide-token": TOKEN,
       ...(o.json ? { accept: "application/json" } : {}),
     },
     redirect: "manual",
@@ -70,7 +69,7 @@ describe("a press from the Specs list", () => {
   test("saving does not start an archive, or any other job", async () => {
     const { base } = startWithChecks(a.harness, savable("/host"), heldBack([OPEN_ROW]));
     const jobs = async () =>
-      (await (await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN, accept: "application/json" } })).json()).jobs;
+      (await (await fetch(`${base}/api/queue`, { headers: { accept: "application/json" } })).json()).jobs;
     expect(await jobs()).toEqual([]);
     const res = await listPress(base, { json: true, ticks: [OPEN_ROW] });
     expect(res.status).toBe(200);
@@ -107,7 +106,7 @@ describe("a press that cannot be saved", () => {
       description: DESCRIPTION,
       status: STATUS,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await listPress(base, { json: true, ticks: [OPEN_ROW], path: `/api/queue/specs/aide/${ARCHIVED}/tick` });
     expect(res.status).toBe(409);
@@ -119,7 +118,7 @@ describe("a press that cannot be saved", () => {
       description: DESCRIPTION,
       status: STATUS,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await listPress(base, { ticks: [OPEN_ROW], view: `aide/${ARCHIVED}`, path: `/api/queue/specs/aide/${ARCHIVED}/tick` });
     const to = location(res);

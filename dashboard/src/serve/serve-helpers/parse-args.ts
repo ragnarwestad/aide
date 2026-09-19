@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import type { DiscoveredProject, SpecRef } from "../../project/discover";
-import { mergeQueueDefaults, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
+import { mergeQueueDefaults, parseAllowedHosts, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
 import { navEntries } from "../../render";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
@@ -40,7 +40,6 @@ export function resolveDependencyFolder(
 export function parseArgs(argv: string[]): ServerOptions {
   const opts: ServerOptions = { siteDir: join(homedir(), ".aide", "dashboard", "site"), port: 8788 };
   let root: string | undefined;
-  let tokenFile: string | undefined;
   let queueConfigFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -66,9 +65,6 @@ export function parseArgs(argv: string[]): ServerOptions {
     // `~/.aide/dashboard/checkouts` unless a host wants them elsewhere.
     else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
-    // The token is read from a FILE, never an argument: `ps` shows
-    // arguments to every user on the machine.
-    else if (a === "--token-file" && v) tokenFile = argv[++i];
     // Spec 424: which spec/branch this process is a TEST board for —
     // absent means an ordinary (prod) server.
     else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
@@ -79,18 +75,6 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), ".aide", "dashboard", "pending-models.json");
   if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), ".aide", "dashboard", "pending-effort.json");
   if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), ".aide", "dashboard", "pending-steps.json");
-  if (tokenFile) {
-    // A missing or unreadable token file must not crash the server:
-    // launchd would restart it in a loop and take the whole dashboard
-    // down over a feature that is meant to fail closed, not loud.
-    try {
-      const token = readFileSync(tokenFile, "utf-8").trim();
-      if (token) opts.queueToken = token;
-      else console.error(`token file ${tokenFile} is empty — the queue stays off`);
-    } catch {
-      console.error(`cannot read ${tokenFile} — the queue stays off`);
-    }
-  }
   if (queueConfigFile) {
     // Kept whether or not the file is readable: the Add/Remove routes
     // write the allowlist back here, and a first install has no such
@@ -123,6 +107,11 @@ export function parseArgs(argv: string[]): ServerOptions {
         const headerAuth = parseHeaderAuth(raw.headerAuth);
         if (headerAuth) opts.headerAuth = headerAuth;
         else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
+      }
+      if (typeof raw.allowedHosts !== "undefined") {
+        const allowedHosts = parseAllowedHosts(raw.allowedHosts);
+        if (allowedHosts) opts.allowedHosts = allowedHosts;
+        else console.error(`allowedHosts in ${queueConfigFile} is malformed — ignored`);
       }
     } catch {
       console.error(`cannot read ${queueConfigFile} — keeping the built-in defaults`);

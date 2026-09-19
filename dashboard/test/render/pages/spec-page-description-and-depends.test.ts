@@ -98,10 +98,6 @@ describe("the Description tab", () => {
     expect(html).toContain("1-description.md has changed since you opened it");
   });
 
-  test("carries the token for a browser that got the page with one", () => {
-    expect(edit(view({ token: "s3cret" }))).toContain('name="token" value="s3cret"');
-  });
-
   // Spec 163: an archived spec is a RECORD. Editing was built for a
   // description that is edited WHILE the work is live (spec 162), and
   // Save on an archived spec would have written, committed and pushed

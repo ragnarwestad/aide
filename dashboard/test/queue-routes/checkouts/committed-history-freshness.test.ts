@@ -5,15 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
-import {
-  TOKEN,
-  specControls,
-  phaseDone,
-  OPEN_81,
-  listUntil,
-  dated,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specControls, phaseDone, OPEN_81, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -58,7 +50,7 @@ describe("spec 154: what has run is what has been committed", () => {
 
   // Criterion 1: the 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
@@ -82,7 +74,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // written by hand has no `Run /aide-create` commit at all — and the
   // pip has read it that way since spec 167. The phase LINE agrees now.
   test("a spec whose folder exists has had create, whatever git records", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     // Analyze has a commit; create never did.
     ran(dir, ["analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -97,7 +89,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // here does not name `create`, which before spec 176 would have been
   // a disagreement the moment `create` was forced into `done`.
   test("forcing create into done invents no disagreement", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["analyze"]));
     ran(dir, ["analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -107,7 +99,7 @@ describe("spec 154: what has run is what has been committed", () => {
 
   // Criterion 3, the same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -116,7 +108,7 @@ describe("spec 154: what has run is what has been committed", () => {
   });
 
   test("and so does a file that has NOT caught up with a step that ran", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
     ran(dir, ["create", "analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -125,7 +117,7 @@ describe("spec 154: what has run is what has been committed", () => {
   });
 
   test("a file that agrees with the history says nothing at all", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -137,7 +129,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // 349's own incident, an amended commit that never reached origin
   // while the phase it recorded landed anyway, inside a later commit.
   test("a spec whose state file claims a phase git has no commit for is not shown as disagreeing (spec 362)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     writeFileSync(
       join(specDir(dir), "4-status.json"),
@@ -158,7 +150,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 2: the 147 incident. No job in the queue's memory at all
   // — the row is built from the commit alone.
   test("a step killed by the time limit reads as stopped, not as not-run", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
@@ -176,7 +168,7 @@ describe("spec 154: what has run is what has been committed", () => {
 
   // Criterion 4.
   test("a completed re-run supersedes the stop before it", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
     ran(dir, ["implement"]);
@@ -189,7 +181,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 5: a step run at somebody's keyboard, committed by hand
   // with the subject the four skills now offer.
   test("an interactive commit with no headless marker counts the same", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
@@ -201,7 +193,6 @@ describe("spec 154: what has run is what has been committed", () => {
 // asked of git at render time and never stored, so a re-run clears it
 // without anything having to remember it was ever set.
 describe("a description newer than the analysis is shown on the row", () => {
-  const auth = { headers: { "x-aide-token": TOKEN } };
   const DESCRIPTION_EDITED = "2026-08-18T09:10:36+02:00";
   const SUBJECT = "Run /aide-analyze for 81-queue-and-runner (headless)";
 
@@ -246,11 +237,10 @@ describe("a description newer than the analysis is shown on the row", () => {
   /** The badge sits on the analyze phase line and the marks on the step
    *  boxes, and a collapsed row draws neither — so every fetch here
    *  asks for the spec open. */
-  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`, auth).then((r) => r.text());
+  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
 
   test("the analyze line says the description changed since (criterion 1)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
@@ -261,7 +251,6 @@ describe("a description newer than the analysis is shown on the row", () => {
 
   test("analyze stops counting as done (criteria 2, 3)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
@@ -283,7 +272,6 @@ describe("a description newer than the analysis is shown on the row", () => {
   // marks with nothing having had to remember them.
   test("the stale row leaves the recorded list on disk untouched (spec 139, criterion 10)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
@@ -297,7 +285,6 @@ describe("a description newer than the analysis is shown on the row", () => {
 
   test("a re-analyzed spec is current again (criterion 5)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitSaying(
         DESCRIPTION_EDITED,
         [
@@ -315,7 +302,6 @@ describe("a description newer than the analysis is shown on the row", () => {
 
   test("a description older than the analysis changes nothing (criterion 4)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitSaying("2026-08-18T08:00:00+02:00", `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
@@ -335,7 +321,6 @@ describe("a description newer than the analysis is shown on the row", () => {
   // claim is still on the row, as the disagreement it now is.
   test("git with no answer marks nothing, and still puts no stale badge up (criteria 8, 10)", async () => {
     const { base, dir } = start({
-      queueToken: TOKEN,
       gitRun: gitFake({}).run,
     });
     analysedSpec(dir);

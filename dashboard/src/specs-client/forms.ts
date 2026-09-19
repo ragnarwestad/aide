@@ -133,8 +133,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
       formNote(form, "");
       // A Remove has no such answer, and does what it always did: the
       // forms live on pages of their own (2026-08-19), so it returns to
-      // the list it changed, with the reader's own query string (the
-      // token rides there).
+      // the list it changed, with the reader's own query string.
       location.href = "/projects" + location.search;
     },
     (why) => formNote(form, why),

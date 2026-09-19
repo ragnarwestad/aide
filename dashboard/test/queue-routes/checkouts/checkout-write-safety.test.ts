@@ -6,10 +6,7 @@ import {
   parseArgs,
   runnerArgv,
 } from "../../../src/serve/serve.ts";
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -41,7 +38,7 @@ afterEach(() => {
 // (spec 218) tests are their own sibling files, sharing `git`,
 // `realProject` and `recording` via ./checkout-safety-fixtures.ts.
 describe("the dashboard works in checkouts of its own (spec 205)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   // Criterion 6, and the whole point: `--project-dir` is what decides
   // which checkout a run branches, switches and cuts its worktree from.
@@ -103,8 +100,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned,
     });
     try {
       const res = await fetch(`http://127.0.0.1:${server.port}/api/queue/projects`, {
@@ -132,8 +128,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     const server = createServer({
       siteDir: site, port: 0,
       mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
-      dashboardCheckoutRoot: owned, gitRun: recorded.run,
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: recorded.run,
     });
     try {
       // Through the form, not around it: the hidden `baseSha` is the
@@ -142,7 +137,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       // commit came out of.
       const form = await (
         await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner?tab=description`, {
-          headers: { "x-aide-token": TOKEN },
+          headers: {},
         })
       ).text();
       const baseSha = /name="baseSha" value="([^"]*)"/.exec(form)?.[1] ?? "";
@@ -151,7 +146,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
         `http://127.0.0.1:${server.port}/api/queue/specs/aide/81-queue-and-runner/save`,
         {
           method: "POST",
-          headers: { "x-aide-token": TOKEN, "content-type": "application/json" },
+          headers: { "content-type": "application/json" },
           redirect: "manual",
           body: JSON.stringify({
             text: "# Queue - Description\n\n## Description\n\nSaved by the dashboard.\n",

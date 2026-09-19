@@ -12,24 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  TOKEN,
-  SPEC,
-  SAVE,
-  DESCRIPTION_TAB,
-  PAGE,
-  FILE_SHA,
-  DESCRIPTION,
-  NEW_TEXT,
-  auth,
-  ARCHIVED,
-  ARCHIVED_TEXT,
-  createSpecSaveHarness,
-  descriptionPath,
-  archivedDescriptionPath,
-  savable,
-  post,
-} from "./spec-save-fixtures.ts";
+import { SPEC, SAVE, DESCRIPTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath, savable, post } from "./spec-save-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -39,7 +22,6 @@ afterEach(() => harness.cleanup());
 // overwrite the mirror's own state, since a job in flight is not
 // otherwise reachable from a fixture that answers everything else
 // synchronously.
-
 
 // --- spec 212, criterion 8: the second page is gone -------------------------
 //
@@ -81,7 +63,7 @@ describe("POST the Save action", () => {
     const { base, dir } = start(savable("/host"));
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);
@@ -138,7 +120,7 @@ describe("a save that cannot go through changes nothing", () => {
   test("the reason is on the page the reader lands on, above the current text", async () => {
     const { base } = start(savable("/host", { "diff --quiet HEAD": { code: 1 } }));
     const location = decodeURIComponent((await post(base, { text: NEW_TEXT, baseSha: FILE_SHA })).headers.get("location")!);
-    const html = await (await fetch(`${base}${location}`, auth)).text();
+    const html = await (await fetch(`${base}${location}`)).text();
     expect(html).toContain("uncommitted");
     expect(html).toContain("As it was.");
     expect(html).not.toContain("As it is now.");
@@ -155,8 +137,7 @@ describe("a save that cannot go through changes nothing", () => {
   test("a spec nobody has cannot be saved to, and GET is not a save", async () => {
     const { base } = start(savable("/host"));
     expect((await post(base, { text: NEW_TEXT }, `/api/queue/specs/aide/99-no-such/save`)).status).toBe(404);
-    expect((await fetch(`${base}${SAVE}`, auth)).status).toBe(405);
-    expect((await post(base, { text: NEW_TEXT }, SAVE, null)).status).toBe(401);
+    expect((await fetch(`${base}${SAVE}`)).status).toBe(405);
   });
 });
 
@@ -192,7 +173,7 @@ describe("the size of a real description", () => {
     const { base } = start(savable("/host"));
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"], note: "x".repeat(5000) }),
     });
     expect(res.status).toBe(413);
@@ -263,7 +244,7 @@ describe("two specs sharing one checkout", () => {
       // timer, and this fake counts exactly two such calls per SAVE
       // request to tell "key the lock" from "the sequence starts" apart
       // — a third, unrelated caller would corrupt that count.
-      extra: { queueToken: TOKEN, gitRun, specCachePollMs: 0 },
+      extra: { gitRun, specCachePollMs: 0 },
     });
 
     const first = post(base, { text: NEW_TEXT, baseSha: FILE_SHA });

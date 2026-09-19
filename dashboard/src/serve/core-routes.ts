@@ -55,8 +55,8 @@ export async function handleCore(
   // What commit this process is actually running (spec 269) — read
   // once at boot, in `process.cwd()`, and never refreshed. A restart
   // that silently failed to happen looks exactly like one that worked
-  // until something asks this; unauthenticated so a probe nobody's
-  // monitoring can use is not locked behind the queue token.
+  // until something asks this; a probe nobody's
+  // monitoring can use needs no more than a Host of its own.
   if (path === "/api/version") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     return json({ sha: ctx.readServingSha() });

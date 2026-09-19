@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { TOKEN, specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
 /** The message a job carries, as text. Since spec 380 a job stores
  *  WHICH message and what fills its blanks; the reader composes it.
@@ -186,7 +186,6 @@ describe("every step lands its own work (spec 149)", () => {
     expect(merges(git.calls, paths.specs)).toHaveLength(0);
   });
 
-
   test("an archive landing that conflicts records errorReason and archives nothing", async () => {
     const dir = own("aide-149-archive-conflict-");
     const paths = repos(dir);
@@ -224,7 +223,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(existsSync(marker)).toBe(false);
     // Still in the active list, with its branch, exactly as it was.
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   }, 20000);
 
@@ -346,7 +345,7 @@ describe("every step lands its own work (spec 149)", () => {
     );
 
     const url = `${base}/?${OPEN_81}`;
-    const html = await (await fetch(url, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(url, )).text();
     expect(html).not.toContain("resolveform");
     expect(specControls(html, SPEC)).not.toContain('value="resolve"');
     // The failure itself is still on the row, and still names the repo

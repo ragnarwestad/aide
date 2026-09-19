@@ -7,8 +7,6 @@ import type { ServerOptions } from "../../src/serve/serve.ts";
 import type { QueueDefaults } from "../../src/queue/queue.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-const TOKEN = "s3cret-token";
-
 const DESCRIPTION =
   "# A running job is a black box - Description\n\n" +
   "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
@@ -19,16 +17,14 @@ const DESCRIPTION =
 const harness = queueHarness("aide-queue-detail-");
 
 const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { queueToken: TOKEN, ...extra } });
+  harness.start({ description: DESCRIPTION, extra: { ...extra } });
 
 afterEach(() => harness.cleanup());
-
-const auth = { headers: { "x-aide-token": TOKEN } };
 
 async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
@@ -86,9 +82,9 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const activity = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
+    const activity = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
     expect(activity).toContain("bun test");
-    const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
+    const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
     expect(steps).not.toContain("$0.00");
   });
 
@@ -110,7 +106,7 @@ describe("a Codex step's job page", () => {
       queueMirrorPath: mirror,
       queueDefaults: CODEX_CHOICE,
     });
-    const html = await (await fetch(`${base2}/specs/${id}`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}`)).text();
     expect(html).not.toContain("Live right now");
   });
 
@@ -133,7 +129,7 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
     expect(html).toContain("bun test");
   });
 
@@ -163,10 +159,10 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const all = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
+    const all = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
     expect(all).toContain("thinking it over");
 
-    const commands = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`, auth)).text();
+    const commands = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)).text();
     expect(commands).toContain("bun test");
     expect(commands).not.toContain("thinking it over");
   });
@@ -184,7 +180,7 @@ describe("GET /specs/<id> remembers the reader's language (spec 408)", () => {
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    const res = await fetch(`${base}/specs/${id}?lang=nb`, auth);
+    const res = await fetch(`${base}/specs/${id}?lang=nb`);
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -219,7 +215,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("offers all four files, whether or not anything has ever run (criterion 2)", async () => {
     const { base, dir } = start();
     fillSpec(dir);
-    const res = await fetch(`${base}${PATH}`, auth);
+    const res = await fetch(`${base}${PATH}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const overview = await res.text();
@@ -228,10 +224,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
     }
     expect(overview).not.toContain("Seven files.");
 
-    const analysis = await (await fetch(`${base}${PATH}?tab=analysis`, auth)).text();
+    const analysis = await (await fetch(`${base}${PATH}?tab=analysis`)).text();
     expect(analysis).toContain("2-analysis.md");
     expect(analysis).toContain("Seven files.");
-    const solution = await (await fetch(`${base}${PATH}?tab=solution`, auth)).text();
+    const solution = await (await fetch(`${base}${PATH}?tab=solution`)).text();
     expect(solution).toContain("3-solution.md");
     expect(solution).toContain("One must-fix.");
   });
@@ -241,15 +237,15 @@ describe("GET /specs/<project>/<specFolder>", () => {
     fillSpec(dir);
     const id = await enqueue(base);
     expect(id).toBeTruthy();
-    const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=steps`)).text();
     expect(html).toContain("No step has finished yet");
     expect(html).toContain(`href="${PATH}?tab=checks"`);
   });
 
   test("a spec nobody has is a 404, not a blank page", async () => {
     const { base } = start();
-    expect((await fetch(`${base}/specs/aide/99-no-such-spec`, auth)).status).toBe(404);
-    expect((await fetch(`${base}/specs/no-such-project/${SPEC}`, auth)).status).toBe(404);
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(404);
+    expect((await fetch(`${base}/specs/no-such-project/${SPEC}`)).status).toBe(404);
   });
 
   // The two routes are one path segment apart and must stay disjoint:
@@ -257,27 +253,20 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("the job route still answers, and neither swallows the other", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    expect((await fetch(`${base}/specs/${id}`, auth)).status).toBe(200);
-    expect((await fetch(`${base}${PATH}`, auth)).status).toBe(200);
+    expect((await fetch(`${base}/specs/${id}`)).status).toBe(200);
+    expect((await fetch(`${base}${PATH}`)).status).toBe(200);
     // The job page is about the run; the spec page is about the spec.
     // An analyze job's page carries 3-solution.md, its own phase's
     // file, and none of the other three the spec page lists.
-    const job = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    const job = await (await fetch(`${base}/specs/${id}`)).text();
     expect(job).not.toContain("1-description.md");
-  });
-
-  test("it is behind the token like every other queue path", async () => {
-    const { base } = start();
-    expect((await fetch(`${base}${PATH}`)).status).toBe(401);
-    const { base: off } = start({ queueToken: undefined });
-    expect((await fetch(`${off}${PATH}`)).status).toBe(503);
   });
 
   // Spec 408, REQ-1/REQ-4: this route reads and remembers the language
   // the same way `/` already does.
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
     const { base } = start();
-    const res = await fetch(`${base}${PATH}?lang=nb`, auth);
+    const res = await fetch(`${base}${PATH}?lang=nb`);
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -292,9 +281,9 @@ describe("GET /specs/<project>/<specFolder>", () => {
     // failed this test for a week's worth of head-scratching
     // (2026-08-24) while the files were being re-read just fine.
     writeFileSync(join(spec, "2-analysis.md"), "sentinel-first-write\n");
-    expect(await (await fetch(`${base}${analysis}`, auth)).text()).toContain("sentinel-first-write");
+    expect(await (await fetch(`${base}${analysis}`)).text()).toContain("sentinel-first-write");
     writeFileSync(join(spec, "2-analysis.md"), "sentinel-second-write\n");
-    const html = await (await fetch(`${base}${analysis}`, auth)).text();
+    const html = await (await fetch(`${base}${analysis}`)).text();
     expect(html).toContain("sentinel-second-write");
     expect(html).not.toContain("sentinel-first-write");
   });
@@ -362,8 +351,8 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth);
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`);
     expect(res.status).toBe(200);
     expect(withoutLangMenu(await res.text())).toBe(bare);
   });
@@ -374,8 +363,8 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`, auth);
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`);
     expect(res.status).toBe(200);
     expect(withoutLangMenu(await res.text())).toBe(bare);
   });
@@ -405,8 +394,8 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     writeFileSync(mirror, JSON.stringify(jobs));
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=another-spec`, auth);
+    const bare = withoutLangMenu(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=another-spec`);
     expect(res.status).toBe(200);
     expect(withoutLangMenu(await res.text())).toBe(bare);
   });
@@ -417,7 +406,7 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base2}${PATH}?tab=steps`)).text();
     expect(html).toContain("$7.77");
     expect(html).toContain("$1.11");
   });
@@ -425,7 +414,7 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
   test("a spec with one job shows no Attempt marker (AC1, HTTP level)", async () => {
     const { base } = start();
     await enqueue(base);
-    const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=steps`)).text();
     expect(html).not.toContain("Attempt ");
     expect(html).not.toContain('data-filter="attempt"');
   });

@@ -127,13 +127,10 @@ function resultBlock(check: ToolCheck): string {
 /** The panel behind one AI's tab. `check` is the last answer obtained
  *  for this tool in this server's lifetime, or absent when none has been
  *  asked for: nothing is run because a page was opened. */
-export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined, token?: string): string {
+export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined): string {
   const note = TOOL_NOTES[tool];
   const cannot = note.cannotCheck
     ? `<p class="muted">The check cannot tell you ${esc(note.cannotCheck)}</p>`
-    : "";
-  const tokenField = token
-    ? `<input type="hidden" name="token" value="${esc(token)}">`
     : "";
   return (
     `<section class="toolpanel" data-tool="${esc(tool)}">` +
@@ -141,7 +138,6 @@ export function toolPanel(tool: CheckableTool, check: ToolCheck | undefined, tok
     `<p class="muted">The check tells you ${esc(note.canCheck)}.</p>` +
     cannot +
     `<form method="post" action="/api/queue/settings/check" id="check-${esc(tool)}">` +
-    tokenField +
     `<input type="hidden" name="tool" value="${esc(tool)}">` +
     `<div class="configactions">` +
     btn({ id: `check-${tool}-run`, label: "Check", variant: "primary", pending: "checking…" }) +

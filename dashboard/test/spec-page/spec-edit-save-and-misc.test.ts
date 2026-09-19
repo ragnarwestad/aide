@@ -6,25 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  TOKEN,
-  SPEC,
-  DESCRIPTION_TAB,
-  CHECKS_TAB,
-  ANALYSIS_TAB,
-  SOLUTION_TAB,
-  PAGE,
-  FILE_SHA,
-  DESCRIPTION,
-  NEW_TEXT,
-  auth,
-  ARCHIVED,
-  createSpecSaveHarness,
-  fillAnalysisAndSolution,
-  descriptionPath,
-  post,
-  savable,
-} from "./spec-save-fixtures.ts";
+import { SPEC, DESCRIPTION_TAB, CHECKS_TAB, ANALYSIS_TAB, SOLUTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, createSpecSaveHarness, fillAnalysisAndSolution, descriptionPath, post, savable } from "./spec-save-fixtures.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
@@ -38,7 +20,7 @@ afterEach(() => harness.cleanup());
 async function enqueueJob(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: SPEC, steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
@@ -58,13 +40,13 @@ function seedJobState(dir: string, id: string, state: string): string {
 describe("the Description tab", () => {
   test("the spec page links to it", async () => {
     const { base } = start(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).toContain(`?tab=description`);
   });
 
   test("the Description tab holds the text and the commit it was read at", async () => {
     const { base } = start(savable("/host"));
-    const res = await fetch(`${base}${DESCRIPTION_TAB}`, auth);
+    const res = await fetch(`${base}${DESCRIPTION_TAB}`);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<textarea");
@@ -76,12 +58,12 @@ describe("the Description tab", () => {
   // form had a page of its own before spec 212.
   test("the Description tab does not refresh itself under the reader", async () => {
     const { base } = start(savable("/host"));
-    expect(await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text()).not.toContain('http-equiv="refresh"');
+    expect(await (await fetch(`${base}${DESCRIPTION_TAB}`)).text()).not.toContain('http-equiv="refresh"');
   });
 
   test("a spec nobody has is a 404, not a blank editor", async () => {
     const { base } = start(savable("/host"));
-    expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`, auth)).status).toBe(404);
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`)).status).toBe(404);
   });
 
   // REQ-1: the editor bundle is served from its own file and referenced
@@ -90,7 +72,7 @@ describe("the Description tab", () => {
   // specsClientScript() already scopes itself.
   test("the Description tab references the editor's script by src; other tabs do not", async () => {
     const { base } = start(savable("/host"));
-    const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
+    const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`)).text();
     expect(descHtml).toContain("spec-editor-host");
     expect(descHtml).toContain('<script src="/spec-editor.js">');
     // REQ-1: the bundle's own source no longer travels inline at all.
@@ -99,7 +81,7 @@ describe("the Description tab", () => {
     // default tab a bare URL resolves to (dropping "overview"), so
     // `PAGE` now serves the SAME tab this test just checked — asking
     // explicitly for another tab is what "other tabs do not" needs.
-    const checksHtml = await (await fetch(`${base}${CHECKS_TAB}`, auth)).text();
+    const checksHtml = await (await fetch(`${base}${CHECKS_TAB}`)).text();
     expect(checksHtml).not.toContain("spec-editor-host");
     expect(checksHtml).not.toContain('<script src="/spec-editor.js">');
     // REQ-1: with the bundle no longer inlined, a document tab's own
@@ -118,7 +100,7 @@ describe("the Description tab", () => {
   // reference, not just the asset route in isolation.
   test("a fresh server's first request to the bare spec page carries the editor's script src", async () => {
     const { base } = start(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    const html = await (await fetch(`${base}${PAGE}`)).text();
     expect(html).toContain("spec-editor-host");
     expect(html).toContain('<script src="/spec-editor.js">');
     // REQ-5: the browser's own follow-up fetch of that reference works
@@ -144,7 +126,7 @@ describe("the Description tab", () => {
       test(`the ${tab} tab shows its WYSIWYG mount and the editor's script src on the first request`, async () => {
         const { base, dir } = start(savable("/host"));
         fillAnalysisAndSolution(dir);
-        const html = await (await fetch(`${base}${path}`, auth)).text();
+        const html = await (await fetch(`${base}${path}`)).text();
         expect(html).toContain("spec-editor-host");
         expect(html).toContain('<script src="/spec-editor.js">');
         expect(html).toContain('<div class="spec-editor-mount" id="spec-editor-host"></div>');
@@ -164,7 +146,7 @@ describe("the Description tab", () => {
     ] as const) {
       test(`an unwritten ${tab} tab carries no editor script and no viewer script`, async () => {
         const { base } = start(savable("/host"));
-        const html = await (await fetch(`${base}${path}`, auth)).text();
+        const html = await (await fetch(`${base}${path}`)).text();
         expect(html).not.toContain('<script src="/spec-editor.js">');
         expect(html).not.toContain('<script src="/spec-viewer.js">');
       });
@@ -179,7 +161,7 @@ describe("the Description tab", () => {
   // does that (REQ-1).
   test("an archived spec's Description tab is read-only, renders the document and carries no editor script", async () => {
     const { base } = startArchived(savable("/host"));
-    const res = await fetch(`${base}/specs/aide/${ARCHIVED}?tab=description`, auth);
+    const res = await fetch(`${base}/specs/aide/${ARCHIVED}?tab=description`);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).not.toContain("<textarea");
@@ -196,7 +178,7 @@ describe("the Description tab", () => {
     const id = await enqueueJob(base);
     const mirror = seedJobState(dir, id, "running");
     const { base: base2 } = start(savable("/host"), { queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${DESCRIPTION_TAB}`, auth)).text();
+    const html = await (await fetch(`${base2}${DESCRIPTION_TAB}`)).text();
     expect(html).not.toContain('<script src="/spec-editor.js">');
     expect(html).toContain('<script src="/spec-viewer.js">');
   });
@@ -220,9 +202,9 @@ describe("the Description tab", () => {
               solution: "# Q - Solution\n\nOne must-fix.\n",
             },
           },
-          extra: { queueToken: TOKEN, gitRun: savable("/host") },
+          extra: { gitRun: savable("/host") },
         });
-        const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=${tab}`, auth)).text();
+        const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=${tab}`)).text();
         expect(html).toContain('<script src="/spec-viewer.js">');
         expect(html).not.toContain('<script src="/spec-editor.js">');
         expect(html).toContain(needle);
@@ -245,7 +227,7 @@ describe("the Description tab", () => {
         const mirror = seedJobState(dir, id, "running");
         const { base: base2, dir: dir2 } = start(savable("/host"), { queueMirrorPath: mirror });
         fillAnalysisAndSolution(dir2);
-        const html = await (await fetch(`${base2}/specs/aide/${SPEC}?tab=${tab}`, auth)).text();
+        const html = await (await fetch(`${base2}/specs/aide/${SPEC}?tab=${tab}`)).text();
         expect(html).toContain('<script src="/spec-viewer.js">');
         expect(html).not.toContain('<script src="/spec-editor.js">');
         expect(html).toContain(needle);
@@ -276,7 +258,7 @@ describe("AC-1 (spec 471): a held-back spec's description stays editable", () =>
     const { base, dir } = harness.start({
       description: DESCRIPTION,
       status: heldBackStatus,
-      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+      extra: { gitRun: savable("/host") },
     });
     const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
     expect(res.status).toBe(303);

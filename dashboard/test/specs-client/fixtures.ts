@@ -108,6 +108,8 @@ export function harness(
       return null;
     },
   };
+  // A hidden `token` field on a page served before the token was removed:
+  // no press reads it any more (`no-token-param.test.ts`).
   const tokenInput = { value: "s3cret" };
   type Listener = (e: unknown) => void | Promise<void>;
   const on: Record<string, Listener> = {};

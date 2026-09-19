@@ -51,7 +51,7 @@ describe("spec 358: the PDF button", () => {
   });
 
   test("an archived spec has it on the title line too", () => {
-    const html = withPdf({ archived: true, token: "t0ken" });
+    const html = withPdf({ archived: true });
     expect(titleLineEnd(html)).toContain(`href="${PDF_ACTION}"`);
   });
 

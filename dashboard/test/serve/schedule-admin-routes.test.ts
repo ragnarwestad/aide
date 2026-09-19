@@ -39,8 +39,7 @@ function readSchedule(dir: string, project: string) {
   return result.data.schedule ?? [];
 }
 
-const TOKEN = "s3cret-token";
-const asJson = { headers: { accept: "application/json", "x-aide-token": TOKEN } };
+const asJson = { headers: { accept: "application/json" } };
 
 /** A queue config with two models to choose between, for the tests about
  *  an entry's own model pick. */
@@ -53,7 +52,7 @@ const DEFAULTS = {
 
 describe("POST /api/queue/schedule — create, project read from the body (spec 278, criteria 5, 6, 7, 13, 14)", () => {
   test("a valid entry naming an allowed project is created in that project's manifest (criterion 13)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const before = Date.now();
@@ -79,7 +78,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   // Setting that `.git` up here is what makes the two diverge, the way
   // production genuinely does.
   test("writes to the dashboard's own checkout, not the reader's, when the two differ", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     const owned = join(dir, "owned", "aide", "code");
     mkdirSync(join(owned, ".git"), { recursive: true });
     writeFileSync(join(owned, "docs-nightly.md"), "# nightly\n");
@@ -111,7 +110,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   // inherits for spec saves (`project-checkout.ts:36-42`). The write
   // must still succeed there rather than refuse or silently go nowhere.
   test("with no owned checkout at all, the write falls back to the reader's, and still succeeds (spec 400 REQ-2)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const before = Date.now();
@@ -132,7 +131,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   // the reason on the page, never a silent success — the same `{ error }`
   // shape every other refusal in this file already uses.
   test("a commit that fails refuses with the reason named (spec 400 REQ-5)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host", { commit: { code: 1 } }) } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host", { commit: { code: 1 } }) } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
@@ -151,7 +150,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   // are only asserted unchanged for a refusal that never writes at all;
   // the duplicate-name test right below is exactly that case.
   test("a push that fails is refused, and reported by name (spec 400 REQ-5)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host", { push: { code: 1 } }) } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host", { push: { code: 1 } }) } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
@@ -166,7 +165,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("a duplicate name is refused before any write (criterion 5)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
@@ -181,7 +180,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("a missing prompt path is refused, naming the path (criterion 6)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
@@ -195,7 +194,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("an invalid cron is refused before any write (criterion 7)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
@@ -209,7 +208,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("a project the allowlist does not contain is refused (400) before any write (criterion 14)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
@@ -225,13 +224,13 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   // Schedule tab, not the aggregate /schedule page — a no-JS redirect
   // has to land back where the form is, on both success and refusal.
   test("a no-script POST redirects to the project's own Schedule tab on success", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }).toString(),
     });
     expect(res.status).toBe(303);
@@ -239,12 +238,12 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("a no-script POST that is refused redirects to the project's own Schedule tab, with the reason", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }).toString(),
     });
     expect(res.status).toBe(303);
@@ -255,7 +254,7 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
 
 describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", () => {
   test("editing the cron leaves the name and other entries alone", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(
       dir, "aide",
@@ -279,7 +278,7 @@ describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", ()
   });
 
   test("renaming an entry is accepted (criterion 17)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const before = Date.now();
@@ -299,7 +298,7 @@ describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", ()
 
 describe("POST /api/queue/schedule/<project>/<name>/enabled (criterion 8)", () => {
   test("a plain body with only `enabled` is never refused for missing confirmation", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/enabled`, {
       method: "POST",
@@ -312,7 +311,7 @@ describe("POST /api/queue/schedule/<project>/<name>/enabled (criterion 8)", () =
   });
 
   test("flips back to true", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(
       dir, "aide",
       "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n    enabled: false\n",
@@ -330,7 +329,7 @@ describe("POST /api/queue/schedule/<project>/<name>/enabled (criterion 8)", () =
 
 describe("the entry's model, over the wire", () => {
   test("create stores the posted model on the entry", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
@@ -344,7 +343,7 @@ describe("the entry's model, over the wire", () => {
   });
 
   test("editing an entry replaces its model", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(
       dir, "aide",
@@ -361,7 +360,7 @@ describe("the entry's model, over the wire", () => {
   });
 
   test("a model the queue config does not grant is refused, and nothing is written", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
     const res = await fetch(`${base}/api/queue/schedule`, {
@@ -377,7 +376,7 @@ describe("the entry's model, over the wire", () => {
 
 describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   test("enqueues the schedule job under the entry's tracking key", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
@@ -392,7 +391,7 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   // something other than what the schedule does at 03:00.
   test("the job runs on the model the entry names", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") },
+      extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") },
     });
     writeManifest(
       dir, "aide",
@@ -408,7 +407,7 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
 
   test("an entry naming no model is enqueued without one — the configuration decides", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") },
+      extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") },
     });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
@@ -435,7 +434,7 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
   }
 
   test("a JSON press names the entry and gives the queue's reason, and is logged once", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeManifest(dir, "aide", entryNaming("retired"));
     const { value: res, lines } = await withLoggedErrors(() =>
       fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson }),
@@ -450,11 +449,11 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
   });
 
   test("a press with no script is redirected to /schedule carrying the same sentence", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeManifest(dir, "aide", entryNaming("retired"));
     const { value: res } = await withLoggedErrors(() =>
       fetch(`${base}/api/queue/schedule/aide/nightly/run`, {
-        method: "POST", headers: { "x-aide-token": TOKEN }, redirect: "manual",
+        method: "POST", headers: {}, redirect: "manual",
       }),
     );
     expect(res.status).toBe(303);
@@ -464,7 +463,7 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
   });
 
   test("an entry naming the model in another case runs on the listed spelling", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
     writeManifest(dir, "aide", entryNaming("SONNET"));
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
@@ -474,7 +473,7 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
 
 describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   test("a matching confirm deletes the entry and answers {ok: true} (criterion 1)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(
       dir, "aide",
       "name: aide\nschedule:\n" +
@@ -496,7 +495,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("deleting the last entry removes the schedule key entirely (criterion 3)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
@@ -509,9 +508,9 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("a no-script POST redirects to /schedule on success, never /projects or / (criterion 10)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete?token=${TOKEN}`, {
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -526,7 +525,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   // dialog ask the question in a sentence now (2026-09-08), so a press
   // with an empty body IS the answer and the entry goes.
   test("a press with no confirmation deletes the entry (criterion 2)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
@@ -539,7 +538,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("an unknown entry name in an allowed project refuses with 400 (criterion 5)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/ghost/delete`, {
       method: "POST",
@@ -552,7 +551,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("an unallowed project refuses with 400 (criterion 6)", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
     const res = await fetch(`${base}/api/queue/schedule/ghost-project/nightly/delete`, {
       method: "POST",
       ...asJson,
@@ -566,7 +565,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   // must write through `machineryProjectDir` (the dashboard's own
   // checkout), never `displayProjectDir` (the reader's).
   test("writes to the dashboard's own checkout, not the reader's, when the two differ (criterion 4)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     const owned = join(dir, "owned", "aide", "code");
     mkdirSync(join(owned, ".git"), { recursive: true });
     mkdirSync(join(owned, ".aide"), { recursive: true });
@@ -593,7 +592,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
   });
 
   test("a job enqueued under the entry's tracking key survives the entry's deletion (criterion 11)", async () => {
-    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const runRes = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(runRes.status).toBe(200);
@@ -613,7 +612,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
 
 describe("GET /api/queue/schedule/cron-next (criteria 10, 11)", () => {
   test("a valid cron returns the same timestamp nextFireTime would compute", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
     const res = await fetch(`${base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "0 3 * * *" })}`, asJson);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -621,7 +620,7 @@ describe("GET /api/queue/schedule/cron-next (criteria 10, 11)", () => {
   });
 
   test("an invalid cron returns an error and no timestamp", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN, gitRun: savable("/host") } });
+    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
     const res = await fetch(`${base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "not-a-cron" })}`, asJson);
     expect(res.status).toBe(400);
     const body = await res.json();

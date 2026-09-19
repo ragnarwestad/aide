@@ -84,21 +84,20 @@ describe("compressResponse (unit)", () => {
 });
 
 describe("compressResponse, wired into the real server", () => {
-  const TOKEN = "s3cret-token";
   const harness = queueHarness("aide-compression-");
   afterEach(() => harness.cleanup());
 
   test("a document tab's HTML is served gzipped when the client asks for it", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const res = await fetch(`${base}/specs/aide/81-queue-and-runner?tab=description`, {
-      headers: { "x-aide-token": TOKEN, "accept-encoding": "gzip" },
+      headers: { "accept-encoding": "gzip" },
     });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-encoding")).toBe("gzip");
   });
 
   test("a small, non-whitelisted response (405) carries no content-encoding", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const { base } = harness.start();
     const res = await fetch(`${base}/spec-editor.js`, {
       method: "DELETE",
       headers: { "accept-encoding": "gzip" },
@@ -111,8 +110,8 @@ describe("compressResponse, wired into the real server", () => {
   // the body open indefinitely, so gzipping it would mean waiting
   // forever for a "whole body" that never comes.
   test("GET /api/queue/events keeps streaming, uncompressed, with gzip requested", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/api/queue/events?token=${TOKEN}`, {
+    const { base } = harness.start();
+    const res = await fetch(`${base}/api/queue/events`, {
       headers: { "accept-encoding": "gzip" },
     });
     expect(res.status).toBe(200);

@@ -14,8 +14,6 @@ import { t } from "../../src/i18n";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
-
 const harness = queueHarness("aide-e2e-layout-");
 let browser: Browser;
 let page: Page;
@@ -39,7 +37,7 @@ beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({
-    extra: { queueToken: TOKEN },
+    extra: {},
     // REQ-2 needs a list tall enough to actually overflow the viewport
     // if the fix were absent — the harness's one default spec never
     // does, at either window height, so it would pass with or without
@@ -61,15 +59,12 @@ beforeAll(async () => {
   // the harness's cache-poll/debounce to pick the new git repo up.
   ran(started.dir, []);
   await new Promise((r) => setTimeout(r, 400));
-  // Sets the aide_token cookie every later page.goto rides on — the
-  // same "visit once with ?token=" flow a person follows, not a header
-  // playwright's page.goto has no way to attach anyway. `live=0` is
-  // carried on every navigation below too: without it, the page's own
+  // `live=0` is carried on every navigation below: without it, the page's own
   // SSE connection (specs-client/live.ts) fires an async swapRows()
   // shortly after load and races this test's own reads of the DOM it
   // just rendered — caught as an intermittent 0-rect read on
   // `.created-date` (REQ-3) with the app's own live update wired in.
-  await withTimeout(page.goto(`${base}/?token=${TOKEN}&live=0`), 10_000, "page.goto(/?token=)");
+  await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/?live=0)");
 });
 
 afterAll(async () => {

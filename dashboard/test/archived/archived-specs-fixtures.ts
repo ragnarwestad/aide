@@ -30,9 +30,6 @@ import { expect } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-export const TOKEN = "s3cret-token";
-export const auth = { headers: { "x-aide-token": TOKEN } };
-
 /** The one LIVE spec every harness starts with. */
 export const LIVE = "81-queue-and-runner";
 /** And the live spec `alsoProjects` gives the second project. Named
@@ -186,7 +183,6 @@ export const start = (extra: Record<string, unknown> = {}, archivedSpecs: Archiv
     archivedSpecs,
     alsoProjects: ["skjer"],
     extra: {
-      queueToken: TOKEN,
       queueProjects: ["aide", "skjer"],
       gitRun: gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" }),
       ...extra,
@@ -196,7 +192,7 @@ export const start = (extra: Record<string, unknown> = {}, archivedSpecs: Archiv
 /** The Specs list, whatever the query. `?state=archived` is the view
  *  most of this file is about — the reading the Archive tab used to be. */
 export const specsList = async (base: string, query = ""): Promise<string> => {
-  const res = await fetch(`${base}/${query}`, auth);
+  const res = await fetch(`${base}/${query}`);
   expect(res.status).toBe(200);
   return res.text();
 };

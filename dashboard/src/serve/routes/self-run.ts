@@ -323,7 +323,6 @@ export function readFixtures(dir: string): RoundSpec[] {
 async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSpec[], specsDir: string): Promise<void> {
   const base = `http://127.0.0.1:${ctx.serverPort()}`;
   const headers: Record<string, string> = { "content-type": "application/json", accept: "application/json" };
-  if (ctx.queueToken) headers["x-aide-token"] = ctx.queueToken;
   const api = async (path: string, body: unknown): Promise<Record<string, unknown>> => {
     const res = await fetch(`${base}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
     const answer = (await res.json().catch(() => ({}))) as Record<string, unknown>;

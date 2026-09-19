@@ -82,8 +82,6 @@ export interface SettingsPageOptions {
    *  only when its button is pressed, so a tool with no entry has simply
    *  not been asked about. */
   checks?: Partial<Record<CheckableTool, ToolCheck>>;
-  /** The queue token a POST needs, when this server requires one. */
-  token?: string;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -188,7 +186,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const bar = tabBar(SETTINGS_TABS, SETTINGS_ROUTE, current, {});
   const panel = current === "phases"
     ? phasesPanel
-    : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool], opts.token);
+    : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool]);
   const body = `<main>${back}${bar}${panel}</main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,

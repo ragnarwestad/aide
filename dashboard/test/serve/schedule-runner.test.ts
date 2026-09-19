@@ -15,9 +15,6 @@ import { refreshSchedules, type ScheduleContext } from "../../src/serve/schedule
 const harness = queueHarness("aide-schedule-runner-");
 afterEach(() => harness.cleanup());
 
-const TOKEN = "s3cret-token";
-const AUTH = { "x-aide-token": TOKEN };
-
 function writeSchedule(dir: string, project: string, yaml: string): void {
   writeFileSync(join(dir, "root", project, ".aide", "project.yaml"), yaml);
 }
@@ -30,7 +27,7 @@ interface QueuedJob {
 }
 
 async function jobs(base: string): Promise<QueuedJob[]> {
-  const res = await fetch(`${base}/api/queue`, { headers: AUTH });
+  const res = await fetch(`${base}/api/queue`);
   const body = (await res.json()) as { jobs: QueuedJob[] };
   return body.jobs;
 }
@@ -58,7 +55,7 @@ const NIGHTLY = 'name: aide\nschedule:\n  - name: nightly-report\n    cron: "* *
 describe("refreshSchedules (spec 259)", () => {
   test("a due entry with no prior job is enqueued as a schedule step", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30 },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30 },
     });
     writeSchedule(dir, "aide", NIGHTLY);
     const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
@@ -70,7 +67,7 @@ describe("refreshSchedules (spec 259)", () => {
 
   test("does not enqueue a duplicate while one is already queued (acceptance criterion 2)", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     writeSchedule(dir, "aide", NIGHTLY);
     await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
@@ -83,7 +80,7 @@ describe("refreshSchedules (spec 259)", () => {
 
   test("a project with no schedule entries gets nothing enqueued", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
@@ -96,7 +93,7 @@ describe("refreshSchedules (spec 259)", () => {
   test("a due entry fires on the model it names", async () => {
     const { base, dir } = harness.start({
       extra: {
-        queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
+        driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
         queueDefaults: {
             
           timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
@@ -112,7 +109,7 @@ describe("refreshSchedules (spec 259)", () => {
 
   test("scheduleCheckMs: 0 turns the poll off entirely", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 0 },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 0 },
     });
     writeSchedule(dir, "aide", NIGHTLY);
     await new Promise((r) => setTimeout(r, 150));
@@ -146,7 +143,7 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
 
   test("through the server: one line however many ticks pass, and none once the entry is fixed", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
     const original = console.error;
     const lines: string[] = [];
@@ -174,7 +171,7 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
 
   test("a due entry naming the model in another case is enqueued on the listed spelling", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
     writeSchedule(dir, "aide", `${DAILY}    model: sonnet\n`);
     const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly"));

@@ -17,8 +17,6 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
-const TOKEN = "s3cret-token";
-
 const harness = queueHarness("aide-e2e-phase-time-");
 let browser: Browser;
 let page: Page;
@@ -38,7 +36,6 @@ beforeAll(async () => {
   page = await browser.newPage();
   const started = harness.start({
     extra: {
-      queueToken: TOKEN,
       // The board's own model choices configured (AC-7's own wording) —
       // a bare-name button needs at least one real entry to show.
       queueDefaults: {
@@ -53,9 +50,9 @@ beforeAll(async () => {
   ran(started.dir, ["create", "analyze"]);
   await new Promise((r) => setTimeout(r, 400));
   await withTimeout(
-    page.goto(`${base}/?token=${TOKEN}&live=0&open=aide%2F81-queue-and-runner`),
+    page.goto(`${base}/?live=0&open=aide%2F81-queue-and-runner`),
     10_000,
-    "page.goto(/?token=)",
+    "page.goto(/?live=0)",
   );
 });
 

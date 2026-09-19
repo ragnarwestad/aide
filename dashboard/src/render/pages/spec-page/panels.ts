@@ -1,7 +1,7 @@
 // The document tabs: Description, plus (spec 310) Analysis, Solution and
 // Status — all four with the same editor, Save and JS-off fallback.
 
-import { field, tokenField, saveCancelActions } from "../../ui/components";
+import { field, saveCancelActions } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page";
 import { t, type Language } from "../../../i18n";
@@ -23,7 +23,7 @@ function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
   );
 }
 
-/** The form every document tab's Save shares (spec 310): the token, the
+/** The form every document tab's Save shares (spec 310): the
  *  hidden `file`/`baseSha` fields the route reads (REQ-2/REQ-3), the
  *  heading and Save/Cancel on one line (spec 391), the mount/textarea
  *  pair below it. `extra` is markup inserted between the hidden fields
@@ -32,7 +32,7 @@ function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
  *  future tab that needs one.
  *
  *  Modelled on `new-spec-page.ts`, which is the other page here that is
- *  nothing but a form: same `field()`/`tokenField()` helpers. The
+ *  nothing but a form: same `field()` helper. The
  *  Save-busy behaviour and the Save/Cancel enable-disable both come from
  *  the shell's own head scripts (`form-busy.ts`, `spec-form-actions.ts`),
  *  which listen on `document`, so nothing here has to wire either up. */
@@ -47,7 +47,6 @@ function editableDocumentForm(
   return (
     `<form method="post" action="${esc(view.saveAction)}" class="newspecform specform" ` +
       `data-overlay="${t(lang, "shell.overlaySaving")}">` +
-    tokenField(view.token) +
     // Which file this Save is about (REQ-2) — the allowlist the route
     // checks it against.
     `<input type="hidden" name="file" value="${esc(label)}">` +

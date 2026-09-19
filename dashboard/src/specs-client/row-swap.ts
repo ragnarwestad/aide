@@ -302,7 +302,6 @@ export async function swapRows(): Promise<void> {
   if (!body) return;
   const gen = press.pressGen;
   const params = new URLSearchParams(location.search);
-  params.delete("token");
   params.set("rows", "1");
   try {
     const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });

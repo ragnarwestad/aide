@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import {
-  TOKEN,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -46,7 +43,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   }
 
   const get = async (base: string, path: string): Promise<Response> =>
-    await fetch(`${base}${path}`, { headers: { "x-aide-token": TOKEN } });
+    await fetch(`${base}${path}`, );
 
   async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
     const deadline = Date.now() + budgetMs;
@@ -62,7 +59,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   test("cold, GET / and GET /?rows=1 spawn nothing and say what they do not know", async () => {
     const git = recording();
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
       archivedSpecs: { "77-old-thing": {} },
     });
     const before = git.calls.length;
@@ -83,7 +80,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     // cannot fire again while the request is in flight, so the count
     // taken across it is the REQUEST's own and nobody else's.
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 100_000 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 100_000 },
     });
     await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
     await new Promise((r) => setTimeout(r, 100));
@@ -100,7 +97,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   test("cold, an archived row renders with a checking date rather than blocking on git", async () => {
     const git = recording();
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
       // No `Archived:` stamp on disk, so the date is git's to answer —
       // which is exactly the row that used to reach `lastCommitOf`.
       archivedSpecs: { "77-old-thing": { status: "# Status\n" } },
@@ -125,7 +122,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
       return git.run(dir, args);
     };
     const { base } = harness.start({
-      extra: { gitRun: slowClone, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { gitRun: slowClone, driftPollMs: 0, specCachePollMs: 0 },
     });
     const started = Date.now();
     const res = await get(base, "/specs/aide/81-queue-and-runner");
@@ -143,7 +140,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   test("a spec page's file stamps fill in behind the request, never during it", async () => {
     const git = recording();
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
     });
     const before = git.calls.length;
     // A document tab since spec 212: Overview carries no file text, so
@@ -183,7 +180,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   // for the front page's archived rows (spec 224).
   test("an archived spec's Overview tab shows all four phases as past, not just create (criterion 5)", async () => {
     const { base } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      extra: { driftPollMs: 0, specCachePollMs: 0 },
       archivedSpecs: {
         "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
       },
@@ -207,7 +204,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   // otherwise pass unnoticed.
   test("a live spec's row still reads its phases from its own git-verified history (criterion 6)", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 40 },
+      extra: { driftPollMs: 0, specCachePollMs: 40 },
       status: statusSaying(["create", "analyze", "implement", "archive"]),
     });
     ran(dir, ["create", "analyze"]);

@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { renderSpecsPage } from "../../../src/render";
-import { TOKEN, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -97,11 +97,10 @@ describe("picking a model for a job", () => {
   });
 
   test("posting a chosen model runs every step on it", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -117,11 +116,10 @@ describe("picking a model for a job", () => {
   });
 
   test("an empty model field means 'use the configuration', not an error", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -144,11 +142,10 @@ describe("picking a model for a job", () => {
   // only proven to AGREE if something drives an actual wire body from
   // one end to the other.
   test("one press can run two phases on two different models", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -168,11 +165,10 @@ describe("picking a model for a job", () => {
   // reads "default". Passed through as an empty string it would be
   // refused as an invalid model name; it has to be dropped instead.
   test("a phase left on 'default' posts a blank that is dropped, not refused", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -186,11 +182,10 @@ describe("picking a model for a job", () => {
   });
 
   test("every phase left on 'default' queues no override at all", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
@@ -202,11 +197,10 @@ describe("picking a model for a job", () => {
   });
 
   test("a per-phase field naming a model the config does not list is refused", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const { base } = start({ queueDefaults: CHOICES });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },

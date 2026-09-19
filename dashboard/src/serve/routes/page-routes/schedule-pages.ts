@@ -58,7 +58,6 @@ export async function schedulePages(
     const langResult = languageChoice(url, req);
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
       rows,
-      token: ctx.queueToken,
       script: await specsClientScript(),
       filter: {
         q: url.searchParams.get("q") ?? undefined,
@@ -87,7 +86,6 @@ export async function schedulePages(
     const html = renderDeleteSchedulePage(ctx.nav(), new Date().toISOString(), {
       project,
       entryName: name,
-      token: ctx.queueToken,
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
@@ -140,7 +138,6 @@ export async function schedulePages(
       tab: url.searchParams.get("tab") ?? undefined,
       history,
       reportPanel: renderReportPanel({ lang: langResult.lang, run }),
-      token: ctx.queueToken,
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),

@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  TOKEN,
-  JOB,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -17,7 +13,7 @@ afterEach(() => {
 // action: every POST answered 303 to the bare list address, so pressing any
 // button dropped the reader back into the default view.
 describe("an action keeps the page's view (criterion 7)", () => {
-  const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+  const FORM = { "content-type": "application/x-www-form-urlencoded" };
   const VIEW = { "view.state": "active", "view.sort": "cost", "view.dir": "desc" };
 
   const post = (base: string, path: string, fields: Record<string, string>) =>
@@ -30,11 +26,11 @@ describe("an action keeps the page's view (criterion 7)", () => {
 
   /** One job in the mirror, in the state the test needs it. */
   async function seededJob(state: string): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(JOB),
       })
     ).json()) as { job: { id: string } };
@@ -46,7 +42,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
   }
 
   test("Run carries the view forward on success", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await post(base, "/api/queue", {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -58,7 +54,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
   });
 
   test("Run carries the view forward on a refusal too", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await post(base, "/api/queue", { project: "nope", specFolder: "x", steps: "analyze", ...VIEW });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
@@ -67,7 +63,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
 
   test("Cancel carries the view forward", async () => {
     const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const { base } = start({ queueMirrorPath: mirror });
     const res = await post(base, `/api/queue/${id}/cancel`, VIEW);
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
@@ -77,7 +73,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
   // redirect is `/` and not `/?`.
   test("with no view submitted the redirect stays exactly /", async () => {
     const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const { base } = start({ queueMirrorPath: mirror });
     const res = await post(base, `/api/queue/${id}/cancel`, {});
     expect(res.headers.get("location")).toBe("/");
   });
@@ -87,7 +83,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
 // belonging to no row — and serve.log had no line for any refusal at
 // all on the day this was written.
 describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () => {
-  const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+  const FORM = { "content-type": "application/x-www-form-urlencoded" };
   const SPEC = "aide/81-queue-and-runner";
 
   /** `console.error` for the duration of one test. serve.log is both
@@ -112,7 +108,7 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
   // end to end in "every step lands its own work" above.
 
   test("an enqueue refusal names the spec it was for (criterion 9)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const { result: res, lines } = await capturingLog(() =>
       fetch(`${base}/api/queue`, {
         method: "POST",
@@ -132,10 +128,10 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
   // approve said only why, which left three of the four actions with no
   // row to land on.
   test("a refused Run says which spec it was for, to a JSON caller too", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ ...JOB, steps: ["nonsense"] }),
     });
     expect(res.status).toBe(400);
@@ -146,7 +142,7 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
   // the mechanism. A browser with JavaScript off posts the form itself
   // and must still get the 303 back to the list.
   test("a form post with no JSON accept header still gets its 303", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const run = await fetch(`${base}/api/queue`, {
       method: "POST",
       redirect: "manual",

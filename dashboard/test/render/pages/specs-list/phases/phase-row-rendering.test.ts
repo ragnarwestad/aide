@@ -96,11 +96,6 @@ describe("a spec's row runs its own phases", () => {
     expect(html).not.toContain('name="model"');
   });
 
-  test("the token rides along when the page carries one", () => {
-    const line = runLine(rows([], [target("94-never-run")], { token: "s3cret" }), "94-never-run");
-    expect(line).toContain('name="token" value="s3cret"');
-  });
-
   test("a phase line is read-only now — it carries no form of its own", () => {
     const html = rows([job("j1", "analyze")], [target("94-row-runs-it")]);
     for (const phase of ["create", "analyze", "implement", "archive"]) {

@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { SETTINGS_ROWS } from "../../../src/render";
-import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -64,15 +64,14 @@ describe("Settings routes (spec 232)", () => {
     model: { default: "sonnet" },
     modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
   };
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const validModel = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"]));
   const validTimeoutSec = Object.fromEntries(SETTINGS_ROWS.map((step) => [step, 30]));
   const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
-  test("GET is guarded and renders the live defaults", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
-    expect((await fetch(`${base}/settings`)).status).toBe(401);
-    const res = await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } });
+  test("GET renders the live defaults", async () => {
+    const { base } = start({ queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/settings`);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('name="model.implement"');
@@ -90,8 +89,8 @@ describe("Settings routes (spec 232)", () => {
   // of the APPLICATION's tabs, so that bar is not drawn, regardless of
   // language. The page's own tabs are a separate row.
   test("?lang=nb sets the cookie, renders a Norwegian frame and no application tab bar", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/settings?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = start({ queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/settings?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -102,20 +101,19 @@ describe("Settings routes (spec 232)", () => {
   // The check spawns a CLI and reaches the network, so a GET of the page
   // must never start one: it happens when the button is pressed.
   test("opening an AI tab runs no check", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (
-      await fetch(`${base}/settings?tab=opencode`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/settings?tab=opencode`, )
     ).text();
     expect(html).toContain('data-tool="opencode"');
     expect(html).toContain("Not checked yet.");
   });
 
   test("the check route refuses a tool it does not know", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, {
       method: "POST",
       headers: {
-        "x-aide-token": TOKEN,
         "content-type": "application/json",
         // Ask for JSON, or the refusal comes back as the no-script
         // redirect and `fetch` follows it to a 200 page.
@@ -128,10 +126,10 @@ describe("Settings routes (spec 232)", () => {
   });
 
   test("a refusal with no script lands back on Settings, saying why", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${base}/api/queue/settings/check`, {
       method: "POST",
-      headers: { "x-aide-token": TOKEN, "content-type": "application/json" },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ tool: "nope" }),
       redirect: "manual",
     });
@@ -140,8 +138,8 @@ describe("Settings routes (spec 232)", () => {
   });
 
   test("the check route answers GET with method not allowed", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/api/queue/settings/check`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = start({ queueDefaults: DEFAULTS });
+    const res = await fetch(`${base}/api/queue/settings/check`, );
     expect(res.status).toBe(405);
   });
 
@@ -149,32 +147,32 @@ describe("Settings routes (spec 232)", () => {
   // menu, so "← Back" tracks whichever one the reader opened it from —
   // read off the standard Referer header, never a bare `/`.
   test("← Back tracks a same-origin Referer, criterion 3", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (
-      await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: `${base}/projects/aide` } })
+      await fetch(`${base}/settings`, { headers: { referer: `${base}/projects/aide` } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
   });
 
   // Criterion 4: no Referer at all falls back to today's exact default.
   test("← Back falls back to / with no Referer, criterion 4", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
-    const html = await (await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } })).text();
+    const { base } = start({ queueDefaults: DEFAULTS });
+    const html = await (await fetch(`${base}/settings`, )).text();
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   // Criterion 5: a foreign-origin Referer is discarded, not followed.
   test("← Back discards a foreign-origin Referer, criterion 5", async () => {
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (
-      await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: "https://evil.example/" } })
+      await fetch(`${base}/settings`, { headers: { referer: "https://evil.example/" } })
     ).text();
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const accepted = await fetch(`${base}/api/queue`, {
       method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
@@ -203,7 +201,7 @@ describe("Settings routes (spec 232)", () => {
   // timeoutSec.default persists them like any other row's values.
   test("a save with model.default and timeoutSec.default persists them", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" }, timeoutSec: { ...validTimeoutSec, default: 45 } }),
@@ -218,7 +216,7 @@ describe("Settings routes (spec 232)", () => {
   // "default" key is refused, and nothing on disk changes.
   test("a save missing model.default is refused and changes nothing", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const modelWithoutDefault = Object.fromEntries(Object.entries(validModel).filter(([step]) => step !== "default"));
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
@@ -231,7 +229,7 @@ describe("Settings routes (spec 232)", () => {
   // Spec 494: a default typed in a different case is stored as listed.
   test("a differently-cased default is saved under the listed spelling", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ ...validBody, model: { ...validModel, default: "CODEX-FAST" } }),
@@ -244,7 +242,7 @@ describe("Settings routes (spec 232)", () => {
   test("several case-only matches are refused, naming both, and nothing is written", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
-    const { base } = start({ queueToken: TOKEN, queueDefaults: defaults, queueConfigFile: file });
+    const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ ...validBody, model: { ...validModel, default: "sonnet" } }),
@@ -258,7 +256,7 @@ describe("Settings routes (spec 232)", () => {
 
   test("invalid input and missing config leave live defaults unchanged", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     for (const model of [
       { analyze: "sonnet" },
       { ...Object.fromEntries(SETTINGS_ROWS.map((step) => [step, "sonnet"])), extra: "sonnet" },
@@ -282,7 +280,7 @@ describe("Settings routes (spec 232)", () => {
     }
     expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
 
-    const without = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const without = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${without.base}/api/queue/settings`, {
       method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
@@ -294,8 +292,8 @@ describe("Settings routes (spec 232)", () => {
 // language the same way `/` already does.
 describe("GET /projects/new (spec 131)", () => {
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/projects/new?lang=nb`, { headers: { "x-aide-token": TOKEN } });
+    const { base } = start();
+    const res = await fetch(`${base}/projects/new?lang=nb`, );
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -303,11 +301,11 @@ describe("GET /projects/new (spec 131)", () => {
 });
 
 describe("POST /api/queue/projects (spec 112)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   // Criterion 1.
   test("a git URL is cloned, given a manifest, and put on the allowlist", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
@@ -322,13 +320,13 @@ describe("POST /api/queue/projects (spec 112)", () => {
     // On the allowlist the MOMENT it is done — no restart, and no
     // waiting for the five-second scan: the New-spec form's project
     // list is the raw allowlist, so it shows a project with no spec yet.
-    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/new`, )).text();
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
   });
 
   // Criterion 2.
   test("a name already taken under the projects root is refused, and names the collision", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
@@ -343,7 +341,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
 
   // Criterion 3, at the route level.
   test("an unsafe name is refused before anything is cloned or written", async () => {
-    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    const { base, dir } = start({ gitRun: cloningGit() });
     for (const name of ["../escape", "a/b", ".hidden", ""]) {
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
@@ -359,7 +357,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // Criterion 6: an existing checkout with no manifest gets one, and
   // the answer says so rather than leaving the operator to find out.
   test("a checkout already on the host is registered, and a made manifest is reported", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
+    const { base, dir } = start();
     const path = join(dir, "root", "already-here");
     mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -380,7 +378,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // project the manifest was just written for would never be runnable.
   test("a picked checkout with no Name is allowlisted under the picked name", async () => {
     const file = ownConfig({ concurrency: 2 });
-    const { base, dir } = start({ queueToken: TOKEN, queueConfigFile: file });
+    const { base, dir } = start({ queueConfigFile: file });
     mkdirSync(join(dir, "root", "picked"), { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -397,7 +395,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // the file the server reads on the way up.
   test("the new allowlist is persisted to the queue config", async () => {
     const file = ownConfig({ concurrency: 2 });
-    const { base } = start({ queueToken: TOKEN, queueConfigFile: file, gitRun: cloningGit() });
+    const { base } = start({ queueConfigFile: file, gitRun: cloningGit() });
     await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
@@ -413,7 +411,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // never from a copy of the file read before the other one landed.
   test("two changes in immediate succession both survive", async () => {
     const file = ownConfig({});
-    const { base } = start({ queueToken: TOKEN, queueConfigFile: file, gitRun: cloningGit() });
+    const { base } = start({ queueConfigFile: file, gitRun: cloningGit() });
     const add = (name: string) =>
       fetch(`${base}/api/queue/projects`, {
         method: "POST",
@@ -441,8 +439,8 @@ describe("POST /api/queue/projects (spec 112)", () => {
   // Every other route here still lands on `/` — the target is a
   // parameter with `/` as its default, not a rewrite.
   test("a form submit lands back on /projects, refusal and success alike", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const { base, dir } = start();
+    const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const refused = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       redirect: "manual",
@@ -468,7 +466,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
   });
 
   test("a refusal reaches the log", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const written: string[] = [];
     const realError = console.error;
     console.error = (...args: unknown[]) => void written.push(args.join(" "));

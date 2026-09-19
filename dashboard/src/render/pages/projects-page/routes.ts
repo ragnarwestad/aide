@@ -49,7 +49,7 @@ export const ABOUT_PAGE = "about.html";
 export const OVERVIEW_PAGE = "projects.html";
 
 /** Where the overview actually lives (spec 115): a served route, so the
- *  Add and Remove controls on it have a token to be checked against. */
+ *  Add and Remove controls on it have a server to post to. */
 export const PROJECTS_ROUTE = "/projects";
 
 /** Where a spec is made (spec 121). It was a disclosure folded into the

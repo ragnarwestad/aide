@@ -28,9 +28,6 @@ import { fakeGit } from "../helpers/fake-git.ts";
 export const harness = queueHarness("aide-project-detail-");
 export const ownDirs: string[] = [];
 
-export const TOKEN = "s3cret-token";
-export const AUTH = { "x-aide-token": TOKEN };
-
 /** A projects root this suite owns, so the paths git is asked about are
  *  the paths the test names. Each project is discoverable (a manifest
  *  and one spec) and gets the `.aide/config` it was given — `null` for
@@ -77,14 +74,13 @@ export function serve(root: string, git: { run: GitRunner }, driftPollMs?: numbe
       projectRoot: root,
       queueProjectRoot: root,
       gitRun: git.run,
-      queueToken: TOKEN,
       ...(driftPollMs !== undefined ? { driftPollMs } : {}),
     },
   }).base;
 }
 
 export const get = (base: string, name: string, tab?: string) =>
-  fetch(`${base}/projects/${encodeURIComponent(name)}${tab ? `?tab=${tab}` : ""}`, { headers: AUTH });
+  fetch(`${base}/projects/${encodeURIComponent(name)}${tab ? `?tab=${tab}` : ""}`);
 
 /** What a checkout on its default branch, `n` commits behind origin,
  *  answers to every call the drift check and the readiness check make —

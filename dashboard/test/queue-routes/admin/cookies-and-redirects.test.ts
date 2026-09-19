@@ -1,5 +1,4 @@
-// The cookie a token is kept in, who is admitted with a header instead,
-// and the addresses the page has had over time.
+// The cookies the list keeps, the headerAuth bind rule, and the addresses the page has had over time.
 //
 // Split out of auth-and-navigation.test.ts 2026-09-04 (678 lines); the
 // tests are unchanged and keep their names.
@@ -10,7 +9,6 @@ import {
   renderSpecsPage,
 } from "../../../src/render";
 import {
-  TOKEN,
   JOB,
   setupQueueRoutesHarness,
 } from "../fixtures.ts";
@@ -25,32 +23,28 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 363: two boards on one host, and a proxy that can vouch for the
-// reader without a token or a cookie at all.
-describe("spec 363: port-scoped cookies and header-based admission", () => {
+// Spec 363: two boards on one host keep their own cookies, and a header a
+// proxy sets is only honoured on a loopback bind.
+describe("spec 363: port-scoped cookies and the headerAuth bind", () => {
   const HEADER_AUTH = { header: "X-Test-User", users: ["alice@example.com"] };
 
-  test("two boards on one host keep their own token, sort and state cookies (REQ-1/REQ-8)", async () => {
-    const a = start({ queueToken: TOKEN });
-    const b = start({ queueToken: TOKEN });
+  test("two boards on one host keep their own sort and state cookies (REQ-1/REQ-8)", async () => {
+    const a = start();
+    const b = start();
     expect(a.server.port).not.toBe(b.server.port);
 
-    const resA = await fetch(`${a.base}/?token=${TOKEN}&sort=started&state=done`, { redirect: "manual" });
-    const resB = await fetch(`${b.base}/?token=${TOKEN}&sort=cost&state=active`, { redirect: "manual" });
+    const resA = await fetch(`${a.base}/?sort=started&state=done`, { redirect: "manual" });
+    const resB = await fetch(`${b.base}/?sort=cost&state=active`, { redirect: "manual" });
     const cookiesA = resA.headers.getSetCookie();
     const cookiesB = resB.headers.getSetCookie();
 
-    expect(cookiesA.some((c) => c.startsWith(`aide_token_${a.server.port}=`))).toBe(true);
-    expect(cookiesB.some((c) => c.startsWith(`aide_token_${b.server.port}=`))).toBe(true);
     expect(cookiesA.some((c) => c.startsWith(`aide_sort_${a.server.port}=`))).toBe(true);
     expect(cookiesB.some((c) => c.startsWith(`aide_sort_${b.server.port}=`))).toBe(true);
     expect(cookiesA.some((c) => c.startsWith(`aide_state_${a.server.port}=`))).toBe(true);
     expect(cookiesB.some((c) => c.startsWith(`aide_state_${b.server.port}=`))).toBe(true);
 
     // A real browser keeps ONE cookie jar for `127.0.0.1`, so both
-    // boards' cookies arrive on every request to either — the exact
-    // mechanism of the bug this fixes. Each board must still answer
-    // using only its OWN name.
+    // boards' cookies arrive on every request to either.
     const jar = [...cookiesA, ...cookiesB].map((c) => c.split(";")[0]).join("; ");
     const checkA = await fetch(`${a.base}/`, { headers: { cookie: jar } });
     const checkB = await fetch(`${b.base}/`, { headers: { cookie: jar } });
@@ -58,42 +52,10 @@ describe("spec 363: port-scoped cookies and header-based admission", () => {
     expect(checkB.status).toBe(200);
   });
 
-  test("a pre-existing, unversioned aide_token cookie is ignored, not trusted (REQ-2)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}` } });
-    expect(res.status).toBe(401);
-  });
-
-  test("the token link still works and sets the new, port-scoped cookie (REQ-2)", async () => {
-    const { base, server } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/?token=${TOKEN}`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    const cookie = res.headers.get("set-cookie") ?? "";
-    expect(cookie).toContain(`aide_token_${server.port}=`);
-  });
-
-  test("the header is inert while headerAuth is unset (REQ-5)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } });
-    expect(res.status).toBe(401);
-  });
-
-  test("headerAuth admits an allowed identity with no token, when bound to loopback (REQ-3/REQ-4)", async () => {
+  test("headerAuth on a loopback bind starts, and the pages answer as they do without it (AC-6)", async () => {
     const { base } = start({ bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
-    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } });
-    expect(res.status).toBe(200);
-  });
-
-  test("an identity not on the list falls through to the ordinary token check (REQ-4)", async () => {
-    const { base } = start({ queueToken: TOKEN, bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
-    const res = await fetch(`${base}/`, { headers: { "X-Test-User": "mallory@example.com" } });
-    expect(res.status).toBe(401);
-  });
-
-  test("the token still works when headerAuth is also configured (REQ-6)", async () => {
-    const { base } = start({ queueToken: TOKEN, bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
-    const res = await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.status).toBe(200);
+    expect((await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } })).status).toBe(200);
+    expect((await fetch(`${base}/`, { headers: { "X-Test-User": "mallory@example.com" } })).status).toBe(200);
   });
 
   test("headerAuth on a non-loopback bind refuses to start (REQ-5)", () => {
@@ -103,37 +65,32 @@ describe("spec 363: port-scoped cookies and header-based admission", () => {
 
 // Spec 87: the page is about SPECS. That a queue orders the runs is an
 // implementation detail, and it stopped being the name a reader reads.
-// The old address keeps working: people bookmark this page, and the
-// token arrives in the query string of exactly such a bookmark.
+// The old address keeps working: people bookmark this page.
 describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
-  const auth = { headers: { "x-aide-token": TOKEN } };
-
   // Spec 100 criterion 3: /queue was pointed at /specs; both now point
   // at `/`, because that is where the list itself is.
   test("GET /queue redirects to / with the query string intact (criterion 7)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/queue?token=${TOKEN}&state=active&sort=cost`, {
-      ...auth,
+    const { base } = start();
+    const res = await fetch(`${base}/queue?state=active&sort=cost`, {
       redirect: "manual",
     });
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/?token=${TOKEN}&state=active&sort=cost`);
+    expect(res.headers.get("location")).toBe(`/?state=active&sort=cost`);
   });
 
   // Spec 100 criterion 2: the address this page used to live at.
   test("GET /specs redirects to / with the query string intact", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/specs?token=${TOKEN}&state=active&sort=cost`, {
-      ...auth,
+    const { base } = start();
+    const res = await fetch(`${base}/specs?state=active&sort=cost`, {
       redirect: "manual",
     });
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/?token=${TOKEN}&state=active&sort=cost`);
+    expect(res.headers.get("location")).toBe(`/?state=active&sort=cost`);
   });
 
   test("GET /specs with nothing to carry redirects to exactly /", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/specs`, { ...auth, redirect: "manual" });
+    const { base } = start();
+    const res = await fetch(`${base}/specs`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/");
   });
@@ -142,12 +99,12 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   // target is deliberately unchanged. A /<id> here would break every
   // job link already sent out.
   test("GET /queue/<id> redirects to /specs/<id>, tab and all (criterion 8)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
       await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, { ...auth, redirect: "manual" });
+    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(`/specs/${made.job.id}?tab=steps`);
   });
@@ -155,12 +112,12 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   // Spec 100 criterion 5: the other half of the same guard — the detail
   // page answers where it always has, with no redirect hop in front.
   test("GET /specs/<id> renders the job page itself, no redirect", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
       await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/specs/${made.job.id}`, { ...auth, redirect: "manual" });
+    const res = await fetch(`${base}/specs/${made.job.id}`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(res.headers.get("location")).toBeNull();
     expect(await res.text()).toContain("81-queue-and-runner");
@@ -168,8 +125,8 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
 
   // Spec 100 criterion 1: the list itself, at the root, in one request.
   test("GET / is the spec list: rows, filter controls and the New-spec link", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/`, { ...auth, redirect: "manual" });
+    const { base } = start();
+    const res = await fetch(`${base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="jobrows"');
@@ -183,8 +140,8 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   });
 
   test("the page says Specs in its nav and title (criterion 9)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const { base } = start();
+    const html = await (await fetch(`${base}/`)).text();
     expect(html).toContain("<title>aide -board</title>");
     // Spec 119: the list has a tab of its own again, and it is the
     // current one here. The wordmark still goes home too.
@@ -216,17 +173,17 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   });
 
   test("the JSON surface is not renamed and no redirect swallows it (criterion 12)", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const { base } = start();
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     expect(made.status).toBe(200);
     const id = ((await made.json()) as { job: { id: string } }).job.id;
 
-    const list = await fetch(`${base}/api/queue`, { ...auth, redirect: "manual" });
+    const list = await fetch(`${base}/api/queue`, { redirect: "manual" });
     expect(list.status).toBe(200);
     expect(((await list.json()) as { jobs: unknown[] }).jobs.length).toBe(1);
 
-    const one = await fetch(`${base}/api/queue/${id}`, { ...auth, redirect: "manual" });
+    const one = await fetch(`${base}/api/queue/${id}`, { redirect: "manual" });
     expect(one.status).toBe(200);
     expect(((await one.json()) as { job: { id: string } }).job.id).toBe(id);
 

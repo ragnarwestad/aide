@@ -16,7 +16,7 @@ import {
   PHASE, EARLIER_PHASE, OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, phaseSection,
   statusPath, tick, BRANCH_FILE_SHA, branchAwareGitRunner,
 } from "./spec-checks-fixtures.ts";
-import { CHECKS_TAB, TOKEN, auth, createSpecSaveHarness } from "./spec-save-fixtures.ts";
+import { CHECKS_TAB, createSpecSaveHarness } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -32,12 +32,12 @@ const MAIN_ONLY_STATUS = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW]
 // "Overview" at the time. Spec 294, landed the same day, renamed that
 // tab to "Checks" and moved the default tab to Description — so the
 // bare URL now serves a different tab entirely.
-const overview = (base: string) => fetch(`${base}${CHECKS_TAB}`, auth).then((r) => r.text());
+const overview = (base: string) => fetch(`${base}${CHECKS_TAB}`).then((r) => r.text());
 
 describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)", () => {
   test("an open branch's 4-status.md wins over main's, both rows and the open count", async () => {
     const { run } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
     // The branch's own open rows, not main's "all done" copy.
     expect(html).toContain("Manual check at 375px in a real browser");
@@ -47,7 +47,7 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
 
   test("with no open branch, the Checks section reads main exactly as before (REQ-2)", async () => {
     const { run } = branchAwareGitRunner({ open: false, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
     // main's own content, and never the branch's: main's one row is
     // done, so the box that stands for it is a ticked one, and the
@@ -63,7 +63,7 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
       branchText: MAIN_STATUS_WITH_OPEN_ROWS(),
       branchFileSha: BRANCH_FILE_SHA,
     });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
     expect(html).toContain(`value="${BRANCH_FILE_SHA}"`);
   });
@@ -82,7 +82,7 @@ describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () =>
       phaseSection("Acceptance criteria", [EARLIER_DONE_ROW]),
     ].join("\n");
     const { run } = branchAwareGitRunner({ open: true, branchText: branchStatus });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
     // The Phase section's own open row is the run's record: not drawn
     // here at all, so no box stands for it.
@@ -98,7 +98,7 @@ describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () =>
 describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", () => {
   test("REQ-4a: the write pushes a commit onto refs/heads/aide/<folder>, and the shared checkout stays untouched", async () => {
     const { run, calls } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
-    const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
     const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA });
 
@@ -115,7 +115,7 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
 
   test("REQ-4b: a headless run's commit landing between render and Save refuses the tick", async () => {
     const { run } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS(), pushFails: true });
-    const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
     const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: BRANCH_FILE_SHA });
 
@@ -130,7 +130,7 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
 
   test("a stale statusBaseSha refuses before anything is pushed", async () => {
     const { run, calls } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
+    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
     const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "some-other-stale-sha" });
 

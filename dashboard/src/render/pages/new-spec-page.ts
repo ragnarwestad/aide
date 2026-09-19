@@ -18,7 +18,7 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, tokenField, helpPopover} from "../ui/components";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, helpPopover} from "../ui/components";
 import { esc } from "../ui/html.ts";
 import { t, type Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -26,9 +26,6 @@ import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } f
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
 
 export interface NewSpecPageOptions {
-  /** Carried into the form, for a browser that got here with the token
-   *  in the address rather than in a cookie. */
-  token?: string;
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk to be discovered from. Empty or absent
@@ -340,7 +337,6 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   // `.newspecform` look is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
-    tokenField(opts.token) +
     `<span class="frow">` +
     field(
       "Project",

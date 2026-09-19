@@ -77,7 +77,6 @@ export async function projectPages(
       }));
     const langResult = languageChoice(url, req);
     const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
-      token: ctx.queueToken,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
@@ -97,7 +96,6 @@ export async function projectPages(
     const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot);
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
-      token: ctx.queueToken,
       script: await specsClientScript(),
       existingCheckouts: unclaimed,
       // And what each of them ignores, which is where the worktree
@@ -147,7 +145,6 @@ export async function projectPages(
     }
     const langResult = languageChoice(url, req);
     const html = renderRemoveProjectPage(name, ctx.nav(), new Date().toISOString(), {
-      token: ctx.queueToken,
       script: await specsClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       lang: langResult.lang,
@@ -254,7 +251,6 @@ export async function projectPages(
       new Date().toISOString(),
       ctx.nav(),
       {
-        token: ctx.queueToken,
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`
@@ -344,7 +340,6 @@ export async function projectPages(
       ctx.nav(),
       {
         readinessByProject,
-        token: ctx.queueToken,
         // The RAW allowlist, like the New-spec dropdown: a project
         // with no spec yet is exactly what this page is for.
         createProjects: [...ctx.allowed].sort(),
@@ -360,15 +355,6 @@ export async function projectPages(
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    // The same one-time handover `/` does: projects.html passes the
-    // address on with its query string, so a bookmarked token arrives
-    // here.
-    if (url.searchParams.get("token") && ctx.queueToken) {
-      headers.append(
-        "set-cookie",
-        `aide_token_${ctx.serverPort()}=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
-      );
-    }
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }

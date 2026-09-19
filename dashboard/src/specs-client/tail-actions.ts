@@ -16,11 +16,9 @@ import { chosen, press, selectKey } from "./state.ts";
 // WHICH row this belongs to, and `specHeadRow` puts it there.
 export async function showRefusal(why: string, spec: string | undefined): Promise<void> {
   const back = new URLSearchParams(location.search);
-  // Handed over once as a cookie: putting it back in the address bar
-  // would leave the token in history for nothing. `rows` and the two
-  // this is about to set would otherwise be carried over from a URL
-  // that is already showing a refusal.
-  for (const drop of ["token", "rows", "error", "errorSpec"]) back.delete(drop);
+  // `rows` and the two this is about to set would otherwise be carried
+  // over from a URL that is already showing a refusal.
+  for (const drop of ["rows", "error", "errorSpec"]) back.delete(drop);
   // Percent-encoded one key at a time, exactly as the server's own
   // redirect does it (`specsRedirect`): `URLSearchParams.toString()`
   // writes a space as `+`, and this string is a sentence a person reads
@@ -48,8 +46,7 @@ export async function showRefusal(why: string, spec: string | undefined): Promis
  *  lock is what says the tick registered.
  *
  *  The row is reached through the form the box names — the same id
- *  every control written outside that form carries — which is also
- *  where the token is. */
+ *  every control written outside that form carries. */
 export async function postTailStep(box: HTMLInputElement): Promise<void> {
   const to = box.getAttribute("data-post-to") ?? "";
   const formId = box.getAttribute("form") ?? "";
@@ -64,8 +61,6 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
   for (const el of controls) el.disabled = true;
   try {
     const url = new URL(to, location.href);
-    const token = form?.querySelector('input[name="token"]') as HTMLInputElement | null;
-    if (token?.value) url.searchParams.set("token", token.value);
     const body = new URLSearchParams();
     body.append("step", box.value);
     body.append("checked", wanted ? "1" : "0");
@@ -125,8 +120,6 @@ export async function postTailModel(select: HTMLSelectElement, model: string): P
   for (const el of controls) el.disabled = true;
   try {
     const url = new URL(to, location.href);
-    const token = form?.querySelector('input[name="token"]') as HTMLInputElement | null;
-    if (token?.value) url.searchParams.set("token", token.value);
     const body = new URLSearchParams();
     body.append("step", step);
     body.append("model", model);

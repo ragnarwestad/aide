@@ -5,7 +5,7 @@
 // here, all three live on the detail page instead.
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components";
+import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
@@ -84,7 +84,6 @@ function scheduleHref(f: ScheduleFilter, patch: { q?: string; sort?: string; dir
 export interface ScheduleListOptions {
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
-  token?: string;
   /** A refusal to show in the slot above the table — what a Run now made
    *  without script was sent back with. */
   error?: string;
@@ -93,8 +92,7 @@ export interface ScheduleListOptions {
   lang?: Language;
 }
 
-function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "token" | "modelNames" | "lang">): string {
-  const { token } = o;
+function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelNames" | "lang">): string {
   const next = nextFireTime(r.entry.cron, now);
   const state = r.lastState ?? "never run";
   const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
@@ -120,10 +118,10 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "token"
     // The page's ordinary button, not a smaller one of its own: this is
     // the row's action, and it stands beside Delete and under Search and
     // New job (asked for 2026-08-31).
-    `<td><form method="post" action="${esc(runUrl)}" class="actionform schedulerun">${tokenField(token)}` +
+    `<td><form method="post" action="${esc(runUrl)}" class="actionform schedulerun">` +
     btn({ label: "Run now", pending: "running…" }) +
     `</form></td>` +
-    deleteCell(r, token) +
+    deleteCell(r) +
     `</tr>`
   );
 }
@@ -143,7 +141,7 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "token"
 // What it asks is the question itself, in the heading, with the two
 // answers under it — the same shape the entry's own Delete page uses.
 // It asked for the entry's exact name, typed back, until 2026-09-08.
-function deleteCell(r: SchedulePageRow, token?: string): string {
+function deleteCell(r: SchedulePageRow): string {
   const name = r.entry.name;
   const deleteUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(name)}/delete`;
   return (
@@ -155,7 +153,6 @@ function deleteCell(r: SchedulePageRow, token?: string): string {
     `<p class="muted">The entry leaves this project's manifest and stops firing. ` +
     `Its own run history stays in the queue.</p>` +
     `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
-    tokenField(token) +
     // The dialog's own heading asks the question and the form beside
     // this one answers "no": the press is the whole of "yes"
     // (2026-09-08).

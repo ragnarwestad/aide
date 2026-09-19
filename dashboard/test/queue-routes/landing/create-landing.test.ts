@@ -16,21 +16,14 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-import {
-  TOKEN,
-  JOB,
-  specHead,
-  specControls,
-  openQuery,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { JOB, specHead, specControls, openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
 
-const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+const AUTH = { "content-type": "application/json", accept: "application/json" };
 const SPECS_REPO = "/repos/aide-specs";
 
 function gitFor({
@@ -79,7 +72,6 @@ function serverWithRunner(
   const results = mkdtempSync(join(tmpdir(), prefix));
   ownDirs.push(results);
   const { base, dir } = start({
-    queueToken: TOKEN,
     gitRun: git.run as never,
     queueRunnerBin: "/usr/bin/true",
     queueResultDir: results,
@@ -113,12 +105,12 @@ afterEach(() => {
 // blank page with no way back.
 describe("a refused form post says so on the page", () => {
   test("a duplicate returns to / carrying the reason, and the page shows it", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const post = () =>
       fetch(`${base}/api/queue`, {
         method: "POST",
         redirect: "manual",
-        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+        headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }),
       });
     expect((await post()).status).toBe(303);
@@ -130,22 +122,22 @@ describe("a refused form post says so on the page", () => {
     expect(decodeURIComponent(location)).toContain("already queued");
 
     const html = await (
-      await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}${location}`, )
     ).text();
     expect(html).toContain("already queued");
     // And only one job was made.
     const listed = (await (
-      await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/api/queue`, )
     ).json()) as { jobs: unknown[] };
     expect(listed.jobs.length).toBe(1);
   });
 
   test("a JSON caller still gets a 400 with the reason, not a redirect", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const post = () =>
       fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(JOB),
       });
     expect((await post()).status).toBe(200);
@@ -276,7 +268,7 @@ describe("landing a created spec (spec 93)", () => {
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
     const html = await (
-      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, )
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
@@ -320,7 +312,7 @@ describe("landing a created spec (spec 93)", () => {
     await settle(base, made.job.id, (j) => j.specFolder === "94-a-new-spec");
 
     const html = await (
-      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, )
     ).text();
     const group = specControls(html, "94-a-new-spec");
     const implementSelect = group.match(/<select name="model\.implement"[^]*?<\/select>/)?.[0] ?? "";
@@ -332,9 +324,9 @@ describe("landing a created spec (spec 93)", () => {
     // `groupBySpec` drops any job whose spec is not a known target. A
     // create job's spec is unknown BY CONSTRUCTION until it lands, so
     // without an allowance the job running right now renders nothing.
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     const job = await createJob(base, "A brand new spec");
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, )).text();
     expect(html).toContain(job.specFolder);
     // Labelled by its title: the provisional key says nothing to anyone.
     expect(html).toContain("A brand new spec");

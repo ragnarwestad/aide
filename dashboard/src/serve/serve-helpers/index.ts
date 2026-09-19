@@ -15,7 +15,7 @@ export {
 } from "./config.ts";
 
 export {
-  json, readBounded, tokenMatches, cookieValue, sortCookieName, sortChoice,
+  json, readBounded, cookieValue, sortCookieName, sortChoice,
   stateCookieName, stateChoice, LANG_COOKIE, languageChoice, bodyToObject,
 } from "./http.ts";
 
@@ -36,3 +36,7 @@ export {
 } from "./runner-argv.ts";
 
 export { resolveDependencyFolder, parseArgs } from "./parse-args.ts";
+
+export { checkRequest } from "./request-guard.ts";
+
+export { createHostAllowlist, lookupTailscaleName, parseSelfDnsName, type HostAllowlist } from "./tailscale-name.ts";

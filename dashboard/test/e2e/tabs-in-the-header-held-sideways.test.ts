@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { rmSync } from "node:fs";
-import { harness, ownDirs, projectsRoot, settled, serve, TOKEN } from "../project/project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, serve } from "../project/project-detail-route-fixtures.ts";
 
 setDefaultTimeout(30_000);
 
@@ -28,7 +28,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
-  page = await browser.newPage({ extraHTTPHeaders: { "x-aide-token": TOKEN } });
+  page = await browser.newPage({ extraHTTPHeaders: {} });
   const root = projectsRoot({ aide: "" });
   base = serve(root, settled(root, "aide"));
 });

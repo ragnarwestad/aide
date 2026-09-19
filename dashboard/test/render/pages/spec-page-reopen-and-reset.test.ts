@@ -16,7 +16,7 @@ import { GENERATED, NAV, page, view } from "./spec-page-fixtures.ts";
 // that are shown but cannot be ticked.
 describe("spec 198: the Reopen control", () => {
   const archived = (extra: Partial<SpecPageView> = {}) =>
-    page(view({ archived: true, token: "t0ken", ...extra }));
+    page(view({ archived: true, ...extra }));
 
   test("an archived spec offers exactly one action, and it is Reopen", () => {
     const html = archived();
@@ -25,11 +25,10 @@ describe("spec 198: the Reopen control", () => {
     expect(html).toContain('name="steps" value="reopen"');
   });
 
-  test("it names the spec the server has to resolve, and carries the token", () => {
+  test("it names the spec the server has to resolve", () => {
     const html = archived();
     expect(html).toContain('name="project" value="aide"');
     expect(html).toContain('name="specFolder" value="150-one-page-shows-the-whole-spec"');
-    expect(html).toContain('name="token" value="t0ken"');
   });
 
   // A GET would let a reload re-run it, exactly as the Update button's
@@ -67,13 +66,13 @@ describe("spec 198: the Reopen control", () => {
   });
 
   test("a live spec says nothing about being archived", () => {
-    expect(page(view({ token: "t0ken" }))).not.toContain("<strong>Archived</strong>");
+    expect(page(view({}))).not.toContain("<strong>Archived</strong>");
   });
 
   // A live spec has the whole row on the queue list for this; the
   // archived page is the one place a reopen can be asked for.
   test("a live spec's page offers nothing of the sort", () => {
-    expect(page(view({ token: "t0ken" }))).not.toContain("Reopen");
+    expect(page(view({}))).not.toContain("Reopen");
   });
 
   test("the archived note is unchanged, and nothing on the page edits", () => {
@@ -133,13 +132,12 @@ describe("spec 231: the Reset control", () => {
   // answers (2026-09-08). It made the reader type the folder name back
   // into a field until then — on a page whose own heading is that name.
   test("the confirmation explains every effect and asks in a sentence", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     for (const text of [
       "0-README.md", "1-description.md", "analysis", "plan", "status",
       "local and remote", "earlier jobs and commits", "Project code", "default-branch history",
     ]) expect(html).toContain(text);
     expect(html).toContain(`Are you sure you want to reset ${view().specFolder}? This cannot be undone.`);
-    expect(html).toContain('name="token" value="t0ken"');
     // Nothing to type, and nothing that reads what was typed.
     expect(html).not.toContain("data-confirm=");
     expect(html).not.toContain('name="confirm"');
@@ -149,7 +147,7 @@ describe("spec 231: the Reset control", () => {
   // is no field on this form to change, so a button that waits for one
   // would never enable.
   test("Reset is a live danger button, and Cancel goes back to the spec", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const button = html.match(/<button[^>]*>Reset<\/button>/)?.[0] ?? "";
     expect(button).toContain("danger");
     expect(button).not.toContain("disabled");
@@ -160,13 +158,13 @@ describe("spec 231: the Reset control", () => {
   // Spec 252, Criteria 7, 8: "← Back" still heads the page, at the
   // spec's own page, reached only from that page's Overview banner.
   test("Back heads the page, to the spec's own page", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).toContain(`<a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>`);
   });
 
   // Spec 296: "Reset <specFolder>" sits beside ← Back, on one line.
   test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).toContain(
       `<div class="backhead"><a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>` +
         `<h1>Reset ${view().specFolder}</h1></div>`,
@@ -176,7 +174,7 @@ describe("spec 231: the Reset control", () => {
 
   // Spec 437, AC-1/AC-2: the Reset confirmation is a subpage.
   test("draws no site-level tab bar", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).not.toContain('<nav class="tabbar">');
   });
 });
@@ -187,14 +185,14 @@ describe("spec 231: the Reset control", () => {
 // other control on the page live under the reader's cursor.
 describe("the confirmation pages cover the page while the work runs", () => {
   test("Reset's form asks for the layer, and names what is happening", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const form = html.match(/<form[^>]*action="[^"]*\/reset"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="resetting…"');
   });
 
   // Spec 422, REQ-2: the same text, in the reader's own language.
   test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
-    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken", lang: "nb" });
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { lang: "nb" });
     const form = html.match(/<form[^>]*action="[^"]*\/reset"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="nullstiller…"');
   });

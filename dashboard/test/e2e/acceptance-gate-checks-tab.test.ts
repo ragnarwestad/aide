@@ -19,7 +19,6 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 import { recording } from "../spec-page/spec-checks-fixtures.ts";
 
 setDefaultTimeout(20_000);
-const TOKEN = "s3cret-token";
 const FOLDER = "81-queue-and-runner";
 const ACCEPTANCE_ROW = "| REQ-1: a person has judged this | ⬜ | |";
 const STATUS = [
@@ -72,7 +71,7 @@ beforeAll(async () => {
   browser = await withTimeout(chromium.launch(), 15_000, "chromium.launch()");
   page = await browser.newPage();
   const started = harness.start({
-    extra: { queueToken: TOKEN, gitRun: recording().run },
+    extra: { gitRun: recording().run },
     status: STATUS,
   });
   base = started.base;
@@ -92,7 +91,7 @@ beforeAll(async () => {
   // a board that never shows it still fails, on the bound below.
   await waitUntil(
     async () => {
-      const res = await fetch(`${base}/?token=${TOKEN}&live=0`);
+      const res = await fetch(`${base}/?live=0`);
       return (await res.text()).includes("tick them on the Checks tab");
     },
     10_000,
@@ -104,7 +103,7 @@ afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
   test("REQ-4: the specs list names the Checks tab", async () => {
-    await withTimeout(page.goto(`${base}/?token=${TOKEN}&live=0`), 10_000, "page.goto(/)");
+    await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     expect(await notice.textContent()).toContain("tick them on the Checks tab");
   });
@@ -125,7 +124,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     // Open: the row's one action rides the caption line the fold opens
     // (2026-09-08), so a shut row has no button to press.
     await withTimeout(
-      page.goto(`${base}/?token=${TOKEN}&live=0&open=aide%2F${FOLDER}`),
+      page.goto(`${base}/?live=0&open=aide%2F${FOLDER}`),
       10_000,
       "page.goto(/) again",
     );
@@ -139,7 +138,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     // held for the acceptance reason any more.
     await page.getByRole("button", { name: /archive/i }).click();
     const queued = await withTimeout(
-      page.request.get(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } }),
+      page.request.get(`${base}/api/queue`, ),
       5_000, "GET /api/queue",
     ).then((r) => r.json());
     const job = queued.jobs.find((j: { specFolder: string }) => j.specFolder === FOLDER);

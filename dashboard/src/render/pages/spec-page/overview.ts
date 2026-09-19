@@ -2,7 +2,7 @@
 // archived) drawn in the banner on every tab, the Checks tab's own
 // checklist, and the Reopen/Reset controls.
 
-import { helpPopover, ICON_PDF, rowMessage, saveCancelActions, tokenField } from "../../ui/components";
+import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { dependsOnField } from "../new-spec-page.ts";
@@ -96,7 +96,6 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
   // spec 382).
   return (
     `<form class="trackingform" method="post" action="${esc(view.trackingAction)}">` +
-    tokenField(view.token) +
     (picker ? `<span class="frow">${picker}</span>` : "") +
     note +
     // Not `.factions`: the switch is a FIELD, not an action, and the
@@ -281,7 +280,6 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
   const body = canTick
     ? `<form class="specform" method="post" action="${esc(view.tickAction)}" ` +
         `data-overlay="${t(lang, "shell.overlaySaving")}">` +
-      tokenField(view.token) +
       `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
       // Empty rather than absent for a file git has never committed —
       // the same answer the description's own field gives.
@@ -316,7 +314,6 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
 export function reopenControl(view: SpecPageView): string {
   return (
     `<form class="actionform" method="post" action="/api/queue">` +
-    (view.token ? `<input type="hidden" name="token" value="${esc(view.token)}">` : "") +
     `<input type="hidden" name="project" value="${esc(view.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(view.specFolder)}">` +
     `<input type="hidden" name="steps" value="reopen">` +
@@ -392,7 +389,7 @@ export function testServerStatus(view: SpecPageView): string {
     );
   }
   // The link carries a name, not the address itself: the address is a
-  // loopback host, a port and a token, and none of the three is a thing
+  // loopback host and a port, and neither is a thing
   // a reader reads.
   return (
     `<div class="row desc">` +
@@ -401,7 +398,6 @@ export function testServerStatus(view: SpecPageView): string {
     `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
     `suite, not the ones on the prod dashboard.</span></span>` +
     `<form class="actionform" method="post" action="${esc(view.testServerStopAction ?? "")}">` +
-    tokenField(view.token) +
     `<button class="btn" type="submit">Stop test server</button></form>` +
     `</div>`
   );

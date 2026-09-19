@@ -3,7 +3,7 @@
 
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";
-import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components";
+import { btn, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";
 import type { ProjectPageOptions } from "./types.ts";
@@ -176,7 +176,6 @@ export function unifiedSettingsTable(
   }
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform projectsettingsform">` +
-    tokenField(opts.token) +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) : "") +
     // `.configactions` carries its own `flex-basis: 100%`, so it stacks
     // above the table the same way `.frow` does without needing that

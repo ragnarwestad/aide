@@ -9,7 +9,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../src/render";
-import { TOKEN, JOB, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -341,14 +341,14 @@ describe("the job list sorts and filters", () => {
   });
 
   test("the partial refresh carries the controls too, so the filter survives a tick", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base } = start();
     await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-aide-token": TOKEN, accept: "application/json" },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(JOB),
     });
     const rows = await (
-      await fetch(`${base}/?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?rows=1&state=active`, )
     ).text();
     expect(rows).toContain('data-filter="state"');
     expect(rows).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>Running/);

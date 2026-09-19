@@ -24,7 +24,6 @@ import { queueHarness } from "../helpers/queue-server.ts";
 
 setDefaultTimeout(30_000);
 
-const TOKEN = "s3cret-token";
 const OPEN = "open=aide%2F81-queue-and-runner";
 
 const harness = queueHarness("aide-e2e-phone-phase-line-");
@@ -43,7 +42,6 @@ beforeAll(async () => {
   writeFileSync(runner, "#!/bin/sh\nexec sleep 600\n", { mode: 0o755 });
   const started = harness.start({
     extra: {
-      queueToken: TOKEN,
       queueRunnerBin: runner,
       queueDefaults: {
         timeoutSec: { default: 600 },
@@ -59,10 +57,10 @@ beforeAll(async () => {
   base = started.base;
   await fetch(`${base}/api/queue`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "implement", "archive"] }),
   });
-  await page.goto(`${base}/?token=${TOKEN}&live=0`);
+  await page.goto(`${base}/?live=0`);
 });
 
 afterAll(async () => {

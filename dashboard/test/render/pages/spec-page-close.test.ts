@@ -53,7 +53,7 @@ describe("spec 406, REQ-1: the Close control", () => {
 
   // Spec 437, AC-1/AC-2: the Close confirmation is a subpage.
   test("draws no site-level tab bar", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).not.toContain('<nav class="tabbar">');
   });
 });
@@ -110,7 +110,7 @@ describe("spec 406, REQ-7: a closed spec reads as closed, never as archived", ()
 
 describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
   test("states the branch-deletion warning and repeats the Reset/Close distinction", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const withoutTitles = html.replace(/title="[^"]*"/g, "");
     expect(withoutTitles).toMatch(/branch.*delet|delet.*branch/i);
     expect(withoutTitles).toContain("Reset starts this spec over and keeps it active");
@@ -118,14 +118,13 @@ describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
   });
 
   test("carries a reason field and posts to the close route", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).toContain(`/api/queue/specs/aide/${view().specFolder}/close`);
     expect(html).toContain('name="reason"');
-    expect(html).toContain('name="token" value="t0ken"');
   });
 
   test("the title sits inside .backhead, right after ← Back", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     expect(html).toContain(
       `<div class="backhead"><a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>` +
         `<h1>Close ${view().specFolder}</h1></div>`,
@@ -135,14 +134,14 @@ describe("spec 406, REQ-2/REQ-9: the Close confirmation page", () => {
 
 describe("the Close page covers the page while the work runs", () => {
   test("Close's form asks for the layer, and names what is happening", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
     const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="closing…"');
   });
 
   // Spec 422, REQ-2: the same text, in the reader's own language.
   test("in Norwegian (nb), the overlay text is the Norwegian one", () => {
-    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken", lang: "nb" });
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, { lang: "nb" });
     const form = html.match(/<form[^>]*action="[^"]*\/close"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="lukker…"');
   });

@@ -323,17 +323,6 @@ export function field(
   return `<${tag} class="field${o.wide ? " wide" : ""}">${head}${control}</${tag}>`;
 }
 
-/** The token, when the page was given one, as the form's own hidden
- *  field. The server prefers the header, the query string and the
- *  cookie; this is what is left for a plain form POST from a browser
- *  that got the page some other way. Empty when there is no token —
- *  never an empty field, which would post a wrong one.
- *
- *  Shared since spec 115: the Projects panel moved to its own page and
- *  every form on it needs the same field the spec list's do. */
-export const tokenField = (token?: string): string =>
-  token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
-
 // --- help popover ----------------------------------------------------------------
 
 /** A "(?)" disclosure that answers one question about the control or panel
@@ -390,13 +379,7 @@ export function backLink(href: string, title?: string, trailing = ""): string {
  *  in a shared link, which is why `serve.ts` is the only caller. A
  *  string ultimately sourced from the client, reflected into a link the
  *  reader's own browser will follow, is a standard open-redirect
- *  surface; same-origin is the guard.
- *
- *  `token` is stripped from a kept referer: the server prefers the
- *  header, the query string and the cookie for it (`tokenField`'s own
- *  comment), and reflecting one page's query-string token into another
- *  page's link would put a credential-shaped value where it does not
- *  need to be, sent again on the next click. */
+ *  surface; same-origin is the guard. */
 export function resolveBackHref(
   referer: string | null,
   requestOrigin: string,
@@ -410,7 +393,6 @@ export function resolveBackHref(
     return fallback;
   }
   if (refUrl.origin !== requestOrigin) return fallback;
-  refUrl.searchParams.delete("token");
   return refUrl.pathname + refUrl.search;
 }
 

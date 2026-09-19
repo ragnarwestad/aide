@@ -37,11 +37,8 @@ export const THEME_COLORS = { light: "#EFECE5", dark: "#16181C" };
 export const APP_ICON = appIcon(THEME_COLORS.light);
 export const APP_ICON_MASKABLE = appIconMaskable(THEME_COLORS.light);
 
-/** The manifest itself. `start_url` carries no token: an installed app
- *  is launched without whatever query string a bookmark had, so the
- *  first launch is a 401 unless the cookie is already on the origin.
- *  That is the documented order — sign in once in the browser, then
- *  install — and not something a second secret should be invented for. */
+/** The manifest itself. `start_url` carries no query string, so the
+ *  installed app opens on the list. */
 export const WEBMANIFEST =
   JSON.stringify(
     {

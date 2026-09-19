@@ -110,12 +110,6 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(html).toContain('value="b7c40e2deadbeef"');
   });
 
-  test("carries the token for a browser that got the page with one", () => {
-    expect(section(page(withChecks([check()], { token: "s3cret" }), "checks"))).toContain(
-      'name="token" value="s3cret"',
-    );
-  });
-
   // A check already made is a ticked box, not static text: it was made
   // by a person and a person can have got it wrong, and the only way
   // back used to be editing the markdown table in `4-status.md`.

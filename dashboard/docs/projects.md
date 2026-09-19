@@ -15,8 +15,8 @@ queue that runs its specs is on [Running specs](running-specs.md).
 
 ## Adding and removing a project
 
-The Projects panel on `/projects`, behind the queue token like every other mutating control. It sits under the listing
-it changes, which it can because the overview is a served page with a server behind it to check a token against. Add
+The Projects panel on `/projects`, held to the same-origin rule like every other mutating control. It sits under the
+listing it changes, which it can because the overview is a served page with a server behind it. Add
 takes a name plus either a git URL (cloned to
 `<projects root>/<name>` — or, when the projects root is the directory of links beside the dashboard's own checkouts,
 cloned to `checkouts/<name>/code` with a link to it at `<projects root>/<name>`) or a path to a checkout already there, and optionally a specs root and a one-line description.
@@ -163,7 +163,7 @@ exact match — the browser turning the button off until it matches is a conveni
 itself.
 
 The generated `projects.html` carries neither control: it is a redirect to the served page. The generated pages stay
-open, which means they carry nothing that needs the token — and both of these actions do.
+open, which means they carry nothing that changes anything — and both of these actions do.
 
 A server started without `--root` has no projects root to list or add to. Its `GET /projects` redirects to the generated
 `projects.html`

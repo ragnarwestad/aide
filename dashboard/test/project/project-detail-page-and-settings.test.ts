@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { harness, ownDirs, TOKEN, AUTH, projectsRoot, settled, serve, get } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, serve, get } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -23,7 +23,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const base = serve(root, settled(root, name));
-    const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`, { headers: AUTH });
+    const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`);
     const html = await res.text();
     expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
     expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide%20%26%20co">Cancel</a>');
@@ -66,7 +66,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
   test("?lang=nb sets the cookie and renders a Norwegian frame", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
-    const res = await fetch(`${base}/projects/aide?lang=nb`, { headers: AUTH });
+    const res = await fetch(`${base}/projects/aide?lang=nb`);
     expect(res.headers.getSetCookie().find((c) => c.startsWith("aide_lang=nb"))).toBeTruthy();
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
@@ -80,7 +80,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
   test("only GET — the page changes nothing and takes no post", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
-    const res = await fetch(`${base}/projects/aide`, { method: "POST", headers: AUTH });
+    const res = await fetch(`${base}/projects/aide`, { method: "POST" });
     expect(res.status).toBe(405);
   });
 
@@ -95,19 +95,9 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     // `/projects/..` and `/projects/%2E%2E` alike are normalised away
     // by the client before the server sees a request.
     for (const name of ["..%2F..%2Fetc", "%2Fetc%2Fpasswd"]) {
-      const res = await fetch(`${base}/projects/${name}`, { headers: AUTH });
+      const res = await fetch(`${base}/projects/${name}`);
       expect([name, res.status]).toEqual([name, 404]);
     }
-  });
-
-  // Generically guarded by `isQueuePath`'s `/projects/` prefix, which
-  // predates this route — worth one test all the same, because a read
-  // route that slipped outside the guard would hand the whole config of
-  // every project to anyone who can reach the port.
-  test("without the token the page is refused", async () => {
-    const root = projectsRoot({ aide: null });
-    const res = await fetch(`${serve(root, settled(root, "aide"))}/projects/aide`);
-    expect(res.status).toBe(401);
   });
 
   // Spec 293: the page now splits into tabs, and a plain GET with no
@@ -154,7 +144,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
       "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
     );
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/specs\/aide"/);
     expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
     expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
@@ -165,7 +155,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     // the gate must read key membership, not the row's current origin.
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).not.toContain('name="AIDE_TEST_CMD"');
     expect(html).not.toContain('name="AIDE_LINT_CMD"');
     expect(html).not.toContain('name="AIDE_BUILD_CMD"');
@@ -255,7 +245,7 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   test("?edit=1 leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).toMatch(/name="testCmd"[^>]*value=""[^>]*placeholder="pnpm test -- --run"/);
   });
 
@@ -342,7 +332,7 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         project: "other", name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md",
       }).toString(),
@@ -350,19 +340,19 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
     expect(location.startsWith("/projects/other?tab=schedule&error=")).toBe(true);
-    const refusalHtml = await (await fetch(`${base}${location}`, { headers: AUTH })).text();
+    const refusalHtml = await (await fetch(`${base}${location}`)).text();
     expect(refusalHtml).toContain("is not a project this dashboard knows");
   });
 });
 
 // Spec 255: the edit/save/cancel controls the unified table gained.
 describe("editing the unified settings table (spec 255)", () => {
-  const POST_AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const POST_AUTH = { "content-type": "application/json", accept: "application/json" };
 
   test("Cancel is a plain link back to the page with no ?edit and posts nothing (criterion 4)", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).toContain('<a class="btn" data-discard-changes href="/projects/aide">Cancel</a>');
   });
 
@@ -381,7 +371,7 @@ describe("editing the unified settings table (spec 255)", () => {
   test("edit mode shows Save and Cancel inside .configactions (REQ-1, REQ-2)", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    const html = await (await fetch(`${base}/projects/aide?edit=1`)).text();
     expect(html).toMatch(/<div class="configactions">.*Save.*<a class="btn" data-discard-changes href="\/projects\/aide">Cancel<\/a><\/div>/s);
   });
 
@@ -396,7 +386,7 @@ describe("editing the unified settings table (spec 255)", () => {
     });
     expect(res.status).toBe(200);
     expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install");
-    const view = await (await fetch(`${base}/projects/aide`, { headers: AUTH })).text();
+    const view = await (await fetch(`${base}/projects/aide`)).text();
     expect(view).toContain("make install");
     expect(view).not.toContain('name="installCmd"');
   });
@@ -424,7 +414,7 @@ describe("editing the unified settings table (spec 255)", () => {
   test("a no-script save that is refused reopens the edit state, not the read-only view", async () => {
     const root = projectsRoot({ aide: null });
     const base = serve(root, settled(root, "aide"));
-    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -434,7 +424,7 @@ describe("editing the unified settings table (spec 255)", () => {
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
     expect(location.startsWith("/projects/aide?edit=1")).toBe(true);
-    const refusalHtml = await (await fetch(`${base}${location}`, { headers: AUTH })).text();
+    const refusalHtml = await (await fetch(`${base}${location}`)).text();
     expect(refusalHtml).toContain("/etc");
     expect(refusalHtml).toContain(">Save<");
   });

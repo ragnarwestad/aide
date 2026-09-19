@@ -113,7 +113,6 @@ export interface SpecsPageOptions {
    *  tick boxes the server would have refused. It is the same reader
    *  row as every other archived spec now, wearing the mark. */
   archivedSpecs?: ArchivedSpecView[];
-  token?: string;
   /** Browser code for this page, compiled from `specs-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
    *  TypeScript like everything else, and the compiler checks it. */
@@ -227,7 +226,6 @@ function groupRows(
         specHeadRow(g, opts, opened) +
         specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
           filter: opts.filter,
-          token: opts.token,
         });
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)

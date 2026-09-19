@@ -214,7 +214,6 @@ describe("a non-live pick posts itself to the spec-scoped route (spec 308)", () 
     expect(posted.url).toContain("/api/queue/specs/aide/127-one-ai/model");
     expect(String(posted.init.body)).toContain("step=create");
     expect(String(posted.init.body)).toContain("model=fable");
-    expect(posted.url).toContain("token=s3cret");
   });
 
   test("REQ-1: an AI pick that fills a non-live model posts the model it just wrote", async () => {
