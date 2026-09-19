@@ -234,7 +234,7 @@ const STRUCTURE = [
   // model name and the always tool-prefixed form — with a media query
   // deciding which one a phone-width screen shows.
   "aimodelshort", "aimodelfull",
-  "spec-name", "spec-title",
+  "spec-name", "spec-title", "spec-notverified",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead
   // of running off the right edge of a cell sized for a word.
@@ -263,6 +263,8 @@ const STRUCTURE = [
   // the same-sized span a done or archived row shows in its place, so
   // the two kinds of row line up.
   "checks", "checkshead", "checklist", "checkphase", "check", "checktask", "checkbox",
+  // spec 509: a row's second box, "Not verified", and its read-only twin.
+  "unverified", "readonly", "notverified",
   // the tab's head line and its Save/Cancel pair, on the same line (spec
   // 391) — the form's first child on the Checks tab and every document
   // tab, so this is the ONE class the two share for it.

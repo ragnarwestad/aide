@@ -4,7 +4,8 @@
 
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { FILTER_FIELD_PREFIX, FILTER_KEYS, type SpecsFilter } from "./data-model";
+import { specPagePath } from "../spec-page";
+import { CLOSED_STATE, FILTER_FIELD_PREFIX, FILTER_KEYS, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** What the date cell says when the spec carries no stamp and git
  *  cannot date its folder either — a folder copied in rather than
@@ -44,6 +45,16 @@ export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
  *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
  *  which no amount of waiting resolves. */
 export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullRequest");
+
+/** The small line under a row's name: how many of the spec's Acceptance
+ *  rows wait for a check after deploy, linking to the Status tab where
+ *  they are ticked or un-marked. Nothing for a count of 0 or a closed
+ *  spec. */
+export const notVerifiedMark = (g: SpecGroup, lang: Language): string =>
+  (g.notVerified ?? 0) > 0 && g.state !== CLOSED_STATE
+    ? `<div class="spec-notverified"><a data-goto href="${esc(specPagePath(g.project, g.specFolder))}?tab=status">` +
+      `${esc(t(lang, "list.notVerifiedMark", { n: g.notVerified! }))}</a></div>`
+    : "";
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

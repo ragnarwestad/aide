@@ -18,7 +18,7 @@ afterEach(() => {
 
 const listPress = (
   base: string,
-  o: { ticks?: string[]; rows?: string[]; json?: boolean; view?: string; phase?: string; path?: string } = {},
+  o: { ticks?: string[]; unverified?: string[]; rows?: string[]; json?: boolean; view?: string; phase?: string; path?: string } = {},
 ) =>
   fetch(`${base}${o.path ?? TICK}?fromList=1`, {
     method: "POST",
@@ -30,8 +30,9 @@ const listPress = (
     body: new URLSearchParams([
       ["checksPhase", o.phase ?? PHASE],
       ...(o.view ? ([["view.checks", o.view]] as [string, string][]) : []),
-      ...(o.rows ?? o.ticks ?? []).map((l): [string, string] => ["row", l]),
+      ...(o.rows ?? [...(o.ticks ?? []), ...(o.unverified ?? [])]).map((l): [string, string] => ["row", l]),
       ...(o.ticks ?? []).map((l): [string, string] => ["tick", l]),
+      ...(o.unverified ?? []).map((l): [string, string] => ["unverified", l]),
     ]).toString(),
   });
 
@@ -50,6 +51,15 @@ describe("a press from the Specs list", () => {
     expect(readFileSync(statusPath(l.dir), "utf-8")).toBe(readFileSync(statusPath(t.dir), "utf-8"));
     expect(readFileSync(statusPath(l.dir), "utf-8")).toContain(ticked(OPEN_ROW));
     expect(messageOf(list.calls)).toBe(messageOf(tab.calls));
+  });
+
+  test("the Not verified box from the list marks the row, and the tick box then completes it (AC-1)", async () => {
+    const { base, dir } = startWithChecks(a.harness, savable("/host"));
+    const marked = OPEN_ROW.replace("| ⬜ |", "| Not verified |");
+    expect((await listPress(base, { json: true, unverified: [OPEN_ROW] })).status).toBe(200);
+    expect(readFileSync(statusPath(dir), "utf-8")).toContain(marked);
+    expect((await listPress(base, { json: true, ticks: [marked] })).status).toBe(200);
+    expect(readFileSync(statusPath(dir), "utf-8")).toContain(ticked(OPEN_ROW));
   });
 
   test("the last tick takes the hold-back section off the file", async () => {

@@ -6,13 +6,14 @@
 // guards.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { SPEC, TICK, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
-  PHASE, OPEN_ROW, DONE_ROW, STATUS, statusPath, startWithChecks as start, tick, save,
-  recording, messageOf,
+  PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick, save,
+  recording, messageOf, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW,
 } from "./spec-checks-fixtures.ts";
 import { afterTick } from "../../src/serve/routes/spec-edit/checks.ts";
 
@@ -240,5 +241,154 @@ describe("after a tick is saved", () => {
       "481-x",
     );
     expect(order).toEqual(["scan dropped"]);
+  });
+});
+
+// --- spec 509: the Not verified mark through the tick route --------------------
+
+describe("the tick route and the Not verified mark (spec 509)", () => {
+  const ok = (res: Response) => expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+  const refused = (res: Response) => expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
+  const stateOf = (dir: string) => JSON.parse(readFileSync(join(dirname(statusPath(dir)), "4-status.json"), "utf-8"));
+  const NV_FILE = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
+  const asNv = (row: string) => marked(row);
+
+  test("the Not verified box alone marks an open row, in one commit with the state (AC-1)", async () => {
+    const git = recording();
+    const { base, dir } = startWithChecks(git.run);
+    ok(await tick(base, { unverified: [OPEN_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, asNv(OPEN_ROW)));
+    const row = stateOf(dir).acceptanceCriteria.find((r: { task: string }) => r.task.startsWith("Manual check"));
+    expect(row).toEqual({ task: "Manual check at 375px in a real browser", done: true, notVerified: true });
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+    const added = git.calls.filter((c) => c[0] === "add").map((c) => c.join(" ")).join(" ");
+    expect(added).toContain("4-status.md");
+    expect(added).toContain("4-status.json");
+  });
+
+  test("both boxes on a done row make it Not verified (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    ok(await tick(base, { ticks: [DONE_ROW], unverified: [DONE_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(DONE_ROW, asNv(DONE_ROW)));
+  });
+
+  test("both boxes on an open row make it done (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    ok(await tick(base, { ticks: [OPEN_ROW], unverified: [OPEN_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
+  });
+
+  test("both boxes on a Not verified row make it done (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
+    ok(await tick(base, { ticks: [NV_ROW], unverified: [NV_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+  });
+
+  test("the tick box alone on a Not verified row makes it done, not skipped as already made (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
+    ok(await tick(base, { ticks: [NV_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+  });
+
+  test("no box on a Not verified row sends it back to open (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
+    ok(await tick(base, { rows: [NV_ROW] }));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "⬜")));
+  });
+
+  test("a Not verified row left as it was commits nothing (AC-1)", async () => {
+    const git = recording();
+    const { base } = startWithChecks(git.run, NV_FILE);
+    ok(await tick(base, { unverified: [NV_ROW] }));
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+  });
+
+  test("ticking the last Not verified row leaves no notVerified row in the state (AC-6)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
+    ok(await tick(base, { ticks: [DONE_ROW, NV_ROW] }));
+    const rows: { done: boolean; notVerified?: boolean }[] = stateOf(dir).acceptanceCriteria;
+    expect(rows.every((r) => r.done && !("notVerified" in r))).toBe(true);
+  });
+
+  test("an installed aide-write-spec that derives no flag refuses, and nothing is committed (AC-18)", async () => {
+    const scratch = mkdtempSync(join(tmpdir(), "old-write-spec-"));
+    const stub = join(scratch, "old-write-spec");
+    const state = JSON.stringify({ completedPhases: [], acceptanceCriteria: [{ task: "x", done: true }], phaseCounts: {} });
+    writeFileSync(stub, `#!/bin/bash\ncat > /dev/null\nprintf '%s\\n' '${JSON.stringify({ ok: true, stateJson: state })}'\n`);
+    chmodSync(stub, 0o755);
+    const before = process.env.AIDE_WRITE_SPEC_BIN;
+    process.env.AIDE_WRITE_SPEC_BIN = stub;
+    try {
+      const git = recording();
+      const { base, dir } = startWithChecks(git.run);
+      const res = await tick(base, { unverified: [OPEN_ROW] });
+      refused(res);
+      expect(decodeURIComponent(res.headers.get("location")!)).toContain("older than the dashboard");
+      expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+      expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+    } finally {
+      process.env.AIDE_WRITE_SPEC_BIN = before;
+      rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+
+  // --- an archived spec: only a deferred check may still be completed ---------
+
+  describe("an archived spec", () => {
+    const ARCHIVED_STATUS = NV_STATUS;
+    const start = (status = ARCHIVED_STATUS, git: GitRunner = savable("/host")) =>
+      harness.start({
+        description: DESCRIPTION,
+        status: STATUS,
+        archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status } },
+        extra: { gitRun: git },
+      });
+    const tickArchived = (base: string, over: Parameters<typeof tick>[1]) =>
+      tick(base, { ...over, path: `/api/queue/specs/aide/${ARCHIVED}/tick` });
+    const fileOf = (dir: string, name = "4-status.md") => join(dir, "root", "aide", "specs", "archive", ARCHIVED, name);
+
+    test("the Not verified row can be completed, and 4-status.md and 4-status.json are committed (AC-5)", async () => {
+      const git = recording();
+      const { base, dir } = start(ARCHIVED_STATUS, git.run);
+      ok(await tickArchived(base, { ticks: [NV_ROW] }));
+      expect(readFileSync(fileOf(dir), "utf-8")).toBe(ARCHIVED_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+      const rows: { notVerified?: boolean }[] = JSON.parse(readFileSync(fileOf(dir, "4-status.json"), "utf-8")).acceptanceCriteria;
+      expect(rows.some((r) => r.notVerified)).toBe(false);
+      expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+    });
+
+    test("it writes to the specs repository's default branch even when a branch of that name is open (AC-5)", async () => {
+      const open = branchAwareGitRunner({ folder: ARCHIVED, branchText: ARCHIVED_STATUS });
+      const { base, dir } = start(ARCHIVED_STATUS, open.run);
+      ok(await tickArchived(base, { ticks: [NV_ROW] }));
+      expect(readFileSync(fileOf(dir), "utf-8")).toContain(NV_ROW.replace("Not verified", "✅"));
+      expect(open.calls.some((c) => c.args[0] === "commit-tree")).toBe(false);
+    });
+
+    test("un-ticking the done row, un-marking the Not verified row or marking another is refused (AC-5)", async () => {
+      const tries: Parameters<typeof tick>[1][] = [
+        { rows: [DONE_ROW, NV_ROW], ticks: [NV_ROW] },
+        { rows: [NV_ROW] },
+        { ticks: [DONE_ROW], unverified: [DONE_ROW, NV_ROW] , rows: [DONE_ROW, NV_ROW] },
+      ];
+      for (const over of tries) {
+        const git = recording();
+        const { base, dir } = start(ARCHIVED_STATUS, git.run);
+        const res = await tickArchived(base, over);
+        refused(res);
+        expect(decodeURIComponent(res.headers.get("location")!)).toContain("archived");
+        expect(readFileSync(fileOf(dir), "utf-8")).toBe(ARCHIVED_STATUS);
+        expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+        harness.cleanup();
+      }
+    });
+
+    test("a closed spec refuses every change (AC-5)", async () => {
+      const closed = `${NV_STATUS}\n- **Closed:** 2026-09-01\n`;
+      const { base, dir } = start(closed);
+      const res = await tickArchived(base, { ticks: [NV_ROW] });
+      refused(res);
+      expect(readFileSync(fileOf(dir), "utf-8")).toBe(closed);
+    });
   });
 });

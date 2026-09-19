@@ -44,6 +44,12 @@ export async function specsPages(
       const cut = k.indexOf("/");
       return ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.closed;
     });
+    // Off the same lookup: the archived specs with a Not verified row,
+    // what the Not verified entry's count adds where no row is built.
+    const notVerifiedKeys = archivedKeys.filter((k) => {
+      const cut = k.indexOf("/");
+      return (ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.notVerified ?? 0) > 0;
+    });
     // The reader's own choice of state, from the address or from the
     // cookie it was last written into (spec 338, mirroring the sort
     // column's own `chosenSort` below).
@@ -70,6 +76,7 @@ export async function specsPages(
       targets: liveTargets,
       archived: archivedKeys,
       closed: closedKeys,
+      notVerified: notVerifiedKeys,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
       // Spec 506: the creates that ended without a spec and were not

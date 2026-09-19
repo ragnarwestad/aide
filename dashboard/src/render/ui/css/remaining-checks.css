@@ -40,6 +40,18 @@
 label.checkbox { cursor: pointer; }
 label.checkbox input { margin: 0; cursor: pointer; }
 
+/* The second box of a row, "Not verified": a check that has to wait for
+   something after the deploy. It sits after the criterion's text, on the
+   same line; the note and the tests keep their own lines below. A row
+   marked so is not struck through like a done one, because nobody has
+   checked it. */
+.check .checktask { order: 1; }
+.check .unverified { order: 2; display: inline-flex; align-items: center; gap: var(--sp-1);
+  flex: none; color: var(--muted); font-size: var(--fs-s); }
+.check .unverified input { margin: 0; cursor: pointer; }
+.check .unverified.readonly { color: var(--warn); }
+.check .checknote, .check .checktests { order: 3; }
+
 
 /* The acceptance criteria unfolded on a spec's row (spec 493): the spec
    page's own checklist, in the notice line. The text takes what room the

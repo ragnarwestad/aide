@@ -175,12 +175,13 @@ export const harness = queueHarness("aide-archived-specs-");
 
 export type ArchivedFixture = Record<
   string,
-  { description?: string; status?: string; project?: string; analysis?: string; solution?: string }
+  { description?: string; status?: string; project?: string; analysis?: string; solution?: string; state?: string }
 >;
 
-export const start = (extra: Record<string, unknown> = {}, archivedSpecs: ArchivedFixture = ARCHIVED) =>
+export const start = (extra: Record<string, unknown> = {}, archivedSpecs: ArchivedFixture = ARCHIVED, liveState?: string) =>
   harness.start({
     archivedSpecs,
+    liveState,
     alsoProjects: ["skjer"],
     extra: {
       queueProjects: ["aide", "skjer"],

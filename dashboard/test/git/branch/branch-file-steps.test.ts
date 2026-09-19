@@ -13,6 +13,7 @@ import { describe, expect, test } from "bun:test";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
+import { notVerifiedCount } from "../../../src/project/parse-status/not-verified.ts";
 
 const DIR = "/specs/aide/298-example";
 const FOLDER = "298-example";
@@ -258,5 +259,23 @@ describe("the branch's acceptance rows, as text", () => {
     };
     const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptance?.map((r) => r.task)).toEqual(["AC-1: it folds"]);
+  });
+});
+
+// Spec 509: a Not verified row marked on the open branch is not on disk
+// until archive lands, so the Specs list's count reads the branch's rows.
+describe("the branch's Not verified rows", () => {
+  test("the answer's rows carry the flag, so the branch's own count is what the list reads (AC-3)", async () => {
+    const answers = branchFile(["create", "analyze", "implement"]);
+    answers[`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`] = {
+      code: 0,
+      stdout:
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n\n" +
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|---|---|---|\n" +
+        "| AC-1: after deploy | Not verified | |\n| AC-2: also after deploy | Not verified | |\n| AC-3: done | ✅ | |\n",
+    };
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
+    expect(notVerifiedCount(steps?.acceptance ?? [])).toBe(2);
+    expect(steps?.acceptanceOpen).toBe(false);
   });
 });

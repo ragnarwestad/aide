@@ -124,7 +124,10 @@ export async function specPageView(
   // run's own record and the Checks tab no longer offers them (see
   // `checklist`'s own comment), so a spec whose only open rows are
   // Phase rows has nothing to save and needs no form or commit stamp.
-  const anyTickable = rows.some((row) => !row.done && row.phase === target.acceptancePhase);
+  // A Not verified row counts: it is done for the gates (so `acceptancePhase`
+  // no longer names its section), and still the row a reader ticks or
+  // un-marks, so the form has to carry the file's commit.
+  const anyTickable = rows.some((row) => row.notVerified || (!row.done && row.phase === target.acceptancePhase));
   // `branchBaseSha` is already the exact commit that last touched the
   // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
   // second git call needed. Off disk, read out of the DASHBOARD's own

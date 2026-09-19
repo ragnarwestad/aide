@@ -91,6 +91,11 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   const uncountedClosed = searching
     ? 0
     : (opts.archived ?? []).filter((k) => !built.has(k) && closedKeys.has(k)).length;
+  // The Not verified entry's own unbuilt: the archived specs that have a
+  // count and no built row. Counted for this entry alone — the shared
+  // `matchesState(s, ARCHIVED_STATE)` above is true for any entry naming
+  // no `states`, and would add every unbuilt archived key to it.
+  const uncountedNotVerified = searching ? 0 : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
   // A chip per project stood here until 2026-08-23. It was one control
   // that grew with the machine: fine at two projects, unreadable at
   // twenty, and the dashboard now serves whatever a person has. Nothing
@@ -98,7 +103,7 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
   return searchForm(
-    f, opts, stateDropdown(f, current, counted, uncountedArchived, uncountedClosed, lang), lang,
+    f, opts, stateDropdown(f, current, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang), lang,
   );
 }
 
@@ -118,8 +123,7 @@ function stateDropdown(
   f: SpecsFilter,
   current: string,
   counted: SpecGroup[],
-  uncountedArchived: number,
-  uncountedClosed: number,
+  uncounted: { archived: number; closed: number; notVerified: number },
   lang: Language,
 ): string {
   // Computed once, so the trigger and the panel option for the SAME
@@ -130,10 +134,10 @@ function stateDropdown(
     const on = s.key === current;
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
-      (matchesState(s, ARCHIVED_STATE) ? uncountedArchived : 0) +
+      (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
       // spec 406, REQ-7: an unbuilt closed key never reaches "Archived"
       // (CLOSED_STATE is not in that chip's `states`), only "All".
-      (matchesState(s, CLOSED_STATE) ? uncountedClosed : 0);
+      (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
     return { s, on, count };
   });
   const options = rows

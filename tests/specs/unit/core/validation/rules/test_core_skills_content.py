@@ -388,3 +388,32 @@ class TestAReopenedSpecTakesTheHeldBackRound:
         rule = self.FILES["spec-structure rule"].read_text()
         skill = self.FILES["spec-structure skill"].read_text()
         assert rule.split("\n# ", 1)[1] == skill.split("\n# ", 1)[1]
+
+
+REPO_ROOT = CORE_SKILLS_DIR.parent.parent
+
+
+@pytest.mark.validation
+class TestNotVerifiedStartState:
+    """Spec 509: analyze starts a `Not tested:` row as `Not verified`,
+    implement never writes that mark, and the spec-structure text names it."""
+
+    def test_step_8_starts_a_not_tested_row_as_not_verified_AC_21(self):
+        text = (CORE_SKILLS_DIR / "aide-analyze" / "references" / "requirements-tracing.md").read_text()
+        step8 = text[text.index("## Step 8"):]
+        assert re.search(r"`Not tested:`[^.]*starts with Status\s+`Not verified`", step8), (
+            "Step 8 must say a `Not tested:` row starts as `Not verified`"
+        )
+
+    def test_implement_never_writes_not_verified_AC_21(self):
+        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
+        assert re.search(r"Implement never writes\s+`Not verified`", text)
+
+    @pytest.mark.parametrize("path", [
+        REPO_ROOT / "core" / "rules" / "spec-structure.md",
+        CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
+    ], ids=["rule", "skill"])
+    def test_spec_structure_names_the_mark_in_legend_and_acceptance_section(self, path):
+        text = path.read_text()
+        assert "| Not verified |" in text
+        assert re.search(r"`Not tested:`[^.]*starts as\s+`Not verified`", text)

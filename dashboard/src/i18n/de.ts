@@ -43,6 +43,8 @@ export const de: Record<TranslationKey, string> = {
   "list.state.failed": "Fehlgeschlagen",
   "list.state.archived": "Archiviert",
   "list.state.closed": "Geschlossen",
+  "list.state.notVerified": "Nicht verifiziert",
+  "list.notVerifiedMark": "{n} nicht verifiziert",
   "list.searchHelpTitle": "Was die Suche durchsucht",
   "list.searchHelpBody":
     "Durchsucht projekt:ordner, den Titel, die Beschreibung — die ganze Beschreibung, " +
@@ -65,6 +67,8 @@ export const de: Record<TranslationKey, string> = {
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",
   "list.checksUnreadable": "Die Abnahmekriterien konnten hier nicht gelesen werden.",
+  "checks.notVerified": "Nicht verifiziert",
+  "checks.notVerifiedCount": "{n} nicht verifiziert",
   "list.checksOpenTab": "Den Tab „Status“ öffnen",
   "list.phaseFoldTitle": "{action} die letzten Meldungen von {phase}",
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",

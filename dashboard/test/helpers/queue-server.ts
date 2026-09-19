@@ -31,8 +31,11 @@ export interface StartOptions {
    *  default. */
   archivedSpecs?: Record<
     string,
-    { description?: string; status?: string; project?: string; analysis?: string; solution?: string }
+    { description?: string; status?: string; project?: string; analysis?: string; solution?: string; state?: string }
   >;
+  /** The live spec's 4-status.json, verbatim. Absent writes none. `state`
+   *  on an archived spec is the same file for that spec. */
+  liveState?: string;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
@@ -65,6 +68,7 @@ export function queueHarness(prefix: string): QueueHarness {
       archivedSpecs = {},
       description = "# Queue - Description\n",
       status = statusSaying(["create"]),
+      liveState,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
@@ -73,6 +77,7 @@ export function queueHarness(prefix: string): QueueHarness {
       writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description, status);
+      if (liveState !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), liveState);
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
         writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
@@ -86,6 +91,7 @@ export function queueHarness(prefix: string): QueueHarness {
         mkdirSync(archived, { recursive: true });
         writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
         writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
+        if (spec.state !== undefined) writeFileSync(join(archived, "4-status.json"), spec.state);
         if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
         if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }

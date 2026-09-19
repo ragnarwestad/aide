@@ -29,7 +29,9 @@ export const DONE_ROW = "| Run the full test suite | ✅ | 1742 pass |";
 export const EARLIER_DONE_ROW = "| Write the code | ✅ | |";
 export const LATER_ROW = "| Watch the first real run | ⬜ | |";
 export const ticked = (row: string) => row.replace("| ⬜ |", "| ✅ |");
-
+/** Spec 509: a check that waits for something after the deploy. */
+export const NV_ROW = "| AC-4: works after the deploy | Not verified | Not tested: needs production |";
+export const marked = (row: string) => row.replace(/\| (⬜|✅) \|/, "| Not verified |");
 export const HEADER = ["| Task | Status | Notes |", "|------|--------|-------|"];
 export const phaseSection = (heading: string, rows: string[]) =>
   [`## ${heading}`, "", "### Tasks", "", ...HEADER, ...rows, ""].join("\n");
@@ -49,6 +51,19 @@ export const STATUS = [
   phaseSection(EARLIER_PHASE, [EARLIER_DONE_ROW]),
   phaseSection(PHASE, [DONE_ROW, OPEN_ROW, SECOND_OPEN_ROW]),
   phaseSection(LATER_PHASE, [LATER_ROW]),
+].join("\n");
+
+/** Only the Acceptance section, holding a ✅ row and a Not verified one. */
+export const NV_STATUS = [
+  "# Queue - Status",
+  "",
+  "## Tracking info",
+  "",
+  "- **Workflow steps completed:** create, analyze, implement",
+  "",
+  "---",
+  "",
+  phaseSection(PHASE, [DONE_ROW, NV_ROW]),
 ].join("\n");
 
 /** A TDD phase left open (implement's own row, never the person's)
@@ -124,7 +139,9 @@ export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status
 }
 
 /** The checks form's own body, and nothing else: the one shared phase
- *  every box on it belongs to, `4-status.md`'s own sha, one `row` per
+ *  every box on it belongs to (`unverified` names the rows whose Not
+ *  verified box was left checked, `path` the route when it is not the
+ *  live spec's), `4-status.md`'s own sha, one `row` per
  *  box the form drew, and one `tick` per box left ticked. There is no
  *  `text` field — the description is not in this request and cannot be
  *  written by it.
@@ -134,15 +151,16 @@ export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status
  *  and left CLEAR — that is what takes a check off. */
 export const tick = (
   base: string,
-  over: { ticks?: string[]; rows?: string[]; phase?: string; statusBaseSha?: string } = {},
+  over: { ticks?: string[]; unverified?: string[]; rows?: string[]; phase?: string; statusBaseSha?: string; path?: string } = {},
 ) => {
   const body = new URLSearchParams([
     ...(over.phase === null ? [] : ([["checksPhase", over.phase ?? PHASE]] as [string, string][])),
     ["statusBaseSha", over.statusBaseSha ?? FILE_SHA],
-    ...(over.rows ?? over.ticks ?? []).map((line): [string, string] => ["row", line]),
+    ...(over.rows ?? [...new Set([...(over.ticks ?? []), ...(over.unverified ?? [])])]).map((line): [string, string] => ["row", line]),
     ...(over.ticks ?? []).map((line): [string, string] => ["tick", line]),
+    ...(over.unverified ?? []).map((line): [string, string] => ["unverified", line]),
   ]);
-  return fetch(`${base}${TICK}`, {
+  return fetch(`${base}${over.path ?? TICK}`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     redirect: "manual",

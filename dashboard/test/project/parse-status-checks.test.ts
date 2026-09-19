@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine, withoutAcceptanceSections } from "../../src/project/parse-status";
+import {
+  acceptanceSectionUnreadable,
+  markNotVerifiedStatusLine,
+  notVerifiedCount,
+  parseStatusChecks,
+  tickStatusLine,
+  untickStatusLine,
+  withoutAcceptanceSections,
+} from "../../src/project/parse-status";
 
 // --- spec 182: the rows a person can tick off from the page -----------------
 //
@@ -388,5 +396,59 @@ describe("withoutAcceptanceSections (AC-1, AC-3)", () => {
   test("a heading with nothing under it is cut to the next heading (AC-1)", () => {
     const text = "# X\n\n## Acceptance criteria\n## Notation\n- x\n";
     expect(withoutAcceptanceSections(text)).toBe("# X\n\n## Notation\n- x\n");
+  });
+});
+
+// --- spec 509: a third mark, `Not verified` ---------------------------------
+
+describe("the Not verified mark (spec 509)", () => {
+  const ROW = (mark: string) => `| AC-1: it deploys | ${mark} | a note |`;
+  const file = (mark: string) =>
+    ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", ROW(mark), ""].join("\n");
+  const PHASE = "Acceptance criteria";
+
+  test("a Not verified row reads as done and flagged, in any case (AC-1)", () => {
+    for (const mark of ["Not verified", "not verified", "NOT VERIFIED"]) {
+      const [row] = parseStatusChecks(file(mark));
+      expect(row!.done).toBe(true);
+      expect(row!.notVerified).toBe(true);
+    }
+  });
+
+  test("a done or open row carries no flag at all (AC-1)", () => {
+    for (const mark of ["✅", "⬜"]) expect("notVerified" in parseStatusChecks(file(mark))[0]!).toBe(false);
+  });
+
+  test("notVerifiedCount counts flagged rows and nothing else (AC-3)", () => {
+    expect(notVerifiedCount([{ notVerified: true }, {}, { notVerified: false }, { notVerified: true }])).toBe(2);
+    expect(notVerifiedCount([])).toBe(0);
+  });
+
+  // The mover, for every ordered pair of states.
+  const MARK = { open: "⬜", notVerified: "Not verified", done: "✅" } as const;
+  type S = keyof typeof MARK;
+  const states: S[] = ["open", "notVerified", "done"];
+  const move = (from: S, to: S): string | null => {
+    const text = file(MARK[from]);
+    const line = ROW(MARK[from]);
+    if (to === "done") return tickStatusLine(text, PHASE, line);
+    if (to === "open") return untickStatusLine(text, PHASE, line);
+    return markNotVerifiedStatusLine(text, PHASE, line);
+  };
+
+  for (const from of states) {
+    for (const to of states) {
+      test(`${from} -> ${to} (AC-1)`, () => {
+        const out = move(from, to);
+        if (from === to) return expect(out).toBeNull();
+        expect(out).toBe(file(MARK[from]).replace(ROW(MARK[from]), ROW(MARK[to])));
+      });
+    }
+  }
+
+  test("only the moved row's cell changes; its neighbour keeps its padding (AC-1)", () => {
+    const text = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ⬜ | |", "| b  | ⬜   | |"].join("\n");
+    const out = markNotVerifiedStatusLine(text, "Acceptance criteria", "| a | ⬜ | |")!;
+    expect(out.split("\n").slice(-2)).toEqual(["| a | Not verified | |", "| b  | ⬜   | |"]);
   });
 });

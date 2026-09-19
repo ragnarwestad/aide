@@ -192,7 +192,9 @@ it.
 
 None of the three phases above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section,
-and never touch a TICKED row's Notes cell either. Those rows name the
+and never touch a TICKED row's Notes cell either. Implement never writes
+`Not verified` to any Status cell: the mark counts as done, so writing
+it would let a run past the archive gate that only the user may open. Those rows name the
 spec's own AC-tagged acceptance criteria, and ticking one is a judgment
 only the user the spec is for can make.
 

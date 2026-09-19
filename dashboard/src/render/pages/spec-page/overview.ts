@@ -6,6 +6,8 @@ import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/c
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
+import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
+import { notVerifiedCount } from "../../../project/parse-status/not-verified.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
@@ -200,6 +202,15 @@ export function drawnAcceptanceRows(view: SpecPageView): SpecCheckView[] {
   return (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
 }
 
+/** The head line: how far the section is. A Not verified row is settled but
+ *  not checked, so it is counted beside the open ones and never as "all done". */
+function checksSummary(open: number, total: number, unverified: number, lang: Language): string {
+  const parts: string[] = [];
+  if (open > 0) parts.push(`${open} of ${total} still open`);
+  if (unverified > 0) parts.push(t(lang, "checks.notVerifiedCount", { n: unverified }));
+  return parts.length ? parts.join(", ") : "all done";
+}
+
 export function checklist(view: SpecPageView, lang: Language = "en"): string {
   const rows = drawnAcceptanceRows(view);
   if (rows.length === 0) {
@@ -223,6 +234,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     return "";
   }
   const open = rows.filter((r) => !r.done).length;
+  const unverified = notVerifiedCount(rows);
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
   for (const row of rows) {
     const last = groups[groups.length - 1];
@@ -250,20 +262,19 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // back was to edit the table in `4-status.md` by hand. So the section
   // is editable whenever the spec is — not only while something in it
   // is still open.
-  const canTick = !view.archived && !activeJob;
-  const tickable = (row: SpecCheckView): boolean => canTick && row.phase === phase;
+  //
+  // An archived spec is the exception for a row marked Not verified: a
+  // check that was put off may still be completed, so it gets the tick box
+  // alone and the form the box needs. A closed spec has none.
+  const archivedCompletes = !!view.archived && !view.closed && rows.some((r) => r.notVerified);
+  const canTick = (!view.archived || archivedCompletes) && !activeJob;
+  const tickable = (row: SpecCheckView): boolean =>
+    canTick && row.phase === phase && (!view.archived || !!row.notVerified);
+  // The row's verbatim line is the value of every box — see `checkControls`.
   const control = (row: SpecCheckView): string =>
     tickable(row)
-      // The row's verbatim line is the value: the server finds the row
-      // by it and refuses one that has moved, so a stale page can never
-      // flip the wrong line. The hidden twin beside it is what says this
-      // row was on the page at all — the server decides only the rows
-      // the form drew, so an unchecked box reads as "taken off" rather
-      // than as a row nobody mentioned.
-      ? `<input type="hidden" name="row" value="${esc(row.line)}">` +
-        `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}"` +
-        `${row.done ? " checked" : ""}></label>`
-      : `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`;
+      ? checkControls(row, lang, { tickOnly: !!view.archived })
+      : checkReadOnlyMark(row, lang);
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -274,7 +285,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   const note = (row: SpecCheckView): string =>
     row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
   const item = (row: SpecCheckView): string =>
-    `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
+    `<li class="check ${row.notVerified ? "notverified" : row.done ? "done" : "open"}">${control(row)}` +
     `<span class="checktask">${esc(row.task)}</span>${note(row)}${acTestsLine(row, lang)}</li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
@@ -284,7 +295,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // buttons sit on the same line as the mark rather than below the list.
   const panelHead = (actions = ""): string =>
     `<div class="panelhead"><p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>${actions}</div>`;
+    `<span class="small muted">${checksSummary(open, rows.length, unverified, lang)}</span></p>${actions}</div>`;
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick

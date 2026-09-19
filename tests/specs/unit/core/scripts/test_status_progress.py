@@ -74,3 +74,66 @@ def test_status_advanced_count_for_excludes_a_non_standard_header_row(tmp_path):
         "| a | ✅ | |\n"
     )
     assert advanced_count(tmp_path, content) == 1
+
+
+def test_status_advanced_count_for_ignores_a_not_verified_row_AC_7(tmp_path):
+    content = (
+        "# Queue - Status\n\n## Acceptance criteria\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| AC-1: a | Not verified | Not tested: x |\n"
+        "| AC-2: b | not verified | |\n"
+        "| AC-3: c | ✅ | |\n"
+    )
+    assert advanced_count(tmp_path, content) == 1
+
+
+def start_pass(tmp_path, after, before):
+    """Runs the start pass over `after`; `before` None means no baseline
+    file at all. Returns the rewritten text."""
+    status_file = tmp_path / "4-status.md"
+    status_file.write_text(after)
+    before_file = tmp_path / "status-before"
+    if before is not None:
+        before_file.write_text(before)
+    script = (
+        f'source "{LIB}"\n'
+        f'start_not_tested_rows_not_verified "{status_file}" "{before_file}"\n'
+    )
+    subprocess.run(["bash", "-c", script], capture_output=True, text=True, check=True)
+    return status_file.read_text()
+
+
+NO_ACCEPTANCE_BEFORE = "# Queue - Status\n\n## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| a | ⬜ | |\n"
+WITH_ACCEPTANCE = (
+    NO_ACCEPTANCE_BEFORE
+    + "\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n"
+    + "| AC-1: one | ⬜ | Not tested: needs the deploy; check the page |\n"
+    + "| AC-2: two | ⬜ | Read as: this way |\n"
+    + "| AC-3: three | ⬜ | |\n"
+    + "| AC-4: four | ✅ | Not tested: already ticked |\n"
+)
+
+
+def test_the_start_pass_rewrites_only_open_not_tested_acceptance_rows_AC_7(tmp_path):
+    out = start_pass(tmp_path, WITH_ACCEPTANCE, NO_ACCEPTANCE_BEFORE)
+    assert "| AC-1: one | Not verified | Not tested: needs the deploy; check the page |" in out
+    assert "| AC-2: two | ⬜ | Read as: this way |" in out
+    assert "| AC-3: three | ⬜ | |" in out
+    assert "| AC-4: four | ✅ | Not tested: already ticked |" in out
+    assert out.replace("Not verified", "⬜", 1) == WITH_ACCEPTANCE
+
+
+def test_the_start_pass_leaves_a_phase_row_alone_AC_7(tmp_path):
+    after = NO_ACCEPTANCE_BEFORE.replace("| a | ⬜ | |", "| a | ⬜ | Not tested: x |")
+    assert start_pass(tmp_path, after, NO_ACCEPTANCE_BEFORE) == after
+
+
+def test_the_start_pass_starts_nothing_in_a_later_round_AC_20(tmp_path):
+    """The baseline already has Acceptance rows: every Status cell stays
+    byte-for-byte, including a row the user left ⬜ on purpose."""
+    assert start_pass(tmp_path, WITH_ACCEPTANCE, WITH_ACCEPTANCE) == WITH_ACCEPTANCE
+
+
+@pytest.mark.parametrize("before", [None, ""])
+def test_the_start_pass_starts_nothing_on_a_missing_or_empty_baseline_AC_20(tmp_path, before):
+    assert start_pass(tmp_path, WITH_ACCEPTANCE, before) == WITH_ACCEPTANCE

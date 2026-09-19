@@ -24,11 +24,16 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 // The four in the middle are untouched by spec 221 BY CONSTRUCTION:
 // none of them names `ARCHIVED_STATE`, so each already excludes an
 // archived row without a line of new code.
+export const NOT_VERIFIED_KEY = "not-verified";
+
 type StateFilterEntry = {
   key: string;
   label: string;
   states?: string[];
   excludeStates?: string[];
+  /** A predicate on the row itself, for a chip that is not a state:
+   *  "Not verified" cuts across live and archived rows alike. */
+  where?: (g: SpecGroup) => boolean;
 };
 
 export const STATE_FILTERS: StateFilterEntry[] = [
@@ -61,6 +66,8 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   },
   { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
   { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
+  // Live and archived alike, and never a closed spec.
+  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== CLOSED_STATE && (g.notVerified ?? 0) > 0 },
 ];
 
 /** The default, by position and not by name — so a chip moved to the
@@ -82,6 +89,7 @@ const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   failed: "list.state.failed",
   [ARCHIVED_STATE]: "list.state.archived",
   [CLOSED_STATE]: "list.state.closed",
+  [NOT_VERIFIED_KEY]: "list.state.notVerified",
 };
 
 export function stateFilterLabel(key: string, lang: Language): string {
@@ -123,7 +131,7 @@ export const matchesState = (
 ): boolean => (!f.states || f.states.includes(state)) && !(f.excludeStates ?? []).includes(state);
 
 export function matchesStateFilter(f: StateFilterEntry, g: SpecGroup): boolean {
-  return matchesState(f, g.state);
+  return matchesState(f, g.state) && (!f.where || f.where(g));
 }
 
 /** Whether this view can show an archived spec at all (spec 221).

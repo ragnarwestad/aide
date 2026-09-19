@@ -89,6 +89,18 @@
       "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n|  |  | |\n| two | ⬜ | |\n",
       "done": 1,
       "total": 2
+    },
+    {
+      "name": "a-not-verified-mark-counts-as-done-in-an-acceptance-section",
+      "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| AC-1: one | Not verified | Not tested: needs the deploy |\n| AC-2: two | ⬜ | |\n| AC-3: three | not verified | |\n",
+      "done": 2,
+      "total": 3
+    },
+    {
+      "name": "a-not-verified-mark-counts-as-done-in-a-phase-section",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | Not verified | |\n| two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
     }
   ]
 }

@@ -102,3 +102,40 @@ describe("the All chip", () => {
     }
   });
 });
+
+// --- spec 509: the Not verified entry, read off each spec's 4-status.json ---
+
+const stateFile = (rows: { done: boolean; notVerified?: boolean }[]) =>
+  JSON.stringify({
+    completedPhases: [], archived: null, reopened: null, phaseCounts: {},
+    acceptanceCriteria: rows.map((r, i) => ({ task: `AC-${i + 1}: x`, ...r })),
+  });
+const marked = [{ done: true, notVerified: true }, { done: true, notVerified: true }];
+
+describe("the Not verified entry", () => {
+  const withMarks = () =>
+    start({}, {
+      ...ARCHIVED,
+      [STAMPED]: { ...ARCHIVED[STAMPED], state: stateFile(marked) },
+      // Ticked since: no flag left, so no mark and no match.
+      [SAME_DAY]: { ...ARCHIVED[SAME_DAY], state: stateFile([{ done: true }]) },
+    }, stateFile([marked[0]!]));
+
+  test("lists the live spec and the archived spec with a count, and no other (AC-4)", async () => {
+    const html = await specsList(withMarks().base, "?state=not-verified");
+    expect(order(html).sort()).toEqual([LIVE, STAMPED].sort());
+    expect(html).toContain("2 not verified");
+    expect(html).toContain("1 not verified");
+  });
+
+  test("counts only the specs with a count, on a view that builds no archived row (AC-4)", async () => {
+    const html = await specsList(withMarks().base, "?state=not-archived");
+    expect(html).toMatch(/>Not verified \(2\)</);
+  });
+
+  test("a spec with no Not verified row is in neither the list nor the count (AC-4)", async () => {
+    const html = await specsList(start().base, "?state=not-verified");
+    expect(order(html)).toEqual([]);
+    expect(html).toMatch(/>Not verified \(0\)</);
+  });
+});

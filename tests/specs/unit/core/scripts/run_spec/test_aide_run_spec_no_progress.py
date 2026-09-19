@@ -561,3 +561,85 @@ def test_an_analyze_that_commits_a_project_file_is_still_downgraded_when_specs_a
     assert out["terminalReason"] == "scope-violation", out
     # It says what was committed, in those words — not "uncommitted".
     assert "(committed: new-code.txt" in out["error"], out
+
+
+def test_an_archive_claim_over_not_verified_acceptance_rows_is_not_refused_AC_8(
+    runner, workspace, fake_claude
+):
+    """The runner's archive pre-check reads a Not verified Acceptance row
+    as done, so it does not answer `acceptance-criteria-unticked`."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.write_text(
+        status_path.read_text()
+        + "\n## Acceptance criteria\n\n"
+        + "| Task | Status | Notes |\n|------|--------|-------|\n"
+        + "| REQ-1: does the thing | Not verified | Not tested: x |\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    rc, out, _ = _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude)
+    assert out["terminalReason"] != "acceptance-criteria-unticked", out
+
+
+NOT_TESTED_ANALYZE_BODY = (
+    "# Queue - Status\n\n## Tracking info\n\n"
+    "- **Task:** `{folder}/`\n"
+    "- **Workflow steps completed:** create\n"
+    "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+    "## Phase 1: RED\n\n"
+    "| Task | Status | Notes |\n|------|--------|-------|\n"
+    "| a | ⬜ | |\n\n"
+    "## Acceptance criteria\n\n"
+    "| Task | Status | Notes |\n|------|--------|-------|\n"
+    "| AC-1: one | ⬜ | Not tested: needs the deploy; check the page |\n"
+    "| AC-2: two | ⬜ | |\n"
+)
+
+
+def _analyze_writing_status(fake_claude, workspace, body):
+    folder = workspace["folder"]
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body.format(folder=folder)
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def _branch_status(workspace):
+    """4-status.md as the step's own commit has it."""
+    return git(
+        workspace["specs"], "show",
+        f"aide/81-queue-and-runner:{workspace['folder']}/4-status.md",
+    )
+
+
+def test_an_analyze_run_starts_a_not_tested_row_as_not_verified_AC_19(
+    runner, workspace, fake_claude
+):
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = _analyze_writing_status(fake_claude, workspace, NOT_TESTED_ANALYZE_BODY)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    text = _branch_status(workspace)
+    assert "| AC-1: one | Not verified | Not tested: needs the deploy; check the page |" in text
+    assert "| AC-2: two | ⬜ | |" in text
+    assert "| a | ⬜ | |" in text
+
+
+def test_an_analyze_run_over_a_file_that_had_acceptance_rows_leaves_them_AC_20(
+    runner, workspace, fake_claude
+):
+    before = NOT_TESTED_ANALYZE_BODY.format(folder=workspace["folder"])
+    write_raw_status(workspace, before)
+    claude = _analyze_writing_status(fake_claude, workspace, NOT_TESTED_ANALYZE_BODY)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = _branch_status(workspace)
+    assert "| AC-1: one | ⬜ |" in text
+    assert "Not verified" not in text

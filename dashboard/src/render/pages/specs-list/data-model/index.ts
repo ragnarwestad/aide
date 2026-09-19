@@ -36,6 +36,7 @@ export {
   matchesState,
   matchesStateFilter,
   filterShowsArchived,
+  NOT_VERIFIED_KEY,
   isArchivedRow,
   matchesSearch,
   applyFilter,

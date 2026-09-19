@@ -219,7 +219,7 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
 // Spec 493: an acceptance criterion's box in the list unfolded under a
 // held-back message. It is named `tick`, belongs to its own list's form
 // by `form=`, and is redrawn from what the server saw last.
-export const tickCheckbox = (formId: string, value: string, served: boolean) => {
+export const tickCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
   const self = {
     name: "tick",
     value,
@@ -228,7 +228,25 @@ export const tickCheckbox = (formId: string, value: string, served: boolean) => 
     disabled: false,
     isConnected: true,
     getAttribute: (n: string) => (n === "form" ? formId : null),
-    closest: (sel: string): unknown => (sel.includes('name="tick"') ? self : null),
+    closest: (sel: string): unknown => (sel.includes('name="tick"') ? self : sel === "li" ? li : null),
+    redraw: () => void (self.checked = served),
+  };
+  return self;
+};
+
+// Spec 509: the second box of a criterion, "Not verified" — named `unverified`,
+// in the same form and with the same value as the tick box beside it, and in
+// the same `li`.
+export const unverifiedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
+  const self = {
+    name: "unverified",
+    value,
+    checked: served,
+    tagName: "INPUT",
+    disabled: false,
+    isConnected: true,
+    getAttribute: (n: string) => (n === "form" ? formId : null),
+    closest: (sel: string): unknown => (sel.includes('name="unverified"') ? self : sel === "li" ? li : null),
     redraw: () => void (self.checked = served),
   };
   return self;

@@ -12,7 +12,10 @@ export interface SpecCheckView {
   phase: string;
   line: string;
   task: string;
+  /** Done for every gate; a Not verified row is done as well. */
   done: boolean;
+  /** Marked `Not verified`: settled, but nobody has checked it. */
+  notVerified?: boolean;
   /** The row's Notes cell — the implement run's own word on what was
    *  delivered against this criterion. Absent, or empty, when the row
    *  wrote none; the two say the same thing here. */
