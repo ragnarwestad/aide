@@ -3,7 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import type { DiscoveredProject, SpecRef } from "../../project/discover";
 import { mergeQueueDefaults, parseAllowedHosts, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
@@ -75,9 +75,13 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), ".aide", "dashboard", "pending-models.json");
   if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), ".aide", "dashboard", "pending-effort.json");
   if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), ".aide", "dashboard", "pending-steps.json");
-  if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(homedir(), ".aide", "dashboard", "push-subscriptions.json");
-  if (!opts.failedCreatesPath) opts.failedCreatesPath = join(homedir(), ".aide", "dashboard", "failed-creates.json");
-  if (!opts.pushKeyPath) opts.pushKeyPath = join(homedir(), ".aide", "dashboard", "push-key.json");
+  // Beside the queue mirror, not the served board's own directory: a
+  // round's board has a queue of its own and no push paths, and it sent
+  // its test project's failures to the phone subscribed to prod.
+  const queueDir = dirname(opts.queueMirrorPath);
+  if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
+  if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");
+  if (!opts.pushKeyPath) opts.pushKeyPath = join(queueDir, "push-key.json");
   if (queueConfigFile) {
     // Kept whether or not the file is readable: the Add/Remove routes
     // write the allowlist back here, and a first install has no such
