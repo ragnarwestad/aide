@@ -7,8 +7,13 @@ in the [README](../README.md#installation).
 
 ```bash
 make test                           # tsc + bun test (single-run)
+make test-slow                      # the round's own tests, which start real boards
+make test-e2e                       # the browser tests
 make generate                       # write the site to out/
 make serve-local                    # generate + serve out/ on this machine, no service
 ```
+
+`make test` is what every step and every landing runs, and it leaves the other two out: the round's tests and the
+browser tests lose to load on a busy machine without a fault in the change. CI runs all three.
 
 `make serve-local` runs the checkout it is started in, which is how a change is tried before it lands.
