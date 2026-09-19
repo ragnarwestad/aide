@@ -293,6 +293,12 @@ describe("spec 221: archived specs on the spec list", () => {
       filter: { state: "archived", open: "aide/50-archived" },
     });
     expect(open).toContain("Reopen");
+    // Spec 511: the press leads to the confirmation page, as a GET form
+    // that keeps the return-to-list marker and the filter (AC-1).
+    const form = open.match(/<form[^>]*method="get"[^>]*action="\/specs\/aide\/50-archived\/reopen"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toContain('name="fromList" value="1"');
+    expect(form).toContain('name="view.state" value="archived"');
+    expect(open).not.toContain('action="/api/queue"><input type="hidden" name="view.state"');
     expect(open).not.toContain("<select");
     expect(open).not.toContain('class="rowrun"');
   });

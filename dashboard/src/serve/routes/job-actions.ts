@@ -7,7 +7,7 @@ import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceCriteriaUnticked, parseStatus, roundGate } from "../../project/parse-status";
+import { acceptanceCriteriaUnticked, parseStatus, reopenedRound, roundGate } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
@@ -142,7 +142,7 @@ export async function handleJobActionRoutes(
           // straight through to `isLegalMove` below, unchanged.
           if ((step === "analyze" || step === "implement") && phase === "implemented") {
             const statusText = proseStatusText(dir);
-            if (acceptanceCriteriaUnticked(statusText)) {
+            if (acceptanceCriteriaUnticked(statusText) || reopenedRound(statusText)) {
               const descriptionText = proseDescriptionText(dir);
               const gate = await roundGate(ctx.gitRun, dir, statusText, descriptionText);
               if (!("notHeldBack" in gate)) {
@@ -151,7 +151,7 @@ export async function handleJobActionRoutes(
                   continue;
                 }
                 const spec = `${askedFor.project}/${askedFor.specFolder}`;
-                const message = `${askedFor.specFolder}'s round cannot start — none of its open acceptance criteria has changed since it was held back. Reword or add at least one first.`;
+                const message = `${askedFor.specFolder}'s round cannot start — no acceptance criterion is new or reworded since the round began. Add a criterion, or reword one and untick its row.`;
                 logRefusal("run", spec, message);
                 return wantsJson
                   ? json({ error: message, spec }, 400)

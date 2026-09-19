@@ -133,9 +133,35 @@ work_round_boundary_in() {   # sets $work_round_sha
   return 0
 }
 
+# The sha of the `**Round boundary:**` a keep-Reopen stamped, when this
+# spec is in the round that stamp opened (sets $kept_round_sha). That is:
+# an `**Archived:**` or `**Closed:**` stamp is followed by a
+# `**Round boundary:**` line with no `**Reopened:**`/`**Reset:**` mark or
+# newer stamp in between. A spec that was never reopened, one reopened WITH
+# reset, or one archived again since, answers nothing. Same order rule as
+# spec-state.sh's live stamps and discover/spec-files.ts.
+kept_round_boundary_in() {   # sets $kept_round_sha
+  local file="$1"
+  kept_round_sha=""
+  [ -f "$file" ] || return 0
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
+  kept_round_sha="$(awk '
+    { line = $0; sub(/^[[:space:]]*-?[[:space:]]*/, "", line) }
+    index(line, "**Archived:**") == 1 || index(line, "**Closed:**") == 1 { stamped = 1; sha = ""; next }
+    index(line, "**Reopened:**") == 1 || index(line, "**Reset:**") == 1 { stamped = 0; sha = ""; next }
+    index(line, "**Round boundary:**") == 1 && stamped {
+      if (match(line, /history before `[0-9a-fA-F]+`/)) {
+        sha = substr(line, RSTART + 16, RLENGTH - 17)
+      }
+    }
+    END { if (stamped && sha != "") print sha }
+  ' "$file" 2>/dev/null | tail -1)"
+  return 0
+}
+
 completed_steps_for() {   # sets $completed_steps
-  local folder="$1" dir="$2" subject step reason seen completed re
-  local existing_line existing_step
+  local folder="$1" dir="$2" subject step reason seen completed re re_archive
+  local existing_line existing_step archive_counts="yes"
   local boundary_args=()
   completed_steps=""
   # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
@@ -147,6 +173,22 @@ completed_steps_for() {   # sets $completed_steps
   # rev, and git then walks nothing at all.
   work_round_boundary_in "$3"
   [ -n "$work_round_sha" ] && boundary_args=(--not "$work_round_sha")
+  # A keep-Reopen leaves the earlier round's `archive` commit in reach of
+  # the scan below (its boundary cannot be `--not`, which would cut every
+  # earlier step the reopen KEPT). `archive` alone counts only from a
+  # commit made after the round boundary.
+  kept_round_boundary_in "$3"
+  if [ -n "$kept_round_sha" ]; then
+    archive_counts=""
+    re_archive="^Run /aide-archive for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
+    while IFS= read -r subject; do
+      [[ "$subject" =~ $re_archive ]] || continue
+      [ -n "${BASH_REMATCH[5]}" ] || { archive_counts="yes"; break; }
+    done <<ARCHIVE_SCAN
+$(git -C "$dir" log --all --not "$kept_round_sha" --format=%s --fixed-strings \
+    --grep="Run /aide-archive for $folder" 2>/dev/null)
+ARCHIVE_SCAN
+  fi
   seen="|"; completed="|"
   case " $WORKFLOW_ARC " in
     *" $command_name "*)
@@ -165,6 +207,7 @@ completed_steps_for() {   # sets $completed_steps
     step="${BASH_REMATCH[1]}"
     reason="${BASH_REMATCH[6]}"
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
+    [ "$step" = "archive" ] && [ -z "$archive_counts" ] && continue
     case "$seen" in *"|$step|"*) continue ;; esac
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
@@ -208,6 +251,7 @@ EOF
     existing_line="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' "$3" 2>/dev/null | tail -1)"
   fi
   for existing_step in $(printf '%s' "$existing_line" | tr ',' ' '); do
+    [ "$existing_step" = "archive" ] && [ -z "$archive_counts" ] && continue
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in
       *" $existing_step "*) completed="$completed$existing_step|" ;;
     esac

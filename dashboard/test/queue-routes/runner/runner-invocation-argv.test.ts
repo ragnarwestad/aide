@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { runnerArgv } from "../../../src/serve/serve.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -287,5 +288,28 @@ describe("the schedule step's output directory (spec 272)", () => {
     expect(res.status).toBe(200);
     const env = await fileOnceWritten(envFile, "the runner was never invoked");
     expect(env.trim()).toBe("<unset>");
+  });
+});
+
+// Spec 511: `--reset-files` reaches the runner for a `reopen` job that asked
+// for it, and for nothing else.
+describe("--reset-files", () => {
+  const argvFor = (step: string, extra: Record<string, unknown>): string[] =>
+    runnerArgv(
+      {
+        id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: [step], stepIndex: 0,
+        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [], ...extra,
+      } as unknown as Parameters<typeof runnerArgv>[0],
+      step, "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch" },
+    );
+
+  test("a reopen job with resetFiles passes it AC-3", () => {
+    expect(argvFor("reopen", { resetFiles: true })).toContain("--reset-files");
+  });
+  test("a reopen job without resetFiles does not AC-2", () => {
+    expect(argvFor("reopen", {})).not.toContain("--reset-files");
+  });
+  test("another step never passes it, whatever the job says AC-3", () => {
+    expect(argvFor("analyze", { resetFiles: true })).not.toContain("--reset-files");
   });
 });

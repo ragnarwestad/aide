@@ -100,12 +100,30 @@ _spec_state_phase_and_acceptance_rows() {
   ' "$file" 2>/dev/null
 }
 
-# The `**Archived:** <date>` stamp, last match wins — mirrors
-# discover/spec-files.ts's own reader on the dashboard side.
+# The last `**<kind>:** ...` stamp line of $2 that no later round mark
+# follows, printed whole (or nothing). A `**Round boundary:**`,
+# `**Reopened:**` or `**Reset:**` line after a stamp makes that stamp
+# history: the spec was taken back for another round, and the stamp stays
+# in the file as the archive trail. A stamp written after the mark counts
+# again. $1 is the kind ("Archived" or "Closed"). Mirrored in
+# discover/spec-files.ts on the dashboard side.
+_spec_state_live_stamp_line() {
+  local kind="$1" file="$2"
+  awk -v kind="$kind" '
+    { line = $0; sub(/^[[:space:]]*-?[[:space:]]*/, "", line) }
+    index(line, "**" kind ":**") == 1 { last = line; next }
+    index(line, "**Round boundary:**") == 1 || index(line, "**Reopened:**") == 1 || index(line, "**Reset:**") == 1 { last = "" }
+    END { if (last != "") print last }
+  ' "$file" 2>/dev/null
+}
+
+# The `**Archived:** <date>` stamp, last match wins unless a later round
+# mark makes it history — mirrors discover/spec-files.ts's own reader on
+# the dashboard side.
 _spec_state_archived_json() {
   local file="$1" date
-  date="$(sed -n 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Archived:\*\*[[:space:]]*\([0-9-]*\).*/\1/p' \
-    "$file" 2>/dev/null | tail -1)"
+  date="$(_spec_state_live_stamp_line Archived "$file" | \
+    sed -n 's/^\*\*Archived:\*\*[[:space:]]*\([0-9-]*\).*/\1/p' | tail -1)"
   if [ -n "$date" ]; then
     jq -cn --arg d "$date" '{date:$d}'
   else
@@ -113,13 +131,13 @@ _spec_state_archived_json() {
   fi
 }
 
-# The `**Closed:** <date> — <reason>` stamp, last match wins — mirrors
+# The `**Closed:** <date> — <reason>` stamp, under the same order rule as
 # `_spec_state_archived_json` above, plus the reason typed by the person
 # closing it.
 _spec_state_closed_json() {
   local file="$1" line date reason
-  line="$(sed -n 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Closed:\*\*[[:space:]]*\([0-9-]*\)[[:space:]]*—[[:space:]]*\(.*\)/\1\t\2/p' \
-    "$file" 2>/dev/null | tail -1)"
+  line="$(_spec_state_live_stamp_line Closed "$file" | \
+    sed -n 's/^\*\*Closed:\*\*[[:space:]]*\([0-9-]*\)[[:space:]]*—[[:space:]]*\(.*\)/\1\t\2/p' | tail -1)"
   if [ -n "$line" ]; then
     date="${line%%$'\t'*}"
     reason="${line#*$'\t'}"

@@ -70,6 +70,7 @@ export {
 } from "./tabs.ts";
 export { renderResetSpecPage } from "./reset-page.ts";
 export { renderCloseSpecPage } from "./close-page.ts";
+export { renderReopenSpecPage } from "./reopen-page.ts";
 
 export function renderSpecPage(
   view: SpecPageView,

@@ -152,6 +152,24 @@ export function latestRoundBoundary(content: string): string | null {
   return matches[matches.length - 1]?.[1] ?? null;
 }
 
+/** Whether the spec is a reopened one with a round open: the last of its
+ *  `**Archived:**`, `**Closed:**`, `**Reopened:**` and `**Reset:**` lines is
+ *  an Archived or Closed one, and a `**Round boundary:**` line follows it.
+ *  A stamp with a later mark after it is history. */
+export function reopenedRound(content: string): boolean {
+  let lastStamp = -1;
+  let lastMark = -1;
+  let boundary = -1;
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (/^\s*[-*]?\s*\*\*(archived|closed):\*\*/i.test(line)) { lastStamp = i; lastMark = i; }
+    else if (/^\s*[-*]?\s*\*\*(reopened|reset):\*\*/i.test(line)) lastMark = i;
+    else if (/^\s*[-*]?\s*\*\*round boundary:\*\*/i.test(line)) boundary = i;
+  }
+  return lastStamp >= 0 && lastMark === lastStamp && boundary > lastStamp;
+}
+
 const AC_ID_RE = /^(AC-\d+):/;
 
 /** Every `AC-n` id whose own `## Acceptance criteria` row is still
@@ -185,11 +203,15 @@ export async function roundGate(
   statusText: string,
   descriptionText: string,
 ): Promise<{ ok: true } | { ok: false } | { notHeldBack: true }> {
-  if (!acceptanceCriteriaUnticked(statusText)) return { notHeldBack: true };
+  const reopened = reopenedRound(statusText);
+  if (!acceptanceCriteriaUnticked(statusText) && !reopened) return { notHeldBack: true };
   const boundarySha = latestRoundBoundary(statusText);
   if (!boundarySha) return { notHeldBack: true };
   const openIds = openAcceptanceIds(statusText);
-  if (openIds.size === 0) return { ok: true };
+  // A held-back spec with nothing open has nothing left to go stale. A reopened
+  // one has nothing open by construction, and must still show a new or
+  // changed criterion.
+  if (openIds.size === 0 && !reopened) return { ok: true };
   const currentRows = acRowsFromText(descriptionText);
   const boundaryRows = await acRowsAt(gitRun, dir, boundarySha);
   return criteriaMovedOn(currentRows, openIds, boundaryRows) ? { ok: true } : { ok: false };

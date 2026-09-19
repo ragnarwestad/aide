@@ -236,6 +236,12 @@ export function parseJobRequest(
     closeReason = r.closeReason.trim();
   }
 
+  // spec 511: whether a reopen also resets the three files. Only a job that
+  // is exactly one `reopen` step can carry it.
+  const resetFiles =
+    steps.length === 1 && steps[0] === "reopen" &&
+    (r.resetFiles === true || r.resetFiles === "1" || r.resetFiles === "on");
+
   // Per step, each against its OWN ceiling: an override that would be a
   // tightening for implement can be a loosening for analyze, and the
   // job holding both may not buy the one by naming the other.
@@ -270,6 +276,7 @@ export function parseJobRequest(
       modelChoice,
       effort: stepEffort,
       closeReason,
+      ...(resetFiles ? { resetFiles: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,

@@ -107,18 +107,16 @@ function actionForm(
 // whether it would land the plan or the code.
 
 /** The one action an archived spec offers (spec 198, on its row since
- *  spec 221). The same `POST /api/queue` with `steps=reopen` the spec's
- *  own page sends — not a shared helper with it, because the two differ
- *  in the one thing that matters here and a five-field form is not worth
- *  an abstraction over that difference.
+ *  spec 221). A GET form to the confirmation page (spec 511), which
+ *  hands its fields on to the `POST /api/queue` it draws.
  *
- *  What they differ in is `FROM_LIST_FIELD`: it is what tells the
- *  handler the press came from a row rather than from the spec's page,
- *  and therefore which page to answer on. A no-script form POST gets one
- *  redirect and no second chance to ask. */
+ *  `FROM_LIST_FIELD` is what tells the handler the press came from a row
+ *  rather than from the spec's page, and therefore which page to answer
+ *  on. A no-script form POST gets one redirect and no second chance to
+ *  ask, so the marker and the filter ride along to the page. */
 function reopenForm(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
   return (
-    `<form method="post" action="/api/queue" class="actionform">` +
+    `<form method="get" action="/specs/${esc(g.project)}/${esc(g.specFolder)}/reopen" class="actionform">` +
     filterFields(opts.filter) +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +

@@ -202,7 +202,7 @@ write_phase_stamp() {
   esac
 }
 
-# write_round_boundary_stamp($status_file, $specs_root) — spec 471: the
+# write_round_boundary_stamp($status_file, $specs_root, [$sha]) — spec 471: the
 # moment a round is mechanically known to be held back (aide-archive-
 # spec's own acceptance-criteria-unticked decline), stamped once, in the
 # same "**Reopened:**"/"**Reset:**" grammar write_phase_stamp already
@@ -218,9 +218,13 @@ write_phase_stamp() {
 # spec declined across several real rounds keeps every earlier
 # boundary, and (matching archiveHeldBackReason's own "last one wins"
 # rule) only the LAST is read.
+#
+# $sha names the commit to stamp; without it the specs repository's HEAD
+# is used, as for a decline. A keep-Reopen stamps the commit the round
+# starts from (apply_spec_transition's reopen-keep event).
 write_round_boundary_stamp() {
   local status_file="$1" specs_root="$2" head existing
-  head="$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)"
+  head="${3:-$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)}"
   [ -n "$head" ] || return 0
   # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
   existing="$(sed -n 's/.*[Rr]ound boundary:\*\*[^`]*`\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
@@ -239,8 +243,28 @@ write_round_boundary_stamp() {
 # points or two different paths (aide-run-spec's phase-append,
 # aide-archive-spec's stamp-and-move) and call write_phase_stamp/
 # write_spec_state directly instead — see each call site's own comment.
-apply_spec_transition() {   # $1 = status_file, $2 = event ("reopen"|"reset"), $3 = value (the boundary sha)
+#
+# "reopen-keep" is a function-level event, not a row of transitions.json:
+# the phase a keep-Reopen ends in is whatever the kept files say (the
+# state file's completedPhases minus `archive`), which a static `next`
+# cannot name. It takes `archive` off the steps line and off
+# completedPhases, and appends a `**Round boundary:**` stamp ($value = the
+# sha it counts from, default the repository's HEAD). The `**Archived:**`
+# or `**Closed:**` line stays as the trail; the stamp after it is what
+# makes it history (spec-state.sh).
+apply_spec_transition() {   # $1 = status_file, $2 = event ("reopen"|"reset"|"reopen-keep"), $3 = value (the boundary sha)
   local status_file="$1" event="$2" value="${3:-}"
+  if [ "$event" = "reopen-keep" ]; then
+    _peek_spec_state "$status_file"
+    local kept
+    kept="$(jq -r '(.completedPhases // []) | map(select(. != "archive")) | join(",")' <<<"$state_json" 2>/dev/null)"
+    [ -n "$kept" ] && write_phase_stamp "$status_file" workflow-line "${kept//,/, }"
+    write_round_boundary_stamp "$status_file" "$(dirname "$status_file")" "$value"
+    # "," is the "empty list" override (see below); an empty $kept must not
+    # fall through to "preserve the existing value".
+    write_spec_state "$status_file" "${kept:-,}"
+    return
+  fi
   local kind="$event"
   [ "$event" = "reopen" ] && kind="reopened"
   write_phase_stamp "$status_file" "$kind" "$value"

@@ -3,7 +3,7 @@
 // held-back.ts in isolation (2-analysis.md, Test coverage); this is it.
 
 import { describe, expect, test } from "bun:test";
-import { latestRoundBoundary, roundGate } from "../../../src/project/parse-status";
+import { latestRoundBoundary, reopenedRound, roundGate } from "../../../src/project/parse-status";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const acceptanceStatus = (rows: string[]) =>
@@ -46,7 +46,7 @@ describe("latestRoundBoundary", () => {
 });
 
 describe("roundGate", () => {
-  const boundaryAnswer = { "show abc1234:1-description.md": { code: 0, stdout: BOUNDARY_DESCRIPTION } };
+  const boundaryAnswer = { "show abc1234:./1-description.md": { code: 0, stdout: BOUNDARY_DESCRIPTION } };
 
   test("not held back on acceptance at all: notHeldBack", async () => {
     const { run } = fakeGit({});
@@ -105,5 +105,62 @@ describe("roundGate", () => {
       ]);
     const gate = await roundGate(run, "/repo", status, BOUNDARY_DESCRIPTION);
     expect(gate).toEqual({ ok: false });
+  });
+});
+
+const STAMP = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)";
+const ARCHIVED = "- **Archived:** 2026-09-10";
+
+describe("reopenedRound", () => {
+  test("an Archived stamp followed by a Round boundary stamp is a reopened round AC-5", () => {
+    expect(reopenedRound(`${ARCHIVED}\n${STAMP}\n`)).toBe(true);
+  });
+  test("a Closed stamp followed by a Round boundary stamp is a reopened round AC-5", () => {
+    expect(reopenedRound(`- **Closed:** 2026-09-10\n${STAMP}\n`)).toBe(true);
+  });
+  test("a boundary with no Archived or Closed stamp before it is not (a held-back spec) AC-5", () => {
+    expect(reopenedRound(`${STAMP}\n`)).toBe(false);
+  });
+  test("a Reopened or Reset mark in between makes it not a keep-reopen AC-5", () => {
+    expect(reopenedRound(`${ARCHIVED}\n- **Reopened:** 2026-09-12\n${STAMP}\n`)).toBe(false);
+    expect(reopenedRound(`${ARCHIVED}\n- **Reset:** 2026-09-12\n${STAMP}\n`)).toBe(false);
+  });
+  test("archived again after the boundary is history, not an open round AC-5", () => {
+    expect(reopenedRound(`${ARCHIVED}\n${STAMP}\n- **Archived:** 2026-09-20\n`)).toBe(false);
+  });
+});
+
+describe("roundGate for a reopened spec", () => {
+  const boundaryAnswer = { "show abc1234:./1-description.md": { code: 0, stdout: BOUNDARY_DESCRIPTION } };
+  const reopenedStatus = (rows: string[]) => `${ARCHIVED}\n${STAMP}\n\n` + acceptanceStatus(rows);
+  const ticked = ["| AC-1: first requirement | ✅ | |", "| AC-2: second requirement, original wording | ✅ | |"];
+
+  test("a new criterion with every row ticked: ok AC-5", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const gate = await roundGate(run, "/repo", reopenedStatus(ticked), BOUNDARY_DESCRIPTION + "- **AC-3:** new\n");
+    expect(gate).toEqual({ ok: true });
+  });
+  test("nothing new, everything ticked: refused, not ok-by-default AC-5", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const gate = await roundGate(run, "/repo", reopenedStatus(ticked), BOUNDARY_DESCRIPTION);
+    expect(gate).toEqual({ ok: false });
+  });
+  test("a reworded criterion whose row is unticked: ok AC-5", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const rows = ["| AC-1: first requirement | ✅ | |", "| AC-2: second requirement, reworded | ⬜ | |"];
+    const description = "- **AC-1:** first requirement\n- **AC-2:** second requirement, reworded\n";
+    const gate = await roundGate(run, "/repo", reopenedStatus(rows), description);
+    expect(gate).toEqual({ ok: true });
+  });
+  test("a reworded criterion whose row is still ticked: refused AC-5", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const description = "- **AC-1:** first requirement\n- **AC-2:** second requirement, reworded\n";
+    const gate = await roundGate(run, "/repo", reopenedStatus(ticked), description);
+    expect(gate).toEqual({ ok: false });
+  });
+  test("a spec never reopened, all ticked: notHeldBack AC-5", async () => {
+    const { run } = fakeGit({});
+    const gate = await roundGate(run, "/repo", acceptanceStatus(ticked), BOUNDARY_DESCRIPTION);
+    expect(gate).toEqual({ notHeldBack: true });
   });
 });

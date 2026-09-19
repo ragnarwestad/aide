@@ -142,6 +142,9 @@ export function runnerArgv(
     // flag existed already produces.
     ...(step === "create" && job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
     ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
+    // spec 511: only a `reopen` job that asked for it — absent, the
+    // runner keeps the analysis, the plan and the status.
+    ...(step === "reopen" && job.resetFiles ? ["--reset-files"] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.

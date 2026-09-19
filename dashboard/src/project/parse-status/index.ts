@@ -456,4 +456,4 @@ function setStatusLineMark(content: string, phase: string, line: string, done: b
 }
 
 // What used to live here too, in parts beside this file.
-export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary } from "./held-back.ts";
+export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary, reopenedRound } from "./held-back.ts";

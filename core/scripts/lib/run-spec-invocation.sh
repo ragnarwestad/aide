@@ -145,7 +145,13 @@ Acceptance ticking is not required for this run: per Step 8, do not write the ac
   reason_line=""
   [ "$command_name" = "close" ] && [ -n "$reason" ] && reason_line="
 Use exactly this reason when closing the spec: $reason"
-  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$reason_line
+  # A reopen that reaches the model is the reset mode (a plain reopen runs
+  # aide-reopen-spec with no model), so the skill's own question is already
+  # answered: yes, reset the three files.
+  reopen_line=""
+  [ "$command_name" = "reopen" ] && [ "$reset_files" = "yes" ] && reopen_line="
+Reset the analysis, the plan and the status as well: the person chose that, so do not ask."
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$acceptance_line$reason_line$reopen_line
 $headless_note"
 else
   # `/aide-create TODO-<name> <description>` is the skill's own

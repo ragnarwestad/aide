@@ -256,6 +256,45 @@ describe("parseJobRequest", () => {
     expect(r.ok).toBe(false);
   });
 
+  describe("resetFiles (spec 511)", () => {
+    // The spec is archived (only `reopen` is admitted); the two other
+    // step lists ride on an active spec.
+    const parse = (steps: string[], resetFiles: unknown) => {
+      const only = steps.length === 1 && steps[0] === "reopen";
+      return parseJobRequest(
+        { ...REQ, steps, resetFiles },
+        {
+          resolve: () => (only
+            ? { specFolders: [], archivedFolders: [REQ.specFolder] }
+            : { specFolders: [REQ.specFolder] }),
+          defaults: DEFAULTS,
+        },
+      );
+    };
+
+    test.each([[true], ["1"], ["on"]])("%p is kept on a reopen job AC-1", (value) => {
+      const r = parse(["reopen"], value);
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.job.resetFiles).toBe(true);
+    });
+
+    test("absent, or any other value, leaves it off AC-1", () => {
+      for (const value of [undefined, "0", false, "no"]) {
+        const r = parse(["reopen"], value);
+        expect(r.ok).toBe(true);
+        if (r.ok) expect(r.job.resetFiles).toBeUndefined();
+      }
+    });
+
+    test("a job of any other steps never carries it AC-1", () => {
+      for (const steps of [["analyze"], ["analyze", "implement"]]) {
+        const r = parse(steps, true);
+        expect(r.ok).toBe(true);
+        if (r.ok) expect(r.job.resetFiles).toBeUndefined();
+      }
+    });
+  });
+
   test.each([
     ["an unknown project", { ...REQ, project: "atlasaurus" }, "project"],
     ["a project not in the allowlist", { ...REQ, project: "claude-usage" }, "project"],

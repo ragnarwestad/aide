@@ -548,6 +548,19 @@ round that held it back, or a new `AC-n` id has been added — when none
 has, the spec stays held back on Analyze and Implement alike, not only
 on Archive.
 
+**A reopened spec takes the same round.** `/aide-reopen` without a
+reset (`aide-reopen-spec`) moves an archived or closed spec back into
+the active list with `2-analysis.md`, `3-solution.md` and `4-status.md`
+kept, and stamps a `**Round boundary:**` line after its
+`**Archived:**` or `**Closed:**` line. A reopened spec has no open row
+by construction, so the round it takes works on what changed since that
+boundary instead: an `AC-n` id added to `1-description.md`, or an
+existing criterion reworded whose row is still unticked. It follows the
+rules above: ticked rows are left exactly as found, only `⬜` rows and
+new ids are worked on, and with no new or changed criterion the spec
+stays held back on Analyze and Implement. A spec reopened WITH a reset
+starts from templates and is not in such a round.
+
 ---
 
 ## Separation of content

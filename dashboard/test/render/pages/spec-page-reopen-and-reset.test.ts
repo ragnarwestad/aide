@@ -18,23 +18,16 @@ describe("spec 198: the Reopen control", () => {
   const archived = (extra: Partial<SpecPageView> = {}) =>
     page(view({ archived: true, ...extra }));
 
-  test("an archived spec offers exactly one action, and it is Reopen", () => {
+  // Spec 511: Reopen asks its question on a page of its own, so the
+  // control is a link to that page, and posts nothing itself.
+  test("an archived spec offers exactly one action, and it is a link to the Reopen page AC-1", () => {
     const html = archived();
-    expect(html).toContain("Reopen");
-    expect(html).toContain('action="/api/queue"');
-    expect(html).toContain('name="steps" value="reopen"');
+    expect(html).toContain('<a class="btn" href="/specs/aide/150-one-page-shows-the-whole-spec/reopen">Reopen</a>');
+    expect(html).not.toContain('name="steps" value="reopen"');
   });
 
-  test("it names the spec the server has to resolve", () => {
-    const html = archived();
-    expect(html).toContain('name="project" value="aide"');
-    expect(html).toContain('name="specFolder" value="150-one-page-shows-the-whole-spec"');
-  });
-
-  // A GET would let a reload re-run it, exactly as the Update button's
-  // own comment says of the pull.
-  test("it posts", () => {
-    expect(archived()).toMatch(/<form[^>]*action="\/api\/queue"[^>]*method="post"|<form[^>]*method="post"[^>]*action="\/api\/queue"/);
+  test("it is a link, not a form: a reload cannot run it AC-1", () => {
+    expect(archived()).not.toMatch(/<form[^>]*action="\/api\/queue"/);
   });
 
   // Reopen sat under the archived note while Update sat up on the head
@@ -51,7 +44,7 @@ describe("spec 198: the Reopen control", () => {
     // because something else appeared.
     expect(group.indexOf("Reopen")).toBeLessThan(group.indexOf("Update"));
     // Moved, not copied: one Reopen on the page, and it is this one.
-    expect(archived().match(/name="steps" value="reopen"/g)).toHaveLength(1);
+    expect(archived().match(/\/reopen">Reopen</g)).toHaveLength(1);
   });
 
   // Being archived is what is the case, not something that just

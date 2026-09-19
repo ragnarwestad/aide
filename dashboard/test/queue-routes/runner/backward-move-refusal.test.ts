@@ -36,7 +36,7 @@ const heldBackStatus = (acRow: string) =>
 describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implement", () => {
   for (const step of ["analyze", "implement"]) {
     test(`${step}: no open AC-n row changed since the round boundary is refused, saying so`, async () => {
-      const { run } = fakeGit({ "show abc1234:1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
+      const { run } = fakeGit({ "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
       const { base } = harness.start({
         extra: { gitRun: run },
         status: heldBackStatus("| AC-1: first requirement | ⬜ | |"),
@@ -45,14 +45,14 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
       const res = await queue(base, [step]);
       expect(res.status).toBe(400);
       const body = (await res.json()) as { error: string };
-      expect(body.error).toContain("none of its open acceptance criteria has changed");
+      expect(body.error).toContain("no acceptance criterion is new or reworded");
 
       const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] };
       expect(listed.jobs).toHaveLength(0);
     });
 
     test(`${step}: an open AC-n row reworded since the round boundary is accepted`, async () => {
-      const { run } = fakeGit({ "show abc1234:1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
+      const { run } = fakeGit({ "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } });
       const { base } = harness.start({
         extra: { gitRun: run },
         status: heldBackStatus("| AC-1: first requirement, reworded | ⬜ | |"),
@@ -65,6 +65,76 @@ describe("spec 471: a held-back spec's round-gate, for BOTH analyze and implemen
       expect(listed.jobs).toHaveLength(1);
     });
   }
+});
+
+// --- spec 511: a reopened spec takes the same round --------------------------
+
+const reopenedStatus = (rows: string[]) =>
+  statusSaying(
+    ["create", "analyze", "implement"],
+    "- **Archived:** 2026-09-10\n" +
+      `- **Round boundary:** 2026-09-19 (history before \`${BOUNDARY_SHA}\` does not count)\n\n` +
+      "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
+      `${rows.join("\n")}\n`,
+  );
+
+describe("spec 511: a reopened spec's round-gate, for BOTH analyze and implement", () => {
+  const atBoundary = { "show abc1234:./1-description.md": { code: 0, stdout: "- **AC-1:** first requirement\n" } };
+  for (const step of ["analyze", "implement"]) {
+    test(`${step}: everything ticked and nothing new is refused, saying to add or reword AC-5`, async () => {
+      const { run } = fakeGit(atBoundary);
+      const { base } = harness.start({
+        extra: { gitRun: run },
+        status: reopenedStatus(["| AC-1: first requirement | ✅ | |"]),
+        description: "# Queue - Description\n\n- **AC-1:** first requirement\n",
+      });
+      const res = await queue(base, [step]);
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain("Add a criterion, or reword one and untick its row");
+    });
+
+    test(`${step}: a new criterion is accepted AC-5`, async () => {
+      const { run } = fakeGit(atBoundary);
+      const { base } = harness.start({
+        extra: { gitRun: run },
+        status: reopenedStatus(["| AC-1: first requirement | ✅ | |"]),
+        description: "# Queue - Description\n\n- **AC-1:** first requirement\n- **AC-2:** brand new\n",
+      });
+      expect((await queue(base, [step])).status).toBe(200);
+    });
+
+    test(`${step}: a reworded criterion with its row unticked is accepted AC-5`, async () => {
+      const { run } = fakeGit(atBoundary);
+      const { base } = harness.start({
+        extra: { gitRun: run },
+        status: reopenedStatus(["| AC-1: first requirement, reworded | ⬜ | |"]),
+        description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
+      });
+      expect((await queue(base, [step])).status).toBe(200);
+    });
+
+    test(`${step}: a reworded criterion whose row is still ticked is refused AC-5`, async () => {
+      const { run } = fakeGit(atBoundary);
+      const { base } = harness.start({
+        extra: { gitRun: run },
+        status: reopenedStatus(["| AC-1: first requirement, reworded | ✅ | |"]),
+        description: "# Queue - Description\n\n- **AC-1:** first requirement, reworded\n",
+      });
+      expect((await queue(base, [step])).status).toBe(400);
+    });
+  }
+
+  test("a spec never reopened, implemented, every row ticked: analyze refused as before AC-5", async () => {
+    const { base } = harness.start({
+      extra: {},
+      status: statusSaying(["create", "analyze", "implement"],
+        "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| AC-1: x | ✅ | |\n"),
+    });
+    const res = await queue(base, ["analyze"]);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("/aide-reset");
+  });
 });
 
 describe("REQ-9: a backward move is refused before it reaches the queue", () => {

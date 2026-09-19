@@ -196,12 +196,13 @@ and never touch a TICKED row's Notes cell either. Those rows name the
 spec's own AC-tagged acceptance criteria, and ticking one is a judgment
 only the user the spec is for can make.
 
-**One narrow carve-out.** On a held-back spec taking another
-round on its open checks (`core/skills/aide-analyze/references/requirements-tracing.md`'s
+**One narrow carve-out.** On a held-back spec, or a reopened spec
+(`aide-reopen-spec`, files kept), taking another round on its open checks
+(`core/skills/aide-analyze/references/requirements-tracing.md`'s
 "A held-back spec's second round"), the Notes cell of a row that is
 still OPEN (`⬜`) may be written. The Status cell of that same row, and
 every cell of a row that is already ticked, stays exactly as found
-regardless. On any spec that is not in a held-back round, leave every
+regardless. On any spec that is not in a held-back or reopened round, leave every
 row exactly as you found it, Notes cell included — this carve-out does
 not widen the rule above it.
 

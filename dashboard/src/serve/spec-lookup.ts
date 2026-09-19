@@ -22,7 +22,7 @@ import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
-  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
+  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus, reopenedRound,
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { SpecTarget } from "../render";
@@ -142,6 +142,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           project: p.name,
           specFolder: s.folder,
           acceptanceOpen,
+          reopenedRound: reopenedRound(statusText),
           // The rows the list unfolds, from the same source order as
           // `acceptanceOpen`: the branch answer's, else the checkout's.
           acceptance: acceptanceOpen

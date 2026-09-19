@@ -99,6 +99,9 @@ export interface SpecTarget {
   archiveHeldBack?: { reason: string };
   /** An acceptance criterion open NOW, as the Checks tab last wrote it. */
   acceptanceOpen?: boolean;
+  /** Reopened with the files kept and its round still open (spec 511):
+   *  its `4-status.md` reads `reopenedRound()`. */
+  reopenedRound?: boolean;
   /** The Acceptance rows the list unfolds, present only while one is open. */
   acceptance?: StatusCheck[];
   /** No `4-status.json` exists for this spec yet (spec 355, REQ-10) — a
@@ -489,6 +492,8 @@ export interface SpecGroup {
   done: string[];
   /** The target's `acceptanceOpen`: whether an old refusal still holds. */
   acceptanceOpen?: boolean;
+  /** The target's `reopenedRound`. */
+  reopenedRound?: boolean;
   /** The target's Acceptance rows, for the unfold under the held-back message. */
   acceptance?: StatusCheck[];
   /** What the spec is and how far it has got, from its own 4-status.md.

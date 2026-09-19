@@ -259,3 +259,34 @@ def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path
     done = sum(c["done"] for c in state["phaseCounts"].values())
     total = sum(c["total"] for c in state["phaseCounts"].values())
     assert (done, total) == (case["done"], case["total"]), case["name"]
+
+
+# --- spec 511: archived/closed follow the order rule -----------------------
+
+_ROUND = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)\n"
+
+
+def test_archived_is_null_when_a_round_boundary_follows_the_stamp_AC_2(tmp_path):
+    content = "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n\n" + _ROUND
+    assert write_state(tmp_path, content)["archived"] is None
+
+
+def test_archived_is_read_when_a_later_stamp_follows_the_boundary_AC_2(tmp_path):
+    content = (
+        "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n\n" + _ROUND
+        + "\n**Archived:** 2026-09-20\n"
+    )
+    assert write_state(tmp_path, content)["archived"] == {"date": "2026-09-20"}
+
+
+def test_archived_is_read_when_no_boundary_follows_AC_2(tmp_path):
+    content = "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n"
+    assert write_state(tmp_path, content)["archived"] == {"date": "2026-09-01"}
+
+
+def test_closed_follows_the_same_order_rule_AC_2(tmp_path):
+    closed = "**Closed:** 2026-09-01 — not now\n"
+    content = "# S\n\n## Tracking info\n\n" + closed + "\n" + _ROUND
+    assert write_state(tmp_path, content)["closed"] is None
+    later = content + "\n**Closed:** 2026-09-20 — still no\n"
+    assert write_state(tmp_path, later)["closed"] == {"date": "2026-09-20", "reason": "still no"}

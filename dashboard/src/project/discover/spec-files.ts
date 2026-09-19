@@ -127,9 +127,8 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
  *  at spec 147, so half the archive answers `null` and the caller has a
  *  fallback for exactly that. */
 export function specArchivedDate(dir: string): string | null {
-  const status = specFileText(dir, "4-status.md");
-  if (!status) return null;
-  const m = status.match(/^.*\*\*Archived:\*\*[ \t]*(.*)$/m);
+  const line = stampInEffect(specFileText(dir, "4-status.md"), /^.*\*\*Archived:\*\*/);
+  const m = line?.match(/\*\*Archived:\*\*[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].replace(/`/g, "").trim() || null;
 }
@@ -143,19 +142,33 @@ export function specArchivedDate(dir: string): string | null {
 // way the Archived stamp is read — never a mention anywhere in the text,
 // which a spec about closing (406's own status table) made and was read
 // as closed by.
-const CLOSED_STAMP = /^[ \t]*-?[ \t]*\*\*Closed:\*\*/m;
+const CLOSED_STAMP = /^[ \t]*-?[ \t]*\*\*Closed:\*\*/;
+
+const HISTORY_MARK = /^[ \t]*-?[ \t]*\*\*(round boundary|reopened|reset):\*\*/i;
+
+/** The last line matching `stamp`, unless a `**Round boundary:**`,
+ *  `**Reopened:**` or `**Reset:**` mark comes after it — then the stamp
+ *  is history and the spec is not in that state any more. `null` when
+ *  there is no stamp in effect. The bash side keeps the same rule
+ *  (`spec-transitions.sh`, `spec-state.sh`). */
+function stampInEffect(status: string | null, stamp: RegExp): string | null {
+  if (!status) return null;
+  let found: string | null = null;
+  for (const line of status.split("\n")) {
+    if (stamp.test(line)) found = line;
+    else if (found !== null && HISTORY_MARK.test(line)) found = null;
+  }
+  return found;
+}
 
 export function specClosed(dir: string): boolean {
-  const status = specFileText(dir, "4-status.md");
-  return status ? CLOSED_STAMP.test(status) : false;
+  return stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP) !== null;
 }
 
 /** WHEN this spec was closed, off the same `**Closed:**` stamp —
  *  `specArchivedDate`'s sibling. `null` covers a spec never closed. */
 export function specClosedDate(dir: string): string | null {
-  const status = specFileText(dir, "4-status.md");
-  if (!status) return null;
-  const m = status.match(/^[ \t]*-?[ \t]*\*\*Closed:\*\*[ \t]*([0-9-]*)/m);
+  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)?.match(/\*\*Closed:\*\*[ \t]*([0-9-]*)/);
   if (!m) return null;
   return m[1].trim() || null;
 }
@@ -164,9 +177,8 @@ export function specClosedDate(dir: string): string | null {
  *  same `**Closed:**` stamp. `null` covers a spec that was never closed
  *  and one whose stamp somehow carries no reason. */
 export function specCloseReason(dir: string): string | null {
-  const status = specFileText(dir, "4-status.md");
-  if (!status) return null;
-  const m = status.match(/^[ \t]*-?[ \t]*\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/m);
+  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)
+    ?.match(/\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].trim() || null;
 }

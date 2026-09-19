@@ -287,3 +287,89 @@ def test_apply_writes_the_reset_stamp_with_its_boundary_sha(tmp_path):
     assert "history before `def5678` does not count" in text
     state = json.loads((status_file.parent / "4-status.json").read_text())
     assert state["completedPhases"] == []
+
+
+# --- spec 511: a stamp with a later boundary after it is history -----------
+
+
+def _status_with(tmp_path, folder, lines, workflow_line="create, analyze, implement"):
+    d = tmp_path / folder
+    d.mkdir(exist_ok=True)
+    body = ["# X - Status", "", "## Tracking info", ""]
+    if workflow_line is not None:
+        body.append(f"- **Workflow steps completed:** {workflow_line}")
+    body.extend(lines)
+    status_file = d / "4-status.md"
+    status_file.write_text("\n".join(body) + "\n")
+    return status_file
+
+
+def _phase(status_file):
+    script = (
+        f'source "{LIB}"\n'
+        f'_peek_spec_state "{status_file}"\n'
+        'current_phase_from "$state_json"\n'
+    )
+    proc = _run(script)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    return proc.stdout.strip()
+
+
+ROUND = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)"
+
+
+def test_implement_is_legal_on_an_archived_spec_reopened_without_reset_AC_2(tmp_path):
+    status_file = _status_with(tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND])
+    assert _phase(status_file) == "implemented"
+    assert may_apply(status_file, "implement")["RC"] == "0"
+
+
+def test_an_archived_spec_that_was_not_reopened_still_refuses_implement_AC_2(tmp_path):
+    status_file = _status_with(tmp_path, "5-x", ["", "**Archived:** 2026-09-01"])
+    assert _phase(status_file) == "archived"
+    result = may_apply(status_file, "implement")
+    assert result["RC"] == "1"
+
+
+def test_a_closed_spec_reopened_without_reset_no_longer_reads_closed_AC_2(tmp_path):
+    status_file = _status_with(
+        tmp_path, "5-x", ["", "**Closed:** 2026-09-01 — no", "", ROUND], workflow_line="create, analyze")
+    assert _phase(status_file) == "analyzed"
+
+
+def test_an_archive_stamp_after_the_boundary_counts_again_AC_2(tmp_path):
+    status_file = _status_with(
+        tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND, "", "**Archived:** 2026-09-20"])
+    assert _phase(status_file) == "archived"
+
+
+def test_a_closed_stamp_after_the_boundary_counts_again_AC_2(tmp_path):
+    status_file = _status_with(
+        tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND, "", "**Closed:** 2026-09-20 — no"])
+    assert _phase(status_file) == "closed"
+
+
+def test_a_reopened_or_reset_mark_after_the_stamp_is_history_too_AC_2(tmp_path):
+    for mark in ("Reopened", "Reset"):
+        line = f"- **{mark}:** 2026-09-19 (history before `abc1234` does not count)"
+        status_file = _status_with(tmp_path, f"5-{mark}", ["", "**Archived:** 2026-09-01", "", line])
+        assert _phase(status_file) == "implemented", mark
+
+
+def test_reopen_keep_takes_archive_off_the_line_and_the_state_and_stamps_the_boundary_AC_2(tmp_path):
+    status_file = _status_with(
+        tmp_path, "5-x", ["", "**Archived:** 2026-09-01"], workflow_line="create, analyze, implement, archive")
+    script = (
+        f'source "{LIB}"\n'
+        f'apply_spec_transition "{status_file}" reopen-keep "abc1234"\n'
+        'echo "RC=$?"\n'
+    )
+    proc = _run(script)
+    assert "RC=0" in proc.stdout, proc.stdout + proc.stderr
+    text = status_file.read_text()
+    assert "- **Workflow steps completed:** create, analyze, implement\n" in text
+    assert text.count("**Round boundary:**") == 1 and "`abc1234`" in text
+    assert "**Archived:** 2026-09-01" in text
+    state = json.loads((status_file.parent / ("4-status." + "json")).read_text())
+    assert state["completedPhases"] == ["create", "analyze", "implement"]
+    assert state["archived"] is None

@@ -215,7 +215,9 @@ link, a bookmark, the back button — falls back to that cookie instead of alway
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
 row: the link to its own `/specs/<project>/<spec>` page, its whole description behind a two-line clamp, the date it was
-archived, what it cost in time, the "not landed" mark, and Reopen. No model select, no tick box and no Run — the server
+archived, what it cost in time, the "not landed" mark, and Reopen. Reopen is a link to a confirmation page
+(`/specs/<project>/<spec>/reopen`) that asks whether to reset the analysis, the plan and the status as well; the
+answer comes back to the list, filter and all. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
 control that should not be drawn. The date is the `**Archived:**` stamp in `4-status.md`, or, where a folder carries no
 stamp, the commit that last touched it; a spec neither can date reads "date unknown" rather than leaving the column

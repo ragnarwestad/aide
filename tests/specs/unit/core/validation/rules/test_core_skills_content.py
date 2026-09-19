@@ -344,3 +344,47 @@ def test_implement_checks_every_ac_id_has_a_test_before_running():
     implement = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
     assert "**Check the list before running anything:**" in red
+
+
+@pytest.mark.validation
+class TestReopenAsksBeforeItResetsTheFiles:
+    """Spec 511. A reopen keeps the analysis, the plan and the status
+    unless the person asks for them to be reset; the skill is where that
+    question is asked at a keyboard."""
+
+    @pytest.fixture
+    def skill(self):
+        return (CORE_SKILLS_DIR / "aide-reopen" / "SKILL.md").read_text()
+
+    def test_it_asks_whether_to_reset_and_the_default_is_no_AC_1(self, skill):
+        lowered = " ".join(skill.lower().split())
+        assert "reset the analysis, the plan and the status as well" in lowered
+        assert "default: no" in lowered
+
+    def test_the_keep_mode_names_the_mechanical_script_AC_2(self, skill):
+        assert "aide-reopen-spec" in skill
+        assert "**Round boundary:**" in skill
+
+
+@pytest.mark.validation
+class TestAReopenedSpecTakesTheHeldBackRound:
+    """Spec 511, AC-6. The four texts that say how a round on open rows
+    works have to say a reopened spec takes the same round."""
+
+    FILES = {
+        "requirements-tracing": CORE_SKILLS_DIR / "aide-analyze" / "references" / "requirements-tracing.md",
+        "aide-implement": CORE_SKILLS_DIR / "aide-implement" / "SKILL.md",
+        "spec-structure rule": CORE_SKILLS_DIR.parent / "rules" / "spec-structure.md",
+        "spec-structure skill": CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
+    }
+
+    @pytest.mark.parametrize("name", list(FILES))
+    def test_the_text_names_a_reopened_spec_as_taking_the_same_round_AC_6(self, name):
+        text = " ".join(self.FILES[name].read_text().split())
+        assert "reopened spec" in text, name
+        assert "aide-reopen-spec" in text or "without reset" in text or "kept its files" in text, name
+
+    def test_the_two_spec_structure_copies_have_the_same_body(self):
+        rule = self.FILES["spec-structure rule"].read_text()
+        skill = self.FILES["spec-structure skill"].read_text()
+        assert rule.split("\n# ", 1)[1] == skill.split("\n# ", 1)[1]

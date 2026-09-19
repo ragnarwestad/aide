@@ -196,6 +196,11 @@ export interface Job {
    *  Only a close job has it; every other job's own reason for existing
    *  is what its spec already says. */
   closeReason?: string;
+  /** A `reopen` job that also resets the analysis, the plan and the
+   *  status (spec 511) — handed to `aide-run-spec` as `--reset-files`.
+   *  Absent, a reopen keeps the files. Only a job whose steps are
+   *  exactly `["reopen"]` has it. */
+  resetFiles?: boolean;
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The

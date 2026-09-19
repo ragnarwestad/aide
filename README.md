@@ -179,7 +179,7 @@ Supporting skills, used around that workflow rather than as a step in it:
 | `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing          |
 | `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                   |
 | `/aide-close`    | Closes a spec whose idea did not hold: records the reason, moves it to `archive/`, and deletes its code branch unmerged |
-| `/aide-reopen`   | Takes an archived spec back into the active list for another round, keeping the description and archive trail           |
+| `/aide-reopen`   | Takes an archived spec back for another round; keeps every file unless asked to reset the analysis, plan and status     |
 | `/aide-reset`    | Resets an invalid active spec work round, keeping its README, description, commits and job history                      |
 | `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                             |
 

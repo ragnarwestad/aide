@@ -124,6 +124,7 @@ export {
   renderSpecPage,
   renderResetSpecPage,
   renderCloseSpecPage,
+  renderReopenSpecPage,
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";

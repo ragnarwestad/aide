@@ -13,8 +13,9 @@
 # mark is written here, once the step has moved the folder back to its
 # active path and regenerated the file, using the boundary sha captured
 # before any of this run's own commits existed (the branch-deletion loop
-# above this one).
-if { [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; } && \
+# above this one). A reopen that keeps the files writes no such mark: its
+# script (aide-reopen-spec) stamps a `**Round boundary:**` line itself.
+if { { [ "$command_name" = "reopen" ] && [ "$reset_files" = "yes" ]; } || [ "$command_name" = "reset" ]; } && \
    [ "$terminal_reason" = "completed" ] && [ -n "$reopen_boundary_sha" ] && \
    declare -f apply_spec_transition >/dev/null 2>&1; then
   reopen_status_file="$specs_root_wt/$spec_folder/4-status.md"

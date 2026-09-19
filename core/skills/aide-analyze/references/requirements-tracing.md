@@ -75,6 +75,16 @@ open. This is a THIRD kind of restart, distinct from `/aide-reopen` and
 `4-status.md` from their templates and drop history; a held-back round
 does the opposite on every point below.
 
+**A reopened spec takes the same round.** A spec taken back with
+`/aide-reopen` without a reset (`aide-reopen-spec`) keeps its three
+round files and carries a `**Round boundary:**` line after its
+`**Archived:**` or `**Closed:**` line. It has no open row, so its scope
+is what changed since that boundary: an id newly added to
+`1-description.md`, or a criterion reworded whose row is still `⬜`. A
+reopened spec with nothing new or reworded is refused on Analyze and
+Implement like a held-back one. Every rule below applies unchanged;
+`## Round N` starts at 2.
+
 **Scope.** Work out which `AC-n` ids are IN SCOPE before Step 5: every
 id whose `4-status.md` row is still `⬜`, plus any id newly added to
 `1-description.md` since the last round (an id `4-status.md` has no row

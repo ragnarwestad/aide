@@ -9,6 +9,7 @@ import { acTestsLine } from "../../ui/ac-tests.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
+import { specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
 /** The two whole-spec facts that sit above the tabs (spec 394): what the
@@ -313,21 +314,17 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  operation rather than two implementations that have to be kept
  *  agreeing.
  *
- *  A form and not a link, for the reason the Update button gives: a GET
- *  would let a reload run it again.
+ *  A link to the confirmation page (`/specs/<project>/<spec>/reopen`),
+ *  which asks whether to reset the analysis, the plan and the status as
+ *  well and posts the job. Opening the page changes nothing, so a plain
+ *  GET is right here.
  *
  *  Nothing ELSE about an archived spec changes — no textarea on the
  *  Description tab, the same read-only note above this, the checks shown
  *  but not tickable. And nothing here is drawn for a live spec: its own
  *  row on the queue list is where its actions are. */
 export function reopenControl(view: SpecPageView): string {
-  return (
-    `<form class="actionform" method="post" action="/api/queue">` +
-    `<input type="hidden" name="project" value="${esc(view.project)}">` +
-    `<input type="hidden" name="specFolder" value="${esc(view.specFolder)}">` +
-    `<input type="hidden" name="steps" value="reopen">` +
-    `<button class="btn" type="submit">Reopen</button></form>`
-  );
+  return `<a class="btn" href="${esc(specPagePath(view.project, view.specFolder))}/reopen">Reopen</a>`;
 }
 
 /** The PDF button (spec 358): opens `GET .../pdf` in a new tab, where
@@ -452,8 +449,9 @@ export function actionsHelp(view: SpecPageView): string {
   const sentences: string[] = [];
   if (view.archived) {
     sentences.push(
-      "Reopen takes this spec back into the active list for another round: it resets the " +
-        "analysis, the plan and the status, keeps the description, and removes its branch.",
+      "Reopen takes this spec back into the active list for another round. It keeps the " +
+        "description, the analysis, the plan and the status, and removes its old branch; " +
+        "you can choose to reset the analysis, the plan and the status as well.",
     );
   } else if (view.resetAction || view.closeAction) {
     sentences.push(CLOSE_VS_RESET_SENTENCE);

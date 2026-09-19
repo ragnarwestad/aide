@@ -167,7 +167,7 @@ root's branch open through `archive` too, as the pull request; the specs root st
 
 ## Another round on the same spec
 
-A spec whose acceptance criteria are not all ticked can take another round of analysis or implementation without being
+A spec whose acceptance criteria are not all ticked, or that was reopened with its files kept, can take another round of analysis or implementation without being
 reopened or reset. It is the one way back that keeps everything: the analysis, the plan, the status and every ticked
 row stay as they are.
 
@@ -193,21 +193,38 @@ When the user is satisfied, they tick the rows on the spec's Status tab and pres
 
 ## Going backwards: reopen and reset
 
-Both discard a work round and keep the spec. Both are skills (`/aide-reopen`, `/aide-reset`), not queue steps the
-runner decides on its own.
+Both keep the spec; reopen with reset and reset discard a work round. Both are skills (`/aide-reopen`, `/aide-reset`),
+not queue steps the runner decides on its own.
 
-- **Reopen** takes an archived spec back to the active list. It deletes the branch the earlier round left behind,
-  records `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`, and resets `2-analysis.md`,
-  `3-solution.md` and `4-status.md` while keeping `0-README.md` and `1-description.md`. The sha is the boundary
-  `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the line.
+- **Reopen** takes an archived or closed spec back to the active list and asks one question on its own page
+  (`/specs/<project>/<spec>/reopen`, reached from the Reopen link on the spec page and from the list row): also reset
+  the analysis, the plan and the status? The box is unticked, and the job carries `resetFiles` only when it is ticked.
+  It deletes the branch the earlier round left behind in both modes.
+  - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
+    `archive/` and runs no model. `0-README.md` to `3-solution.md` are untouched; in `4-status.md` `archive` leaves the
+    `Workflow steps completed:` line and a `**Round boundary:**` stamp is appended. The spec ends in the phase its files
+    show (`implemented` for a spec that was implemented), not in `created`, and it takes the round described above: it
+    is read as reopened while its last `**Archived:**` or `**Closed:**` stamp is followed by a `**Round boundary:**`
+    stamp with no `**Reopened:**` or `**Reset:**` mark between (`reopenedRound`, `held-back.ts`). Analyze and Implement
+    are accepted once one criterion is new, or reworded with its row unticked, since that boundary; the specs list
+    offers them unticked beside a ticked Archive.
+  - **Reset (`resetFiles`, runner flag `--reset-files`).** A model turn runs `/aide-reopen`: it records
+    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md` and resets `2-analysis.md`,
+    `3-solution.md` and `4-status.md` while keeping `0-README.md` and `1-description.md`. The sha is the boundary
+    `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
+    line.
+
+  A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the phase
+  reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and
+  the dashboard's readers alike (`stampInEffect`, `discover/spec-files.ts`). A new stamp after the boundary counts.
 - **Reset** does the same for an active spec whose current round must not count, keeping the description, the commits
   and the earlier job history. It needs no model: `core/scripts/aide-reset-spec` writes the three files from the
   templates, and a headless `reset` step runs that script directly, the way a create with no AI already writes its
   spec — the step ends in seconds and reports its tool as `none`.
 
-A reopened or reset spec therefore reads as `created` again: the line is empty until a step runs. A reset also drops
-the phase choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded, so
-the row falls back to every phase the spec has not had and its button reads Analyze. A reopen keeps the choice as it
+A spec reopened with reset, or reset, reads as `created` again: the line is empty until a step runs. A reset also
+drops the phase choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded,
+so the row falls back to every phase the spec has not had and its button reads Analyze. A reopen keeps the choice as it
 was.
 
 ## Closing: a different terminal move from archive

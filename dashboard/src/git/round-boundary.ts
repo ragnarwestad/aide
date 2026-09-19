@@ -3,6 +3,7 @@
 // `git show <sha>:<path>` technique description-freshness.ts already
 // uses for a whole-file diff, narrowed here to a single AC-n line.
 
+import { basename } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 
 /** The same id-extraction shape `requirements-tracing.md`'s own Step 1
@@ -27,7 +28,14 @@ function parseAcRows(text: string): Map<string, string> {
  *  rows at all, the same "cannot prove staleness" direction every
  *  other unknown in this codebase takes. */
 export async function acRowsAt(run: GitRunner, dir: string, sha: string): Promise<Map<string, string>> {
-  const out = await run(dir, ["show", `${sha}:1-description.md`]);
+  // `<sha>:<path>` is relative to the repository root unless it starts with
+  // `./`, and the spec is in `dir`, not at the root. A spec that was
+  // archived at the boundary keeps its description under the sibling
+  // `archive/<folder>/`.
+  const own = await run(dir, ["show", `${sha}:./1-description.md`]);
+  const out = own.code === 0
+    ? own
+    : await run(dir, ["show", `${sha}:../archive/${basename(dir)}/1-description.md`]);
   return out.code === 0 ? parseAcRows(out.stdout) : new Map();
 }
 

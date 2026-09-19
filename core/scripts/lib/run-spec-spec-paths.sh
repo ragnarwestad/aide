@@ -233,6 +233,12 @@ fi
 # with nobody to ask, and left the files as they were (2026-09-14).
 reset_no_ai=""
 [ "$command_name" = "reset" ] && reset_no_ai="yes"
+# A reopen that keeps the files is mechanical too (aide-reopen-spec): the
+# folder comes out of archive/ and nothing in it is regenerated, so no
+# model has anything to judge. --reset-files asks for the regenerating
+# turn instead, and that one is the skill's.
+reopen_keep_no_ai=""
+[ "$command_name" = "reopen" ] && [ "$reset_files" != "yes" ] && reopen_keep_no_ai="yes"
 
 # One turn of the model: run `argv` on the prompt in $1, wait it out under
 # the step's deadline, and read the result back into the step's own
@@ -510,7 +516,7 @@ else
 fi
 }
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ] || [ -n "$reopen_keep_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
   # the same zero/absent shape already_landed() already uses above for
@@ -558,6 +564,20 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
       terminal_reason="refused"
       tool="none"; model=""; effort=""
       error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
+    fi
+  elif [ -n "$reopen_keep_no_ai" ]; then
+    reopen_args=(--specs-root "$specs_root_wt" --spec "$spec_folder")
+    [ -n "$reopen_boundary_sha" ] && reopen_args+=(--boundary "$reopen_boundary_sha")
+    reopen_result="$("$SCRIPT_DIR/aide-reopen-spec" "${reopen_args[@]}" 2>/dev/null)"
+    if [ "$(jq -r '.ok // false' <<<"$reopen_result" 2>/dev/null)" = "true" ]; then
+      terminal_reason="completed"
+      cost_measured="true"
+      tool="none"
+      model=""; effort=""
+    else
+      terminal_reason="refused"
+      tool="none"; model=""; effort=""
+      error_msg="$(jq -r '.error // "aide-reopen-spec refused"' <<<"$reopen_result" 2>/dev/null)"
     fi
   else
     terminal_reason="$archive_terminal_reason"; error_msg=""

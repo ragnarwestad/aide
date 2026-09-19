@@ -2,7 +2,7 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { renderResetSpecPage, specPagePath } from "../../../render";
+import { FILTER_FIELD_PREFIX, FROM_LIST_FIELD, renderReopenSpecPage, renderResetSpecPage, specPagePath } from "../../../render";
 import { ARCHIVED_REFUSAL, bodyToObject, json, languageChoice, logRefusal, specsClientScript, readBounded, specsRedirect } from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
@@ -27,6 +27,32 @@ export async function runControlRoutes(
       script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
+    });
+    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    return new Response(html, { headers });
+  }
+
+  const reopenPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reopen$/);
+  if (reopenPage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const [, project, specFolder] = reopenPage;
+    const ref = ctx.specRef(project!, specFolder!);
+    // Reopen is for a spec that is archived or closed (a closed one is
+    // archived too, as far as the lookup is concerned).
+    if (!ref || !ref.archived) return new Response("not found", { status: 404 });
+    // What the list row handed on, and nothing else the URL might carry.
+    const handOn: Record<string, string> = {};
+    for (const [name, value] of url.searchParams) {
+      if (name === FROM_LIST_FIELD || name.startsWith(FILTER_FIELD_PREFIX)) handOn[name] = value;
+    }
+    const langResult = languageChoice(url, req);
+    const html = renderReopenSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
+      error: url.searchParams.get("error") ?? undefined,
+      script: await specsClientScript(),
+      lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
+      handOn,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

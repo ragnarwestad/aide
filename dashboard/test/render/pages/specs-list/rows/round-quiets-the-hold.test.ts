@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { offersAnotherRound } from "../../../../../src/render/pages/specs-list/row-state.ts";
+import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 import { openKeys, row } from "../../fixtures.ts";
 
@@ -116,5 +118,45 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
     // Implement reads as the phase behind it, not as a round to run
     // again: done, and not a box a press would post.
     expect(box("implement")).toContain("disabled");
+  });
+});
+
+// --- spec 511: a reopened spec takes the same round as a held-back one -----
+describe("a reopened spec at implemented, with every row ticked", () => {
+  const FOLDER = "511-reopened";
+  const done = ["create", "analyze", "implement"];
+  const boxes = (target: SpecTarget) => {
+    const idle = row({ specFolder: FOLDER, steps: ["implement"], stepIndex: 0, state: "done" });
+    const html = renderSpecsRows([idle], {
+      runnerAvailable: true,
+      targets: [target],
+      filter: { open: openKeys([idle], [target]) },
+    });
+    return (step: string) => html.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
+  };
+  const base: SpecTarget = { project: "aide", specFolder: FOLDER, done, acceptanceOpen: false };
+
+  test("offers Analyze and Implement unticked beside the ticked Archive AC-5", () => {
+    const box = boxes({ ...base, reopenedRound: true });
+    for (const step of ["analyze", "implement"]) {
+      expect(box(step)).not.toContain("checked");
+      expect(box(step)).not.toContain("disabled");
+    }
+    expect(box("archive")).toContain("checked");
+  });
+
+  test("a spec that is not reopened, with nothing open, offers no round AC-5", () => {
+    const box = boxes(base);
+    expect(box("implement")).toContain("disabled");
+  });
+
+  test("a spec reopened with reset, later declined on archive, offers none of it AC-5", () => {
+    // `reopenedRound` is false for it: a Reopened mark follows the stamp.
+    expect(boxes({ ...base, reopenedRound: false })("implement")).toContain("disabled");
+  });
+
+  test("a reopened spec that is only at analyzed is not offered another round AC-5", () => {
+    const g = { done: ["create", "analyze"], reopenedRound: true, phases: [] } as unknown as SpecGroup;
+    expect(offersAnotherRound(g, "analyze")).toBe(false);
   });
 });

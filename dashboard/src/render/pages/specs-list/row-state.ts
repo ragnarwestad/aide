@@ -139,7 +139,7 @@ export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, 
   // offered beside it is a choice the reader makes by ticking. The
   // remembered choice names the chain that has just run, and ticked
   // again it turned a press meant for archive into another round.
-  if (heldBackOnChecks(g)) {
+  if (roundOffered(g)) {
     chosen.delete("analyze");
     chosen.delete("implement");
     chosen.add("archive");
@@ -252,7 +252,15 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
  *  boundary — is the run route's own gate, and its refusal names the
  *  criterion that has not moved. */
 export function offersAnotherRound(g: SpecGroup, step: string): boolean {
-  return ROUND_STEPS.has(step) && heldBackOnChecks(g);
+  return ROUND_STEPS.has(step) && roundOffered(g);
+}
+
+/** The one question both `chosenSteps` and `offersAnotherRound` ask: is
+ *  another round offered on this row — held back on its checks, or
+ *  reopened with the files kept (spec 511) and at implemented, where
+ *  nothing is open by construction. */
+export function roundOffered(g: SpecGroup): boolean {
+  return heldBackOnChecks(g) || (g.reopenedRound === true && g.done.includes("implement"));
 }
 
 /** Is a round of work under way on this spec right now — a job in

@@ -7,12 +7,21 @@ unchanged and keep their names.
 """
 
 import json
+import pytest
 from ..conftest import READ_SPECS, git, run
 from .run_spec_fakes import specs_only_claude
 from .run_spec_invoking import BRANCH
 from .run_spec_origins import archive_the_spec, has_branch, make_branch, origin
 from .run_spec_results import RESULT_OK
-from .run_spec_status_files import already_ran, recorded_line, reopen_line, reset_line, subject, with_status
+from .run_spec_status_files import (
+    already_ran, recorded_line, reopen_line, reset_line, subject, with_status, write_raw_status,
+)
+
+
+def land_the_archive(workspace):
+    """A runner cuts its worktree from origin's default branch, so an
+    archive that origin has not seen is not the archive the run finds."""
+    git(workspace["specs"], "push", "-q", "origin", "main")
 
 
 def test_reopen_finds_a_spec_that_is_already_in_the_archive(runner, workspace, fake_claude):
@@ -45,9 +54,10 @@ def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_cl
     reader of the commit grammar is concerned."""
     archive_the_spec(workspace)
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen", dry_run=True)
+    rc, out, _ = run(runner, workspace, claude, command="reopen", dry_run=True, reset_files=True)
     assert rc == 0, out
     assert out["prompt"].startswith("/aide-reopen 81"), out["prompt"]
+    assert "Reset the analysis, the plan and the status as well" in out["prompt"], out["prompt"]
 
 def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     runner, workspace, fake_claude
@@ -71,7 +81,7 @@ def test_reopen_takes_the_leftover_branch_out_of_both_roots(
         + f'echo "reopened" > "$specs/archive/{workspace["folder"]}/2-analysis.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=True)
     assert rc == 0, out
     # The run cuts its own branch of the same name from the default
     # branch, so what has to be gone is the earlier round's TIP — not the
@@ -82,33 +92,39 @@ def test_reopen_takes_the_leftover_branch_out_of_both_roots(
         base = git(root, "rev-parse", f"{old}")
         assert base in reachable, "the default branch's history is still there"
 
+@pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
 def test_reopen_takes_the_branch_off_origin_in_both_roots(
+    reset,
     runner, workspace, fake_claude, origin
 ):
     """The other two of the four places a branch hides. `push` is `none`
     here, so nothing puts it back — what the bare repos hold at the end
     is what the deletion left."""
     archive_the_spec(workspace)
+    land_the_archive(workspace)
     for root in (workspace["project"], workspace["specs"]):
         make_branch(root, BRANCH)
         git(root, "push", "-q", "origin", BRANCH)
     for bare in (origin["project"], origin["specs"]):
         assert has_branch(bare, BRANCH), "staged: the branch is on origin"
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=reset or None)
     assert rc == 0, out
     for bare in (origin["project"], origin["specs"]):
         assert not has_branch(bare, BRANCH), f"{bare} still holds {BRANCH}"
 
+@pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
 def test_reopen_succeeds_when_the_branches_are_already_gone(
+    reset,
     runner, workspace, fake_claude, origin
 ):
     """Every one of the four deletions tolerates "already gone": a spec
     whose branch was cleaned up by the landing that archived it is the
     normal case, not a failure."""
     archive_the_spec(workspace)
+    land_the_archive(workspace)
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=reset or None)
     assert rc == 0, out
     assert out["ok"] is True, out
 
@@ -181,7 +197,9 @@ def test_reset_is_refused_for_an_archived_spec(runner, workspace, fake_claude):
     assert rc == 2, out
     assert "unknown spec" in out["error"]
 
+@pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
 def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
+    reset,
     runner, workspace, fake_claude
 ):
     """The commits happened, and the archive is a record. What changes is
@@ -190,7 +208,7 @@ def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
     archive_the_spec(workspace)
     before = git(workspace["specs"], "log", "--format=%s", "main")
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=reset or None)
     assert rc == 0, out
     after = git(workspace["specs"], "log", "--format=%s", "main")
     assert before == after, "the default branch's history must not be rewritten"
@@ -250,3 +268,166 @@ def test_a_spec_that_has_never_been_reopened_counts_everything(
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
+
+
+# --- spec 511: reopen keeps the files unless asked to reset them ------------
+
+FULL_FILES = {
+    "0-README.md": "# Queue\n\nThe readme.\n",
+    "2-analysis.md": "# Queue - Analysis\n\n## Mapping\n\n- `src/x.ts:1` — a round's work\n",
+    "3-solution.md": "# Queue - Solution\n\n## Plan\n\n1. Done.\n",
+}
+ARCHIVED_STATUS = (
+    "# Queue - Status\n\n## Tracking info\n\n"
+    "- **Task:** `81-queue-and-runner/`\n"
+    "- **Workflow steps completed:** create, analyze, implement, archive\n\n"
+    "## Acceptance criteria\n\n| Criterion | Status | Note |\n|---|---|---|\n| AC-1 | ✅ | done |\n\n"
+    "**Archived:** 2026-09-01\n"
+)
+
+
+def archived_with_files(workspace):
+    folder = workspace["specs"] / workspace["folder"]
+    for name, text in FULL_FILES.items():
+        (folder / name).write_text(text)
+    (folder / "4-status.md").write_text(ARCHIVED_STATUS)
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "a finished round")
+    archive_the_spec(workspace)
+
+
+def branch_file(root, name, workspace):
+    return git(root, "show", f"{BRANCH}:{workspace['folder']}/{name}")
+
+
+def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files_AC_2(
+    runner, workspace, fake_claude, origin
+):
+    archived_with_files(workspace)
+    land_the_archive(workspace)
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", push="branch")
+    assert rc == 0, out
+    assert out["ok"] is True and out["terminalReason"] == "completed", out
+    assert out["tool"] == "none", out
+    assert not fake_claude.calls.exists()
+    specs = origin["specs"]
+    for name, text in FULL_FILES.items():
+        assert branch_file(specs, name, workspace) == text.rstrip("\n"), name
+    status = branch_file(specs, "4-status.md", workspace)
+    assert "| AC-1 | ✅ | done |" in status
+    assert "- **Workflow steps completed:** create, analyze, implement\n" in status + "\n"
+    assert "**Round boundary:**" in status and "**Reopened:**" not in status, status
+    state = json.loads(branch_file(specs, "4-status.json", workspace))
+    assert state["completedPhases"] == ["create", "analyze", "implement"], state
+
+
+def test_a_reopen_with_reset_files_regenerates_three_files_and_stamps_reopened_AC_3(
+    runner, workspace, fake_claude, origin
+):
+    """The reset mode is today's behaviour: the model turn regenerates the
+    analysis, the plan and the status, and the runner stamps the mark."""
+    archived_with_files(workspace)
+    land_the_archive(workspace)
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mv "$specs/archive/{folder}" "$specs/{folder}"\n'
+        + f'echo "# Queue - Analysis" > "$specs/{folder}/2-analysis.md"\n'
+        + f'echo "# Queue - Solution" > "$specs/{folder}/3-solution.md"\n'
+        + f'printf "# Queue - Status\\n\\n## Tracking info\\n\\n**Archived:** 2026-09-01\\n" > "$specs/{folder}/4-status.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=True, push="branch")
+    assert rc == 0, out
+    assert fake_claude.calls.exists(), "the reset mode runs the model"
+    specs = origin["specs"]
+    assert branch_file(specs, "0-README.md", workspace) == FULL_FILES["0-README.md"].rstrip("\n")
+    assert branch_file(specs, "2-analysis.md", workspace) == "# Queue - Analysis"
+    status = branch_file(specs, "4-status.md", workspace)
+    assert "**Reopened:**" in status and "**Round boundary:**" not in status, status
+    state = json.loads(branch_file(specs, "4-status.json", workspace))
+    assert state["completedPhases"] == [], state
+
+
+@pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
+def test_a_reopen_leaves_no_leftover_commit_on_any_of_the_four_branches_AC_4(
+    reset, runner, workspace, fake_claude, origin
+):
+    archived_with_files(workspace)
+    land_the_archive(workspace)
+    leftovers = {}
+    for key in ("project", "specs"):
+        root = workspace[key]
+        git(root, "branch", BRANCH)
+        git(root, "checkout", "-q", BRANCH)
+        git(root, "commit", "-q", "--allow-empty", "-m", f"leftover in {key}")
+        leftovers[key] = git(root, "rev-parse", "HEAD")
+        git(root, "push", "-q", "origin", BRANCH)
+        git(root, "checkout", "-q", "main")
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=reset or None, push="branch")
+    assert rc == 0, out
+    for key, bare in (("project", origin["project"]), ("specs", origin["specs"])):
+        for repo in (workspace[key], bare):
+            reachable = git(repo, "rev-list", "--all")
+            assert leftovers[key] not in reachable, f"{repo} still holds the leftover commit"
+
+
+# --- what counts after a keep-Reopen ----------------------------------------
+
+
+def keep_reopened(workspace, steps_line="create, analyze, implement"):
+    """A spec as a landed keep-Reopen leaves it: active, its archive trail
+    kept, a round boundary at the commit it was reopened from."""
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    boundary = git(workspace["specs"], "rev-parse", "--short", "HEAD")
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        "- **Task:** `81-queue-and-runner/`\n"
+        f"- **Workflow steps completed:** {steps_line}\n\n"
+        "**Archived:** 2026-09-01\n\n"
+        f"- **Round boundary:** 2026-09-19 (history before `{boundary}` does not count)\n",
+    )
+    return boundary
+
+
+def state_of(workspace):
+    return json.loads(branch_file(workspace["specs"], "4-status.json", workspace))
+
+
+def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round_AC_2(
+    runner, workspace, fake_claude
+):
+    keep_reopened(workspace)
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+    assert "archive" not in state_of(workspace)["completedPhases"]
+
+
+def test_archive_counts_again_after_a_new_archive_commit_AC_2(runner, workspace, fake_claude):
+    keep_reopened(workspace)
+    already_ran(workspace, ["archive"])
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement, archive"
+    assert "archive" in state_of(workspace)["completedPhases"]
+
+
+def test_a_spec_never_reopened_keeps_archive_on_its_line_AC_2(runner, workspace, fake_claude):
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        "- **Task:** `81-queue-and-runner/`\n"
+        "- **Workflow steps completed:** create, analyze, implement, archive\n",
+    )
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement, archive"

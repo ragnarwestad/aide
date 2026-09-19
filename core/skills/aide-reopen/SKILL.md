@@ -1,10 +1,10 @@
 ---
 name: aide-reopen
 description: >-
-  Take an archived spec back into the active list for another round:
-  reset the analysis, the plan and the status, keep the description and
-  the archive trail, and mark the point after which nothing counts as
-  having run.
+  Take an archived spec back into the active list for another round,
+  keeping every file as it is, or, when asked, resetting the analysis,
+  the plan and the status as well. Keeps the description and the archive
+  trail, and marks the point after which nothing counts as having run.
   Use when: archived work has to be done again, a spec was archived too
   early, a shipped change has to be redone from its own description.
   Do NOT use for: creating a new spec (use aide-create), analysis (use
@@ -13,10 +13,10 @@ argument-hint: "[spec number]"
 effort: medium
 ---
 
-Reopen an archived spec: remove the branch it left behind, put the
-folder back among the active specs, and reset three of its four files.
-`aide-run-spec` writes the mark that makes everything counting steps
-start over, once this step finishes.
+Reopen an archived spec: remove the branch it left behind and put the
+folder back among the active specs. By default every file is kept and
+the spec takes a round on what changed in its description; only when
+asked are the analysis, the plan and the status reset as well.
 
 **Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
 
@@ -33,6 +33,12 @@ searches both and returns `archive/<NN>-slug` for an archived spec.
 If it is NOT archived, stop and say so: a spec already in the active
 list has nothing to reopen, and resetting its files would throw away the
 round that is running.
+
+Then ask: "Reset the analysis, the plan and the status as well?
+(default: no)". No, or no answer, is the keep mode; yes is the reset
+mode. A headless run has already answered: without `--reset-files` the
+runner runs `aide-reopen-spec` itself and this skill is not started, and
+a prompt that says the person chose to reset means yes. Do not ask again.
 
 ### Step 2: Remove the branch the earlier round left behind
 
@@ -60,12 +66,22 @@ at a keyboard, where no worktree stands in the way.
 
 ### Step 3: Move the folder back
 
-`git mv <specs-root>/archive/<NN>-slug <specs-root>/<NN>-slug` when the
-specs root is git-tracked, plain `mv` otherwise. The folder keeps its
-`NN-slug` name — numbers are never reused, and the spec is the same
-spec.
+**Keep mode:** run `aide-reopen-spec --specs-root <specs-root> --spec
+<NN>`. It does this step and everything the keep mode changes: it moves
+the folder, leaves `0-README.md`, `1-description.md`, `2-analysis.md`
+and `3-solution.md` byte for byte, takes `archive` off the `Workflow
+steps completed:` line of `4-status.md` and appends one
+`**Round boundary:**` line in the `history before` grammar. The
+`**Archived:**` or `**Closed:**` line stays as the trail, and the
+`**Round boundary:**` line after it is what makes it history. Go to
+Step 6.
 
-### Step 4: Reset three files, keep two
+**Reset mode:** `git mv <specs-root>/archive/<NN>-slug
+<specs-root>/<NN>-slug` when the specs root is git-tracked, plain `mv`
+otherwise. The folder keeps its `NN-slug` name — numbers are never
+reused, and the spec is the same spec.
+
+### Step 4: Reset three files, keep two (reset mode only)
 
 **Regenerate** `2-analysis.md`, `3-solution.md` and `4-status.md`
 exactly as `/aide-create` Step 4 would for a new spec — from
@@ -77,7 +93,7 @@ here.
 The description is why the spec exists, and it is what the new round is
 for. Rewriting it would delete the one thing the reopen is keeping.
 
-### Step 5: Carry over the `**Archived:**` line
+### Step 5: Carry over the `**Archived:**` line (reset mode only)
 
 Copy the `**Archived:**` line (with every earlier one it already had)
 verbatim from the file being replaced into the regenerated
@@ -105,9 +121,10 @@ interactively, ASK whether to commit, and suggest this message:
 Run /aide-reopen for <spec-folder>
 ```
 
-`aide-run-spec` adds the `**Reopened:**` mark, with its boundary sha, in
-a commit of its own right after this step finishes — it is not part of
-what this session commits.
+In reset mode `aide-run-spec` adds the `**Reopened:**` mark, with its
+boundary sha, in a commit of its own right after this step finishes — it
+is not part of what this session commits. In keep mode the
+`**Round boundary:**` line is already written by `aide-reopen-spec`.
 
 ### Step 7: Confirm
 
@@ -116,8 +133,8 @@ Reopened: 17-clean-up-console-log
 
 - Branch aide/17-clean-up-console-log removed: aide (local), aide-specs (local, origin)
 - Moved to: specs/17-clean-up-console-log/
-- Reset: 2-analysis.md, 3-solution.md, 4-status.md
-- Kept: 1-description.md, 0-README.md
+- Reset: 2-analysis.md, 3-solution.md, 4-status.md   (reset mode; keep mode: none)
+- Kept: 1-description.md, 0-README.md   (keep mode: every file)
 
 Next: /aide-analyze 17
 ```
@@ -129,6 +146,8 @@ IMPORTANT:
   The mark is what stops the earlier round counting; the repository keeps
   it.
 - Never touch `1-description.md` or `0-README.md`
+- In keep mode, never touch `2-analysis.md`, `3-solution.md` or a row of
+  `4-status.md`; `aide-reopen-spec` is the only thing that edits it
 - If the specs root lies outside the project root, do NOT run
   `git add`/`git mv` in the project's repo for spec files (they live in
   another repo — use the specs repo's git if it has one)
