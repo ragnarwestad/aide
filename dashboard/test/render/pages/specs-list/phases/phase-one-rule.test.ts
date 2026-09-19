@@ -485,6 +485,29 @@ describe("a phase in transition reads as what it is doing", () => {
     expect(implement).not.toContain("already done");
   });
 
+  // A spec made from New spec runs create → analyze → implement →
+  // archive as one job, so the whole chain is a round from create. The
+  // analyze that round has already finished is its own, not the one
+  // before it (509, 2026-09-19: a grey Analyze pip under a running
+  // Implement).
+  test("a phase the round under way has finished reads as done", () => {
+    const round = row({
+      id: "round",
+      specFolder: "480-transition",
+      steps: ["create", "analyze", "implement", "archive"],
+      stepIndex: 2,
+      state: "running",
+      startedAt: "2026-09-17T09:50:00Z",
+      results: [
+        { step: "create", ok: true, costUsd: 0, terminalReason: "completed" },
+        { step: "analyze", ok: true, costUsd: 1, terminalReason: "completed" },
+      ],
+    });
+    const html = rows([round], [target({ done: ["create", "analyze"] })]);
+    expect(stateCell(subRow(html, "analyze"))).toContain("Done");
+    expect(html).toContain('<span class="pip past" title="Analyze">');
+  });
+
   // Analyze sits BEFORE the round's first step, so its own line is the
   // round's to draw as it always was — nothing here reaches back.
   test("a round started at implement leaves analyze's line alone", () => {

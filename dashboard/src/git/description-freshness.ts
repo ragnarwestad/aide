@@ -30,6 +30,12 @@ const DEFAULT_TTL_MS = 30_000;
 const analyzeSubject = (specFolder: string): string =>
   `Run /aide-analyze for ${specFolder} (headless)`;
 
+/** The subject above, or the subject above naming who ran it — the
+ *  ` (model: …)` group `workflow-history.ts` documents in its grammar.
+ *  Nothing after it: a stopped run carries ` (stopped: …)` last. */
+const isFinishedAnalyze = (line: string, subject: string): boolean =>
+  line === subject || (line.startsWith(`${subject} (model: `) && /^ \(model: [^)]+\)$/.test(line.slice(subject.length)));
+
 /** The last commit touching `pathspec` — which one, and when — or null
  *  if git cannot say. Scoped to ONE path on purpose: a plan-merge commit
  *  touches 2-analysis.md, 3-solution.md and 4-status.md but never the
@@ -159,7 +165,7 @@ export async function lastAnalyzeCommit(
   for (const line of out.stdout.split("\n")) {
     const [sha, at, ...rest] = line.split("\t");
     if (!sha || !at || rest.length === 0) continue;
-    if (rest.join("\t") === subject) return { sha, at };
+    if (isFinishedAnalyze(rest.join("\t"), subject)) return { sha, at };
   }
   return null;
 }

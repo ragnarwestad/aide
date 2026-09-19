@@ -90,6 +90,14 @@ function writeParseArgs(checkout: string, knowsTestBoard: boolean): void {
   );
 }
 
+/** Every process still running from this one round — its own watcher,
+ *  or the server it started — named by the round's own temp checkout,
+ *  which only it carries on its command line. */
+function leftovers(aide: string): string[] {
+  const ps = Bun.spawnSync({ cmd: ["ps", "-axo", "pid=,command="], stdout: "pipe" }).stdout.toString();
+  return ps.split("\n").filter((l) => l.includes(aide));
+}
+
 async function runToExit(args: string[], env: Record<string, string>): Promise<{ code: number }> {
   const proc = Bun.spawn({
     cmd: ["/bin/bash", RUN, ...args],
@@ -131,7 +139,7 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     const decoy = decoyPort();
     try {
       const { code } = await runToExit(
-        [aide, "--branch", "424-headeren-sier-hvilket-board", "--port", String(decoy.port), "--keep", "--timeout", "5"],
+        [aide, "--branch", "424-headeren-sier-hvilket-board", "--port", String(decoy.port), "--timeout", "5"],
         { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
       // The decoy's own port-already-held refusal — proof this test never
@@ -139,6 +147,10 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
       // success.
       expect(code).toBe(1);
 
+      // A round that ends leaves nothing of itself running: kept, each
+      // left a watcher waiting on its stub server (five of them, eight
+      // hours, 2026-09-19).
+      expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const generateLine = lines.find((l) => l.includes("src/main.ts") && l.includes("generate"));
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
@@ -180,9 +192,13 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
     const decoy = decoyPort();
     try {
       await runToExit(
-        [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--keep", "--timeout", "5"],
+        [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--timeout", "5"],
         { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
+      // A round that ends leaves nothing of itself running: kept, each
+      // left a watcher waiting on its stub server (five of them, eight
+      // hours, 2026-09-19).
+      expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toBeDefined();
@@ -216,10 +232,14 @@ describe("spec 424: run passes --test-board to both its generate and serve.ts se
 
     const decoy = decoyPort();
     try {
-      await runToExit([aide, "--port", String(decoy.port), "--keep", "--timeout", "5"], {
+      await runToExit([aide, "--port", String(decoy.port), "--timeout", "5"], {
         AIDE_ROUND_BUN: binPath,
         FAKE_BUN_LOG: logPath,
       });
+      // A round that ends leaves nothing of itself running: kept, each
+      // left a watcher waiting on its stub server (five of them, eight
+      // hours, 2026-09-19).
+      expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toContain(`--test-board ${aide.split("/").pop()}`);

@@ -72,6 +72,20 @@ export interface NoticePart {
   kind?: "acceptance-hold";
 }
 
+/** What a step's raw detail adds to the sentence on its row. A detail
+ *  the sentence already carries word for word adds nothing, and gets no
+ *  (?). A red run's board message restates the script's own first line
+ *  in the board's words, so only the failing lines after it are new. */
+export function detailBeyond(text: string, error: unknown, detail: string | undefined): string | undefined {
+  if (!detail?.trim()) return undefined;
+  const lines = detail.trim().split("\n");
+  const rest = (isStepTestsRed(error) ? lines.slice(1) : lines).join("\n").trim();
+  return rest && !text.includes(rest) ? rest : undefined;
+}
+
+const isStepTestsRed = (error: unknown): boolean =>
+  typeof error === "object" && error !== null && String((error as { key?: unknown }).key ?? "").startsWith("runner.testsRed");
+
 /** Which of the five applies, if any. The order is the row's own: the
  *  queue's refusal of the press just made comes first, then a job that
  *  failed saying why it failed, then the spec's standing note about an
@@ -214,7 +228,14 @@ export function specNotice(
       // should; the code is not green yet.
       const waiting = lead.errorReason === "held-back" || lead.errorReason === "tests-red";
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
-      parts.push({ variant, text, title: lead.errorDetail });
+      const extra = detailBeyond(text, lead.error, lead.errorDetail);
+      // A step's own red run: the failing tests are what the reader came
+      // for, so they are said on the row, not behind a (?).
+      if (extra && isStepTestsRed(lead.error)) {
+        parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
+      } else {
+        parts.push({ variant, text, title: extra });
+      }
     }
   }
   parts.push(...marks);

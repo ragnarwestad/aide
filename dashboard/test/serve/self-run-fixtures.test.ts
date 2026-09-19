@@ -6,7 +6,8 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readFixtures } from "../../src/serve/routes/self-run.ts";
+import { parseCreateRequest } from "../../src/queue/queue.ts";
+import { fixtureCreateBody, readFixtures } from "../../src/serve/routes/self-run.ts";
 
 test("a fixture's expect and timeoutSec are read; a fixture without them carries neither", () => {
   const dir = mkdtempSync(join(tmpdir(), "aide-round-fixtures-"));
@@ -51,4 +52,18 @@ test("every checked-in fixture's expect names a state the store knows", () => {
     if (!f.expect?.state) continue;
     expect(["queued", "running", "done", "stopped", "failed", "cancelled"]).toContain(f.expect.state);
   }
+});
+
+// A fixture is created the way New spec creates a spec by default. Left
+// out, the create parser reads acceptance ticking as not required, and
+// the fixture about an unticked row showed no hold on the test board.
+test("a fixture's create asks for acceptance ticking, as New spec does by default", () => {
+  const spec = { slug: "06-an-unticked-acceptance-row", title: "An unticked acceptance row", steps: ["analyze"], expected: "not-archived", dependsOn: [] };
+  const parsed = parseCreateRequest(fixtureCreateBody("aide-test", spec, "Rows.\n", []), {
+    allow: () => true,
+    defaults: { timeoutSec: { default: 60 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+  });
+  expect(parsed.ok).toBe(true);
+  if (!parsed.ok) return;
+  expect(parsed.job.acceptanceNotRequired).toBeUndefined();
 });

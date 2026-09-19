@@ -13,6 +13,7 @@ New contributors (human or AI): read this first.
   - [From whippletree](#from-whippletree)
   - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
+  - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
 - [Known quirks](#known-quirks)
 
 ---
@@ -248,6 +249,32 @@ THERE, not here (we eat our own dog food):
       what an installable app needs)
 
 The wish list and the grounding are in spec 76 (archived).
+
+### Parked: one project, several code repositories
+
+A system is often more than one repository — a frontend and one or more
+backends. Today a project has one code repository (plus its specs
+repository), so a change that spans the API and the frontend cannot be
+one spec. Parked until there is a need and a real multi-repository
+system to test on.
+
+The agreed shape:
+
+- The Projects page lists several code repositories for one project,
+  each with its own test command and worktree links.
+- One spec branches every repository, so analyze and implement see and
+  change all of them in the same run. The runner already handles more
+  than one repository per run (the code and specs repositories each get
+  their own branch, worktree, commit and push).
+- Pull-request mode only: this is a team setting with its own review.
+  Archive opens one pull request per code repository whose branch has
+  changes, each linking the others and the spec; the specs repository
+  still merges on its own. The runner's tests still run in every
+  repository before any pull request is opened.
+- The row keeps "waiting on a pull request" until every branch is merged
+  on origin, and names the repositories still waiting.
+- No merge across repositories at once is needed: the order and the
+  review are the team's.
 
 ## Known quirks
 

@@ -110,6 +110,24 @@ describe("lastAnalyzeCommit", () => {
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:00:00+02:00");
   });
 
+  // Every headless run names its model since spec 217, and an exact
+  // match on the bare subject then found no analyze at all.
+  test("a run that names its model is a successful analyze", async () => {
+    const git = gitFor(null, analyzeLine("2026-09-19T19:35:00+02:00", `${SUBJECT} (model: claude sonnet)`) + "\n");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-09-19T19:35:00+02:00");
+  });
+
+  test("a run that names its model and stopped is not a successful analyze", async () => {
+    const git = gitFor(
+      null,
+      [
+        analyzeLine("2026-09-19T20:00:00+02:00", `${SUBJECT} (model: claude sonnet) (stopped: timeout)`),
+        analyzeLine("2026-09-19T19:00:00+02:00", `${SUBJECT} (model: claude sonnet)`),
+      ].join("\n"),
+    );
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-09-19T19:00:00+02:00");
+  });
+
   test("the newest of several re-runs wins (criterion 5)", async () => {
     const git = gitFor(
       null,
