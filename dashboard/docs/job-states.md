@@ -49,6 +49,7 @@ stateDiagram-v2
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
     done --> stopped: the landing's suite went red
+    done --> cancelled: Cancel pressed while it merged
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```
@@ -118,6 +119,9 @@ has moved on; the table simply has no entry for that case, so the attempt is ref
 project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`
 with `stopReason: "tests-red"`, so the State cell reads `stopped — tests red` and the row's message is amber. The
 work is not green yet — run implement again — which is a different thing from a broken agent, and the row says so.
+
+Cancel works while a finished step's work is being merged and tested, though the job already reads `done`: the
+scripts the merge runs for it are stopped, nothing is pushed, and `landing-cancelled` moves the job to `cancelled`.
 
 ## Beside the state
 

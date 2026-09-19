@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { spawnEnv } from "../tool-path.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
+import { trackLandingProcess, untrackLandingProcess } from "./cancel-landing.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -34,6 +35,8 @@ export async function runScript(
   argv: string[],
   cwd: string,
   timeoutMs: number,
+  /** The job this script runs for, so Cancel can reach it. */
+  owner?: string,
 ): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
   // The same PATH a step's own spawn gets (`tool-path.ts`). Without it
   // this server, under launchd, cannot see `~/.local/bin` — where aide's
@@ -46,6 +49,7 @@ export async function runScript(
   // and ports taken, and the next landing's suite timed out on them
   // (498, 2026-09-19).
   const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe", detached: true });
+  if (owner) trackLandingProcess(owner, proc.pid);
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
@@ -55,6 +59,7 @@ export async function runScript(
   const stderr = new Response(proc.stderr).text();
   const code = await proc.exited;
   clearTimeout(timer);
+  if (owner) untrackLandingProcess(owner, proc.pid);
   // The script is done; anything of its group still running is left
   // over. TERM first, and KILL for whatever is still holding the pipes a
   // few seconds on — the reads below end only once every holder is gone.

@@ -3,6 +3,7 @@
 // from routes.ts (split of split serve.ts step 2).
 import { readFileSync } from "node:fs";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
+import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { join } from "node:path";
 import { FROM_LIST_FIELD, specPagePath } from "../../render";
 import { readSpecState } from "../../project/parse-spec-state.ts";
@@ -250,6 +251,12 @@ export async function handleJobActionRoutes(
       error: undefined,
       errorReason: undefined,
     });
+    // A finished step whose work is being merged and tested is still
+    // under way: Cancel stops that, and the job ends cancelled.
+    if (!result.ok && job.state === "done" && job.landing) {
+      cancelLanding(id);
+      return wantsJson ? json({ ok: true, job }) : specsRedirect(view);
+    }
     if (!result.ok) {
       const spec = `${job.project}/${job.specFolder}`;
       const reason = `the job is already ${result.state}; only a queued or running job can be cancelled`;

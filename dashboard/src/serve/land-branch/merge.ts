@@ -41,6 +41,7 @@ import { handedToMerge, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 import { keepsItsStopReason } from "./stopped-reason.ts";
+import { takeLandingCancel } from "./cancel-landing.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
@@ -382,8 +383,7 @@ export async function landBranch(
       // A red suite is the one failure here that is not a fault: the
       // step ran, the merge was built, and the project's own tests said
       // the result is not green. That stops the job rather than failing
-      // it, the same way a cap-stop does — nothing was pushed, and the
-      // answer is to run implement again.
+      // it, the same way a cap-stop does: nothing was pushed.
       const held = reason === "tests-red";
       // One message per row: the first failure is the row's sentence,
       // and any further one — a second root that could not merge —
@@ -398,7 +398,7 @@ export async function landBranch(
         landingError: firstLandingError(first, held),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
-      const result = ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
+      const result = takeLandingCancel(job.id) ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or
       // held it for a reason of its own, in the gap between this
       // step's own completion and this landing settling

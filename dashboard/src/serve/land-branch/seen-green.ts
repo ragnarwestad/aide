@@ -29,7 +29,7 @@ async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promis
 
 /** What the gate knows of the job it lands: `results` is absent for a
  *  caller that has none to give, and then nothing is skipped. */
-export type GatedJob = Pick<Job, "project" | "specFolder"> & { results?: Job["results"] };
+export type GatedJob = Pick<Job, "project" | "specFolder"> & { results?: Job["results"]; id?: string };
 
 /** The newest green the job's own steps reported: the step that just
  *  ran is the one whose result the landing is merging. */

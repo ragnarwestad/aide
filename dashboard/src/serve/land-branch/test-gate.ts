@@ -188,7 +188,7 @@ async function runSuiteIn(
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
     const runOnce = async (label: string) => {
-      const out = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS);
+      const out = await runScript(argv, root, LANDING_GATE_TIMEOUT_MS, job.id);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
       try {

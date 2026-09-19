@@ -199,7 +199,8 @@ export type TransitionEvent =
   | "run-stopped" // running -> stopped: timeout or provider limit
   | "process-gone" // running -> interrupted: the process died with no result
   | "landing-failed" // done -> failed: a landing did not finish
-  | "landing-held"; // done -> stopped: the landing's suite went red
+  | "landing-held" // done -> stopped: the landing's suite went red
+  | "landing-cancelled"; // done -> cancelled: Cancel pressed while it merged
 
 /** The one table every state change is checked against (spec 354). Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -233,6 +234,9 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     // state a cap-stop takes, and for the same reason — a reader who
     // cannot tell "not green yet" from a broken agent ignores both.
     "landing-held": "stopped",
+    // Cancel pressed while the finished step's work was being merged and
+    // tested: nothing was pushed, and the job says a person ended it.
+    "landing-cancelled": "cancelled",
   },
 };
 
