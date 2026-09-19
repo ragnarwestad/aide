@@ -32,6 +32,11 @@ pull request:
 `scripts/check-bash` refuses with the install command when shellcheck is
 missing, so a machine without it never reports a bash change as checked.
 
+**Installing on Linux** is checked by `scripts/test-linux-install`, which needs Docker: it installs Aide in a clean
+Debian container the way a new user would and checks the tools, scripts and skills. With `--run` and a token from
+`claude setup-token` in `CLAUDE_CODE_OAUTH_TOKEN`, it also takes one spec through create, analyze and implement. Run it
+after changing an installer.
+
 ---
 
 ## Directory structure

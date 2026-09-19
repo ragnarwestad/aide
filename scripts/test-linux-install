@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# test-linux-install - Install Aide in a clean Linux container, the way a
+# new user would, and check that it works.
+#
+# Builds scripts/linux-install-test/Dockerfile (Debian with git and curl,
+# nothing else), clones this checkout's committed HEAD inside it, runs
+# ./install-all.sh in an interactive shell, and checks that the tools,
+# scripts and skills are there. Changes not committed yet to tracked files
+# are applied to the clone, so a fix can be tried before it is committed.
+#
+# With --run it then makes a small project and takes one spec through
+# create, analyze and implement with the skills, as a user does by hand.
+# That needs a Claude Code token made with `claude setup-token`, passed in
+# CLAUDE_CODE_OAUTH_TOKEN; the run costs a dollar or two.
+#
+# Usage:
+#   scripts/test-linux-install
+#   CLAUDE_CODE_OAUTH_TOKEN=... scripts/test-linux-install --run
+
+set -euo pipefail
+
+run_spec=no
+case "${1:-}" in
+  --run) run_spec=yes ;;
+  "") ;;
+  -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  *) echo "unknown argument: $1" >&2; exit 2 ;;
+esac
+
+if [ "$run_spec" = yes ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  echo "--run needs CLAUDE_CODE_OAUTH_TOKEN — make one with: claude setup-token" >&2
+  exit 2
+fi
+
+command -v docker >/dev/null 2>&1 || { echo "docker is not installed" >&2; exit 2; }
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+image="aide-linux-install-test"
+
+docker build -q -t "$image" "$repo/scripts/linux-install-test" >/dev/null
+
+# The container's own logs, kept after it is gone.
+out="$(mktemp -d "${TMPDIR:-/tmp}/aide-linux-install.XXXXXX")"
+chmod 777 "$out"
+
+# Everything below runs inside the container, as the ordinary user.
+read -r -d '' inside <<'INSIDE' || true
+set -u
+fail=0
+check() { # check <what> <command...>
+  local what="$1"; shift
+  if "$@" >/dev/null 2>&1; then echo "  ok      $what"; else echo "  MISSING $what"; fail=1; fi
+}
+
+echo "== clone and install"
+git clone -q /src ~/aide
+cd ~/aide
+git -C /src diff HEAD --binary | git apply --allow-empty
+if bash -i -c './install-all.sh' > ~/install.log 2>&1; then
+  echo "  ok      ./install-all.sh"
+else
+  echo "  FAILED  ./install-all.sh — last lines:"; tail -20 ~/install.log | sed 's/^/          /'; fail=1
+fi
+
+echo "== in a new terminal (interactive shell)"
+for tool in mise node jq bun gh claude aide-run-spec aide-create-spec; do
+  check "$tool" bash -i -c "command -v $tool"
+done
+check "Claude Code skills" test -f ~/.claude/skills/aide-create/SKILL.md
+check "shared skills" test -f ~/.agents/skills/aide-create/SKILL.md
+
+if [ "$RUN_SPEC" = yes ]; then
+  echo "== one spec through the skills"
+  git init -q --bare ~/origin/scratch.git
+  git clone -q ~/origin/scratch.git ~/scratch 2>/dev/null
+  cd ~/scratch
+  mkdir -p .aide
+  printf 'name: scratch\ndescription: A throwaway project\ntestCmd: "sh test.sh"\n' > .aide/project.yaml
+  printf '#!/bin/sh\necho hello\n' > greet.sh
+  printf '#!/bin/sh\n[ "$(sh greet.sh)" = "hello" ]\n' > test.sh
+  git add -A && git commit -qm "Start the scratch project" && git push -q origin main
+  step() { # step <label> <prompt>
+    if bash -i -c "claude -p --dangerously-skip-permissions $(printf '%q' "$2")" > ~/"$1.log" 2>&1; then
+      echo "  ok      $1"
+    else
+      echo "  FAILED  $1 — last lines:"; tail -10 ~/"$1.log" | sed 's/^/          /'; fail=1
+    fi
+  }
+  step create '/aide-create "greet.sh greets by name" greet.sh always prints hello. It should take an optional name: sh greet.sh Ada prints hello, Ada, and with no name it still prints hello.'
+  folder="$(basename "$(ls -d specs/*greet* 2>/dev/null | head -1)")"
+  if [ -z "$folder" ]; then
+    echo "  MISSING the spec folder create should have made"; fail=1
+  else
+    echo "  ok      spec folder $folder"
+    step analyze "/aide-analyze $folder"
+    step implement "/aide-implement $folder"
+    check "greet.sh greets by name" test "$(sh greet.sh Ada)" = "hello, Ada"
+    check "the project's own test" sh test.sh
+  fi
+fi
+
+cp ~/*.log /out/ 2>/dev/null
+exit "$fail"
+INSIDE
+
+docker run --rm \
+  -v "$repo:/src:ro" \
+  -v "$out:/out" \
+  -e RUN_SPEC="$run_spec" \
+  ${CLAUDE_CODE_OAUTH_TOKEN:+-e CLAUDE_CODE_OAUTH_TOKEN} \
+  "$image" bash -c "$inside" && status=0 || status=$?
+echo "logs: $out"
+exit "$status"

@@ -16,8 +16,10 @@ def helper(workspace_root):
     return workspace_root / "core" / "scripts" / "_install-prerequisites.sh"
 
 
-def _run(helper, home, **functions):
+def _run(helper, home, shell=None, **functions):
     env = {"PATH": "/usr/bin:/bin", "HOME": str(home)}
+    if shell:
+        env["SHELL"] = shell
     for name, body in functions.items():
         env[f"BASH_FUNC_{name}%%"] = f"() {{ {body}; }}"
     env["BASH_FUNC_curl%%"] = '() { echo "curl $*" >> "$HOME/calls.log"; }'
@@ -43,6 +45,26 @@ class TestInstallPrerequisites:
         assert "https://mise.run" in _calls(tmp_path)
         assert "https://claude.ai/install.sh" in _calls(tmp_path)
         assert "mise activate zsh" in (tmp_path / ".zshrc").read_text()
+
+    def test_a_bash_user_gets_mise_in_bashrc_alone(self, helper, tmp_path):
+        """Linux's usual shell: a zsh line alone left every tool mise
+        installed off an interactive bash's PATH (a clean Debian, 19 Sep)."""
+        _run(helper, tmp_path, shell="/bin/bash")
+
+        assert "mise activate bash" in (tmp_path / ".bashrc").read_text()
+        assert not (tmp_path / ".zshrc").exists()
+
+    def test_a_zsh_user_gets_mise_in_zshrc_alone(self, helper, tmp_path):
+        _run(helper, tmp_path, shell="/bin/zsh")
+
+        assert "mise activate zsh" in (tmp_path / ".zshrc").read_text()
+        assert not (tmp_path / ".bashrc").exists()
+
+    def test_a_shell_it_does_not_know_gets_both(self, helper, tmp_path):
+        _run(helper, tmp_path, shell="/bin/sh")
+
+        assert "mise activate zsh" in (tmp_path / ".zshrc").read_text()
+        assert "mise activate bash" in (tmp_path / ".bashrc").read_text()
 
     def test_a_second_run_does_not_add_the_activate_line_again(self, helper, tmp_path):
         _run(helper, tmp_path)

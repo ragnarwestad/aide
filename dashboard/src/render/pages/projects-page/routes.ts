@@ -43,9 +43,7 @@ export const ABOUT_PAGE = "about.html";
  *  never reaches `serveStatic` for `/` any more.
  *
  *  Since spec 115 the file itself is a redirect: the overview is SERVED,
- *  at `PROJECTS_ROUTE`. The filename stays because people bookmarked it
- *  and because `deploy/rsync-publish.sh` will not publish a site without
- *  it. */
+ *  at `PROJECTS_ROUTE`. The filename stays because people bookmarked it. */
 export const OVERVIEW_PAGE = "projects.html";
 
 /** Where the overview actually lives (spec 115): a served route, so the

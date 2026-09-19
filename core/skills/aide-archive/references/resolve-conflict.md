@@ -16,7 +16,7 @@ beside the five.
   - [Step 1: See what the conflict is](#step-1-see-what-the-conflict-is)
   - [Step 2: Resolve, or decide not to](#step-2-resolve-or-decide-not-to)
   - [Step 3: Finish the merge](#step-3-finish-the-merge)
-  - [Step 4: Run the project's tests](#step-4-run-the-projects-tests)
+  - [Step 4: Run the tests the resolution touched](#step-4-run-the-tests-the-resolution-touched)
   - [Step 5: Carry on, or undo](#step-5-carry-on-or-undo)
 - [The one thing this routine must never do](#the-one-thing-this-routine-must-never-do)
 
@@ -101,9 +101,14 @@ The merge was started with `--no-edit`, so the message git prepared is
 the right one. Do not amend it and do not add a second commit for the
 resolution — the merge commit IS the resolution.
 
-### Step 4: Run the project's tests
+### Step 4: Run the tests the resolution touched
 
-Use the project's own test command, in single-run mode:
+Run the tests covering the files the resolution changed — the ones that
+conflicted, and any you edited to settle them — never the full suite.
+The landing runs the full suite once, on exactly this merge, before it
+pushes anything: a second full run here was the same suite twice per
+archive. To find the right tests, use the project's own test command,
+narrowed to those files, in single-run mode:
 
 1. `AIDE_TEST_CMD` from `.aide/config` in the project root if it is set
 2. otherwise `testCmd` from the committed `.aide/project.yaml` if it is set
@@ -118,20 +123,17 @@ suite again for it; say so in the report. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
 
-If the project's manifest has a `testScopes:` list, the command is not one
-command but the set the MERGE's changed files resolve to — this spec's own
-diff plus whatever the default branch brought in
-(`git diff --name-only ORIG_HEAD...HEAD`, and the files the resolution
-touched). Sort them by the rule the tools-and-scripts skill gives and run
-every scope with a file in it, plus the root command if any file matched
-none. A merge reaching both halves runs both; one reaching only a scoped
-subdirectory does not pay for the root command. Name the command(s) that
-ran in the report, as this step already names the absence of one.
+If the project's manifest has a `testScopes:` list, pick the scope each
+touched file falls under (the tools-and-scripts skill gives the rule)
+and run that scope's command narrowed to those files. Name the
+command(s) that ran in the report, as this step already names the
+absence of one.
 
-**This is the gate the whole design rests on.** A machine resolving a
-conflict unattended and then landing it is defensible because a
-resolution that does not pass the project's own tests does not land.
-Never skip this run, and never report a resolution as done without it.
+**The landing is the gate the whole design rests on.** A machine
+resolving a conflict unattended and then landing it is defensible
+because the landing runs the project's full suite on the merge and a
+red one does not land. This narrower run is the resolution's own first
+check: never skip it, and never report a resolution as done without it.
 
 ### Step 5: Carry on, or undo
 

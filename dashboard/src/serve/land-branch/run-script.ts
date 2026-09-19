@@ -8,6 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { spawnEnv } from "../tool-path.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
+import { signalGroup } from "../serve-helpers/signal-group.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -39,17 +40,27 @@ export async function runScript(
   // scripts and Claude Code itself live — so a script run from here
   // would report a CLI missing that a real run finds.
   const env = spawnEnv();
-  const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe" });
+  // A group of its own, so what it leaves running when it ends — a test
+  // suite's board, a decoy server — can be stopped with it without
+  // touching this server. Left alive, those held the output pipes open
+  // and ports taken, and the next landing's suite timed out on them
+  // (498, 2026-09-19).
+  const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe", detached: true });
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    proc.kill();
+    signalGroup(proc.pid);
   }, timeoutMs);
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
+  const stdout = new Response(proc.stdout).text();
+  const stderr = new Response(proc.stderr).text();
   const code = await proc.exited;
   clearTimeout(timer);
-  return { code, stdout, stderr, timedOut };
+  // The script is done; anything of its group still running is left
+  // over. TERM first, and KILL for whatever is still holding the pipes a
+  // few seconds on — the reads below end only once every holder is gone.
+  signalGroup(proc.pid);
+  const hard = setTimeout(() => signalGroup(proc.pid, "SIGKILL"), 3_000);
+  const out = { code, stdout: await stdout, stderr: await stderr, timedOut };
+  clearTimeout(hard);
+  return out;
 }

@@ -53,8 +53,15 @@ if [ -d "$WORKSPACE_ROOT/core/skills" ]; then
   # (spec 147). Claude Code already has that content as a path-scoped rule,
   # core/rules/spec-structure.md, and a second model-triggered copy of the
   # same guidance would only compete with it.
-  rsync -a --exclude='spec-structure/' "$WORKSPACE_ROOT/core/skills/" "$GLOBAL_CLAUDE/skills/"
-  # ...and the half that subtracts (spec 142). The rsync above may not
+  # cp, not rsync: a minimal Linux has no rsync. Merged in, never deleted.
+  mkdir -p "$GLOBAL_CLAUDE/skills"
+  for skill_dir in "$WORKSPACE_ROOT/core/skills"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    [ "$skill_name" = "spec-structure" ] && continue
+    mkdir -p "$GLOBAL_CLAUDE/skills/$skill_name"
+    cp -R "$skill_dir." "$GLOBAL_CLAUDE/skills/$skill_name/"
+  done
+  # ...and the half that subtracts (spec 142). The copy above may not
   # use --delete — ~/.claude/skills/ is allowed to hold skills aide
   # never put there — so a skill dropped from core/skills/ would sit
   # here for good. The manifest names what the LAST install shipped, so
@@ -72,7 +79,8 @@ fi
 
 # Agents
 if [ -d "$IMPL_DIR/agents" ]; then
-  rsync -a "$IMPL_DIR/agents/" "$GLOBAL_CLAUDE/agents/"
+  mkdir -p "$GLOBAL_CLAUDE/agents"
+  cp -R "$IMPL_DIR/agents/." "$GLOBAL_CLAUDE/agents/"
   echo "   ✅ Agents installed: ~/.claude/agents/"
 fi
 

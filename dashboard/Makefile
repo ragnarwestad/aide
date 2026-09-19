@@ -1,4 +1,4 @@
-.PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve install-local
+.PHONY: test test-e2e test-slow test-all generate serve-local require-host install-serve deploy-serve install-local
 
 # Your machine's answers to the questions this Makefile refuses to guess
 # — MINI, ROOT, BIND. Gitignored, because naming them here
@@ -8,12 +8,11 @@
 # defaults below.
 -include .env.deploy
 
-# rsync-publish.sh reads this from the ENVIRONMENT, and make does not
-# pass its own variables to a recipe's shell unless told to. Without
-# this line `make publish` refuses to run even with .env.deploy in
-# place — the variable is set, just not where the script looks. (A
-# value given on make's command line is exported automatically; one
-# that comes from an included file is not, which is the case here.)
+# The generated pages read this from the ENVIRONMENT (the machine name
+# they show), and make does not pass its own variables to a recipe's
+# shell unless told to. (A value given on make's command line is
+# exported automatically; one that comes from an included file is not,
+# which is the case here.)
 export AIDE_DASH_HOST
 
 # The gate a merge runs, and the one to run while working: everything
@@ -35,7 +34,7 @@ test:
 	# `--path-ignore-patterns`, not a list of directories to include:
 	# tests live under `src/` too (the message catalogue's own), and
 	# naming the directories left them out.
-	bun test --timeout 20000 --path-ignore-patterns='**/test/e2e/**'
+	bun test --timeout 20000 --path-ignore-patterns='**/test/e2e/**' --path-ignore-patterns='**/test/round/**'
 
 # The browser tests, on their own, for a quiet machine. Run them when
 # layout or the page's own behaviour changed -- they are not part of
@@ -44,14 +43,19 @@ test:
 test-e2e:
 	bun test --timeout 20000 test/e2e
 
-# Both, for the rare time you want the lot.
-test-all: test test-e2e
+# The round's own tests, on their own: each starts a real board and does
+# real git work, and on a machine running other suites they lose to load
+# at any per-test limit — three of them stopped 498's landing twice on
+# 2026-09-19 without a fault in it. Not part of `test`, for the same
+# reason the browser tests are not; CI runs them as their own step.
+test-slow:
+	bun test --timeout 60000 test/round
+
+# All three, for the rare time you want the lot.
+test-all: test test-slow test-e2e
 
 generate:
 	bun run src/main.ts generate
-
-publish: generate
-	deploy/rsync-publish.sh
 
 PORT ?= 8788
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.

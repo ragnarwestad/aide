@@ -88,6 +88,7 @@ for root in "${roots[@]}"; do
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     sync_branch_with_origin "$root" "$branch"
   fi
+  stage "adding the worktree for $root"
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     wt_error="$(git -C "$root" worktree add -q "$wt" "$branch" 2>&1)" \
       || refuse "cannot check out $branch in a worktree of $root ($(printf '%s\n' "$wt_error" | grep -m1 . | head -c 200))"
@@ -104,6 +105,7 @@ for root in "${roots[@]}"; do
     created_wt+=("$wt"); created_wt_root+=("$root")
   fi
   link_worktree_deps "$root" "$wt"
+  stage "worktree ready for $root"
   work_roots+=("$wt")
   release_worktree_lock
 done

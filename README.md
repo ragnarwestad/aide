@@ -6,6 +6,7 @@ implementation and archiving.
 ## Table of contents
 
 - [What it is](#what-it-is)
+- [Quick start](#quick-start)
 - [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
@@ -48,6 +49,39 @@ Either way, the spec is what lets any AI assistant:
 **Key benefit:** Not locked to a single AI vendor - teams can pick the
 best tool for each task, and the spec is what carries the work between
 them.
+
+---
+
+## Quick start
+
+1. **Install Aide.** Clone the repo and run the installer. It also installs mise, node and Claude Code when they are
+   missing; signing in to Claude Code is the one step left to you.
+
+   ```bash
+   git clone https://github.com/ragnarwestad/aide.git
+   cd aide && ./install-all.sh
+   claude    # sign in once, then /exit
+   ```
+
+2. **Make a spec.** In a project of your own, start Claude Code and give it a title and a description:
+
+   ```text
+   /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
+   ```
+
+3. **Run it**, one step at a time by hand. The spec gets a number, say 55:
+
+   ```text
+   /aide-analyze 55      # Analyze the codebase and write the plan
+   /aide-implement 55    # Implement with TDD
+   /aide-archive 55      # Land it, and feed what was learned back into the docs
+   ```
+
+   Or let the dashboard run the steps for you: install it with `dashboard/install.sh`, open
+   `http://127.0.0.1:8788`, and queue the spec there. See [The Aide dashboard](#the-aide-dashboard).
+
+More: [Install & Configuration](#install--configuration) for the other AI tools, and
+[AI-assisted workflow](#ai-assisted-workflow) for what each step does.
 
 ---
 
@@ -215,16 +249,6 @@ All AI tools follow the same basic workflow:
 4. ARCHIVE
    ↓
    Lands the code on the default branch → Feeds what was learned back into the docs
-```
-
-**Example (Claude Code):**
-
-```bash
-/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-# The spec gets a number, say 55:
-/aide-analyze 55      # Analyze the codebase
-/aide-implement 55    # Implement with TDD
-/aide-archive 55      # Archive, feed knowledge back into the docs
 ```
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.

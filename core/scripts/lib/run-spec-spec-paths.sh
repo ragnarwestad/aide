@@ -242,6 +242,7 @@ reset_no_ai=""
 # any of this. The transcript is appended to, so every turn of one step
 # is in the one stream the dashboard shows.
 run_model_turn() {
+  stage "model turn started"
   # `set -m` puts the child in its OWN process group, so the deadline can
   # take down claude's children too — a kill that only reaches the parent
   # is not a bound. No pipeline here: with one, $! is the last command and
@@ -275,6 +276,10 @@ run_model_turn() {
   done
   wait "$child" 2>/dev/null
   exit_code=$?
+  # The turn is over; whatever it started and left running — a suite's
+  # board, a decoy server — is stopped with its group, not left to hold
+  # ports and slow every later run (2026-09-19).
+  kill_group TERM
   duration=$(( $(date +%s) - started_at ))
 
 # --- reading what came back --------------------------------------------------
