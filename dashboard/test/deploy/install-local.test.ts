@@ -56,7 +56,7 @@ describe("install-local is install-serve on this machine", () => {
 });
 
 // HTTPS through Tailscale is an add-on the user sets up by hand
-// (docs/deploying.md); an install never changes a machine's tailnet.
+// (docs/hosting.md); an install never changes a machine's tailnet.
 describe("neither install touches Tailscale", () => {
   test.each([["install-serve", ["MINI=example-host"]], ["install-local", []]])("%s", (target, vars) => {
     expect(dryRun(target, ...vars).toLowerCase()).not.toContain("tailscale");

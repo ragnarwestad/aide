@@ -176,7 +176,7 @@ export interface ServerOptions {
   pdfToolAvailable?: boolean;
   /** A request header a proxy in front of this server sets to the
    *  signed-in user's name (spec 363) — the tailnet proxy's own header
-   *  is the worked example in `deploying.md`. It gates nothing
+   *  is the worked example in `hosting.md`. It gates nothing
    *  now that no token check is left for it to skip; it is still read,
    *  and refused at start-up unless `bindHost` is loopback (`127.0.0.1` or `::1`), since a header from anywhere else
    *  can be forged by anyone who can reach the port. */

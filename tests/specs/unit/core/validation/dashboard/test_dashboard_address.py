@@ -26,7 +26,7 @@ import pytest
 # Every file that writes down where the dashboard answers.
 ADDRESS_FILES = (
     "dashboard/README.md",
-    "dashboard/docs/deploying.md",
+    "dashboard/docs/hosting.md",
     "dashboard/docs/tailscale.md",
     "docs/ROADMAP.md",
     ".aide/project.yaml",
@@ -127,14 +127,14 @@ class TestHttpsIsNoLongerDescribedAsUnfinished:
 
     def test_the_deploy_page_does_not_call_https_half_done(self, workspace_root):
         # Arrange
-        text = (workspace_root / "dashboard" / "docs" / "deploying.md").read_text(
+        text = (workspace_root / "dashboard" / "docs" / "hosting.md").read_text(
             encoding="utf-8"
         )
 
         # Act & Assert
         for phrase in ("half-done", "Spec 172 is that work"):
             assert phrase not in text, (
-                f"dashboard/docs/deploying.md still says {phrase!r}; HTTPS is "
+                f"dashboard/docs/hosting.md still says {phrase!r}; HTTPS is "
                 f"set up by the deploy now, so the section describing it as "
                 f"pending is wrong"
             )

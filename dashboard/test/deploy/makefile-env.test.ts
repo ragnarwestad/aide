@@ -39,14 +39,14 @@ describe("the deploy variables reach the scripts that read them", () => {
   });
 });
 
-// The table in docs/deploying.md is what an operator reads before a
+// The table in docs/hosting.md is what an operator reads before a
 // deploy, and a default that has moved in the Makefile leaves them
 // setting a variable to what it already was — or, worse, trusting a
 // path that is not the one the deploy uses. `REMOTE_STATE` said
 // `aide-dashboard` while the Makefile said `.aide/dashboard`.
 describe("the deploy table says what the Makefile says", () => {
   const makefile = readFileSync(join(ROOT, "Makefile"), "utf-8");
-  const doc = readFileSync(join(ROOT, "docs", "deploying.md"), "utf-8");
+  const doc = readFileSync(join(ROOT, "docs", "hosting.md"), "utf-8");
 
   /** Every `VAR ?= value` the Makefile declares. */
   const declared = new Map<string, string>(

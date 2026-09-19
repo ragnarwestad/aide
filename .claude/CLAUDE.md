@@ -81,7 +81,7 @@ pages run to 450; they are written to be searched. Where to look:
 | The four phases, what moves a spec between them         | `dashboard/docs/spec-lifecycle.md` |
 | How a step's branch is merged, conflicts, unlanded work | `dashboard/docs/landing.md`        |
 | Tokens, components and the CSS class vocabulary         | `dashboard/docs/design-system.md`  |
-| Serving it, HTTPS, moving it to another host            | `dashboard/docs/deploying.md`      |
+| Serving it, HTTPS, moving it to another host            | `dashboard/docs/hosting.md`        |
 | Installation layout, what goes where, the gotchas       | `.claude/rules/development.md`     |
 | Where the project came from and what is next            | `docs/ROADMAP.md`                  |
 | What each AI tool supports, verified                    | `docs/AI_SUPPORT_MATRIX.md`        |

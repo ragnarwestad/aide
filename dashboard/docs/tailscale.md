@@ -63,7 +63,7 @@ the name to its log. The proxy passes the client's `Host` on, so a request throu
 
 A `tailscale serve` proxy sends the signed-in user's login as the `Tailscale-User-Login` header on every request it
 forwards. `headerAuth` in `queue-config.json` can name it, as
-[deploying.md, "A proxy's own header"](deploying.md#a-proxys-own-header) describes:
+["A proxy's own header" in hosting.md](hosting.md#a-proxys-own-header) describes:
 
 ```json
 {

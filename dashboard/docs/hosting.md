@@ -1,4 +1,4 @@
-# Deploying
+# Hosting the dashboard
 
 Where the dashboard is served from, how HTTPS is put in front of it, and what it takes to
 move it to another host or run the whole thing on one machine.

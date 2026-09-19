@@ -111,7 +111,7 @@ request, so a machine that can reach the port and sends `Host: localhost` is adm
 (`--bind 127.0.0.1`), which the install does by default.
 
 The service refuses an argument it no longer knows, so a change that drops one the launchd job passes has it dropped
-from the job by the install after the merge (see Deploy in [deploying.md](deploying.md)).
+from the job by the install after the merge (see Deploy in [hosting.md](hosting.md)).
 
 ## The time limit
 

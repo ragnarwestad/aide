@@ -78,7 +78,7 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
 }
 
 /** The ports a test server may use. A board on a port nobody exposed is
- *  reachable from the serving host and nowhere else — docs/deploying.md
+ *  reachable from the serving host and nowhere else — docs/tailscale.md
  *  has the user put each port here behind `tailscale serve` by hand (a
  *  test holds its command equal to this list), so a board that takes one
  *  is reachable the moment it is up.

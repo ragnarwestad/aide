@@ -23,7 +23,7 @@ root, parses spec progress/phase from `4-status.md` files, and renders a small s
 overview page plus one page per project, all sharing a left-column nav. Generated where the repos
 live and served by a small Bun server that also receives live aide-run events; that server listens
 on localhost, and a proxy can put HTTPS in front of it
-(see [HTTPS and other devices](docs/deploying.md#https-and-other-devices)). Generator and
+(see [HTTPS and other devices](docs/hosting.md#https-and-other-devices)). Generator and
 server can run on the same machine or on two — no host is named anywhere in this repo.
 
 ## How it's used
@@ -68,7 +68,8 @@ runs as must have logged in on the machine's screen once, since the service runs
 `make serve-local` in `dashboard/` runs it without a service.
 
 Once installed, the dashboard answers on that machine alone, at `http://127.0.0.1:8788`.
-[Deploying](docs/deploying.md) covers the serving host and installing the dashboard as a browser app.
+[Hosting the dashboard](docs/hosting.md) covers the machine that serves it, keeping it up to date there, and installing
+it as a browser app.
 
 ### Remote connection
 
@@ -86,4 +87,4 @@ Reaching the dashboard from a phone or another computer, over HTTPS, is an optio
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
-- [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app
+- [Hosting the dashboard](docs/hosting.md) — the machine that serves it, keeping it up to date, HTTPS, installing it as an app
