@@ -561,3 +561,11 @@ def test_help_flag_never_runs_the_self_copy(runner):
     assert result.returncode == 0, result.stderr
     leaked = [n for n in (after - before) if n.startswith("aide-run-spec")]
     assert not leaked, f"self-copy ran despite --help: {leaked}"
+
+
+def test_every_stand_in_cli_runs_through_one_shared_file(fake_claude, fake_codex, fake_opencode):
+    """macOS checks each new executable the first time it starts; a
+    fresh stand-in per test filled that queue and held up the whole
+    machine. Every stand-in is the same file underneath."""
+    shared = {os.path.realpath(make("true")) for make in (fake_claude, fake_codex, fake_opencode)}
+    assert len(shared) == 1

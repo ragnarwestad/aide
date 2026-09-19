@@ -140,15 +140,50 @@ STOP_DEADLINE_SEC = "15"
 
 
 
+FAKE_LAUNCHER = '#!/usr/bin/env bash\nexec bash "$0.body" "$@"\n'
+
+
+@pytest.fixture(scope="session")
+def fake_launcher():
+    """The ONE executable every stand-in CLI runs through. macOS checks a
+    new executable the first time it starts — for minutes on a busy
+    machine — and a fresh script per test put hundreds of files in that
+    queue per suite run, holding up everything else the machine started,
+    a board's own steps included (2026-09-19). The launcher lives at a
+    fixed path and is rewritten only when its text changes, so the check
+    is paid once on a machine, not once per run. Each stand-in is a
+    symlink to it, and its body a plain file beside the symlink."""
+    path = pathlib.Path.home() / "Library" / "Caches" / "aide-tests" / "fake-launcher"
+    if not path.exists() or path.read_text() != FAKE_LAUNCHER:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        staged = path.with_name(f"{path.name}.{os.getpid()}")
+        staged.write_text(FAKE_LAUNCHER)
+        staged.chmod(0o755)
+        os.replace(staged, path)
+    return path
+
+
+def _stand_in(path, launcher, text):
+    """`path` becomes a stand-in running `text`: a symlink to the shared
+    launcher, with the script beside it as `<path>.body`."""
+    (path.parent / (path.name + ".body")).write_text(text)
+    if path.is_symlink() or path.exists():
+        path.unlink()
+    path.symlink_to(launcher)
+    return path
+
+
 @pytest.fixture
-def fake_claude(tmp_path):
+def fake_claude(tmp_path, fake_launcher):
     """Factory for a stand-in `claude`. Records argv, then behaves as
     asked."""
     calls = tmp_path / "claude-calls.txt"
 
     def make(body: str):
         path = tmp_path / "fake-claude"
-        path.write_text(
+        return _stand_in(
+            path,
+            fake_launcher,
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
             f'printf "%s\\n" "$PWD" >> {tmp_path / "claude-cwd.txt"}\n'
@@ -157,10 +192,8 @@ def fake_claude(tmp_path):
             f'git rev-parse --abbrev-ref HEAD >> {tmp_path / "claude-branch.txt"} 2>/dev/null\n'
             f'git rev-parse --show-toplevel >> {tmp_path / "claude-toplevel.txt"} 2>/dev/null\n'
             f'env >> {tmp_path / "claude-env.txt"}\n'
-            f"{body}\n"
+            f"{body}\n",
         )
-        path.chmod(0o755)
-        return path
 
     make.calls = calls  # type: ignore[attr-defined]
     make.cwd_log = tmp_path / "claude-cwd.txt"  # type: ignore[attr-defined]
@@ -181,21 +214,21 @@ def fake_claude(tmp_path):
 
 
 @pytest.fixture
-def fake_codex(tmp_path):
+def fake_codex(tmp_path, fake_launcher):
     """Factory for a stand-in `codex`, mirroring `fake_claude`. Records
     argv, then behaves as asked."""
     calls = tmp_path / "codex-calls.txt"
 
     def make(body: str):
         path = tmp_path / "fake-codex"
-        path.write_text(
+        return _stand_in(
+            path,
+            fake_launcher,
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
             f'printf "%s\\n" "$PWD" >> {tmp_path / "codex-cwd.txt"}\n'
-            f"{body}\n"
+            f"{body}\n",
         )
-        path.chmod(0o755)
-        return path
 
     make.calls = calls  # type: ignore[attr-defined]
     make.cwd_log = tmp_path / "codex-cwd.txt"  # type: ignore[attr-defined]
@@ -203,22 +236,22 @@ def fake_codex(tmp_path):
 
 
 @pytest.fixture
-def fake_opencode(tmp_path):
+def fake_opencode(tmp_path, fake_launcher):
     """Factory for a stand-in `opencode`, mirroring `fake_codex`. Records
     argv, then behaves as asked."""
     calls = tmp_path / "opencode-calls.txt"
 
     def make(body: str):
         path = tmp_path / "fake-opencode"
-        path.write_text(
+        return _stand_in(
+            path,
+            fake_launcher,
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
             f'printf "%s\\n" "$PWD" >> {tmp_path / "opencode-cwd.txt"}\n'
             f'cat > {tmp_path / "opencode-prompt.txt"}\n'
-            f"{body}\n"
+            f"{body}\n",
         )
-        path.chmod(0o755)
-        return path
 
     make.calls = calls  # type: ignore[attr-defined]
     make.cwd_log = tmp_path / "opencode-cwd.txt"  # type: ignore[attr-defined]

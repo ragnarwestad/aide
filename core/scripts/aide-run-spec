@@ -102,12 +102,18 @@ done
 # believed the INSTALLED script was the throwaway copy and deleted it.
 # Measured 2026-08-16, one test run removed core/scripts/aide-run-spec
 # from the worktree.
+#
+# The copy is handed to bash, never exec'd itself: macOS checks every new
+# executable the first time it starts, and a fresh copy per run joined
+# that queue on every run — behind a busy machine's, for minutes
+# (2026-09-19). Read by bash it is only a file, and it is not made
+# executable at all, so a direct exec fails at once instead of waiting.
 if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
   _self_copy="$(mktemp -t aide-run-spec)" || exit 2
-  cp "${BASH_SOURCE[0]}" "$_self_copy" && chmod +x "$_self_copy" || exit 2
+  cp "${BASH_SOURCE[0]}" "$_self_copy" || exit 2
   AIDE_RUN_SPEC_SELF_COPY="$_self_copy" \
   AIDE_RUN_SPEC_SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
-    exec "$_self_copy" "$@"
+    exec "$BASH" "$_self_copy" "$@"
 fi
 # In the copy: keep the directory the original came from (the shared
 # library lives beside it), then drop the file — it is ours, and only
