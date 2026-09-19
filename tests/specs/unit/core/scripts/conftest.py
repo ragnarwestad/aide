@@ -27,6 +27,7 @@ import json
 import os
 
 import pathlib
+import pwd
 
 import re
 
@@ -152,7 +153,10 @@ def fake_launcher_path():
     fixed path and is rewritten only when its text changes, so the check
     is paid once on a machine, not once per run. Each stand-in is a
     symlink to it, and its body a plain file beside the symlink."""
-    path = pathlib.Path.home() / "Library" / "Caches" / "aide-tests" / "fake-launcher"
+    # The real home, never $HOME: a test that points HOME at a scratch
+    # directory would otherwise get a fresh launcher there — a new file,
+    # and the very check this exists to avoid.
+    path = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / "Library" / "Caches" / "aide-tests" / "fake-launcher"
     if not path.exists() or path.read_text() != FAKE_LAUNCHER:
         path.parent.mkdir(parents=True, exist_ok=True)
         staged = path.with_name(f"{path.name}.{os.getpid()}")
