@@ -195,9 +195,9 @@ function leaveAppDialog(lang: Language): string {
 //
 // The machine name reads `AIDE_DASH_HOST` before `hostname()` for the
 // same reason `main.ts generate` needs to at build time: the two
-// STATICALLY generated pages (Projects, About) are typically built on
-// one machine and published to another (`Makefile`'s `make publish`),
-// and `renderSite()` calls this same function — so reading the real
+// STATICALLY generated pages (Projects, About) can be built on one
+// machine for another (a test board's, `test/round/run`), and
+// `renderSite()` calls this same function — so reading the real
 // `hostname()` here would stamp the wrong machine's name onto them
 // whenever the env var is not also set on the machine actually serving
 // them. Harmless when unset: `hostname()` is then this same machine's

@@ -1,4 +1,4 @@
-.PHONY: test test-e2e test-all generate publish serve-local require-host install-serve deploy-serve install-local
+.PHONY: test test-e2e test-all generate serve-local require-host install-serve deploy-serve install-local
 
 # Your machine's answers to the questions this Makefile refuses to guess
 # — MINI, ROOT, BIND. Gitignored, because naming them here
@@ -8,12 +8,11 @@
 # defaults below.
 -include .env.deploy
 
-# rsync-publish.sh reads this from the ENVIRONMENT, and make does not
-# pass its own variables to a recipe's shell unless told to. Without
-# this line `make publish` refuses to run even with .env.deploy in
-# place — the variable is set, just not where the script looks. (A
-# value given on make's command line is exported automatically; one
-# that comes from an included file is not, which is the case here.)
+# The generated pages read this from the ENVIRONMENT (the machine name
+# they show), and make does not pass its own variables to a recipe's
+# shell unless told to. (A value given on make's command line is
+# exported automatically; one that comes from an included file is not,
+# which is the case here.)
 export AIDE_DASH_HOST
 
 # The gate a merge runs, and the one to run while working: everything
@@ -49,9 +48,6 @@ test-all: test test-e2e
 
 generate:
 	bun run src/main.ts generate
-
-publish: generate
-	deploy/rsync-publish.sh
 
 PORT ?= 8788
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.

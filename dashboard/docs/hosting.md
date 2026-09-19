@@ -215,24 +215,15 @@ own checkout or worktree now lives in a directory this procedure is
 about to leave behind, so treat it as failed and re-queue it once the
 move is finished, and remove the stray directory by hand.
 
-Publishing the generated site to that host is separate:
-`AIDE_DASH_HOST=<host> make publish`. Before rsyncing (with `--delete`),
-`deploy/rsync-publish.sh` checks that a specific file exists under
-`out/` — a guard against wiping the serving host with an empty directory. That filename is a second place the front
-page's identity lives, next to the route table above: renaming which generated page is the front page means updating
-this guard too, not just the route strings.
-
-Any value that a statically generated page needs to show for the SERVING host — not the machine
-`make publish` happens to run on — reads `AIDE_DASH_HOST` first and falls back to `hostname()`, the
-same way the header's own machine name does (`dashboard/src/render/ui/shell.ts`'s `boardLine()`).
-Reading `hostname()` alone at generate time silently stamps the wrong machine's name whenever
-publishing runs from somewhere other than the serving host.
+The generated pages — `about.html`, and one per project — are written by the install on the serving host itself, and
+again by the install after every merge, into the site directory and from the projects root the launchd job names.
+The machine name they show is `AIDE_DASH_HOST` when it is set, and the generating machine's `hostname()` otherwise,
+the same way the header's own machine name is found (`dashboard/src/render/ui/shell.ts`'s `boardLine()`).
 
 ## Saying it once instead of every time
 
 Copy `.env.deploy.example` to `.env.deploy` and fill in your own machines. The Makefile includes it, so
-`make install-serve` and
-`make publish` stop needing a wall of variables on the command line. The file is gitignored — which is the point: the
+`make install-serve` stops needing a wall of variables on the command line. The file is gitignored — which is the point: the
 tracked repo names nobody's machine, and this is where yours lives instead.
 
 ## On one machine
