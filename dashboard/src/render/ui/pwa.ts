@@ -20,6 +20,7 @@
 import { Buffer } from "node:buffer";
 
 import { appIcon, appIconMaskable } from "./brand.ts";
+import { rasterizeIcon } from "./icon-png.ts";
 
 /** The window's own colour, light and dark: what paints the title bar
  *  of an installed desktop app and the status bar on a phone. Both are
@@ -30,12 +31,16 @@ import { appIcon, appIconMaskable } from "./brand.ts";
  *  turning up as a seam across the top of the installed app. */
 export const THEME_COLORS = { light: "#EFECE5", dark: "#16181C" };
 
-/** The two icons the manifest names. One SVG per purpose rather than
- *  the three fixed PNG sizes a Vite app ships: the mark is genuinely
- *  vector, so `"sizes": "any"` lets a launcher scale the one file to
- *  whatever size it is drawing. */
+/** The icons the manifest names. One SVG per purpose, which `"sizes":
+ *  "any"` lets a launcher scale to whatever it is drawing, and PNGs
+ *  drawn from those same SVGs at load: Chrome on Android offers an
+ *  install rather than a shortcut only when the manifest has raster
+ *  icons of 192 and 512 pixels and a maskable one. */
 export const APP_ICON = appIcon(THEME_COLORS.light);
 export const APP_ICON_MASKABLE = appIconMaskable(THEME_COLORS.light);
+export const APP_ICON_PNG_192 = rasterizeIcon(APP_ICON, 192);
+export const APP_ICON_PNG_512 = rasterizeIcon(APP_ICON, 512);
+export const APP_ICON_MASKABLE_PNG_512 = rasterizeIcon(APP_ICON_MASKABLE, 512);
 
 /** The manifest itself. `start_url` carries no query string, so the
  *  installed app opens on the list. */
@@ -64,6 +69,9 @@ export const WEBMANIFEST =
       background_color: THEME_COLORS.light,
       theme_color: THEME_COLORS.light,
       icons: [
+        { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         { src: "/icon-512.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
         { src: "/icon-512-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
       ],
@@ -75,10 +83,10 @@ export const WEBMANIFEST =
 // iOS's home-screen icon: the one thing this site serves that is a
 // file's BYTES rather than a string built from the source above.
 // Safari will not rasterize an SVG for `apple-touch-icon` the way it
-// accepts one as a favicon, and nothing in this toolchain turns an SVG
-// into a PNG — Bun has no rasterizer and the project's only dependency
-// is `yaml`. So it was rendered once, at 180×180, from `appIcon()`
-// itself, in a scratch directory rather than as a dependency here:
+// accepts one as a favicon. It was rendered once, at 180×180, from
+// `appIcon()` itself, in a scratch directory rather than as a
+// dependency here (`icon-png.ts` now draws the manifest's PNGs, but
+// these bytes predate it and stay as they are):
 //
 //     bun add @resvg/resvg-js
 //     new Resvg(appIcon("#EFECE5"), { fitTo: { mode: "width", value: 180 } })
@@ -204,7 +212,7 @@ self.addEventListener("fetch", (event) => {
 });
 `;
 
-/** The same five answers as files, by the name they are served under —
+/** The same eight answers as files, by the name they are served under —
  *  what a published copy of the site needs beside its pages, where no
  *  server stands in front to compute them. */
 export const PWA_FILES: Readonly<Record<string, string | Buffer>> = {
@@ -212,6 +220,9 @@ export const PWA_FILES: Readonly<Record<string, string | Buffer>> = {
   "sw.js": SERVICE_WORKER,
   "icon-512.svg": APP_ICON,
   "icon-512-maskable.svg": APP_ICON_MASKABLE,
+  "icon-192.png": APP_ICON_PNG_192,
+  "icon-512.png": APP_ICON_PNG_512,
+  "icon-512-maskable.png": APP_ICON_MASKABLE_PNG_512,
   "apple-touch-icon.png": APPLE_TOUCH_ICON,
 };
 

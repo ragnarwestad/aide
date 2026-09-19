@@ -72,15 +72,18 @@ export type {
   DeleteSchedulePageOptions, ScheduleHistoryRow, ScheduleTab,
 } from "./pages/schedule-page";
 
-// The five answers that make the dashboard an app you install (spec
+// The eight answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are
 // what `serve.ts` puts behind /manifest.webmanifest, /sw.js and the
-// three icon paths, computed rather than read from disk like the rest
+// icon paths, computed rather than read from disk like the rest
 // of this file.
 export {
   APPLE_TOUCH_ICON,
   APP_ICON,
   APP_ICON_MASKABLE,
+  APP_ICON_MASKABLE_PNG_512,
+  APP_ICON_PNG_192,
+  APP_ICON_PNG_512,
   PWA_FILES,
   PWA_LINKS,
   SERVICE_WORKER,

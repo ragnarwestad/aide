@@ -8,7 +8,8 @@ import {
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
   ABOUT_PAGE, OVERVIEW_PAGE,
-  APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, SERVICE_WORKER, WEBMANIFEST,
+  APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
+  SERVICE_WORKER, WEBMANIFEST,
   type NavEntry,
 } from "../../render";
 
@@ -236,7 +237,7 @@ export function serveStatic(siteDir: string, pathname: string): Response {
   return new Response(readFileSync(target), { headers: { "content-type": type } });
 }
 
-/** What makes this page an app you install (spec 173): five answers
+/** What makes this page an app you install (spec 173): eight answers
  *  built in `render/pwa.ts` and served from memory, the same shape
  *  /api/aide-run has — a computed string, an explicit content type, no
  *  file on disk. There is nothing in any of them a reader could not already see
@@ -267,6 +268,12 @@ export function servePwaAsset(path: string): Response | null {
     const icon = path === "/icon-512.svg" ? APP_ICON : APP_ICON_MASKABLE;
     return new Response(icon, { headers: { "content-type": "image/svg+xml; charset=utf-8" } });
   }
+  const png =
+    path === "/icon-192.png" ? APP_ICON_PNG_192
+    : path === "/icon-512.png" ? APP_ICON_PNG_512
+    : path === "/icon-512-maskable.png" ? APP_ICON_MASKABLE_PNG_512
+    : null;
+  if (png) return new Response(png, { headers: { "content-type": "image/png" } });
   if (path === "/apple-touch-icon.png") {
     return new Response(APPLE_TOUCH_ICON, { headers: { "content-type": "image/png" } });
   }

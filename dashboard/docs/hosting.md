@@ -71,10 +71,12 @@ background behind the title bar.
 
 An installed app is launched on `start_url` — `/`, with no query string — and opens straight into the spec list.
 
-Five routes make it work, and none of them is a file:
-`/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`,
-`/icon-512-maskable.svg` and `/apple-touch-icon.png` are all computed in `src/render/ui/pwa.ts` and answered from memory,
-so nothing has to be kept in sync with the mark by hand and nothing is published by rsync. They are the only things on
+Eight routes make it work, and none of them is a file:
+`/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`, `/icon-512-maskable.svg`, `/icon-192.png`, `/icon-512.png`,
+`/icon-512-maskable.png` and `/apple-touch-icon.png` are all computed in `src/render/ui/pwa.ts` and answered from memory,
+so nothing has to be kept in sync with the mark by hand and nothing is published by rsync. The three PNG icons are drawn
+from the SVG icons at start-up (`src/render/ui/icon-png.ts`); Chrome on Android offers an install, not a home-screen
+shortcut, only when the manifest lists raster icons of 192 and 512 pixels and a maskable one. They are the only things on
 this site a page fetches rather than carries inline — a browser will not install a page whose manifest is a data URI —
 and they answer any request with a `Host` of the dashboard's own.
 
