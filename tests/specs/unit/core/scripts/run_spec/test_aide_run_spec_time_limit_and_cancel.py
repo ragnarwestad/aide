@@ -69,3 +69,27 @@ def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, wor
             proc.kill()
             proc.wait(timeout=10)
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
+
+
+def _alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+
+def test_what_the_session_left_running_is_stopped_when_its_turn_ends(runner, workspace, fake_claude, tmp_path):
+    """A session's own suite started boards and decoy servers that outlived
+    it, holding ports and slowing every later run (2026-09-19)."""
+    with_status(workspace, ["create", "analyze"])
+    pid_file = tmp_path / "leftover.pid"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"sleep 300 >/dev/null 2>&1 & echo $! > {pid_file}\n"
+        "printf 'real work\\n' > implemented.txt\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    run(runner, workspace, claude, command="implement")
+    time.sleep(0.3)
+    assert not _alive(int(pid_file.read_text()))

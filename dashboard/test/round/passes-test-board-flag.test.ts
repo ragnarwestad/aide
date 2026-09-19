@@ -13,9 +13,9 @@
 // out, and `run` fails fast on its own "port already held" check right
 // after — well before it would otherwise reach queuing the fixture
 // specs.
-import { afterAll, afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 setDefaultTimeout(20_000);
@@ -47,33 +47,34 @@ function decoyPort() {
 
 /** Records every invocation's argv to `$FAKE_BUN_LOG`; for a `serve.ts
  *  serve` invocation it also tries to bind `--port`, which fails fast
- *  against the decoy already holding it. Written ONCE per file and
- *  reused: `run` execs it, and macOS checks a freshly written executable
- *  for seconds the first time it is exec'd — once per new file. */
-let fakeBunPath: string | undefined;
+ *  against the decoy already holding it. `run` execs it, and macOS checks
+ *  a new executable the first time it starts — for minutes on a busy
+ *  machine, past this file's own timeout, which is what stopped 498's
+ *  landing (2026-09-19). So it lives at a fixed path and is rewritten only
+ *  when its text changes: the check is paid once on a machine. */
+const FAKE_BUN =
+  `#!/usr/bin/env bash\n` +
+  `printf '%s\\n' "$*" >> "$FAKE_BUN_LOG"\n` +
+  `if [ "\${2:-}" = "src/serve/serve.ts" ]; then\n` +
+  `  port=""; prev=""\n` +
+  `  for a in "$@"; do [ "$prev" = "--port" ] && port="$a"; prev="$a"; done\n` +
+  `  REALBUN="$(command -v bun)"\n` +
+  // Gone on its own after a while: a round kept with --keep leaves it
+  // up, and a test that timed out never stopped it.
+  `  exec "$REALBUN" -e "Bun.serve({ port: $port, hostname: '127.0.0.1', fetch: () => new Response('ok') }); setTimeout(() => process.exit(0), 15000);"\n` +
+  `fi\n` +
+  `exit 0\n`;
 function fakeBun(): string {
-  if (fakeBunPath) return fakeBunPath;
-  const binPath = join(mkdtempSync(join(tmpdir(), "aide-round-fakebun-")), "fake-bun");
-  writeFileSync(
-    binPath,
-    `#!/usr/bin/env bash\n` +
-      `printf '%s\\n' "$*" >> "$FAKE_BUN_LOG"\n` +
-      `if [ "\${2:-}" = "src/serve/serve.ts" ]; then\n` +
-      `  port=""; prev=""\n` +
-      `  for a in "$@"; do [ "$prev" = "--port" ] && port="$a"; prev="$a"; done\n` +
-      `  REALBUN="$(command -v bun)"\n` +
-      `  exec "$REALBUN" -e "Bun.serve({ port: $port, hostname: '127.0.0.1', fetch: () => new Response('ok') });"\n` +
-      `fi\n` +
-      `exit 0\n`,
-  );
-  chmodSync(binPath, 0o755);
-  fakeBunPath = binPath;
+  const binPath = join(homedir(), "Library", "Caches", "aide-tests", "fake-bun");
+  if (!existsSync(binPath) || readFileSync(binPath, "utf-8") !== FAKE_BUN) {
+    mkdirSync(join(binPath, ".."), { recursive: true });
+    const staged = `${binPath}.${process.pid}`;
+    writeFileSync(staged, FAKE_BUN);
+    chmodSync(staged, 0o755);
+    renameSync(staged, binPath);
+  }
   return binPath;
 }
-
-afterAll(() => {
-  if (fakeBunPath) rmSync(join(fakeBunPath, ".."), { recursive: true, force: true });
-});
 
 /** The served checkout's own argument parser, with or without the
  *  `--test-board` flag — what `run` reads to decide whether the branch

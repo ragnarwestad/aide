@@ -61,6 +61,8 @@ run_step_tests_within_time() {
   done
   wait "$tests_pid"
   local rc=$?
+  # What the suite left running goes with it (see run_model_turn).
+  kill -TERM "-$tests_pid" 2>/dev/null || true
   child=""
   return "$rc"
 }
