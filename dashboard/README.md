@@ -78,7 +78,7 @@ Reaching the dashboard from a phone or another computer, over HTTPS, is an optio
 
 ## Reference
 
-- [Developing the dashboard](../DEVELOPING.md#the-dashboard) — its tests, and running it from a checkout
+- [Developing the dashboard](docs/developing.md) — its tests, and running it from a checkout
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
