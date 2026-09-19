@@ -137,3 +137,57 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.live()).not.toBeNull();
   });
 });
+
+// --- spec 500: the stream is asked with the phases the tab has unfolded ------
+//
+// The server tells a tab about a growing transcript only when the tab's
+// own stream query named that phase, so the stream has to be reopened
+// whenever the address's `phases` changes — and left alone otherwise.
+
+describe("the stream follows the address's phases (spec 500)", () => {
+  const OPEN = "aide%2F500-x";
+  const A = "aide%2F500-x%3Aanalyze";
+  const B = "aide%2F500-x%3Aimplement";
+  const start = () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", `?open=${OPEN}`);
+    h.visibility("visible");
+    return h;
+  };
+  const query = (h: ReturnType<typeof start>) => h.live()!.url;
+
+  test("pressing a › closes the stream and opens it again with the new phases (AC-3)", () => {
+    const h = start();
+    expect(h.sources).toHaveLength(1);
+    void h.clickHref(`/?open=${OPEN}&phases=${A}`);
+    expect(h.sources).toHaveLength(2);
+    expect(h.sources[0]!.closed).toBe(true);
+    expect(query(h)).toContain(`phases=${A}`);
+  });
+
+  test("pressing another › reopens with both keys, and pressing one shut reopens with what is left (AC-3)", () => {
+    const h = start();
+    void h.clickHref(`/?open=${OPEN}&phases=${A}`);
+    void h.clickHref(`/?open=${OPEN}&phases=${A}%2C${B}`);
+    expect(h.sources).toHaveLength(3);
+    expect(query(h)).toContain(`phases=${A}%2C${B}`);
+    void h.clickHref(`/?open=${OPEN}&phases=${B}`);
+    expect(h.sources).toHaveLength(4);
+    expect(query(h)).toContain(`phases=${B}`);
+    expect(query(h)).not.toContain(A);
+  });
+
+  test("closing the last unfolded phase reopens the stream without phases (AC-3)", () => {
+    const h = start();
+    void h.clickHref(`/?open=${OPEN}&phases=${A}`);
+    void h.clickHref(`/?open=${OPEN}`);
+    expect(h.sources).toHaveLength(3);
+    expect(query(h)).not.toContain("phases");
+  });
+
+  test("a press on a sort link leaves the stream alone (AC-3)", () => {
+    const h = start();
+    void h.clickHref(`/?open=${OPEN}&sort=cost`);
+    expect(h.sources).toHaveLength(1);
+    expect(h.sources[0]!.closed).toBe(false);
+  });
+});

@@ -209,3 +209,25 @@ test("the last phase line's name sits level with its own button", async () => {
   });
   expect(Math.abs(nameMid - buttonMid)).toBeLessThanOrEqual(2);
 });
+
+// Spec 500, AC-1: a phase unfolded to its messages, at a phone's width — the
+// page does not scroll sideways and the text wraps inside the row. Written in
+// the implement step; run by the user (`bun test --timeout 20000
+// test/e2e/phone-phase-line.test.ts`).
+test("an unfolded phase's messages wrap inside the row at 375px, and the page does not scroll sideways (AC-1)", async () => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(`${base}/?${OPEN}&phases=aide%2F81-queue-and-runner%3Aanalyze&live=0`);
+  const at = await page.evaluate(() => {
+    const row = document.querySelector("tr.phasemsgs");
+    const box = row?.getBoundingClientRect();
+    return {
+      found: !!row,
+      pageWidth: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+      rowRight: box?.right ?? 0,
+    };
+  });
+  expect(at.found).toBe(true);
+  expect(at.pageWidth).toBeLessThanOrEqual(at.viewport);
+  expect(at.rowRight).toBeLessThanOrEqual(at.viewport);
+});

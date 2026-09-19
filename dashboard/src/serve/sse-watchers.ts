@@ -5,9 +5,16 @@
 // opens a `fs.watch` per allowed project) stays in `createServer`:
 // only the four functions that act on it move here.
 
+import { statSync } from "node:fs";
+import { phaseKey } from "../render";
+import type { Job } from "../queue/queue.ts";
+
 export interface SseWatchersContext {
   encoder: TextEncoder;
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
+  /** The subscribers that opened with `?phases=`, and the phase keys each
+   *  named (spec 500). Only these hear a transcript grow. */
+  phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
   specWatchers: Map<string, { close: () => void }>;
   /** `notifySoon` is a `let` reassigned by both `scheduleNotify` (which
    *  debounces itself) and `closeSpecWatchers` (which cancels a pending
@@ -28,6 +35,7 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
     c.enqueue(ctx.encoder.encode(text));
   } catch {
     ctx.watchers.delete(c);
+    ctx.phaseWatchers.delete(c);
   }
 }
 
@@ -92,4 +100,50 @@ export function closeSpecWatchers(ctx: SseWatchersContext): void {
     }
   }
   ctx.specWatchers.clear();
+}
+
+// --- spec 500: a step writes its transcript to a file, and nothing tells --
+//
+// The store is silent while a step runs, so a tab that unfolded a running
+// phase would show what the model said at the start and then stand still.
+// On the runner's own two-second tick, the size of each running step's
+// transcript is compared with what it was, and only the tabs whose stream
+// query named that step are told.
+
+const fileSize = (path: string): number => {
+  try {
+    return statSync(path).size;
+  } catch {
+    return 0;
+  }
+};
+
+/** The growth check. `tick()` measures no file while no subscriber has
+ *  phase keys; a file first seen non-empty counts as grown, so the first
+ *  messages are not lost; a file whose job stopped running is forgotten. */
+export function createStreamGrowth(
+  ctx: SseWatchersContext,
+  jobs: () => Job[],
+  sizeOf: (path: string) => number = fileSize,
+): { tick: () => void } {
+  const seen = new Map<string, number>();
+  return {
+    tick() {
+      if (ctx.phaseWatchers.size === 0) return;
+      const live = new Set<string>();
+      for (const job of jobs()) {
+        const step = job.steps[job.stepIndex];
+        if (job.state !== "running" || !job.streamFile || !step) continue;
+        const key = phaseKey(job.project, job.specFolder, step);
+        const listening = [...ctx.phaseWatchers].filter(([, keys]) => keys.has(key));
+        if (listening.length === 0) continue;
+        live.add(job.streamFile);
+        const size = sizeOf(job.streamFile);
+        if (size === (seen.get(job.streamFile) ?? 0)) continue;
+        seen.set(job.streamFile, size);
+        for (const [c] of listening) writeTo(ctx, c, "event: changed\ndata: {}\n\n");
+      }
+      for (const file of [...seen.keys()]) if (!live.has(file)) seen.delete(file);
+    },
+  };
 }

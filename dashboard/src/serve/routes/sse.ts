@@ -1,6 +1,7 @@
 // The SSE subscription route (spec 189). Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
+import { parsePhaseKeys } from "../../render";
 import type { RoutesContext } from "./";
 
 export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string): Response | null {
@@ -11,6 +12,10 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
       start(controller) {
         mine = controller;
         ctx.watchers.add(controller);
+        // The phases this tab has unfolded (spec 500): only these hear a
+        // transcript grow.
+        const keys = parsePhaseKeys(new URL(req.url).searchParams.get("phases"));
+        if (keys.size) ctx.phaseWatchers.set(controller, keys);
         // The subscriber is registered — say so. A caller that acts
         // the instant its `fetch` resolves would otherwise race the
         // registration and wait for an event that was broadcast
@@ -18,7 +23,10 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         ctx.writeTo(controller, ": open\n\n");
       },
       cancel() {
-        if (mine) ctx.watchers.delete(mine);
+        if (mine) {
+          ctx.watchers.delete(mine);
+          ctx.phaseWatchers.delete(mine);
+        }
       },
     });
     return new Response(body, {

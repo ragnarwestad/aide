@@ -39,6 +39,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     specsRoot: inputs.specsRoot,
     machinerySpecDir: inputs.machinerySpecDir,
     watchers: inputs.watchers,
+    phaseWatchers: inputs.phaseWatchers,
     writeTo: inputs.writeTo,
     queue: inputs.queue,
     displayProjectDir: inputs.displayProjectDir,

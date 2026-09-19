@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
+// The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
+const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
  *  It said "not run yet" in words until then. */
@@ -72,7 +75,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // Spec 451: the name is plain text, not a link to either attempt's
     // job page — the count beside it is what says there were two, and
     // the picker on the page is what opens the older one.
-    expect(analyze).not.toContain("<a ");
+    expect(noFold(analyze)).not.toContain("<a ");
     expect(analyze).not.toContain('href="/specs/newer"');
     expect(analyze).not.toContain('href="/specs/older"');
     // The count rides with the phase's own word since 2026-09-08 — in
@@ -149,7 +152,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "create")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    expect(subRow(html, "create")).not.toContain("<a ");
+    expect(noFold(subRow(html, "create"))).not.toContain("<a ");
   });
 
   test("a step outside the four is still shown, never silently dropped", () => {
@@ -159,7 +162,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // Spec 451: every phase name is plain text now, the fixed four and
     // a step outside them alike.
     expect(subRow(html, "explore")).not.toContain('href="/specs/j2"');
-    expect(subRow(html, "explore")).not.toContain("<a ");
+    expect(noFold(subRow(html, "explore"))).not.toContain("<a ");
   });
 
   // Spec 271: a reopen is what STARTED this round, so it is drawn
@@ -185,7 +188,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("j4", "archive"),
     ]);
     for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, subRow(html, step).includes("<a ")]).toEqual([step, false]);
+      expect([step, noFold(subRow(html, step)).includes("<a ")]).toEqual([step, false]);
     }
   });
 

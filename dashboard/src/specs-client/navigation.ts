@@ -3,6 +3,7 @@
 // that leaves the page — is `nav-busy.ts`'s now, run on every page
 // rather than wired up here (spec 312).
 
+import { connect, disconnect } from "./live.ts";
 import { swapRows } from "./row-swap.ts";
 import { AWAITING } from "./state.ts";
 
@@ -14,7 +15,15 @@ export function navigate(event: MouseEvent): void {
   const link = (event.target as Element | null)?.closest?.("a[data-nav]") as HTMLAnchorElement | null;
   if (!link) return;
   event.preventDefault();
+  const phasesBefore = new URLSearchParams(location.search).get("phases");
   history.replaceState(null, "", link.getAttribute("href") ?? location.href);
+  // The server tells a tab about a growing transcript only when the
+  // stream's own query named that phase (spec 500), so a change of
+  // `phases` reopens the stream; a sort or a row fold leaves it alone.
+  if (new URLSearchParams(location.search).get("phases") !== phasesBefore) {
+    disconnect();
+    connect();
+  }
   // Spec 208. SOMETHING has to change the moment it is pressed — the
   // same rule the buttons have kept since spec 96/101, applied to the
   // fold and the sort links, which changed nothing at all between the

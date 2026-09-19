@@ -97,10 +97,10 @@ export {
 // kept in two places would eventually forget a key on one side.
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
+  filterShowsArchived, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
 } from "./pages/specs-list";
 export type {
-  ArchivedSpecView, Phase, SpecsFilter, SpecsPageOptions, SpecTarget,
+  ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,
 } from "./pages/specs-list";
 
 export type { QueueRowView } from "./ui/job-state";

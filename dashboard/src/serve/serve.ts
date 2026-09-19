@@ -267,9 +267,11 @@ export function createServer(opts: ServerOptions) {
   // On boot, resolve every job left `running` by the last restart
   // before anything new is started.
   runner?.reconcile();
+  const growth = watch.streamGrowth(() => queue.list());
   const timer = runner
     ? setInterval(() => {
         runner.poll();
+        growth.tick();
         void schedules.tickRunner();
       }, 2000)
     : null;
@@ -340,6 +342,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     machinerySpecDir: resolution.machinerySpecDir,
     watchers: watch.watchers,
+    phaseWatchers: watch.phaseWatchers,
     writeTo: watch.writeTo,
     queue,
     displayProjectDir: resolution.displayProjectDir,
@@ -442,6 +445,7 @@ export function createServer(opts: ServerOptions) {
      *  the life of the process, and the directories it points at are
      *  removed underneath it. */
     specWatchCount: () => watch.specWatchers.size,
+    phaseWatchCount: () => watch.phaseWatchers.size,
     /** The board registry itself (spec 425) — here for the same reason
      *  `specWatchCount` above is: a question a test needs answered (or,
      *  here, a fixture needs to seed directly — an archived spec whose
@@ -469,6 +473,7 @@ export function createServer(opts: ServerOptions) {
         }
       }
       watch.watchers.clear();
+      watch.phaseWatchers.clear();
       void server.stop(true);
     },
   };

@@ -277,12 +277,15 @@ export interface SpecsFilter {
   /** Which held-back specs have their acceptance criteria unfolded, in
    *  the same `<project>/<folder>,…` form as `open`. */
   checks?: string;
+  /** Which phases have their latest messages unfolded, as
+   *  `<project>/<folder>:<step>` keys, comma-separated. */
+  phases?: string;
 }
 
 /** How the list is cut and ordered. One list, exported so `serve.ts`
  *  builds the redirect after a POST from the same five keys the forms
  *  send — two copies would eventually disagree about what "the view" is. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks", "q"] as const;
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks", "phases", "q"] as const;
 
 /** The prefix a filter key rides under as a form field. Prefixed
  *  because one of the five is `project`, which is ALSO what the Run

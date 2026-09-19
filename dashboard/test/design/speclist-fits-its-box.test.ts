@@ -311,3 +311,29 @@ describe("the criteria unfolded on a row fit a phone (spec 493)", () => {
     expect(narrow).toMatch(/@media \(max-width: 40rem\) \{\s*\.rowchecks \{ padding-left: 0; \}/);
   });
 });
+
+// --- spec 500: the messages unfolded under a phase line ---------------------
+//
+// A model's sentence is of any length. The browser test proves it at 375px;
+// these pin the properties that make it hold.
+describe("the messages unfolded under a phase fit a phone (spec 500)", () => {
+  const css = readFileSync(new URL("../../src/render/ui/css/remaining-checks.css", import.meta.url), "utf8");
+  const narrow = readFileSync(new URL("../../src/render/ui/css/narrow.css", import.meta.url), "utf8");
+  const block = (source: string, selector: string) =>
+    source.match(new RegExp(`^${selector.replace(/[.\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`, "m"))?.[1] ?? "";
+
+  test("the list may shrink below its content and long words break", () => {
+    const list = block(css, ".phasemsglist");
+    expect(list).toContain("min-width: 0");
+    expect(list).toContain("overflow-wrap: anywhere");
+  });
+
+  test("none of its rules states a width", () => {
+    const rules = css.split("\n").filter((l) => l.includes(".phasemsg")).join("\n");
+    expect(rules).not.toMatch(/(^|[^-])width:/);
+  });
+
+  test("a phone rule takes the indent off the row", () => {
+    expect(narrow).toMatch(/\.phasemsgs td \{ padding-left: /);
+  });
+});
