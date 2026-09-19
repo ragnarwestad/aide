@@ -16,7 +16,7 @@ export function navEntries(): NavEntry[] {
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
     // The aggregate Schedule page (spec 272): every allowed project's
-    // `schedule:` entries in one table, the same single-aggregate shape
+    // scheduled jobs in one table, the same single-aggregate shape
     // Projects took after the tab-per-project removal below — never one
     // tab per project.
     { label: "Schedule", labelKey: "shell.tabSchedule", path: SCHEDULE_ROUTE },

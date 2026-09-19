@@ -1,22 +1,37 @@
-// The schedule poll's wiring (spec 259): `refreshSchedules()` is a
+// The schedule poll's wiring: `refreshSchedules()` is a
 // private closure inside `createServer`, so this suite asks the
 // question the same way `projects-route.test.ts` asks about
 // `refreshDrift` — through the server's own HTTP surface, polling
 // `GET /api/queue` for the job the background timer is expected to
 // have enqueued. `schedule.test.ts` covers `isDue`'s own logic in
 // isolation; this covers that the timer actually calls it and enqueues.
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
+import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import { refreshSchedules, type ScheduleContext } from "../../src/serve/schedules/index.ts";
 
 const harness = queueHarness("aide-schedule-runner-");
-afterEach(() => harness.cleanup());
 
-function writeSchedule(dir: string, project: string, yaml: string): void {
-  writeFileSync(join(dir, "root", project, ".aide", "project.yaml"), yaml);
+// The jobs live in this queue config file, one per test.
+let cfgDir: string;
+let cfg: string;
+beforeEach(() => {
+  cfgDir = mkdtempSync(join(tmpdir(), "aide-schedule-runner-cfg-"));
+  cfg = join(cfgDir, "queue-config.json");
+});
+afterEach(() => {
+  harness.cleanup();
+  rmSync(cfgDir, { recursive: true, force: true });
+});
+
+type Entry = Record<string, unknown>;
+
+/** Set the config file's jobs for `project`, replacing what it held. */
+function writeSchedule(project: string, entries: Entry[]): void {
+  writeFileSync(cfg, JSON.stringify({ schedules: { [project]: entries } }));
 }
 
 interface QueuedJob {
@@ -50,14 +65,14 @@ async function jobsUntil(
   return list;
 }
 
-const NIGHTLY = 'name: aide\nschedule:\n  - name: nightly-report\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n';
+const NIGHTLY: Entry = { name: "nightly-report", cron: "* * * * *", prompt: "docs/nightly.md" };
 
-describe("refreshSchedules (spec 259)", () => {
+describe("refreshSchedules", () => {
   test("a due entry with no prior job is enqueued as a schedule step", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30 },
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30 },
     });
-    writeSchedule(dir, "aide", NIGHTLY);
+    writeSchedule("aide", [NIGHTLY]);
     const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
     const job = list.find((j) => j.specFolder === "schedule-nightly-report");
     expect(job).toBeDefined();
@@ -66,10 +81,10 @@ describe("refreshSchedules (spec 259)", () => {
   });
 
   test("does not enqueue a duplicate while one is already queued (acceptance criterion 2)", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
-    writeSchedule(dir, "aide", NIGHTLY);
+    writeSchedule("aide", [NIGHTLY]);
     await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
     // Several more ticks, all of which should see the same job already
     // queued and enqueue nothing further.
@@ -81,18 +96,17 @@ describe("refreshSchedules (spec 259)", () => {
   // A schedule job is not a spec, so a project that has none yet — a
   // fresh install's own aide checkout — still gets its entries fired.
   test("a due entry fires in an allowed project with no specs", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
     });
-    mkdirSync(join(dir, "root", "fresh", ".aide"), { recursive: true });
-    writeSchedule(dir, "fresh", NIGHTLY.replace("name: aide", "name: fresh"));
+    writeSchedule("fresh", [NIGHTLY]);
     const list = await jobsUntil(base, (l) => l.some((j) => j.project === "fresh"));
     expect(list.find((j) => j.project === "fresh")?.specFolder).toBe("schedule-nightly-report");
   });
 
   test("a project with no schedule entries gets nothing enqueued", async () => {
     const { base } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
@@ -103,8 +117,8 @@ describe("refreshSchedules (spec 259)", () => {
   // it would run every night on whatever the configuration says, with
   // nobody watching to notice.
   test("a due entry fires on the model it names", async () => {
-    const { base, dir } = harness.start({
-      extra: {
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg,
         driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
         queueDefaults: {
             
@@ -114,26 +128,54 @@ describe("refreshSchedules (spec 259)", () => {
         },
       },
     });
-    writeSchedule(dir, "aide", `${NIGHTLY}    model: codex-fast\n`);
+    writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast" }]);
     const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
     expect(list.find((j) => j.specFolder === "schedule-nightly-report")?.modelChoice).toBe("codex-fast");
   });
 
-  test("scheduleCheckMs: 0 turns the poll off entirely", async () => {
+  // Jobs are read from the queue config file and nowhere else.
+  test("a due entry only a project's manifest lists enqueues nothing (AC-2)", async () => {
     const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 0 },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
-    writeSchedule(dir, "aide", NIGHTLY);
+    writeFileSync(
+      join(dir, "root", "aide", ".aide", "project.yaml"),
+      'name: aide\nschedule:\n  - name: from-manifest\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n',
+    );
+    writeSchedule("aide", [{ name: "other", cron: "0 3 * * *", prompt: "docs/nightly.md", since: "2999-01-01T00:00:00Z" }]);
+    await new Promise((r) => setTimeout(r, 200));
+    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
+  });
+
+  test("a server whose config file does not exist has no scheduled jobs, whatever the manifests say (AC-3)", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueConfigFile: join(cfgDir, "missing.json"), driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+    });
+    writeFileSync(
+      join(dir, "root", "aide", ".aide", "project.yaml"),
+      'name: aide\nschedule:\n  - name: from-manifest\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n',
+    );
+    await new Promise((r) => setTimeout(r, 200));
+    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
+    const page = await (await fetch(`${base}/schedule`)).text();
+    expect(page).not.toContain("from-manifest");
+  });
+
+  test("scheduleCheckMs: 0 turns the poll off entirely", async () => {
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 0 },
+    });
+    writeSchedule("aide", [NIGHTLY]);
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
     expect(list.some((j) => j.specFolder === "schedule-nightly-report")).toBe(false);
   });
 });
 
-// Spec 494: a fire the queue refuses leaves a line in the serve log, once per
+// A fire the queue refuses leaves a line in the serve log, once per
 // fire window and reason, and a name in another case fires on the listed one.
-describe("refreshSchedules and a refused fire (spec 494)", () => {
-  const DAILY = 'name: aide\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n';
+describe("refreshSchedules and a refused fire", () => {
+  const DAILY: Entry = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" };
   const QUEUE_DEFAULTS = {
     timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
     model: { default: "Sonnet" },
@@ -154,14 +196,14 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
   }
 
   test("through the server: one line however many ticks pass, and none once the entry is fixed", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
     const original = console.error;
     const lines: string[] = [];
     console.error = (...args: unknown[]) => void lines.push(args.join(" "));
     try {
-      writeSchedule(dir, "aide", `${DAILY}    model: retired\n`);
+      writeSchedule("aide", [{ ...DAILY, model: "retired" }]);
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline && !lines.some((l) => l.includes("scheduled fire refused"))) {
         await new Promise((r) => setTimeout(r, 10));
@@ -171,7 +213,7 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
       expect(refused).toHaveLength(1);
       expect(refused[0]).toContain("unknown or not-allowed model: retired");
 
-      writeSchedule(dir, "aide", `${DAILY}    model: Sonnet\n`);
+      writeSchedule("aide", [{ ...DAILY, model: "Sonnet" }]);
       const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly"));
       expect(list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice).toBe("Sonnet");
       await new Promise((r) => setTimeout(r, 100));
@@ -182,10 +224,10 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
   });
 
   test("a due entry naming the model in another case is enqueued on the listed spelling", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
-    writeSchedule(dir, "aide", `${DAILY}    model: sonnet\n`);
+    writeSchedule("aide", [{ ...DAILY, model: "sonnet" }]);
     const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly"));
     expect(list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice).toBe("Sonnet");
   });
@@ -196,15 +238,15 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
     let answer: { ok: true } | { ok: false; error: string } = { ok: false, error: "refused: one" };
     let ctx: ScheduleContext;
 
-    const setup = (yaml: string) => {
+    const setup = (entries: Entry[]) => {
       root = mkdtempSync(join(tmpdir(), "aide-refresh-schedules-"));
-      mkdirSync(join(root, ".aide"), { recursive: true });
-      writeFileSync(join(root, ".aide", "project.yaml"), yaml);
+      writeSchedule("aide", entries);
       clock = Date.parse("2026-09-10T12:00:00Z");
       answer = { ok: false, error: "refused: one" };
       ctx = {
         projectRoot: root,
         allowed: new Set(["aide"]),
+        scheduleStore: createScheduleStore(cfg),
         machineryProjectDir: () => root,
         now: () => clock,
         queue: { list: () => [], enqueue: () => answer },
@@ -214,7 +256,7 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
     const tick = () => loggedDuring(() => refreshSchedules(ctx));
 
     test("once per fire window and reason, again for a new window, a new reason, or after an accept", async () => {
-      setup(DAILY);
+      setup([DAILY]);
       expect(await tick()).toHaveLength(1);
       expect(await tick()).toHaveLength(0);
 
@@ -232,13 +274,24 @@ describe("refreshSchedules and a refused fire (spec 494)", () => {
       expect(await tick()).toHaveLength(1);
     });
 
-    test("an entry that leaves the manifest and comes back is logged again", async () => {
-      setup(DAILY);
+    test("an entry that leaves the config and comes back is logged again", async () => {
+      setup([DAILY]);
       expect(await tick()).toHaveLength(1);
-      writeFileSync(join(root, ".aide", "project.yaml"), "name: aide\n");
+      writeSchedule("aide", []);
       expect(await tick()).toHaveLength(0);
-      writeFileSync(join(root, ".aide", "project.yaml"), DAILY);
+      writeSchedule("aide", [DAILY]);
       expect(await tick()).toHaveLength(1);
+    });
+
+    test("a config file the store cannot parse enqueues nothing, and one line names the file (AC-2)", async () => {
+      setup([DAILY]);
+      writeFileSync(cfg, "{ not json");
+      const enqueued: unknown[] = [];
+      ctx = { ...ctx, queue: { list: () => [], enqueue: (r: unknown) => (enqueued.push(r), { ok: true }) } } as unknown as ScheduleContext;
+      const lines = [...(await tick()), ...(await tick())];
+      expect(enqueued).toEqual([]);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain(cfg);
     });
   });
 });

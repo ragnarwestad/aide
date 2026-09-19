@@ -25,6 +25,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     opts: inputs.opts,
     nav: inputs.nav,
     allowed: inputs.allowed,
+    scheduleStore: inputs.scheduleStore,
     readScan: () => state.scan,
     invalidateScan: () => {
       state.scan = null;

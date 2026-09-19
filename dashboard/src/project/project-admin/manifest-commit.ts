@@ -5,23 +5,27 @@
 // every run and every tick pulls into — and a pull refuses a dirty
 // checkout, so the next tick on any spec of that project was refused
 // ("the specs checkout has uncommitted changes") until someone
-// committed them by hand (paceup, 2026-09-18). A schedule's save has
-// gone through `saveSpecFile` all along; this is the same contract for
-// the three keys Settings writes into `.aide/project.yaml`.
+// committed them by hand.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { pullFastForward, saveSpecFile } from "../../git/specs-pull.ts";
 import { manifestWithScalar } from "./manifest-io.ts";
-import type { ScheduleGit } from "./schedule-admin.ts";
+import type { GitRunner } from "../../git/branch-status.ts";
 
 const MANIFEST_FILE = ".aide/project.yaml";
 
+/** What a manifest commit needs from git: how to run a command, and how
+ *  to resolve a checkout's default branch. */
+export interface ScheduleGit {
+  run: GitRunner;
+  resolveBase: (root: string) => Promise<string | null>;
+}
+
 /** Apply `edits` to the manifest in `codeRoot` and commit and push the
  *  result, or say why not. Nothing to change is a success with nothing
- *  committed. The caller holds `mergeLock` on `codeRoot`, as the
- *  schedule routes do around their own saves. */
+ *  committed. The caller holds `mergeLock` on `codeRoot`. */
 export async function commitManifestEdits(
   git: ScheduleGit,
   codeRoot: string,

@@ -4,20 +4,10 @@
 // refuse before any write, then either a JSON answer (script) or a
 // no-JS redirect back to the list.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
-import type { ScheduleGit } from "../../project/project-admin/schedule-admin.ts";
-import { resolveSchedule } from "../../project/discover";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { deleteSchedulePath, projectPagePath, SCHEDULE_ROUTE } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import type { RoutesContext } from "./";
-
-/** The `git` seam every write route below hands to `schedule-admin.ts`
- *  (REQ-2) — the same `ctx.gitRun`/`ctx.branchStatus.defaultBranch` pair
- *  `spec-page.ts`/`checks.ts` already build for `saveSpecFiles`. */
-const scheduleGit = (ctx: RoutesContext): ScheduleGit => ({
-  run: ctx.gitRun,
-  resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root),
-});
 
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
@@ -71,10 +61,7 @@ export async function handleScheduleAdminRoutes(
     // route (acceptance criterion 8) — a plain `{enabled}` body is
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
-    const codeRoot = ctx.machineryProjectDir(project);
-    const result = await ctx.mergeLock.run(codeRoot, () =>
-      setScheduleEnabled(scheduleGit(ctx), codeRoot, name, enabled),
-    );
+    const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
@@ -91,7 +78,7 @@ export async function handleScheduleAdminRoutes(
     // the entry's own model for the same reason that tick does: "Run
     // now" is this entry firing early, not a different job, and it may
     // not quietly run on a different model than the schedule does.
-    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     const result = ctx.queue.enqueue({
       project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
       ...(entry?.model ? { model: entry.model } : {}),
@@ -118,8 +105,7 @@ export async function handleScheduleAdminRoutes(
     const back = deleteSchedulePath(project, name);
     // No typed confirmation (2026-09-08): the page and the dialog both
     // ask the question in a sentence, and the press is the answer.
-    const codeRoot = ctx.machineryProjectDir(project);
-    const result = await ctx.mergeLock.run(codeRoot, () => deleteScheduleEntry(scheduleGit(ctx), codeRoot, name));
+    const result = deleteScheduleEntry(ctx.scheduleStore, project, name);
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }
@@ -133,12 +119,9 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const codeRoot = ctx.machineryProjectDir(project);
-    const result = await ctx.mergeLock.run(codeRoot, () =>
-      updateScheduleEntry(scheduleGit(ctx), codeRoot, name, {
-        name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
-      }, knownModels(ctx)),
-    );
+    const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+    }, knownModels(ctx));
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
@@ -166,12 +149,9 @@ export async function handleScheduleAdminRoutes(
       const message = `"${project}" is not a project this dashboard knows`;
       return wantsJson ? json({ error: message }, 400) : specsRedirect(body, { error: message }, back);
     }
-    const codeRoot = ctx.machineryProjectDir(project);
-    const result = await ctx.mergeLock.run(codeRoot, () =>
-      createScheduleEntry(scheduleGit(ctx), codeRoot, {
-        name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
-      }, knownModels(ctx)),
-    );
+    const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+    }, knownModels(ctx));
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
   }

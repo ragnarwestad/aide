@@ -46,6 +46,7 @@ import {
   type SpecLookupContext,
 } from "../spec-lookup.ts";
 import type { ServerState } from "../state.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export interface ProjectResolutionOptions {
   queueProjectRoot?: string;
@@ -54,7 +55,12 @@ export interface ProjectResolutionOptions {
   projectRoot?: string;
 }
 
-export function setupProjectResolution(opts: ProjectResolutionOptions, allowed: Set<string>, state: ServerState) {
+export function setupProjectResolution(
+  opts: ProjectResolutionOptions,
+  allowed: Set<string>,
+  state: ServerState,
+  scheduleStore: ScheduleStore,
+) {
   // Two resolutions since spec 205, and every caller picks one
   // deliberately. `displayProjectDir` is the checkout a PERSON edits —
   // what the spec list, the project pages and the manifests are read
@@ -79,6 +85,7 @@ export function setupProjectResolution(opts: ProjectResolutionOptions, allowed: 
 
   const projectCheckoutCtx: ProjectCheckoutContext = {
     queueProjectRoot: opts.queueProjectRoot,
+    scheduleStore,
     checkoutBase,
     resolvedCheckouts,
     saidAbout,

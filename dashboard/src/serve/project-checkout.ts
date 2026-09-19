@@ -11,12 +11,14 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { projectCheckout } from "../git/branch-status.ts";
 import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout.ts";
-import { resolveCodeLanding, resolveSchedule, type CodeLanding } from "../project/discover";
+import { resolveCodeLanding, type CodeLanding } from "../project/discover";
 import type { Job } from "../queue/queue.ts";
+import type { ScheduleStore } from "../queue/schedule-store.ts";
 import type { SpecTarget } from "../render";
 
 export interface ProjectCheckoutContext {
   queueProjectRoot: string | undefined;
+  scheduleStore: ScheduleStore;
   checkoutBase: string;
   resolvedCheckouts: Map<string, DashboardCheckout>;
   saidAbout: Map<string, string>;
@@ -53,20 +55,19 @@ export function codeLanding(ctx: ProjectCheckoutContext, project: string): CodeL
   return resolveCodeLanding(machineryProjectDir(ctx, project));
 }
 
-/** The file a `schedule` step's prompt is read from (spec 259),
- *  resolved fresh off the manifest at spawn time — the same
- *  per-call, off-disk reading `codeLanding` above already does, so an
- *  edit to an entry's `prompt:` path takes effect on the next run
- *  rather than the next restart. `undefined` for every step but
- *  `schedule`, and for a schedule job whose entry has since been
- *  removed from the manifest: `aide-run-spec` refuses by name when
+/** The file a `schedule` step's prompt is read from, resolved fresh
+ *  from the schedule store at spawn time — the same per-call, off-disk
+ *  reading `codeLanding` above already does, so an edit to an entry's
+ *  prompt path takes effect on the next run rather than the next
+ *  restart. `undefined` for every step but `schedule`, and for a
+ *  schedule job whose entry has since been removed: `aide-run-spec` refuses by name when
  *  `--prompt-file` is missing or the file is gone, rather than this
  *  guessing at one. */
 export function promptFileFor(ctx: ProjectCheckoutContext, job: Job, step: string): string | undefined {
   if (step !== "schedule") return undefined;
   if (!job.specFolder.startsWith("schedule-")) return undefined;
   const name = job.specFolder.slice("schedule-".length);
-  return resolveSchedule(machineryProjectDir(ctx, job.project)).find((e) => e.name === name)?.prompt;
+  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.prompt;
 }
 
 /** Where a project's spec folders are LISTED from (spec 218): the

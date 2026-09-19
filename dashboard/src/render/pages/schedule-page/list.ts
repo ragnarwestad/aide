@@ -3,7 +3,7 @@
 // pattern the Specs list already uses — monitoring only, per the
 // description: no cron expression, no Edit action and no History link
 // here, all three live on the detail page instead.
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
@@ -150,7 +150,7 @@ function deleteCell(r: SchedulePageRow): string {
     `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</a>` +
     `<dialog class="confirmdialog"><div class="confirmpanel">` +
     `<h2>Delete ${esc(r.project)}:${esc(name)}?</h2>` +
-    `<p class="muted">The entry leaves this project's manifest and stops firing. ` +
+    `<p class="muted">The entry is removed and stops firing. ` +
     `Its own run history stays in the queue.</p>` +
     `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
     // The dialog's own heading asks the question and the form beside

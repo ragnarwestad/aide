@@ -1,7 +1,7 @@
 // The served project page (spec 185): drift/deploy, run readiness, and
 // the schedule section.
 
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { ProjectReadiness } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { SETTING_LABELS } from "../../../project/setting-labels.ts";

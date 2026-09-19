@@ -2,42 +2,7 @@
 // The two real manifests already diverge (logging.where is a string
 // in one, a list in the other) — normalization is the point.
 
-import { normalize as normalizePath } from "node:path";
-import { CronExpressionParser } from "cron-parser";
 import { parse } from "yaml";
-
-/** The same character class `queue.ts`'s `NAME_RE` checks a job's own
- *  names against — a schedule entry's name becomes half of a job's
- *  `schedule-<name>` tracking key, which has to survive as a git branch
- *  name and a directory-shaped string wherever the queue writes it. Not
- *  imported from `queue.ts`: this module is read by things that parse a
- *  manifest with no queue in the picture at all. */
-export const SCHEDULE_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
-
-/** One recurring job (spec 259): a cron expression and the prompt file
- *  its run sends verbatim, relative to the project root. */
-export interface ScheduleEntry {
-  name: string;
-  cron: string;
-  prompt: string;
-  /** Absent or anything but the literal boolean `false` means enabled —
-   *  an existing entry with no such field keeps firing exactly as it
-   *  always has. */
-  enabled: boolean;
-  /** Which model every fire of this entry runs on — a NAME out of the
-   *  queue config's own `modelChoices` table, exactly like the name a
-   *  spec's phase line posts. Absent means the entry never picked one
-   *  and the configuration's own `schedule` default decides, which is
-   *  what every entry written before this field did. */
-  model?: string;
-  /** When the entry was created or last edited from the dashboard's own
-   *  Schedule forms (spec 461) — an ISO timestamp `isDue` treats as
-   *  already-used ground, the same way it treats a tracked job's own
-   *  `startedAt ?? createdAt`. Absent means an entry written by hand,
-   *  which keeps firing on its very first eligible window exactly as
-   *  every entry did before this field existed. */
-  since?: string;
-}
 
 export interface ManifestData {
   name?: string;
@@ -81,18 +46,6 @@ export interface ManifestData {
    *  through, so no reader downstream has to decide for itself what a
    *  word it has never heard means. */
   codeLanding?: "merge" | "pr";
-  /** Recurring jobs this project wants run on a schedule (spec 259).
-   *  Committed and reviewed, the same trust level `codeLanding` has — no
-   *  `.aide/config` fallback, because a schedule is team policy, not a
-   *  per-machine setting. Absent when the project has none.
-   *
-   *  Each entry is validated on its own and a bad one is DROPPED rather
-   *  than carried through with a guess: a `prompt:` path that would
-   *  escape the project root, or a `cron:` expression that does not
-   *  parse. The array itself is omitted when nothing survived, so a
-   *  reader never has to tell "no schedule" apart from "every entry was
-   *  malformed" — both render the same, absent, section. */
-  schedule?: ScheduleEntry[];
   /** What installing this project means, and its own test command —
    *  both read the same way as `worktreeLinks` (spec 345):
    *  `.aide/config`'s `AIDE_INSTALL_CMD`/`AIDE_TEST_CMD` override these
@@ -116,18 +69,6 @@ export interface ManifestData {
    *  that carries `dashboard/test/round/run` (aide itself) needs none —
    *  that script is what its own preview starts. */
   previewCmd?: string;
-}
-
-/** Whether `path`, read relative to the project root, could resolve
- *  outside it — an absolute path, or one whose `..` segments climb past
- *  the root. Purely a shape check on the string: it never touches the
- *  filesystem, so it works the same for a `prompt:` value that is never
- *  going to exist as for one that does (spec 259, acceptance criterion
- *  8 — the entry is dropped at PARSE time, before anything reads it). */
-export function escapesRoot(path: string): boolean {
-  if (path.startsWith("/") || path.startsWith("\\") || /^[A-Za-z]:[\\/]/.test(path)) return true;
-  const normalized = normalizePath(path).replace(/\\/g, "/");
-  return normalized === ".." || normalized.startsWith("../");
 }
 
 export type ManifestResult =
@@ -201,39 +142,6 @@ export function parseManifest(text: string): ManifestResult {
   // safe default the same way an absent key does.
   const landing = toStr(r.codeLanding)?.trim();
   if (landing === "merge" || landing === "pr") data.codeLanding = landing;
-
-  if (r.schedule != null && Array.isArray(r.schedule)) {
-    const entries: ScheduleEntry[] = [];
-    for (const entry of r.schedule) {
-      if (entry === null || typeof entry !== "object") continue;
-      const e = entry as Record<string, unknown>;
-      const name = toStr(e.name)?.trim();
-      const cron = toStr(e.cron)?.trim();
-      const prompt = toStr(e.prompt)?.trim();
-      if (!name || !cron || !prompt) continue;
-      if (!SCHEDULE_NAME_RE.test(name)) continue;
-      if (escapesRoot(prompt)) continue;
-      try {
-        CronExpressionParser.parse(cron);
-      } catch {
-        continue;
-      }
-      // An unusable model name is DROPPED, not the entry with it: the
-      // fire is what the entry is for, and one falling back to the
-      // configured model is a smaller surprise than a schedule that
-      // silently stopped running. The name's shape is all that can be
-      // checked here — whether the queue config actually grants it is
-      // the queue's own answer, and it is given at enqueue time.
-      const model = toStr(e.model)?.trim();
-      const since = toStr(e.since)?.trim();
-      entries.push({
-        name, cron, prompt, enabled: e.enabled !== false,
-        ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
-        ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
-      });
-    }
-    if (entries.length > 0) data.schedule = entries;
-  }
 
   return { ok: true, data };
 }

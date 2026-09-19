@@ -6,7 +6,7 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { join, resolve } from "node:path";
-import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolveSchedule } from "../../../project/discover";
+import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
@@ -266,7 +266,7 @@ export async function projectPages(
         // the page standing. A name nobody could fetch is no name, and
         // the choice falls back to the general word.
         defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
-        schedule: resolveSchedule(dir),
+        schedule: ctx.scheduleStore.list(name),
         // The Schedule tab's own New-job form (spec 468) — the same
         // construction `schedule-pages.ts` already builds for the
         // aggregate page's own routes.

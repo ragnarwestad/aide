@@ -5,7 +5,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { stringify } from "yaml";
-import { parseManifest, type ScheduleEntry } from "../parse-manifest.ts";
 
 /** A directory name, and nothing that could be read as a path. No
  *  separator, no `..`, no leading dot (a project directory the scan
@@ -133,93 +132,6 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
     return text; // nothing to clear, and nothing to write
   }
   return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
-}
-
-/** One serialized `schedule:` list entry. `name`, `cron` and `prompt` are
- *  always double-quoted — a `cron` value commonly starts with `*`, which
- *  is a YAML alias marker unquoted — and `enabled` is written only when
- *  `false`, matching `ScheduleEntry.enabled`'s absent-means-true
- *  contract: an entry that is enabled by default never gains a line
- *  nobody asked for. */
-function serializeScheduleEntry(entry: ScheduleEntry): string[] {
-  const lines = [
-    `  - name: "${entry.name}"`,
-    `    cron: "${entry.cron}"`,
-    `    prompt: "${entry.prompt}"`,
-  ];
-  if (!entry.enabled) lines.push(`    enabled: false`);
-  // Written only when the entry names one, matching `ScheduleEntry.model`'s
-  // absent-means-the-configuration-decides contract: an entry left on the
-  // default never gains a line pinning it to whatever that default
-  // happened to be on the day it was saved.
-  if (entry.model) lines.push(`    model: "${entry.model}"`);
-  // Written only when the entry carries one, matching `ScheduleEntry.since`'s
-  // absent-means-written-by-hand contract (spec 461): an entry with none
-  // never gains a line pinning it to a save time it never had.
-  if (entry.since) lines.push(`    since: "${entry.since}"`);
-  return lines;
-}
-
-/** The WHOLE new `.aide/project.yaml` text with its `schedule:` list
- *  replaced, given the file's CURRENT text — pure, no disk access, so a
- *  caller that commits and pushes the result (`schedule-admin.ts`) can
- *  ask for the bytes without this function writing them itself.
- *
- *  Block-span text surgery, exactly like `upsertManifestScalar`'s
- *  single-line surgery and for the same reason: a manifest carries a
- *  person's own comments and key order that a parse-mutate-`stringify()`
- *  round trip does not promise to preserve. The whole `schedule:` key and
- *  every following line indented under it is found, then replaced with
- *  freshly-serialized entries; every other line is untouched.
- *
- *  Before returning, the new text is re-parsed and compared against the
- *  intended entries — a mismatch throws rather than returns a corrupt or
- *  silently-different file, catching a quoting or validation bug before
- *  it reaches a caller. */
-export function scheduleListText(currentText: string, entries: readonly ScheduleEntry[]): string {
-  const lines = currentText.split("\n");
-  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
-  const at = lines.findIndex((line) => line.startsWith("schedule:"));
-  const block = entries.length > 0 ? ["schedule:", ...entries.flatMap(serializeScheduleEntry)] : [];
-
-  let next: string[];
-  if (at !== -1) {
-    let end = at + 1;
-    while (end < lines.length && /^\s+\S/.test(lines[end])) end++;
-    next = [...lines.slice(0, at), ...block, ...lines.slice(end)];
-  } else if (block.length > 0) {
-    while (lines.length && lines[lines.length - 1] === "") lines.pop();
-    next = [...lines, ...block];
-  } else {
-    next = lines;
-  }
-  const output = next.join("\n") + (trailing !== undefined || next.length ? "\n" : "");
-
-  const expected = entries.length > 0
-    ? entries.map((e) => ({
-        name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled,
-        ...(e.model ? { model: e.model } : {}),
-        ...(e.since ? { since: e.since } : {}),
-      }))
-    : undefined;
-  const reparsed = parseManifest(output);
-  if (!reparsed.ok || JSON.stringify(reparsed.data.schedule) !== JSON.stringify(expected)) {
-    throw new Error(
-      "writing the schedule list would produce a manifest that does not reparse to the " +
-        "intended entries — refusing to write",
-    );
-  }
-  return output;
-}
-
-/** Set the WHOLE `schedule:` list in a `.aide/project.yaml`, touching
- *  nothing else in the file (spec 276). A thin disk-writing wrapper over
- *  `scheduleListText`. */
-export function writeScheduleList(file: string, entries: readonly ScheduleEntry[]): void {
-  const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
-  const output = scheduleListText(text, entries);
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, output);
 }
 
 /** Keys into the project's own `.aide/config`, in the plain `KEY=value`

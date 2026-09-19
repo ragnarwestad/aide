@@ -7,9 +7,52 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, normalize as normalizePath } from "node:path";
 import { CronExpressionParser } from "cron-parser";
-import type { ScheduleEntry } from "../project/parse-manifest.ts";
+
+/** The same character class `queue.ts`'s `NAME_RE` checks a job's own
+ *  names against — a schedule entry's name becomes half of a job's
+ *  `schedule-<name>` tracking key, which has to survive as a git branch
+ *  name and a directory-shaped string wherever the queue writes it. */
+export const SCHEDULE_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** One recurring job: a cron expression and the prompt file its run
+ *  sends verbatim, relative to the project root. Stored in the serving
+ *  host's `queue-config.json` under `schedules.<project>`. */
+export interface ScheduleEntry {
+  name: string;
+  cron: string;
+  prompt: string;
+  /** Absent or anything but the literal boolean `false` means enabled —
+   *  an existing entry with no such field keeps firing exactly as it
+   *  always has. */
+  enabled: boolean;
+  /** Which model every fire of this entry runs on — a NAME out of the
+   *  queue config's own `modelChoices` table, exactly like the name a
+   *  spec's phase line posts. Absent means the entry never picked one
+   *  and the configuration's own `schedule` default decides, which is
+   *  what every entry written before this field did. */
+  model?: string;
+  /** When the entry was created or last edited from the dashboard's own
+   *  Schedule forms (spec 461) — an ISO timestamp `isDue` treats as
+   *  already-used ground, the same way it treats a tracked job's own
+   *  `startedAt ?? createdAt`. Absent means an entry written by hand,
+   *  which keeps firing on its very first eligible window exactly as
+   *  every entry did before this field existed. */
+  since?: string;
+}
+
+/** Whether `path`, read relative to the project root, could resolve
+ *  outside it — an absolute path, or one whose `..` segments climb past
+ *  the root. Purely a shape check on the string: it never touches the
+ *  filesystem, so it works the same for a `prompt:` value that is never
+ *  going to exist as for one that does (the entry is dropped when the
+ *  store reads it, before anything else looks at it). */
+export function escapesRoot(path: string): boolean {
+  if (path.startsWith("/") || path.startsWith("\\") || /^[A-Za-z]:[\\/]/.test(path)) return true;
+  const normalized = normalizePath(path).replace(/\\/g, "/");
+  return normalized === ".." || normalized.startsWith("../");
+}
 
 /** The job-store tracking key a schedule entry's runs are filed under —
  *  never a spec folder, and never resolved under the specs root
@@ -18,8 +61,8 @@ import type { ScheduleEntry } from "../project/parse-manifest.ts";
 export const scheduleTrackingKey = (name: string): string => `schedule-${name}`;
 
 /** The most recent time `cron` was due at or before `now`, or `null` for
- *  a `cron` string that does not parse — which, since `parseManifest`
- *  already rejects one at the source, only happens for a value dueness
+ *  a `cron` string that does not parse — which, since the store
+ *  already rejects one when it reads, only happens for a value dueness
  *  is asked to check some other way (a test, a future caller). */
 export function mostRecentFireTime(cron: string, now: Date): Date | null {
   try {

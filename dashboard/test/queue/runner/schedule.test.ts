@@ -7,7 +7,7 @@ import {
   isDue, mostRecentFireTime, nextFireTime, scheduleOutputDir, scheduleTrackingKey,
   type ScheduleJobRef,
 } from "../../../src/queue/schedule.ts";
-import type { ScheduleEntry } from "../../../src/project/parse-manifest.ts";
+import type { ScheduleEntry } from "../../../src/queue/schedule.ts";
 
 const ENTRY: ScheduleEntry = {
   name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true,

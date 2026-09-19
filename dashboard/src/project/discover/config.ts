@@ -1,10 +1,9 @@
 // A project's own `.aide/config` and `.aide/project.yaml`: where its
-// specs live, its worktree links, its code-landing policy and its
-// schedule.
+// specs live, its worktree links and its code-landing policy.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest, type ManifestData, type ScheduleEntry } from "../parse-manifest.ts";
+import { parseManifest, type ManifestData } from "../parse-manifest.ts";
 
 /** One key out of a project's OWN `.aide/config` — the personal,
  *  gitignored file where an operator writes what only their machine
@@ -150,23 +149,4 @@ export function resolvePreviewCmd(
   projectDir: string,
 ): { value: string | null; source: ConfigOverrideSource | null } {
   return resolveOverride(projectDir, "AIDE_PREVIEW_CMD", (d) => d.previewCmd);
-}
-
-/** This project's own recurring jobs (spec 259), read fresh off the
- *  MACHINERY's checkout — the same root `resolveCodeLanding` reads,
- *  never the dashboard's read-only display clone, and never cached: the
- *  poll that acts on this wants the config a run would actually see,
- *  not a copy that can go stale between a Save and the next tick.
- *
- *  The committed manifest and nothing else, for the same reason
- *  `codeLanding` has no `.aide/config` fallback: a schedule is a team
- *  policy, and a gitignored file on one machine cannot state one.
- *  Absent, unparseable, or no manifest at all → an empty list, which
- *  reads the same as "this project has no schedule" everywhere else
- *  does. */
-export function resolveSchedule(projectDir: string): ScheduleEntry[] {
-  const manifestFile = join(projectDir, ".aide", "project.yaml");
-  if (!existsSync(manifestFile)) return [];
-  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
-  return parsed.ok ? (parsed.data.schedule ?? []) : [];
 }

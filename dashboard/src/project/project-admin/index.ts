@@ -21,7 +21,6 @@ export {
   addProjectTarget,
   minimalManifest,
   upsertManifestScalar,
-  writeScheduleList,
   writeAideConfig,
   WORKTREE_LINK_DENYLIST,
   worktreeLinksError,

@@ -1,233 +1,151 @@
-// The schedule entry API routes (spec 276): create, edit, the Enabled
-// toggle, Run-now, and the cron-next preview — the HTTP-level proof
-// that `schedule-admin.ts`'s rules are reachable over the wire.
-// Acceptance criteria 5-11, 17 — route level (`test/project/admin/
-// schedule-admin.test.ts` proves the same rules at the unit level).
+// The schedule entry API routes: create, edit, the Enabled toggle, Run-now,
+// delete and the cron-next preview — the HTTP-level proof that
+// `schedule-admin.ts`'s rules are reachable over the wire. A save writes the
+// `schedules` key of the server's queue config file and commits nothing;
+// `test/project/admin/schedule-admin.test.ts` proves the same rules at the
+// unit level.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
-import { savable } from "../spec-page/spec-save-fixtures.ts";
-import { parseManifest } from "../../src/project/parse-manifest.ts";
 import { scheduleTrackingKey } from "../../src/queue/schedule.ts";
+import type { ServerOptions } from "../../src/serve/serve.ts";
 
 const harness = queueHarness("aide-schedule-admin-routes-");
-afterEach(() => harness.cleanup());
-
-function manifestPath(dir: string, project: string): string {
-  return join(dir, "root", project, ".aide", "project.yaml");
-}
-
-function writeManifest(dir: string, project: string, text: string): void {
-  mkdirSync(join(dir, "root", project, ".aide"), { recursive: true });
-  writeFileSync(manifestPath(dir, project), text);
-}
-
-// `since` (spec 461) is `new Date().toISOString()` at call time, so no
-// test can hard-code it — only bracket it between a `before`/`after`
-// taken around the request.
-function expectFreshSince(since: string | undefined, before: number, after: number): void {
-  expect(since).toBeDefined();
-  const parsed = Date.parse(since!);
-  expect(parsed).toBeGreaterThanOrEqual(before);
-  expect(parsed).toBeLessThanOrEqual(after);
-}
-
-function readSchedule(dir: string, project: string) {
-  const result = parseManifest(readFileSync(manifestPath(dir, project), "utf-8"));
-  if (!result.ok) throw new Error(result.error);
-  return result.data.schedule ?? [];
-}
+const configDirs: string[] = [];
+afterEach(() => {
+  harness.cleanup();
+  while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+});
 
 const asJson = { headers: { accept: "application/json" } };
+const jsonPost = (body: unknown) => ({
+  method: "POST",
+  headers: { accept: "application/json", "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 /** A queue config with two models to choose between, for the tests about
  *  an entry's own model pick. */
 const DEFAULTS = {
-    
   timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
-  modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" as const } },
+  modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
 };
 
-describe("POST /api/queue/schedule — create, project read from the body (spec 278, criteria 5, 6, 7, 13, 14)", () => {
-  test("a valid entry naming an allowed project is created in that project's manifest (criterion 13)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
+type Seed = Record<string, unknown>;
+
+/** A server whose queue config file is `queue-config.json` in a directory of
+ *  its own, seeded with `entries` under `aide`; the project's checkout has
+ *  the prompt file and a manifest, and `gitRun` records every git command. */
+function start(entries: Seed[] = [], extra: Partial<ServerOptions> = {}, configText?: string) {
+  const cfgDir = mkdtempSync(join(tmpdir(), "aide-schedule-cfg-"));
+  configDirs.push(cfgDir);
+  const file = join(cfgDir, "queue-config.json");
+  if (configText !== undefined) writeFileSync(file, configText);
+  // A seeded entry with no `since` is due at the tick's first look and
+  // would be queued behind the test's back, so each is stamped in the future.
+  const since = new Date(Date.now() + 3_600_000).toISOString();
+  if (configText === undefined && entries.length) {
+    writeFileSync(file, JSON.stringify({ schedules: { aide: entries.map((e) => ({ since, ...e })) } }));
+  }
+  const gitCalls: string[][] = [];
+  const started = harness.start({
+    extra: {
+      queueConfigFile: file,
+      gitRun: async (_dir: string, args: string[]) => {
+        gitCalls.push(args);
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      ...extra,
+    },
+  });
+  const project = join(started.dir, "root", "aide");
+  writeFileSync(join(project, "docs-nightly.md"), "# nightly\n");
+  mkdirSync(join(project, ".aide"), { recursive: true });
+  const manifest = join(project, ".aide", "project.yaml");
+  writeFileSync(manifest, "name: aide\n");
+  return {
+    ...started,
+    file,
+    manifest,
+    gitCalls,
+    stored: (): Seed[] => {
+      try {
+        return (JSON.parse(readFileSync(file, "utf-8")).schedules?.aide ?? []) as Seed[];
+      } catch {
+        return [];
+      }
+    },
+    wroteToGit: () => gitCalls.some((a) => ["commit", "push", "add"].includes(a[0]!)),
+  };
+}
+
+const nightly = (over: Seed = {}): Seed => ({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", ...over });
+const weekly = (): Seed => ({ name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md" });
+
+describe("POST /api/queue/schedule — create, project read from the body", () => {
+  test("a valid entry is written to the config file and nothing goes to git (AC-1)", async () => {
+    const t = start();
     const before = Date.now();
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
     const after = Date.now();
     expect(res.status).toBe(200);
-    const [entry] = readSchedule(dir, "aide");
-    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
-    expectFreshSince(entry?.since, before, after);
+    const [entry] = t.stored();
+    expect(entry).toMatchObject(nightly());
+    expect(Date.parse(String(entry!.since))).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(String(entry!.since))).toBeLessThanOrEqual(after);
+    expect(readFileSync(t.manifest, "utf-8")).toBe("name: aide\n");
+    expect(t.wroteToGit()).toBe(false);
   });
 
-  // Every route in this file used to write to `displayProjectDir` (the
-  // PERSON's own checkout) while `/schedule`'s own GET route reads off
-  // `machineryProjectDir` (the dashboard's own checkout) — two
-  // different directories that agree only when the harness has no
-  // `owned/<project>/code/.git` for `machineryProjectDir` to prefer, so
-  // this bug shipped invisibly through every other test in this file.
-  // Setting that `.git` up here is what makes the two diverge, the way
-  // production genuinely does.
-  test("writes to the dashboard's own checkout, not the reader's, when the two differ", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    const owned = join(dir, "owned", "aide", "code");
-    mkdirSync(join(owned, ".git"), { recursive: true });
-    writeFileSync(join(owned, "docs-nightly.md"), "# nightly\n");
-    mkdirSync(join(owned, ".aide"), { recursive: true });
-    writeFileSync(join(owned, ".aide", "project.yaml"), "name: aide\n");
-    // The reader's own checkout carries no such file at all — proving
-    // the write did not fall back to it.
-    writeManifest(dir, "aide", "name: aide\n");
-    const before = Date.now();
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
-    const after = Date.now();
-    expect(res.status).toBe(200);
-    const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
-    if (!ownedManifest.ok) throw new Error(ownedManifest.error);
-    const [entry] = ownedManifest.data.schedule ?? [];
-    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
-    expectFreshSince(entry?.since, before, after);
-    expect(readSchedule(dir, "aide")).toEqual([]);
-  });
-
-  // Spec 400, REQ-2: with no `owned/<project>/code/.git` at all,
-  // `machineryProjectDir` falls back to the reader's own checkout — the
-  // same pre-existing "upgrade path" fallback `saveSpecFiles` already
-  // inherits for spec saves (`project-checkout.ts:36-42`). The write
-  // must still succeed there rather than refuse or silently go nowhere.
-  test("with no owned checkout at all, the write falls back to the reader's, and still succeeds (spec 400 REQ-2)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const before = Date.now();
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
-    const after = Date.now();
-    expect(res.status).toBe(200);
-    const [entry] = readSchedule(dir, "aide");
-    expect(entry).toMatchObject({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
-    expectFreshSince(entry?.since, before, after);
-  });
-
-  // Spec 400, REQ-1/REQ-5: a commit or push that fails is refused with
-  // the reason on the page, never a silent success — the same `{ error }`
-  // shape every other refusal in this file already uses.
-  test("a commit that fails refuses with the reason named (spec 400 REQ-5)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host", { commit: { code: 1 } }) } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
+  test("a server with no config file refuses, naming the cause (AC-1)", async () => {
+    const t = start([], { queueConfigFile: undefined });
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBeTruthy();
+    expect(((await res.json()) as { error: string }).error).toContain("--queue-config");
   });
 
-  // A push failure is rolled back by git, which is mocked here — so (per
-  // `spec-save-action.test.ts`'s own note on the same shape) the bytes
-  // are only asserted unchanged for a refusal that never writes at all;
-  // the duplicate-name test right below is exactly that case.
-  test("a push that fails is refused, and reported by name (spec 400 REQ-5)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host", { push: { code: 1 } }) } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
+  test("a config file that is not valid JSON refuses and is left as it was (AC-1)", async () => {
+    const t = start([], {}, "{ not json");
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("push");
+    expect(readFileSync(t.file, "utf-8")).toBe("{ not json");
   });
 
-  test("a duplicate name is refused before any write (criterion 5)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 4 * * *", prompt: "docs-nightly.md" }),
-    });
+  test("a duplicate name is refused before any write", async () => {
+    const t = start([nightly()]);
+    const before = readFileSync(t.file, "utf-8");
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ cron: "0 4 * * *" }) }));
     expect(res.status).toBe(400);
-    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
+    expect(readFileSync(t.file, "utf-8")).toBe(before);
   });
 
-  test("a missing prompt path is refused, naming the path (criterion 6)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "missing.md" }),
-    });
+  test("a missing prompt path is refused, naming the path", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ prompt: "missing.md" }) }));
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("missing.md");
+    expect(((await res.json()) as { error: string }).error).toContain("missing.md");
   });
 
-  test("an invalid cron is refused before any write (criterion 7)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }),
-    });
+  test("an invalid cron is refused before any write", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ cron: "not-a-cron" }) }));
     expect(res.status).toBe(400);
-    expect(readSchedule(dir, "aide")).toEqual([]);
+    expect(t.stored()).toEqual([]);
   });
 
-  test("a project the allowlist does not contain is refused (400) before any write (criterion 14)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "ghost-project", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
+  test("a project the allowlist does not contain is refused (400) before any write", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "ghost-project", ...nightly() }));
     expect(res.status).toBe(400);
-    expect(readSchedule(dir, "aide")).toEqual([]);
+    expect(t.stored()).toEqual([]);
   });
 
-  // Spec 468: the form that posts here now lives on the project's own
-  // Schedule tab, not the aggregate /schedule page — a no-JS redirect
-  // has to land back where the form is, on both success and refusal.
   test("a no-script POST redirects to the project's own Schedule tab on success", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -238,147 +156,76 @@ describe("POST /api/queue/schedule — create, project read from the body (spec 
   });
 
   test("a no-script POST that is refused redirects to the project's own Schedule tab, with the reason", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }).toString(),
     });
     expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
+    expect(res.headers.get("location")!.startsWith("/projects/aide?tab=schedule&error=")).toBe(true);
   });
 });
 
-describe("POST /api/queue/schedule/<project>/<name> — edit (criterion 17)", () => {
-  test("editing the cron leaves the name and other entries alone", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(
-      dir, "aide",
-      "name: aide\nschedule:\n" +
-        "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
-        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
-    );
-    const before = Date.now();
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md" }),
-    });
-    const after = Date.now();
+describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
+  test("editing the cron leaves the name and other entries alone, and nothing goes to git (AC-1)", async () => {
+    const t = start([nightly(), weekly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ cron: "0 5 * * *" })));
     expect(res.status).toBe(200);
-    const [nightly, weekly] = readSchedule(dir, "aide");
-    expect(nightly).toMatchObject({ name: "nightly", cron: "0 5 * * *", prompt: "docs-nightly.md", enabled: true });
-    expectFreshSince(nightly?.since, before, after);
-    expect(weekly).toEqual({ name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true });
+    expect(t.stored().map((e) => [e.name, e.cron])).toEqual([["nightly", "0 5 * * *"], ["weekly", "0 4 * * 0"]]);
+    expect(readFileSync(t.manifest, "utf-8")).toBe("name: aide\n");
+    expect(t.wroteToGit()).toBe(false);
   });
 
-  test("renaming an entry is accepted (criterion 17)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const before = Date.now();
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
-    });
-    const after = Date.now();
+  test("renaming an entry is accepted", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ name: "renamed" })));
     expect(res.status).toBe(200);
-    const [entry] = readSchedule(dir, "aide");
-    expect(entry).toMatchObject({ name: "nightly-2", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true });
-    expectFreshSince(entry?.since, before, after);
+    expect(t.stored().map((e) => e.name)).toEqual(["renamed"]);
   });
 });
 
-describe("POST /api/queue/schedule/<project>/<name>/enabled (criterion 8)", () => {
-  test("a plain body with only `enabled` is never refused for missing confirmation", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/enabled`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ enabled: "0" }),
-    });
-    expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")[0]!.enabled).toBe(false);
-  });
-
-  test("flips back to true", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(
-      dir, "aide",
-      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n    enabled: false\n",
-    );
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/enabled`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ enabled: "1" }),
-    });
-    expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")[0]!.enabled).toBe(true);
+describe("POST /api/queue/schedule/<project>/<name>/enabled", () => {
+  test("a plain body with only `enabled` pauses the entry, and `true` resumes it (AC-1)", async () => {
+    const t = start([nightly()]);
+    const off = await fetch(`${t.base}/api/queue/schedule/aide/nightly/enabled`, jsonPost({ enabled: false }));
+    expect(off.status).toBe(200);
+    expect(t.stored()[0]!.enabled).toBe(false);
+    const on = await fetch(`${t.base}/api/queue/schedule/aide/nightly/enabled`, jsonPost({ enabled: true }));
+    expect(on.status).toBe(200);
+    expect(t.stored()[0]).not.toHaveProperty("enabled");
+    expect(t.wroteToGit()).toBe(false);
   });
 });
 
 describe("the entry's model, over the wire", () => {
   test("create stores the posted model on the entry", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" }),
-    });
+    const t = start([], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ model: "codex-fast" }) }));
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")[0]!.model).toBe("codex-fast");
+    expect(t.stored()[0]!.model).toBe("codex-fast");
   });
 
   test("editing an entry replaces its model", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(
-      dir, "aide",
-      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n    model: sonnet\n",
-    );
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" }),
-    });
+    const t = start([nightly({ model: "sonnet" })], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ model: "codex-fast" })));
     expect(res.status).toBe(200);
-    expect(readSchedule(dir, "aide")[0]!.model).toBe("codex-fast");
+    expect(t.stored()[0]!.model).toBe("codex-fast");
   });
 
   test("a model the queue config does not grant is refused, and nothing is written", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
-    writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "retired" }),
-    });
+    const t = start([], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ model: "retired" }) }));
     expect(res.status).toBe(400);
-    expect(readSchedule(dir, "aide")).toHaveLength(0);
+    expect(t.stored()).toHaveLength(0);
   });
 });
 
-describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
+describe("POST /api/queue/schedule/<project>/<name>/run", () => {
   test("enqueues the schedule job under the entry's tracking key", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.job.project).toBe("aide");
@@ -387,18 +234,10 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   });
 
   // Run now is this entry firing early, not a different job: it has to
-  // run on the model the entry names, or a person pressing it is testing
-  // something other than what the schedule does at 03:00.
-  test("the job runs on the model the entry names", async () => {
-    const { base, dir } = harness.start({
-      extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") },
-    });
-    writeManifest(
-      dir, "aide",
-      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
-        "    model: codex-fast\n",
-    );
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+  // run on the model the entry names.
+  test("the job runs on the model the entry names (AC-5)", async () => {
+    const t = start([nightly({ model: "codex-fast" })], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.job.modelChoice).toBe("codex-fast");
@@ -406,21 +245,14 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   });
 
   test("an entry naming no model is enqueued without one — the configuration decides", async () => {
-    const { base, dir } = harness.start({
-      extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") },
-    });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    const t = start([nightly()], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.job.modelChoice).toBeUndefined();
+    expect((await res.json()).job.modelChoice).toBeUndefined();
   });
 });
 
-describe("Run now on an entry the queue refuses (spec 494)", () => {
-  const entryNaming = (model: string) =>
-    `name: aide\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs-nightly.md\n    model: ${model}\n`;
-
+describe("Run now on an entry the queue refuses", () => {
   /** `console.error` swapped for the length of one case. */
   async function withLoggedErrors<T>(run: () => Promise<T>): Promise<{ value: T; lines: string[] }> {
     const original = console.error;
@@ -434,10 +266,9 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
   }
 
   test("a JSON press names the entry and gives the queue's reason, and is logged once", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeManifest(dir, "aide", entryNaming("retired"));
+    const t = start([nightly({ model: "retired" })], { queueDefaults: DEFAULTS });
     const { value: res, lines } = await withLoggedErrors(() =>
-      fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson }),
+      fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson }),
     );
     expect(res.status).toBe(400);
     const { error } = (await res.json()) as { error: string };
@@ -445,16 +276,12 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
     expect(error).toContain("unknown or not-allowed model: retired");
     const logged = lines.filter((l) => l.includes("run now refused for aide/nightly"));
     expect(logged).toHaveLength(1);
-    expect(logged[0]).toContain("unknown or not-allowed model: retired");
   });
 
   test("a press with no script is redirected to /schedule carrying the same sentence", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeManifest(dir, "aide", entryNaming("retired"));
+    const t = start([nightly({ model: "retired" })], { queueDefaults: DEFAULTS });
     const { value: res } = await withLoggedErrors(() =>
-      fetch(`${base}/api/queue/schedule/aide/nightly/run`, {
-        method: "POST", headers: {}, redirect: "manual",
-      }),
+      fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", headers: {}, redirect: "manual" }),
     );
     expect(res.status).toBe(303);
     const location = res.headers.get("location") ?? "";
@@ -463,165 +290,77 @@ describe("Run now on an entry the queue refuses (spec 494)", () => {
   });
 
   test("an entry naming the model in another case runs on the listed spelling", async () => {
-    const { base, dir } = harness.start({ extra: { queueDefaults: DEFAULTS, gitRun: savable("/host") } });
-    writeManifest(dir, "aide", entryNaming("SONNET"));
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    const t = start([nightly({ model: "SONNET" })], { queueDefaults: DEFAULTS });
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
     expect(((await res.json()) as { job: { modelChoice: string } }).job.modelChoice).toBe("sonnet");
   });
 });
 
-describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
-  test("a matching confirm deletes the entry and answers {ok: true} (criterion 1)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(
-      dir, "aide",
-      "name: aide\nschedule:\n" +
-        "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
-        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
-    );
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly" }),
-    });
+describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
+  test("deletes the entry, leaves the others, and nothing goes to git (AC-1)", async () => {
+    const t = start([nightly(), weekly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true },
-    ]);
+    expect((await res.json()).ok).toBe(true);
+    expect(t.stored().map((e) => e.name)).toEqual(["weekly"]);
+    expect(t.wroteToGit()).toBe(false);
   });
 
-  test("deleting the last entry removes the schedule key entirely (criterion 3)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly" }),
-    });
-    expect(res.status).toBe(200);
-    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).not.toContain("schedule:");
+  test("deleting the last entry removes the project's key", async () => {
+    const t = start([nightly()]);
+    await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}));
+    expect(JSON.parse(readFileSync(t.file, "utf-8")).schedules).not.toHaveProperty("aide");
   });
 
-  test("a no-script POST redirects to /schedule on success, never /projects or / (criterion 10)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+  test("a no-script POST redirects to /schedule on success", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ confirm: "nightly" }).toString(),
+      body: "",
     });
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("/schedule");
-    expect(readSchedule(dir, "aide")).toEqual([]);
+    expect(t.stored()).toEqual([]);
   });
 
-  // Criterion 2 asked for the entry's name typed back. The page and the
-  // dialog ask the question in a sentence now (2026-09-08), so a press
-  // with an empty body IS the answer and the entry goes.
-  test("a press with no confirmation deletes the entry (criterion 2)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    expect(res.status).toBe(200);
-    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).not.toContain("nightly");
-  });
-
-  test("an unknown entry name in an allowed project refuses with 400 (criterion 5)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/ghost/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "ghost" }),
-    });
+  test("an unknown entry name in an allowed project refuses with 400", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/ghost/delete`, jsonPost({}));
     expect(res.status).toBe(400);
-    expect(readSchedule(dir, "aide")).toHaveLength(1);
+    expect(t.stored()).toHaveLength(1);
   });
 
-  test("an unallowed project refuses with 400 (criterion 6)", async () => {
-    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
-    const res = await fetch(`${base}/api/queue/schedule/ghost-project/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly" }),
-    });
+  test("an unallowed project refuses with 400", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule/ghost-project/nightly/delete`, jsonPost({}));
     expect(res.status).toBe(400);
   });
 
-  // The same regression shape as create's own test above: this route
-  // must write through `machineryProjectDir` (the dashboard's own
-  // checkout), never `displayProjectDir` (the reader's).
-  test("writes to the dashboard's own checkout, not the reader's, when the two differ (criterion 4)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    const owned = join(dir, "owned", "aide", "code");
-    mkdirSync(join(owned, ".git"), { recursive: true });
-    mkdirSync(join(owned, ".aide"), { recursive: true });
-    writeFileSync(
-      join(owned, ".aide", "project.yaml"),
-      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
-    );
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly" }),
-    });
-    expect(res.status).toBe(200);
-    const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
-    if (!ownedManifest.ok) throw new Error(ownedManifest.error);
-    expect(ownedManifest.data.schedule ?? []).toEqual([]);
-    // The reader's own checkout is untouched — proving the write went
-    // to the OWNED checkout and not here.
-    expect(readSchedule(dir, "aide")).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
-    ]);
-  });
-
-  test("a job enqueued under the entry's tracking key survives the entry's deletion (criterion 11)", async () => {
-    const { base, dir } = harness.start({ extra: { gitRun: savable("/host") } });
-    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
-    const runRes = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
-    expect(runRes.status).toBe(200);
-    const key = scheduleTrackingKey("nightly");
-    const deleteRes = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
-      method: "POST",
-      ...asJson,
-      headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ confirm: "nightly" }),
-    });
-    expect(deleteRes.status).toBe(200);
-    const listRes = await fetch(`${base}/api/queue`, asJson);
-    const { jobs } = await listRes.json();
-    expect(jobs.some((j: { project: string; specFolder: string }) => j.project === "aide" && j.specFolder === key)).toBe(true);
+  test("a job enqueued under the entry's tracking key survives the entry's deletion", async () => {
+    const t = start([nightly()]);
+    expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson })).status).toBe(200);
+    expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}))).status).toBe(200);
+    const { jobs } = await (await fetch(`${t.base}/api/queue`, asJson)).json();
+    expect(
+      jobs.some((j: { project: string; specFolder: string }) => j.project === "aide" && j.specFolder === scheduleTrackingKey("nightly")),
+    ).toBe(true);
   });
 });
 
-describe("GET /api/queue/schedule/cron-next (criteria 10, 11)", () => {
+describe("GET /api/queue/schedule/cron-next", () => {
   test("a valid cron returns the same timestamp nextFireTime would compute", async () => {
-    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
-    const res = await fetch(`${base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "0 3 * * *" })}`, asJson);
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "0 3 * * *" })}`, asJson);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.next).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect((await res.json()).next).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
   test("an invalid cron returns an error and no timestamp", async () => {
-    const { base } = harness.start({ extra: { gitRun: savable("/host") } });
-    const res = await fetch(`${base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "not-a-cron" })}`, asJson);
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule/cron-next?${new URLSearchParams({ cron: "not-a-cron" })}`, asJson);
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.next).toBeUndefined();

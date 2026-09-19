@@ -29,6 +29,7 @@ import {
 } from "../schedules";
 import { createRootLock } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export interface ScheduleSetupOptions {
   projectRoot?: string;
@@ -42,6 +43,7 @@ export interface ScheduleSetupInputs {
   branchStatus: BranchStatusChecker;
   targets: () => SpecTarget[];
   allowed: Set<string>;
+  scheduleStore: ScheduleStore;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
   queue: QueueStore;
   specRoots: (project: string) => string[];
@@ -58,7 +60,7 @@ export interface ScheduleSetupInputs {
 
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
   const {
-    machineryProjectDir, branchStatus, targets, allowed, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
+    machineryProjectDir, branchStatus, targets, allowed, scheduleStore, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
     notifyQueueChanged, specsRoot, recheckTools,
   } = inputs;
 
@@ -91,6 +93,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   const scheduleCtx: ScheduleContext = {
     projectRoot: opts.projectRoot,
     machineryProjectDir,
+    scheduleStore,
     branchStatus,
     readWorkflowHistory: () => workflowHistory,
     readFreshness: () => freshness,

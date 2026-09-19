@@ -49,6 +49,7 @@ import { handleScheduleAdminRoutes } from "./schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./job-detail.ts";
 import { selfStopRoute } from "./self-stop.ts";
 import { selfRunRoute } from "./self-run.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 /** Everything `handleRoutes` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`
@@ -63,6 +64,8 @@ export interface RoutesContext {
   opts: ServerOptions;
   nav: () => NavEntry[];
   allowed: Set<string>;
+  /** Where scheduled jobs are kept: the `schedules` key of the queue config file. */
+  scheduleStore: ScheduleStore;
   readScan: () => { archived: string[] } | null;
   invalidateScan: () => void;
   /** Drop the cached branch answer for one spec (`dir`, `specFolder`),

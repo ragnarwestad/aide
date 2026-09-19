@@ -333,16 +333,21 @@ only after the write succeeds. Later jobs use them immediately; jobs already acc
 
 ## Running a job on a schedule
 
-A project can name recurring work of its own — a periodic analysis or report — in a `schedule:` list in its committed
-`.aide/project.yaml`:
+The serving host keeps each project's recurring work — a periodic analysis or report — in its own `queue-config.json`,
+under a `schedules` key keyed by project name:
 
-```yaml
-schedule:
-  - name: nightly-report
-    cron: "0 3 * * *"
-    prompt: docs/nightly-report.md
-    model: claude-opus-5
+```json
+{
+  "schedules": {
+    "aide": [
+      { "name": "nightly-report", "cron": "0 3 * * *", "prompt": "docs/nightly-report.md", "model": "claude-opus-5" }
+    ]
+  }
+}
 ```
+
+A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
+schedule; a job belongs to the installation that fires it.
 
 Each entry is a name (becomes the job's `schedule-<name>` tracking key, never a spec folder), a standard five-field cron
 expression, and a prompt file's path, relative to the project's own root. A background poll checks every project's
@@ -378,7 +383,7 @@ only in case is refused, naming them. An entry that names no model is enqueued w
 and the queue config's own `schedule` default decides. "Run now"
 reads the same field, so pressing it tests what the schedule actually does.
 
-An entry whose model the queue config does not offer (the manifest was edited by hand, or the config changed) is
+An entry whose model the queue config does not offer (the config file was edited by hand, or the queue config changed) is
 flagged in its Name cell on `/schedule` and above the Overview on its own page, naming the model and the ones the queue
 offers. Its runs are refused: Run now writes the queue's reason into the message slot above the list (`Run now was
 refused for <project>:<entry>: …`, or in `?error=` for a press made without script) and logs `queue: run now refused for
@@ -402,14 +407,13 @@ every entry did before. A window whose fire the queue refused made no job, so it
 `tz:` field. Check what
 "3am" means on the machine actually running the poll before relying on it across a daylight-saving transition.
 
-**A schedule is a committed, reviewed setting, like `codeLanding` — it has no `.aide/config` fallback.**
-Creating, editing, enabling/disabling or deleting an entry through `/schedule`'s own forms commits and
-pushes the change from the dashboard's own checkout immediately, the same way a spec's own Save does — no
-manual git step. A save that cannot be committed or pushed (no reachable origin, a checkout that cannot
-fast-forward) is refused with the reason on the page, and the manifest is left exactly as it was rather
-than holding an edit nothing recorded. A `prompt:` path that would resolve outside the project root (an
-absolute path, or one whose `..` climbs past it) is dropped at parse time, and a malformed `cron:` drops
-that one entry — never the whole list.
+**Where jobs are stored.** Creating, editing, enabling/disabling or deleting an entry through `/schedule`'s own forms
+writes the `schedules` key of the file named by `--queue-config` and commits nothing. The rest of the file, comments
+included, is left as it was. The file is read again on every poll and every page, so a hand edit takes effect at the next
+poll. A save is refused, with the reason on the page and the file untouched, when the server has no `--queue-config` file
+or the file is not valid JSON. While the file cannot be read the poll logs it once and starts no scheduled job. A
+`prompt` path that would resolve outside the project root (an absolute path, or one whose `..` climbs past it) is dropped
+when the file is read, and a malformed `cron` drops that one entry — never the whole list.
 
 ## How many run at once
 

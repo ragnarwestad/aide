@@ -48,6 +48,15 @@ export function projectsRoot(projects: Record<string, string | null>, files: str
   return dir;
 }
 
+/** A queue config file this suite owns, holding `aide`'s scheduled jobs. */
+export function scheduleConfig(entries: Record<string, unknown>[]): string {
+  const dir = mkdtempSync(join(tmpdir(), "aide-detail-cfg-"));
+  ownDirs.push(dir);
+  const file = join(dir, "queue-config.json");
+  writeFileSync(file, JSON.stringify({ schedules: { aide: entries } }));
+  return file;
+}
+
 /** A checkout that is its own repository, on its default branch, with
  *  every other question answered the boring way. */
 export const settled = (root: string, name: string) =>
@@ -68,13 +77,14 @@ export const stranded = (root: string, name: string) =>
     "show-ref": { code: 1 },
   });
 
-export function serve(root: string, git: { run: GitRunner }, driftPollMs?: number): string {
+export function serve(root: string, git: { run: GitRunner }, driftPollMs?: number, queueConfigFile?: string): string {
   return harness.start({
     extra: {
       projectRoot: root,
       queueProjectRoot: root,
       gitRun: git.run,
       ...(driftPollMs !== undefined ? { driftPollMs } : {}),
+      ...(queueConfigFile ? { queueConfigFile } : {}),
     },
   }).base;
 }

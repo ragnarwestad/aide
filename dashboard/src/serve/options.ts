@@ -147,7 +147,7 @@ export interface ServerOptions {
    *  checkers' own TTL, which is the window each answer was already
    *  considered current for. */
   specCachePollMs?: number;
-  /** How often each project's own `schedule:` entries are checked for a
+  /** How often each project's scheduled jobs are checked for a
    *  due fire (spec 259). It is a SCHEDULE, not a cache window, like
    *  `driftPollMs` and `specCachePollMs`: nothing but this timer ever
    *  asks the question, and a manual "run now" goes through the ordinary

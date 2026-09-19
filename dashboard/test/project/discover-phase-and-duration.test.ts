@@ -4,10 +4,8 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveSchedule, specArchivedDate, specPhaseFile } from "../../src/project/discover";
-import { useDiscoverRoot } from "./discover-fixtures.ts";
+import { specArchivedDate, specPhaseFile } from "../../src/project/discover";
 
-const fx = useDiscoverRoot();
 
 // --- spec 150: what a phase MADE --------------------------------------------
 //
@@ -163,41 +161,5 @@ describe("specArchivedDate", () => {
 
   test("no 4-status.md at all answers null", () => {
     expect(specArchivedDate(join(dir, "nothing-here"))).toBeNull();
-  });
-});
-
-// Spec 259: a project's own recurring jobs, read the same way
-// `resolveCodeLanding` reads codeLanding — the committed manifest only,
-// no `.aide/config` fallback, absent/unparseable/missing all falling to
-// "no schedule" rather than a guess.
-describe("resolveSchedule (spec 259)", () => {
-  test("a manifest with entries returns them", () => {
-    const dir = join(fx.root, "proj-schedule-a");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "project.yaml"),
-      'name: x\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n',
-    );
-    expect(resolveSchedule(dir)).toEqual([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }]);
-  });
-
-  test("a project with no manifest at all has no schedule", () => {
-    const dir = join(fx.root, "proj-schedule-nomanifest");
-    mkdirSync(dir, { recursive: true });
-    expect(resolveSchedule(dir)).toEqual([]);
-  });
-
-  test("a manifest with no schedule key has no schedule", () => {
-    const dir = join(fx.root, "proj-schedule-none");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\n");
-    expect(resolveSchedule(dir)).toEqual([]);
-  });
-
-  test("an unparseable manifest has no schedule rather than guessing", () => {
-    const dir = join(fx.root, "proj-schedule-broken");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: [x\n  - broken\n");
-    expect(resolveSchedule(dir)).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@
 // Monitoring and editing live here; creating a job moved to the
 // project's own Schedule tab (spec 468).
 
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import { backLink, btn, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";

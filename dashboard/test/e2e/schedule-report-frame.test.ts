@@ -37,14 +37,15 @@ beforeAll(async () => {
       },
     ]),
   );
+  const queueConfigFile = join(scratch, "queue-config.json");
+  writeFileSync(
+    queueConfigFile,
+    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
+  );
   const started = harness.start({
-    extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json") },
+    extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
   });
   base = started.base;
-  writeFileSync(
-    join(started.dir, "root", "aide", ".aide", "project.yaml"),
-    'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n',
-  );
   browser = await chromium.launch();
   page = await browser.newPage();
 });

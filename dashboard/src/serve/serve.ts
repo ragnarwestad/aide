@@ -39,6 +39,7 @@ import { checkRequest, createHostAllowlist } from "./serve-helpers";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
+import { createScheduleStore } from "../queue/schedule-store.ts";
 import { setupProjectResolution } from "./setup/project-resolution.ts";
 import { setupSchedules } from "./setup/schedules.ts";
 import { setupLand } from "./setup/land.ts";
@@ -87,7 +88,10 @@ export function createServer(opts: ServerOptions) {
   const pdfCacheDir = opts.pdfCacheDir ?? DEFAULT_PDF_CACHE_DIR;
   const pdfGeneratorBin = opts.pdfGeneratorBin ?? "aide-generate-pdf";
 
-  const resolution = setupProjectResolution(opts, allowed, state);
+  // Built before `setupProjectResolution`, which hands it to
+  // `promptFileFor`; the tick, the pages and the schedule routes share it.
+  const scheduleStore = createScheduleStore(opts.queueConfigFile);
+  const resolution = setupProjectResolution(opts, allowed, state, scheduleStore);
   const { targets, gitRun, branchStatus, ensureCheckout } = resolution;
 
   // This process's own commit, read once (spec 269) — see state.ts's
@@ -149,6 +153,7 @@ export function createServer(opts: ServerOptions) {
     branchStatus,
     targets,
     allowed,
+    scheduleStore,
     ensureCheckout,
     queue,
     specRoots: resolution.specRoots,
@@ -325,6 +330,7 @@ export function createServer(opts: ServerOptions) {
     opts,
     nav,
     allowed,
+    scheduleStore,
     branchFileSteps: schedules.branchFileSteps,
     rereadSpec: schedules.rereadSpec,
     targets,

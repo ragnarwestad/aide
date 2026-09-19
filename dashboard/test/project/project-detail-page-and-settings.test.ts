@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { harness, ownDirs, projectsRoot, settled, serve, get } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, scheduleConfig, settled, serve, get } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -269,17 +269,26 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
 // Spec 259: a project's own recurring jobs, shown on its own page —
 // acceptance criteria 6 and 7.
 describe("what the page says about its schedule (spec 259, acceptance criteria 6-7)", () => {
-  test("a manifest with schedule entries shows each one's fields (criterion 7)", async () => {
+  const NIGHTLY = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
+
+  test("the queue config's jobs for the project show each one's fields (AC-5)", async () => {
     const root = projectsRoot({ aide: null });
-    writeFileSync(
-      join(root, "aide", ".aide", "project.yaml"),
-      "name: aide\nschedule:\n  - name: nightly-report\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
-    );
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
+    const html = await (await get(serve(root, settled(root, "aide"), undefined, scheduleConfig([NIGHTLY])), "aide", "schedule")).text();
     expect(html).toContain("Schedule");
     expect(html).toContain("nightly-report");
     expect(html).toContain("0 3 * * *");
     expect(html).toContain("docs/nightly.md");
+  });
+
+  test("a manifest's own schedule: list is not shown — only the config's jobs are (AC-2)", async () => {
+    const root = projectsRoot({ aide: null });
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\nschedule:\n  - name: from-manifest\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+    );
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
+    expect(html).not.toContain("from-manifest");
+    expect(html).toMatch(/nothing is scheduled/i);
   });
 
   // Spec 378 (REQ-6): the Schedule tab is now ALWAYS offered — a
@@ -311,11 +320,7 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
   // place an entry's own detail page is reachable from.
   test("an entry's name links to its own detail page (AC-6)", async () => {
     const root = projectsRoot({ aide: null });
-    writeFileSync(
-      join(root, "aide", ".aide", "project.yaml"),
-      "name: aide\nschedule:\n  - name: nightly-report\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
-    );
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
+    const html = await (await get(serve(root, settled(root, "aide"), undefined, scheduleConfig([NIGHTLY])), "aide", "schedule")).text();
     expect(html).toContain('href="/schedule/aide/nightly-report"');
   });
 

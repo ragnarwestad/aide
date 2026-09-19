@@ -5,7 +5,6 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
-import { resolveSchedule } from "../../../project/discover";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import {
   SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderDeleteSchedulePage, renderReportPanel,
@@ -37,7 +36,7 @@ export async function schedulePages(
     // `listed` array is every allowed project's jobs at once.
     const projects = [...ctx.allowed].sort();
     const rows = projects.flatMap((project) =>
-      resolveSchedule(ctx.machineryProjectDir(project)).map((entry) => {
+      ctx.scheduleStore.list(project).map((entry) => {
         const key = scheduleTrackingKey(entry.name);
         const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
         const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
@@ -80,7 +79,7 @@ export async function schedulePages(
     const project = decodeURIComponent(scheduleDeletePage[1]!);
     const name = decodeURIComponent(scheduleDeletePage[2]!);
     if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
-    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     if (!entry) return new Response("not found", { status: 404 });
     const langResult = languageChoice(url, req);
     const html = renderDeleteSchedulePage(ctx.nav(), new Date().toISOString(), {
@@ -102,7 +101,7 @@ export async function schedulePages(
     const project = decodeURIComponent(scheduleDetailPage[1]!);
     const name = decodeURIComponent(scheduleDetailPage[2]!);
     if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
-    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     if (!entry) return new Response("not found", { status: 404 });
     const key = scheduleTrackingKey(name);
     const jobs = ctx.queue

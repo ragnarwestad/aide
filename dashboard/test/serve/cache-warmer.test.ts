@@ -21,6 +21,7 @@ import { type GitCall } from "../helpers/fake-git.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { refreshSpecCaches, type ScheduleContext } from "../../src/serve/schedules";
+import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import type { CheckoutEnsurer } from "../../src/git/dashboard-checkout.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/git/workflow-history.ts";
@@ -374,6 +375,7 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
     const ctx: ScheduleContext = {
       projectRoot: undefined,
       machineryProjectDir: (p) => `/fake/${p}`,
+      scheduleStore: createScheduleStore(undefined),
       branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
       readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
       readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
@@ -443,6 +445,7 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
     const ctx: ScheduleContext = {
       projectRoot: undefined,
       machineryProjectDir: (p) => `/fake/${p}`,
+      scheduleStore: createScheduleStore(undefined),
       branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
       readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
       readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,

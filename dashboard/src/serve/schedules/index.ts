@@ -18,7 +18,7 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/w
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import {
-  SPEC_FILES, buildProjectViews, resolveInstallCmd, resolveSchedule, specArchivedDate,
+  SPEC_FILES, buildProjectViews, resolveInstallCmd, specArchivedDate,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
@@ -28,6 +28,7 @@ import { STATUS_SPEC_FILE } from "../../render";
 import { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import { logRefusal } from "../serve-helpers/redirect.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze } from "./blocked.ts";
 
@@ -64,6 +65,7 @@ export interface ScheduleContext {
   targets: () => SpecTarget[];
   readScan: () => { archived: string[]; dirs: Map<string, string> } | null;
   allowed: Set<string>;
+  scheduleStore: ScheduleStore;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
   getWarming: () => boolean;
   setWarming: (v: boolean) => void;
@@ -257,13 +259,14 @@ function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {
   return true;
 }
 
-/** Spec 259: does any project's own `schedule:` entry have a fire due
- *  right now, and if so enqueue it. `refreshDrift`'s shape again — a
+/** Does any project's scheduled job have a fire due right now, and if
+ *  so enqueue it. `refreshDrift`'s shape again — a
  *  SCHEDULE, not a cache window, and nothing but this timer ever asks
  *  the question.
  *
- *  Each project's manifest is read fresh on every tick
- *  (`resolveSchedule`, off the MACHINERY checkout), never cached: an
+ *  Each project's jobs are read fresh on every tick
+ *  (`ctx.scheduleStore`, the `schedules` key of the queue config file),
+ *  never cached: an
  *  operator who edits a cron expression sees the next tick honour it,
  *  not the next restart. Due-ness is `isDue`'s alone — this loop
  *  supplies it the queue's own job history for the entry's tracking key
@@ -273,14 +276,14 @@ function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {
  *  tried again next tick. The refusal is logged once per fire window and
  *  reason (`ctx.refusedFires`), not once per tick: a weekly entry refused
  *  for the same reason is logged again the week after, and an entry that
- *  leaves the manifest is forgotten. */
+ *  leaves the configuration is forgotten. */
 export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
   if (!ctx.projectRoot) return;
   const now = new Date((ctx.now ?? Date.now)());
   const refused = (ctx.refusedFires ??= new Map<string, string>());
   const live = new Set<string>();
   for (const project of ctx.allowed) {
-    const entries = resolveSchedule(ctx.machineryProjectDir(project));
+    const entries = ctx.scheduleStore.list(project);
     for (const entry of entries) {
       const key = scheduleTrackingKey(entry.name);
       const memoKey = `${project}/${entry.name}`;

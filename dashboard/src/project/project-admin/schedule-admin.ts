@@ -1,72 +1,22 @@
-// Create, edit and pause a project's schedule entries (spec 276) — the
-// operational surface around the scheduling engine in
-// `dashboard/src/queue/schedule.ts`, which this file never touches.
-// Modeled on `update-settings.ts`'s changed-only-write,
+// Create, edit and pause a project's schedule entries — the operational
+// surface around the scheduling engine in `dashboard/src/queue/schedule.ts`,
+// which this file never touches. The entries live in the serving host's
+// `queue-config.json` (`queue/schedule-store.ts`), so a save is a file
+// write and nothing in git. Modeled on `update-settings.ts`'s
 // refuse-before-write shape.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
-import type { GitRunner } from "../../git/branch-status.ts";
-import { lastCommitOf } from "../../git/description-freshness.ts";
-import { saveSpecFile } from "../../git/specs-pull.ts";
 import { listedModelName } from "../../queue/model-name.ts";
-import { escapesRoot, parseManifest, SCHEDULE_NAME_RE, type ScheduleEntry } from "../parse-manifest.ts";
-import { scheduleListText } from "./manifest-io.ts";
+import { escapesRoot, SCHEDULE_NAME_RE, type ScheduleEntry } from "../../queue/schedule.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export type ScheduleAdminResult = { ok: true } | { ok: false; error: string };
 
-/** What every schedule write needs from git: how to run a command, and
- *  how to resolve a checkout's default branch — the same shape
- *  `saveSpecFile`'s other callers (`spec-page.ts`, `checks.ts`) already
- *  build from `ctx.gitRun`/`ctx.branchStatus.defaultBranch`. */
-export interface ScheduleGit {
-  run: GitRunner;
-  resolveBase: (root: string) => Promise<string | null>;
-}
-
-const MANIFEST_FILE = join(".aide", "project.yaml");
-
-/** Every schedule write's git identity: what the commit says, and how
- *  the commit-and-push is asked for. Reuses `saveSpecFile` (spec 162)
- *  exactly as REQ-2 asks — the same commit/push/rollback contract a
- *  spec-file Save already gets, over `.aide/project.yaml` in the
- *  project's own CODE checkout instead of a spec folder in the specs
- *  one. The CALLER (`schedule-admin-routes.ts`) is responsible for the
- *  `mergeLock` around this, exactly as `spec-page.ts`/`checks.ts` wrap
- *  their own `saveSpecFiles` calls — this function only knows how to
- *  save, not how to serialize against a landing or a Settings pull
- *  sharing the same checkout root. */
-async function saveEntries(
-  git: ScheduleGit,
-  projectDir: string,
-  entries: readonly ScheduleEntry[],
-  message: string,
-): Promise<ScheduleAdminResult> {
-  const path = manifestPath(projectDir);
-  const currentText = existsSync(path) ? readFileSync(path, "utf-8") : "";
-  let text: string;
-  try {
-    text = scheduleListText(currentText, entries);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-  const current = await lastCommitOf(git.run, projectDir, MANIFEST_FILE);
-  const result = await saveSpecFile(git.run, projectDir, git.resolveBase, {
-    file: MANIFEST_FILE, text, baseSha: current?.sha ?? null, specLabel: "schedule", message,
-  });
-  return result.ok ? { ok: true } : { ok: false, error: result.note };
-}
-
-function manifestPath(projectDir: string): string {
-  return join(projectDir, ".aide", "project.yaml");
-}
-
-function readEntries(projectDir: string): ScheduleEntry[] {
-  const file = manifestPath(projectDir);
-  if (!existsSync(file)) return [];
-  const parsed = parseManifest(readFileSync(file, "utf-8"));
-  return parsed.ok ? [...(parsed.data.schedule ?? [])] : [];
+function saveEntries(store: ScheduleStore, project: string, entries: readonly ScheduleEntry[]): ScheduleAdminResult {
+  const error = store.save(project, entries);
+  return error ? { ok: false, error } : { ok: true };
 }
 
 /** Why a create/edit request cannot be saved, or `null`. Checked before
@@ -134,40 +84,42 @@ function storedModel(model: string | undefined, knownModels?: readonly string[])
   return "name" in listed ? listed.name : posted;
 }
 
-/** Add a new entry, enabled by default (acceptance criteria 5, 6, 7). */
-export async function createScheduleEntry(
-  git: ScheduleGit,
+/** Add a new entry, enabled by default. `projectDir` is where the prompt
+ *  path is checked. */
+export function createScheduleEntry(
+  store: ScheduleStore,
+  project: string,
   projectDir: string,
   req: { name: string; cron: string; prompt: string; model?: string },
   knownModels?: readonly string[],
-): Promise<ScheduleAdminResult> {
-  const existing = readEntries(projectDir);
+): ScheduleAdminResult {
+  const existing = store.list(project);
   const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels);
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
   const entry: ScheduleEntry = {
     name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
-    // Stamped on every save (spec 461): a fire at or before this floor
-    // reads as already used, so a fresh entry's first real run is its
-    // next fire after the save, not whatever the cron's most recent
-    // fire already was.
+    // Stamped on every save: a fire at or before this floor reads as
+    // already used, so a fresh entry's first real run is its next fire
+    // after the save, not whatever the cron's most recent fire already was.
     since: new Date().toISOString(),
     ...(model ? { model } : {}),
   };
-  return saveEntries(git, projectDir, [...existing, entry], `Add schedule entry "${entry.name}" from the dashboard`);
+  return saveEntries(store, project, [...existing, entry]);
 }
 
 /** Edit an existing entry by its current name. A rename is accepted —
  *  the entry's tracking key changes with it, and its run history under
- *  the old key is not carried across (acceptance criterion 17). */
-export async function updateScheduleEntry(
-  git: ScheduleGit,
+ *  the old key is not carried across. */
+export function updateScheduleEntry(
+  store: ScheduleStore,
+  project: string,
   projectDir: string,
   currentName: string,
   req: { name: string; cron: string; prompt: string; model?: string },
   knownModels?: readonly string[],
-): Promise<ScheduleAdminResult> {
-  const existing = readEntries(projectDir);
+): ScheduleAdminResult {
+  const existing = store.list(project);
   const current = existing.find((e) => e.name === currentName);
   if (!current) return { ok: false, error: `no schedule entry named "${currentName}"` };
   const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels);
@@ -177,9 +129,7 @@ export async function updateScheduleEntry(
     e.name === currentName
       ? {
           name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: e.enabled,
-          // Reset on every save, a bare rename included (spec 461): the
-          // description's own "laget eller endret" does not condition
-          // this on which field changed.
+          // Reset on every save, a bare rename included.
           since: new Date().toISOString(),
           // An edit that posts no model at all CLEARS the entry's own
           // pick, rather than keeping a value the form no longer shows:
@@ -191,41 +141,30 @@ export async function updateScheduleEntry(
         }
       : e,
   );
-  return saveEntries(git, projectDir, updated, `Edit schedule entry "${req.name.trim()}" from the dashboard`);
+  return saveEntries(store, project, updated);
 }
 
-/** Remove an entry entirely (spec 277). Manifest state only — a
- *  deleted entry's job history stays in the queue store under its old
- *  tracking key and is not touched here; it simply becomes unreachable
- *  through the UI once the entry it belonged to is gone. */
-export async function deleteScheduleEntry(
-  git: ScheduleGit,
-  projectDir: string,
-  name: string,
-): Promise<ScheduleAdminResult> {
-  const existing = readEntries(projectDir);
-  const current = existing.find((e) => e.name === name);
-  if (!current) return { ok: false, error: `no schedule entry named "${name}"` };
-  const updated = existing.filter((e) => e.name !== name);
-  return saveEntries(git, projectDir, updated, `Delete schedule entry "${name}" from the dashboard`);
+/** Remove an entry entirely. A deleted entry's job history stays in the
+ *  queue store under its old tracking key and is not touched here; it
+ *  simply becomes unreachable through the UI once the entry it belonged
+ *  to is gone. */
+export function deleteScheduleEntry(store: ScheduleStore, project: string, name: string): ScheduleAdminResult {
+  const existing = store.list(project);
+  if (!existing.some((e) => e.name === name)) return { ok: false, error: `no schedule entry named "${name}"` };
+  return saveEntries(store, project, existing.filter((e) => e.name !== name));
 }
 
-/** Pause or resume one entry — no `confirm` field required, unlike the
- *  spec page's own Reset route: this is an immediate, no-confirm flip
- *  (acceptance criterion 8). A value that matches what is already
- *  stored writes nothing, the same changed-only rule every other
- *  project-admin write follows. */
-export async function setScheduleEnabled(
-  git: ScheduleGit,
-  projectDir: string,
+/** Pause or resume one entry: an immediate, no-confirm flip. A value
+ *  that matches what is already stored writes nothing. */
+export function setScheduleEnabled(
+  store: ScheduleStore,
+  project: string,
   name: string,
   enabled: boolean,
-): Promise<ScheduleAdminResult> {
-  const existing = readEntries(projectDir);
+): ScheduleAdminResult {
+  const existing = store.list(project);
   const current = existing.find((e) => e.name === name);
   if (!current) return { ok: false, error: `no schedule entry named "${name}"` };
   if (current.enabled === enabled) return { ok: true };
-  const updated = existing.map((e) => (e.name === name ? { ...e, enabled } : e));
-  const verb = enabled ? "Enable" : "Disable";
-  return saveEntries(git, projectDir, updated, `${verb} schedule entry "${name}" from the dashboard`);
+  return saveEntries(store, project, existing.map((e) => (e.name === name ? { ...e, enabled } : e)));
 }

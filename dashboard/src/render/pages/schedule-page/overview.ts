@@ -1,7 +1,7 @@
 // The detail page's default tab (spec 276): the cron expression, the
 // computed next run, the prompt file path, and an inline Edit section
 // using the same form the New-job page does.
-import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
+import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";

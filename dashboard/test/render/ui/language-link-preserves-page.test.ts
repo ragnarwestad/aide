@@ -5,20 +5,30 @@
 // route-level proof that every one of AC-2's named pages actually wires
 // it in, one test per page.
 import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../../queue-routes/fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-language-link-");
-afterEach(() => harness.cleanup());
+const configDirs: string[] = [];
+afterEach(() => {
+  harness.cleanup();
+  while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+});
 
 const FOLDER = "81-queue-and-runner";
 
-function writeSchedule(dir: string, project: string, yaml: string): void {
-  writeFileSync(join(dir, "root", project, ".aide", "project.yaml"), yaml);
+/** A queue config file holding one scheduled job for `aide`. */
+function scheduleConfig(): string {
+  const dir = mkdtempSync(join(tmpdir(), "aide-language-link-cfg-"));
+  configDirs.push(dir);
+  const file = join(dir, "queue-config.json");
+  writeFileSync(file, JSON.stringify({
+    schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] },
+  }));
+  return file;
 }
-
-const NIGHTLY = 'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n';
 
 describe("spec 435: the language links preserve the page, tab, sort and filter", () => {
   test("Specs list — ?sort=title&dir=desc&state=archived", async () => {
@@ -70,8 +80,7 @@ describe("spec 435: the language links preserve the page, tab, sort and filter",
   });
 
   test("a Schedule entry's detail page, on a given tab — ?tab=history", async () => {
-    const { base, dir } = start();
-    writeSchedule(dir, "aide", NIGHTLY);
+    const { base } = start({ queueConfigFile: scheduleConfig() });
     const res = await fetch(`${base}/schedule/aide/nightly-report?tab=history`);
     const html = await res.text();
     expect(html).toContain('href="/schedule/aide/nightly-report?tab=history&amp;lang=en"');
