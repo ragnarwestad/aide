@@ -296,24 +296,34 @@ def test_status_opens_with_placeholder_progress_and_no_workflow_steps_line(scrip
 # --- Acceptance criteria line format (spec 309, REQ-1) ---------------------
 
 
-def test_refuses_when_an_acceptance_criteria_line_has_no_bold(script, specs_root):
+def test_bolds_an_acceptance_criteria_line_written_without_bold(script, specs_root):
+    """A refusal leaves nothing to correct: the person has no spec. The
+    line has one right shape, so it is written in that shape instead."""
     description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: The system SHALL do a thing.\n"
     rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
-    assert rc != 0
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
-    assert "AC-1" in out["error"]
-    assert "Acceptance criteria" in out["error"]
-    assert "Requirements" not in out["error"]
-    assert not (specs_root / "42-do-a-thing").exists()
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    assert "- **AC-1:** The system SHALL do a thing." in desc
+    assert "- AC-1:" not in desc
 
 
-def test_refuses_when_an_acceptance_criteria_line_has_misplaced_bold(script, specs_root):
-    description = "Problem: X.\n\n## Acceptance criteria\n\n- **AC-1**: The system SHALL do a thing.\n"
+def test_moves_misplaced_bold_on_an_acceptance_criteria_line(script, specs_root):
+    description = "Problem: X.\n\n## Acceptance criteria\n\n- **AC-1**: The system SHALL do **a** thing.\n"
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    assert "- **AC-1:** The system SHALL do **a** thing." in desc
+
+
+def test_still_refuses_an_acceptance_criteria_line_it_cannot_rewrite(script, specs_root):
+    description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-**1**: The system SHALL do a thing.\n"
     rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
     assert rc != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
+    assert "AC-" in out["error"]
+    assert "Acceptance criteria" in out["error"]
+    assert "Requirements" not in out["error"]
     assert not (specs_root / "42-do-a-thing").exists()
 
 
@@ -614,13 +624,14 @@ def test_folder_name_still_validates_depends_on_and_acceptance(script, specs_roo
     assert "- **Acceptance:** not required" in desc
 
 
-def test_folder_name_still_refuses_a_malformed_acceptance_criteria_line(script, specs_root):
+def test_folder_name_bolds_an_acceptance_criteria_line_too(script, specs_root):
+    """The dashboard's New spec form creates through --folder-name; the
+    line written there without bold made no spec at all."""
     description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: forgot the bold markers.\n"
     rc, out, _ = run_folder_name(script, specs_root, "new-abcd9999", "A new spec", description)
-    assert rc != 0
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
-    assert not (specs_root / "new-abcd9999").exists()
+    assert rc == 0, out
+    desc = (specs_root / "new-abcd9999" / "1-description.md").read_text()
+    assert "- **AC-1:** forgot the bold markers." in desc
 
 
 # --- --assign-number (spec 453): landing's own finalize step, renaming

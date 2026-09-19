@@ -143,9 +143,9 @@ Number, created date, expected duration
 - A description already carrying a matching `## Acceptance criteria`
   section is passed through unchanged — no rewriting, no second
   section appended. Only a description with no such section gets one
-  authored from scratch. `aide-create-spec` refuses to create a spec
-  whose description contains an `AC-n:` bullet that does not match the
-  bold format exactly
+  authored from scratch. `aide-create-spec` writes an `AC-n:` bullet
+  with missing or misplaced bold in the bold format, and refuses only
+  a bullet it cannot rewrite that way
 - `/aide-analyze` never retrofits an Acceptance criteria section into
   an existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one

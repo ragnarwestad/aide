@@ -127,10 +127,11 @@ confident SHALL statements, ask the user for the necessary
 clarifications now, before creating the spec — never write an
 Acceptance criteria section you had to guess at.
 
-`aide-create-spec` refuses when an Acceptance-criteria-looking line does
-not match the bold format exactly. If it refuses for that reason, fix
-the offending line's formatting and call it again — never work around
-the refusal by dropping the line instead.
+`aide-create-spec` rewrites an Acceptance-criteria line with missing or
+misplaced bold (`- AC-1:`, `- **AC-1**:`) to `- **AC-1:**`, and refuses
+only a line it cannot rewrite. If it refuses for that reason, fix the
+offending line's formatting and call it again — never work around the
+refusal by dropping the line instead.
 
 Call the script — never the Write tool — so file creation stays on a
 Bash-only path (this is what lets a Write/Edit permission rule be
