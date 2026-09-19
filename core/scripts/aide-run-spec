@@ -162,6 +162,15 @@ for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh ru
 # stamp itself — a number cannot include the writing of its own file.
 step_started_at="$(date +%s)"
 
+# The run's own timeline, in its log: the clock and the seconds since
+# the start at each stage that can wait on something outside the run —
+# the checkout's lock, origin, the worktree, the model. A create step
+# stood still for seven minutes before its model started, and nothing
+# said where (2026-09-19).
+stage() {
+  printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
+}
+
 # --- the vocabulary, the command line, and what they refuse ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec-arguments.sh"
