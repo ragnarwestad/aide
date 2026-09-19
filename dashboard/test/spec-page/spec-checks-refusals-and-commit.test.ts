@@ -365,10 +365,9 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       expect(open.calls.some((c) => c.args[0] === "commit-tree")).toBe(false);
     });
 
-    test("un-ticking the done row, un-marking the Not verified row or marking another is refused (AC-5)", async () => {
+    test("un-ticking the done row or marking another is refused; leaving the Not verified row alone changes nothing (AC-5)", async () => {
       const tries: Parameters<typeof tick>[1][] = [
         { rows: [DONE_ROW, NV_ROW], ticks: [NV_ROW] },
-        { rows: [NV_ROW] },
         { ticks: [DONE_ROW], unverified: [DONE_ROW, NV_ROW] , rows: [DONE_ROW, NV_ROW] },
       ];
       for (const over of tries) {

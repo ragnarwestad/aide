@@ -373,3 +373,44 @@ def test_reopen_keep_takes_archive_off_the_line_and_the_state_and_stamps_the_bou
     state = json.loads((status_file.parent / ("4-status." + "json")).read_text())
     assert state["completedPhases"] == ["create", "analyze", "implement"]
     assert state["archived"] is None
+
+
+# --- A Failed row goes back to open on Reopen (spec 510) ---------------------
+
+_FAILED_STATUS = (
+    "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n"
+    "| a phase row | ❌ Failed | left alone |\n\n"
+    "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n"
+    "| AC-1: one | ❌ Failed | Failed: the log shows no row for $& |\n"
+    "| AC-2: two | Failed | Failed: x |\n"
+    "| AC-3: three | 🔍 Not verified | Not tested: y |\n"
+    "| AC-4: four | ✅ | |\n"
+)
+
+
+def _reopen_keep(tmp_path, body):
+    status_file = _status_with(
+        tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", body],
+        workflow_line="create, analyze, implement, archive")
+    script = f'source "{LIB}"\napply_spec_transition "{status_file}" reopen-keep "abc1234"\necho "RC=$?"\n'
+    proc = _run(script)
+    assert "RC=0" in proc.stdout, proc.stdout + proc.stderr
+    return status_file
+
+
+def test_reopen_keep_unticks_failed_acceptance_rows_and_keeps_their_notes_AC_9(tmp_path):
+    status_file = _reopen_keep(tmp_path, _FAILED_STATUS)
+    text = status_file.read_text()
+    assert "| AC-1: one | ⬜ | Failed: the log shows no row for $& |" in text
+    assert "| AC-2: two | ⬜ | Failed: x |" in text
+    assert "| AC-3: three | 🔍 Not verified | Not tested: y |" in text
+    assert "| AC-4: four | ✅ | |" in text
+    assert "| a phase row | ❌ Failed | left alone |" in text
+    state = json.loads((status_file.parent / ("4-status." + "json")).read_text())
+    assert [r.get("failed") for r in state["acceptanceCriteria"]] == [None, None, None, None]
+
+
+def test_reopen_keep_without_a_failed_row_changes_no_row_AC_9(tmp_path):
+    body = _FAILED_STATUS.replace("❌ Failed", "✅").replace("| Failed |", "| ✅ |")
+    status_file = _reopen_keep(tmp_path, body)
+    assert body in status_file.read_text()

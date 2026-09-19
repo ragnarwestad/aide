@@ -101,6 +101,12 @@
       "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | Not verified | |\n| two | ⬜ | |\n",
       "done": 1,
       "total": 2
+    },
+    {
+      "name": "a-failed-mark-is-not-done-in-an-acceptance-section",
+      "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| AC-1: one | ❌ Failed | Failed: the log shows no row |\n| AC-2: two | Failed | Failed: x |\n| AC-3: three | ✅ | |\n",
+      "done": 1,
+      "total": 3
     }
   ]
 }

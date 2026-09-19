@@ -67,7 +67,7 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
   { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
   // Live and archived alike, and never a closed spec.
-  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== CLOSED_STATE && (g.notVerified ?? 0) > 0 },
+  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
 ];
 
 /** The default, by position and not by name — so a chip moved to the

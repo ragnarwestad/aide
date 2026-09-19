@@ -3,7 +3,7 @@
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
 import { specArchivedDate, specCloseReason, specFileText } from "../../project/discover";
-import { parseStatus } from "../../project/parse-status";
+import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
 import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
@@ -142,7 +142,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // The Not verified entry builds only the rows it lists — the count is
     // on the ref, so the rest of the archive costs no file read. A row
     // that is built anyway (its branch is still open) is not skipped.
-    if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0)) continue;
+    if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
     const project = key.slice(0, key.indexOf("/"));
     const when = archivedAt(ctx, ref.dir);
     // Spec 319: the newest landing's own reason its delete failed, when
@@ -184,6 +184,12 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       // what turns this into the row's own `CLOSED_STATE`.
       closed: ref.closed,
       notVerified: ref.notVerified,
+      failed: ref.failed,
+      // Read for the specs that have something to unfold, no others.
+      acceptance:
+        (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
+          ? acceptanceRowsOf(specFileText(ref.dir, "4-status.md") ?? "")
+          : undefined,
       closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });
   }

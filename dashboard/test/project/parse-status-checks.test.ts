@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
   acceptanceSectionUnreadable,
+  checkStateOf,
+  failedCount,
+  markFailedStatusLine,
   markNotVerifiedStatusLine,
   notVerifiedCount,
   parseStatusChecks,
@@ -450,5 +453,68 @@ describe("the Not verified mark (spec 509)", () => {
     const text = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ⬜ | |", "| b  | ⬜   | |"].join("\n");
     const out = markNotVerifiedStatusLine(text, "Acceptance criteria", "| a | ⬜ | |")!;
     expect(out.split("\n").slice(-2)).toEqual(["| a | Not verified | |", "| b  | ⬜   | |"]);
+  });
+});
+
+// --- spec 510: a fourth mark, `Failed` ---------------------------------------
+
+describe("the Failed mark (spec 510)", () => {
+  const file = (mark: string, note = "a note") =>
+    ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", `| AC-1: it deploys | ${mark} | ${note} |`, ""].join("\n");
+  const PHASE = "Acceptance criteria";
+
+  test("a Failed row reads as open and flagged, with or without its symbol (AC-4)", () => {
+    for (const mark of ["❌ Failed", "Failed", "failed", "FAILED"]) {
+      const [row] = parseStatusChecks(file(mark));
+      expect(row!.done).toBe(false);
+      expect(row!.failed).toBe(true);
+      expect(checkStateOf(row!)).toBe("failed");
+    }
+  });
+
+  test("a bare ❌ stays Blocked: open and not flagged (AC-4)", () => {
+    const [row] = parseStatusChecks(file("❌"));
+    expect(row!.done).toBe(false);
+    expect("failed" in row!).toBe(false);
+  });
+
+  test("a Failed row in a Phase table carries no flag (AC-4)", () => {
+    const text = ["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ❌ Failed | |", ""].join("\n");
+    const [row] = parseStatusChecks(text);
+    expect(row!.done).toBe(false);
+    expect("failed" in row!).toBe(false);
+  });
+
+  test("failedCount counts flagged rows and nothing else (AC-5)", () => {
+    expect(failedCount([{ failed: true }, {}, { failed: false }, { failed: true }])).toBe(2);
+  });
+
+  test("markFailedStatusLine writes the mark and a Failed: note, the rest of the file untouched (AC-4)", () => {
+    const from = file("Not verified", "Not tested: needs the deploy");
+    const line = "| AC-1: it deploys | Not verified | Not tested: needs the deploy |";
+    const out = markFailedStatusLine(from, PHASE, line, "the log shows no row");
+    expect(out).toBe(from.replace(line, "| AC-1: it deploys | ❌ Failed | Failed: the log shows no row |"));
+  });
+
+  test("the note is cleaned: pipes, newlines, $& and an empty Notes cell (AC-4)", () => {
+    const line = "| AC-1: it deploys | Not verified | |";
+    const from = file("Not verified", "").replace("|  |", "| |");
+    const out = markFailedStatusLine(from, PHASE, line, "  a | b\nc $& d 🙂 ")!;
+    expect(out).toContain("| AC-1: it deploys | ❌ Failed | Failed: a / b c $& d 🙂 |");
+  });
+
+  test("an empty note is refused, and so is a row that is not there or already Failed (AC-4)", () => {
+    const line = "| AC-1: it deploys | Not verified | a note |";
+    expect(markFailedStatusLine(file("Not verified"), PHASE, line, "  ")).toBeNull();
+    expect(markFailedStatusLine(file("Not verified"), PHASE, "| nope | Not verified | |", "x")).toBeNull();
+    const failed = "| AC-1: it deploys | ❌ Failed | a note |";
+    expect(markFailedStatusLine(file("❌ Failed"), PHASE, failed, "x")).toBeNull();
+  });
+
+  test("a Failed row is never moved by the tick, untick or Not verified movers (AC-4)", () => {
+    const line = "| AC-1: it deploys | ❌ Failed | a note |";
+    expect(untickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
+    expect(tickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
+    expect(markNotVerifiedStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
   });
 });

@@ -207,6 +207,9 @@ export async function roundGate(
   if (!acceptanceCriteriaUnticked(statusText) && !reopened) return { notHeldBack: true };
   const boundarySha = latestRoundBoundary(statusText);
   if (!boundarySha) return { notHeldBack: true };
+  // A check that failed after the deploy is the change a new round asks for:
+  // Reopen ticks the row open and leaves its `Failed:` note.
+  if (acceptanceRowsOf(statusText).some((r) => !r.done && /^Failed:/i.test(r.note))) return { ok: true };
   const openIds = openAcceptanceIds(statusText);
   // A held-back spec with nothing open has nothing left to go stale. A reopened
   // one has nothing open by construction, and must still show a new or

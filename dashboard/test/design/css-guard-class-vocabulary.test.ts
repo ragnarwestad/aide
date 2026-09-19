@@ -265,6 +265,8 @@ const STRUCTURE = [
   "checks", "checkshead", "checklist", "checkphase", "check", "checktask", "checkbox",
   // spec 509: a row's second box, "Not verified", and its read-only twin.
   "unverified", "readonly", "notverified",
+  // spec 510: the note field of an archived row's Failed choice.
+  "failnote",
   // the tab's head line and its Save/Cancel pair, on the same line (spec
   // 391) — the form's first child on the Checks tab and every document
   // tab, so this is the ONE class the two share for it.

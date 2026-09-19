@@ -156,18 +156,18 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // The acceptance criteria unfolded on a row (spec 493) are remembered
   // the same way: a `tick` box keyed by its own list's form, so an unsaved
   // tick outlives a redraw. Only a phase box has a Run button to relabel.
-  // A criterion's two boxes (spec 509, `tick` and `unverified`) are one
-  // answer: checking one clears the one beside it, and both are remembered
-  // as they now stand.
+  // A criterion's boxes (spec 509, `tick` and `unverified`; spec 510, `failed`
+  // on an archived spec) are one answer: checking one clears the others
+  // beside it, and all are remembered as they now stand.
   const step = target?.closest?.(
-    'input[name="steps"], input[name="tick"], input[name="unverified"]',
+    'input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"]',
   ) as HTMLInputElement | null;
   if (step) {
     chosenSteps.set(checkboxKey(step), step.checked);
-    if (step.name === "tick" || step.name === "unverified") {
-      const other = step.name === "tick" ? "unverified" : "tick";
-      const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
-      if (sibling) {
+    if (step.name === "tick" || step.name === "unverified" || step.name === "failed") {
+      for (const other of ["tick", "unverified", "failed"].filter((n) => n !== step.name)) {
+        const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
+        if (!sibling || sibling === step) continue;
         if (step.checked) sibling.checked = false;
         chosenSteps.set(checkboxKey(sibling), sibling.checked);
       }

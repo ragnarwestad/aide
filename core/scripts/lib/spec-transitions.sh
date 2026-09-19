@@ -235,6 +235,38 @@ write_round_boundary_stamp() {
     "$(date -u +%Y-%m-%d)" "$head" >> "$status_file"
 }
 
+# untick_failed_acceptance_rows($status_file) — spec 510: in the
+# `## Acceptance criteria` section, a row whose Status cell reads Failed
+# (with or without its symbol) gets `⬜` in its place. The cell's padding,
+# the Notes cell and every other line stay byte for byte, so the row keeps
+# its `Failed:` note and a new round can tell it changed.
+untick_failed_acceptance_rows() {
+  local status_file="$1" tmp
+  [ -f "$status_file" ] || return 0
+  tmp="$(mktemp)"
+  LC_ALL=C awk '
+    /^## / { in_acc = (tolower($0) ~ /^## acceptance/) ? 1 : 0 }
+    in_acc && /^\|.*\|[ \t]*$/ {
+      n = split($0, cells, "|")
+      if (n == 5) {
+        mark = cells[3]
+        gsub(/^[ \t]+|[ \t]+$/, "", mark)
+        if (tolower(mark) ~ /^([^ ]+ )?failed$/) {
+          pad_l = cells[3]; sub(/[^ \t].*$/, "", pad_l)
+          pad_r = cells[3]; sub(/^.*[^ \t]/, "", pad_r)
+          print cells[1] "|" cells[2] "|" pad_l "⬜" pad_r "|" cells[4] "|" cells[5]
+          next
+        }
+      }
+    }
+    { print }
+  ' "$status_file" > "$tmp" 2>/dev/null
+  if [ -s "$tmp" ] && ! cmp -s "$tmp" "$status_file"; then
+    cat "$tmp" > "$status_file"
+  fi
+  rm -f "$tmp"
+}
+
 # apply_spec_transition($status_file, $event, $value) — the convenience
 # wrapper for the single-path case: reopen and reset, the only two
 # events where the stamp write and the state-file mirror happen at the
@@ -255,6 +287,7 @@ write_round_boundary_stamp() {
 apply_spec_transition() {   # $1 = status_file, $2 = event ("reopen"|"reset"|"reopen-keep"), $3 = value (the boundary sha)
   local status_file="$1" event="$2" value="${3:-}"
   if [ "$event" = "reopen-keep" ]; then
+    untick_failed_acceptance_rows "$status_file"
     _peek_spec_state "$status_file"
     local kept
     kept="$(jq -r '(.completedPhases // []) | map(select(. != "archive")) | join(",")' <<<"$state_json" 2>/dev/null)"

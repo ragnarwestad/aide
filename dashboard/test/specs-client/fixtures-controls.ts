@@ -234,6 +234,23 @@ export const tickCheckbox = (formId: string, value: string, served: boolean, li?
   return self;
 };
 
+// Spec 510: the archived form's third choice, "Failed" — named `failed`, in the
+// same form, with the same value and in the same `li` as the tick box.
+export const failedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
+  const self = {
+    name: "failed",
+    value,
+    checked: served,
+    tagName: "INPUT",
+    disabled: false,
+    isConnected: true,
+    getAttribute: (n: string) => (n === "form" ? formId : null),
+    closest: (sel: string): unknown => (sel.includes('name="failed"') ? self : sel === "li" ? li : null),
+    redraw: () => void (self.checked = served),
+  };
+  return self;
+};
+
 // Spec 509: the second box of a criterion, "Not verified" — named `unverified`,
 // in the same form and with the same value as the tick box beside it, and in
 // the same `li`.

@@ -164,3 +164,30 @@ describe("roundGate for a reopened spec", () => {
     expect(gate).toEqual({ notHeldBack: true });
   });
 });
+
+describe("roundGate with a Failed row (spec 510)", () => {
+  const boundaryAnswer = { "show abc1234:./1-description.md": { code: 0, stdout: BOUNDARY_DESCRIPTION } };
+  const reopenedStatus = (rows: string[]) => `${ARCHIVED}\n${STAMP}\n\n` + acceptanceStatus(rows);
+  const ok = "| AC-1: first requirement | ✅ | |";
+
+  test("an open row whose note starts Failed: counts as changed, nothing reworded (AC-9)", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const rows = [ok, "| AC-2: second requirement, original wording | ⬜ | Failed: the log shows no row |"];
+    expect(await roundGate(run, "/repo", reopenedStatus(rows), BOUNDARY_DESCRIPTION)).toEqual({ ok: true });
+  });
+  test("the same open row without the Failed: note is refused (AC-9)", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const rows = [ok, "| AC-2: second requirement, original wording | ⬜ | Not tested: x |"];
+    expect(await roundGate(run, "/repo", reopenedStatus(rows), BOUNDARY_DESCRIPTION)).toEqual({ ok: false });
+  });
+  test("a ticked row keeping a Failed: note is no change (AC-9)", async () => {
+    const { run } = fakeGit(boundaryAnswer);
+    const rows = [ok, "| AC-2: second requirement, original wording | ✅ | Failed: fixed since |"];
+    expect(await roundGate(run, "/repo", reopenedStatus(rows), BOUNDARY_DESCRIPTION)).toEqual({ ok: false });
+  });
+  test("no boundary stamp: still notHeldBack (AC-9)", async () => {
+    const { run } = fakeGit({});
+    const rows = ["| AC-1: first requirement | ⬜ | Failed: x |"];
+    expect(await roundGate(run, "/repo", acceptanceStatus(rows), BOUNDARY_DESCRIPTION)).toEqual({ notHeldBack: true });
+  });
+});

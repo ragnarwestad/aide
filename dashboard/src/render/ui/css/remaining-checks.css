@@ -50,6 +50,9 @@ label.checkbox input { margin: 0; cursor: pointer; }
   flex: none; color: var(--muted); font-size: var(--fs-s); }
 .check .unverified input { margin: 0; cursor: pointer; }
 .check .unverified.readonly { color: var(--warn); }
+.check .unverified.readonly.failed { color: var(--danger); }
+/* The note saying what did not hold, beside the Failed box of an archived row. */
+.check .failnote { order: 2; flex: 1 1 12em; min-width: 0; font-size: var(--fs-s); }
 .check .checknote, .check .checktests { order: 3; }
 
 

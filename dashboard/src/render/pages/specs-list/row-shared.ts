@@ -50,11 +50,15 @@ export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullR
  *  rows wait for a check after deploy, linking to the Status tab where
  *  they are ticked or un-marked. Nothing for a count of 0 or a closed
  *  spec. */
-export const notVerifiedMark = (g: SpecGroup, lang: Language): string =>
-  (g.notVerified ?? 0) > 0 && g.state !== CLOSED_STATE
+export const notVerifiedMark = (g: SpecGroup, lang: Language): string => {
+  const parts: string[] = [];
+  if ((g.notVerified ?? 0) > 0) parts.push(t(lang, "list.notVerifiedMark", { n: g.notVerified! }));
+  if ((g.failed ?? 0) > 0) parts.push(t(lang, "list.failedMark", { n: g.failed! }));
+  return parts.length > 0 && g.state !== CLOSED_STATE
     ? `<div class="spec-notverified"><a data-goto href="${esc(specPagePath(g.project, g.specFolder))}?tab=status">` +
-      `${esc(t(lang, "list.notVerifiedMark", { n: g.notVerified! }))}</a></div>`
+        `${esc(parts.join(" · "))}</a></div>`
     : "";
+};
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

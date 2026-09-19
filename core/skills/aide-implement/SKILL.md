@@ -194,7 +194,9 @@ None of the three phases above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section,
 and never touch a TICKED row's Notes cell either. Implement never writes
 `Not verified` to any Status cell: the mark counts as done, so writing
-it would let a run past the archive gate that only the user may open. Those rows name the
+it would let a run past the archive gate that only the user may open. It
+never writes `Failed` either: that mark says a check made after the
+deploy did not hold, and only the person who made the check can say so. Those rows name the
 spec's own AC-tagged acceptance criteria, and ticking one is a judgment
 only the user the spec is for can make.
 
@@ -216,6 +218,10 @@ at all. Whatever the earlier round left there is replaced, not kept —
 what each round found, ran and measured belongs in `2-analysis.md` and
 `3-solution.md`, which carry a `## Round N` section for exactly that.
 Nothing is missing is a cell left empty, not a sentence saying so.
+One sentence is kept as it is: a cell that starts `Failed:` (what did
+not hold, written when a check after the deploy failed) keeps that
+sentence first until the row is ticked, because the next round reads it
+as the reason the round is needed.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script

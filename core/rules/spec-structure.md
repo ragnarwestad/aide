@@ -398,6 +398,7 @@ Number, created date, expected duration
 | ❌ | Blocked |
 | ⚠️ | Waiting |
 | Not verified | Set aside for a check after deploy; counts as done (Acceptance rows only) |
+| ❌ Failed | A check after deploy that did not hold; open, with a `Failed:` note (Acceptance rows only) |
 ```
 
 **Key points:**
@@ -523,6 +524,14 @@ A row whose Notes cell carries `Not tested:` starts as `Not verified`
 instead of `⬜`. `Not verified` is a done mark like `✅`: archiving does
 not wait for it, and the user can still tick it later. Only the user
 or the analyze step's own start pass writes it — never `/aide-implement`.
+
+A `Not verified` row that was checked after the deploy and did not hold is
+marked `❌ Failed`, with a Notes cell that starts `Failed:` and says what did
+not hold. `❌ Failed` is not a done mark: archiving waits for it. Only the
+user writes it (from the Specs list or the Status tab of an archived spec) —
+never a skill. Reopening the spec puts the row back to `⬜` and keeps its
+note, and a note starting `Failed:` on an open row counts as a changed
+criterion for the rule that a new round needs one.
 
 No Acceptance criteria section: `4-status.md` looks exactly as it does
 today — no such section, no change to archiving.

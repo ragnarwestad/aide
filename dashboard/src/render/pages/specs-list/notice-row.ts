@@ -13,7 +13,7 @@ import { specNotice, wordPhase } from "../../ui/job-state";
 import type { Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
-import { checksFold, checksPanel } from "./row-checks.ts";
+import { archivedChecksRow, checksFold, checksPanel } from "./row-checks.ts";
 import { nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 
@@ -76,8 +76,10 @@ export function specNoticeRow(
     lang,
     !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
   );
-  if (!notice) return "";
   const filter = view.filter ?? {};
+  // An archived row's own unfold, under whatever notice it carries.
+  const archivedChecks = archivedChecksRow(g, filter, lang, LIST_COLUMNS);
+  if (!notice) return archivedChecks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
@@ -88,6 +90,7 @@ export function specNoticeRow(
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>`
+    `<td colspan="${LIST_COLUMNS}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>` +
+    archivedChecks
   );
 }

@@ -3,13 +3,13 @@
 // Save. The state is in the URL (`?checks=`), like the row's own fold, so
 // it survives the live redraw and works with script off.
 
-import { ICON_CHEVRON, btn } from "../../ui/components";
+import { ICON_CHEVRON, btn, rowMessageParts } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
-import { checkControls } from "../../ui/check-controls.ts";
+import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
-import { groupKey, type SpecGroup, type SpecsFilter } from "./data-model";
+import { groupKey, isArchivedRow, CLOSED_STATE, type SpecGroup, type SpecsFilter } from "./data-model";
 import { queueHref } from "./filter-bar.ts";
 import { filterFields } from "./row-shared.ts";
 
@@ -46,26 +46,57 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   // One heading covers every row; the route scopes the press to it.
   const phase = rows[0]!.phase;
   const formId = `rowchecks-${key}`;
+  // An archived spec is a record: only a Not verified row is a box (tick,
+  // Failed and a note), and a Failed row is never one on any spec.
+  const archived = isArchivedRow(g);
+  const boxed = (row: (typeof rows)[number]): boolean => !row.failed && (!archived || !!row.notVerified);
+  const drawn = rows.filter(boxed).map((row) => row.line);
+  const reopen = `<a class="btn" href="/specs/${esc(g.project)}/${esc(g.specFolder)}/reopen">${esc(t(lang, "list.reopen"))}</a>`;
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
-    const state = row.notVerified ? "notverified" : row.done ? "done" : "open";
+    const state = row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open";
+    const control = boxed(row)
+      ? checkControls(row, lang, archived ? { formId, archivedIndex: drawn.indexOf(row.line) } : { formId })
+      : checkReadOnlyMark(row, lang);
     return (
       `<li class="check ${state}">` +
-      checkControls(row, lang, { formId }) +
+      control +
       `<span class="checktask">${esc(row.task)}</span>` +
       (row.note ? `<span class="checknote">${esc(row.note)}</span>` : "") +
+      (row.failed && archived ? reopen : "") +
       acTestsLine(row, lang) +
       `</li>`
     );
   };
+  const list = `<ul class="checklist">${rows.map(item).join("")}</ul>`;
+  // Nothing to save when no row is a box (an archived spec whose rows are all Failed).
+  if (drawn.length === 0) return `<div class="rowchecks">${list}</div>`;
   return (
     `<form class="actionform rowchecks" id="${esc(formId)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tick?fromList=1">` +
     filterFields(f) +
     `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
-    `<ul class="checklist">${rows.map(item).join("")}</ul>` +
+    list +
     btn({ label: t(lang, "list.checksSave"), pending: t(lang, "list.checksSaving"), variant: "primary" }) +
     `</form>`
+  );
+}
+
+/** An archived row with a criterion still waiting for a check, or one that
+ *  failed, gets a line of its own with the › and the same unfold a held-back
+ *  row has: the choice "under ›" belongs on every row a criterion is decided
+ *  on. A closed spec has none, and nothing is drawn without rows to show. */
+export function archivedChecksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number): string {
+  if (!isArchivedRow(g) || g.state === CLOSED_STATE || (g.acceptance ?? []).length === 0) return "";
+  if ((g.notVerified ?? 0) + (g.failed ?? 0) === 0) return "";
+  const parts = [
+    ...((g.notVerified ?? 0) > 0 ? [t(lang, "list.notVerifiedMark", { n: g.notVerified! })] : []),
+    ...((g.failed ?? 0) > 0 ? [t(lang, "list.failedMark", { n: g.failed! })] : []),
+  ];
+  return (
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}"><td colspan="${columns}">` +
+    rowMessageParts("info", [{ text: parts.join(" · "), own: true, lead: checksFold(g, f, lang), after: checksPanel(g, f, lang) }]) +
+    `</td></tr>`
   );
 }

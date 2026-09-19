@@ -6,7 +6,7 @@
 // checked means "done".
 
 import type { AcTest } from "../ac-coverage.ts";
-import { NOT_VERIFIED_MARK, isNotVerifiedMark, type CheckState } from "./not-verified.ts";
+import { isFailedMark, isNotVerifiedMark } from "./not-verified.ts";
 import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export interface Progress {
@@ -220,6 +220,9 @@ export interface StatusCheck {
   done: boolean;
   /** Present, and `true`, only on an Acceptance row marked `Not verified`. */
   notVerified?: boolean;
+  /** Present, and `true`, only on an Acceptance row marked `Failed`. Not
+   *  `done`: archive is held back by it, and Reopen puts it back to open. */
+  failed?: boolean;
   /** The Notes cell, trimmed, and `""` when the row leaves it empty.
    *  Written by the implement run, and the one thing on the row a
    *  reader cannot work out from the criterion itself: what was
@@ -233,13 +236,13 @@ export interface StatusCheck {
   untested?: boolean;
 }
 
-const DONE_MARK = "✅";
-const isAcceptanceHeading = (heading: string): boolean => /^acceptance\b/i.test(heading);
+export const DONE_MARK = "✅";
+export const isAcceptanceHeading = (heading: string): boolean => /^acceptance\b/i.test(heading);
 /** What a row goes back to when a check is taken off it. The mark it
  *  carried BEFORE it was ticked is gone by then — the tick overwrote it
  *  — so this is the file's own plain "not started", the one every
  *  template writes and every Notation table lists. */
-const OPEN_MARK = "⬜";
+export const OPEN_MARK = "⬜";
 
 /** A `## Phase`/`## Fase` heading, or the `## Checklist` heading a
  *  LOW-complexity spec's status file uses instead (spec 266) — matching
@@ -282,7 +285,7 @@ const MAX_MARK_LENGTH = 30;
  *  in one cell) counts as done too, alongside the bare symbol and the
  *  bare word — a step wrote both into the same cell, and neither of
  *  the two original forms alone matched it. */
-function isDoneMark(mark: string): boolean {
+export function isDoneMark(mark: string): boolean {
   const trimmed = mark.trim();
   return trimmed === DONE_MARK || isNotVerifiedMark(trimmed) || /^(?:✅\s*)?completed$/i.test(trimmed);
 }
@@ -314,7 +317,7 @@ function splitRowCells(line: string): [string, string, string] | null {
  *  the structural fact both this function and `isSeparatorRow` already
  *  agree the separator row is exempt from: the header is whichever row
  *  sits directly above the separator. */
-function tableCells(line: string): [string, string, string] | null {
+export function tableCells(line: string): [string, string, string] | null {
   const cells = splitRowCells(line);
   if (!cells) return null;
   const [task, mark] = cells;
@@ -333,7 +336,7 @@ function isSeparatorRow(line: string): boolean {
  *  own header row — the one immediately followed by the separator row —
  *  already excluded. Shared by `parseStatusChecks` and `tickStatusLine`
  *  so neither can drift from what "a task row" means. */
-function dataRowIndices(lines: string[], section: { from: number; to: number }): number[] {
+export function dataRowIndices(lines: string[], section: { from: number; to: number }): number[] {
   const result: number[] = [];
   for (let i = section.from; i < section.to; i++) {
     if (!tableCells(lines[i]!)) continue;
@@ -346,7 +349,7 @@ function dataRowIndices(lines: string[], section: { from: number; to: number }):
 /** Every phase section, as line-index ranges over `lines`. The heading
  *  test is `PHASE_HEADING_RE`, the same constant `parseStatus` reads,
  *  so the two agree about what a phase is. */
-function phaseSections(lines: string[]): { heading: string; from: number; to: number }[] {
+export function phaseSections(lines: string[]): { heading: string; from: number; to: number }[] {
   const sections: { heading: string; from: number; to: number }[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
@@ -409,6 +412,7 @@ export function parseStatusChecks(content: string): StatusCheck[] {
         task: cells[0],
         done: isDoneMark(cells[1]),
         ...(isAcceptanceHeading(section.heading) && isNotVerifiedMark(cells[1]) ? { notVerified: true } : {}),
+        ...(isAcceptanceHeading(section.heading) && isFailedMark(cells[1]) ? { failed: true } : {}),
         note: cells[2],
       });
     }
@@ -416,66 +420,9 @@ export function parseStatusChecks(content: string): StatusCheck[] {
   return checks;
 }
 
-/** `content` with one row's mark changed to `✅`, or `null` when that
- *  row is not there to change.
- *
- *  The row is named by its phase heading AND its whole line, verbatim —
- *  never by a line number, which shifts the moment a step rewrites the
- *  file around it. `null` covers every way the page can be out of date:
- *  no such phase, no such line inside it, a line that is not a row, and
- *  a row someone has already ticked. Refusing is the point — this is
- *  the row-level guard that sits on top of `saveSpecFile`'s file-level
- *  one, and it is what tells a duplicate press apart from a fresh one
- *  inside a single commit.
- *
- *  Exactly one character moves. The cell keeps its padding, so a tick
- *  never reflows the table. */
-export function tickStatusLine(content: string, phase: string, line: string): string | null {
-  return setStatusLineMark(content, phase, line, "done");
-}
+export { tickStatusLine, markNotVerifiedStatusLine, untickStatusLine, markFailedStatusLine } from "./row-movers.ts";
 
-/** `content` with one row's mark changed to `Not verified`, or `null` when
- *  that row is not there or already is. */
-export function markNotVerifiedStatusLine(content: string, phase: string, line: string): string | null {
-  return setStatusLineMark(content, phase, line, "notVerified");
-}
-
-/** `content` with one row's mark put back to `⬜`, or `null` when that
- *  row is not there to change — the exact mirror of `tickStatusLine`,
- *  refusing a row that is not currently done the way that one refuses a
- *  row that already is.
- *
- *  A check can be made by mistake, and until this existed the only way
- *  back was to open `4-status.md` and edit the table by hand. */
-export function untickStatusLine(content: string, phase: string, line: string): string | null {
-  return setStatusLineMark(content, phase, line, "open");
-}
-
-const MARK_OF: Record<CheckState, string> = { open: OPEN_MARK, notVerified: NOT_VERIFIED_MARK, done: DONE_MARK };
-const checkStateOfMark = (mark: string): CheckState =>
-  isNotVerifiedMark(mark) ? "notVerified" : isDoneMark(mark) ? "done" : "open";
-
-/** The one row-finding walk every direction shares. `target` is the state
- *  the row is being moved TO; a row already in it is refused, which is what
- *  makes a stale page's press land on nothing rather than on the wrong
- *  row. */
-function setStatusLineMark(content: string, phase: string, line: string, target: CheckState): string | null {
-  const lines = content.split("\n");
-  const section = phaseSections(lines).find((s) => s.heading === phase.trim());
-  if (!section) return null;
-  for (const i of dataRowIndices(lines, section)) {
-    if (lines[i] !== line) continue;
-    const cells = tableCells(line);
-    if (!cells || checkStateOfMark(cells[1]) === target) return null;
-    const parts = line.split("|");
-    parts[2] = parts[2]!.replace(cells[1], MARK_OF[target]);
-    lines[i] = parts.join("|");
-    return lines.join("\n");
-  }
-  return null;
-}
-
-export { notVerifiedCount, checkStateOf, type CheckState } from "./not-verified.ts";
+export { notVerifiedCount, failedCount, cleanFailNote, checkStateOf, type CheckState } from "./not-verified.ts";
 
 // What used to live here too, in parts beside this file.
 export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary, reopenedRound } from "./held-back.ts";

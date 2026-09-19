@@ -21,6 +21,8 @@ export interface SpecStateAcceptanceRow {
   done: boolean;
   /** Present, and `true`, only on a row marked `Not verified`. */
   notVerified?: boolean;
+  /** Present, and `true`, only on a row marked `Failed`; such a row is not `done`. */
+  failed?: boolean;
 }
 
 export interface SpecStatePhaseCount {

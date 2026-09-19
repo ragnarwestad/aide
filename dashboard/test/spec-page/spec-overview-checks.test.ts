@@ -438,3 +438,52 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
     expect(await statusTab(base, `/specs/aide/${ARCHIVED}`)).not.toContain('name="tick"');
   });
 });
+
+// --- spec 510: the Failed choice on an archived spec, and a Failed row --------
+
+describe("the Failed choice on the Status tab (spec 510)", () => {
+  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then((r) => r.text());
+  const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const FAILED_ROW = "| AC-6: failed earlier | ❌ Failed | Failed: it did not hold |";
+  const withFailed = NV_STATUS.replace(NV_ROW, `${NV_ROW}\n${FAILED_ROW}`);
+  const archivedPage = () =>
+    harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: withFailed } },
+      extra: { gitRun: savable("/host") },
+    });
+
+  test("an archived spec draws tick, Failed and a note field on its Not verified row (AC-4)", async () => {
+    const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
+    expect(form).toContain(`name="tick" value="${NV_ROW}">`);
+    expect(form).toContain(`name="failed" value="${NV_ROW}">`);
+    expect(form).toContain('name="failnote-0"');
+    expect(form.match(/name="tick"/g)).toHaveLength(1);
+  });
+
+  test("an archived Failed row is drawn read-only with its note and a Reopen link outside the boxes (AC-4, AC-8)", async () => {
+    const form = block(await statusTab(archivedPage().base, `/specs/aide/${ARCHIVED}`));
+    expect(form).toContain('class="check failed"');
+    expect(form).toContain("Failed: it did not hold");
+    expect(form).not.toContain(`value="${FAILED_ROW}"`);
+    expect(form).toContain(`href="/specs/aide/${ARCHIVED}/reopen"`);
+  });
+
+  test("a live spec's Failed row is read-only, counted, and has no Reopen (AC-4, AC-8)", async () => {
+    const live = STATUS.replace(SECOND_OPEN_ROW, FAILED_ROW);
+    const html = block(await statusTab(startWithChecks(savable("/host"), live).base));
+    expect(html).toContain('class="check failed"');
+    expect(html).not.toContain(`value="${FAILED_ROW}"`);
+    expect(html).not.toContain("/reopen");
+    expect(html).toContain("1 failed");
+    expect(html.match(/name="tick"/g)).toHaveLength(2);
+  });
+
+  test("a Failed row is not counted as open, and the page still offers the form (AC-5)", async () => {
+    const live = STATUS.replace(SECOND_OPEN_ROW, FAILED_ROW);
+    const html = await statusTab(startWithChecks(savable("/host"), live).base);
+    expect(block(html)).toContain("still open");
+    expect(html).toContain('name="checksPhase"');
+  });
+});

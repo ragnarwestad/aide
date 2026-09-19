@@ -16,6 +16,8 @@ export interface SpecCheckView {
   done: boolean;
   /** Marked `Not verified`: settled, but nobody has checked it. */
   notVerified?: boolean;
+  /** Marked `Failed`: open, and only Reopen takes it back. */
+  failed?: boolean;
   /** The row's Notes cell — the implement run's own word on what was
    *  delivered against this criterion. Absent, or empty, when the row
    *  wrote none; the two say the same thing here. */

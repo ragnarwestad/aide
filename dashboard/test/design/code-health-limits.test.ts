@@ -33,7 +33,7 @@ const OVER_LINE_LIMIT: Record<string, number> = {
   "src/queue/runner/index.ts": 518,
   "src/queue/store/index.ts": 610,
   "src/git/branch-merge.ts": 605,
-  "src/render/pages/specs-list/data-model/types.ts": 534,
+  "src/render/pages/specs-list/data-model/types.ts": 537,
 };
 
 // src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME
@@ -47,6 +47,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
   "test/render/pages": 24,
   "test/specs-client": 24,
   "test/design": 26,
+  "test/e2e": 16,
   "test/project": 19,
   "test/serve": 23,
 };

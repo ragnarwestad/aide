@@ -48,7 +48,8 @@ export async function specsPages(
     // what the Not verified entry's count adds where no row is built.
     const notVerifiedKeys = archivedKeys.filter((k) => {
       const cut = k.indexOf("/");
-      return (ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.notVerified ?? 0) > 0;
+      const ref = ctx.specRef(k.slice(0, cut), k.slice(cut + 1));
+      return (ref?.notVerified ?? 0) + (ref?.failed ?? 0) > 0;
     });
     // The reader's own choice of state, from the address or from the
     // cookie it was last written into (spec 338, mirroring the sort

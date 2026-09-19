@@ -417,3 +417,28 @@ class TestNotVerifiedStartState:
         text = path.read_text()
         assert "| Not verified |" in text
         assert re.search(r"`Not tested:`[^.]*starts as\s+`Not verified`", text)
+
+
+@pytest.mark.validation
+class TestFailedMark:
+    """Spec 510: `❌ Failed` is written by the user only, and its `Failed:` note
+    survives the implement step's rewrite of an open row's Notes cell."""
+
+    def test_implement_never_writes_failed_AC_9(self):
+        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
+        assert re.search(r"never writes\s+`Failed`", text)
+
+    def test_implement_keeps_a_failed_sentence_in_the_cell_AC_9(self):
+        text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text()
+        carve_out = text.split("One narrow carve-out", 1)[1][:2400]
+        assert re.search(r"starts\s+`Failed:`[^.]*keeps\s+that\s+sentence\s+first", carve_out)
+
+    @pytest.mark.parametrize("path", [
+        REPO_ROOT / "core" / "rules" / "spec-structure.md",
+        CORE_SKILLS_DIR / "spec-structure" / "SKILL.md",
+    ], ids=["rule", "skill"])
+    def test_spec_structure_names_failed_in_legend_and_acceptance_section(self, path):
+        text = path.read_text()
+        assert "| ❌ Failed |" in text
+        assert re.search(r"marked\s+`❌ Failed`[^.]*`Failed:`", text)
+        assert re.search(r"Reopening the spec puts the row back to\s+`⬜`", text)

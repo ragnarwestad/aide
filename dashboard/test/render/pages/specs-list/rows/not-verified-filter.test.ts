@@ -48,6 +48,25 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual(["10-live-with", "20-arch-with"]);
   });
 
+  test("a spec with only a Failed row is listed by it too, live and archived (AC-6)", () => {
+    const html = draw({
+      targets: [live("10-live-failed", { failed: 1 }), live("11-live-none")],
+      archivedSpecs: [archived("20-arch-failed", { failed: 1 }), archived("21-arch-none")],
+      archivedKeys: ["aide/20-arch-failed", "aide/21-arch-none"],
+      filter: { state: "not-verified" },
+    });
+    expect(folders(html)).toEqual(["10-live-failed", "20-arch-failed"]);
+  });
+
+  test("a spec whose Failed row was reopened has no count left, so it is not in the entry (AC-7)", () => {
+    const html = draw({
+      targets: [live("10-was-failed", { failed: undefined })],
+      archivedSpecs: [archived("20-was-failed", { failed: undefined })],
+      filter: { state: "not-verified" },
+    });
+    expect(folders(html)).toEqual([]);
+  });
+
   test("a closed spec is never listed by it (AC-4)", () => {
     const html = draw({
       archivedSpecs: [archived("30-closed", { closed: true, notVerified: 2 })],

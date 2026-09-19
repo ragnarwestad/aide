@@ -457,3 +457,17 @@ def test_a_not_verified_row_beside_an_open_row_still_blocks_archive_AC_7(script,
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "acceptance-criteria-unticked", out
     assert (specs / "81-x").exists()
+
+
+def test_a_failed_row_blocks_archive_AC_4(script, project, specs):
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"])
+        + acceptance(["| REQ-1: one | ✅ | |", "| REQ-2: two | ❌ Failed | Failed: x |"]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert (specs / "81-x").exists()

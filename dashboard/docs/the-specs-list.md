@@ -103,8 +103,16 @@ link to its Status tab, in place of the list.
 tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a small line
 `N not verified` below the project and name on its list row (live and archived, not closed), linking to its Status tab.
 The State filter has a "Not verified" entry that shows only specs with such a row, archived ones included. On an
-archived spec a Not verified row stays tickable on the Status tab; that is the only change the archive accepts. Ticking
-the last one removes the line and the spec leaves the filter.
+archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived row's own
+line on the list: it can be ticked, or marked Failed with a note saying what did not hold. Those two are the only
+changes the archive accepts. Ticking the last Not verified row removes the line and the spec leaves the filter.
+
+**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The line under the name reads
+`N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least one row of
+either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note; the only way out of that
+state is the Reopen button on the row, which opens the same confirmation page as the row's own Reopen. Reopen puts the
+Failed rows back to open and keeps their notes; such a note counts as a changed criterion for the rule that a new round
+needs at least one.
 
 **A phase that has run unfolds to the model's latest messages.** Every phase line of an open row that has run or is
 running starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in

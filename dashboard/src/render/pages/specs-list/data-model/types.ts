@@ -126,6 +126,9 @@ export interface SpecTarget extends HasNotVerified {
  *  `reopen` (`ARCHIVE_ONLY_STEP`, queue.ts). Two shapes, because they
  *  answer two questions. */
 export interface ArchivedSpecView extends HasNotVerified {
+  /** The Acceptance rows an archived row unfolds, read only for a spec that
+   *  has a row marked Not verified or Failed (spec 510). */
+  acceptance?: StatusCheck[];
   /** Which project's archive it came out of. */
   project: string;
   /** The spec's folder, which is also its number — what a person calls

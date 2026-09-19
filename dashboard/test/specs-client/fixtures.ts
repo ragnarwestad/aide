@@ -8,7 +8,7 @@
 // full rationale.
 
 import { join } from "node:path";
-import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox, tickCheckbox, unverifiedCheckbox } from "./fixtures-controls.ts";
+import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox, failedCheckbox, tickCheckbox, unverifiedCheckbox } from "./fixtures-controls.ts";
 import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
 import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
@@ -216,7 +216,8 @@ export function harness(
   const TICK_ROW = "| AC-1: it folds | ⬜ | |";
   // Spec 509: the first criterion also has its Not verified box, in the same `li`.
   const firstLi = {
-    querySelector: (sel: string): unknown => (sel.includes('name="unverified"') ? unverifiedBoxes[0] : tickBoxes[0]),
+    querySelector: (sel: string): unknown =>
+      sel.includes('name="unverified"') ? unverifiedBoxes[0] : sel.includes('name="failed"') ? failedBoxes[0] : tickBoxes[0],
   };
   const tickBoxes = [
     tickCheckbox(TICK_FORM, TICK_ROW, false, firstLi),
@@ -224,6 +225,8 @@ export function harness(
     tickCheckbox("rowchecks-aide/493-b", TICK_ROW, false),
   ];
   const unverifiedBoxes = [unverifiedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
+  // Spec 510: an archived criterion's third box.
+  const failedBoxes = [failedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
   const tailBoxEl = tailBox(ROW_FORM);
   const { removeButton, confirmInput, removeSlot, addButton, addSlot, addForm, removeForm, getTyped } =
     buildProjectsPanel(tokenInput, on);
@@ -243,6 +246,7 @@ export function harness(
     for (const b of stepBoxes) b.redraw();
     for (const b of tickBoxes) b.redraw();
     for (const b of unverifiedBoxes) b.redraw();
+    for (const b of failedBoxes) b.redraw();
     tailBoxEl.redraw();
   };
   // Spec 204: `#jobrows` is a STRING here and a tree of nodes in the
@@ -291,7 +295,7 @@ export function harness(
         ? [...modelSelects, otherRowSelect]
         : sel.includes('name="steps"')
           ? sel.includes('name="tick"')
-            ? [...stepBoxes, ...tickBoxes, ...(sel.includes('name="unverified"') ? unverifiedBoxes : [])]
+            ? [...stepBoxes, ...tickBoxes, ...(sel.includes('name="unverified"') ? unverifiedBoxes : []), ...(sel.includes('name="failed"') ? failedBoxes : [])]
             : stepBoxes
           : sel.startsWith("button")
             ? [runButton]
@@ -495,7 +499,13 @@ export function harness(
       on["change"]?.({ target: box });
     },
     /** An acceptance criterion's box ticked or unticked by hand (spec 493). */
-    tickBoxes, unverifiedBoxes, TICK_FORM,
+    tickBoxes, unverifiedBoxes, failedBoxes, TICK_FORM,
+    /** The first criterion's Failed box checked or cleared by hand (spec 510). */
+    changeFailed: (index: number, checked: boolean) => {
+      const box = failedBoxes[index]!;
+      box.checked = checked;
+      on["change"]?.({ target: box });
+    },
     /** The first criterion's Not verified box checked or cleared by hand (spec 509). */
     changeUnverified: (index: number, checked: boolean) => {
       const box = unverifiedBoxes[index]!;

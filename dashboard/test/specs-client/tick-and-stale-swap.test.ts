@@ -340,3 +340,39 @@ describe("a criterion's tick box and Not verified box (spec 509)", () => {
     expect(h.unverifiedBoxes[0]!.checked).toBe(false);
   });
 });
+
+// --- spec 510: an archived criterion's Failed box is one more of the same answer ---
+
+describe("a criterion's Failed box (spec 510)", () => {
+  const swap = async (h: ReturnType<typeof harness>) => {
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+  };
+
+  test("checking Failed clears the tick box, and a redraw restores exactly that (AC-4)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeTick(0, true);
+    h.changeFailed(0, true);
+    expect(h.tickBoxes[0]!.checked).toBe(false);
+    await swap(h);
+    expect(h.tickBoxes[0]!.checked).toBe(false);
+    expect(h.failedBoxes[0]!.checked).toBe(true);
+  });
+
+  test("checking the tick box over a checked Failed box clears Failed, and both stay so after a redraw (AC-4)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeFailed(0, true);
+    h.changeTick(0, true);
+    expect(h.failedBoxes[0]!.checked).toBe(false);
+    await swap(h);
+    expect(h.tickBoxes[0]!.checked).toBe(true);
+    expect(h.failedBoxes[0]!.checked).toBe(false);
+  });
+
+  test("an untouched Failed box follows the server (AC-4)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    await swap(h);
+    expect(h.failedBoxes[0]!.checked).toBe(false);
+  });
+});

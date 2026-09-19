@@ -310,3 +310,22 @@ def test_a_not_verified_acceptance_row_is_done_and_flagged_AC_2(tmp_path):
         {"task": "AC-3: c", "done": True},
     ]
     assert state["phaseCounts"]["Acceptance criteria"] == {"done": 2, "total": 3}
+
+
+# --- Failed (spec 510) ------------------------------------------------------
+
+
+def test_a_failed_acceptance_row_is_open_and_flagged_AC_4(tmp_path):
+    state = write_state(
+        tmp_path,
+        "# Spec - Status\n\n## Acceptance criteria\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| AC-1: a | ❌ Failed | Failed: the log shows no row |\n"
+        "| AC-2: b | Failed | Failed: x |\n"
+        "| AC-3: c | Not verified | |\n",
+    )
+    assert state["acceptanceCriteria"] == [
+        {"task": "AC-1: a", "done": False, "failed": True},
+        {"task": "AC-2: b", "done": False, "failed": True},
+        {"task": "AC-3: c", "done": True, "notVerified": True},
+    ]

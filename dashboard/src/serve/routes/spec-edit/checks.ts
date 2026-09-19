@@ -11,6 +11,9 @@ import {
   acceptanceCriteriaUnticked,
   checkStateOf,
   clearArchiveHeldBack,
+  cleanFailNote,
+  failedCount,
+  markFailedStatusLine,
   markNotVerifiedStatusLine,
   notVerifiedCount,
   parseStatusChecks,
@@ -118,6 +121,16 @@ export async function checkRoutes(
       (v): v is string => typeof v === "string",
     );
     const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
+    // The archived form's third choice: rows marked Failed, and the note for
+    // the n-th drawn row, in the order the rows were drawn.
+    const failedLines = new Set(
+      (Array.isArray(body.failed) ? body.failed : [body.failed]).filter((v): v is string => typeof v === "string"),
+    );
+    const failNote = (line: string): string => {
+      const at = drawn.indexOf(line);
+      const text = at < 0 ? undefined : body[`failnote-${at}`];
+      return typeof text === "string" ? text : "";
+    };
     // Boxes with no phase to read them against is a request that
     // never came from this form.
     if (typeof body.checksPhase !== "string") {
@@ -167,27 +180,40 @@ export async function checkRoutes(
     const unverified = new Set(unverifieds);
     // An archived spec answers for every row the request names, drawn or not:
     // a post that names a box it never drew is not a press of its form.
-    for (const line of archived ? new Set([...drawn, ...ticks, ...unverifieds]) : drawn) {
+    for (const line of archived ? new Set([...drawn, ...ticks, ...failedLines]) : drawn) {
       const current = state.get(line);
-      if (current === undefined) {
+      // A Failed row is never drawn as a box: it leaves that state through Reopen.
+      if (current === undefined || current === "failed") {
         return refuse("that check is not there to change any more — reload the page and look again", body);
       }
-      const target = wantedState(wanted.has(line), unverified.has(line), current);
-      if (target === current) continue;
       // An archived spec is the record of what was judged: a check that was
-      // put off may still be completed, and nothing else moves.
-      if (archived && !(current === "notVerified" && target === "done")) {
+      // put off may still be completed or marked Failed, and nothing else
+      // moves. A row left as it is is skipped.
+      if (archived && current !== "notVerified") {
         logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
         // Answered without the body, like the closed spec's: the list is not
         // sent back to a view of a spec it has no criteria to unfold for.
         return refuse(ARCHIVED_REFUSAL);
+      }
+      const target: CheckState = archived
+        ? wanted.has(line)
+          ? "done"
+          : failedLines.has(line)
+            ? "failed"
+            : current
+        : wantedState(wanted.has(line), unverified.has(line), current);
+      if (target === current) continue;
+      if (target === "failed" && !cleanFailNote(failNote(line))) {
+        return refuse("say what did not hold before marking a check Failed — nothing was saved", body);
       }
       const next =
         target === "done"
           ? tickStatusLine(ticked, body.checksPhase, line)
           : target === "open"
             ? untickStatusLine(ticked, body.checksPhase, line)
-            : markNotVerifiedStatusLine(ticked, body.checksPhase, line);
+            : target === "failed"
+              ? markFailedStatusLine(ticked, body.checksPhase, line, failNote(line))
+              : markNotVerifiedStatusLine(ticked, body.checksPhase, line);
       // One row that is not there refuses the WHOLE press, the boxes
       // beside it included — never applied silently while one of them
       // is dropped.
@@ -241,7 +267,8 @@ export async function checkRoutes(
     // A state derived by scripts older than this dashboard has no flag, and
     // would hold archive back on a row the reader has just marked.
     const derivedRows = parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
-    if (notVerifiedCount(derivedRows) < notVerifiedCount(parseStatusChecks(ticked))) {
+    const written = parseStatusChecks(ticked);
+    if (notVerifiedCount(derivedRows) < notVerifiedCount(written) || failedCount(derivedRows) < failedCount(written)) {
       const reason = "the installed scripts are older than the dashboard";
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(`${reason} — nothing was saved`, body);
@@ -295,7 +322,7 @@ export async function checkRoutes(
  *  checked is a browser without script leaving the old box checked beside a
  *  newly checked one: the box just checked wins, so a done row becomes Not
  *  verified and any other row becomes done. */
-function wantedState(tick: boolean, unverified: boolean, current: CheckState): CheckState {
+function wantedState(tick: boolean, unverified: boolean, current: CheckState): Exclude<CheckState, "failed"> {
   if (tick && unverified) return current === "done" ? "notVerified" : "done";
   return tick ? "done" : unverified ? "notVerified" : "open";
 }

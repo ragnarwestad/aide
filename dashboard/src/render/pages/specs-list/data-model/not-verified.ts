@@ -4,4 +4,7 @@
  *  mark and no filter match. */
 export interface HasNotVerified {
   notVerified?: number;
+  /** How many Acceptance rows are marked Failed: the check was made after the
+   *  deploy and did not hold. Counted, marked and filtered with the rest. */
+  failed?: number;
 }

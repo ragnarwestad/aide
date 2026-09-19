@@ -50,6 +50,7 @@ function fromTarget(
   | "reopenedRound"
   | "acceptance"
   | "notVerified"
+  | "failed"
   | "title"
   | "description"
   | "phase"
@@ -65,6 +66,7 @@ function fromTarget(
     reopenedRound: t?.reopenedRound,
     acceptance: t?.acceptance,
     notVerified: t?.notVerified,
+    failed: t?.failed,
     title: t?.title,
     // Read but not drawn: the search's third field (spec 221).
     description: t?.description,
@@ -261,6 +263,8 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     phases,
     done: s.done,
     notVerified: s.notVerified,
+    failed: s.failed,
+    acceptance: s.acceptance,
     title: s.title,
     description: s.description,
     dependsOn: [],

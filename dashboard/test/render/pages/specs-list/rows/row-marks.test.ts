@@ -688,4 +688,35 @@ describe("the not-verified mark on a row's name cell", () => {
     expect(html).toContain(`data-folder="${ARCH}"`);
     expect(html).not.toContain("spec-notverified");
   });
+
+  test("the mark gives the number of each: not verified and failed, each only when above zero (AC-5)", () => {
+    const html = draw(
+      [
+        { project: "aide", specFolder: LIVE, title: "t", notVerified: 2, failed: 1 },
+        { project: "aide", specFolder: "510-only-failed", title: "t", failed: 3 },
+      ],
+      [archived({ notVerified: 1, failed: 1 })],
+    );
+    expect(mark(html, LIVE)).toContain("2 not verified · 1 failed");
+    expect(mark(html, ARCH)).toContain("1 not verified · 1 failed");
+    const onlyFailed = mark(html, "510-only-failed");
+    expect(onlyFailed).toContain("3 failed");
+    expect(onlyFailed).not.toContain("not verified");
+    expect(onlyFailed).toContain('href="/specs/aide/510-only-failed?tab=status"');
+    expect(mark(html, LIVE)).not.toContain('class="badge');
+  });
+
+  test("the mark reads in Norwegian (AC-5)", () => {
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: LIVE, title: "t", notVerified: 2, failed: 1 }],
+      lang: "nb",
+    });
+    expect(mark(html, LIVE)).toContain("2 ikke verifisert · 1 feilet");
+  });
+
+  test("a closed spec draws no mark for failed rows either (AC-5)", () => {
+    const html = draw([], [archived({ closed: true, failed: 3 })]);
+    expect(html).not.toContain("spec-notverified");
+  });
 });

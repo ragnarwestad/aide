@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
 import { projectNameError } from "../project-admin";
 import { parseStatus, type StatusInfo } from "../parse-status";
-import { notVerifiedCount } from "../parse-status/not-verified.ts";
+import { failedCount, notVerifiedCount } from "../parse-status/not-verified.ts";
 import { readSpecState } from "../parse-spec-state.ts";
 import { configSpecsPath } from "./config.ts";
 import { specDependsOn } from "./depends-on.ts";
@@ -27,6 +27,8 @@ export interface SpecRef {
    *  Not verified, from its state file; absent when none. A live
    *  spec's count is read where its branch is asked (spec-lookup.ts). */
   notVerified?: number;
+  /** The same, for rows marked Failed. */
+  failed?: number;
   title: string | null;
   /** What the spec is ABOUT. The title says `02-job-detail-view`; this
    *  says why anyone queued it (spec 02). */
@@ -67,13 +69,16 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
     const dir = join(root, entry);
     if (!statSync(dir).isDirectory()) continue;
     const closed = archived && specClosed(dir);
-    const notVerified = archived && !closed ? notVerifiedCount(readSpecState(dir)?.acceptanceCriteria ?? []) : 0;
+    const rows = archived && !closed ? (readSpecState(dir)?.acceptanceCriteria ?? []) : [];
+    const notVerified = notVerifiedCount(rows);
+    const failed = failedCount(rows);
     out.push({
       folder: entry,
       dir,
       archived,
       closed,
       ...(notVerified > 0 ? { notVerified } : {}),
+      ...(failed > 0 ? { failed } : {}),
       title: specTitle(dir),
       description: specDescription(dir),
       dependsOn: specDependsOn(dir),
