@@ -49,7 +49,7 @@ These steps apply regardless of which AI tool you use.
 
 **You must have:**
 
-- ✅ Git (`xcode-select --install`); macOS already has `jq`, which every spec script needs
+- ✅ Git, and `jq`, which every spec script needs — `./install-all.sh` installs `jq` through mise where it is missing
 - ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
   (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) in place through it; without mise they are skipped with a
   warning. `./install-all.sh` installs mise and node itself when they are missing

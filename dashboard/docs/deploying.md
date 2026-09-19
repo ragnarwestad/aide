@@ -5,7 +5,7 @@ move it to another host or run the whole thing on one machine.
 
 ## Table of contents
 
-- [HTTPS from other devices, with Tailscale](#https-from-other-devices-with-tailscale)
+- [HTTPS and other devices](#https-and-other-devices)
 - [A proxy's own header](#a-proxys-own-header)
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
@@ -17,50 +17,28 @@ move it to another host or run the whole thing on one machine.
 
 ---
 
-## HTTPS from other devices, with Tailscale
+## HTTPS and other devices
 
-The dashboard binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788`. Reaching it
-from a phone or another computer, and over HTTPS, is an add-on the install does not set up: a `tailscale serve` proxy
-on the serving host terminates TLS in front of it, with a certificate Tailscale issues and renews itself, at
-`https://<serving-host>.<tailnet>.ts.net/`. Nothing in the server does any of this — no certificate handling, no scheme
-awareness. It does check the `Host` of every request against its own names (see "Who may call it" in
-`running-specs.md`), and the proxy passes the client's `Host` on, so the Tailscale name is one of them;
-`allowedHosts` in `queue-config.json` names any other.
+The dashboard binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788`. HTTPS, and
+reaching it from a phone or another computer, come from a proxy on the serving host that terminates TLS and forwards
+to that address; the dashboard does no certificate handling of its own. Keep `BIND` at `127.0.0.1` behind such a
+proxy, so the port is not open on the local network too. The proxy passes the client's `Host` on, which has to be one
+of the dashboard's own names ("Who may call it" in `running-specs.md`); `allowedHosts` in `queue-config.json` adds
+the proxy's. The dashboard's README, under Installation, points to one way to set one up.
 
-To add it, install [Tailscale](https://tailscale.com) on the serving host, enable **Serve** and **HTTPS Certificates**
-(under DNS) in the tailnet's admin console once, and run on the serving host:
-
-```bash
-tailscale serve --bg --https 443 http://127.0.0.1:8788
-for p in 8801 8802 8803 8804 8805 8806; do tailscale serve --bg --https $p http://127.0.0.1:$p; done
-```
-
-The first line is the dashboard, the second the test servers' ports, so a test server started from the dashboard can
-be opened from another device. `--bg` keeps the rules in Tailscale's own state: they survive restarts and reinstalls,
-and are run once, not on every install. Use another port than 443 if the host already serves something there.
-`tailscale serve reset` removes them all.
-
-**Keep `BIND` at `127.0.0.1`.** Tailscale will not proxy to the host's own tailnet address — pointed there it hangs for
-75 seconds and answers 502 — and `0.0.0.0` would also open the dashboard on the local network.
-
-A host that exposes some of the test servers' ports but not all is refused a test server on a port it left out, since
-no other device could reach it; a host that exposes none of them has not put the test servers behind Tailscale, and
-starts them as before.
-
-Why it matters beyond a nicer URL: a service worker needs a secure context, so installing the dashboard as an app on a
-phone or a desktop depends on it.
+Installing the dashboard as an app on a phone or a desktop needs HTTPS: a service worker needs a secure context.
 
 ## A proxy's own header
 
-A `tailscale serve` proxy in front of the dashboard already knows who the reader is — it sends the signed-in user's
-name as a request header on every request it forwards. `headerAuth`, an optional block in `queue-config.json`, names
+A proxy in front of the dashboard that signs its readers in already knows who the reader is — it sends the
+signed-in user's name as a request header on every request it forwards. `headerAuth`, an optional block in `queue-config.json`, names
 that header and the identifiers allowed in it. The dashboard asks for no sign-in, so the block is read and checked at
 start-up and gates nothing:
 
 ```json
 {
   "headerAuth": {
-    "header": "Tailscale-User-Login",
+    "header": "X-Forwarded-Email",
     "users": ["alice@example.com"]
   }
 }
@@ -69,7 +47,7 @@ start-up and gates nothing:
 **Only honoured when `BIND` is `127.0.0.1` (or `::1`).** A header from anywhere else can be set by anyone who can
 reach the port, so a server bound to any other address — `0.0.0.0` included — refuses to start at all while
 `headerAuth` is set, with a message naming both the header and the offending bind address. This is the same
-loopback requirement "HTTPS from other devices, with Tailscale" above already puts on the whole deploy, so a serving host that
+loopback requirement "HTTPS and other devices" above already puts on the whole deploy, so a serving host that
 already binds `127.0.0.1` needs nothing further to turn this on.
 
 **The match is exact-string, not a prefix or a domain suffix.** Some proxies carry more than the bare identifier — Google
@@ -77,7 +55,7 @@ IAP's header, for instance, prefixes it with `accounts.google.com:`. Whatever th
 literal string listed in `users`; a looser match (a suffix, a substring) would risk admitting more than intended, and
 a wrong guess about the prefix is safer refused than silently widened.
 
-Other proxies that send an equivalent header, for a `headerAuth` block that names theirs instead of Tailscale's:
+Headers some proxies send, for the `header` above:
 
 - **oauth2-proxy** — `X-Forwarded-Email`
 - **Cloudflare Access** — `Cf-Access-Authenticated-User-Email`
@@ -102,10 +80,11 @@ and they answer any request with a `Host` of the dashboard's own.
 
 The service worker caches **nothing**. Every line of this dashboard is live state, and a queue served out of yesterday's
 storage would be worse than no app at all: it passes every request through to the server and answers a page load with a
-short "not reachable" page when the tailnet is out of reach. That is all it is for — that, and being what a browser
+short "not reachable" page when the server is out of reach. That is all it is for — that, and being what a browser
 looks for before it offers to install anything.
 
-None of this works over plain HTTP: a service worker needs a secure context, which is what the section above is about.
+None of this works over plain HTTP: a service worker needs a secure context, which is what "HTTPS and other devices"
+above is about.
 The manifest and the icons are served either way, and the tags on the page are inert until then.
 
 ## On a second host

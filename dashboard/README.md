@@ -5,7 +5,9 @@
 - [What it is](#what-it-is)
 - [How it's used](#how-its-used)
 - [Installation](#installation)
-- [Development](#development)
+    - [Requirements](#requirements)
+    - [Installing](#installing)
+    - [Remote connection](#remote-connection)
 - [Reference](#reference)
 
 ---
@@ -20,8 +22,8 @@ Under the hood: it scans a root for `.aide/project.yaml` manifests, resolves eac
 root, parses spec progress/phase from `4-status.md` files, and renders a small static site — an
 overview page plus one page per project, all sharing a left-column nav. Generated where the repos
 live and served by a small Bun server that also receives live aide-run events; that server listens
-on localhost, and a `tailscale serve` proxy can put HTTPS in front of it
-(see [HTTPS from other devices, with Tailscale](docs/deploying.md#https-from-other-devices-with-tailscale)). Generator and
+on localhost, and a proxy can put HTTPS in front of it
+(see [HTTPS and other devices](docs/deploying.md#https-and-other-devices)). Generator and
 server can run on the same machine or on two — no host is named anywhere in this repo.
 
 ## How it's used
@@ -38,20 +40,18 @@ between them.
 
 ## Installation
 
+### Requirements
+
 The machine that serves the dashboard needs, before it is installed:
 
-- **macOS, and a login on its screen** for the user the dashboard runs as. It runs as a launchd job inside that
-  login; the screen may stay locked, and a login over ssh alone is not one.
-- **git** (`xcode-select --install`), with `user.name` and `user.email` set: the runs commit as that user.
+- **git**, with `user.name` and `user.email` set: the runs commit as that user.
 - **Aide**: `./install-all.sh` at the repo root. It also installs mise, node and Claude Code when they are missing,
   and bun, jq, gh, pandoc and md-to-pdf through mise.
 - **An AI CLI, signed in**: run `claude` once and sign in. Codex, OpenCode or Copilot work too.
 
-The dashboard then answers on that machine alone, at `http://127.0.0.1:8788`. Reaching it from a phone or another
-computer, over HTTPS, is an add-on you set up yourself with Tailscale:
-see [HTTPS from other devices, with Tailscale](docs/deploying.md#https-from-other-devices-with-tailscale).
+### Installing
 
-Then install it, on that machine or on another one over ssh:
+On that machine, or on another one over ssh:
 
 ```bash
 dashboard/install.sh                # on this machine — first install and every update
@@ -59,33 +59,25 @@ MINI=<host> make install-serve      # on <host>, from dashboard/ — first insta
 MINI=<host> make deploy-serve       # same — for updates
 ```
 
-Both check the list above on the serving machine before they change anything. They stop on anything
-required that is missing, saying how to install it, and warn about the optional ones. `MINI` has no default: a
-deploy aimed at a machine nobody named is worse than one that refuses to start. See
-[Deploying](docs/deploying.md) for HTTPS, the serving host, and installing it as a browser app.
+Both check the requirements on the serving machine before they change anything. They stop on anything required that
+is missing, saying how to install it, and warn about the optional ones. `MINI` has no default: a deploy aimed at a
+machine nobody named is worse than one that refuses to start.
 
-A server is not required — `make serve-local` generates the site and serves it on this machine
-with no launchd job, and `AIDE_DASH_HOST=<host> make publish` generates it and rsyncs it to a host
-as a plain static site, with no server behind it at all (see [Development](#development) for both).
+On macOS the install runs the dashboard as a launchd service, which starts on its own and keeps running; the user it
+runs as must have logged in on the machine's screen once, since the service runs inside that login. On other systems,
+`make serve-local` in `dashboard/` runs it without a service.
 
-## Development
+Once installed, the dashboard answers on that machine alone, at `http://127.0.0.1:8788`.
+[Deploying](docs/deploying.md) covers the serving host and installing the dashboard as a browser app.
 
-```bash
-make test                           # tsc + bun test (single-run)
-make generate                       # write the site to out/
-make serve-local                    # generate + serve out/ on this machine
-AIDE_DASH_HOST=<host> make publish  # generate + rsync out/ to that host
-                                    # (--delete: pages removed locally
-                                    # disappear remotely too)
-```
+### Remote connection
 
-`AIDE_DASH_HOST` is required and has no default, for the same reason as `MINI` above. The remote
-site directory (`~/.aide/dashboard/site` on the serving host) must remain exclusively the
-dashboard's: publish syncs with `--delete`, so anything else placed there is removed on the next
-publish.
+Reaching the dashboard from a phone or another computer, over HTTPS, is an optional add-on with Tailscale: see
+[Tailscale (optional)](docs/tailscale.md). Nothing in the install depends on it.
 
 ## Reference
 
+- [Developing the dashboard](../DEVELOPING.md#the-dashboard) — its tests, and running it from a checkout
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page

@@ -90,14 +90,13 @@ healthy outcome, and a reader who cannot tell it from a broken agent will start 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every
 route — the static site, `/live` and `POST /api/aide-run` included:
 
-- **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the machine's Tailscale name (asked
-  of `tailscale status --json` on the first request that needs it, retried every 30 seconds while it has not
-  answered), and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
+- **The `Host` must be one of its own names:** `localhost`, `127.0.0.1`, `[::1]`, the name of an HTTPS proxy it finds
+  on the machine, and any name listed in `allowedHosts` in `queue-config.json`. The port is ignored, since the test boards
   answer as `<name>:8801`. Anything else answers 403 with the refused host in the body, so a page cannot reach the
   dashboard through a DNS name of its own.
 - **A request that changes something must come from the dashboard's own address.** That is any method but GET, HEAD
   and OPTIONS, and the one GET that starts a test board (`?startTestServer=1`). Its `Origin`, when it has one, must
-  equal its own `Host` (host and port; the scheme is ignored, because `tailscale serve` ends TLS), and its
+  equal its own `Host` (host and port; the scheme is ignored, because a proxy in front of it ends TLS), and its
   `Sec-Fetch-Site`, when it has one, must be `same-origin` or `none`. A page on another site, or on another port of
   the same machine, answers 403.
 - **A header that is absent passes.** `curl`, the run emitter and the round script send no `Origin`, so they are
@@ -109,10 +108,10 @@ admits nobody the rule above does not.
 
 **The rule stops web pages, not another machine.** `Host`, `Origin` and `Sec-Fetch-Site` are set by whoever sends the
 request, so a machine that can reach the port and sends `Host: localhost` is admitted. Bind loopback
-(`--bind 127.0.0.1`), which `make install-serve` does on a host with Tailscale.
+(`--bind 127.0.0.1`), which the install does by default.
 
-When a change drops an argument the launchd job passes, the job's arguments are re-rendered with
-`MINI=<host> make -C dashboard install-serve`; the service refuses an argument it no longer knows.
+The service refuses an argument it no longer knows, so a change that drops one the launchd job passes has it dropped
+from the job by the install after the merge (see Deploy in [deploying.md](deploying.md)).
 
 ## The time limit
 
@@ -576,7 +575,7 @@ server's own environment (the case above) is left alone, so pointing reporting a
         "hooks": [
           {
             "type": "command",
-            "command": "AIDE_RUN_URL=\"https://<serving-host>.<tailnet>.ts.net/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'"
+            "command": "AIDE_RUN_URL=\"http://127.0.0.1:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'"
           }
         ]
       }

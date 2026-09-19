@@ -52,9 +52,9 @@ describe("exposureOf", () => {
   });
 });
 
-// The commands docs/deploying.md has the user run by hand name the pool
+// The commands docs/tailscale.md has the user run by hand name the pool
 // port by port; a pool that grows without them leaves a port unreachable.
 test("the documented tailscale serve loop names every test-server port", () => {
-  const doc = readFileSync(join(import.meta.dir, "..", "..", "..", "docs", "deploying.md"), "utf-8");
+  const doc = readFileSync(join(import.meta.dir, "..", "..", "..", "docs", "tailscale.md"), "utf-8");
   expect(doc).toContain(`for p in ${TEST_SERVER_PORTS.join(" ")}; do tailscale serve`);
 });

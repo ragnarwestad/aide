@@ -1,6 +1,6 @@
 // Whether Tailscale currently exposes one of the test-server pool's
 // ports on this host (spec 491) — asked of `tailscale serve status
-// --json`, the live half of the rules docs/deploying.md has the user
+// --json`, the live half of the rules docs/tailscale.md has the user
 // set up by hand, once, when they want HTTPS. The pool can grow, or a
 // host's tailnet rules can be reset, without every host's `tailscale
 // serve` state growing or resetting with it — this is what
@@ -63,7 +63,7 @@ export async function portExposed(
 
 /** Tailscale's answer for one pool port. A host that exposes none of the
  *  pool has not put the test boards behind Tailscale at all — it is an
- *  optional add-on (docs/deploying.md) — and reads as "cannot tell", so
+ *  optional add-on (docs/tailscale.md) — and reads as "cannot tell", so
  *  its boards start as before; only a host that exposes some of the pool
  *  is refused the ports it left out. */
 export function exposureOf(

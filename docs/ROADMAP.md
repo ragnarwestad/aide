@@ -243,10 +243,9 @@ THERE, not here (we eat our own dog food):
       mac mini. `aide-emit-run --phase` reports the TDD boundaries from
       inside a run)
 - [x] Stage 5 — HTTPS and one address → spec 172 (done August 2026: the
-      server binds `127.0.0.1` and a `tailscale serve` proxy set up by
-      `make install-serve` puts TLS in front of it, so the dashboard has
-      one address and it is a secure context — which is what an
-      installable app needs)
+      server binds `127.0.0.1` and an HTTPS proxy in front of it gives
+      the dashboard one address that is a secure context — which is
+      what an installable app needs)
 
 The wish list and the grounding are in spec 76 (archived).
 

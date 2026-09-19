@@ -11,6 +11,7 @@ This guide is for you who want to **contribute to or further develop** Aide.
   - [Updating rules](#updating-rules)
   - [Updating Copilot instructions](#updating-copilot-instructions)
 - [Installation](#installation)
+- [The dashboard](#the-dashboard)
 - [Architecture](#architecture)
 
 ---
@@ -129,6 +130,28 @@ cd implementations/copilot && ./install.sh
 # Uninstall Claude Code
 cd implementations/claude-code && ./uninstall.sh
 ```
+
+---
+
+## The dashboard
+
+`dashboard/` is bun and TypeScript, with its own commands, run from inside it:
+
+```bash
+make test                           # tsc + bun test (single-run)
+make generate                       # write the site to out/
+make serve-local                    # generate + serve out/ on this machine, no service
+AIDE_DASH_HOST=<host> make publish  # generate + rsync out/ to that host
+                                    # (--delete: pages removed locally
+                                    # disappear remotely too)
+```
+
+`make serve-local` runs the checkout it is started in, which is how a change is tried before it lands.
+`make publish` puts the generated pages on a host as a plain static site, with no server behind them.
+
+`AIDE_DASH_HOST` has no default: a sync aimed at a machine nobody named is worse than one that refuses to start. The
+remote site directory (`~/.aide/dashboard/site` on the serving host) must remain exclusively the dashboard's: publish
+syncs with `--delete`, so anything else placed there is removed on the next publish.
 
 ---
 

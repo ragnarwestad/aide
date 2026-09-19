@@ -97,7 +97,7 @@ LABEL ?= com.aide-dashboard.serve
 QUEUE_PROJECTS ?= aide
 # Localhost only: the server answers on this machine alone. HTTPS and
 # access from other devices are an add-on set up by hand
-# (docs/deploying.md, "HTTPS from other devices, with Tailscale").
+# (docs/deploying.md, "HTTPS and other devices").
 BIND ?= 127.0.0.1
 REPO_URL := $(shell git config --get remote.origin.url)
 # How install-serve reaches the host: a shell there, started in its

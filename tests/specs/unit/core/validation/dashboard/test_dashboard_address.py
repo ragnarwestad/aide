@@ -1,4 +1,9 @@
-"""The dashboard has ONE documented address, and it is the HTTPS one (spec 172).
+"""Where the documented dashboard answers, written down without naming a machine.
+
+The dashboard binds loopback and answers at `http://127.0.0.1:8788` on the
+serving host; HTTPS and other devices are an optional proxy, documented on
+its own page (`dashboard/docs/tailscale.md`), which carries the HTTPS
+placeholder address.
 
 Until spec 172 the dashboard was served over plain HTTP on a port, and
 that address was written down in four places that no single test could
@@ -22,20 +27,16 @@ import pytest
 ADDRESS_FILES = (
     "dashboard/README.md",
     "dashboard/docs/deploying.md",
+    "dashboard/docs/tailscale.md",
     "docs/ROADMAP.md",
     ".aide/project.yaml",
     "implementations/claude-code/install.sh",
 )
 
-# The ones that carry a worked example of the address must show the
-# HTTPS placeholder form. ROADMAP.md narrates the work instead, and
-# dashboard/README.md now links to `docs/deploying.md` for the address
-# rather than writing one out — so it has no example to be wrong about,
-# while the plain-HTTP rule above still holds it to never gaining one.
+# The page for the optional HTTPS proxy is the one that writes out the
+# HTTPS address, and it must use the placeholder form.
 EXAMPLE_FILES = (
-    "dashboard/docs/deploying.md",
-    ".aide/project.yaml",
-    "implementations/claude-code/install.sh",
+    "dashboard/docs/tailscale.md",
 )
 
 # A plain-HTTP URL naming the dashboard's port. `PORT ?= 8788`, the
@@ -75,9 +76,8 @@ class TestDocumentedAddressIsHttps:
 
         # Assert
         assert not found, (
-            f"{relative_path} still documents the dashboard over plain HTTP "
-            f"on a port ({found}); spec 172 made the HTTPS address the only "
-            f"one that answers"
+            f"{relative_path} documents the dashboard over plain HTTP at a "
+            f"host other than loopback ({found}); it binds 127.0.0.1 alone"
         )
 
     @pytest.mark.parametrize("relative_path", EXAMPLE_FILES)
