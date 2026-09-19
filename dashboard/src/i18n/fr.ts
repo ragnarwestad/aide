@@ -18,7 +18,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.tabProjects": "Projets",
   "shell.tabSchedule": "Planification",
   "shell.restartWaiting": "Le déploiement attend {jobs} ; le service redémarre une fois terminés.",
-  "shell.installWarning": "la dernière installation d'aide a rencontré un problème — voir {path}",
+  "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
   "shell.toolFault": "{tool}: {problems} — ouvre Settings et clique sur Check dans cet onglet",
   "shell.overlayDeploying": "déploiement…",
   "shell.overlayResetting": "réinitialisation…",

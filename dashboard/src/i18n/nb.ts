@@ -18,7 +18,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.tabProjects": "Prosjekter",
   "shell.tabSchedule": "Kjøring",
   "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
-  "shell.installWarning": "siste installasjon fant et problem — se {path}",
+  "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
   "shell.toolFault": "{tool}: {problems} — åpne Settings og trykk Check på den fanen",
   "shell.overlayDeploying": "deployer…",
   "shell.overlayResetting": "nullstiller…",

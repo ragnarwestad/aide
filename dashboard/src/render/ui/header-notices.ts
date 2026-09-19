@@ -19,13 +19,13 @@ const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aid
 // it reaches every ordinary dashboard visit instead (REQ-5). Only the
 // LAST run's block matters: an old warning a later run already cleared
 // must not keep showing.
-function lastInstallWarning(lang: Language): string | undefined {
+function lastInstallWarnings(lang: Language): string[] {
   const path = process.env.AIDE_INSTALL_LOG ?? DEFAULT_INSTALL_LOG();
   let text: string;
   try {
     text = readFileSync(path, "utf-8");
   } catch {
-    return undefined;
+    return [];
   }
   const lastBlock = text.split(/^--- .* ---$/m).pop() ?? "";
   // Two tagged warnings only: the declared-tools step's (`[aide tools]`,
@@ -36,9 +36,14 @@ function lastInstallWarning(lang: Language): string | undefined {
   // legitimately not have — Codex, a browser MCP, a PATH line — and a
   // banner that fired on any of those was on after every merge, which
   // is the same as no banner.
-  return /⚠️\s+\[aide (tools|serve)\]/.test(lastBlock)
-    ? t(lang, "shell.installWarning", { path })
-    : undefined;
+  //
+  // Each warning is its own line, in the installer's own words: "see
+  // the log" sent the reader to a file for the one sentence that says
+  // what is wrong — here, that the board will not start after its next
+  // restart. The log's path rides along for the full output.
+  return [...lastBlock.matchAll(/⚠️\s+\[aide (tools|serve)\]\s*(.+)$/gm)].map((m) =>
+    t(lang, "shell.installWarning", { problem: m[2]!.trim(), path }),
+  );
 }
 
 /** The Deploy wait on every page, not only the Deploy tab: the jobs it
@@ -68,7 +73,8 @@ function toolFaultNotices(lang: Language): string {
 }
 
 export function headerNotices(lang: Language): string {
-  const installWarning = lastInstallWarning(lang);
-  const installBanner = installWarning ? rowMessage("waiting", installWarning, { tag: "p" }) : "";
+  const installBanner = lastInstallWarnings(lang)
+    .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
+    .join("");
   return installBanner + toolFaultNotices(lang) + restartWaitingNotice(lang);
 }

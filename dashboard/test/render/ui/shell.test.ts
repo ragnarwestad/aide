@@ -42,6 +42,21 @@ describe("pageShell install warning banner", () => {
     expect(html).toContain("rowmsg waiting");
   });
 
+  // The banner says what is wrong, in the installer's own words: "see
+  // the log" hid the one sentence that mattered — that the board will
+  // not start after its next restart (2026-09-19).
+  test("says the problem itself, one line per warning", () => {
+    writeLog(
+      "--- 2026-09-19T00:00:00Z ---\n⚠️  [aide tools] mise is not installed — skipping jq\n" +
+      "⚠️ [aide serve] the launchd job passes --token-file, which this build no longer accepts\n",
+    );
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-19T00:00:00Z");
+    const lines = html.match(/<p class="install-warning rowmsg waiting">[\s\S]*?<\/p>/g) ?? [];
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain("found a problem: mise is not installed — skipping jq");
+    expect(lines[1]).toContain("found a problem: the launchd job passes --token-file, which this build no longer accepts");
+  });
+
   test("shows nothing when the last block has no warning", () => {
     writeLog(
       "--- 2026-08-31T00:00:00Z ---\n⚠️  an old warning\n" +
