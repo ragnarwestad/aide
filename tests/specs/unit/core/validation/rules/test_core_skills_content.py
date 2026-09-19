@@ -318,3 +318,12 @@ class TestTheAcceptanceRowSaysWhatThePlanDecided:
 
     def test_an_ordinary_row_says_nothing(self, step_8):
         assert "Notes cell stays empty" in step_8
+
+
+def test_implement_runs_the_browser_test_it_wrote_on_its_own():
+    """A browser test nobody ran proves nothing: implement runs each file
+    it wrote once, on its own — never the whole browser suite."""
+    implement = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    refactor = implement.split("### Phase 3: REFACTOR", 1)[1].split("\n## ", 1)[0]
+    assert "each file on its own and once" in refactor
+    assert "never\n   the project's whole browser suite" in refactor

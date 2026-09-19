@@ -132,6 +132,14 @@ runner's own run on your result is what decides.
    `--cmd ""` — the script still writes a record, naming the gap in
    plain words rather than silently passing, and the step reports that
    gap to whoever is watching.
+
+   A browser test this step wrote for a *(browser)* criterion is run
+   too, each file on its own and once, after the full suite — never
+   the project's whole browser suite, which a project may keep out of
+   its full-suite command. Red is fixed back through Phase 2 like any
+   red test. A file that could not start at all (no browser on the
+   machine) is named in the full-suite row's Notes cell, never passed
+   over in silence.
 3. TypeScript check
 4. ESLint
 5. Build
