@@ -33,6 +33,38 @@
 # on the merged result, with the record written into the folder where
 # the archive has just moved it. A pull that fast-forwarded brought the
 # branch nothing new, and nothing is run.
+# The runner's own run of the tests, inside what is left of the step's
+# time limit: the limit is the whole step's, not the session's alone. A
+# run still going when it runs out is stopped (124), and the step ends
+# on its time limit with the work committed, like a session that ran
+# out. `child` is this run while it lasts, so Cancel stops it too.
+run_step_tests_within_time() {
+  local deadline tests_pid
+  deadline=$(( started_at + ${timeout_sec%.*} ))
+  set -m
+  "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
+    --folder "$step_tests_folder" "${step_test_args[@]}" \
+    --result-file "$work_dir/step-test-run.json" > "$work_dir/step-test-run.log" 2>&1 &
+  tests_pid=$!
+  set +m
+  child="$tests_pid"
+  while kill -0 "$tests_pid" 2>/dev/null; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      kill -TERM "-$tests_pid" 2>/dev/null || kill -TERM "$tests_pid" 2>/dev/null
+      sleep 2
+      kill -KILL "-$tests_pid" 2>/dev/null || true
+      wait "$tests_pid" 2>/dev/null
+      child=""
+      return 124
+    fi
+    sleep 1
+  done
+  wait "$tests_pid"
+  local rc=$?
+  child=""
+  return "$rc"
+}
+
 step_tests_folder=""
 if [ "$terminal_reason" = "completed" ]; then
   case "$command_name" in
@@ -93,11 +125,16 @@ EOF_CMDS
       step_cost_total="$cost"
       while :; do
         echo "aide-run-spec: running the project's tests on $command_name's result ($step_test_count command(s))" >&2
-        "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
-          --folder "$step_tests_folder" "${step_test_args[@]}" \
-          --result-file "$work_dir/step-test-run.json" > "$work_dir/step-test-run.log" 2>&1
+        run_step_tests_within_time
         step_tests_rc=$?
         [ "$step_tests_rc" -ne 0 ] || break
+        if [ "$step_tests_rc" -eq 124 ]; then
+          terminal_reason="timeout"
+          ok="false"
+          suffix=" (stopped: timeout)"
+          error_msg="stopped at its own ${timeout_sec}s time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
+          break
+        fi
         # The lines a reader looks for first — a runner's own failure
         # markers, never a bare "Error:" inside a line a PASSING test
         # echoed — then the tail, so a suite that prints nothing of
