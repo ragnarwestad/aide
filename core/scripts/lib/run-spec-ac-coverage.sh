@@ -27,10 +27,17 @@ ac_coverage_added_lines() {   # $1: worktree  $2: base ref
   git -C "$wt" diff --no-color --no-ext-diff -U0 "$fork" -- . 2>/dev/null \
     | awk '/^\+\+\+ /{ f = ($2 == "/dev/null") ? "" : substr($2, 3); next }
            /^\+/ && f != "" { print f "\t" substr($0, 2) }'
+  # A worktree's links (`node_modules`, `.venv`) are untracked links to
+  # directories, not files: skipped, and never the loop's last word —
+  # under the runner's pipefail a failing test here threw the whole
+  # record away (498, 2026-09-19).
   git -C "$wt" ls-files --others --exclude-standard 2>/dev/null \
     | while IFS= read -r f; do
-        [ -f "$wt/$f" ] && awk -v f="$f" '{ print f "\t" $0 }' "$wt/$f"
+        if [ -f "$wt/$f" ] && [ ! -L "$wt/$f" ]; then
+          awk -v f="$f" '{ print f "\t" $0 }' "$wt/$f"
+        fi
       done
+  return 0
 }
 
 # "<id><TAB><file><TAB><name>" for every AC reference in an added test

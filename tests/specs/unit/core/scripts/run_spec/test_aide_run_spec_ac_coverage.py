@@ -72,3 +72,23 @@ def test_a_spec_without_criteria_gets_no_record(runner, workspace, fake_claude):
     assert out["terminalReason"] == "completed", out
     shown = git(workspace["specs"], "ls-tree", "--name-only", BRANCH, f"{workspace['folder']}/")
     assert "ac-coverage.json" not in shown
+
+
+def test_the_record_is_written_when_the_step_committed_its_own_tests(runner, workspace, fake_claude):
+    """498 (2026-09-19): the session committed its tests itself, so the
+    only files git did not know were the worktree's links — a link to a
+    directory, not a file. The reading ended on that, and under the
+    runner's pipefail the record was thrown away instead of written."""
+    with_status(workspace, ["create", "analyze"])
+    _spec_with_criteria(workspace)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "mkdir -p test\n"
+        "printf 'test(\"the total shows on a phone (AC-1)\", () => {});\\n' > test/new.test.ts\n"
+        "git add test && git commit -q -m 'the step'\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/ac-coverage.json"))
+    assert [t["name"] for t in record["acs"]["AC-1"]] == ["the total shows on a phone (AC-1)"]
