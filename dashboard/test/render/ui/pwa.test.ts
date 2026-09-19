@@ -1,5 +1,5 @@
-// Spec 173: what makes the dashboard installable — a manifest, two
-// icons, an apple-touch-icon and a service worker.
+// Spec 173: what makes the dashboard installable — a manifest, its
+// icons (SVG and, since spec 505, PNG), an apple-touch-icon and a service worker.
 //
 // Every one of them is a resource at a URL, which is the one thing
 // `brand.ts` says this site never has ("a page that references
@@ -8,12 +8,13 @@
 // responses, built from the same TypeScript the mark is built from and
 // served by `serve.ts`, so nothing is written to disk and nothing can
 // drift from the source that generated it. These tests are what says
-// so — that the five routes answer, that they answer without a token,
+// so — that the eight routes answer, that they answer without a token,
 // and that the worker behind them caches nothing.
 import { afterEach, describe, expect, test } from "bun:test";
 import { appIcon, appIconMaskable } from "../../../src/render/ui/brand.ts";
 import { CSS } from "../../../src/render/ui/css";
 import { APPLE_TOUCH_ICON, SERVICE_WORKER, THEME_COLORS } from "../../../src/render/ui/pwa.ts";
+import { barCentres, coloredBox, decodePng, hexRgb, readIconSvg } from "../../helpers/icon-image.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -21,7 +22,7 @@ const start = () => harness.start();
 
 afterEach(() => harness.cleanup());
 
-// --- the five routes (criteria 1-3) -----------------------------------------
+// --- the eight routes (criteria 1-3) -----------------------------------------
 
 describe("the manifest (criterion 1)", () => {
   test("it is served, as JSON of its own media type, with no token", async () => {
@@ -49,31 +50,70 @@ describe("the manifest (criterion 1)", () => {
     expect(manifest.theme_color).toBe(THEME_COLORS.light);
   });
 
-  test("its icons are one for the launcher and one for the OS to crop", async () => {
+  type Icon = { src: string; sizes: string; purpose: string; type: string };
+  const icons = async (base: string) =>
+    ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { icons: Icon[] }).icons;
+
+  test("it lists a 192 and a 512 PNG for the launcher (AC-1)", async () => {
     const { base } = start();
-    const manifest = (await (await fetch(`${base}/manifest.webmanifest`)).json()) as {
-      icons: { src: string; purpose: string; type: string }[];
-    };
-    expect(manifest.icons.map((i) => i.purpose).sort()).toEqual(["any", "maskable"]);
-    // The mark is genuinely vector, so one file scales to every size a
-    // launcher asks for — the three fixed PNGs a Vite app ships are a
-    // raster convention, not a requirement.
-    for (const icon of manifest.icons) expect(icon.type).toBe("image/svg+xml");
+    const list = await icons(base);
+    for (const sizes of ["192x192", "512x512"])
+      expect(list.some((i) => i.type === "image/png" && i.sizes === sizes && i.purpose === "any")).toBe(true);
   });
 
-  test("every icon it names actually answers", async () => {
+  test("every PNG it names answers as a well-formed PNG of the size it claims (AC-1, AC-2)", async () => {
     const { base } = start();
-    const manifest = (await (await fetch(`${base}/manifest.webmanifest`)).json()) as {
-      icons: { src: string }[];
-    };
-    for (const icon of manifest.icons) {
+    const pngs = (await icons(base)).filter((i) => i.type === "image/png");
+    expect(pngs).toHaveLength(3);
+    for (const icon of pngs) {
       const res = await fetch(`${base}${icon.src}`);
-      expect([icon.src, res.status]).toEqual([icon.src, 200]);
-      expect([icon.src, res.headers.get("content-type")]).toEqual([
+      expect([icon.src, res.status, res.headers.get("content-type")]).toEqual([icon.src, 200, "image/png"]);
+      const png = decodePng(new Uint8Array(await res.arrayBuffer()));
+      expect(`${png.width}x${png.height}`).toBe(icon.sizes);
+    }
+  });
+
+  test("it lists a maskable PNG of at least 512 (AC-2)", async () => {
+    const { base } = start();
+    const m = (await icons(base)).find((i) => i.purpose === "maskable" && i.type === "image/png");
+    expect(m).toBeDefined();
+    expect(Number(m!.sizes.split("x")[0])).toBeGreaterThanOrEqual(512);
+  });
+
+  test("the SVG icons are still listed and still answer (AC-4)", async () => {
+    const { base } = start();
+    const list = await icons(base);
+    const svgs = list.filter((i) => i.type === "image/svg+xml");
+    expect(svgs.map((i) => [i.src, i.sizes, i.purpose])).toEqual([
+      ["/icon-512.svg", "any", "any"],
+      ["/icon-512-maskable.svg", "any", "maskable"],
+    ]);
+    for (const icon of svgs) {
+      const res = await fetch(`${base}${icon.src}`);
+      expect([icon.src, res.status, res.headers.get("content-type")]).toEqual([
         icon.src,
+        200,
         "image/svg+xml; charset=utf-8",
       ]);
     }
+  });
+
+  test("each PNG route serves the artwork of its own purpose (AC-3)", async () => {
+    const { base } = start();
+    const plain = readIconSvg(await (await fetch(`${base}/icon-512.svg`)).text());
+    const maskable = readIconSvg(await (await fetch(`${base}/icon-512-maskable.svg`)).text());
+    const load = async (path: string) => decodePng(new Uint8Array(await (await fetch(`${base}${path}`)).arrayBuffer()));
+    const p192 = await load("/icon-192.png");
+    const p512 = await load("/icon-512.png");
+    const m512 = await load("/icon-512-maskable.png");
+    expect(barCentres(p192, plain.bars)).toEqual(plain.bars.map((b) => hexRgb(b.fill)));
+    expect(barCentres(p512, plain.bars)).toEqual(plain.bars.map((b) => hexRgb(b.fill)));
+    expect(barCentres(m512, maskable.bars)).toEqual(maskable.bars.map((b) => hexRgb(b.fill)));
+    const span = (png: typeof p512) => {
+      const box = coloredBox(png, hexRgb(plain.canvas));
+      return box.x1 - box.x0;
+    };
+    expect(span(m512)).toBeLessThan(span(p512));
   });
 });
 
@@ -95,6 +135,9 @@ describe("the icons (criterion 3)", () => {
   const cases: [string, string][] = [
     ["/icon-512.svg", "image/svg+xml; charset=utf-8"],
     ["/icon-512-maskable.svg", "image/svg+xml; charset=utf-8"],
+    ["/icon-192.png", "image/png"],
+    ["/icon-512.png", "image/png"],
+    ["/icon-512-maskable.png", "image/png"],
     ["/apple-touch-icon.png", "image/png"],
   ];
 
@@ -118,12 +161,15 @@ describe("the icons (criterion 3)", () => {
   });
 });
 
-describe("the five answer any request with a Host of the dashboard's own", () => {
+describe("the eight answer any request with a Host of the dashboard's own", () => {
   const PATHS = [
     "/manifest.webmanifest",
     "/sw.js",
     "/icon-512.svg",
     "/icon-512-maskable.svg",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/icon-512-maskable.png",
     "/apple-touch-icon.png",
   ];
 
@@ -138,6 +184,12 @@ describe("the five answer any request with a Host of the dashboard's own", () =>
     const { base } = start();
     const res = await fetch(`${base}/manifest.webmanifest`, { method: "POST" });
     expect(res.status).toBe(405);
+  });
+
+  test("a POST to a PNG icon is refused too (AC-1, AC-2)", async () => {
+    const { base } = start();
+    for (const path of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"])
+      expect([path, (await fetch(`${base}${path}`, { method: "POST" })).status]).toEqual([path, 405]);
   });
 });
 
