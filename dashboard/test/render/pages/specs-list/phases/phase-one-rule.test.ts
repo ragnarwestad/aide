@@ -232,7 +232,7 @@ describe("spec 108: one rule per phase", () => {
     expect(archive).not.toContain("acceptance-criteria-unticked");
     // The reason is a sentence with a move in it, not the script's own
     // token: a reader should not have to know what the token means.
-    expect(panel(html)).toContain("stopped: the Acceptance criteria are not all ticked — tick them on the Status tab");
+    expect(panel(html)).toContain("stopped: the Acceptance criteria are not all ticked — tick them under › on the Specs list, or on the Status tab");
     expect(panel(html)).not.toContain("acceptance-criteria-unticked");
     expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
   });

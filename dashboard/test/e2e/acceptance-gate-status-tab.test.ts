@@ -92,7 +92,7 @@ beforeAll(async () => {
   await waitUntil(
     async () => {
       const res = await fetch(`${base}/?live=0`);
-      return (await res.text()).includes("tick them on the Status tab");
+      return (await res.text()).includes("tick them under › on the Specs list, or on the Status tab");
     },
     10_000,
     "the specs list to carry the acceptance hold-back message",
@@ -105,7 +105,7 @@ describe("the acceptance gate, on a page a person could click", () => {
   test("REQ-4: the specs list names the Status tab", async () => {
     await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
-    expect(await notice.textContent()).toContain("tick them on the Status tab");
+    expect(await notice.textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
   });
 
   test("AC-17: the rendered file sits below the criteria block, Save and Cancel enable on a change, nothing scrolls sideways (AC-17)", async () => {
@@ -148,7 +148,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     const noticeCount = await notice.count();
     const noticeText = noticeCount > 0 ? await notice.textContent() : "";
-    expect(noticeText).not.toContain("tick them on the Status tab");
+    expect(noticeText).not.toContain("tick them under › on the Specs list, or on the Status tab");
 
     // "archive becomes possible" (REQ-5): press the row's real
     // Run/Archive control and confirm the resulting queued job is NOT
