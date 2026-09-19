@@ -40,13 +40,23 @@ ac_coverage_added_lines() {   # $1: worktree  $2: base ref
   return 0
 }
 
-# "<id><TAB><file><TAB><name>" for every AC reference in an added test
-# line. The name is the line's first quoted string — a test's own title —
-# or the line itself where it has none (a Python `def test_..._ac_3`).
+# A line that starts a test: `test(`, `it(`, `describe(` and their
+# `.each`/`.skip` forms, a Python `def test_…`, a Go `func Test…`. A
+# comment or any other line naming an AC is not a test, even in a test
+# file — 501's row read "Tests: // The control on the Notifications tab".
+ac_coverage_is_test_line() {   # $1: the line
+  printf '%s\n' "$1" | grep -qE '^[[:space:]]*((test|it|describe)(\.[A-Za-z]+)*[[:space:]]*\(|(async[[:space:]]+)?def[[:space:]]+test|func[[:space:]]+Test)'
+}
+
+# "<id><TAB><file><TAB><name>" for every AC reference in an added line
+# that starts a test. The name is the line's first quoted string — a
+# test's own title — or the line itself where it has none (a Python
+# `def test_..._ac_3`).
 ac_coverage_refs() {   # stdin: ac_coverage_added_lines
   local file line name ids id
   while IFS="$(printf '\t')" read -r file line; do
     ac_coverage_is_test_file "$file" || continue
+    ac_coverage_is_test_line "$line" || continue
     ids="$(printf '%s\n' "$line" | grep -oiE '(^|[^a-z0-9])ac[-_]?[0-9]+' | grep -oE '[0-9]+$')" || continue
     [ -n "$ids" ] || continue
     # Up to the SAME quote that opened it: a title in double quotes may
