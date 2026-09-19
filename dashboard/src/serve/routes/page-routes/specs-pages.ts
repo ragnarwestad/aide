@@ -7,6 +7,7 @@
 // three be asked one after another exactly as the chain read before.
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, renderSpecsRows, resolveBackHref } from "../../../render";
 import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../../serve-helpers";
+import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import type { RoutesContext } from "..";
 
 export async function specsPages(
@@ -104,6 +105,10 @@ export async function specsPages(
       // `spec-page.ts:198` and `project-pages.ts:280` already call —
       // never a wrapper or a re-derived copy.
       testServerAvailable: ctx.testServers.previewAvailable,
+      // Spec 500: the messages of a phase the address unfolded. Called
+      // only for those, so a redraw reads no transcript for a phase nobody
+      // opened.
+      phaseMessages: (attemptIds: string[], step: string) => phaseMessagesFor(ctx.queue, attemptIds, step),
       // Straight from the query string: how the list is cut and
       // ordered lives in the URL, so it survives a reload and can be
       // sent to someone else. Nothing here is trusted — the renderer
@@ -121,6 +126,7 @@ export async function specsPages(
         dir: chosenSort.dir,
         open: url.searchParams.get("open") ?? undefined,
         checks: url.searchParams.get("checks") ?? undefined,
+        phases: url.searchParams.get("phases") ?? undefined,
         // The search term (spec 221), a query-string citizen like the
         // rest of the view — so it survives a reload, can be pasted to
         // someone else, and rides along on the SSE-driven row swap,

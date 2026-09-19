@@ -13,6 +13,9 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
+// The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
+const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
  *  It said "not run yet" in words until then. */
@@ -92,7 +95,7 @@ describe("spec 116: create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      new RegExp(`<td class="phasecell"><span class="phasefold">Create</span></td>`),
+      new RegExp(`<td class="phasecell">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
@@ -132,7 +135,7 @@ describe("spec 116: create is the first phase line", () => {
     expect(order(html)[0]).toBe("create");
     const line = subRow(html, "create");
     // Spec 451: the phase name is plain text, not a link to any tab.
-    expect(line).not.toContain("<a ");
+    expect(noFold(line)).not.toContain("<a ");
     expect(line).toContain('<span class="phasefold">Create</span>');
     expect(line).toContain("b-done");
     // The model it ran on shows as the select's pre-filled value when

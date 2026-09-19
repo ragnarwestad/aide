@@ -7,6 +7,9 @@ import {
 } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
+// The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
+const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
  *  It said "not run yet" in words until then. */
@@ -60,8 +63,8 @@ describe("a multi-step job is shown on every step it ran", () => {
   // from two lines in the first place.
   test("its two steps are two plain-text lines, not one shared link", () => {
     const html = rows([twoStep()]);
-    expect(subRow(html, "analyze")).not.toContain("<a ");
-    expect(subRow(html, "implement")).not.toContain("<a ");
+    expect(noFold(subRow(html, "analyze"))).not.toContain("<a ");
+    expect(noFold(subRow(html, "implement"))).not.toContain("<a ");
     expect(html).not.toContain('href="/specs/both"');
   });
 
@@ -79,7 +82,7 @@ describe("a multi-step job is shown on every step it ran", () => {
       twoStep(),
     ], analysed);
     const analyze = subRow(html, "analyze");
-    expect(analyze).not.toContain("<a ");
+    expect(noFold(analyze)).not.toContain("<a ");
     expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("unknown spec");
     expect(analyze).toContain("2 attempts");
@@ -133,7 +136,7 @@ describe("a multi-step job is shown on every step it ran", () => {
     const html = rows([
       row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
     ]);
-    expect(subRow(html, "implement")).not.toContain("<a ");
+    expect(noFold(subRow(html, "implement"))).not.toContain("<a ");
     expect(subRow(html, "analyze")).toContain(PHASE_NOT_RUN);
   });
 });

@@ -98,6 +98,15 @@ ticks are stored the same way, and the message goes once every criterion is tick
 Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
 link to its Status tab, in place of the list.
 
+**A phase that has run unfolds to the model's latest messages.** Every phase line of an open row that has run or is
+running starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in
+`?phases=<key>,…`, kept by every sort and filter link and every redirect after a press like `?open=`, and it is a plain
+link, so it works with script off. The unfolded row lists the model's own messages from the newest attempt that ran the
+step — at most ten, oldest first, each one line clipped at 160 characters, nothing from a tool call — and a link to
+that step on the Logs tab. Once the phase has finished the last message is the phase's final message, whole up to 2,000
+characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself. A
+phase that is only queued, or that nothing touched, has no ›.
+
 **Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its AC-id,
 from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
 (`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of many
@@ -349,6 +358,12 @@ broadcasts separately: cost, subagent count and live state arrive there and are 
 push driven by the store alone would let those numbers sit still for the whole of a long step. A write that was REFUSED
 broadcasts nothing.
 
+A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
+(`?phases=`) opens the stream with the same query, and on the runner's two-second tick the server compares the size of
+each running step's transcript with the last tick and sends `changed` only to the tabs whose keys name that step. A
+tab with nothing unfolded, or only other phases, is never told, and while no tab has keys no file is measured. Pressing
+a › reopens the stream with the new `phases`.
+
 On the browser's side there is no polling timer that fetches. The one timer there is — a one-second tick that
 rewrites the TEXT of the running-phase elapsed marks, see "A spec's date does not move"
 below — fetches nothing, swaps no rows and touches nothing that could move the page, so the rule this section states
@@ -367,9 +382,10 @@ opens a fresh one when it comes back, which is the
 "the timer already stops for a hidden tab" behaviour applied to a socket.
 
 Two things this deliberately does NOT do. There is no periodic server-side broadcast to reconcile drift — an idle page
-must issue no requests and redraw not at all, which is the whole point — so a spec file hand-edited outside the
+must issue no requests and redraw not at all, which is the whole point; the transcript check above is the one exception,
+and only for a tab that unfolded the running phase — so a spec file hand-edited outside the
 dashboard leaves its staleness badge behind until some real change happens nearby. And the runner's own two-second poll
-is untouched: "about a second" means about a second after the SERVER notices, not after the step really moved.
+is not made faster: "about a second" means about a second after the SERVER notices, not after the step really moved.
 
 The one server-side timer here is a `: ping\n\n` comment every 45 seconds. `Bun.serve` cuts a connection quiet for
 `idleTimeout` (120 seconds here, set for slow git work), and a page watching a quiet queue is exactly that. It is

@@ -8,12 +8,18 @@ import {
   notifyQueueChanged as notifyQueueChangedImpl,
   scheduleNotify as scheduleNotifyImpl,
   closeSpecWatchers as closeSpecWatchersImpl,
+  createStreamGrowth,
   type SseWatchersContext,
 } from "../sse-watchers.ts";
+import type { Job } from "../../queue/queue.ts";
 import type { ServerState } from "../state.ts";
 
 export interface WatchSetup {
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
+  /** Spec 500: the subscribers that named phases, with their keys. */
+  phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
+  /** The growth check for the runner's two-second tick, over the jobs. */
+  streamGrowth: (jobs: () => Job[]) => { tick: () => void };
   specWatchers: Map<string, ReturnType<typeof watch>>;
   writeTo: (c: ReadableStreamDefaultController<Uint8Array>, text: string) => void;
   notifyQueueChanged: () => void;
@@ -35,6 +41,7 @@ export function setupWatch(
   // What travels the wire is "go and look".
   const encoder = new TextEncoder();
   const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
+  const phaseWatchers = new Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>();
   // --- spec 204: a spec is a folder, and a folder changes no job -----------
   //
   // A spec created any other way — a `git pull`, a hand-run
@@ -46,6 +53,7 @@ export function setupWatch(
   const sseWatchersCtx: SseWatchersContext = {
     encoder,
     watchers,
+    phaseWatchers,
     get specWatchers() {
       return specWatchers;
     },
@@ -96,5 +104,7 @@ export function setupWatch(
     }
   }
 
-  return { watchers, specWatchers, writeTo, notifyQueueChanged, scheduleNotify, closeSpecWatchers };
+  const streamGrowth = (jobs: () => Job[]) => createStreamGrowth(sseWatchersCtx, jobs);
+
+  return { watchers, phaseWatchers, streamGrowth, specWatchers, writeTo, notifyQueueChanged, scheduleNotify, closeSpecWatchers };
 }

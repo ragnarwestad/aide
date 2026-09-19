@@ -80,6 +80,8 @@ import { LIST_COLUMNS, phaseSubRows, phasePips, refusalFor, specHeadRow, specNot
 // on its own Overview tab.
 export { phasePips };
 import { filterBar, sortableHead } from "./filter-bar.ts";
+import type { PhaseMessages } from "./phase-messages";
+export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
   /** 81a ships no runner: the page says so rather than leaving jobs in
@@ -164,6 +166,10 @@ export interface SpecsPageOptions {
    *  treats every project as capable, unchanged from before this existed
    *  — real traffic always supplies it (`specs-pages.ts`). */
   testServerAvailable?: (project: string) => boolean;
+  /** The messages of one unfolded phase, for the attempts that may have
+   *  run it (newest first) — called only for a phase the address names
+   *  in `phases` (spec 500). Undefined: nothing is kept to read. */
+  phaseMessages?: (attemptIds: string[], step: string) => PhaseMessages | undefined;
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;

@@ -576,6 +576,13 @@
   .checksunread { padding-left: 0; }
 }
 
+/* A phase's messages unfolded under its line (spec 500), at a phone's
+   width: the indent goes, so the text keeps every pixel the box leaves. */
+@media (max-width: 40rem) {
+  .phasemsgs td { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+  .phasemsglist { padding-left: var(--sp-3); }
+}
+
 /* --- the compact AI/model button, 640px down to 400px (spec 488) ------ */
 /* Everything the button/panel/select toggle needs, moved out of the
    block above: below THIS block's own 600px (37.5rem), the two ordinary

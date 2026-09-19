@@ -49,3 +49,12 @@ label.checkbox input { margin: 0; cursor: pointer; }
 .rowchecks .checklist { min-width: 0; align-self: stretch; }
 .rowchecks .check { min-width: 0; }
 .checksunread { margin: 0; padding-left: var(--sp-4); font-size: var(--fs-s); }
+
+/* A phase's latest messages, unfolded under its line (spec 500). A
+   model's sentence is of any length: the list may shrink below its
+   content and long words break. Nothing here states a width. */
+.phasemsgs td { padding: var(--sp-1) var(--sp-4) var(--sp-3) var(--sp-6); }
+.phasemsglist { min-width: 0; margin: 0 0 var(--sp-2); padding-left: var(--sp-4); font-size: var(--fs-s);
+  overflow-wrap: anywhere; white-space: pre-line; }
+.phasemsgempty { margin: 0 0 var(--sp-2); font-size: var(--fs-s); }
+.phasemsgopen { font-size: var(--fs-s); }

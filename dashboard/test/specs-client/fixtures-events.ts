@@ -59,8 +59,17 @@ export function buildNavigation(
     closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
   };
   const clickFold = () => fire("click", foldLink);
+  /** A press on any `a[data-nav]` link, by its own href (spec 500: the
+   *  phase's ›, whose address decides what the stream is asked for). */
+  const clickHref = (href: string) => {
+    const link = {
+      getAttribute: (n: string) => (n === "href" ? href : null),
+      closest: (sel: string) => (sel.includes("data-nav") ? link : null),
+    };
+    return fire("click", link);
+  };
 
-  return { submit, submitCreate, click, clickFold, fire };
+  return { submit, submitCreate, click, clickFold, clickHref, fire };
 }
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers

@@ -13,6 +13,7 @@ import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull,
 import { chosenSteps, offersAnotherRound, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { headStateBadge } from "./head-row.ts";
+import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec-outcome.sh. */
@@ -323,6 +324,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // by BOTH branches below — an archived `create` line is exactly as
       // permanently costless as a live one, so the blank-vs-unknown fix
       // has to reach both, not just the live row.
+      const ran = phaseHasRun(g, p);
       const ranWithNoCost = p.timeSpentMs !== undefined || p.cost !== undefined || p.tokens !== undefined;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
@@ -330,7 +332,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // The name alone, hard left: it is what the eye lands on
           // first, and it started 2.5rem in behind the box until spec
           // 165 moved the box in beside the model.
-          `<td class="phasecell">${name}</td>` +
+          `<td class="phasecell">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
           `<td data-col="state">${phaseWordCell(word, stale, attemptCount)}</td>` +
           // The phase's own duration, not when it began (spec 199).
@@ -369,6 +371,9 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           // to sit between the state and the two figures it does fill.
           `<td data-col="created"></td>`,
       });
+      // The model's own messages, unfolded under the line (spec 500).
+      const messages = phaseMessagesRow(g, p, opts, ran);
+      if (messages) lines.push(messages);
     });
   // Spec 386 drew the same switch as the New-spec page here, on a row
   // of its own. Spec 394 (REQ-2, REQ-8) removes it: the choice now lives

@@ -104,9 +104,11 @@ export interface StreamEntry {
   failed?: boolean;
 }
 
-/** The three answers the Logs tab's filter links can ask for. `all` is
- *  the absence of a filter, spelled out so a link can say it. */
-export type LogFilter = "all" | "commands" | "files" | "errors";
+/** The answers the Logs tab's filter links can ask for. `all` is the
+ *  absence of a filter, spelled out so a link can say it. `messages` (only
+ *  what the model wrote) is asked for in code, never from the URL:
+ *  `resolveLogFilter` does not accept it. */
+export type LogFilter = "all" | "commands" | "files" | "errors" | "messages";
 
 /** The filter a URL asked for, or nothing when it named none — an
  *  unknown value is nothing, not a refusal: a link someone edited by
@@ -119,6 +121,7 @@ export function keepsEntry(entry: StreamEntry, only: LogFilter | undefined): boo
   if (!only || only === "all") return true;
   if (only === "commands") return entry.kind === "command";
   if (only === "files") return entry.kind === "file";
+  if (only === "messages") return entry.kind === "text";
   return entry.failed === true;
 }
 

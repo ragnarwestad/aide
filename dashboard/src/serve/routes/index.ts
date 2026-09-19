@@ -82,6 +82,7 @@ export interface RoutesContext {
   specsRoot: (dir: string) => Promise<string>;
   machinerySpecDir: (project: string, dir: string) => Promise<string>;
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
+  phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
   writeTo: (c: ReadableStreamDefaultController<Uint8Array>, text: string) => void;
   queue: QueueStore;
   displayProjectDir: (project: string) => string;
