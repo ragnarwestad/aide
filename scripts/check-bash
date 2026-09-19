@@ -35,4 +35,5 @@ shellcheck --severity=warning \
   dashboard/deploy/repair-serve-plist.sh \
   dashboard/test/round/run \
   dashboard/test/round/claude-stub \
+  scripts/test-linux-install \
   scripts/check-bash
