@@ -27,9 +27,21 @@ case "${1:-}" in
   *) echo "unknown argument: $1" >&2; exit 2 ;;
 esac
 
-if [ "$run_spec" = yes ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-  echo "--run needs CLAUDE_CODE_OAUTH_TOKEN — make one with: claude setup-token" >&2
-  exit 2
+if [ "$run_spec" = yes ]; then
+  # A token copied from a wrapped terminal line carries spaces and newlines.
+  CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+  export CLAUDE_CODE_OAUTH_TOKEN
+  if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+    echo "--run needs CLAUDE_CODE_OAUTH_TOKEN — make one with: claude setup-token" >&2
+    exit 2
+  fi
+  # Try the token here first, so a bad one fails in seconds rather than
+  # after the install. Skipped where this machine has no claude.
+  if command -v claude >/dev/null 2>&1 \
+    && ! claude -p "Reply with the single word ok" >/dev/null 2>&1; then
+    echo "CLAUDE_CODE_OAUTH_TOKEN was refused — make a new one with: claude setup-token" >&2
+    exit 2
+  fi
 fi
 
 command -v docker >/dev/null 2>&1 || { echo "docker is not installed" >&2; exit 2; }
