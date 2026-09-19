@@ -18,7 +18,6 @@ const FILES = [
   // into aide's root one, and its `deployment.host` — the field this
   // guard was written for — went with it.
   "../.aide/project.yaml",
-  "deploy/rsync-publish.sh",
   "deploy/notify-slack.sh",
   "deploy/render-plist.ts",
   // The example file is the likeliest place for a real host to be

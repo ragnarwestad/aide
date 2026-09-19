@@ -32,8 +32,7 @@ function probe(assignment: string): string {
 describe("the deploy variables reach the scripts that read them", () => {
   // The probe assigns LAST, so it wins over whatever `.env.deploy` this
   // machine happens to have — the test must not depend on the developer
-  // not having one. What rsync-publish.sh does with an empty value is
-  // its own test's business (test/rsync-publish-guard.test.ts).
+  // not having one.
   test("AIDE_DASH_HOST set the way .env.deploy sets it arrives in the recipe's shell", () => {
     expect(probe("AIDE_DASH_HOST=example-host")).toBe("[example-host]");
   });

@@ -56,10 +56,9 @@ describe("main.ts generate's own --test-board flag", () => {
   });
 });
 
-// Risk (3-solution.md): `make publish` generates on one machine and
-// publishes to another (`$AIDE_DASH_HOST`) — reading the real
-// `hostname()` at generate time would stamp the wrong machine's name
-// onto the two static pages whenever the two differ.
+// The two static pages can be generated on one machine for another
+// (`$AIDE_DASH_HOST`) — reading the real `hostname()` at generate time
+// would stamp the wrong machine's name onto them whenever the two differ.
 describe("the two static pages read AIDE_DASH_HOST over the real hostname (spec 424)", () => {
   const original = process.env.AIDE_DASH_HOST;
   afterEach(() => {

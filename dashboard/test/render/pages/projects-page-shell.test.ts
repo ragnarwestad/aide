@@ -122,8 +122,8 @@ describe("the theme choice in the header (specs 107, 119, 243)", () => {
 // Spec 115: the listing itself moved to the SERVED `/projects`, where
 // the panel that changes the list can sit beside it. What the generator
 // still writes at this filename is a redirect — the file has to keep
-// existing (`rsync-publish.sh` will not publish a site without it, and
-// people have bookmarked it), but the reader belongs on the served page.
+// existing (people have bookmarked it), but the reader belongs on the
+// served page.
 // The listing's own tests went with it, to projects-page.test.ts.
 describe("the generated overview is a redirect to /projects", () => {
   const index = byPath.get("projects.html")!;

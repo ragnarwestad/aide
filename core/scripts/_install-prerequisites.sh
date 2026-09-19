@@ -5,6 +5,12 @@
 # missing. Sourced by install-all.sh, which calls install_prerequisites
 # before the tool installers; signing in to Claude Code is left to the user.
 
+# _aide_mise_activate <shell> <rc file in $HOME>
+_aide_mise_activate() {
+  grep -qs "mise activate $1" "$HOME/$2" ||
+    echo "eval \"\$(\$HOME/.local/bin/mise activate $1)\"" >> "$HOME/$2"
+}
+
 install_prerequisites() {
   local status=0
   case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
@@ -12,10 +18,14 @@ install_prerequisites() {
   if ! command -v mise &> /dev/null; then
     echo "Installing mise (https://mise.jdx.dev)..."
     if curl -fsSL https://mise.run | sh; then
-      # An interactive zsh reaches the tools mise installs through this line.
-      # shellcheck disable=SC2016 # written for zsh to expand, not us
-      grep -qs 'mise activate zsh' "$HOME/.zshrc" ||
-        echo 'eval "$($HOME/.local/bin/mise activate zsh)"' >> "$HOME/.zshrc"
+      # An interactive shell reaches the tools mise installs through this
+      # line, in the rc file of the user's own shell — both when that
+      # cannot be told.
+      case "$(basename "${SHELL:-}")" in
+        zsh) _aide_mise_activate zsh .zshrc ;;
+        bash) _aide_mise_activate bash .bashrc ;;
+        *) _aide_mise_activate zsh .zshrc; _aide_mise_activate bash .bashrc ;;
+      esac
     else
       echo "⚠️  mise could not be installed"
       status=1
