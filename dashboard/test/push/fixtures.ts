@@ -75,7 +75,7 @@ export function tempDir(): { dir: string; done: () => void } {
 
 /** A real store whose every change is handed to `onChange`. */
 export function makeStore(onChange: () => void = () => {}, mirrorPath?: string) {
-  return new QueueStore({ defaults: DEFAULTS, resolve: RESOLVE, onChange, mirrorPath });
+  return new QueueStore({ defaults: DEFAULTS, resolve: RESOLVE, onChange, mirrorPath, allowCreateProject: () => true });
 }
 
 /** A queued job for a spec, taken to `running`. */

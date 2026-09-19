@@ -682,3 +682,36 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
     expect(bar).not.toContain("<em>stopped</em>");
   });
 });
+
+// --- spec 506: "Try again" opens the form with what was typed -----------------
+describe("spec 506: New spec can arrive filled in", () => {
+  const newPage = (opts: Partial<NewSpecPageOptions> = {}) =>
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-09-19T00:00:00Z", {
+      createProjects: ["aide", "other"],
+      targets: [],
+      ...opts,
+    });
+  const typed = { project: "other", title: `A "quoted" <b>title</b> & more`, description: "line one\nline <two> & $&" };
+
+  test("project selected, title and description hold the text as typed (AC-3)", () => {
+    const html = newPage({ prefill: typed });
+    expect(html).toContain(`<option value="other" selected>other</option>`);
+    expect(html).not.toContain(`<option value="" selected>`);
+    expect(html).toContain(`value="A &quot;quoted&quot; &lt;b&gt;title&lt;/b&gt; &amp; more"`);
+    expect(html).toContain(`>line one\nline &lt;two&gt; &amp; $&amp;</textarea>`);
+  });
+
+  test("a project no longer offered is not selected, the text is still filled in (AC-3)", () => {
+    const html = newPage({ prefill: { ...typed, project: "gone" } });
+    expect(html).toContain(`<option value="" selected>`);
+    expect(html).not.toContain(`value="gone"`);
+    expect(html).toContain("A &quot;quoted&quot;");
+  });
+
+  test("with no prefill the form is the empty one it always was (AC-3)", () => {
+    const html = newPage();
+    expect(html).toContain(`<option value="" selected>`);
+    expect(html).toContain(`required placeholder="what the spec is about, in a few words">`);
+    expect(html).toContain(`placeholder="the problem, and what you want instead"></textarea>`);
+  });
+});

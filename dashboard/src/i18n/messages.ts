@@ -131,6 +131,14 @@ export const MESSAGES = {
     fr: "archive a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — la branch est toujours en retard sur main, et le même conflit attend au prochain merge. — Cliquez de nouveau sur {button} ; la session doit terminer ce merge.",
     resolve: "Press {button} again; the session has to finish that merge.",
   },
+  "runner.createEndedNoReason": {
+    en: "creating the spec ended without a reason on record. — Press Try again on the message at the top of the Specs list.",
+    nb: "opprettingen av specen tok slutt uten at noen årsak ble lagret. — Trykk Prøv igjen på meldingen øverst i spec-listen.",
+    es: "la creación de la spec terminó sin que quedara registrado ningún motivo. — Pulsa Reintentar en el mensaje de la parte superior de la lista de specs.",
+    de: "das Erstellen der Spec endete, ohne dass ein Grund festgehalten wurde. — Klicke in der Meldung oben in der Spec-Liste auf Erneut versuchen.",
+    fr: "la création de la spec s'est terminée sans qu'aucun motif ne soit consigné. — Cliquez sur Réessayer dans le message en haut de la liste des specs.",
+    resolve: "Press Try again",
+  },
   "runner.serverRestarted": {
     en: "the server restarted while this step was running, and it left no result. — Press {button} again.",
     nb: "serveren startet på nytt mens dette steget kjørte, og det etterlot ingen resultat. — Trykk {button} igjen.",
@@ -1044,6 +1052,14 @@ export const MESSAGES = {
     de: "{step} wurde abgebrochen, bevor es fertig war — es wartet darauf, dass du erneut {button} klickst.",
     fr: "{step} a été interrompu avant d'avoir terminé — il attend que vous cliquiez de nouveau sur {button}.",
     resolve: "press {button} again",
+  },
+  "push.createFailed": {
+    en: "Creating the spec failed: {reason} — tap to try again with what you typed.",
+    nb: "Opprettingen av specen feilet: {reason} — trykk for å prøve igjen med det du skrev.",
+    es: "La creación de la spec falló: {reason} — toca para reintentar con lo que escribiste.",
+    de: "Das Erstellen der Spec ist fehlgeschlagen: {reason} — tippe, um es mit deiner Eingabe erneut zu versuchen.",
+    fr: "La création de la spec a échoué : {reason} — touchez pour réessayer avec ce que vous avez saisi.",
+    resolve: "tap to try again",
   },
 } as const satisfies Record<string, MessageEntry>;
 

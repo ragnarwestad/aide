@@ -209,6 +209,9 @@ export const en = {
   "list.captionAi": "AI",
   "list.captionModel": "Model",
   "list.captionSelect": "Select",
+  "list.createFailed": "Creating “{title}” in {project} failed: {reason}",
+  "list.createTryAgain": "Try again",
+  "list.createDismiss": "Dismiss",
   "wordPhase.badgeHeldBack": "Held back",
 
   // The usage limit that stopped a step, as the tool reported it.

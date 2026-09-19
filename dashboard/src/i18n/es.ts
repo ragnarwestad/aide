@@ -200,6 +200,9 @@ export const es: Record<TranslationKey, string> = {
   "list.captionAi": "IA",
   "list.captionModel": "Modelo",
   "list.captionSelect": "Seleccionar",
+  "list.createFailed": "Crear «{title}» en {project} falló: {reason}",
+  "list.createTryAgain": "Reintentar",
+  "list.createDismiss": "Descartar",
   "wordPhase.badgeHeldBack": "Retenido",
 
   "limit.used": "{who}: {limit} está agotado",

@@ -10,6 +10,12 @@ import { languageChoice, specsClientScript, sortChoice, stateChoice } from "../.
 import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
 import type { RoutesContext } from "..";
 
+/** The typed text of a failed create, by its id; absent for an id that is not kept. */
+function prefillFor(ctx: RoutesContext, id: string | null) {
+  const r = id ? ctx.push.failedCreates.get(id) : undefined;
+  return r ? { project: r.project, title: r.title, description: r.description } : undefined;
+}
+
 export async function specsPages(
   ctx: RoutesContext,
   req: Request,
@@ -66,6 +72,9 @@ export async function specsPages(
       closed: closedKeys,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
+      // Spec 506: the creates that ended without a spec and were not
+      // dismissed — a message each, above the filter bar.
+      failedCreates: ctx.push.failedCreates.list(),
       archivedSpecs,
       script: await specsClientScript(),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, c]) => ({
@@ -192,6 +201,8 @@ export async function specsPages(
         ...(choice.tool ? { tool: choice.tool } : {}),
       })),
       defaultModels: ctx.queue.defaults.model,
+      // "Try again" on a failed create's message (spec 506): what was typed.
+      prefill: prefillFor(ctx, url.searchParams.get("retry")),
       // Why the last submission was refused, carried back here by the
       // create route's own redirect.
       error: url.searchParams.get("error") ?? undefined,

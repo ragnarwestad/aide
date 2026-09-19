@@ -9,9 +9,11 @@
 // job that failed last week would announce itself at boot.
 
 import { stepButton, stepLabel } from "../format/step-label.ts";
-import { renderMessage } from "../i18n/message.ts";
+import type { Language } from "../i18n";
+import { renderMessage, renderSentence } from "../i18n/message.ts";
 import type { Job } from "../queue/queue.ts";
 import { specPagePath } from "../render/pages/spec-page/tabs.ts";
+import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
 import { attentionFor, messageKeyFor, seenOf, type Attention, type Seen } from "./attention.ts";
 import { sendPush } from "./send.ts";
 import { parseSubscribe, readSubscriptions, writeSubscriptions, type Subscription } from "./subscriptions.ts";
@@ -24,6 +26,10 @@ export interface PushOptions {
   subscriptionsPath?: string;
   /** Where the server's key pair is kept. Absent keeps it in memory only. */
   keyPath?: string;
+  /** Where the failed creates are kept (spec 506). Absent keeps them in memory only. */
+  failedCreatesPath?: string;
+  /** Tells the open pages something changed that the queue did not announce: a dismissed message. */
+  notify?: () => void;
   /** The outgoing request; a test replaces it so nothing leaves the machine. */
   fetch?: typeof fetch;
   log?: (line: string) => void;
@@ -34,6 +40,8 @@ export interface Push {
   observe(): void;
   /** Record what the store holds, sending nothing. */
   prime(): void;
+  /** The creates that ended without a spec, recorded before their push is sent. */
+  failedCreates: FailedCreates;
   /** The server's public key, base64url — what a device subscribes with. */
   publicKey(): Promise<string>;
   subscribe(body: unknown, origin: string): Promise<{ ok: true } | { ok: false; error: string }>;
@@ -43,6 +51,28 @@ export interface Push {
 }
 
 /** Enough of an endpoint to find a device in the log, not enough to send to it. */
+/** A push body over about 4 KB is refused by the push service. */
+const BODY_MAX = 500;
+
+/** The three fields of a push, by kind: a failed create names its title and opens the form again. */
+function payloadFor(a: Attention, job: Job, lang: Language): { title: string; body: string; url: string } {
+  if (a.kind === "create-failed") {
+    const r = failedCreateFrom(job);
+    const body = renderMessage(lang, { key: messageKeyFor(a), values: { reason: renderSentence(lang, r.reason) ?? "" } });
+    return {
+      title: `${r.project} · ${r.title}`,
+      body: body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body,
+      url: `/new?retry=${encodeURIComponent(r.id)}`,
+    };
+  }
+  const values = { step: stepLabel(a.step, lang), button: stepButton(a.step) };
+  return {
+    title: `${job.project} · ${job.specFolder}`,
+    body: renderMessage(lang, { key: messageKeyFor(a), values }),
+    url: specPagePath(job.project, job.specFolder),
+  };
+}
+
 const where = (endpoint: string): string => `${new URL(endpoint).origin}/…${endpoint.slice(-12)}`;
 
 export function createPush(opts: PushOptions): Push {
@@ -51,6 +81,12 @@ export function createPush(opts: PushOptions): Push {
   const seen = new Map<string, Seen>();
   const pending = new Set<Promise<void>>();
   const keys = loadOrCreateKeys(opts.keyPath);
+  const failedCreates = createFailedCreates(opts.failedCreatesPath);
+  const store: FailedCreates = { ...failedCreates, dismiss: (id) => {
+    const found = failedCreates.dismiss(id);
+    if (found) opts.notify?.();
+    return found;
+  } };
   let memory: Subscription[] = [];
   // Reads and writes of the subscriptions run one after another.
   let chain: Promise<unknown> = Promise.resolve();
@@ -77,15 +113,7 @@ export function createPush(opts: PushOptions): Push {
     const vapid = await keys;
     await Promise.all(
       subs.map(async (sub) => {
-        const message = {
-          key: messageKeyFor(a),
-          values: { step: stepLabel(a.step, sub.lang), button: stepButton(a.step) },
-        };
-        const payload = JSON.stringify({
-          title: `${job.project} · ${job.specFolder}`,
-          body: renderMessage(sub.lang, message),
-          url: specPagePath(job.project, job.specFolder),
-        });
+        const payload = JSON.stringify(payloadFor(a, job, sub.lang));
         const outcome = await sendPush(sub, payload, vapid, send);
         if ("error" in outcome) return log(`push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`);
         if (outcome.status >= 200 && outcome.status < 300) return;
@@ -112,6 +140,7 @@ export function createPush(opts: PushOptions): Push {
         live.add(job.id);
         const a = attentionFor(seen.get(job.id), job);
         seen.set(job.id, seenOf(job));
+        if (a?.kind === "create-failed") failedCreates.add(failedCreateFrom(job));
         if (a) start(a, job);
       }
       // A job the store has dropped must not keep its snapshot.
@@ -121,6 +150,7 @@ export function createPush(opts: PushOptions): Push {
       seen.clear();
       for (const job of opts.jobs()) seen.set(job.id, seenOf(job));
     },
+    failedCreates: store,
     publicKey: async () => (await keys).publicKey,
     async subscribe(body, origin) {
       const parsed = parseSubscribe(body, origin);

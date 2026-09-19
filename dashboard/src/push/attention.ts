@@ -5,6 +5,7 @@
 // snapshot itself.
 
 import type { MessageKey } from "../i18n/messages.ts";
+import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 import type { JobState, StopReason } from "../queue/steps.ts";
 import { isSpecFolder } from "../render/ui/shell.ts";
@@ -13,12 +14,18 @@ import { isSpecFolder } from "../render/ui/shell.ts";
 export interface Seen {
   state: JobState;
   results: number;
+  /** Whether it was a create that had ended without a spec. */
+  createFailed?: boolean;
 }
 
-export const seenOf = (job: Job): Seen => ({ state: job.state, results: job.results.length });
+export const seenOf = (job: Job): Seen => ({
+  state: job.state,
+  results: job.results.length,
+  createFailed: createEndedWithoutSpec(job),
+});
 
 export interface Attention {
-  kind: "failed" | "stopped" | "interrupted" | "archive-held-back";
+  kind: "failed" | "stopped" | "interrupted" | "archive-held-back" | "create-failed";
   step: string;
   reason?: StopReason;
 }
@@ -28,8 +35,10 @@ export interface Attention {
 const WAITING = new Set<JobState>(["failed", "stopped", "interrupted"]);
 
 export function attentionFor(prev: Seen | undefined, job: Job): Attention | null {
-  // A failed `create` (a provisional key, no spec page yet) and a
-  // scheduled job have no spec to name and none to open.
+  // A create that ended without a spec names its project and title and
+  // opens New spec, once: the edge of the rule, not the state, is the trigger.
+  if (createEndedWithoutSpec(job)) return prev?.createFailed ? null : { kind: "create-failed", step: "create" };
+  // A scheduled job, or a create still under way, has no spec to name and none to open.
   if (!isSpecFolder(job.specFolder)) return null;
   const last = job.results.at(-1);
   if (job.state !== prev?.state && WAITING.has(job.state)) {
@@ -50,6 +59,7 @@ export function attentionFor(prev: Seen | undefined, job: Job): Attention | null
 
 export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "archive-held-back") return "push.archiveHeldBack";
+  if (a.kind === "create-failed") return "push.createFailed";
   if (a.kind === "interrupted") return "push.interrupted";
   if (a.kind === "failed") return "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";

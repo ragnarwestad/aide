@@ -561,10 +561,16 @@ The dashboard also sends a push notification to each device that turned them on,
 - a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
   server restarted under it) — the job entered `failed`, `stopped` or `interrupted`;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge;
-- an **archive is held back** on unticked acceptance criteria.
+- an **archive is held back** on unticked acceptance criteria;
+- a **create ends without a spec**: it failed, stopped, was interrupted, or its own merge failed.
 
-Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A failed `create`
-and a scheduled job send nothing either: they have no spec page to name or to open.
+Nothing is sent for a step that finishes normally, an archive that merges, a job someone cancels, or a scheduled job's
+failure: a scheduled job has no spec page to name or to open. A create that is still under way, including one whose merge
+is running, sends nothing until it is over.
+
+A failed create names the project and the title it was given, says why in the device's own language (cut at 500
+characters), and a tap opens New spec at `/new?retry=<job id>` with project, title and description filled in. The same
+moment writes a message at the top of the Specs list; see [the specs list](the-specs-list.md#a-failed-create).
 
 **Turning it on.** Settings, the Notifications tab, "Turn on". The device asks for its own permission first. The setting
 belongs to that device alone. On an iPhone or iPad it works only in the installed app, from iOS 16.4; a browser with no
@@ -574,12 +580,13 @@ send.
 
 **What is sent.** A title with the project and the spec folder, one sentence in the language the device had chosen when
 it turned notifications on (it keeps that language until it is turned off and on again), and the spec's page path, which
-a tap opens. It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
+a tap opens (for a failed create: its title and reason, and New spec filled in). It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
 Microsoft) and is never in the clear there.
 
-**What is kept.** Two files under `~/.aide/dashboard/`, neither in a repo:
-`push-subscriptions.json` (one entry per device) and `push-key.json` (the server's own key pair, mode 0600, made the
-first time it is needed). If the key file is lost a new pair is made, and every device turns notifications on again.
+**What is kept.** Three files under `~/.aide/dashboard/`, neither in a repo:
+`push-subscriptions.json` (one entry per device), `push-key.json` (the server's own key pair, mode 0600, made the
+first time it is needed) and `failed-creates.json` (the creates that ended without a spec: project, title, description,
+reason; a dismissed one stays for the newest 50 so an old notification still opens the form). If the key file is lost a new pair is made, and every device turns notifications on again.
 The Slack `notifyCommand` above is separate and unchanged.
 
 ## Live runs

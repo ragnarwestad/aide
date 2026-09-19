@@ -108,12 +108,14 @@ describe("a spec that moves on without waiting sends nothing (criterion 11)", ()
     expect(sent.calls).toHaveLength(1);
   });
 
-  test("a create job or a scheduled job that fails has no spec to name", () => {
+  test("a create that failed says so once; a scheduled job says nothing (AC-6, AC-7)", () => {
     const failed = (specFolder: string) =>
       ({ state: "failed", specFolder, steps: ["create"], stepIndex: 0, results: [] }) as unknown as Job;
-    expect(attentionFor({ state: "running", results: 0 }, failed("aide-create-abc123"))).toBeNull();
-    expect(attentionFor({ state: "running", results: 0 }, failed("schedule-weekly"))).toBeNull();
-    expect(attentionFor({ state: "running", results: 0 }, failed(SPEC_FOLDER))).not.toBeNull();
+    const running = { state: "running", results: 0 } as const;
+    expect(attentionFor(running, failed("new-abc123de"))?.kind).toBe("create-failed");
+    expect(attentionFor({ ...running, createFailed: true }, failed("new-abc123de"))).toBeNull();
+    expect(attentionFor(running, failed("schedule-weekly"))).toBeNull();
+    expect(attentionFor(running, failed(SPEC_FOLDER))).not.toBeNull();
   });
 });
 

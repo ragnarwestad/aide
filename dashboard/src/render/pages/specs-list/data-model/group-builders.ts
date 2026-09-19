@@ -2,6 +2,7 @@
 // page actually draws — one SpecGroup per spec, however many jobs or
 // none it took.
 
+import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
@@ -132,6 +133,10 @@ export function groupBySpec(
     .filter(
       ([key, all]) =>
         !archivedSet.has(key) &&
+        // A create that is over and left no folder is a message at the top
+        // of the list (`failed-create-notices.ts`), never a row, in every
+        // project — including one the list knows no spec of.
+        !all.every(createEndedWithoutSpec) &&
         // A create job's spec is not a known target BY CONSTRUCTION: the
         // folder is what the job is making, and until it lands there is
         // nothing on disk to match. Without this it would be filtered out
@@ -142,8 +147,7 @@ export function groupBySpec(
           // the folder never landed (2026-09-10): there is nothing on
           // disk, nothing to press, and the row outlived the spec it
           // named — the one such row had to be cut out of the queue file
-          // by hand. A create that FAILED keeps its row: the reader
-          // re-runs it from there.
+          // by hand.
           (all.some(isCreate) && !all.every((r) => r.state === "cancelled"))),
     )
     .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)

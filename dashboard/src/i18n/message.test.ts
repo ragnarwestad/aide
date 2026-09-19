@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { t } from "./index.ts";
 import { renderMessage, renderSentence } from "./message.ts";
 
 describe("renderMessage", () => {
@@ -75,5 +76,17 @@ describe("renderSentence", () => {
 
   test("an empty array renders as an empty string", () => {
     expect(renderSentence("en", [])).toBe("");
+  });
+});
+
+// Spec 506: typed text (a create's title) fills a blank as written.
+describe("a value with replacement patterns fills its blank as typed (AC-2)", () => {
+  test("renderMessage keeps $& and $$ literal", () => {
+    expect(renderMessage("en", { key: "push.createFailed", values: { reason: "cost $& then $$5" } })).toContain(
+      "cost $& then $$5",
+    );
+  });
+  test("t keeps $& and $$ literal", () => {
+    expect(t("en", "list.createFailed", { project: "aide", title: "a $& b $$ c", reason: "r" })).toContain("a $& b $$ c");
   });
 });

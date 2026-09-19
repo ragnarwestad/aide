@@ -201,6 +201,9 @@ export const nb: Record<TranslationKey, string> = {
   "list.captionAi": "AI",
   "list.captionModel": "Modell",
   "list.captionSelect": "Velg",
+  "list.createFailed": "Å opprette «{title}» i {project} feilet: {reason}",
+  "list.createTryAgain": "Prøv igjen",
+  "list.createDismiss": "Lukk",
   "wordPhase.badgeHeldBack": "Holdt tilbake",
 
   // Bruksgrensen som stoppet et steg, slik verktøyet selv meldte den.

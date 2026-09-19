@@ -105,6 +105,10 @@ the folders already there, assigns the next number, renames the job's folder to 
 lines, all before the merge is pushed. A spec exists once its folder is on the specs repo's default branch — that is
 what puts a row on the list.
 
+A `create` that ends without a spec (`failed`, `stopped`, `interrupted`, or a failed merge with no merge under way, and
+still under its provisional key) has no row. It leaves a message at the top of the specs list and a push notification,
+both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
+
 **`create` to `analyze`.** Any spec on the list may be analyzed; there is no gate. The row's boxes follow whatever was
 posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
 create queues analyze, implement and archive as one job. The runner queues each following step the moment the one

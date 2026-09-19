@@ -49,6 +49,7 @@ import { handleScheduleAdminRoutes } from "./schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./job-detail.ts";
 import { selfStopRoute } from "./self-stop.ts";
 import { selfRunRoute } from "./self-run.ts";
+import { failedCreateRoutes } from "./failed-create-routes.ts";
 import { handlePushRoutes } from "./push-routes.ts";
 import type { Push } from "../../push";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
@@ -156,6 +157,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     selfRunRoute(ctx, req, path) ??
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
+    failedCreateRoutes(ctx, req, path, wantsJson) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??

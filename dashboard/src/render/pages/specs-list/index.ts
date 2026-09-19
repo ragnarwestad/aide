@@ -33,6 +33,8 @@ import { rowMessage } from "../../ui/components";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import { t, type Language } from "../../../i18n";
+import type { FailedCreate } from "../../../push/failed-creates.ts";
+import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page.ts` and `settings-page.ts` — so the split
 // between this file and `specs-list/model-picker.ts` is invisible to
@@ -84,6 +86,9 @@ import type { PhaseMessages } from "./phase-messages";
 export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
+  /** The creates that ended without a spec and have not been dismissed
+   *  (spec 506): each is a message above the filter bar, never a row. */
+  failedCreates?: FailedCreate[];
   /** 81a ships no runner: the page says so rather than leaving jobs in
    *  "queued" with no explanation. */
   runnerAvailable: boolean;
@@ -280,6 +285,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
         : t(opts.lang ?? "en", "list.noSpecAtAll")) +
       `</td></tr>`;
   return (
+    renderFailedCreateNotices(opts.failedCreates ?? [], opts.lang ?? "en") +
     filterBar(groups, f, opts) +
     // "speclist" beside "list": the mobile stylesheet lays THIS table
     // out as stacked blocks (its rows are flex lines there), and the

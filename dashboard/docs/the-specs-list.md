@@ -8,6 +8,7 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 ## Table of contents
 
 - [How the list reads](#how-the-list-reads)
+- [A failed create](#a-failed-create)
 - [Filtering and searching the list](#filtering-and-searching-the-list)
 - [Changing a running job's tail](#changing-a-running-jobs-tail)
 - [The spec page](#the-spec-page)
@@ -182,6 +183,21 @@ there too, once per spec instead of once per job; Cancel is only offered once th
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
 cost sorts on the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer)
 is appended after them rather than dropped, so a run is never invisible.
+
+## A failed create
+
+A create that ended without a spec (`failed`, `stopped`, `interrupted`, or its own merge failed, still under its
+provisional key, with no merge under way) is not a row in any project: it has no number and nothing to open. The top of
+the list shows one message for it instead: the project, the title and the reason in the reader's language, with **Try
+again** and **Dismiss**. Each failed create has its own message, newest first, and dismissing one leaves the others.
+
+**Try again** opens New spec (`/new?retry=<job id>`) with the project, title and description filled in; the phases,
+models and "Depends on" come up at the form's defaults. A project that is no longer offered is left unselected.
+**Dismiss** hides the message; the record stays for the newest 50 dismissed, so an older notification still opens the
+form. A message stays until dismissed, across page loads and restarts, because it is kept in `failed-creates.json` and not
+on the queue job, which the queue drops after 200 jobs. A create that failed before this existed has no message.
+
+---
 
 ## Filtering and searching the list
 

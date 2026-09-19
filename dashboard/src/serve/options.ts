@@ -238,6 +238,9 @@ export interface ServerOptions {
   /** Where the server's own push key pair is kept, mode 0600 (spec 501).
    *  Absent keeps a pair for this process only. */
   pushKeyPath?: string;
+  /** Where the creates that ended without a spec are kept, so their message
+   *  outlives a restart (spec 506). Absent keeps them in memory only. */
+  failedCreatesPath?: string;
   /** The request that carries a push to the device's push service. A test
    *  seam: no test should send anything off the machine. */
   pushFetch?: typeof fetch;

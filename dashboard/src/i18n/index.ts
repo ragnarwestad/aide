@@ -15,7 +15,7 @@ export function t(
 ): string {
   let text: string = translations[lang][key];
   if (params) {
-    for (const [k, v] of Object.entries(params)) text = text.replaceAll(`{${k}}`, String(v));
+    for (const [k, v] of Object.entries(params)) text = text.replaceAll(`{${k}}`, () => String(v));
   }
   return text;
 }

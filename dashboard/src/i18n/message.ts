@@ -19,8 +19,8 @@ export interface BoardMessage {
 
 export function renderMessage(lang: Language, m: BoardMessage): string {
   let text: string = MESSAGES[m.key][lang];
-  if (m.values) for (const [k, v] of Object.entries(m.values)) text = text.replaceAll(`{${k}}`, String(v));
-  if (m.inner !== undefined) text = text.replaceAll("{message}", renderSentence(lang, m.inner) ?? "");
+  if (m.values) for (const [k, v] of Object.entries(m.values)) text = text.replaceAll(`{${k}}`, () => String(v));
+  if (m.inner !== undefined) text = text.replaceAll("{message}", () => renderSentence(lang, m.inner) ?? "");
   return text;
 }
 

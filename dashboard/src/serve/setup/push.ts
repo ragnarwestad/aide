@@ -5,11 +5,13 @@ import { createPush, type Push } from "../../push";
 import type { Job } from "../../queue/queue.ts";
 import type { ServerOptions } from "../options.ts";
 
-export function setupPush(opts: ServerOptions, inputs: { jobs: () => Job[] }): Push {
+export function setupPush(opts: ServerOptions, inputs: { jobs: () => Job[]; notify: () => void }): Push {
   return createPush({
     jobs: inputs.jobs,
     subscriptionsPath: opts.pushSubscriptionsPath,
     keyPath: opts.pushKeyPath,
+    failedCreatesPath: opts.failedCreatesPath,
+    notify: inputs.notify,
     fetch: opts.pushFetch,
   });
 }

@@ -225,11 +225,13 @@ const MESSAGE_ICON: Record<MessageVariant, string> = {
 export function rowMessage(
   variant: MessageVariant,
   text: string,
-  o: { hook?: string; tag?: "div" | "p" } = {},
+  o: { hook?: string; tag?: "div" | "p"; actions?: string } = {},
 ): string {
   const tag = o.tag ?? "div";
   const cls = [o.hook, "rowmsg", variant].filter(Boolean).join(" ");
-  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(capitalizeFirst(text))}</span></${tag}>`;
+  // `actions` is markup drawn inside the box after the text: controls
+  // the message offers (a link to try again, a form that dismisses it).
+  return `<${tag} class="${cls}">${MESSAGE_ICON[variant]}<span>${esc(capitalizeFirst(text))}</span>${o.actions ?? ""}</${tag}>`;
 }
 
 /** One sentence of a row's message, and how it is drawn. `own` stands it

@@ -26,6 +26,9 @@ import { PHASE_LINES, type SpecsPageOptions, type SpecTarget, type SpecGroup } f
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "./specs-list/model-picker.ts";
 
 export interface NewSpecPageOptions {
+  /** What a failed create had typed (spec 506): the form opens with it
+   *  filled in. A project the form no longer offers is simply not selected. */
+  prefill?: { project: string; title: string; description: string };
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk to be discovered from. Empty or absent
@@ -329,6 +332,7 @@ function aiFormulateAcceptanceField(formId: string): string {
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const formId = "new-spec-form";
+  const chosen = projects.find((p) => p === opts.prefill?.project);
   // Four lines, read top to bottom: Project on its own, the phase table
   // beneath it with the two acceptance switches stacked beside it,
   // Depends on next, Title next, then Description with Create and
@@ -343,8 +347,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       // Nothing is chosen for the reader: the first project in the list was
       // where every untouched form used to land.
       `<select name="project">` +
-        `<option value="" selected>Choose a project…</option>` +
-        projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
+        `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
+        projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
     `</span>` +
@@ -373,6 +377,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     field(
       "Title",
       `<input type="text" name="title" maxlength="120" required ` +
+        (opts.prefill ? `value="${esc(opts.prefill.title)}" ` : "") +
         `placeholder="what the spec is about, in a few words">`,
       { wide: true },
     ) +
@@ -380,7 +385,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     field(
       "Description",
       `<textarea name="description" rows="10" maxlength="2000" required ` +
-        `placeholder="the problem, and what you want instead"></textarea>`,
+        `placeholder="the problem, and what you want instead">${esc(opts.prefill?.description ?? "")}</textarea>`,
       { wide: true },
     ) +
     `<span class="factions">` +

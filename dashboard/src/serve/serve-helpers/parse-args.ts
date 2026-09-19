@@ -76,6 +76,7 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), ".aide", "dashboard", "pending-effort.json");
   if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), ".aide", "dashboard", "pending-steps.json");
   if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(homedir(), ".aide", "dashboard", "push-subscriptions.json");
+  if (!opts.failedCreatesPath) opts.failedCreatesPath = join(homedir(), ".aide", "dashboard", "failed-creates.json");
   if (!opts.pushKeyPath) opts.pushKeyPath = join(homedir(), ".aide", "dashboard", "push-key.json");
   if (queueConfigFile) {
     // Kept whether or not the file is readable: the Add/Remove routes
