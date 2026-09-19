@@ -276,13 +276,13 @@ class TestAcceptanceCriteriaReachTheirTests:
 
     def test_implement_names_the_ac_id_in_the_test_name(self, implement):
         red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
-        assert "carries that\n   id in its own name" in red, (
+        assert "**Put the AC-id in the test's name.**" in red and "carries that id in its own name" in red, (
             "aide-implement's RED phase must say a test carries its criterion's AC-id in its name"
         )
 
     def test_implement_writes_a_browser_test_for_a_tagged_criterion(self, implement):
         red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
-        assert "*(browser)*" in red and "gets a browser test" in red, (
+        assert "**Write a browser test for a *(browser)* criterion,**" in red, (
             "aide-implement's RED phase must write a browser test for a *(browser)* criterion"
         )
 
@@ -335,3 +335,9 @@ def test_the_step_asks_the_language_server_before_grep(skill):
     run has one; grep answers every line that contains the name."""
     text = (CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8")
     assert "When an `LSP` tool is available, use it (`findReferences`," in text
+
+
+def test_implement_checks_every_ac_id_has_a_test_before_running():
+    implement = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
+    assert "**Check the list before running anything:**" in red

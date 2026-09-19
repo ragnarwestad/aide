@@ -67,18 +67,24 @@ resume it at the first unticked task if it found it in progress.
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))
-3. Create test files — at least one failing test per acceptance criterion.
-   A test written for a criterion that opens with an AC-id carries that
-   id in its own name — `... (AC-3)` — so which test covers which
-   requirement can be read off the test run. A criterion that ends with
-   *(browser)* gets a browser test, written where the project keeps its
-   browser tests; a project with none names that criterion in
-   `3-solution.md`'s Manual testing note instead
-4. Run the tests — verify that they FAIL
-5. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
+3. Create test files — at least one failing test per acceptance criterion
+4. **Put the AC-id in the test's name.** A test written for a criterion
+   that opens with an AC-id carries that id in its own name, as the
+   name's last words: `test("the total keeps counting (AC-2)", ...)`.
+   The runner reads these names after the step to show, on the row the
+   user ticks, which test covers which requirement — a test without the
+   id is a requirement shown as untested
+5. **Write a browser test for a *(browser)* criterion,** where the
+   project keeps its browser tests; a project with none names that
+   criterion in `3-solution.md`'s Manual testing note instead
+6. **Check the list before running anything:** every AC-id in
+   `3-solution.md`'s Acceptance criteria appears in at least one test
+   name from steps 3-5. An id with none gets its test now
+7. Run the tests — verify that they FAIL
+8. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
    written and confirmed to fail, not merely planned. Write the result
    with `aide-write-spec --file 4-status.md` (never Write/Edit)
-6. Report the RED result briefly and continue to GREEN
+9. Report the RED result briefly and continue to GREEN
 
 ### Phase 2: GREEN — Implement until tests pass
 
