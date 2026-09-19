@@ -15,8 +15,7 @@ export const specTabPath = (project: string, specFolder: string, tab: string): s
   `${specPagePath(project, specFolder)}?tab=${encodeURIComponent(tab)}`;
 
 /** The page's tabs: its four documents in the order they are written and
- *  read, then Checks (the spec's own remaining work) beside Status, then
- *  the lead job's own Logs.
+ *  read, then the lead job's own Logs.
  *
  *  A tuple of this page's own, fed to `job-page.ts`'s `pickTab` and
  *  `tabBar` — which take the list as an argument since spec 212 exactly
@@ -27,7 +26,6 @@ export const SPEC_TABS = [
   "analysis",
   "solution",
   "status",
-  "checks",
   "steps",
 ] as const;
 export type SpecTab = (typeof SPEC_TABS)[number];
@@ -42,7 +40,9 @@ export type SpecTab = (typeof SPEC_TABS)[number];
  *  hand-paired-default shape; this is the fix that stops teaching it a
  *  second time. */
 export function resolveSpecTab(raw: string | undefined): SpecTab {
-  return pickTab(SPEC_TABS, raw, "description");
+  // A bookmarked or already-open `?tab=checks` link opens Status, where
+  // the acceptance criteria now are.
+  return pickTab(SPEC_TABS, raw === "checks" ? "status" : raw, "description");
 }
 
 /** Which tabs move on their own, and therefore reload. Steps is the one
@@ -89,7 +89,7 @@ export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
 
 /** A job for this spec is queued or running (moved from panels.ts,
  *  spec 315 — the route layer needs the same fact the render layer
- *  already computed). Note: `overview.ts`'s Checks-tab code has its own,
+ *  already computed). Note: `overview.ts`'s checklist code has its own,
  *  independent copy of this same check (`view.lead?.state === "queued"
  *  || "running"`, spec-page/overview.ts:109) — untouched here, since
  *  nothing in this spec reads it and no REQ asks for that consolidation;
@@ -112,6 +112,9 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
   if (!file) return undefined;
   const hasText = (view.files.find((f) => f.label === file)?.text ?? null) !== null;
   if (view.archived || activeJob(view)) return hasText ? "viewer" : undefined;
+  // Status is never an editor: its panel is the tick form and the file
+  // rendered read-only.
+  if (tab === "status") return hasText ? "viewer" : undefined;
   if (tab === "description") return "editor"; // always has a form, even empty
   return hasText ? "editor" : undefined;
 }
@@ -119,7 +122,7 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
 /** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
  *  built once by `renderSpecPage()` and passed as the optional `mark`
  *  parameter into whichever of `documentPanel()`/`descriptionPanel()`/
- *  `checklist()`/`stepResults()` draws that tab's panel (spec 360) — each
+ *  `statusPanel()`/`stepResults()` draws that tab's panel (spec 360) — each
  *  appends it inside its own first line rather than drawing it as a
  *  preceding sibling. `stepResults()` is shared with the job page, which
  *  passes no mark and keeps its own output unchanged. */
@@ -135,15 +138,12 @@ export const TAB_HELP: Record<SpecTab, string> = {
     "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
   status: "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
-    "<code>/aide-implement</code> as it runs. While the spec is active and no job is " +
-    "running, Save here rewrites, commits and pushes it; an archived spec, or one with a " +
-    "job in flight, shows the same file read-only. The same file's Acceptance criteria " +
-    "rows are what the Checks tab lets a person tick.",
-  checks: "The spec's own remaining work, read from <code>4-status.md</code>. While the " +
-    "spec is active, only the <code>## Acceptance criteria</code> rows below can be " +
-    "ticked, and only they hold the next archive run back; the Phase tables shown on the " +
-    "Status tab (RED/GREEN/REFACTOR, or a Checklist) are <code>/aide-implement</code>'s " +
-    "own record of that run and are not part of this gate.",
+    "<code>/aide-implement</code> as it runs, shown read-only here. While the spec is active " +
+    "and no job is running, the <code>## Acceptance criteria</code> rows at the top can be " +
+    "ticked, and Save commits and pushes the ticks; only those rows hold the next archive " +
+    "run back. The Phase tables below them (RED/GREEN/REFACTOR, or a Checklist) are " +
+    "<code>/aide-implement</code>'s own record of that run and are not part of that gate. " +
+    "An archived spec, or one with a job in flight, shows the rows without boxes.",
   steps: "Every workflow step this spec's jobs have run — create, analyze, implement, " +
     "archive — each with its own cost and how it ended. Nothing here is editable; open a " +
     "row to see that step's own log.",

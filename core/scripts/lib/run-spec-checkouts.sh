@@ -210,6 +210,21 @@ on_signal() {
     while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
     kill -0 "$child" 2>/dev/null && kill_group KILL
   fi
+  # Cancel keeps what the step wrote: committed and pushed to its branch
+  # before the EXIT trap removes the worktree with --force, so the next
+  # run of the step finds it there. Once the worktrees exist, that is —
+  # a run cancelled before then has written nothing. A Cancel mid-turn
+  # comes before the committing code is loaded and before the names it
+  # reads are set, so both are seen to here, and `set +u` keeps a name
+  # this path never set from ending the handler before the commit.
+  if [ -n "${work_roots[*]:-}" ]; then
+    set +u
+    suffix=" (stopped: cancelled)"
+    commit_label="${commit_label:-$spec_label}"
+    declare -f commit_and_push_roots >/dev/null 2>&1 \
+      || source "$SCRIPT_DIR/lib/run-spec-publish.sh" >/dev/null 2>&1
+    commit_and_push_roots >/dev/null 2>&1 || true
+  fi
   exit 143
 }
 trap on_signal TERM INT

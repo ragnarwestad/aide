@@ -1,6 +1,6 @@
 // The spec's read-only facts (what it depends on, whether it is
-// archived) drawn in the banner on every tab, the Checks tab's own
-// checklist, and the Reopen/Reset controls.
+// archived) drawn in the banner on every tab, the Status tab's
+// criteria checklist, and the Reopen/Reset controls.
 
 import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
@@ -89,11 +89,11 @@ export function trackingControl(view: SpecPageView, lang: Language = "en"): stri
       `<input type="hidden" name="acceptanceEditable" value="1">` +
       `<input type="checkbox" name="acceptanceRequired" value="1"${required ? " checked" : ""}>` +
       `<span>${t(lang, "spec.acceptanceTickingRequired")}</span></label>`;
-  // `.trackingform`, never `.specform`: the Checks tab's tick form
+  // `.trackingform`, never `.specform`: the Status tab's tick form
   // already carries that class, and the banner renders on every tab —
   // Checks included — so a shared class would leave that tab with TWO
   // `.specform` forms, breaking anything that finds one by that class
-  // alone (`dashboard/test/e2e/acceptance-gate-checks-tab.test.ts`,
+  // alone (`dashboard/test/e2e/acceptance-gate-status-tab.test.ts`,
   // spec 382).
   return (
     `<form class="trackingform" method="post" action="${esc(view.trackingAction)}">` +
@@ -166,7 +166,7 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
  *  description's editor is now a tab beside this one rather than a page
  *  behind a link, so ticking a box no longer means opening it.
  *
- *  On the Checks PANEL rather than in the banner, which is where spec
+ *  On the Status PANEL rather than in the banner, which is where spec
  *  182 put the summary: a form in the banner rides onto Activity and
  *  Steps, and those two reload every ten seconds — which would wipe a
  *  half-ticked list, the exact failure this spec's reload scoping
@@ -193,8 +193,14 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
  *  So there is one group, one form and one Save — never one per phase. */
 const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 
-export function checklist(view: SpecPageView, lang: Language = "en", mark = ""): string {
-  const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
+/** The acceptance rows the checklist draws — what the Status panel asks
+ *  before it cuts the section out of the rendered file. */
+export function drawnAcceptanceRows(view: SpecPageView): SpecCheckView[] {
+  return (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
+}
+
+export function checklist(view: SpecPageView, lang: Language = "en"): string {
+  const rows = drawnAcceptanceRows(view);
   if (rows.length === 0) {
     // A section that is there and reads as nothing is not the same
     // answer as no section at all, and it must not look like one: the
@@ -202,7 +208,9 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
     // there is nothing open on a spec nobody has judged. The file itself
     // is the run's own record and cannot be edited here, so the way out
     // is to run analyze again and let it write the table.
-    if (view.checks?.unreadable) {
+    // Not for a spec whose ticking is switched off: its section is a
+    // sentence, which reads as unreadable and is not a fault.
+    if (view.checks?.unreadable && !view.acceptanceNotRequired) {
       return rowMessage(
         "failed",
         "This spec's Acceptance criteria are written in a table this page cannot read, " +
@@ -211,7 +219,7 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
         { tag: "p" },
       );
     }
-    return `<p class="muted">No acceptance criteria to tick.${mark ? ` ${mark}` : ""}</p>`;
+    return "";
   }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
@@ -275,7 +283,7 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
   // buttons sit on the same line as the mark rather than below the list.
   const panelHead = (actions = ""): string =>
     `<div class="panelhead"><p class="checkshead"><strong>Checks</strong> ` +
-    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span>${mark}</p>${actions}</div>`;
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>${actions}</div>`;
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
   const body = canTick

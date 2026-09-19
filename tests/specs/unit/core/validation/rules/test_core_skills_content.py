@@ -334,7 +334,10 @@ def test_the_step_asks_the_language_server_before_grep(skill):
     """Where a symbol is used is the language server's to answer when a
     run has one; grep answers every line that contains the name."""
     text = (CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8")
-    assert "When an `LSP` tool is available, use it (`findReferences`," in text
+    # A deferred tool is invisible until it is loaded: two analyze runs
+    # in a row (498, 499) never used it while the rule only said "use it".
+    assert "`ToolSearch` (`select:LSP`)" in text
+    assert "`findReferences` or `goToDefinition` call — never `grep`" in text
 
 
 def test_implement_checks_every_ac_id_has_a_test_before_running():

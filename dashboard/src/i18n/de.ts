@@ -65,7 +65,7 @@ export const de: Record<TranslationKey, string> = {
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",
   "list.checksUnreadable": "Die Abnahmekriterien konnten hier nicht gelesen werden.",
-  "list.checksOpenTab": "Den Tab „Checks“ öffnen",
+  "list.checksOpenTab": "Den Tab „Status“ öffnen",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",
   "list.cancelConfirmTitle": "{step} abbrechen?",

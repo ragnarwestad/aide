@@ -16,7 +16,6 @@ export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 export const TRACKING = `/api/queue/specs/aide/${SPEC}/tracking`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
-export const CHECKS_TAB = `/specs/aide/${SPEC}?tab=checks`;
 // REQ-2: the three read-only document tabs, alongside DESCRIPTION_TAB.
 export const ANALYSIS_TAB = `/specs/aide/${SPEC}?tab=analysis`;
 export const SOLUTION_TAB = `/specs/aide/${SPEC}?tab=solution`;

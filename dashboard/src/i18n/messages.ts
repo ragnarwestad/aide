@@ -445,12 +445,12 @@ export const MESSAGES = {
     resolve: "run implement first",
   },
   "wordPhase.stopAcceptanceCriteriaUnticked": {
-    en: "the Acceptance criteria are not all ticked — tick them on the Checks tab",
-    nb: "ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
-    es: "no todos los criterios de Aceptación están marcados — márcalos en la pestaña Checks",
-    de: "nicht alle Abnahmekriterien sind abgehakt — hake sie im Tab Checks ab",
-    fr: "les critères d'Acceptation ne sont pas tous cochés — cochez-les dans l'onglet Checks",
-    resolve: "tick them on the Checks tab",
+    en: "the Acceptance criteria are not all ticked — tick them on the Status tab",
+    nb: "ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Status-fanen",
+    es: "no todos los criterios de Aceptación están marcados — márcalos en la pestaña Status",
+    de: "nicht alle Abnahmekriterien sind abgehakt — hake sie im Tab Status ab",
+    fr: "les critères d'Acceptation ne sont pas tous cochés — cochez-les dans l'onglet Status",
+    resolve: "tick them on the Status tab",
   },
   "wordPhase.stopNoPassingTestRecord": {
     en: "the project's tests did not pass for this commit — run implement again",

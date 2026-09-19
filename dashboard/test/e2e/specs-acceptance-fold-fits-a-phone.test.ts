@@ -54,7 +54,7 @@ beforeAll(async () => {
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
   ran(started.dir, ["analyze", "implement"]);
   await waitUntil(
-    async () => (await (await fetch(`${base}/?live=0`)).text()).includes("tick them on the Checks tab"),
+    async () => (await (await fetch(`${base}/?live=0`)).text()).includes("tick them on the Status tab"),
     10_000,
     "the specs list to carry the acceptance hold-back message",
   );
@@ -105,7 +105,7 @@ describe("saving from the list", () => {
     await notice().locator(`input[name="tick"]`).first().check();
     await notice().locator("form.rowchecks button").click();
     await waitUntil(async () => (await notice().locator("input[name=\"tick\"]:checked").count()) === 1, 10_000, "the first tick to be saved");
-    expect(await notice().textContent()).toContain("tick them on the Checks tab");
+    expect(await notice().textContent()).toContain("tick them on the Status tab");
     await notice().locator(`input[name="tick"]`).nth(1).check();
     await notice().locator("form.rowchecks button").click();
     await waitUntil(async () => (await notice().count()) === 0 || !(await notice().textContent())?.includes("tick them"), 10_000, "the message to go");

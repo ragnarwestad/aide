@@ -65,7 +65,7 @@ export const es: Record<TranslationKey, string> = {
   "list.checksSave": "Guardar",
   "list.checksSaving": "guardando…",
   "list.checksUnreadable": "No se pudieron leer aquí los criterios de aceptación.",
-  "list.checksOpenTab": "Abrir la pestaña Checks",
+  "list.checksOpenTab": "Abrir la pestaña Status",
   "list.cancel": "Cancelar",
   "list.cancelling": "cancelando…",
   "list.cancelConfirmTitle": "¿Cancelar {step}?",

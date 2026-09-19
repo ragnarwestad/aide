@@ -89,10 +89,10 @@ describe("the unfolded list", () => {
     expect(html).toContain('class="actionform rowchecks"');
   });
 
-  test("a spec whose rows could not be read says so and links to the Checks tab, with no Save", () => {
+  test("a spec whose rows could not be read says so and links to the Status tab, with no Save", () => {
     const bare = notice({ checks: KEY }, target({ acceptance: [] }));
     expect(bare).toContain("could not be read here");
-    expect(bare).toContain(`/specs/aide/${FOLDER}?tab=checks`);
+    expect(bare).toContain(`/specs/aide/${FOLDER}?tab=status`);
     expect(bare).not.toContain("rowchecks");
     expect(bare).not.toContain('name="tick"');
   });

@@ -88,6 +88,9 @@ jobs:
       - run: cd dashboard && make test 2>&1 | tee ../make-test.log
       - if: failure()
         run: grep -E '^\(fail\)|error TS[0-9]+' make-test.log | sed 's/^/::error::/' || echo '::error::make test failed before it could name a test'
+      # The round's own tests start real boards and are left out of `make
+      # test` because they lose to load on the serving host; they run here as their own step.
+      - run: cd dashboard && make test-slow
       # The browser tests are not in `make test` on purpose: that target
       # is also the landing's gate on the serving host, where they lose
       # to load. This runner is quiet, and it has the browser from the

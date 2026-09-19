@@ -80,7 +80,7 @@ describe("spec 394: the banner's combined tracking control", () => {
   // REQ-1: the depends-on picker sits above the tab row, on every tab —
   // not just the Description one it used to belong to.
   test("REQ-1: the depends-on picker is drawn on the Checks tab too, not only Description", () => {
-    const html = page(view({ dependsOnOptions: [{ project: "aide", specFolder: "80-earlier" }] }), "checks");
+    const html = page(view({ dependsOnOptions: [{ project: "aide", specFolder: "80-earlier" }] }), "status");
     expect(html).toContain("Depends on");
     expect(html).toContain('name="dependsOn"');
   });

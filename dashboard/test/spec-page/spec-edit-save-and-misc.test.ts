@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SPEC, DESCRIPTION_TAB, CHECKS_TAB, ANALYSIS_TAB, SOLUTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, createSpecSaveHarness, fillAnalysisAndSolution, descriptionPath, post, savable } from "./spec-save-fixtures.ts";
+import { SPEC, DESCRIPTION_TAB, STATUS_TAB, ANALYSIS_TAB, SOLUTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, createSpecSaveHarness, fillAnalysisAndSolution, descriptionPath, post, savable } from "./spec-save-fixtures.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
@@ -70,7 +70,7 @@ describe("the Description tab", () => {
   // with <script src>, never inlined — on the ONE tab that has an
   // editable textarea and nowhere else, mirroring how
   // specsClientScript() already scopes itself.
-  test("the Description tab references the editor's script by src; other tabs do not", async () => {
+  test("the Description tab references the editor's script by src; the Status tab loads the viewer instead (AC-9)", async () => {
     const { base } = start(savable("/host"));
     const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`)).text();
     expect(descHtml).toContain("spec-editor-host");
@@ -81,9 +81,9 @@ describe("the Description tab", () => {
     // default tab a bare URL resolves to (dropping "overview"), so
     // `PAGE` now serves the SAME tab this test just checked — asking
     // explicitly for another tab is what "other tabs do not" needs.
-    const checksHtml = await (await fetch(`${base}${CHECKS_TAB}`)).text();
-    expect(checksHtml).not.toContain("spec-editor-host");
+    const checksHtml = await (await fetch(`${base}${STATUS_TAB}`)).text();
     expect(checksHtml).not.toContain('<script src="/spec-editor.js">');
+    expect(checksHtml).toContain('<script src="/spec-viewer.js">');
     // REQ-1: with the bundle no longer inlined, a document tab's own
     // page is only a little larger than one with no editor at all —
     // nowhere near the tens of KB gap the inline bundle used to cost.

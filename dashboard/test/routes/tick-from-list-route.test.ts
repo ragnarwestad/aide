@@ -132,6 +132,6 @@ describe("the Checks tab is answered as it always was", () => {
   test("a refusal goes back to the tab, not to the list", async () => {
     const { base } = startWithChecks(a.harness, savable("/host"));
     const res = await tick(base, { ticks: ["| Manual check at 375px in a real browser | ⬜ | as it once was |"] });
-    expect(location(res).startsWith(`/specs/aide/${SPEC}?tab=checks`)).toBe(true);
+    expect(location(res).startsWith(`/specs/aide/${SPEC}?tab=status`)).toBe(true);
   });
 });

@@ -181,7 +181,7 @@ describe("spec 394: the Depends on picker, in the banner on every tab", () => {
   // returned unconditionally — so a non-description tab carries the same
   // control rather than it being Description-only as it was before.
   test("still renders on a non-description tab, since the banner is unconditional", () => {
-    const html = page(view({ dependsOnOptions: OPTIONS, dependsOn: ["164-a-spec-can-depend"] }), "checks");
+    const html = page(view({ dependsOnOptions: OPTIONS, dependsOn: ["164-a-spec-can-depend"] }), "status");
     expect(html).toContain('name="dependsOn"');
     expect(html).toMatch(/value="164-a-spec-can-depend"[^>]*checked/);
   });

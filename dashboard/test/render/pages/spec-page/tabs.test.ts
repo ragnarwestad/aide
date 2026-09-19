@@ -5,7 +5,7 @@
 // of the two bundles a tab needs, not just whether one is needed: a
 // locked tab with real text needs the viewer, never nothing.
 import { describe, expect, test } from "bun:test";
-import { documentTabScript } from "../../../../src/render";
+import { documentTabScript, resolveSpecTab, SPEC_TABS, TAB_HELP } from "../../../../src/render/pages/spec-page/tabs.ts";
 import type { SpecPageView } from "../../../../src/render";
 
 const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
@@ -82,11 +82,44 @@ describe("documentTabScript", () => {
     expect(documentTabScript(view, "analysis")).toBeUndefined();
   });
 
-  test("undefined for checks", () => {
-    expect(documentTabScript(baseView(), "checks")).toBeUndefined();
+  const statusView = (overrides: Partial<SpecPageView> = {}): SpecPageView =>
+    baseView({ files: [{ label: "4-status.md", text: "# S\n" }], ...overrides });
+
+  test("viewer for the Status tab of an active spec, never the editor (AC-9)", () => {
+    expect(documentTabScript(statusView(), "status")).toBe("viewer");
+  });
+
+  test("viewer for the Status tab of an archived spec and of one with a job in flight (AC-9)", () => {
+    expect(documentTabScript(statusView({ archived: true }), "status")).toBe("viewer");
+    expect(
+      documentTabScript(statusView({ lead: { state: "running" } as SpecPageView["lead"] }), "status"),
+    ).toBe("viewer");
+  });
+
+  test("undefined for a Status tab whose file has no text (AC-9)", () => {
+    expect(documentTabScript(baseView(), "status")).toBeUndefined();
   });
 
   test("undefined for steps", () => {
     expect(documentTabScript(baseView(), "steps")).toBeUndefined();
+  });
+});
+
+describe("the Checks tab is gone (AC-4)", () => {
+  test("SPEC_TABS has no checks and TAB_HELP has no checks entry (AC-4)", () => {
+    expect((SPEC_TABS as readonly string[]).includes("checks")).toBe(false);
+    expect("checks" in TAB_HELP).toBe(false);
+  });
+
+  test("an old ?tab=checks resolves to the Status tab (AC-4)", () => {
+    expect(resolveSpecTab("checks")).toBe("status");
+    expect(resolveSpecTab("status")).toBe("status");
+    expect(resolveSpecTab(undefined)).toBe("description");
+  });
+
+  test("the Status tab's help names ticking and says only the acceptance criteria hold the archive back (AC-1)", () => {
+    expect(TAB_HELP.status).toContain("Acceptance criteria");
+    expect(TAB_HELP.status).toContain("archive");
+    expect(TAB_HELP.status).not.toContain("Save here rewrites");
   });
 });

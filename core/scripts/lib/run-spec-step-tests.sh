@@ -26,13 +26,9 @@
 # runner drives, so a red run there ends the step at once. The record
 # on the branch is always the runner's last run.
 #
-# An `archive` is the other step whose result no green run has seen:
-# its pull merges main into the branch, and main has moved since
-# implement's own green run — the one place a suite green at implement
-# time turns red before the landing. So the same run, the same rounds,
-# on the merged result, with the record written into the folder where
-# the archive has just moved it. A pull that fast-forwarded brought the
-# branch nothing new, and nothing is run.
+# An `archive` runs nothing here, merged or not: its landing runs the
+# suite once on exactly what main is about to become, and a run here too
+# was the same suite two and three times per archive (2026-09-19).
 # The runner's own run of the tests, inside what is left of the step's
 # time limit: the limit is the whole step's, not the session's alone. A
 # run still going when it runs out is stopped (124), and the step ends
@@ -61,6 +57,8 @@ run_step_tests_within_time() {
   done
   wait "$tests_pid"
   local rc=$?
+  # What the suite left running goes with it (see run_model_turn).
+  kill -TERM "-$tests_pid" 2>/dev/null || true
   child=""
   return "$rc"
 }
@@ -69,7 +67,6 @@ step_tests_folder=""
 if [ "$terminal_reason" = "completed" ]; then
   case "$command_name" in
     implement) step_tests_folder="$spec_label" ;;
-    archive) [ "${base_merged_count:-0}" -gt 0 ] && step_tests_folder="archive/$spec_label" ;;
   esac
 fi
 if [ -n "$step_tests_folder" ]; then

@@ -93,12 +93,12 @@ on one line.
 **A held-back archive can be judged from the row.** The held-back message carries a › to its left. It adds or removes
 the spec's key in `?checks=<project>/<folder>,…`, kept by every sort and filter link like `?open=`, and unfolds the
 spec's acceptance criteria under the message: every criterion with its Notes cell and a checkbox for its state, and
-nothing from the phase tables. The one Save posts to the Checks tab's own tick route with `?fromList=1`, so the
+nothing from the phase tables. The one Save posts to the Status tab's own tick route with `?fromList=1`, so the
 ticks are stored the same way, and the message goes once every criterion is ticked. Saving does not start the archive.
 Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
-link to its Checks tab, in place of the list.
+link to its Status tab, in place of the list.
 
-**Each criterion names the tests that prove it**, here and on the Checks tab: the tests whose names carry its AC-id,
+**Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its AC-id,
 from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
 (`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of many
 specs. A browser test is marked as run in implement, since the merge's test suite leaves it out. A criterion no test
@@ -229,14 +229,14 @@ with one in flight it answers with the clash refusal.
 
 ## The spec page
 
-`/specs/<project>/<spec>` is the whole SPEC, as it stands now, in seven tabs: Overview, one tab per document
-(Description, Analysis, Solution, Status — each stamped with the commit that last changed it), and Activity and Steps
-for one of its runs. Overview carries no file text at all — stacking four files in full there put thousands of lines
-of preformatted text between the reader and what they came for. It is where the spec STANDS: the state chip, the
-Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`), the title, and the
-checks, as real boxes with a Save of their own. Two more facts sit here too, above the tab row rather than inside any
-one document: what the spec depends on, and whether it requires acceptance ticking — both editable in one form
-(`POST /api/queue/specs/<project>/<spec>/tracking`), since neither belongs to a single tab.
+`/specs/<project>/<spec>` is the whole SPEC, as it stands now, in five tabs: one per document (Description,
+Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The Status tab
+draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
+name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
+same criteria without boxes. An old `?tab=checks` link opens the Status tab. The banner above the tab row holds the
+state chip, the Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`) and two
+facts that belong to no single document: what the spec depends on, and whether it requires acceptance ticking — both
+editable in one form (`POST /api/queue/specs/<project>/<spec>/tracking`).
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no

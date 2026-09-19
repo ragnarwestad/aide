@@ -70,7 +70,7 @@ describe("where the person ticks", () => {
       [row("AC-1: The total SHALL show.")],
       { "AC-1": [{ file: "dashboard/test/x.test.ts", name: "the total shows (AC-1)" }] },
     );
-    const html = page(view({ checks: { rows: [{ ...(ac1 as SpecCheckView), phase: "Acceptance criteria" }], phase: "Acceptance criteria", baseSha: "b7c40e2" } }), "checks");
+    const html = page(view({ checks: { rows: [{ ...(ac1 as SpecCheckView), phase: "Acceptance criteria" }], phase: "Acceptance criteria", baseSha: "b7c40e2" } }), "status");
     const section = html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
     expect(section).toContain('<span class="checktests">Tests: the total shows (AC-1)</span>');
   });

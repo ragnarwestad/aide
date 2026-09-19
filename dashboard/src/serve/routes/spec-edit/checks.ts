@@ -1,4 +1,4 @@
-// the Checks tab's tick: one box, committed onto the branch the spec is being worked on. One of the three families `handleSpecEditRoutes` asks in
+// the Status tab's tick: one box, committed onto the branch the spec is being worked on. One of the three families `handleSpecEditRoutes` asks in
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
@@ -34,16 +34,16 @@ export async function checkRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    // The Checks tab, which is where the boxes are — not the bare spec
+    // The Status tab, which is where the boxes are — not the bare spec
     // path, which spec 294 also made default to Description instead.
-    const back = specTabPath(project!, specFolder!, "checks");
+    const back = specTabPath(project!, specFolder!, "status");
     // A press from the Specs list (spec 493) says so on the action URL,
     // not in the body: the two refusals below answer before the body is read.
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
     // One answer for the three callers. JSON when asked; the list when the
     // press came from it (with the view the body carried, once it is read);
-    // the Checks tab otherwise, exactly as it always was.
+    // the Status tab otherwise.
     const refuse = (error: string, sent?: unknown): Response =>
       wantsJson
         ? json({ error, spec }, 409)

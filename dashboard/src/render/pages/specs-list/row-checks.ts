@@ -39,7 +39,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   if (rows.length === 0) {
     return (
       `<p class="checksunread muted">${esc(t(lang, "list.checksUnreadable"))} ` +
-      `<a href="${esc(specTabPath(g.project, g.specFolder, "checks"))}">${esc(t(lang, "list.checksOpenTab"))}</a></p>`
+      `<a href="${esc(specTabPath(g.project, g.specFolder, "status"))}">${esc(t(lang, "list.checksOpenTab"))}</a></p>`
     );
   }
   // One heading covers every row; the route scopes the press to it.

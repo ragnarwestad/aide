@@ -265,7 +265,9 @@ release_worktree_lock() {
 # dispatched at once. Two sections under one lock, each consistent on its
 # own: a pull between them leaves the checkout on <base> and newer.
 for root in "${roots[@]}"; do
+  stage "waiting for the checkout lock in $root"
   acquire_worktree_lock "$root"
+  stage "lock taken in $root"
   base="$(default_branch "$root")"
   [ -n "$base" ] || refuse "cannot work out the default branch in $root"
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
@@ -273,7 +275,9 @@ for root in "${roots[@]}"; do
       || refuse "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200))"
   fi
   if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
+    stage "fetching $base from origin in $root"
     if fetch_base_with_retry "$root" "$base"; then
+      stage "fetched $base in $root"
       git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
         || note_pull_error "cannot fast-forward $base (aide/$spec_label in $root)"
     else

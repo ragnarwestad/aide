@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { SpecCheckView, SpecPageView } from "../../../src/render";
-import { lead, page, view } from "./spec-page-fixtures.ts";
+import { file, lead, page, view } from "./spec-page-fixtures.ts";
 
 // --- spec 182, ticked again by spec 212: the spec's remaining checks --------
 //
@@ -51,7 +51,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   };
 
   test("an open row in the current phase is a real checkbox, in a form with its own Save", () => {
-    const html = page(withChecks(), "checks");
+    const html = page(withChecks(), "status");
     const checks = section(html);
     expect(checks).toContain('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick"');
     expect(checks).toMatch(/<form[^>]*method="post"/);
@@ -66,7 +66,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // is queued precisely for this tick (371, 2026-09-03).
   for (const lead_ of [lead({ state: "running" }), lead({ state: "done", landing: true })]) {
     test(`a ${lead_.landing ? "landing" : lead_.state} job leaves every check visible but removes the controls`, () => {
-      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead_ }), "checks"));
+      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead_ }), "status"));
       expect(checks).toContain("Manual check at 375px in a real browser");
       expect(checks).toContain("Run the full test suite");
       expect(checks).not.toContain('name="tick"');
@@ -76,13 +76,13 @@ describe("the checks block (specs 182, 188, 212)", () => {
   }
 
   test("a queued job — parked, or merely waiting for a slot — leaves the controls in place", () => {
-    expect(section(page(withChecks([check()], { lead: lead({ state: "queued" }) }), "checks"))).toContain(
+    expect(section(page(withChecks([check()], { lead: lead({ state: "queued" }) }), "status"))).toContain(
       'name="tick"',
     );
   });
 
   test("a completed job does not make the checks read-only", () => {
-    expect(section(page(withChecks([check()], { lead: lead({ state: "done" }) }), "checks"))).toContain(
+    expect(section(page(withChecks([check()], { lead: lead({ state: "done" }) }), "status"))).toContain(
       'name="tick"',
     );
   });
@@ -91,7 +91,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // tick are two forms posting to two actions — that is what turns one
   // commit carrying both into two commits, each carrying its own file.
   test("its Save is its own, not the description's", () => {
-    const checks = section(page(withChecks(), "checks"));
+    const checks = section(page(withChecks(), "status"));
     expect(checks).not.toContain("/save");
     expect(checks).not.toContain("<textarea");
   });
@@ -103,7 +103,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // one field with its phase). `baseSha` is the file's own commit at
   // read time.
   test("the phase and 4-status.md's own commit travel with the form", () => {
-    const html = page(withChecks(), "checks");
+    const html = page(withChecks(), "status");
     expect(html.match(/name="checksPhase"/g)!).toHaveLength(1);
     expect(html).toContain(`value="${PHASE}"`);
     expect(html).toContain('name="statusBaseSha"');
@@ -114,7 +114,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // by a person and a person can have got it wrong, and the only way
   // back used to be editing the markdown table in `4-status.md`.
   test("a done row is a ticked box, and still reads as done", () => {
-    const html = page(withChecks([DONE]), "checks");
+    const html = page(withChecks([DONE]), "status");
     expect(html).toContain("Run the full test suite");
     expect(section(html)).toContain('name="tick"');
     expect(section(html)).toContain(" checked>");
@@ -125,7 +125,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // this page does not carry it at all — the Status tab is where the
   // whole file is read.
   test("a Phase row is not on this page at all", () => {
-    const html = page(withChecks([check(), LATER]), "checks");
+    const html = page(withChecks([check(), LATER]), "status");
     expect(html).not.toContain("Watch the first real run");
     expect(html.match(/name="tick"/g)!).toHaveLength(1);
   });
@@ -134,7 +134,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // no `form="..."` id plumbing to get wrong, and no box stranded
   // outside the form Save posts.
   test("every box sits inside the form that Save posts", () => {
-    const checks = section(page(withChecks(), "checks"));
+    const checks = section(page(withChecks(), "status"));
     expect(checks).not.toContain("form=");
     const form = checks.match(/<form[\s\S]*<\/form>/)![0];
     expect(form).toContain('name="tick"');
@@ -145,26 +145,26 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // the banner. A form that rode the banner onto Steps would be wiped by
   // that tab's ten-second reload halfway through being ticked.
   test("it is on Checks, and on no tab that reloads itself", () => {
-    expect(page(withChecks(), "checks")).toContain("Manual check at 375px in a real browser");
+    expect(page(withChecks(), "status")).toContain("Manual check at 375px in a real browser");
     const html = page(withChecks(), "steps");
     expect(html.includes("Manual check at 375px in a real browser")).toBe(false);
   });
 
   test("the unticked ones are told apart from the done ones in the markup", () => {
-    const html = page(withChecks(), "checks");
+    const html = page(withChecks(), "status");
     expect(html).toContain("check open");
     expect(html).toContain("check done");
   });
 
   test("the section a row belongs to leads its rows", () => {
-    expect(page(withChecks(), "checks")).toContain("Acceptance criteria");
+    expect(page(withChecks(), "status")).toContain("Acceptance criteria");
   });
 
   // Spec 295: the panel opens directly with the checklist markup this
   // suite already pins, with no `<h2>Checks</h2>` above it — the tab bar
   // beside it already names the tab.
   test("the panel opens with the unchanged checklist and no heading of its own", () => {
-    const html = page(withChecks(), "checks");
+    const html = page(withChecks(), "status");
     expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).toContain('<section class="checks">');
   });
@@ -173,45 +173,37 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // analysed. A LOW-complexity spec's `## Checklist` heading counts as
   // a phase section since spec 266, so it no longer falls into this
   // case.
-  // Spec 294: the run-together "Checks no checks yet" wording becomes
-  // its own line, "No checks yet.", styled as a plain status line
-  // rather than the small/muted caption treatment `checkshead` gives
-  // every other message here. Spec 295: no `<h2>Checks</h2>` sits above
-  // it — the tab bar beside the panel already names the tab.
-  // Spec 360: the sentence carries the tab's "(?)" mark at its own end,
-  // inside the same <p>, rather than the mark sitting ahead of it.
-  test("a spec with no rows says 'No acceptance criteria to tick.' as its own line, with no heading above it (criterion 2)", () => {
-    const html = page(view({ checks: { rows: [] } }), "checks");
-    expect(html).toContain('<p class="muted">No acceptance criteria to tick. <details class="intro">');
-    expect(html).not.toContain("<h2>Checks</h2>");
-    expect(html).not.toContain('class="checkshead"');
-    expect(html).not.toContain("no acceptance criteria");
+  // A file with no readable rows is shown whole: no block, no line
+  // saying there is nothing to tick, the file's own text instead (AC-3).
+  test("a spec with no rows draws no checks block and shows the file whole (AC-3)", () => {
+    const html = page(view({ checks: { rows: [] } }), "status");
+    expect(html).not.toContain('<section class="checks">');
+    expect(html).not.toContain("No acceptance criteria to tick");
+    expect(html).toContain("Phase 1: RED");
   });
 
-  test("a spec whose view carries no checks says 'No acceptance criteria to tick.' the same way (criterion 2)", () => {
-    const html = page(view(), "checks");
-    expect(html).toContain('<p class="muted">No acceptance criteria to tick. <details class="intro">');
-    expect(html).not.toContain("<h2>Checks</h2>");
-    expect(html).not.toContain('class="checkshead"');
-    expect(html).not.toContain("no acceptance criteria");
+  test("a spec whose view carries no checks draws the same (AC-3)", () => {
+    const html = page(view(), "status");
+    expect(html).not.toContain('<section class="checks">');
+    expect(html).not.toContain("No acceptance criteria to tick");
   });
 
   // Every row done is not "nothing to do": the form stays, so a check
   // can come back off. What still leaves the page with nothing to press
   // is a section whose rows are none of the person's.
   test("every row done keeps the form — that is what takes a check back off", () => {
-    const html = page(view({ checks: { rows: [DONE], phase: PHASE, baseSha: "b7c40e2" } }), "checks");
+    const html = page(view({ checks: { rows: [DONE], phase: PHASE, baseSha: "b7c40e2" } }), "status");
     expect(html).toContain("Run the full test suite");
     expect(section(html)).toContain("<form");
     // A spec whose only rows are Phase rows: nothing here is the
     // person's, so there is nothing to press.
-    expect(page(view({ checks: { rows: [LATER] } }), "checks")).not.toContain('name="tick"');
+    expect(page(view({ checks: { rows: [LATER] } }), "status")).not.toContain('name="tick"');
   });
 
   // Spec 163: an archived spec is a RECORD. A tick would write, commit
   // and push into `archive/`.
   test("an archived spec is a record — the rows are shown with no control", () => {
-    const html = page(withChecks([check()], { archived: true }), "checks");
+    const html = page(withChecks([check()], { archived: true }), "status");
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(section(html)).not.toContain("<form");
     expect(section(html)).not.toContain("<button");
@@ -226,7 +218,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
       withChecks([
         check({ line: '| <img src=x onerror="alert(1)"> | ⬜ | |', task: '<img src=x onerror="alert(1)">' }),
       ]),
-      "checks",
+      "status",
     );
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img");
@@ -236,7 +228,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // which is not a mismatch — the same convention the description's own
   // field keeps.
   test("a status file with no commit yet draws the boxes all the same", () => {
-    const html = page(view({ checks: { rows: [check()], phase: PHASE } }), "checks");
+    const html = page(view({ checks: { rows: [check()], phase: PHASE } }), "status");
     expect(html).toContain('name="tick"');
     expect(html).not.toContain("undefined");
   });
@@ -259,7 +251,7 @@ describe("the run's own note on an acceptance row", () => {
   // block's own CSS inline, so `.checknote` appears in the stylesheet
   // whether or not a single row draws one.
   const render = (rows: SpecCheckView[]): string => {
-    const html = page(view({ checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" } }), "checks");
+    const html = page(view({ checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" } }), "status");
     return html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
   };
 
@@ -294,7 +286,7 @@ describe("the run's own note on an acceptance row", () => {
 // nothing holds the spec back either.
 describe("an Acceptance table written in a shape this page cannot read", () => {
   const render = (unreadable: boolean): string =>
-    page(view({ checks: { rows: [], phase: "Acceptance criteria", baseSha: "b7c40e2", unreadable } }), "checks");
+    page(view({ checks: { rows: [], phase: "Acceptance criteria", baseSha: "b7c40e2", unreadable } }), "status");
 
   test("it says the table cannot be read, and what to do about it", () => {
     const html = render(true);
@@ -303,9 +295,120 @@ describe("an Acceptance table written in a shape this page cannot read", () => {
     expect(html).not.toContain("No acceptance criteria to tick");
   });
 
-  test("a spec that genuinely has none still says so plainly", () => {
+  test("a spec that genuinely has none draws no warning (AC-8)", () => {
     const html = render(false);
-    expect(html).toContain("No acceptance criteria to tick");
     expect(html).not.toContain("cannot read");
+  });
+
+  test("a spec whose acceptance ticking is switched off gets no warning either (AC-8)", () => {
+    const html = page(
+      view({
+        acceptanceNotRequired: true,
+        checks: { rows: [], phase: "Acceptance criteria", baseSha: "b7c40e2", unreadable: true },
+      }),
+      "status",
+    );
+    expect(html).not.toContain("cannot read");
+    expect(html).toContain("Phase 1: RED");
+  });
+});
+
+// --- spec 499: the criteria live on the Status tab, above the rendered file --
+
+describe("the Status tab draws the criteria, then the rest of the file (AC-1, AC-3, AC-5)", () => {
+  const PHASE = "Acceptance criteria";
+  const ROWS = [
+    "| AC-1: The total keeps counting | ⬜ | delivered for one case |",
+    "| AC-2: The total is saved | ✅ | |",
+  ];
+  const STATUS = [
+    "# X - Status",
+    "",
+    "## Tracking info",
+    "",
+    "- **Task:** `x/`",
+    "",
+    "## Phase 1: RED",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| write the test | ✅ | |",
+    "",
+    "## Acceptance criteria",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    ...ROWS,
+    "",
+    "## Notation",
+    "",
+    "- Not started",
+    "",
+  ].join("\n");
+  const rows = (): SpecCheckView[] =>
+    ROWS.map((line) => ({
+      phase: PHASE, line, task: line.split("|")[1]!.trim(), done: line.includes("✅"),
+      note: line.split("|")[3]!.trim(),
+    }));
+  const withStatus = (extra: Partial<SpecPageView> = {}) =>
+    view({
+      files: [file("4-status.md", STATUS)],
+      checks: { rows: rows(), phase: PHASE, baseSha: "b7c40e2" },
+      ...extra,
+    });
+  const raw = (html: string): string => html.match(/<pre class="specfile spec-editor-raw">([\s\S]*?)<\/pre>/)?.[1] ?? "";
+
+  test("one form with a box per criterion, its note, and Save and Cancel in the block's head (AC-1)", () => {
+    const html = page(withStatus(), "status");
+    expect(html.match(/<form class="specform"/g)?.length).toBe(1);
+    expect(html.match(/name="tick"/g)?.length).toBe(2);
+    expect(html).toMatch(/name="tick" value="[^"]*AC-2[^"]*" checked/);
+    expect(html).not.toMatch(/name="tick" value="[^"]*AC-1[^"]*" checked/);
+    expect(html).toContain('<span class="checknote">delivered for one case</span>');
+    const head = html.match(/<div class="panelhead"><p class="checkshead">[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(head).toContain("Save");
+    expect(head).toContain("Cancel");
+  });
+
+  test("each criterion appears once: the rendered file has no Acceptance section, and the block sits above it (AC-1)", () => {
+    const html = page(withStatus(), "status");
+    expect(raw(html)).not.toContain("## Acceptance criteria");
+    expect(raw(html)).not.toContain("AC-1");
+    expect(html.indexOf('<section class="checks">')).toBeGreaterThan(html.indexOf("<h2>4-status.md"));
+    expect(html.indexOf('<section class="checks">')).toBeLessThan(html.indexOf('id="spec-editor-host"'));
+  });
+
+  test("every other line of the file is shown, in order, unchanged (AC-3)", () => {
+    const html = page(withStatus(), "status");
+    expect(raw(html)).toBe(
+      STATUS.split("\n").filter((_l, i, a) => {
+        const from = a.indexOf("## Acceptance criteria");
+        const to = a.indexOf("## Notation");
+        return i < from || i >= to;
+      }).join("\n").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+    );
+  });
+
+  test("an archived spec shows mark, note and no form or box (AC-5)", () => {
+    const html = page(withStatus({ archived: true }), "status");
+    expect(html).toContain("✅");
+    expect(html).toContain("☐");
+    expect(html).toContain("delivered for one case");
+    expect(html).not.toContain('name="tick"');
+    expect(html).not.toContain('<form class="specform"');
+    expect(raw(html)).not.toContain("AC-1");
+  });
+
+  test("a spec with a running job shows the criteria without boxes (AC-5)", () => {
+    const html = page(withStatus({ lead: lead({ state: "running" }) }), "status");
+    expect(html).toContain("delivered for one case");
+    expect(html).not.toContain('name="tick"');
+  });
+
+  test("an old ?tab=checks draws the Status tab with the form (AC-4)", () => {
+    const html = page(withStatus(), "checks");
+    expect(html).toContain('name="tick"');
+    expect(html).toMatch(/aria-current="page"[^>]*>Status/);
+    expect(html).not.toContain("?tab=checks");
   });
 });

@@ -221,8 +221,10 @@ the commands. When the landing is about to run exactly those commands on exactly
 was on main merged in, and main has not moved since), it runs nothing, and the gate log says so
 (`src/serve/land-branch/seen-green.ts`). Another tree — main moved — or other commands, and it runs as above.
 
-This is the one place the suite runs for a change on its way to main. `implement`'s own run during the step is the
-model's TDD loop, not the gate; `aide-archive-spec` checks the user's boxes and moves the folder, and runs no tests.
+This is the one place the suite runs for a change on its way to main after implement. The `archive` step runs none of
+its own, whether or not its pull merged main in: the runner leaves it out, and a session resolving a conflict runs
+only the tests covering the files it touched. `aide-archive-spec` checks the user's boxes and moves the folder, and runs
+no tests.
 A code root only: the specs root has nothing to run.
 
 ## A root that is no longer on disk

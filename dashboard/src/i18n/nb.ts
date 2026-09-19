@@ -65,7 +65,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",
   "list.checksUnreadable": "Akseptansekriteriene kunne ikke leses her.",
-  "list.checksOpenTab": "Åpne Sjekker-fanen",
+  "list.checksOpenTab": "Åpne Status-fanen",
   "list.cancel": "Avbryt",
   "list.cancelling": "avbryter…",
   "list.cancelConfirmTitle": "Avbryt {step}?",

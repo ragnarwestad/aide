@@ -218,7 +218,7 @@ describe("a queued job gates a save on the newly-editable tabs too (REQ-6)", () 
 // `4-status.md` is a record, not a document to write: the tracking block
 // is the run's own stamp and the phase tables are its log of what it
 // did. The one thing in it a person decides — the acceptance checks —
-// is the Checks tab's, which now takes a check back off as well as
+// is the Status tab's, which now takes a check back off as well as
 // putting one on, so a hand edit is no longer the only way to undo one.
 describe("4-status.md is refused by the save route", () => {
   test("nothing is written, and the refusal says where the checks live", async () => {
@@ -229,7 +229,7 @@ describe("4-status.md is refused by the save route", () => {
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
     expect(location.startsWith(STATUS_TAB)).toBe(true);
-    expect(location).toContain("Checks tab");
+    expect(location).toContain("Status tab");
     expect(readFileSync(specFilePath(dir, "4-status.md"), "utf-8")).toBe(before);
   });
 });

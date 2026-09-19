@@ -63,3 +63,22 @@ describe('the state inside "last re-run {state}" (AC-2)', () => {
     expect(w.qualifier).toBe("last re-run cancelled");
   });
 });
+
+// 498 (2026-09-19): archive's own commit is on its branch, so the
+// history says the phase ran — but the merge was refused on red tests
+// and nothing reached main. "Done" beside the row's "stopped" said two
+// things at once.
+describe("a phase whose merge was refused", () => {
+  test("reads the attempt's own state, not Done", () => {
+    const refused = { state: "stopped", stopReason: "tests-red", errorReason: "tests-red" } as unknown as QueueRowView;
+    const w = wordPhase(true, undefined, refused, {}, "en");
+    expect(w.badge?.label).not.toBe("Done");
+    expect(w.badge?.label).toBe("Stopped — tests red");
+    expect(w.pip).not.toBe("past");
+  });
+
+  test("a cancelled re-run still leaves the earlier run's Done", () => {
+    const cancelled = { state: "cancelled" } as unknown as QueueRowView;
+    expect(wordPhase(true, undefined, cancelled, {}, "en").badge?.label).toBe("Done");
+  });
+});

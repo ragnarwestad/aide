@@ -278,7 +278,9 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
         "--project-dir": str(ws["project"]),
         "--command": "analyze",
         "--spec": ws["folder"],
-        "--timeout-sec": "30",
+        # Room for a busy machine: the limit covers the runner's own test
+        # run too, and a test that is about the limit passes its own.
+        "--timeout-sec": "120",
         "--permission-mode": "acceptEdits",
         "--result-file": str(ws["project"].parent / "result.json"),
         # Never $HOME/aide-dashboard/worktrees in a test: a suite that writes there

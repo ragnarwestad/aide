@@ -65,7 +65,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.checksSave": "Enregistrer",
   "list.checksSaving": "enregistrement…",
   "list.checksUnreadable": "Les critères d'acceptation n'ont pas pu être lus ici.",
-  "list.checksOpenTab": "Ouvrir l'onglet Checks",
+  "list.checksOpenTab": "Ouvrir l'onglet Status",
   "list.cancel": "Annuler",
   "list.cancelling": "annulation…",
   "list.cancelConfirmTitle": "Annuler {step} ?",

@@ -93,6 +93,14 @@ const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
  *  same badge as the first branch's real thing — the precise ambiguity
  *  this exists to remove. That one state goes in the qualifier instead;
  *  no other state's label collides with a file-truth badge. */
+/** The attempt ended because its merge was refused, not because the
+ *  step itself failed. */
+const landingRefused = (attempt: QueueRowView): boolean =>
+  attempt.stopReason === "tests-red" ||
+  attempt.errorReason === "tests-red" ||
+  attempt.errorReason === "conflict" ||
+  attempt.errorReason === "unlanded";
+
 function decidePhase(
   happened: boolean,
   heldBack: { reason: string } | undefined,
@@ -168,6 +176,18 @@ function decidePhase(
             : capitalizeFirst(stateLabel(attempt!, lang)),
       },
       qualifier: filesDisagree,
+    };
+  }
+  // The history says the phase ran, but its own merge was refused — red
+  // tests, a conflict, a branch that never landed: nothing of it reached
+  // the default branch, and "Done" beside the row's "stopped" said two
+  // things at once (498, 2026-09-19). A re-run that was merely cancelled
+  // is not this: the earlier run's work stands, and the line says done.
+  if (happened && attempt && !running && attempt.state !== "done" && landingRefused(attempt)) {
+    return {
+      pip: "todo",
+      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateLabel(attempt, lang)) },
+      qualifier: attemptQualifier(attempt, lang),
     };
   }
   if (happened) {
