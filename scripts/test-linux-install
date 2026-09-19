@@ -101,18 +101,11 @@ check "aide-run-spec starts (dry run)" bash -i -c "aide-run-spec --project-dir ~
   --command create --spec new --title Hi --description x --timeout-sec 60 \
   --permission-mode acceptEdits --result-file /tmp/dry.json --push branch --pull --dry-run \
   && jq -e .ok /tmp/dry.json"
-# The same arguments the installed service is started with, less launchd.
-state=~/.aide/dashboard
-mkdir -p "$state"
-cd ~/aide/dashboard
-bash -i -c "bun install --silent && bun run src/main.ts generate --out $state/site" > ~/dashboard.log 2>&1
-(bash -i -c "exec bun run src/serve/serve.ts serve --site $state/site --port 8788 \
-  --mirror $state/aide-runs.json --queue-mirror $state/aide-queue.json \
-  --result-dir $state/jobs --queue-config $state/queue-config.json \
-  --runner-bin $HOME/.local/bin/aide-run-spec --queue-projects scratch \
-  --root $HOME/projects --bind 127.0.0.1" >> ~/dashboard.log 2>&1 &)
+# The way a Linux user runs it: dashboard/serve.sh, from a new terminal.
+check "install.sh points to serve.sh" bash -c '~/aide/dashboard/install.sh 2>&1 | grep -q dashboard/serve.sh'
+(bash -i -c "exec ~/aide/dashboard/serve.sh ROOT=$HOME/projects QUEUE_PROJECTS=scratch" > ~/dashboard.log 2>&1 &)
 api() { curl -sf "http://127.0.0.1:8788$1" "${@:2}"; }
-for _ in $(seq 1 60); do api /api/queue >/dev/null && break; sleep 1; done
+for _ in $(seq 1 120); do api /api/queue >/dev/null && break; sleep 1; done
 check "the dashboard answers" api /
 check "the queue answers" api /api/queue
 
