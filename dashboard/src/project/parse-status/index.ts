@@ -360,7 +360,7 @@ function phaseSections(lines: string[]): { heading: string; from: number; to: nu
  *  first cell (`core/rules/spec-structure.md`) — and a run that writes
  *  another one, `| REQ | Criterion | Accepted |` among them, puts the
  *  criterion where the MARK belongs. `tableCells` then rejects every
- *  row, the Checks tab draws an empty list, and the archive gate reads
+ *  row, the Status tab draws an empty list, and the archive gate reads
  *  "nothing open" from a spec nobody has judged. Silence is the whole
  *  problem, so the difference is answered here rather than left to look
  *  like a spec that simply has no criteria. */
@@ -369,6 +369,19 @@ export function acceptanceSectionUnreadable(content: string): boolean {
   const section = phaseSections(lines).find((s) => /^acceptance\b/i.test(s.heading));
   if (!section) return false;
   return dataRowIndices(lines, section).length === 0;
+}
+
+/** The file without its Acceptance section(s): heading line through the
+ *  line before the next `## ` heading — the range `parseStatusChecks`
+ *  reads rows from. */
+export function withoutAcceptanceSections(content: string): string {
+  const lines = content.split("\n");
+  const drop = new Set<number>();
+  for (const s of phaseSections(lines)) {
+    if (!/^acceptance\b/i.test(s.heading)) continue;
+    for (let i = s.from - 1; i < s.to; i++) drop.add(i); // from - 1 is the heading
+  }
+  return lines.filter((_, i) => !drop.has(i)).join("\n");
 }
 
 /** Every Tasks-table row of every phase section, in file order — done

@@ -79,7 +79,7 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
     // The disk copy is behind: this row sits only on the branch until
     // archive lands it (spec 298).
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
-    const html = await (await fetch(`${base}${PATH}?tab=checks`)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(html, "write branch-only test")).toBe(true);
     expect(html).not.toContain("write disk-only test");
   });
@@ -89,7 +89,7 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
       gitRun: branchReadingGitRun({ open: false }),
     });
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
-    const html = await (await fetch(`${base}${PATH}?tab=checks`)).text();
+    const html = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(html, "write disk-only test")).toBe(true);
   });
 
@@ -106,7 +106,7 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
     const description = await fetch(`${base}${PATH}?tab=description`);
     expect(description.status).toBe(200);
-    const checks = await (await fetch(`${base}${PATH}?tab=checks`)).text();
+    const checks = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(checks, "write branch-only test")).toBe(true);
     expect(checks).not.toContain("write disk-only test");
   });

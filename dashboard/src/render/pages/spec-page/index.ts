@@ -18,9 +18,8 @@
 // ONE TAB EACH since spec 212, where they used to be stacked in full on
 // Overview: for a spec of any size that was thousands of lines of
 // preformatted text before the reader reached whatever they came for.
-// The renamed Checks tab (spec 294) carries no file text either — just
-// the checks that are still holding the spec back, as real boxes with a
-// Save of their own. Update, the title, whether the spec is archived,
+// The Status tab draws the acceptance criteria as real boxes with a
+// Save of their own, above its file. Update, the title, whether the spec is archived,
 // what it depends on and whether it requires acceptance ticking (spec
 // 394) are the banner's, visible on every tab rather than one.
 //
@@ -42,7 +41,7 @@
 // Split by theme into spec-page/ (split spec-page.ts by theme):
 // types.ts (the view types), tabs.ts (paths, tabs, file/phase maps),
 // overview.ts (the banner's own facts — archived read-only, the
-// depends-on/acceptance tracking control editable — the Checks tab,
+// depends-on/acceptance tracking control editable — the checklist,
 // Reopen/Reset), panels.ts (the document tabs), reset-page.ts (the
 // reset confirmation page). `renderSpecPage` itself — the one function
 // that assembles all of them — stays here.
@@ -55,7 +54,7 @@ import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
 import {
-  actionsHelp, archivedLine, testServerStatus, checklist, closedLine, closeControl, pdfControl,
+  actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl, resetControl, trackingControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
@@ -152,12 +151,7 @@ export function renderSpecPage(
         })
       : tab === "description"
         ? descriptionPanel(view, now, opts.lang ?? "en", mark)
-        : TAB_FILES[tab]
-          ? documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark)
-          // Checks: no file text at all, and no facts of its own — those
-          // (archived, depends-on) moved into the banner, visible on
-          // every tab, when this tab lost its old "Overview" name.
-          : checklist(view, opts.lang ?? "en", mark);
+        : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
   // Where the spec stands, on the line that names it: the four pips the
   // specs list already draws, and — while a phase is running — what it

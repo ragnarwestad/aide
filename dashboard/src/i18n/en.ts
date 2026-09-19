@@ -66,7 +66,7 @@ export const en = {
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",
   "list.checksUnreadable": "The acceptance criteria could not be read here.",
-  "list.checksOpenTab": "Open the Checks tab",
+  "list.checksOpenTab": "Open the Status tab",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",

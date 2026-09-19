@@ -130,7 +130,7 @@ def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project,
     add_spec(specs, "81-x", body)
     write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
-    assert "Checks tab" in out["note"], out
+    assert "Status tab" in out["note"], out
     assert "Overview tab" not in out["note"], out
 
 

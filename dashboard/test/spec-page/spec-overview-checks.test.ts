@@ -43,7 +43,10 @@ describe("the checks on the Overview tab", () => {
   // --- criterion 1: which checks Overview offers as boxes -------------------
 
   describe("GET the Overview tab", () => {
-    const overview = (base: string) => fetch(`${base}${PAGE}?tab=checks`).then((r) => r.text());
+    const overview = (base: string) => fetch(`${base}${PAGE}?tab=status`).then((r) => r.text());
+    // The tick block alone: the Status tab also shows the whole file
+    // (the Phase tables included) read-only below it.
+    const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
 
     // The Phase tables are the implement RUN's own record, not a
     // person's to tick: nothing anywhere gates on them (archive's only
@@ -53,7 +56,8 @@ describe("the checks on the Overview tab", () => {
     // They stay in the file, and the Status tab is where they are read.
     test("a Phase row is not offered as a box at all — only Acceptance criteria are", async () => {
       const { base } = startWithChecks(savable("/host"), STATUS_WITH_OPEN_ACCEPTANCE);
-      const html = await overview(base);
+      const page = await overview(base);
+      const html = block(page);
       expect(html).toContain("REQ-1: something testable");
       expect(html).not.toContain("Re-read the whole diff once");
       // One Save for the one section that is the person's, never one
@@ -61,6 +65,13 @@ describe("the checks on the Overview tab", () => {
       expect(html.match(/name="tick"/g)?.length).toBe(1);
       expect(html.match(/<form[^>]+\/tick"/g)?.length).toBe(1);
       expect(html).toContain(ACCEPTANCE_PHASE);
+    });
+
+    test("an old ?tab=checks link opens the Status tab, tick form and all (AC-4)", async () => {
+      const { base } = startWithChecks(savable("/host"));
+      const html = await fetch(`${base}${PAGE}?tab=checks`).then((r) => r.text());
+      expect(html).toContain('name="tick"');
+      expect(html).not.toContain(`href="${PAGE}?tab=checks"`);
     });
 
     test("the current phase's open rows are boxes in a form of their own", async () => {
@@ -91,7 +102,7 @@ describe("the checks on the Overview tab", () => {
     // A Phase section the workflow has not reached carries the run's own
     // rows, so it is not on this page at all.
     test("an open row in a later phase is not on the page", async () => {
-      const html = await overview(startWithChecks(savable("/host")).base);
+      const html = block(await overview(startWithChecks(savable("/host")).base));
       expect(html).not.toContain("Watch the first real run");
       expect(html.match(/name="tick"/g)!).toHaveLength(3);
     });
@@ -135,7 +146,8 @@ describe("the checks on the Overview tab", () => {
     test("a ## Checklist row is not a box either — it is the run's own record", async () => {
       const html = await overview(startWithChecks(savable("/host"), CHECKLIST_STATUS).base);
       expect(html).not.toContain('name="tick"');
-      expect(html).toContain("No acceptance criteria to tick.");
+      expect(block(html)).toBe("");
+      expect(html).toContain("Checklist");
     });
   });
 
@@ -283,7 +295,7 @@ describe("the checks on the Overview tab", () => {
   test("the tick route lands the reader back on Checks, not the default Description tab", async () => {
     const { base } = startWithChecks(savable("/host"));
     const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain(`${PAGE}?tab=checks`);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain(`${PAGE}?tab=status`);
   });
 
   test("it is a POST like every other writing route here", async () => {

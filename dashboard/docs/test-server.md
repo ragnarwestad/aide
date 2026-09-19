@@ -1,7 +1,7 @@
 # Test server
 
 When a spec's `archive` step is held back because its acceptance criteria still need reviewing —
-someone has to go through the Checks tab and tick each requirement off before it can be
+someone has to go through the Status tab and tick each requirement off before it can be
 archived — the specs list offers that reviewer a link to start a test server: a real, running copy
 of the dashboard, built from that spec's own branch. Reviewing a requirement by reading the diff
 again is one way to check it; opening the actual thing and clicking through it is another, and

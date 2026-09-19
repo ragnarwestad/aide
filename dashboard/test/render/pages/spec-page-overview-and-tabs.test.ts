@@ -8,13 +8,11 @@ import { file, lead, page, view } from "./spec-page-fixtures.ts";
 //
 // Four documents stacked on one tab is thousands of lines of
 // preformatted text before the reader reaches whatever they came for.
-// One tab each, and Checks (Overview until spec 294 renamed it and made
-// Description the front page instead) carries no file text at all.
+// One tab each: the Status tab carries the status file alone.
 
-describe("spec 212: one tab per document, and Checks is none of them", () => {
-  test("no document's text is stacked on the Checks tab", () => {
-    const html = page(view(), "checks");
-    expect(html).not.toContain('class="specfile"');
+describe("spec 212: one tab per document", () => {
+  test("no other document's text is stacked on the Status tab", () => {
+    const html = page(view(), "status");
     expect(html).not.toContain("The dashboard never shows a spec.");
     expect(html).not.toContain("Approach 1.");
   });
@@ -42,9 +40,10 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
   test("every document is offered as a tab of its own", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["checks", "description", "analysis", "solution", "status", "steps"]) {
+    for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
       expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
     }
+    expect(html).not.toContain("?tab=checks");
   });
 
   // Spec 296: the spec folder title sits beside ← Back, on one line,
@@ -66,16 +65,16 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
     expect(html).toContain("<h1>atlasaurus:150-one-page-shows-the-whole-spec</h1>");
   });
 
-  // Spec 295: Checks used to sit right after Solution; it belongs
-  // between Status and Logs (the "steps" tab's own label) instead.
-  test("Checks sits between Status and Logs in the tab row", () => {
+  // There is no Checks tab: the tab row is Description, Analysis,
+  // Solution, Status, Logs (AC-4).
+  test("the tab row has no Checks tab, and Status sits before Logs (AC-4)", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
     const statusIdx = html.indexOf(`href="${base}?tab=status"`);
-    const checksIdx = html.indexOf(`href="${base}?tab=checks"`);
     const stepsIdx = html.indexOf(`href="${base}?tab=steps"`);
-    expect(statusIdx).toBeLessThan(checksIdx);
-    expect(checksIdx).toBeLessThan(stepsIdx);
+    expect(html).not.toContain("?tab=checks");
+    expect(statusIdx).toBeGreaterThan(-1);
+    expect(statusIdx).toBeLessThan(stepsIdx);
   });
 });
 
@@ -204,7 +203,7 @@ describe("spec 212: each document tab shows its own file and no other", () => {
 // runs and neither holds a form.
 
 describe("spec 212: which tabs reload themselves", () => {
-  for (const tab of ["checks", "description", "analysis", "solution", "status"]) {
+  for (const tab of ["description", "analysis", "solution", "status"]) {
     test(`${tab} does not refresh itself under the reader`, () => {
       expect([tab, page(view(), tab).includes('http-equiv="refresh"')]).toEqual([tab, false]);
     });
@@ -240,7 +239,7 @@ describe("a spec with no job at all", () => {
   test("its tabs are offered all the same — an empty tab is still a tab", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["checks", "description", "steps"]) {
+    for (const tab of ["description", "status", "steps"]) {
       expect(html).toContain(`href="${base}?tab=${tab}"`);
     }
   });

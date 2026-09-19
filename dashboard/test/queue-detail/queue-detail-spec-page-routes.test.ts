@@ -239,7 +239,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(id).toBeTruthy();
     const html = await (await fetch(`${base}${PATH}?tab=steps`)).text();
     expect(html).toContain("No step has finished yet");
-    expect(html).toContain(`href="${PATH}?tab=checks"`);
+    expect(html).toContain(`href="${PATH}?tab=status"`);
   });
 
   test("a spec nobody has is a 404, not a blank page", async () => {

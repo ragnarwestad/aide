@@ -190,11 +190,11 @@ export async function specPageRoutes(
     // `4-status.md` is a record, not a document to write: the tracking
     // block is the run's own stamp and the phase tables are its log of
     // what it did. The one thing in it a person decides — the
-    // acceptance checks — is the Checks tab's own route, which can now
-    // both put a check on and take one back off, so nothing is left
+    // acceptance checks — is the tick route's, which can both put a
+    // check on and take one back off, so nothing is left
     // here that a hand edit is the only way to do.
     if (file === STATUS_SPEC_FILE) {
-      const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick on the Checks tab instead`;
+      const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick the acceptance criteria on the Status tab instead`;
       logRefusal("save", `${project}/${specFolder}`, reason);
       return specsRedirect({}, { error: reason }, specTabPath(project!, specFolder!, "status"));
     }

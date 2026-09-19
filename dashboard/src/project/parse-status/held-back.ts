@@ -77,15 +77,17 @@ export function acceptanceRowsOf(content: string): StatusCheck[] {
 /** The one string this reason is always reported as. Shared so
  *  `restingChip()` (job-state/resting.ts) can tell this ordinary,
  *  expected wait apart from the dependency-gated `archiveHeldBack`
- *  case sharing its field — a comparison, not a duplicate literal. */
+ *  case sharing its field — a comparison, not a duplicate literal.
+ *  Its words are never shown: every display goes through
+ *  `heldBackReasonText`, and old spec files carry this exact text. */
 export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
   "the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
 
 /** Whether an acceptance row is still open, read across BOTH copies
  *  that can answer: the open branch's (`FileStepsAnswer.acceptanceOpen`,
- *  where the Checks tab's tick lands) and the disk's own rows.
+ *  where the Status tab's tick lands) and the disk's own rows.
  *
- *  The branch answers for both when it has one: it is where the Checks
+ *  The branch answers for both when it has one: it is where the Status
  *  tab's write lands while a branch is open, so it is the newer of the
  *  two by construction, and the disk copy stays as archive last left it
  *  until this branch lands. Disk answers only when the branch has

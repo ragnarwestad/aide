@@ -158,10 +158,10 @@ describe("the checks on the Overview tab", () => {
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
       extra: { gitRun: savable("/host") },
     });
-    // ?tab=checks, not the bare URL: spec 294 (landed the same day)
+    // ?tab=status, not the bare URL: spec 294 (landed the same day)
     // made Description the default tab and renamed this one from
     // "Overview" to "Checks" — the bare URL no longer serves it.
-    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=checks`)).text();
+    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=status`)).text();
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(html).not.toContain('name="tick"');
   });
@@ -170,7 +170,7 @@ describe("the checks on the Overview tab", () => {
 // `4-status.md` is a record, not a document to write: the tracking block
 // is the run's own stamp and the phase tables are its log of what it
 // did. The one thing in it a person decides is the acceptance checks,
-// and the Checks tab now both puts a check on and takes one back off —
+// and the Status tab now both puts a check on and takes one back off —
 // so nothing is left that a hand edit was the only way to do.
 describe("4-status.md cannot be saved as a document", () => {
   test("a Save of it is refused, and the file is untouched", async () => {
@@ -183,7 +183,7 @@ describe("4-status.md cannot be saved as a document", () => {
     });
     const where = decodeURIComponent(res.headers.get("location")!);
     expect(where).toContain("error=");
-    expect(where).toContain("Checks tab");
+    expect(where).toContain("Status tab");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 });

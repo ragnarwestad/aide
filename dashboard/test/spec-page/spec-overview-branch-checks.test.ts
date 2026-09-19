@@ -16,7 +16,7 @@ import {
   PHASE, EARLIER_PHASE, OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, phaseSection,
   statusPath, tick, BRANCH_FILE_SHA, branchAwareGitRunner,
 } from "./spec-checks-fixtures.ts";
-import { CHECKS_TAB, createSpecSaveHarness } from "./spec-save-fixtures.ts";
+import { STATUS_TAB, createSpecSaveHarness } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -27,12 +27,12 @@ afterEach(() => harness.cleanup());
 // route still answers with something.
 const MAIN_ONLY_STATUS = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
 
-// `CHECKS_TAB`, not the bare page: spec 291 named this helper when the
+// `STATUS_TAB`, not the bare page: spec 291 named this helper when the
 // Checks section lived on the page's default tab, still called
 // "Overview" at the time. Spec 294, landed the same day, renamed that
 // tab to "Checks" and moved the default tab to Description — so the
 // bare URL now serves a different tab entirely.
-const overview = (base: string) => fetch(`${base}${CHECKS_TAB}`).then((r) => r.text());
+const overview = (base: string) => fetch(`${base}${STATUS_TAB}`).then((r) => r.text());
 
 describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)", () => {
   test("an open branch's 4-status.md wins over main's, both rows and the open count", async () => {
@@ -74,7 +74,7 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
 // decides is that the `## Acceptance criteria` rows are the person's
 // and the Phase tables are the implement run's own record.
 describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () => {
-  test("an open Phase row on the branch is not a box, and not on the page", async () => {
+  test("an open Phase row on the branch is not a box, and not in the tick block", async () => {
     const branchStatus = [
       "# Queue - Status",
       "",
@@ -83,9 +83,9 @@ describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () =>
     ].join("\n");
     const { run } = branchAwareGitRunner({ open: true, branchText: branchStatus });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
-    const html = await overview(base);
-    // The Phase section's own open row is the run's record: not drawn
-    // here at all, so no box stands for it.
+    const html = (await overview(base)).match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
+    // The Phase section's own open row is the run's record: not in the
+    // tick block, so no box stands for it.
     expect(html).not.toContain("Manual check at 375px in a real browser");
     // The Acceptance row is the one this page carries — already done
     // here, so a box that is ticked, and the only box on the page.

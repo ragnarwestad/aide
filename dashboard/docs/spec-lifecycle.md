@@ -185,7 +185,7 @@ row stay as they are.
 - **On the specs list**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
   plain press archives, and another round is a choice made by ticking it.
 
-When the user is satisfied, they tick the rows on the spec's Checks tab and press Archive.
+When the user is satisfied, they tick the rows on the spec's Status tab and press Archive.
 
 ## Going backwards: reopen and reset
 

@@ -12,13 +12,22 @@ describe("the acceptance-criteria hold-back reads in the reader's language", () 
   test("the row's notice, in Norwegian, has no English in it", () => {
     const notice = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], "nb");
     expect(notice?.text).toBe(
-      "Arkiver holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Sjekker-fanen",
+      "Arkiver holdt tilbake: ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Status-fanen",
     );
   });
 
   test("in English it is the catalogue's sentence, not the raw marker", () => {
     const notice = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], "en");
-    expect(notice?.text).toBe("Archive held back: the Acceptance criteria are not all ticked — tick them on the Checks tab");
+    expect(notice?.text).toBe("Archive held back: the Acceptance criteria are not all ticked — tick them on the Status tab");
+  });
+
+  test("every language names the Status tab, and none the Checks tab (AC-14)", () => {
+    const named = { en: "Status tab", nb: "Status-fanen", de: "Tab Status", es: "pestaña Status", fr: "onglet Status" } as const;
+    for (const [lang, word] of Object.entries(named)) {
+      const text = specNotice(undefined, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, undefined, undefined, [], lang as "en")?.text ?? "";
+      expect([lang, text.includes(word)]).toEqual([lang, true]);
+      expect([lang, /Checks|Sjekker/.test(text)]).toEqual([lang, false]);
+    }
   });
 
   test("a reason an archive run wrote is shown as written", () => {

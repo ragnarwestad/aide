@@ -159,24 +159,15 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     );
   });
 
-  test("Status' (?) names the file, /aide-implement, and points at the Checks tab (REQ-3)", () => {
+  test("Status' (?) names the file, ticking, and that only the Acceptance rows hold the archive back (AC-1)", () => {
     const html = page(view(), "status");
+    expect(html).toContain("Progress through the plan, kept in <code>4-status.md</code>");
     expect(html).toContain(
-      "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
-        "<code>/aide-implement</code> as it runs. While the spec is active and no job is " +
-        "running, Save here rewrites, commits and pushes it; an archived spec, or one with a " +
-        "job in flight, shows the same file read-only. The same file's Acceptance criteria " +
-        "rows are what the Checks tab lets a person tick.",
-    );
-  });
-
-  test("Checks' (?) states the Acceptance-only gate and names the Phase tables as the implement run's own record (REQ-5)", () => {
-    const html = page(view(), "checks");
-    expect(html).toContain(
-      "only the <code>## Acceptance criteria</code> rows below can be " +
-        "ticked, and only they hold the next archive run back",
+      "the <code>## Acceptance criteria</code> rows at the top can be ticked, " +
+        "and Save commits and pushes the ticks; only those rows hold the next archive run back",
     );
     expect(html).toContain("are <code>/aide-implement</code>'s own record of that run");
+    expect(html).not.toContain("Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only. The same file");
   });
 
   test("Logs' (?) says what the table lists and that nothing on it is editable (REQ-3)", () => {
@@ -206,19 +197,14 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
       }
     }
 
-    // REQ-2: Checks, both states.
-    const emptyChecksP =
-      tabpanel(page(view({ checks: { rows: [] } }), "checks")).match(
-        /<p class="muted">No acceptance criteria to tick\.[\s\S]*?<\/p>/,
-      )?.[0] ?? "";
-    expect(emptyChecksP).toContain(MARK);
-
+    // The Status tab's one mark is the file heading's; the checks block
+    // under it draws none of its own.
     const rows = [{ phase: "Acceptance criteria", line: "| x | ⬜ | |", task: "x", done: false }];
-    const checksHeadP =
-      tabpanel(page(view({ checks: { rows, phase: "Acceptance criteria", baseSha: "abc" } }), "checks")).match(
-        /<p class="checkshead">[\s\S]*?<\/p>/,
-      )?.[0] ?? "";
-    expect(checksHeadP).toContain(MARK);
+    const statusWithRows = tabpanel(
+      page(view({ checks: { rows, phase: "Acceptance criteria", baseSha: "abc" } }), "status"),
+    );
+    expect(statusWithRows.match(/<p class="checkshead">[\s\S]*?<\/p>/)?.[0] ?? "").not.toContain(MARK);
+    expect(statusWithRows.split(MARK).length - 1).toBe(1);
 
     // REQ-2: Logs, both states.
     const emptyLogsP =
@@ -237,7 +223,7 @@ describe("spec 311: every tab carries its own (?) explaining what it shows", () 
     expect(logsThead.indexOf(MARK)).toBeLessThan(logsThead.indexOf("</th></tr>"));
 
     // REQ-3, REQ-7: never `.tabpanel`'s own leading sibling.
-    for (const tab of ["description", "analysis", "solution", "status", "checks", "steps"]) {
+    for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
       const html = page(view(), tab);
       const panelStart = html.indexOf('<div class="tabpanel">') + '<div class="tabpanel">'.length;
       expect([tab, html.startsWith(MARK, panelStart)]).toEqual([tab, false]);
@@ -323,7 +309,7 @@ describe("the Save form and the Checks tick form ask for the covering layer, loc
 
   test("the Checks tab's tick form carries data-overlay=\"saving…\"", () => {
     const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
-    const html = page(v, "checks");
+    const html = page(v, "status");
     const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="saving…"');
   });
@@ -336,7 +322,7 @@ describe("the Save form and the Checks tick form ask for the covering layer, loc
 
   test("in Norwegian (nb), the Checks tab's tick form carries the Norwegian text", () => {
     const v = view({ checks: { rows: [tickableCheck], phase: "Acceptance criteria", baseSha: "abc" } });
-    const html = page(v, "checks", "nb");
+    const html = page(v, "status", "nb");
     const form = html.match(/<form class="specform"[^>]*>/)?.[0] ?? "";
     expect(form).toContain('data-overlay="lagrer…"');
   });

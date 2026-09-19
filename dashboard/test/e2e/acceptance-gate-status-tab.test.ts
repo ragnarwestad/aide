@@ -2,7 +2,7 @@
 // "held back until every Acceptance row is ticked" asserts on rendered
 // HTML in isolation — never on a page a person could click. This file
 // opens a real browser, reads the row's own message off the specs list,
-// ticks the row on the Checks tab through a real checkbox and a real
+// ticks the row on the Status tab through a real checkbox and a real
 // form submit, and presses the row's real Run/Archive control to prove
 // the hold is actually gone — the other half of the proof
 // `dashboard/test/round`'s sixth fixture gives on the machine side.
@@ -92,7 +92,7 @@ beforeAll(async () => {
   await waitUntil(
     async () => {
       const res = await fetch(`${base}/?live=0`);
-      return (await res.text()).includes("tick them on the Checks tab");
+      return (await res.text()).includes("tick them on the Status tab");
     },
     10_000,
     "the specs list to carry the acceptance hold-back message",
@@ -102,14 +102,31 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
-  test("REQ-4: the specs list names the Checks tab", async () => {
+  test("REQ-4: the specs list names the Status tab", async () => {
     await withTimeout(page.goto(`${base}/?live=0`), 10_000, "page.goto(/)");
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
-    expect(await notice.textContent()).toContain("tick them on the Checks tab");
+    expect(await notice.textContent()).toContain("tick them on the Status tab");
+  });
+
+  test("AC-17: the rendered file sits below the criteria block, Save and Cancel enable on a change, nothing scrolls sideways (AC-17)", async () => {
+    await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), 10_000, "page.goto(status)");
+    await page.waitForSelector("#spec-editor-host[data-mounted]", { timeout: 10_000 });
+    const block = await page.locator("section.checks").boundingBox();
+    const file = await page.locator("#spec-editor-host").boundingBox();
+    expect(block).not.toBeNull();
+    expect(file).not.toBeNull();
+    expect(file!.y).toBeGreaterThanOrEqual(block!.y + block!.height);
+    const save = page.locator("section.checks form.specform button[type=\"submit\"]");
+    expect(await save.isDisabled()).toBe(true);
+    await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
+    expect(await save.isDisabled()).toBe(false);
+    await page.setViewportSize({ width: 375, height: 800 });
+    const wide = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(wide).toBe(false);
   });
 
   test("REQ-5: ticking the row clears the message and archive becomes possible", async () => {
-    await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=checks&live=0`), 10_000, "page.goto(checks)");
+    await withTimeout(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), 10_000, "page.goto(status)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
     await Promise.all([
       page.waitForEvent("load"),
@@ -131,7 +148,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     const noticeCount = await notice.count();
     const noticeText = noticeCount > 0 ? await notice.textContent() : "";
-    expect(noticeText).not.toContain("tick them on the Checks tab");
+    expect(noticeText).not.toContain("tick them on the Status tab");
 
     // "archive becomes possible" (REQ-5): press the row's real
     // Run/Archive control and confirm the resulting queued job is NOT

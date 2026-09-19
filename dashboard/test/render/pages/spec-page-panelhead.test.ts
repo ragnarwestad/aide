@@ -29,7 +29,7 @@ const panelhead = (html: string): string => html.match(/<div class="panelhead">[
 
 describe("spec 391: Save/Cancel sit beside the tab's own mark, not below the field (REQ-1, REQ-9, REQ-11)", () => {
   test("Checks: .panelhead is the form's first child, holds the mark and the Save/Cancel pair, ahead of the list", () => {
-    const html = page(withChecks(), "checks");
+    const html = page(withChecks(), "status");
     const form = html.match(/<form class="specform"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).not.toBe("");
     // The panelhead div is the first thing after the hidden fields —
@@ -64,7 +64,7 @@ describe("spec 391: Save/Cancel sit beside the tab's own mark, not below the fie
 
 describe("spec 391: Cancel sits right after Save, disabled by default; Save carries none (REQ-3, REQ-7, REQ-10)", () => {
   const cases = [
-    ["checks", () => page(withChecks(), "checks")],
+    ["status", () => page(withChecks(), "status")],
     ...DOC_TABS.map((tab) => [tab, () => page(view(), tab)] as const),
   ] as const;
 

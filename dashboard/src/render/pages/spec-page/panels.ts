@@ -1,10 +1,13 @@
 // The document tabs: Description, plus (spec 310) Analysis, Solution and
-// Status — all four with the same editor, Save and JS-off fallback.
+// Status. The first three share the editor, Save and JS-off fallback;
+// Status is read-only under its acceptance-criteria form.
 
 import { field, saveCancelActions } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { fileStamp, specFilePanel, type SpecFileView } from "../job-page";
 import { t, type Language } from "../../../i18n";
+import { withoutAcceptanceSections } from "../../../project/parse-status";
+import { checklist, drawnAcceptanceRows } from "./overview.ts";
 import { activeJob, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
@@ -13,13 +16,33 @@ import type { SpecPageView } from "./types.ts";
  *  writable tab carries, so the client script renders it read-only
  *  rather than raw markup. */
 function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
+  return `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` + viewerPair(file.text ?? "");
+}
+
+/** Read-only counterpart of editableDocumentForm's mount/textarea
+ *  pair — same fallback CSS (field.css), same JS-off/build-failure
+ *  fallback (REQ-6), just no `<form>` around it. */
+function viewerPair(text: string): string {
+  return (
+    `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
+    `<pre class="specfile spec-editor-raw">${esc(text)}</pre>`
+  );
+}
+
+/** The Status tab: the file's heading, the acceptance criteria as the
+ *  tick form, then the file rendered read-only. The file is cut only
+ *  when the checklist draws the rows, so an unreadable table (warning
+ *  plus the whole file), a section with only a sentence and a file with
+ *  no section all show the file whole. */
+function statusPanel(
+  view: SpecPageView, file: SpecFileView, now: number, lang: Language, mark: string,
+): string {
+  const text = file.text ?? "";
+  const drawn = drawnAcceptanceRows(view).length > 0;
   return (
     `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
-    // Read-only counterpart of editableDocumentForm's mount/textarea
-    // pair — same fallback CSS (field.css), same JS-off/build-failure
-    // fallback (REQ-6), just no `<form>` around it.
-    `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
-    `<pre class="specfile spec-editor-raw">${esc(file.text ?? "")}</pre>`
+    checklist(view, lang) +
+    viewerPair(drawn ? withoutAcceptanceSections(text) : text)
   );
 }
 
@@ -92,8 +115,8 @@ export function documentPanel(
   // block is the run's own stamp and the phase tables are its log of
   // what it did, so an edit here rewrites what happened. The one thing
   // in the file that is a person's to decide — the acceptance checks —
-  // is the Checks tab's, which puts a check on and takes one back off.
-  if (label === STATUS_SPEC_FILE) return readOnlyDocument(file, now, mark);
+  // is drawn above it as a form that puts a check on and takes one back off.
+  if (label === STATUS_SPEC_FILE) return statusPanel(view, file, now, lang, mark);
   if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
   return editableDocumentForm(view, label, heading, file.text, lang);

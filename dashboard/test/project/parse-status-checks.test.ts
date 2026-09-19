@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine } from "../../src/project/parse-status";
+import { acceptanceSectionUnreadable, parseStatusChecks, tickStatusLine, withoutAcceptanceSections } from "../../src/project/parse-status";
 
 // --- spec 182: the rows a person can tick off from the page -----------------
 //
@@ -354,5 +354,39 @@ describe("acceptanceSectionUnreadable", () => {
   test("an Acceptance section with a sentence instead of a table reads as nothing", () => {
     const text = "# X - Status\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n";
     expect(acceptanceSectionUnreadable(text)).toBe(true);
+  });
+});
+
+describe("withoutAcceptanceSections (AC-1, AC-3)", () => {
+  const acc = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| AC-1: a | ⬜ | |", ""];
+
+  test("cuts the section in the middle and keeps every other line in order (AC-3)", () => {
+    const text = ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", ...acc, "## Notation", "", "- x", ""].join("\n");
+    expect(withoutAcceptanceSections(text)).toBe(
+      ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", "## Notation", "", "- x", ""].join("\n"),
+    );
+  });
+
+  test("cuts a section that is last in the file (AC-1)", () => {
+    const text = ["# X - Status", "", "## Phase 1: RED", "", ...acc].join("\n");
+    const out = withoutAcceptanceSections(text);
+    expect(out).not.toContain("Acceptance");
+    expect(out).not.toContain("AC-1");
+    expect(out).toContain("## Phase 1: RED");
+  });
+
+  test("cuts two sections (AC-1)", () => {
+    const text = [...acc, "## Notation", "", ...acc].join("\n");
+    expect(withoutAcceptanceSections(text)).toBe(["## Notation", ""].join("\n"));
+  });
+
+  test("a file with no Acceptance section is returned unchanged (AC-3)", () => {
+    const text = "# X - Status\n\n## Phase 1: RED\n\n| a | ⬜ | |\n";
+    expect(withoutAcceptanceSections(text)).toBe(text);
+  });
+
+  test("a heading with nothing under it is cut to the next heading (AC-1)", () => {
+    const text = "# X\n\n## Acceptance criteria\n## Notation\n- x\n";
+    expect(withoutAcceptanceSections(text)).toBe("# X\n\n## Notation\n- x\n");
   });
 });
