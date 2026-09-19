@@ -27,11 +27,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { specWriteInFlight } from "../../src/serve/routes/spec-edit";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
+import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE,
   CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, phaseSection,
-  heldBack, statusPath, startWithChecks as start, tick, save, recording,
+  heldBack, statusPath, startWithChecks as start, tick, save, recording, NV_ROW, NV_STATUS,
   ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW,
 } from "./spec-checks-fixtures.ts";
 
@@ -378,5 +378,63 @@ describe("the checks on the Overview tab", () => {
     const res = await save(base, { text: NEW_TEXT });
     expect(res.status).toBe(303);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(status);
+  });
+});
+
+// --- spec 509: the second box, and a spec whose only open rows are Not verified ---
+
+describe("the Not verified box on the Status tab (spec 509)", () => {
+  const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then((r) => r.text());
+  const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const withNv = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
+
+  test("each row carries a tick box and a Not verified box; the flagged row has only the second checked (AC-1)", async () => {
+    const html = block(await statusTab(startWithChecks(savable("/host"), withNv).base));
+    expect(html.match(/name="tick"/g)).toHaveLength(3);
+    expect(html.match(/name="unverified"/g)).toHaveLength(3);
+    expect(html).toContain(`name="unverified" value="${NV_ROW}" checked>`);
+    expect(html).not.toContain(`name="tick" value="${NV_ROW}" checked>`);
+    expect(html).toContain(`name="tick" value="${DONE_ROW}" checked>`);
+    expect(html).not.toContain(`name="unverified" value="${DONE_ROW}" checked>`);
+    expect(html).not.toContain(`name="unverified" value="${OPEN_ROW}" checked>`);
+    expect(html).toContain('class="check notverified"');
+  });
+
+  test("a spec whose only non-done rows are Not verified still gets its base sha, and a post built from the page is accepted (AC-1)", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
+    const html = await statusTab(base);
+    expect(html).toContain(`name="statusBaseSha" value="${FILE_SHA}"`);
+    expect(block(html)).toContain("1 not verified");
+    expect(block(html)).not.toContain("all done");
+    const sha = html.match(/name="statusBaseSha" value="([^"]*)"/)![1]!;
+    const res = await tick(base, { ticks: [DONE_ROW, NV_ROW], statusBaseSha: sha });
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+  });
+
+  test("an archived spec draws the tick box alone on its Not verified row, and nothing on the rest (AC-5)", async () => {
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: NV_STATUS } },
+      extra: { gitRun: savable("/host") },
+    });
+    const html = await statusTab(base, `/specs/aide/${ARCHIVED}`);
+    const form = block(html);
+    expect(form.match(/name="tick"/g)).toHaveLength(1);
+    expect(form).toContain(`name="tick" value="${NV_ROW}">`);
+    expect(form).not.toContain('name="unverified"');
+    expect(form).not.toContain(`value="${DONE_ROW}"`);
+    expect(form).toContain(`name="statusBaseSha" value="${FILE_SHA}"`);
+  });
+
+  test("an archived spec with no Not verified row draws no form at all (AC-5)", async () => {
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
+      extra: { gitRun: savable("/host") },
+    });
+    expect(await statusTab(base, `/specs/aide/${ARCHIVED}`)).not.toContain('name="tick"');
   });
 });

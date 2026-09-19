@@ -82,6 +82,20 @@ describe("the unfolded list", () => {
     expect(html).toContain("still to judge");
   });
 
+  test("each row carries the tick box and the Not verified box, a marked row only the second checked (AC-1)", () => {
+    const marked = { phase: "Acceptance criteria", line: "| AC-4: after deploy | Not verified | |", task: "AC-4: after deploy", done: true, notVerified: true, note: "" };
+    const both = notice({ checks: KEY }, target({ acceptance: [...rows, marked] }));
+    const boxes = (name: string, line: string) => both.match(new RegExp(`<input type="checkbox" name="${name}" value="${line.replaceAll("|", "\\|")}"[^>]*>`))?.[0] ?? "";
+    for (const line of [ROW_OPEN, ROW_DONE, ROW_OPEN_TWO, marked.line]) {
+      expect(boxes("tick", line)).not.toBe("");
+      expect(boxes("unverified", line)).not.toBe("");
+    }
+    expect(boxes("unverified", marked.line)).toContain("checked");
+    expect(boxes("tick", marked.line)).not.toContain("checked");
+    expect(boxes("tick", ROW_DONE)).toContain("checked");
+    expect(boxes("unverified", ROW_DONE)).not.toContain("checked");
+  });
+
   test("posts to the tick route as a list press, with the section and the view", () => {
     expect(html).toContain(`action="/api/queue/specs/aide/${FOLDER}/tick?fromList=1"`);
     expect(html).toContain('name="checksPhase" value="Acceptance criteria"');

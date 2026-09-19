@@ -24,6 +24,7 @@ import {
 import {
   acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus,
 } from "../project/parse-status";
+import { notVerifiedCount } from "../project/parse-status/not-verified.ts";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import type { SpecTarget } from "../render";
 import { resolveDependencyFolder } from "./serve-helpers";
@@ -142,6 +143,10 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           project: p.name,
           specFolder: s.folder,
           acceptanceOpen,
+          // The branch's rows first, like `acceptanceOpen`: a mark moved
+          // on the open branch is not on disk until archive lands.
+          notVerified:
+            notVerifiedCount(branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? []) || undefined,
           // The rows the list unfolds, from the same source order as
           // `acceptanceOpen`: the branch answer's, else the checkout's.
           acceptance: acceptanceOpen

@@ -44,6 +44,8 @@ export const en = {
   "list.state.failed": "Failed",
   "list.state.archived": "Archived",
   "list.state.closed": "Closed",
+  "list.state.notVerified": "Not verified",
+  "list.notVerifiedMark": "{n} not verified",
   "list.searchHelpTitle": "What the search reads",
   "list.searchHelpBody":
     "Searches the project:folder, the title, the description — the whole description, " +
@@ -66,6 +68,8 @@ export const en = {
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",
   "list.checksUnreadable": "The acceptance criteria could not be read here.",
+  "checks.notVerified": "Not verified",
+  "checks.notVerifiedCount": "{n} not verified",
   "list.checksOpenTab": "Open the Status tab",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",

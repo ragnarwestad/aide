@@ -9,11 +9,16 @@ import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
 import { specFileText } from "../../../project/discover";
 import {
   acceptanceCriteriaUnticked,
+  checkStateOf,
   clearArchiveHeldBack,
+  markNotVerifiedStatusLine,
+  notVerifiedCount,
   parseStatusChecks,
   tickStatusLine,
   untickStatusLine,
+  type CheckState,
 } from "../../../project/parse-status";
+import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
 import { STATUS_SPEC_FILE, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, specsRedirect, tickMessage } from "../../serve-helpers";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
@@ -60,7 +65,13 @@ export async function checkRoutes(
     // pushes, and an archived spec's folder is in `archive/`. Hiding
     // the boxes leaves this route reachable for anyone who already
     // has the URL, so the refusal is here and not only on the page.
-    if (ctx.specRef(project!, specFolder!)?.archived) {
+    //
+    // A CLOSED spec is refused whole. An archived one is refused row by
+    // row further down, once the body is read: the one move it allows is
+    // completing a check that was marked Not verified.
+    const ref = ctx.specRef(project!, specFolder!);
+    const archived = !!ref?.archived;
+    if (ref?.archived && ref.closed) {
       logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
       return refuse(ARCHIVED_REFUSAL);
     }
@@ -102,6 +113,10 @@ export async function checkRoutes(
     // the section, and a row a run added since the page was drawn is
     // left alone instead of being answered for by a reader who never
     // saw it.
+    // The second box: rows whose Not verified box was left checked.
+    const unverifieds = (Array.isArray(body.unverified) ? body.unverified : [body.unverified]).filter(
+      (v): v is string => typeof v === "string",
+    );
     const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
     // Boxes with no phase to read them against is a request that
     // never came from this form.
@@ -115,7 +130,9 @@ export async function checkRoutes(
     // silently falls through to `saveSpecFiles`/`main` — the exact bug
     // this spec fixes, reintroduced on the write side by a stale cache
     // hit (see 3-solution.md's Plan review, Coherence's must-fix).
-    const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, true);
+    // An archived spec's own branch has landed already — its folder sits under
+    // `archive/` on the default branch — so there is no branch to ask about.
+    const branchTarget = archived ? null : await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, true);
     // The row-level guard, on top of the file-level `baseSha` one
     // below. A `null` is every way the page can be out of date at
     // once: no such phase, no such row inside it, or a row someone
@@ -144,18 +161,33 @@ export async function checkRoutes(
     const state = new Map(
       parseStatusChecks(ticked)
         .filter((row) => row.phase === body.checksPhase)
-        .map((row) => [row.line, row.done] as const),
+        .map((row) => [row.line, checkStateOf(row)] as const),
     );
     const wanted = new Set(ticks);
-    for (const line of drawn) {
-      const done = state.get(line);
-      if (done === undefined) {
+    const unverified = new Set(unverifieds);
+    // An archived spec answers for every row the request names, drawn or not:
+    // a post that names a box it never drew is not a press of its form.
+    for (const line of archived ? new Set([...drawn, ...ticks, ...unverifieds]) : drawn) {
+      const current = state.get(line);
+      if (current === undefined) {
         return refuse("that check is not there to change any more — reload the page and look again", body);
       }
-      if (wanted.has(line) === done) continue;
-      const next = done
-        ? untickStatusLine(ticked, body.checksPhase, line)
-        : tickStatusLine(ticked, body.checksPhase, line);
+      const target = wantedState(wanted.has(line), unverified.has(line), current);
+      if (target === current) continue;
+      // An archived spec is the record of what was judged: a check that was
+      // put off may still be completed, and nothing else moves.
+      if (archived && !(current === "notVerified" && target === "done")) {
+        logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+        // Answered without the body, like the closed spec's: the list is not
+        // sent back to a view of a spec it has no criteria to unfold for.
+        return refuse(ARCHIVED_REFUSAL);
+      }
+      const next =
+        target === "done"
+          ? tickStatusLine(ticked, body.checksPhase, line)
+          : target === "open"
+            ? untickStatusLine(ticked, body.checksPhase, line)
+            : markNotVerifiedStatusLine(ticked, body.checksPhase, line);
       // One row that is not there refuses the WHOLE press, the boxes
       // beside it included — never applied silently while one of them
       // is dropped.
@@ -206,6 +238,14 @@ export async function checkRoutes(
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(`${reason} — nothing was saved`, body);
     }
+    // A state derived by scripts older than this dashboard has no flag, and
+    // would hold archive back on a row the reader has just marked.
+    const derivedRows = parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
+    if (notVerifiedCount(derivedRows) < notVerifiedCount(parseStatusChecks(ticked))) {
+      const reason = "the installed scripts are older than the dashboard";
+      logRefusal("tick", `${project}/${specFolder}`, reason);
+      return refuse(`${reason} — nothing was saved`, body);
+    }
     const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
     // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
     // at origin — never through `saveSpecFiles`, which structurally
@@ -249,6 +289,15 @@ export async function checkRoutes(
   }
 
   return null;
+}
+
+/** The state a row is to end in, from its two boxes and where it is now. Both
+ *  checked is a browser without script leaving the old box checked beside a
+ *  newly checked one: the box just checked wins, so a done row becomes Not
+ *  verified and any other row becomes done. */
+function wantedState(tick: boolean, unverified: boolean, current: CheckState): CheckState {
+  if (tick && unverified) return current === "done" ? "notVerified" : "done";
+  return tick ? "done" : unverified ? "notVerified" : "open";
 }
 
 /** What a saved tick leaves behind for the next page. The branch answer

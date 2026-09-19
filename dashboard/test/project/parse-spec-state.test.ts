@@ -182,3 +182,29 @@ describe("currentAcceptancePhase", () => {
     expect(currentAcceptancePhase(state)).toBe("Acceptance criteria");
   });
 });
+
+// --- spec 509: a Not verified row in 4-status.json ---------------------------
+
+describe("a Not verified row in the state file (spec 509)", () => {
+  test("the row's notVerified flag is read back, and its absence stays absent (AC-8)", () => {
+    const parsed = parseSpecStateText(
+      JSON.stringify({
+        acceptanceCriteria: [
+          { task: "AC-1: a", done: true, notVerified: true },
+          { task: "AC-2: b", done: true },
+        ],
+      }),
+    );
+    expect(parsed?.acceptanceCriteria[0]?.notVerified).toBe(true);
+    expect("notVerified" in parsed!.acceptanceCriteria[1]!).toBe(false);
+  });
+
+  test("currentPhase and currentAcceptancePhase read a phase counted done as finished (AC-8)", () => {
+    // `phaseCounts` is written by the bash side, which counts the mark as done.
+    const state = parseSpecStateText(
+      JSON.stringify({ phaseCounts: { "Phase 1: RED": { done: 1, total: 1 }, "Acceptance criteria": { done: 2, total: 2 } } }),
+    )!;
+    expect(currentPhase(state)).toBe("done");
+    expect(currentAcceptancePhase(state)).toBeNull();
+  });
+});

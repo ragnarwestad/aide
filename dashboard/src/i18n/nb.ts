@@ -43,6 +43,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.failed": "Feilet",
   "list.state.archived": "Arkivert",
   "list.state.closed": "Lukket",
+  "list.state.notVerified": "Ikke verifisert",
+  "list.notVerifiedMark": "{n} ikke verifisert",
   "list.searchHelpTitle": "Hva søket leser",
   "list.searchHelpBody":
     "Søker i prosjekt:mappe, tittelen og beskrivelsen — hele beskrivelsen, også den " +
@@ -65,6 +67,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",
   "list.checksUnreadable": "Akseptansekriteriene kunne ikke leses her.",
+  "checks.notVerified": "Ikke verifisert",
+  "checks.notVerifiedCount": "{n} ikke verifisert",
   "list.checksOpenTab": "Åpne Status-fanen",
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",

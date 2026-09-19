@@ -59,7 +59,7 @@ status_progress_for() {   # sets $progress_done, $progress_total
       if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
       total++
       low = tolower(mark)
-      prev_done = (mark == "✅" || low == "completed" || low == "✅ completed") ? 1 : 0
+      prev_done = (mark == "✅" || low == "completed" || low == "✅ completed" || low == "not verified") ? 1 : 0
       if (prev_done) done++
       prev_counted = 1
       next
@@ -112,12 +112,56 @@ status_advanced_count_for() {   # sets $advanced_count
       }
       if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
       low = tolower(mark)
-      prev_counted = (mark != "⬜" && low != "not started") ? 1 : 0
+      # "Not verified" is a done mark for the count above, but it is
+      # never an advance here: it is a start state, like ⬜.
+      prev_counted = (mark != "⬜" && low != "not started" && low != "not verified") ? 1 : 0
       if (prev_counted) advanced++
       next
     }
     END { printf "%d\n", advanced+0 }
   ' "$file" 2>/dev/null)"
   advanced_count="${counts:-0}"
+  return 0
+}
+
+# Spec 509: the start state of a "Not tested:" Acceptance row. Rewrites
+# every ⬜ row of an Acceptance section whose Notes start with
+# "Not tested:" to "Not verified" in <status-file>, but only on a known
+# baseline: <status-before> (the file as it was before the run) must
+# exist, be non-empty and carry no Acceptance rows. A missing or empty
+# baseline is unknown and starts nothing; a later round (the baseline
+# already has Acceptance rows) leaves every Status cell byte-for-byte.
+start_not_tested_rows_not_verified() {   # <status-file> <status-before>
+  local file="$1" before="$2" out
+  [ -f "$file" ] && [ -s "$before" ] || return 0
+  status_progress_for "$before" "Acceptance"
+  [ "$progress_total" -eq 0 ] || return 0
+  out="$(mktemp)" || return 0
+  LC_ALL=C awk '
+    /^## / {
+      heading = $0; sub(/^## /, "", heading)
+      rest = heading
+      sub(/^([Pp]hase|[Ff]ase|[Cc]hecklist|[Aa]cceptance)/, "", rest)
+      keyword = substr(heading, 1, length(heading) - length(rest))
+      in_acc = (rest != heading && rest ~ /^([^A-Za-z0-9]|$)/ && tolower(keyword) == "acceptance") ? 1 : 0
+    }
+    in_acc && /^[ \t]*\|.*\|[ \t]*$/ {
+      n = split($0, cells, "|")
+      if (n == 5) {
+        mark = cells[3]; notes = cells[4]
+        gsub(/^[ \t]+|[ \t]+$/, "", mark)
+        gsub(/^[ \t]+/, "", notes)
+        if (mark == "⬜" && index(notes, "Not tested:") == 1) {
+          print cells[1] "|" cells[2] "| Not verified |" cells[4] "|" cells[5]
+          next
+        }
+      }
+    }
+    { print }
+  ' "$file" > "$out" 2>/dev/null
+  if [ -s "$out" ] && ! cmp -s "$out" "$file"; then
+    cat "$out" > "$file"
+  fi
+  rm -f "$out"
   return 0
 }

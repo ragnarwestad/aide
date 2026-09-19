@@ -58,10 +58,15 @@ person ticking the row sees what the plan decided without reading it:
 
 Where more than one applies, the first in this list is the sentence.
 
+A row whose Notes cell carries `Not tested:` starts with Status
+`Not verified` instead of `⬜`: no test will ever prove it, so it is
+already set aside for a check after deploy. `Not verified` counts as
+done for archiving; every other row still starts `⬜`.
+
 These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
 tick (spec 285). `aide-archive-spec` refuses to archive while any of
-them is still unticked. No Acceptance criteria section: `4-status.md` is
+them is still unticked (`Not verified` counts as ticked). No Acceptance criteria section: `4-status.md` is
 written exactly as it is today, with no such section.
 
 ## A held-back spec's second round

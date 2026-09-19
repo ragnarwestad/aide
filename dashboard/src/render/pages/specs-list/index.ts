@@ -67,6 +67,7 @@ export {
   RUN_STEPS,
   computeSpecTotalDurationMs,
   filterShowsArchived,
+  NOT_VERIFIED_KEY,
   phasesFor,
   type Phase,
 } from "./data-model";
@@ -105,6 +106,10 @@ export interface SpecsPageOptions {
    *  the same key/row split `archived` itself already has, one level
    *  more specific. */
   closed?: string[];
+  /** The subset of `archived` whose spec has Acceptance rows marked Not
+   *  verified: what the Not verified entry's count adds for the archived
+   *  specs no row was built for. */
+  notVerified?: string[];
   /** The archived specs themselves, as reader rows (spec 221). The KEYS
    *  above are cheap and always sent — `groupBySpec` drops job rows by
    *  them; THIS is the walk over every archived folder, and the server

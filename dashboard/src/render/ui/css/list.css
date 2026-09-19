@@ -405,6 +405,9 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
    its width, its margin, and the flex gap after it. */
 .spec-title {
   margin-left: calc(24px + var(--sp-1) + var(--sp-2)); }
+.spec-notverified { margin-left: calc(24px + var(--sp-1) + var(--sp-2)); margin-top: 2px;
+  font-size: var(--fs-s); }
+.spec-notverified a { color: var(--muted); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 27rem; }
 /* The archive's Description column (spec 170). A spec's Description

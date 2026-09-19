@@ -189,6 +189,9 @@ if [ -n "$status_file" ]; then
       existing_line_before="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' \
         "$work_dir/status-before" 2>/dev/null | tail -1)"
     fi
+    # spec 509: a "Not tested:" Acceptance row starts as "Not verified",
+    # before the guard counts the file (the mark is not an advance).
+    start_not_tested_rows_not_verified "$status_file" "$work_dir/status-before"
     status_advanced_count_for "$status_file"
     rows_advanced="no"
     [ "$advanced_count" -gt "$before_advanced" ] && rows_advanced="yes"

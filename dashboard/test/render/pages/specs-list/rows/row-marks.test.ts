@@ -638,3 +638,54 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
     expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
   });
 });
+
+// --- spec 509: the "N not verified" mark under a row's name ------------------
+
+describe("the not-verified mark on a row's name cell", () => {
+  const LIVE = "509-live-spec";
+  const ARCH = "500-archived-spec";
+  const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder: ARCH,
+    archivedAt: "2026-09-15",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: {},
+    ...over,
+  });
+  const draw = (target: SpecTarget[], archivedSpecs: ArchivedSpecView[] = []): string =>
+    renderSpecsRows([], { runnerAvailable: true, targets: target, archivedSpecs });
+  const mark = (html: string, folder: string): string =>
+    specCell(html, folder).match(/<div class="spec-notverified">[\s\S]*?<\/div>/)?.[0] ?? "";
+
+  test("a live and an archived row with two Not verified rows each carry a mark reading 2, linked to the Status tab (AC-3)", () => {
+    const html = draw([{ project: "aide", specFolder: LIVE, title: "A live title", notVerified: 2 }], [archived({ notVerified: 2 })]);
+    for (const folder of [LIVE, ARCH]) {
+      const m = mark(html, folder);
+      expect(m).toContain("2 not verified");
+      expect(m).toContain(`href="/specs/aide/${folder}?tab=status"`);
+    }
+  });
+
+  test("the mark stands below the project:name line and above the spec's title line (AC-3)", () => {
+    const html = draw([{ project: "aide", specFolder: LIVE, title: "A live title", notVerified: 2 }]);
+    const cell = specCell(html, LIVE);
+    const name = cell.indexOf('class="spec-name"');
+    const markAt = cell.indexOf('class="spec-notverified"');
+    const title = cell.indexOf('class="spec-title"');
+    expect(name).toBeGreaterThan(-1);
+    expect(markAt).toBeGreaterThan(name);
+    expect(title).toBeGreaterThan(markAt);
+  });
+
+  test("no Not verified rows draws no mark (AC-3)", () => {
+    const html = draw([{ project: "aide", specFolder: LIVE }, { project: "aide", specFolder: "510-zero", notVerified: 0 }], [archived()]);
+    expect(html).not.toContain("spec-notverified");
+  });
+
+  test("a closed spec draws no mark, whatever count it carries (AC-3)", () => {
+    const html = draw([], [archived({ closed: true, notVerified: 3 })]);
+    expect(html).toContain(`data-folder="${ARCH}"`);
+    expect(html).not.toContain("spec-notverified");
+  });
+});

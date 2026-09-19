@@ -403,6 +403,7 @@ Number, created date, expected duration
 | ✅ | Completed |
 | ❌ | Blocked |
 | ⚠️ | Waiting |
+| Not verified | Set aside for a check after deploy; counts as done (Acceptance rows only) |
 ```
 
 **Key points:**
@@ -523,6 +524,11 @@ one id across several scenarios:
 | AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
 | AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
+
+A row whose Notes cell carries `Not tested:` starts as `Not verified`
+instead of `⬜`. `Not verified` is a done mark like `✅`: archiving does
+not wait for it, and the user can still tick it later. Only the user
+or the analyze step's own start pass writes it — never `/aide-implement`.
 
 No Acceptance criteria section: `4-status.md` looks exactly as it does
 today — no such section, no change to archiving.

@@ -156,9 +156,22 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // The acceptance criteria unfolded on a row (spec 493) are remembered
   // the same way: a `tick` box keyed by its own list's form, so an unsaved
   // tick outlives a redraw. Only a phase box has a Run button to relabel.
-  const step = target?.closest?.('input[name="steps"], input[name="tick"]') as HTMLInputElement | null;
+  // A criterion's two boxes (spec 509, `tick` and `unverified`) are one
+  // answer: checking one clears the one beside it, and both are remembered
+  // as they now stand.
+  const step = target?.closest?.(
+    'input[name="steps"], input[name="tick"], input[name="unverified"]',
+  ) as HTMLInputElement | null;
   if (step) {
     chosenSteps.set(checkboxKey(step), step.checked);
+    if (step.name === "tick" || step.name === "unverified") {
+      const other = step.name === "tick" ? "unverified" : "tick";
+      const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
+      if (sibling) {
+        if (step.checked) sibling.checked = false;
+        chosenSteps.set(checkboxKey(sibling), sibling.checked);
+      }
+    }
     const rows = document.getElementById("jobrows");
     const formId = step.getAttribute("form");
     if (step.name === "steps" && rows && formId) relabelRunButton(rows, formId);

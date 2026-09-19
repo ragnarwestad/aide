@@ -48,6 +48,7 @@ function fromTarget(
   | "done"
   | "acceptanceOpen"
   | "acceptance"
+  | "notVerified"
   | "title"
   | "description"
   | "phase"
@@ -61,6 +62,7 @@ function fromTarget(
     done: t?.done ?? [],
     acceptanceOpen: t?.acceptanceOpen,
     acceptance: t?.acceptance,
+    notVerified: t?.notVerified,
     title: t?.title,
     // Read but not drawn: the search's third field (spec 221).
     description: t?.description,
@@ -256,6 +258,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     totalDurationSince: total?.since,
     phases,
     done: s.done,
+    notVerified: s.notVerified,
     title: s.title,
     description: s.description,
     dependsOn: [],

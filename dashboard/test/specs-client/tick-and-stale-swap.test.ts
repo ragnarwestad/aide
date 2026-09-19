@@ -295,3 +295,48 @@ describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493
     expect(ticks(h)).toEqual([false, true, true]);
   });
 });
+
+// --- spec 509: a row's two boxes are one answer --------------------------------
+
+describe("a criterion's tick box and Not verified box (spec 509)", () => {
+  const swap = async (h: ReturnType<typeof harness>) => {
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+  };
+
+  test("checking Not verified over a checked tick box clears the tick box, and a redraw restores exactly that (AC-6)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeTick(0, true);
+    h.changeUnverified(0, true);
+    expect(h.tickBoxes[0]!.checked).toBe(false);
+    await swap(h);
+    expect(h.tickBoxes[0]!.checked).toBe(false);
+    expect(h.unverifiedBoxes[0]!.checked).toBe(true);
+  });
+
+  test("checking the tick box over a checked Not verified box clears the second, and both stay so after a redraw (AC-6)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeUnverified(0, true);
+    h.changeTick(0, true);
+    expect(h.unverifiedBoxes[0]!.checked).toBe(false);
+    await swap(h);
+    expect(h.tickBoxes[0]!.checked).toBe(true);
+    expect(h.unverifiedBoxes[0]!.checked).toBe(false);
+  });
+
+  test("clearing a box leaves the other alone, and both are remembered (AC-6)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeUnverified(0, true);
+    h.changeUnverified(0, false);
+    await swap(h);
+    expect(h.tickBoxes[0]!.checked).toBe(false);
+    expect(h.unverifiedBoxes[0]!.checked).toBe(false);
+  });
+
+  test("a box nobody touched follows the server (AC-6)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    await swap(h);
+    expect(h.unverifiedBoxes[0]!.checked).toBe(false);
+  });
+});

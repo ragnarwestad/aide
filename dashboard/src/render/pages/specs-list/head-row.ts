@@ -18,6 +18,7 @@ import {
   stateCell,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
+import { notVerifiedMark } from "./row-shared.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It used
@@ -191,6 +192,7 @@ export function specHeadRow(
     // hand-set widths inside one cell.
     `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened, lang)} ${spec}` +
     `</div>` +
+    notVerifiedMark(g, lang) +
     under +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the

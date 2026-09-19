@@ -31,6 +31,10 @@ but the two copies still have to be edited by hand together.
 | The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported (spec 359)                                     | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec`                 | `PUSH_RETRY_WAITS_MS` and `pushWithRetry()` in `dashboard/src/git/branch-merge.ts`                               | `dashboard/test/git/merge/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading both sides' source text                                                                               |
 | Which archive refusals are guards, not attempts — left out of the phase's attempt count (2026-09-11)                                                         | the `case "$terminal_reason"` arm in `core/scripts/lib/run-spec-outcome.sh`   | `GUARD_REFUSALS` in `dashboard/src/render/pages/specs-list/phase-rows.ts`                                        | `dashboard/test/queue/guard-refusals-are-not-attempts.test.ts`, reading both sides' source text                                                                                                    |
 
+The done rule accepts `✅`, `completed` and `Not verified`. Only an Acceptance row also carries the separate
+`notVerified` flag (in `4-status.json` and on `StatusCheck`), so a reader that draws a row can tell a deferred check
+from a tick while every gate keeps reading `done`.
+
 Two known asymmetries in the readiness pair are named in that test's own
 exclusion list rather than in the fixture: `specsRepo` is a check the
 dashboard makes blocking that `aide-run-spec` does not refuse on, and

@@ -55,9 +55,9 @@ _spec_state_phase_and_acceptance_rows() {
       for (i = 0; i < nrows; i++) {
         mark = rowMark[i]
         low = tolower(mark)
-        is_done = (mark == "✅" || low == "completed" || low == "✅ completed") ? 1 : 0
+        is_done = (mark == "✅" || low == "completed" || low == "✅ completed" || low == "not verified") ? 1 : 0
         if (is_done) done++
-        if (is_acceptance) printf "ACC\t%d\t%s\n", is_done, rowTask[i]
+        if (is_acceptance) printf "ACC\t%d\t%d\t%s\n", is_done, (low == "not verified") ? 1 : 0, rowTask[i]
       }
       printf "PHASE\t%s\t%d\t%d\n", heading, done, total
     }
@@ -187,7 +187,7 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
   acceptance_json="$(awk -F'\t' '$1=="ACC"' "$rows_tmp" | \
     jq -R -c -s '
       split("\n") | map(select(length > 0) | split("\t")) |
-      map({task: .[2], done: (.[1] == "1")})
+      map({task: .[3], done: (.[1] == "1")} + (if .[2] == "1" then {notVerified: true} else {} end))
     ')"
   rm -f "$rows_tmp"
 

@@ -6,6 +6,7 @@
 // checked means "done".
 
 import type { AcTest } from "../ac-coverage.ts";
+import { NOT_VERIFIED_MARK, isNotVerifiedMark, type CheckState } from "./not-verified.ts";
 import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export interface Progress {
@@ -214,7 +215,11 @@ export interface StatusCheck {
   line: string;
   /** The Task cell, trimmed — what a reader is being asked about. */
   task: string;
+  /** Done for every gate. A row marked `Not verified` is `done` too, and
+   *  carries `notVerified` — it means "nobody has checked this yet". */
   done: boolean;
+  /** Present, and `true`, only on an Acceptance row marked `Not verified`. */
+  notVerified?: boolean;
   /** The Notes cell, trimmed, and `""` when the row leaves it empty.
    *  Written by the implement run, and the one thing on the row a
    *  reader cannot work out from the criterion itself: what was
@@ -229,6 +234,7 @@ export interface StatusCheck {
 }
 
 const DONE_MARK = "✅";
+const isAcceptanceHeading = (heading: string): boolean => /^acceptance\b/i.test(heading);
 /** What a row goes back to when a check is taken off it. The mark it
  *  carried BEFORE it was ticked is gone by then — the tick overwrote it
  *  — so this is the file's own plain "not started", the one every
@@ -269,13 +275,16 @@ const MAX_MARK_LENGTH = 30;
  *  shared source between the two languages; change one and check the
  *  other.
  *
+ *  Spec 509: `Not verified` is a done mark too (case-insensitive), in
+ *  every section; `parseStatusChecks` flags it on Acceptance rows alone.
+ *
  *  Spec 283: an anchored `✅ completed` (symbol and the word combined
  *  in one cell) counts as done too, alongside the bare symbol and the
  *  bare word — a step wrote both into the same cell, and neither of
  *  the two original forms alone matched it. */
 function isDoneMark(mark: string): boolean {
   const trimmed = mark.trim();
-  return trimmed === DONE_MARK || /^(?:✅\s*)?completed$/i.test(trimmed);
+  return trimmed === DONE_MARK || isNotVerifiedMark(trimmed) || /^(?:✅\s*)?completed$/i.test(trimmed);
 }
 
 function splitRowCells(line: string): [string, string, string] | null {
@@ -399,6 +408,7 @@ export function parseStatusChecks(content: string): StatusCheck[] {
         line: lines[i]!,
         task: cells[0],
         done: isDoneMark(cells[1]),
+        ...(isAcceptanceHeading(section.heading) && isNotVerifiedMark(cells[1]) ? { notVerified: true } : {}),
         note: cells[2],
       });
     }
@@ -421,7 +431,13 @@ export function parseStatusChecks(content: string): StatusCheck[] {
  *  Exactly one character moves. The cell keeps its padding, so a tick
  *  never reflows the table. */
 export function tickStatusLine(content: string, phase: string, line: string): string | null {
-  return setStatusLineMark(content, phase, line, true);
+  return setStatusLineMark(content, phase, line, "done");
+}
+
+/** `content` with one row's mark changed to `Not verified`, or `null` when
+ *  that row is not there or already is. */
+export function markNotVerifiedStatusLine(content: string, phase: string, line: string): string | null {
+  return setStatusLineMark(content, phase, line, "notVerified");
 }
 
 /** `content` with one row's mark put back to `⬜`, or `null` when that
@@ -432,28 +448,34 @@ export function tickStatusLine(content: string, phase: string, line: string): st
  *  A check can be made by mistake, and until this existed the only way
  *  back was to open `4-status.md` and edit the table by hand. */
 export function untickStatusLine(content: string, phase: string, line: string): string | null {
-  return setStatusLineMark(content, phase, line, false);
+  return setStatusLineMark(content, phase, line, "open");
 }
 
-/** The one row-finding walk both directions share. `done` is what the
- *  row is being moved TO; a row already there is refused, which is what
+const MARK_OF: Record<CheckState, string> = { open: OPEN_MARK, notVerified: NOT_VERIFIED_MARK, done: DONE_MARK };
+const checkStateOfMark = (mark: string): CheckState =>
+  isNotVerifiedMark(mark) ? "notVerified" : isDoneMark(mark) ? "done" : "open";
+
+/** The one row-finding walk every direction shares. `target` is the state
+ *  the row is being moved TO; a row already in it is refused, which is what
  *  makes a stale page's press land on nothing rather than on the wrong
  *  row. */
-function setStatusLineMark(content: string, phase: string, line: string, done: boolean): string | null {
+function setStatusLineMark(content: string, phase: string, line: string, target: CheckState): string | null {
   const lines = content.split("\n");
   const section = phaseSections(lines).find((s) => s.heading === phase.trim());
   if (!section) return null;
   for (const i of dataRowIndices(lines, section)) {
     if (lines[i] !== line) continue;
     const cells = tableCells(line);
-    if (!cells || isDoneMark(cells[1]) === done) return null;
+    if (!cells || checkStateOfMark(cells[1]) === target) return null;
     const parts = line.split("|");
-    parts[2] = parts[2]!.replace(cells[1], done ? DONE_MARK : OPEN_MARK);
+    parts[2] = parts[2]!.replace(cells[1], MARK_OF[target]);
     lines[i] = parts.join("|");
     return lines.join("\n");
   }
   return null;
 }
+
+export { notVerifiedCount, checkStateOf, type CheckState } from "./not-verified.ts";
 
 // What used to live here too, in parts beside this file.
 export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, roundGate, latestRoundBoundary } from "./held-back.ts";

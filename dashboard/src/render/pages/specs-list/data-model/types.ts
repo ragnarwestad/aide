@@ -1,15 +1,15 @@
-// The shapes the spec list's data model trades in: what a live spec's
-// own target carries, what an archived spec's record carries, the
-// filter a reader's chosen view applies, and the row shape (SpecGroup)
-// everything else on this page is built from.
+// The shapes the spec list's data model trades in: a live spec's target, an
+// archived spec's record, the filter a chosen view applies, and the row
+// shape (SpecGroup) everything else on this page is built from.
 
 import type { PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import type { QueueRowView } from "../../../ui/job-state";
 import type { FileStepsAnswer } from "../../../../git/workflow-history.ts";
 import type { Sentence } from "../../../../i18n/message.ts";
 import type { StatusCheck } from "../../../../project/parse-status";
+import type { HasNotVerified } from "./not-verified.ts";
 
-export interface SpecTarget {
+export interface SpecTarget extends HasNotVerified {
   project: string;
   specFolder: string;
   title?: string;
@@ -122,7 +122,7 @@ export interface SpecTarget {
  *  may RUN, and the one thing an archived spec may be asked for is
  *  `reopen` (`ARCHIVE_ONLY_STEP`, queue.ts). Two shapes, because they
  *  answer two questions. */
-export interface ArchivedSpecView {
+export interface ArchivedSpecView extends HasNotVerified {
   /** Which project's archive it came out of. */
   project: string;
   /** The spec's folder, which is also its number — what a person calls
@@ -372,7 +372,7 @@ export interface Phase {
   fileResult?: "completed" | "stopped";
 }
 
-export interface SpecGroup {
+export interface SpecGroup extends HasNotVerified {
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional

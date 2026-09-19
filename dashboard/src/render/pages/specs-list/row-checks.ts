@@ -6,6 +6,7 @@
 import { ICON_CHEVRON, btn } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
+import { checkControls } from "../../ui/check-controls.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, type SpecGroup, type SpecsFilter } from "./data-model";
@@ -48,12 +49,10 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
-    const state = row.done ? "done" : "open";
+    const state = row.notVerified ? "notverified" : row.done ? "done" : "open";
     return (
       `<li class="check ${state}">` +
-      `<input type="hidden" name="row" value="${esc(row.line)}" form="${esc(formId)}">` +
-      `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}" form="${esc(formId)}"` +
-      `${row.done ? " checked" : ""}></label>` +
+      checkControls(row, lang, { formId }) +
       `<span class="checktask">${esc(row.task)}</span>` +
       (row.note ? `<span class="checknote">${esc(row.note)}</span>` : "") +
       acTestsLine(row, lang) +

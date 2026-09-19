@@ -429,3 +429,31 @@ def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, proj
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "not-implemented-yet", out
     assert not (specs / "81-x" / "4-status.json").exists()
+
+
+def test_acceptance_rows_all_done_or_not_verified_archive_AC_7(script, project, specs):
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"])
+        + acceptance(["| REQ-1: one | ✅ | |", "| REQ-2: two | Not verified | Not tested: x |"]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert (specs / "archive" / "81-x").exists()
+
+
+def test_a_not_verified_row_beside_an_open_row_still_blocks_archive_AC_7(script, project, specs):
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"])
+        + acceptance(["| REQ-1: one | Not verified | |", "| REQ-2: two | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert (specs / "81-x").exists()

@@ -211,6 +211,7 @@
      why a row with a summary wrapped and an archived one (which has
      none) did not. */
   table.list tr.spechead .spec-title { order: 4; flex: 0 0 100%; }
+  table.list tr.spechead .spec-notverified { order: 4; flex: 0 0 100%; }
   /* The header line starts further left than the phase lines under it
      (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
      the base cell padding (var(--sp-3)) put it flush with the minor

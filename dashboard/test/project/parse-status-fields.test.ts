@@ -369,3 +369,44 @@ describe("acceptanceRowsOf", () => {
     expect(acceptanceRowsOf("## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| x | ⬜ | |\n")).toEqual([]);
   });
 });
+
+// --- spec 509: a Not verified row is done for every gate ---------------------
+
+describe("Not verified is a done mark for every gate (spec 509)", () => {
+  const file = (rows: string[]) =>
+    [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      ...rows,
+      "",
+    ].join("\n");
+  const NV = "| AC-1: after deploy | Not verified | Not tested: needs prod |";
+  const DONE = "| AC-2: it saves | ✅ | |";
+  const OPEN = "| AC-3: it loads | ⬜ | |";
+
+  test("acceptanceCriteriaUnticked does not hold on it, and still holds on a ⬜ row (AC-8)", () => {
+    expect(acceptanceCriteriaUnticked(file([NV, DONE]))).toBe(false);
+    expect(acceptanceCriteriaUnticked(file([NV, OPEN]))).toBe(true);
+  });
+
+  test("acceptanceStillOpen reads a Not verified row as settled (AC-8)", () => {
+    const rows = acceptanceRowsOf(file([NV, DONE]));
+    expect(acceptanceStillOpen(undefined, rows)).toBe(false);
+    expect(acceptanceStillOpen(undefined, acceptanceRowsOf(file([NV, OPEN])))).toBe(true);
+  });
+
+  test("parseStatus's phase and acceptancePhase count it done (AC-8)", () => {
+    const settled = parseStatus(file([NV, DONE]));
+    expect(settled.acceptancePhase).toBeNull();
+    expect(settled.phase).toBe("done");
+    expect(parseStatus(file([NV, OPEN])).acceptancePhase).toBe("Acceptance criteria");
+  });
+
+  test("the row is flagged on acceptanceRowsOf, so the Specs list can count it (AC-3)", () => {
+    expect(acceptanceRowsOf(file([NV, DONE])).map((r) => r.notVerified === true)).toEqual([true, false]);
+  });
+});

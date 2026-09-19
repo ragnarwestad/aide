@@ -133,6 +133,9 @@ order, stopping at the first that applies:
 The first four outcomes short of `archived` end the step without a model run. `conflict-open` and `archived` spawn
 one, for the conflict and for the documentation feedback respectively.
 
+An Acceptance row marked `Not verified` counts as ticked for `acceptance-criteria-unticked`: a check that can only be
+made after deploy does not hold the archive back, and the spec keeps showing it until the row is ticked.
+
 `acceptance-criteria-unticked` never applies to a run started with the "acceptance ticking not required" switch: its
 `4-status.md` carries a one-line note under `## Acceptance criteria` instead of a row, and a section with no row is
 not one this gate can find open.

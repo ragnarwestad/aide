@@ -259,3 +259,23 @@ def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path
     done = sum(c["done"] for c in state["phaseCounts"].values())
     total = sum(c["total"] for c in state["phaseCounts"].values())
     assert (done, total) == (case["done"], case["total"]), case["name"]
+
+
+# --- Not verified (spec 509) ------------------------------------------------
+
+
+def test_a_not_verified_acceptance_row_is_done_and_flagged_AC_2(tmp_path):
+    state = write_state(
+        tmp_path,
+        "# Spec - Status\n\n## Acceptance criteria\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| AC-1: a | Not verified | Not tested: x |\n"
+        "| AC-2: b | ⬜ | |\n"
+        "| AC-3: c | ✅ | |\n",
+    )
+    assert state["acceptanceCriteria"] == [
+        {"task": "AC-1: a", "done": True, "notVerified": True},
+        {"task": "AC-2: b", "done": False},
+        {"task": "AC-3: c", "done": True},
+    ]
+    assert state["phaseCounts"]["Acceptance criteria"] == {"done": 2, "total": 3}

@@ -99,6 +99,13 @@ ticks are stored the same way, and the message goes once every criterion is tick
 Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
 link to its Status tab, in place of the list.
 
+**Each acceptance row has a second box, "Not verified".** It is offered beside the tick box under the › and on the Status
+tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a small line
+`N not verified` below the project and name on its list row (live and archived, not closed), linking to its Status tab.
+The State filter has a "Not verified" entry that shows only specs with such a row, archived ones included. On an
+archived spec a Not verified row stays tickable on the Status tab; that is the only change the archive accepts. Ticking
+the last one removes the line and the spec leaves the filter.
+
 **A phase that has run unfolds to the model's latest messages.** Every phase line of an open row that has run or is
 running starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in
 `?phases=<key>,…`, kept by every sort and filter link and every redirect after a press like `?open=`, and it is a plain

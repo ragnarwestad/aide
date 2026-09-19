@@ -100,7 +100,7 @@ export {
 // kept in two places would eventually forget a key on one side.
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
-  filterShowsArchived, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
+  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecsPage, renderSpecsRows,
 } from "./pages/specs-list";
 export type {
   ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,

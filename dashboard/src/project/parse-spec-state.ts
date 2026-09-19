@@ -17,7 +17,10 @@ import { join } from "node:path";
 
 export interface SpecStateAcceptanceRow {
   task: string;
+  /** True for a row marked `Not verified` as well as a ticked one. */
   done: boolean;
+  /** Present, and `true`, only on a row marked `Not verified`. */
+  notVerified?: boolean;
 }
 
 export interface SpecStatePhaseCount {
