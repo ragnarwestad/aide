@@ -155,6 +155,13 @@ must be verifiable by a test — if you cannot phrase the test, the criterion
 is too vague. When AC-n ids exist, see `references/requirements-tracing.md`
 for how each criterion opens with the AC-id it covers.
 
+End a criterion with *(browser)* when only a real browser can answer it:
+whether something is displayed, where it sits on the screen, what
+scrolls, what moves when its text changes. What the markup or the
+stylesheet says is not a browser question, and a criterion without the
+tag is tested the ordinary way. `/aide-implement` writes a browser test
+for every tagged criterion.
+
 **Name the test command the Scope's file list actually resolves to.** Run
 that list through the project's `testScopes` (the tools-and-scripts skill,
 "Project commands"): a file matching no scope belongs to the root command,

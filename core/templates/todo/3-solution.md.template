@@ -135,7 +135,8 @@ Each criterion is a testable given/when/then scenario. The RED phase
 writes at least one failing test per criterion. When 1-description.md
 lists AC-n acceptance criteria, each criterion opens with the AC-id it
 covers (`**AC-1** — Given ...`); every AC-id must be covered by at
-least one criterion.
+least one criterion. A criterion only a real browser can answer ends
+with *(browser)*.
 
 1. **AC-1** — **Given** [precondition] **when** [action] **then** [expected outcome]
 2. **Given** [precondition] **when** [action] **then** [expected outcome]

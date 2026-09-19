@@ -60,7 +60,13 @@ resume it at the first unticked task if it found it in progress.
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))
-3. Create test files — at least one failing test per acceptance criterion
+3. Create test files — at least one failing test per acceptance criterion.
+   A test written for a criterion that opens with an AC-id carries that
+   id in its own name — `... (AC-3)` — so which test covers which
+   requirement can be read off the test run. A criterion that ends with
+   *(browser)* gets a browser test, written where the project keeps its
+   browser tests; a project with none names that criterion in
+   `3-solution.md`'s Manual testing note instead
 4. Run the tests — verify that they FAIL
 5. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
    written and confirmed to fail, not merely planned. Write the result
