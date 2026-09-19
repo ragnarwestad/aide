@@ -5,7 +5,7 @@ word — the record on the branch is the runner's own.
 
 import json
 import subprocess
-from ..conftest import READ_SPECS, git, run
+from ..conftest import READ_SPECS, git, run, stand_in
 from .run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, RESULT_OK, emits
 from .run_spec_status_files import with_status
 
@@ -221,14 +221,14 @@ def test_the_lines_handed_back_are_the_failures_not_every_line_with_error_in_it(
     not there. Only the runner's own failure markers reach the prompt."""
     with_status(workspace, ["create", "analyze"])
     suite = tmp_path / "suite.sh"
-    suite.write_text(
+    stand_in(
+        suite,
         "#!/bin/sh\n"
         "echo 'queue: the checkout — Error: git is not on this machine'\n"
         "echo '(pass) a test that echoed that error and passed'\n"
         "echo '(fail) the one that really failed'\n"
         "exit 1\n"
     )
-    suite.chmod(0o755)
     _project_with_test_cmd(workspace, str(suite))
     seen = tmp_path / "prompt-seen.txt"
     claude = fake_claude(

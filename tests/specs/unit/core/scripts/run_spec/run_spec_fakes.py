@@ -8,7 +8,7 @@ reached 1017 lines. Every builder is unchanged and keeps its name.
 import json
 import shlex
 import shutil
-from ..conftest import READ_SPECS
+from ..conftest import READ_SPECS, stand_in
 from .run_spec_results import RESULT_OK
 def writing_claude(fake_claude, workspace):
     """A claude that leaves work behind in both roots, the way a real
@@ -190,7 +190,8 @@ def make_worktree_add_gate(tmp_path, name, target_root, events_file):
     shim_dir.mkdir()
     go = tmp_path / f"{name}-go"
     shim = shim_dir / "git"
-    shim.write_text(
+    stand_in(
+        shim,
         "#!/usr/bin/env bash\n"
         f"real={shlex.quote(real_git)}\n"
         f'if [ "$1" = "-C" ] && [ "$2" = {shlex.quote(str(target_root))} ] '
@@ -204,7 +205,6 @@ def make_worktree_add_gate(tmp_path, name, target_root, events_file):
         "fi\n"
         'exec "$real" "$@"\n'
     )
-    shim.chmod(0o755)
     return shim_dir, go
 
 
@@ -215,7 +215,8 @@ def make_named_writing_claude(tmp_path, name, folder, tag):
     SAME TIME for a concurrency test). Leaves a `tag`-named marker in
     both the project and the specs root, the way `writing_claude` does."""
     path = tmp_path / f"fake-claude-{name}"
-    path.write_text(
+    return stand_in(
+        path,
         "#!/usr/bin/env bash\n"
         "cat > /dev/null\n"
         + READ_SPECS
@@ -223,8 +224,6 @@ def make_named_writing_claude(tmp_path, name, folder, tag):
         + f'echo "{tag}" > "$specs/{folder}/2-analysis.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'\n"
     )
-    path.chmod(0o755)
-    return path
 
 
 def linking_claude(fake_claude, workspace, candidates):

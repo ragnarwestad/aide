@@ -12,7 +12,7 @@ Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 import os
 import subprocess
 import pytest
-from ..conftest import git, run
+from ..conftest import git, run, stand_in
 @pytest.fixture
 def origin(workspace, tmp_path):
     """Bare repos standing in for GitHub.
@@ -41,8 +41,7 @@ def fake_gh(tmp_path):
 
     def make(body: str = 'echo "https://github.com/example/aide/pull/7"'):
         path = tmp_path / "fake-gh"
-        path.write_text("#!/usr/bin/env bash\n" f'printf "%s\\n" "$*" >> {calls}\n' f"{body}\n")
-        path.chmod(0o755)
+        stand_in(path, "#!/usr/bin/env bash\n" f'printf "%s\\n" "$*" >> {calls}\n' f"{body}\n")
         return path
 
     make.calls = calls  # type: ignore[attr-defined]
@@ -118,8 +117,7 @@ def _reject_every_push(bare):
     reaches the network and is SEEN, then refused — the shape REQ-2/
     REQ-3/REQ-6 need, unlike an origin that is simply unreachable."""
     hook = bare / "hooks" / "pre-receive"
-    hook.write_text("#!/usr/bin/env bash\nexit 1\n")
-    hook.chmod(0o755)
+    stand_in(hook, "#!/usr/bin/env bash\nexit 1\n")
 
 
 @pytest.fixture
@@ -146,14 +144,14 @@ def specs_origin_rejecting_the_second_push(workspace, tmp_path):
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
     counter = tmp_path / "specs-origin-push-count"
     hook = bare / "hooks" / "pre-receive"
-    hook.write_text(
+    stand_in(
+        hook,
         "#!/usr/bin/env bash\n"
         f'n=0; [ -f "{counter}" ] && n="$(cat "{counter}")"\n'
         f'n=$((n + 1)); echo "$n" > "{counter}"\n'
         '[ "$n" -ge 2 ] && exit 1\n'
         "exit 0\n"
     )
-    hook.chmod(0o755)
     git(workspace["specs"], "remote", "add", "origin", str(bare))
     return bare
 

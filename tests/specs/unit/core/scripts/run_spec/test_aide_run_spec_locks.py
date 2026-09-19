@@ -13,7 +13,7 @@ import signal
 import subprocess
 import threading
 import time
-from ..conftest import READ_SPECS, git, run
+from ..conftest import READ_SPECS, git, run, stand_in
 from .run_spec_fakes import make_named_writing_claude, make_worktree_add_gate
 from .run_spec_invoking import wait_until
 from .run_spec_origins import fetchable_origin
@@ -53,8 +53,7 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
             + f"echo '{json.dumps(RESULT_OK)}'\n"
         )
         claude = tmp_path / f"fake-claude-{name}"
-        claude.write_text("#!/usr/bin/env bash\n" + body)
-        claude.chmod(0o755)
+        stand_in(claude, "#!/usr/bin/env bash\n" + body)
         procs[name] = subprocess.Popen(
             [
                 str(runner),

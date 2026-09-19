@@ -143,8 +143,7 @@ STOP_DEADLINE_SEC = "15"
 FAKE_LAUNCHER = '#!/usr/bin/env bash\nexec bash "$0.body" "$@"\n'
 
 
-@pytest.fixture(scope="session")
-def fake_launcher():
+def fake_launcher_path():
     """The ONE executable every stand-in CLI runs through. macOS checks a
     new executable the first time it starts — for minutes on a busy
     machine — and a fresh script per test put hundreds of files in that
@@ -161,6 +160,17 @@ def fake_launcher():
         staged.chmod(0o755)
         os.replace(staged, path)
     return path
+
+
+@pytest.fixture(scope="session")
+def fake_launcher():
+    return fake_launcher_path()
+
+
+def stand_in(path, text):
+    """`path` becomes an executable running `text`, through the one
+    launcher: no new file for macOS to check."""
+    return _stand_in(path, fake_launcher_path(), text)
 
 
 def _stand_in(path, launcher, text):
