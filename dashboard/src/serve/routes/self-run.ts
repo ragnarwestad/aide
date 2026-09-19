@@ -317,6 +317,25 @@ export function readFixtures(dir: string): RoundSpec[] {
     });
 }
 
+/** One fixture's create request, with what New spec posts by default:
+ *  acceptance ticking required. A create request that leaves it out is
+ *  "not required", and a fixture about an unticked row then shows no
+ *  hold to tick. */
+export function fixtureCreateBody(
+  project: string,
+  spec: RoundSpec,
+  description: string,
+  dependsOn: string[],
+): Record<string, unknown> {
+  return {
+    project,
+    title: spec.title,
+    description,
+    acceptanceRequired: true,
+    ...(dependsOn.length ? { dependsOn } : {}),
+  };
+}
+
 /** Through the board's own HTTP API, the same two calls the script made
  *  — so a fixture reaches the queue exactly as a spec made on the New
  *  spec page does, refusals included. */
@@ -342,12 +361,7 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
       return made;
     });
     const description = readFileSync(join(dir, `${spec.slug}.md`), "utf8");
-    const created = await api("/api/queue/create", {
-      project,
-      title: spec.title,
-      description,
-      ...(dependsOn.length ? { dependsOn } : {}),
-    });
+    const created = await api("/api/queue/create", fixtureCreateBody(project, spec, description, dependsOn));
     const jobId = (created.job as { id?: string } | undefined)?.id;
     if (!jobId) throw new Error(`create gave no job for ${spec.slug}`);
     // A create job's OWN specFolder starts as a provisional "new-<8 hex>"
