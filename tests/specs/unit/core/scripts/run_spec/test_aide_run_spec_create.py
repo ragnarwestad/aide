@@ -221,14 +221,15 @@ def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, wo
 
 
 def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace, fake_claude):
-    """A refused aide-create-spec call (here: a malformed AC line) must
+    """A refused aide-create-spec call (here: an AC line too malformed to
+    rewrite) must
     surface as ok:false, not be swallowed as a mechanical success — and
     as the script's refusal, not the AI's failure: no AI ran, so none is
     named for the reader to go and check."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(
         runner, workspace, claude,
-        description="- AC-1: forgot the bold markers",
+        description="- AC-**1**: bold in the wrong place",
         no_ai_formulate=True,
     )
     assert out["ok"] is False, out
