@@ -16,7 +16,14 @@ export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 # A tool the installer could not declare (spec 334) used to vanish into
 # /dev/null on a headless merge nobody is watching. It now reaches a log
 # file the dashboard's own shell.ts reads a warning banner from.
-LOG="${AIDE_INSTALL_LOG:-$HOME/Library/Logs/aide-dashboard/install.log}"
+# The same file header-notices.ts reads: macOS's log directory, and
+# beside the dashboard's state everywhere else.
+if [ "$(uname -s)" = Darwin ]; then
+  LOG_DEFAULT="$HOME/Library/Logs/aide-dashboard/install.log"
+else
+  LOG_DEFAULT="$HOME/.aide/dashboard/logs/install.log"
+fi
+LOG="${AIDE_INSTALL_LOG:-$LOG_DEFAULT}"
 mkdir -p "$(dirname "$LOG")"
 {
   echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"

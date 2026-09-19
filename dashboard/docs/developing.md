@@ -3,7 +3,8 @@
 The commands for working on the dashboard itself: its tests, and running it from a checkout. Installing it for use is
 in the [README](../README.md#installation).
 
-`dashboard/` is bun and TypeScript, with commands of its own, run from inside it:
+`dashboard/` is bun and TypeScript, with commands of its own, run from inside it. They need `make`, which macOS has
+and a minimal Linux may not (`sudo apt install make` on Debian and Ubuntu):
 
 ```bash
 make test                           # tsc + bun test (single-run)

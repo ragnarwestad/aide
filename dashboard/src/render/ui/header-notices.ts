@@ -12,7 +12,15 @@ import { t, type Language } from "../../i18n";
 import { toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 
-const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
+/** Where deploy/install-after-merge.sh writes its log: macOS's own log
+ *  directory, and beside the dashboard's state everywhere else. */
+export function defaultInstallLog(home: string, platform: string): string {
+  return platform === "darwin"
+    ? join(home, "Library/Logs/aide-dashboard/install.log")
+    : join(home, ".aide/dashboard/logs/install.log");
+}
+
+const DEFAULT_INSTALL_LOG = () => defaultInstallLog(process.env.HOME ?? "", process.platform);
 
 // A tool the installer could not declare (spec 334) is otherwise
 // visible only in a log file nobody has a reason to open — read here so
