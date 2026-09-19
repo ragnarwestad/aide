@@ -71,7 +71,7 @@ class TestUninstallAllRemovesSharedSkills:
         foreign.mkdir(parents=True)
         (foreign / "SKILL.md").write_text("not ours")
 
-        result = _run(workspace_root, "uninstall-all.sh", home=tmp_path, stdin="y\ny\ny\n")
+        result = _run(workspace_root, "uninstall-all.sh", home=tmp_path, stdin="y\ny\ny\ny\n")
         assert result.returncode == 0, result.stdout + result.stderr
         for name in _skill_names(workspace_root):
             assert not (tmp_path / ".agents" / "skills" / name).exists(), (

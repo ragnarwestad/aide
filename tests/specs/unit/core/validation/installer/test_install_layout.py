@@ -187,7 +187,7 @@ class TestInstallersWireUpShellPath:
 
         result = subprocess.run(
             [str(workspace_root / "uninstall-all.sh")],
-            input="y\ny\ny\n",
+            input="y\ny\ny\ny\n",
             capture_output=True,
             text=True,
             env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path)},
@@ -197,6 +197,21 @@ class TestInstallersWireUpShellPath:
         for name in (".zshenv", ".bashrc"):
             assert PATH_BLOCK_MARKER not in (tmp_path / name).read_text(), \
                 f"uninstall-all.sh left the PATH block in ~/{name}"
+
+
+class TestEveryToolIsInstalledAndUninstalled:
+    def test_install_all_and_uninstall_all_cover_every_implementation(self, workspace_root):
+        """An implementation left out of uninstall-all.sh keeps its files
+        after a full uninstall, with nothing saying so."""
+        implementations = sorted(
+            path.parent.name
+            for path in (workspace_root / "implementations").glob("*/uninstall.sh")
+        )
+        for script in ("install-all.sh", "uninstall-all.sh"):
+            text = (workspace_root / script).read_text()
+            loop = re.search(r"^for ai in (.+); do$", text, re.MULTILINE)
+            assert loop, f"{script} has no `for ai in ...` loop"
+            assert sorted(loop.group(1).split()) == implementations, script
 
 
 class TestInstallReplacesByRename:

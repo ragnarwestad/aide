@@ -15,7 +15,7 @@ echo "🗑️  aide — uninstalling all AI tools"
 echo "==============================================="
 
 status=0
-for ai in claude-code copilot codex; do
+for ai in claude-code copilot codex opencode; do
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/implementations/$ai/uninstall.sh"; then
