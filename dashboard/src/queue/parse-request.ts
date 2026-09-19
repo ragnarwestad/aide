@@ -337,6 +337,12 @@ export function parseCreateRequest(
   const r = raw as Record<string, unknown>;
   const { defaults } = opts;
 
+  // No project named at all: an untouched form posts `project=`, a raw
+  // request may leave the key out. Said in its own words, ahead of "invalid
+  // project", which is for a name that is present and wrong.
+  if (r.project === undefined || r.project === null || r.project === "") {
+    return { ok: false, error: fixInTheForm("project is required") };
+  }
   if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: invalidRequest("invalid project") };
   if (!opts.allow(r.project)) return { ok: false, error: invalidRequest(`unknown or not-allowed project: ${r.project}`) };
 

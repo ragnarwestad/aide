@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import {
   renderNewSpecPage,
   renderSpecsPage,
@@ -278,6 +279,61 @@ describe("POST /api/queue/create (spec 93)", () => {
       });
       expect(res.status).toBe(400);
     }
+  });
+
+  // The queue mirror is only written once a job is inserted, so a
+  // refusal leaves it missing or empty.
+  const queued = (dir: string): unknown[] => {
+    const file = join(dir, "queue.json");
+    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as unknown[]) : [];
+  };
+
+  test("a request naming no project is refused with 400 and queues nothing (AC-4)", async () => {
+    const { base, dir } = start();
+    const { project: _named, ...noKey } = CREATE;
+    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
+      const res = await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: string }).error).toContain("project is required");
+    }
+    expect(queued(dir)).toEqual([]);
+  });
+
+  test("the form posted with the placeholder chosen goes back to /new and says a project is required (AC-2)", async () => {
+    const { base, dir } = start();
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ project: "", title: "A new spec", description: "Do the thing" }),
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/new?error=")).toBe(true);
+    expect(new URL(location, base).searchParams.get("error")).toContain("project is required");
+    const page = await (await fetch(`${base}${location}`)).text();
+    expect(page.toLowerCase()).toContain("project is required");
+    expect(queued(dir)).toEqual([]);
+  });
+
+  test("the same form with a project chosen still queues the spec there (AC-3)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams(CREATE).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { project: string; createTitle: string } };
+    expect(body.job.project).toBe("aide");
+    expect(body.job.createTitle).toBe("A new spec");
   });
 
   test("it answers POST only", async () => {

@@ -340,7 +340,10 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     `<span class="frow">` +
     field(
       "Project",
+      // Nothing is chosen for the reader: the first project in the list was
+      // where every untouched form used to land.
       `<select name="project">` +
+        `<option value="" selected>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +

@@ -57,6 +57,21 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).not.toContain('href="/new"');
   });
 
+  // Nothing is chosen for the reader: the first project in the list was
+  // where every untouched form used to land.
+  test("the Project field starts on \"Choose a project…\" with nothing else selected (AC-1)", () => {
+    for (const createProjects of [["aide", "aide-dashboard"], ["aide"]]) {
+      const html = newPage({ createProjects });
+      const select = html.slice(
+        html.indexOf('<select name="project">'),
+        html.indexOf("</select>", html.indexOf('<select name="project">')),
+      );
+      expect(select.startsWith('<select name="project"><option value="" selected>Choose a project…</option>')).toBe(true);
+      expect(select.match(/selected/g)!.length).toBe(1);
+      for (const p of createProjects) expect(select).toContain(`<option value="${p}">${p}</option>`);
+    }
+  });
+
   // Criterion 3: the whole field order, and the per-project scoping
   // the chips carry so the browser can narrow them. Reworked 2026-08-19:
   // Project and Depends on share the first row, Title has a line of its

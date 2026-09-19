@@ -62,6 +62,16 @@ describe("parseCreateRequest", () => {
     expect(r.ok).toBe(false);
   });
 
+  test("a request that names no project is refused, in words that say one is required (AC-4)", () => {
+    const { project: _named, ...noKey } = CREATE;
+    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
+      const r = parseCreateRequest(body, { allow, defaults: DEFAULTS });
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.error).toContain("project is required");
+    }
+  });
+
   test("the title and the description are required and bounded", () => {
     for (const bad of [
       { ...CREATE, title: "" },
