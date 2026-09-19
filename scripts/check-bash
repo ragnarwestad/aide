@@ -32,6 +32,7 @@ shellcheck --severity=warning \
   core/scripts/lib/*.sh \
   dashboard/install.sh \
   dashboard/deploy/check-prerequisites.sh \
+  dashboard/deploy/repair-serve-plist.sh \
   dashboard/test/round/run \
   dashboard/test/round/claude-stub \
   scripts/check-bash

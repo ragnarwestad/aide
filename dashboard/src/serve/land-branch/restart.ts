@@ -33,15 +33,36 @@ export function createLaunchdRestart(): RestartHook {
       return (await proc.exited) === 0;
     },
     fire() {
-      // The 1s sleep mirrors what the script used to give itself: room
-      // for this call's own stdout/stderr to flush before the kill.
+      // Detached, in a process group of its own: the bootout takes this
+      // process's group down with the job, and the bootstrap after it
+      // has to outlive that.
       Bun.spawn({
-        cmd: ["sh", "-c", `sleep 1; launchctl kickstart -k gui/$(id -u)/${LABEL()}`],
+        cmd: ["sh", "-c", reloadScript(LABEL())],
         stdout: "ignore",
         stderr: "ignore",
-      });
+        detached: true,
+      }).unref();
     },
   };
+}
+
+/** Takes the job down and loads it again from its plist, rather than
+ *  `kickstart -k`, which restarts it on the arguments it was loaded with:
+ *  an install that drops an option from the plist (repair-serve-plist.sh)
+ *  only takes effect this way. The 1s sleep gives the caller's own output
+ *  room to flush first; the wait for the label to go is the one
+ *  `make install-serve` has, since a bootstrap into that gap fails and
+ *  leaves nothing running; and the bootstrap is tried again, since a
+ *  failed one leaves the dashboard down. */
+export function reloadScript(label: string): string {
+  const job = `gui/$(id -u)/${label}`;
+  const plist = `"$HOME/Library/LaunchAgents/${label}.plist"`;
+  return [
+    "sleep 1",
+    `launchctl bootout ${job}`,
+    `for i in $(seq 1 50); do launchctl print ${job} >/dev/null 2>&1 || break; sleep 0.2; done`,
+    `for i in 1 2 3 4 5; do launchctl bootstrap gui/$(id -u) ${plist} && break; sleep 2; done`,
+  ].join("; ");
 }
 
 /** Wait for every in-flight merge to clear before restarting — bounded,

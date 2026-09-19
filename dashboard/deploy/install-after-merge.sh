@@ -33,6 +33,14 @@ mkdir -p "$(dirname "$LOG")"
   # installer already refreshes.
   ./implementations/opencode/install.sh
 } >> "$LOG" 2>&1
+PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
+ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
+# The value the installed launchd job passes after <flag>, or nothing.
+plist_arg() {
+  [ -f "$PLIST" ] || return 0
+  /usr/libexec/PlistBuddy -c "Print :ProgramArguments" "$PLIST" 2>/dev/null |
+    sed -e 's/^ *//' | awk -v f="$1" 'prev == f { print; exit } { prev = $0 }'
+}
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then
   ( cd dashboard && "$BUN" install --silent )
@@ -44,9 +52,9 @@ if [ -x "$BUN" ]; then
   # The static pages (overview, about, one per project) share the nav
   # with the served ones and are files on disk: a merge that changes the
   # shell leaves them stale until regenerated. Same root and site dir
-  # the served instance uses.
-  SITE="${AIDE_DASH_SITE:-$HOME/aide-dashboard/site}"
-  ROOT="${AIDE_DASH_ROOT:-$HOME/develop}"
+  # the served instance uses, read off its own launchd job.
+  SITE="${AIDE_DASH_SITE:-$(plist_arg --site)}"
+  ROOT="${AIDE_DASH_ROOT:-$(plist_arg --root)}"
   if [ -d "$SITE" ] && [ -d "$ROOT" ]; then
     ( cd dashboard && "$BUN" run src/main.ts generate --root "$ROOT" --out "$SITE" >/dev/null 2>&1 ) || true
   fi
@@ -55,16 +63,11 @@ fi
 # The launchd job's arguments are set once, when the service is
 # installed, and are not touched by a merge — so code that DROPS an
 # option leaves the service passing one the new binary refuses, and the
-# board dies at its next restart rather than at the merge that caused it.
-# Checked here, where both halves are on disk, and written to the log the
-# board reads its banner from.
-PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
-ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
+# board dies at its next restart. Dropped here, where both halves are on
+# disk; the restart that follows reloads the job from this file.
 if [ -f "$PLIST" ] && [ -f "$ARGS_SRC" ]; then
   {
-    grep -o -- '--[a-z][a-z-]*' "$PLIST" | sort -u | while read -r flag; do
-      grep -q -- "\"$flag\"" "$ARGS_SRC" || \
-        echo "⚠️ [aide serve] the launchd job passes $flag, which this build no longer accepts — the board will not start after a restart until it is removed from $PLIST"
-    done
+    bash dashboard/deploy/repair-serve-plist.sh "$PLIST" "$ARGS_SRC" ||
+      echo "⚠️ [aide serve] could not drop the options this build no longer accepts from $PLIST — the board will not start after a restart until they are removed"
   } >> "$LOG" 2>&1
 fi

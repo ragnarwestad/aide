@@ -6,7 +6,7 @@
 //
 // Two halves guard it: the Makefile's own argument list, checked here
 // against what the parser accepts, and the INSTALLED job's arguments,
-// checked by deploy/install-after-merge.sh on the serving host — the
+// repaired by deploy/install-after-merge.sh on the serving host — the
 // only place the real service's arguments can be seen.
 
 import { describe, expect, test } from "bun:test";
@@ -34,11 +34,12 @@ describe("the serve job passes only options the code accepts", () => {
   });
 
   // The installed job is machine state, so no test can read it. The
-  // install step runs where it can, and says so in the log the board
-  // draws its banner from.
-  test("the install step checks the installed job and warns in the log", () => {
+  // install step repairs it where it can (repair-serve-plist.test.ts),
+  // and says so in the log the board draws its banner from when it cannot.
+  test("the install step repairs the installed job, and warns in the log when it cannot", () => {
     expect(INSTALL).toContain("LaunchAgents/com.aide-dashboard.serve.plist");
     expect(INSTALL).toContain("parse-args.ts");
+    expect(INSTALL).toContain("repair-serve-plist.sh");
     expect(INSTALL).toContain("⚠️ [aide serve]");
   });
 
