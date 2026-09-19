@@ -180,33 +180,17 @@ def _archiving_claude(fake_claude, fix_on_retry=True):
     )
 
 
-def test_an_archive_whose_merge_with_main_turns_the_suite_red_gets_it_back_and_fixes_it(
-    runner, workspace, fake_claude
-):
-    """Main moved after implement's green run; the archive's pull merges
-    it in and the suite is red on the merged result. The failing lines go
-    back to the archive session, it fixes them, and the step ends
-    completed with the runner's green record on the ARCHIVED folder."""
+def test_an_archive_runs_no_suite_even_when_its_pull_merged_main(runner, workspace, fake_claude):
+    """The landing runs the suite once, on exactly what main is about to
+    become. A run here too was the same suite two and three times per
+    archive — 498's archive took longer than its implement (2026-09-19)."""
     with_status(workspace, ["create", "analyze", "implement"])
-    _project_with_test_cmd(workspace, "test ! -f breaks.txt")
+    _project_with_test_cmd(workspace, "false")
     _base_moved_under_the_branch(workspace)
     rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude), command="archive")
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
-    calls = fake_claude.calls.read_text().splitlines()
-    assert len(calls) == 2, calls
-    assert "--resume" in calls[1], calls[1]
-    record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:archive/{workspace['folder']}/test-run.json"))
-    assert record["exitCode"] == 0, record
-
-
-def test_an_archive_still_red_after_the_rounds_ends_tests_red(runner, workspace, fake_claude):
-    with_status(workspace, ["create", "analyze", "implement"])
-    _project_with_test_cmd(workspace, "test ! -f breaks.txt")
-    _base_moved_under_the_branch(workspace)
-    rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude, fix_on_retry=False), command="archive")
-    assert out["terminalReason"] == "tests-red" and out["ok"] is False, out
-    assert len(fake_claude.calls.read_text().splitlines()) == 3
+    assert len(fake_claude.calls.read_text().splitlines()) == 1
 
 
 def test_an_archive_whose_base_did_not_move_runs_no_suite(runner, workspace, fake_claude):

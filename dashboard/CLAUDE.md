@@ -44,9 +44,10 @@ should read this file by hand.
   with the failing lines as detail, and Implement offered again — unlike
   the landing's `tests-red`, which STOPS the job. `run_model_turn`
   (`run-spec-spec-paths.sh`) is the one turn; every turn of a step
-  appends to the same transcript. An `archive` whose pull MERGED main
-  into the branch (`base_merged_count`, `run-spec-worktree.sh`) ends the
-  same way, on the merged result; a fast-forward runs nothing. A green
+  appends to the same transcript. An `archive` runs no suite of its own,
+  merged with main or not: its landing runs the suite once, on exactly
+  what main is about to become, and that is the one run an archive
+  gets. A green
   `test-run.json` whose `tree` (`aide_tree_hash`, `_aide-spec-lib.sh`)
   is the delivered tree's, naming the resolved commands, IS the runner's
   run — the suite is not run again for it, before the first run or after
