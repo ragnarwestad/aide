@@ -59,7 +59,7 @@ describe("the deploy table says what the Makefile says", () => {
 
   test("the table covers the variables an operator overrides", () => {
     expect([...documented.keys()]).toContain("REMOTE_STATE");
-    expect([...documented.keys()]).toContain("TEST_PORTS");
+    expect([...documented.keys()]).toContain("BIND");
   });
 
   test.each([...documented.keys()].filter((name) => declared.has(name)))(

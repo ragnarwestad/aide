@@ -5,7 +5,7 @@ move it to another host or run the whole thing on one machine.
 
 ## Table of contents
 
-- [HTTPS, and the one address](#https-and-the-one-address)
+- [HTTPS from other devices, with Tailscale](#https-from-other-devices-with-tailscale)
 - [A proxy's own header](#a-proxys-own-header)
 - [Installing it as an app](#installing-it-as-an-app)
 - [On a second host](#on-a-second-host)
@@ -17,34 +17,35 @@ move it to another host or run the whole thing on one machine.
 
 ---
 
-## HTTPS, and the one address
+## HTTPS from other devices, with Tailscale
 
-The dashboard is reached at `https://<serving-host>.<tailnet>.ts.net/`, and only there. The Bun server binds `127.0.0.1`
-and a `tailscale serve`
-proxy terminates TLS in front of it, with a certificate Tailscale issues and renews itself. Nothing in the server does
-any of this — no certificate handling, no scheme awareness. It does check the `Host` of every request against its own
-names (see "Who may call it" in `running-specs.md`), and the proxy passes the client's `Host` on, so the Tailscale name
-is one of them; `allowedHosts` in `queue-config.json` names any other.
+The dashboard binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788`. Reaching it
+from a phone or another computer, and over HTTPS, is an add-on the install does not set up: a `tailscale serve` proxy
+on the serving host terminates TLS in front of it, with a certificate Tailscale issues and renews itself, at
+`https://<serving-host>.<tailnet>.ts.net/`. Nothing in the server does any of this — no certificate handling, no scheme
+awareness. It does check the `Host` of every request against its own names (see "Who may call it" in
+`running-specs.md`), and the proxy passes the client's `Host` on, so the Tailscale name is one of them;
+`allowedHosts` in `queue-config.json` names any other.
 
-`make install-serve` sets the proxy up, so it is not a step anybody has to remember:
+To add it, install [Tailscale](https://tailscale.com) on the serving host, enable **Serve** and **HTTPS Certificates**
+(under DNS) in the tailnet's admin console once, and run on the serving host:
 
 ```bash
 tailscale serve --bg --https 443 http://127.0.0.1:8788
+for p in 8801 8802 8803 8804 8805 8806; do tailscale serve --bg --https $p http://127.0.0.1:$p; done
 ```
 
-`--bg` persists the rule in tailscaled's own state, which is why this needs no launchd job of its own and is safe to
-re-run — the deploy issues it again on every install.
+The first line is the dashboard, the second the test servers' ports, so a test server started from the dashboard can
+be opened from another device. `--bg` keeps the rules in Tailscale's own state: they survive restarts and reinstalls,
+and are run once, not on every install. Use another port than 443 if the host already serves something there.
+`tailscale serve reset` removes them all.
 
-**`BIND` has to be `127.0.0.1`, and `install-serve` refuses anything else** when the serving host has tailscale on it.
-This is the one thing here with a measurement behind it: tailscaled will not proxy to the host's own
-tailnet address — pointed there it hangs for 75 seconds and answers 502. `0.0.0.0` would work for the proxy but would
-also open the dashboard on the house network, a door that does not exist today. Localhost closes the question. A host
-with no tailscale at all gets the plain deploy it always had, with a note saying so; only the wrong `BIND` is fatal,
-because that one fails silently.
+**Keep `BIND` at `127.0.0.1`.** Tailscale will not proxy to the host's own tailnet address — pointed there it hangs for
+75 seconds and answers 502 — and `0.0.0.0` would also open the dashboard on the local network.
 
-Two tailnet settings had to be enabled once, both in the admin console:
-**Serve**, and **HTTPS Certificates** under DNS. `TS_PORT` moves the proxy off 443 if the serving host needs that port
-for something else.
+A host that exposes some of the test servers' ports but not all is refused a test server on a port it left out, since
+no other device could reach it; a host that exposes none of them has not put the test servers behind Tailscale, and
+starts them as before.
 
 Why it matters beyond a nicer URL: a service worker needs a secure context, so installing the dashboard as an app on a
 phone or a desktop depends on it.
@@ -68,7 +69,7 @@ start-up and gates nothing:
 **Only honoured when `BIND` is `127.0.0.1` (or `::1`).** A header from anywhere else can be set by anyone who can
 reach the port, so a server bound to any other address — `0.0.0.0` included — refuses to start at all while
 `headerAuth` is set, with a message naming both the header and the offending bind address. This is the same
-loopback requirement "HTTPS, and the one address" above already puts on the whole deploy, so a serving host that
+loopback requirement "HTTPS from other devices, with Tailscale" above already puts on the whole deploy, so a serving host that
 already binds `127.0.0.1` needs nothing further to turn this on.
 
 **The match is exact-string, not a prefix or a domain suffix.** Some proxies carry more than the bare identifier — Google
@@ -156,7 +157,6 @@ All paths are relative to the serving host's own `$HOME`.
 |------------------|---------------------------------------|-------------------------------------------------------------------|
 | `MINI`           | — required                            | the ssh target                                                    |
 | `PORT`           | `8788`                                | port to serve on, behind the proxy                                |
-| `TS_PORT`        | `443`                                 | port tailscale serve terminates TLS on                            |
 | `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
 | `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
 | `REMOTE_STATE`   | `.aide/dashboard`                     | site, mirrors, queue state                                        |
@@ -164,8 +164,7 @@ All paths are relative to the serving host's own `$HOME`.
 | `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
 | `QUEUE_PROJECTS` | `aide`                                | the allowlist's first-boot seed                                   |
 | `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
-| `TEST_PORTS`     | `8801 8802 8803 8804 8805 8806`       | test boards' ports, each put behind tailscale serve               |
-| `BIND`           | `127.0.0.1`                           | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
+| `BIND`           | `127.0.0.1`                           | address to bind                                                   |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list

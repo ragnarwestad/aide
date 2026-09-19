@@ -1,17 +1,17 @@
 // Whether Tailscale currently exposes one of the test-server pool's
 // ports on this host (spec 491) — asked of `tailscale serve status
-// --json`, the live half of what `make install-serve`'s own TEST_PORTS
-// loop sets up once, at deploy time (Makefile). The pool can grow, or a
+// --json`, the live half of the rules docs/deploying.md has the user
+// set up by hand, once, when they want HTTPS. The pool can grow, or a
 // host's tailnet rules can be reset, without every host's `tailscale
 // serve` state growing or resetting with it — this is what
 // `startTestServer` asks before it hands a picked port to a new board,
 // so an unexposed port is refused instead of silently serving a board
 // nobody off this host can ever reach.
 
-// Matches the Makefile's own `TAILSCALE ?= /usr/local/bin/tailscale` —
-// not shared code (the two are hand-paired, like every other
-// bash/TypeScript pair `dashboard/CLAUDE.md` documents), but the same
-// default so a host that has not overridden either sees one answer.
+import { TEST_SERVER_PORTS } from "./lifecycle.ts";
+
+// Where the macOS app puts its CLI, for a server whose PATH has no
+// `tailscale` on it (launchd's does not).
 const DEFAULT_TAILSCALE_BIN = "/usr/local/bin/tailscale";
 
 function output(cmd: string[]): { ok: boolean; stdout: string } {
@@ -58,6 +58,19 @@ export async function portExposed(
   port: number,
   bin: string = Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN,
 ): Promise<boolean | undefined> {
-  const ports = exposedPorts(bin);
-  return ports === undefined ? undefined : ports.has(port);
+  return exposureOf(port, exposedPorts(bin));
+}
+
+/** Tailscale's answer for one pool port. A host that exposes none of the
+ *  pool has not put the test boards behind Tailscale at all — it is an
+ *  optional add-on (docs/deploying.md) — and reads as "cannot tell", so
+ *  its boards start as before; only a host that exposes some of the pool
+ *  is refused the ports it left out. */
+export function exposureOf(
+  port: number,
+  ports: Set<number> | undefined,
+  pool: readonly number[] = TEST_SERVER_PORTS,
+): boolean | undefined {
+  if (ports === undefined || !pool.some((p) => ports.has(p))) return undefined;
+  return ports.has(port);
 }

@@ -78,15 +78,15 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
 }
 
 /** The ports a test server may use. A board on a port nobody exposed is
- *  reachable from the serving host and nowhere else — `make install-serve`
- *  puts each port here behind `tailscale serve` (`TEST_PORTS` in the
- *  Makefile, which a test holds equal to this list), so a board that
- *  takes one is reachable the moment it is up.
+ *  reachable from the serving host and nowhere else — docs/deploying.md
+ *  has the user put each port here behind `tailscale serve` by hand (a
+ *  test holds its command equal to this list), so a board that takes one
+ *  is reachable the moment it is up.
  *
  *  Six: room for more than the three branches a reader could look at
- *  before, without needing a config surface — one more port here and
- *  in `TEST_PORTS`, and `make install-serve` run again, is what a
- *  different number costs. */
+ *  before, without needing a config surface — one more port here and in
+ *  that command, run again on the host, is what a different number
+ *  costs. */
 export const TEST_SERVER_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
 
 /** The first port in the pool that nothing is using. `reserved` is what

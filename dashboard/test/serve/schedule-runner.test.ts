@@ -82,7 +82,7 @@ describe("refreshSchedules (spec 259)", () => {
   // fresh install's own aide checkout — still gets its entries fired.
   test("a due entry fires in an allowed project with no specs", async () => {
     const { base, dir } = harness.start({
-      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
+      extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
     });
     mkdirSync(join(dir, "root", "fresh", ".aide"), { recursive: true });
     writeSchedule(dir, "fresh", NIGHTLY.replace("name: aide", "name: fresh"));

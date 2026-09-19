@@ -20,8 +20,8 @@ Under the hood: it scans a root for `.aide/project.yaml` manifests, resolves eac
 root, parses spec progress/phase from `4-status.md` files, and renders a small static site — an
 overview page plus one page per project, all sharing a left-column nav. Generated where the repos
 live and served by a small Bun server that also receives live aide-run events; that server listens
-on localhost, and a `tailscale serve` proxy puts HTTPS in front of it
-(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Generator and
+on localhost, and a `tailscale serve` proxy can put HTTPS in front of it
+(see [HTTPS from other devices, with Tailscale](docs/deploying.md#https-from-other-devices-with-tailscale)). Generator and
 server can run on the same machine or on two — no host is named anywhere in this repo.
 
 ## How it's used
@@ -47,9 +47,9 @@ The machine that serves the dashboard needs, before it is installed:
   and bun, jq, gh, pandoc and md-to-pdf through mise.
 - **An AI CLI, signed in**: run `claude` once and sign in. Codex, OpenCode or Copilot work too.
 
-Optional: [tailscale](https://tailscale.com), for HTTPS and for reaching the dashboard from another device
-(see [HTTPS, and the one address](docs/deploying.md#https-and-the-one-address)). Without it the dashboard answers on
-this machine alone, at `http://127.0.0.1:8788`.
+The dashboard then answers on that machine alone, at `http://127.0.0.1:8788`. Reaching it from a phone or another
+computer, over HTTPS, is an add-on you set up yourself with Tailscale:
+see [HTTPS from other devices, with Tailscale](docs/deploying.md#https-from-other-devices-with-tailscale).
 
 Then install it, on that machine or on another one over ssh:
 

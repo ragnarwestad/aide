@@ -5,7 +5,7 @@
 // change anything there.
 //
 // Asserted against `make -n`, the real recipe expansion, like
-// `tailscale-serve.test.ts`.
+// `install-serve-paths.test.ts`.
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -52,6 +52,34 @@ describe("install-local is install-serve on this machine", () => {
     expect(recipe).toContain("git -C .aide/dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("is still loaded after 10s");
     expect(recipe).toContain("launchctl bootstrap gui/$(id -u) Library/LaunchAgents/com.aide-dashboard.serve.plist");
+  });
+});
+
+// HTTPS through Tailscale is an add-on the user sets up by hand
+// (docs/deploying.md); an install never changes a machine's tailnet.
+describe("neither install touches Tailscale", () => {
+  test.each([["install-serve", ["MINI=example-host"]], ["install-local", []]])("%s", (target, vars) => {
+    expect(dryRun(target, ...vars).toLowerCase()).not.toContain("tailscale");
+  });
+});
+
+describe("install-serve gives a fresh host a projects root", () => {
+  test("with no ROOT, the directory of links is made and the aide checkout linked into it", () => {
+    const recipe = dryRun("install-serve", "MINI=example-host");
+
+    expect(recipe).toContain('--root "$home/.aide/dashboard/projects"');
+    expect(recipe).toContain('ln -s "$HOME/.aide/dashboard/checkouts/aide/code" .aide/dashboard/projects/aide');
+  });
+
+  test("a ROOT that is set is passed as it is, and nothing is linked", () => {
+    const recipe = dryRun("install-serve", "MINI=example-host", "ROOT=/srv/projects");
+
+    expect(recipe).toContain('--root "/srv/projects"');
+    expect(recipe).not.toContain("ln -s");
+  });
+
+  test("the server binds localhost unless told otherwise", () => {
+    expect(dryRun("install-serve", "MINI=example-host")).toContain('--bind "127.0.0.1"');
   });
 });
 

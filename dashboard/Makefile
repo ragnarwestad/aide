@@ -54,28 +54,6 @@ publish: generate
 	deploy/rsync-publish.sh
 
 PORT ?= 8788
-# Where `tailscale serve` terminates TLS in front of that port. 443 gives
-# an address with no port at all; a host already using 443 for something
-# else sets this instead. A variable rather than a literal because every
-# other network value in install-serve is one.
-TS_PORT ?= 443
-# WHERE tailscale is, not whether the shell can find it. `ssh host 'cmd'`
-# runs a NON-INTERACTIVE shell, which on macOS reads none of the login
-# files that put /usr/local/bin on PATH — so `command -v tailscale` said
-# "no" on a host that has it, the guard below took its absent-branch, and
-# `install-serve` reported the plain deploy while quietly setting up no
-# TLS at all (measured 2026-08-22, one deploy after spec 172 landed). The
-# same trap caught `tmux` and `claude` over ssh the day before. A path
-# rather than a lookup, and a variable so a host that keeps it elsewhere
-# can say so.
-TAILSCALE ?= /usr/local/bin/tailscale
-# The test boards' ports, put behind `tailscale serve` beside the main
-# address so a board started from the dashboard is reachable from another
-# machine. Must match TEST_SERVER_PORTS in
-# src/serve/test-servers/lifecycle.ts — test/deploy/tailscale-serve.test.ts
-# reads both.
-TEST_PORTS ?= 8801 8802 8803 8804 8805 8806
-
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.
 # ROOT is optional — serve.ts only needs it to build the project nav,
 # and a built-in default would name someone's checkout location.
@@ -117,10 +95,9 @@ LABEL ?= com.aide-dashboard.serve
 # from, and is ignored once that file has a `projects` array. Changing it
 # here does not change the allowlist on a host that has one.
 QUEUE_PROJECTS ?= aide
-# Localhost only: the server answers on this machine, and tailscale serve
-# (below) is the one way in from anywhere else. Set it to 0.0.0.0 to open
-# the dashboard on the local network, which install-serve then refuses to
-# put behind tailscale.
+# Localhost only: the server answers on this machine alone. HTTPS and
+# access from other devices are an add-on set up by hand
+# (docs/deploying.md, "HTTPS from other devices, with Tailscale").
 BIND ?= 127.0.0.1
 REPO_URL := $(shell git config --get remote.origin.url)
 # How install-serve reaches the host: a shell there, started in its
@@ -193,34 +170,6 @@ install-serve: require-host
 			exit 1; \
 		fi; \
 		launchctl bootstrap gui/$$(id -u) Library/LaunchAgents/$(LABEL).plist'
-	@# Put TLS in front of the server (spec 172). `--bg` persists the rule
-	@# in tailscaled's own state, so this is a re-run-per-change step, not
-	@# a job of its own — which is why it belongs here rather than in
-	@# someone's memory. A host without tailscale keeps the plain deploy
-	@# it has always had; only a host WITH tailscale and the wrong BIND is
-	@# a failure, because that one is silently broken rather than absent.
-	@#
-	@# The BIND test is a make-level conditional, not a shell one: `make
-	@# -n` expands variables but never runs a shell, so a shell `if` would
-	@# leave both branches in the dry run and the guard would be untestable.
-ifeq ($(BIND),127.0.0.1)
-	@if $(ON_HOST) 'test -x $(TAILSCALE)'; then \
-		$(ON_HOST) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT) && \
-			for p in $(TEST_PORTS); do $(TAILSCALE) serve --bg --https $$p http://127.0.0.1:$$p; done'; \
-	else \
-		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
-	fi
-else
-	@if $(ON_HOST) 'test -x $(TAILSCALE)'; then \
-		echo "tailscale is at $(TAILSCALE) on $(MINI), but BIND is '$(BIND)', not 127.0.0.1 —" >&2; \
-		echo "tailscaled will not proxy to the host's own tailnet address" >&2; \
-		echo "(measured 2026-08-21: a 75s hang, then a 502)." >&2; \
-		echo "Set BIND=127.0.0.1 in .env.deploy and run this again." >&2; \
-		exit 1; \
-	else \
-		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
-	fi
-endif
 
 # Update an already-installed server: pull, deps, restart.
 deploy-serve: install-serve
