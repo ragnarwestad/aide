@@ -83,6 +83,10 @@ for tool in mise node jq bun gh claude aide-run-spec aide-create-spec; do
 done
 check "Claude Code skills" test -f ~/.claude/skills/aide-create/SKILL.md
 check "shared skills" test -f ~/.agents/skills/aide-create/SKILL.md
+# The rest of this script runs with the PATH a new terminal has, since
+# the tools mise installed are on no other.
+PATH="$(bash -i -c 'printf %s "$PATH"' 2>/dev/null)"
+check "jq on this script's own PATH" command -v jq
 
 echo "== the dashboard"
 git init -q --bare ~/origin/scratch.git
@@ -114,12 +118,13 @@ check "the queue answers" api /api/queue
 
 if [ "$RUN_SPEC" = yes ]; then
   echo "== one spec through the dashboard, create to archive"
-  job="$(api /api/queue/create -H 'Content-Type: application/json' -d '{
+  curl -s http://127.0.0.1:8788/api/queue/create -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
     "project": "scratch", "title": "greet.sh greets by name",
     "description": "greet.sh always prints hello. It should take an optional name: sh greet.sh Ada prints hello, Ada, and with no name it still prints hello.",
-    "steps": ["analyze", "implement", "archive"]}' | jq -r .job.id)"
-  if [ -z "$job" ] || [ "$job" = null ]; then
-    echo "  FAILED  the queue refused the job"; fail=1
+    "steps": ["analyze", "implement", "archive"]}' > ~/queued.json
+  job="$(jq -r '.job.id // empty' ~/queued.json 2>/dev/null)"
+  if [ -z "$job" ]; then
+    echo "  FAILED  the queue refused the job: $(cat ~/queued.json)"; fail=1
   else
     # Every step's own time limit together, with room for the landings.
     for _ in $(seq 1 720); do
