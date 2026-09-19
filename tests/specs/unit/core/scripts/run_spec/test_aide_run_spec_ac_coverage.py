@@ -41,6 +41,8 @@ def _claude_writing_named_tests(fake_claude):
         "printf 'test(\"the total shows on a phone (AC-1)\", () => {});\\n' > test/new.test.ts\n"
         "printf 'def test_it_fits_a_phone_ac_3():\\n    pass\\n' > tests/test_fit.py\n"
         "printf '// AC-2 is handled here\\n' > src/total.ts\n"
+        "printf '// The counter on the Totals tab (AC-2), run against fakes\\n' >> test/new.test.ts\n"
+        "printf '    # keeps counting after a restart (AC-2)\\n' >> tests/test_fit.py\n"
         f"echo '{json.dumps(RESULT_OK)}'"
     )
 
@@ -61,7 +63,8 @@ def test_a_completed_implement_records_the_tests_that_name_each_requirement(
         "the total shows on a phone (AC-1)",
     ]
     # Only lines the branch added: main's own AC-2 test is another
-    # spec's, and a code comment is not a test.
+    # spec's, and a comment is not a test — in a test file either: 501's
+    # row read "Tests: // The control on the Notifications tab (AC-1, AC-6)".
     assert acs["AC-2"] == []
     assert [t["file"] for t in acs["AC-3"]] == ["tests/test_fit.py"]
 
