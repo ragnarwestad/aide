@@ -140,14 +140,44 @@ push_with_retry() {
 # read by that same pass's own push loop, below; everything else this
 # function touches is a run-wide accumulator, declared above, so a
 # second call adds to what the first one found.
+# The pathspecs that keep a root's worktree links out of a commit. The
+# run's own list when it has one; read from the project again when it
+# does not — a Cancel mid-turn reached the commit without it once, and
+# committed the links (501, 2026-09-19).
+link_excludes_for() {
+  local root="$1" links="" entry
+  if [ -n "${git_add_excludes[*]:-}" ]; then
+    printf '%s\n' "${git_add_excludes[@]}"
+    return 0
+  fi
+  declare -f aide_manifest_get >/dev/null 2>&1 && links="$(aide_manifest_get worktreeLinks "$root")"
+  [ -n "$links" ] || { declare -f aide_config_get >/dev/null 2>&1 && links="$(aide_config_get AIDE_WORKTREE_LINKS "$root" 2>/dev/null)"; }
+  for entry in $links; do
+    printf '%s\n' ":(exclude,top)$entry"
+  done
+}
+
+# A commit some remote-tracking branch already holds is public: never
+# the step's own self-commit, whatever the run's recorded start says.
+# 501's Cancel amended main's last commit this way, message and all.
+commit_is_public() {
+  [ -n "$(git -C "$1" branch -r --contains "$2" 2>/dev/null)" ]
+}
+
 commit_and_push_roots() {
-  local i=0 root wt changed head_now amend_source=()
+  local i=0 root wt changed head_now amend_source=() excludes=() line
   for root in "${roots[@]}"; do
     wt="${work_roots[$i]}"
-    changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
+    excludes=()
+    while IFS= read -r line; do
+      [ -n "$line" ] && excludes+=("$line")
+    done <<EXCLUDES_EOF
+$(link_excludes_for "$root")
+EXCLUDES_EOF
+    changed="$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
     if [ "$changed" -gt 0 ]; then
-      changed_files_per_root[i]=$(( changed_files_per_root[i] + changed ))
-      git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
+      changed_files_per_root[i]=$(( ${changed_files_per_root[i]:-0} + changed ))
+      git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} >/dev/null 2>&1
       head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
       # Compared against ${head_after_per_root[$i]} — the tip as THIS
       # root stood when THIS call began — never ${head_before[$i]}, the
@@ -167,8 +197,9 @@ commit_and_push_roots() {
       # something committed BETWEEN entering this function and this
       # point — which for the very first call can only be the model's
       # own self-commit, exactly as before.
-      if [ -n "$head_now" ] && [ "$head_now" != "${head_after_per_root[$i]}" ] \
-         && ! commit_already_on_origin "$root" "$head_now"; then
+      if [ -n "$head_now" ] && [ "$head_now" != "${head_after_per_root[$i]:-}" ] \
+         && ! commit_already_on_origin "$root" "$head_now" \
+         && ! commit_is_public "$wt" "$head_now"; then
         # The step already committed part of its own work under a written
         # message (spec 146) — fold the leftover into THAT commit rather
         # than opening a second one under the generic subject. Only when
