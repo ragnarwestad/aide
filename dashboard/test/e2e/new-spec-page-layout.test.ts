@@ -199,3 +199,45 @@ test("AC-4: the AI-formulate switch's popover does not overlap the acceptance sw
   expect(rectsIntersect(popover, table)).toBe(false);
   expect(rectsIntersect(popover, acceptLabel)).toBe(false);
 });
+
+// Spec 508: the project select is `required`, so an empty project is
+// stopped by the browser at the field, before anything is sent.
+async function pressCreate(fill: { title: boolean }): Promise<{ requests: number; focused: string | null }> {
+  await withTimeout(page.goto(`${base}/new?live=0`), 10_000, "page.goto(/new)");
+  let requests = 0;
+  const count = (r: { url(): string }) => {
+    if (r.url().includes("/api/queue/create")) requests++;
+  };
+  page.on("request", count);
+  try {
+    if (fill.title) {
+      await page.locator('#new-spec-form input[name="title"]').fill("A title");
+      await page.locator('#new-spec-form textarea[name="description"]').fill("A description");
+    }
+    await page.locator("#new-spec-form").getByRole("button", { name: "Create" }).click();
+    await settle(page);
+    const focused = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute("name") ?? null);
+    return { requests, focused };
+  } finally {
+    page.off("request", count);
+  }
+}
+
+test("Create with no project chosen focuses the project field and sends nothing (AC-1)", async () => {
+  const { requests, focused } = await pressCreate({ title: true });
+  expect(focused).toBe("project");
+  expect(requests).toBe(0);
+  const message = await page.locator('#new-spec-form select[name="project"]').evaluate((el) => (el as HTMLSelectElement).validationMessage);
+  expect(message).not.toBe("");
+});
+
+test("with everything empty Create focuses the project field first (AC-2)", async () => {
+  const { focused } = await pressCreate({ title: false });
+  expect(focused).toBe("project");
+});
+
+test("Create with no project chosen leaves no \"project is required\" line at the bottom (AC-4)", async () => {
+  await pressCreate({ title: true });
+  expect(await page.locator("#new-spec-form .refused").innerText()).toBe("");
+  expect((await page.locator("body").innerText()).toLowerCase()).not.toContain("project is required");
+});

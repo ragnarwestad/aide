@@ -35,7 +35,8 @@ that ends either advances the job or ends it.
 Every spec that exists is a row, and every row runs. A spec that does not exist yet has no row — so above the table
 there is a "New spec"
 button, and it is a plain link to `/new`. That page is the form and nothing else: a project (the field starts on
-"Choose a project…", and Create is refused until one is chosen), what the spec
+"Choose a project…", and the browser stops Create at the field until one is chosen,
+as it does for a missing title or description; the server refuses a request with no project as well), what the spec
 builds on, a title, a description, a phase table, and two actions — Create, which posts to
 `POST /api/queue/create` and returns to the list, and Cancel, which returns having done nothing. The phase table has
 one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a model choice, drawn by
