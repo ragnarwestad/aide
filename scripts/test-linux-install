@@ -5,13 +5,16 @@
 # Builds scripts/linux-install-test/Dockerfile (Debian with git and curl,
 # nothing else), clones this checkout's committed HEAD inside it, runs
 # ./install-all.sh in an interactive shell, and checks that the tools,
-# scripts and skills are there. Changes not committed yet to tracked files
-# are applied to the clone, so a fix can be tried before it is committed.
+# scripts and skills are there. Then it makes a small project, dry-runs
+# aide-run-spec in it, and starts the dashboard with the service's own
+# arguments. Changes not committed yet to tracked files are applied to the
+# clone, so a fix can be tried before it is committed.
 #
-# With --run it then makes a small project and takes one spec through
-# create, analyze and implement with the skills, as a user does by hand.
-# That needs a Claude Code token made with `claude setup-token`, passed in
-# CLAUDE_CODE_OAUTH_TOKEN; the run costs a dollar or two.
+# With --run it also queues one spec on the dashboard and takes it from
+# create to archive, landing included, then checks main on the project's
+# origin. That needs a Claude Code token made with `claude setup-token`,
+# passed in CLAUDE_CODE_OAUTH_TOKEN; the run costs a few dollars and
+# takes 20-40 minutes.
 #
 # Usage:
 #   scripts/test-linux-install
@@ -23,7 +26,7 @@ run_spec=no
 case "${1:-}" in
   --run) run_spec=yes ;;
   "") ;;
-  -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   *) echo "unknown argument: $1" >&2; exit 2 ;;
 esac
 
@@ -81,37 +84,61 @@ done
 check "Claude Code skills" test -f ~/.claude/skills/aide-create/SKILL.md
 check "shared skills" test -f ~/.agents/skills/aide-create/SKILL.md
 
+echo "== the dashboard"
+git init -q --bare ~/origin/scratch.git
+git clone -q ~/origin/scratch.git ~/projects/scratch 2>/dev/null
+cd ~/projects/scratch
+mkdir -p .aide
+printf 'name: scratch\ndescription: A throwaway project\ntestCmd: "sh test.sh"\n' > .aide/project.yaml
+printf '#!/bin/sh\necho hello\n' > greet.sh
+printf '#!/bin/sh\n[ "$(sh greet.sh)" = "hello" ]\n' > test.sh
+git add -A && git commit -qm "Start the scratch project" && git push -q origin main
+check "aide-run-spec starts (dry run)" bash -i -c "aide-run-spec --project-dir ~/projects/scratch \
+  --command create --spec new --title Hi --description x --timeout-sec 60 \
+  --permission-mode acceptEdits --result-file /tmp/dry.json --push branch --pull --dry-run \
+  && jq -e .ok /tmp/dry.json"
+# The same arguments the installed service is started with, less launchd.
+state=~/.aide/dashboard
+mkdir -p "$state"
+cd ~/aide/dashboard
+bash -i -c "bun install --silent && bun run src/main.ts generate --out $state/site" > ~/dashboard.log 2>&1
+(bash -i -c "exec bun run src/serve/serve.ts serve --site $state/site --port 8788 \
+  --mirror $state/aide-runs.json --queue-mirror $state/aide-queue.json \
+  --result-dir $state/jobs --queue-config $state/queue-config.json \
+  --runner-bin $HOME/.local/bin/aide-run-spec --queue-projects scratch \
+  --root $HOME/projects --bind 127.0.0.1" >> ~/dashboard.log 2>&1 &)
+api() { curl -sf "http://127.0.0.1:8788$1" "${@:2}"; }
+for _ in $(seq 1 60); do api /api/queue >/dev/null && break; sleep 1; done
+check "the dashboard answers" api /
+check "the queue answers" api /api/queue
+
 if [ "$RUN_SPEC" = yes ]; then
-  echo "== one spec through the skills"
-  git init -q --bare ~/origin/scratch.git
-  git clone -q ~/origin/scratch.git ~/scratch 2>/dev/null
-  cd ~/scratch
-  mkdir -p .aide
-  printf 'name: scratch\ndescription: A throwaway project\ntestCmd: "sh test.sh"\n' > .aide/project.yaml
-  printf '#!/bin/sh\necho hello\n' > greet.sh
-  printf '#!/bin/sh\n[ "$(sh greet.sh)" = "hello" ]\n' > test.sh
-  git add -A && git commit -qm "Start the scratch project" && git push -q origin main
-  step() { # step <label> <prompt>
-    if bash -i -c "claude -p --dangerously-skip-permissions $(printf '%q' "$2")" > ~/"$1.log" 2>&1; then
-      echo "  ok      $1"
-    else
-      echo "  FAILED  $1 — last lines:"; tail -10 ~/"$1.log" | sed 's/^/          /'; fail=1
-    fi
-  }
-  step create '/aide-create "greet.sh greets by name" greet.sh always prints hello. It should take an optional name: sh greet.sh Ada prints hello, Ada, and with no name it still prints hello.'
-  folder="$(basename "$(ls -d specs/*greet* 2>/dev/null | head -1)")"
-  if [ -z "$folder" ]; then
-    echo "  MISSING the spec folder create should have made"; fail=1
+  echo "== one spec through the dashboard, create to archive"
+  job="$(api /api/queue/create -H 'Content-Type: application/json' -d '{
+    "project": "scratch", "title": "greet.sh greets by name",
+    "description": "greet.sh always prints hello. It should take an optional name: sh greet.sh Ada prints hello, Ada, and with no name it still prints hello.",
+    "steps": ["analyze", "implement", "archive"]}' | jq -r .job.id)"
+  if [ -z "$job" ] || [ "$job" = null ]; then
+    echo "  FAILED  the queue refused the job"; fail=1
   else
-    echo "  ok      spec folder $folder"
-    step analyze "/aide-analyze $folder"
-    step implement "/aide-implement $folder"
-    check "greet.sh greets by name" test "$(sh greet.sh Ada)" = "hello, Ada"
-    check "the project's own test" sh test.sh
+    # Every step's own time limit together, with room for the landings.
+    for _ in $(seq 1 720); do
+      api /api/queue | jq --arg id "$job" '.jobs[] | select(.id == $id)' > ~/job.json
+      case "$(jq -r .state ~/job.json)" in queued|running) sleep 5 ;; *) break ;; esac
+    done
+    jq -r '.results[]? | "  step    \(.step): \(.terminalReason)"' ~/job.json
+    check "the job is done" test "$(jq -r .state ~/job.json)" = done
+    check "every step completed" jq -e '[.results[].terminalReason] == ["completed","completed","completed","completed"]' ~/job.json
+    git clone -q ~/origin/scratch.git ~/landed
+    cd ~/landed
+    check "main has the spec under archive/" bash -c 'ls -d specs/archive/*greet*'
+    check "main's greet.sh greets by name" test "$(sh greet.sh Ada)" = "hello, Ada"
+    check "main passes the project's own test" sh test.sh
   fi
 fi
 
-cp ~/*.log /out/ 2>/dev/null
+cp ~/*.log ~/job.json /out/ 2>/dev/null
+cp -R ~/.aide/dashboard/jobs /out/ 2>/dev/null
 exit "$fail"
 INSIDE
 

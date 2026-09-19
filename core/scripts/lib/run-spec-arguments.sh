@@ -173,7 +173,9 @@ already_landed() {
   exit 0
 }
 
-is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && (( $(echo "$1 > 0" | bc -l) )); }
+# A decimal is above zero when any of its digits is not 0; bc is not on
+# every Linux.
+is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && [[ "$1" =~ [1-9] ]]; }
 
 [ -n "$project_dir" ] || refuse "missing --project-dir"
 [ -n "$command_name" ] || refuse "missing --command"

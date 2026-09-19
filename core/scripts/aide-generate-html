@@ -108,9 +108,12 @@ add_section "4-status.md" "Status"
 echo ""
 echo -e "${GREEN}📄 Converting to HTML...${NC}"
 
+# In-place edit that both BSD sed (macOS) and GNU sed (Linux) accept.
+sed_in_place() { sed -i.bak "$@" && rm -f "${*: -1}.bak"; }
+
 # Remove TODO prefix from main headings for better ID generation
 # e.g. "# 17-clean-up-console-log - Analysis" → "# Analysis"
-sed -i '' 's/^# .*- \(.*\)$/# \1/' "$TEMP_MD"
+sed_in_place 's/^# .*- \(.*\)$/# \1/' "$TEMP_MD"
 
 # REMOVED: We now want a 2-level TOC
 # sed -i '' '/^  - /d' "$TEMP_MD"
@@ -118,16 +121,16 @@ sed -i '' 's/^# .*- \(.*\)$/# \1/' "$TEMP_MD"
 # Replace checkboxes with emoji (not clickable)
 # - [ ] → regular bullet
 # - [x] → ✅
-sed -i '' 's/- \[ \] /- /g' "$TEMP_MD"
-sed -i '' 's/- \[x\] /- ✅ /g' "$TEMP_MD"
-sed -i '' 's/- \[X\] /- ✅ /g' "$TEMP_MD"
+sed_in_place 's/- \[ \] /- /g' "$TEMP_MD"
+sed_in_place 's/- \[x\] /- ✅ /g' "$TEMP_MD"
+sed_in_place 's/- \[X\] /- ✅ /g' "$TEMP_MD"
 
 # Fix incorrect code block termination (```text used instead of ```)
 # This is a common mistake where someone writes ```text as the closing fence
 # shellcheck disable=SC2016  # the backticks are markdown fences, matched as they are
-sed -i '' 's/^```text$/```/g' "$TEMP_MD"
+sed_in_place 's/^```text$/```/g' "$TEMP_MD"
 # shellcheck disable=SC2016  # the backticks are markdown fences, matched as they are
-sed -i '' 's/^   ```text$/   ```/g' "$TEMP_MD"
+sed_in_place 's/^   ```text$/   ```/g' "$TEMP_MD"
 
 # Convert markdown to HTML with Pandoc (automatically generates IDs on all headings)
 TEMP_HTML="$(mktemp "/tmp/html-${ISSUE_ID}-XXXXXX.html")"
@@ -371,7 +374,7 @@ CONTENT_PLACEHOLDER
 EOF
 
 # Replace placeholders with the right content
-sed -i '' "s/TITLE_PLACEHOLDER/$DISPLAY_NAME/g" "$OUTPUT_HTML"
+sed_in_place "s/TITLE_PLACEHOLDER/$DISPLAY_NAME/g" "$OUTPUT_HTML"
 
 # Insert the HTML content by splitting and concatenating (avoids sed/perl escaping problems)
 {

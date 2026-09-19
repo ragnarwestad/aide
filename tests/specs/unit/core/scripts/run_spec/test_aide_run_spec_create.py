@@ -5,8 +5,11 @@ Split out of test_aide_run_spec_gates.py 2026-09-04; the tests are
 unchanged and keep their names.
 """
 
-from ..conftest import git, run
+import json
+
+from ..conftest import git, init_repo, run
 from .run_spec_fakes import creating_claude
+from .run_spec_results import RESULT_OK
 from .run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
 
 
@@ -297,3 +300,33 @@ def test_every_other_step_still_refuses_the_schedule_tracking_key(runner, worksp
     assert "unknown spec" in out["error"], out
     assert not fake_claude.calls.exists()
 
+
+
+def test_create_makes_the_specs_root_of_a_project_that_has_none_yet(runner, fake_claude, tmp_path):
+    """A new project's first spec: `specs/` inside it does not exist until
+    create makes the first folder there, so a missing root is create's to
+    make, not a reason to refuse (2026-09-19, a clean Linux install)."""
+    project = init_repo(tmp_path / "new-project")
+    ws = {"project": project, "specs": project / "specs", "folder": CREATE_KEY, "wtbase": tmp_path / "wt-new"}
+    # No .aide/config to name it: the skill's own default, specs/ here.
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'mkdir -p "$PWD/specs/01-first-spec"\n'
+        'echo "# First" > "$PWD/specs/01-first-spec/1-description.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = create(runner, ws, claude)
+    assert rc == 0, out
+    assert out.get("specFolder") == "01-first-spec", out
+    files = git(project, "show", "--name-only", "--pretty=", f"aide/{CREATE_KEY}")
+    assert "specs/01-first-spec/1-description.md" in files, files
+
+
+def test_every_other_step_still_refuses_a_project_with_no_specs_root(runner, fake_claude, tmp_path):
+    project = init_repo(tmp_path / "new-project")
+    ws = {"project": project, "specs": project / "specs", "folder": "01-x", "wtbase": tmp_path / "wt-new"}
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, ws, claude, command="analyze", spec="01-x")
+    assert rc == 2
+    assert "no specs root" in out["error"], out
+    assert not (project / "specs").exists()

@@ -378,3 +378,16 @@ def test_create_refuses_without_a_title(runner, workspace, fake_claude):
     assert out["ok"] is False
     assert "title" in out["error"], out
     assert not fake_claude.calls.exists()
+
+
+@pytest.mark.parametrize("value,accepted", [
+    ("60", True), ("0.5", True), ("1.0", True),
+    ("0", False), ("0.0", False), ("00", False), ("-1", False), ("abc", False),
+])
+def test_the_time_limit_must_be_a_number_above_zero(runner, workspace, fake_claude, value, accepted):
+    """Checked in bash alone: bc is not on every Linux."""
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), timeout_sec=value, dry_run=True)
+    if accepted:
+        assert rc == 0, out
+    else:
+        assert rc == 2 and out["error"] == f"invalid --timeout-sec: {value}", out

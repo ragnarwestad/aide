@@ -80,7 +80,7 @@ Usage:
                  [--prompt-file F] [--timeout-sec S] [--permission-mode M]
                  [--result-file F] [--model M] [--effort E] [--tool T]
                  [--session-id S] [--stream-file F] [--kill-grace-sec S]
-                 [--push always|never] [--worktree-base P] [--pull] [--dry-run]
+                 [--push none|branch|pr] [--worktree-base P] [--pull] [--dry-run]
 USAGE
       exit 0 ;;
   esac
@@ -109,7 +109,7 @@ done
 # (2026-09-19). Read by bash it is only a file, and it is not made
 # executable at all, so a direct exec fails at once instead of waiting.
 if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
-  _self_copy="$(mktemp -t aide-run-spec)" || exit 2
+  _self_copy="$(mktemp "${TMPDIR:-/tmp}/aide-run-spec.XXXXXX")" || exit 2
   cp "${BASH_SOURCE[0]}" "$_self_copy" || exit 2
   AIDE_RUN_SPEC_SELF_COPY="$_self_copy" \
   AIDE_RUN_SPEC_SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \

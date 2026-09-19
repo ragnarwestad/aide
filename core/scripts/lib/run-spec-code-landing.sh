@@ -43,6 +43,11 @@ if declare -f aide_specs_root >/dev/null 2>&1; then
 else
   specs_root="$project_root/specs"
 fi
+# A new project has no specs root until its first spec is made, so
+# `create` makes one inside the project. One outside it is a setup error.
+if [ "$command_name" = "create" ] && [ ! -e "$specs_root" ]; then
+  case "$specs_root" in "$project_root"/*) mkdir -p "$specs_root" ;; esac
+fi
 [ -d "$specs_root" ] || refuse "no specs root at $specs_root"
 # Resolved, because everything below compares it with `git rev-parse
 # --show-toplevel`'s answer BY TEXT to work out where inside the specs
