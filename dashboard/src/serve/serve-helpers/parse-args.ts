@@ -72,13 +72,14 @@ export function parseArgs(argv: string[]): ServerOptions {
   }
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
   if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), ".aide", "dashboard", "aide-queue.json");
-  if (!opts.pendingModelsPath) opts.pendingModelsPath = join(homedir(), ".aide", "dashboard", "pending-models.json");
-  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(homedir(), ".aide", "dashboard", "pending-effort.json");
-  if (!opts.pendingStepsPath) opts.pendingStepsPath = join(homedir(), ".aide", "dashboard", "pending-steps.json");
   // Beside the queue mirror, not the served board's own directory: a
-  // round's board has a queue of its own and no push paths, and it sent
-  // its test project's failures to the phone subscribed to prod.
+  // round's board has a queue of its own and no push or pending paths,
+  // and it sent its test project's failures to the phone subscribed to
+  // prod and wrote its choices into prod's pending files.
   const queueDir = dirname(opts.queueMirrorPath);
+  if (!opts.pendingModelsPath) opts.pendingModelsPath = join(queueDir, "pending-models.json");
+  if (!opts.pendingEffortPath) opts.pendingEffortPath = join(queueDir, "pending-effort.json");
+  if (!opts.pendingStepsPath) opts.pendingStepsPath = join(queueDir, "pending-steps.json");
   if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
   if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");
   if (!opts.pushKeyPath) opts.pushKeyPath = join(queueDir, "push-key.json");

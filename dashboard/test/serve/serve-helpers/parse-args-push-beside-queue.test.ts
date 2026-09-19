@@ -14,11 +14,21 @@ describe("push and failed-create files default beside the queue mirror", () => {
     expect(opts.failedCreatesPath).toBe("/tmp/round-work/failed-creates.json");
   });
 
+  test("a board with a queue of its own keeps its pending choices beside it", () => {
+    const opts = parseArgs(["--queue-mirror", "/tmp/round-work/queue.json"]);
+    expect(opts.pendingModelsPath).toBe("/tmp/round-work/pending-models.json");
+    expect(opts.pendingEffortPath).toBe("/tmp/round-work/pending-effort.json");
+    expect(opts.pendingStepsPath).toBe("/tmp/round-work/pending-steps.json");
+  });
+
   test("the served board keeps them where they are", () => {
     const opts = parseArgs([]);
     const dir = join(homedir(), ".aide", "dashboard");
     expect(opts.pushSubscriptionsPath).toBe(join(dir, "push-subscriptions.json"));
     expect(opts.pushKeyPath).toBe(join(dir, "push-key.json"));
     expect(opts.failedCreatesPath).toBe(join(dir, "failed-creates.json"));
+    expect(opts.pendingModelsPath).toBe(join(dir, "pending-models.json"));
+    expect(opts.pendingEffortPath).toBe(join(dir, "pending-effort.json"));
+    expect(opts.pendingStepsPath).toBe(join(dir, "pending-steps.json"));
   });
 });
