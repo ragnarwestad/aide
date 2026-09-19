@@ -345,8 +345,10 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     field(
       "Project",
       // Nothing is chosen for the reader: the first project in the list was
-      // where every untouched form used to land.
-      `<select name="project">` +
+      // where every untouched form used to land. `required` is what makes the
+      // browser refuse the empty placeholder at the field, as it does for the
+      // title and the description below.
+      `<select name="project" required>` +
         `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,

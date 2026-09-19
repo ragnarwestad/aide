@@ -63,10 +63,10 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     for (const createProjects of [["aide", "aide-dashboard"], ["aide"]]) {
       const html = newPage({ createProjects });
       const select = html.slice(
-        html.indexOf('<select name="project">'),
-        html.indexOf("</select>", html.indexOf('<select name="project">')),
+        html.indexOf('<select name="project" required>'),
+        html.indexOf("</select>", html.indexOf('<select name="project" required>')),
       );
-      expect(select.startsWith('<select name="project"><option value="" selected>Choose a project…</option>')).toBe(true);
+      expect(select.startsWith('<select name="project" required><option value="" selected>Choose a project…</option>')).toBe(true);
       expect(select.match(/selected/g)!.length).toBe(1);
       for (const p of createProjects) expect(select).toContain(`<option value="${p}">${p}</option>`);
     }
@@ -92,7 +92,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       return i;
     };
     const order = [
-      '<select name="project">',
+      '<select name="project" required>',
       '<table class="list">',
       'name="dependsOn"',
       '<input type="text" name="title"',
@@ -112,7 +112,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     // the frow this assertion now finds between Project's row and the
     // table is that shared one, opening just ahead of the table.
     const betweenProjectAndTable = html.slice(
-      html.indexOf('<select name="project">'),
+      html.indexOf('<select name="project" required>'),
       html.indexOf('<table class="list">'),
     );
     expect(betweenProjectAndTable.endsWith('</select></label></span><span class="frow">')).toBe(true);

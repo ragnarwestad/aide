@@ -303,6 +303,30 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(queued(dir)).toEqual([]);
   });
 
+  test("a request with no project is still refused, 400 for JSON and 303 back to /new for a form post (AC-5)", async () => {
+    const { base, dir } = start();
+    const { project: _named, ...noKey } = CREATE;
+    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
+      const res = await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: string }).error).toContain("project is required");
+    }
+    const form = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ project: "", title: "A new spec", description: "Do the thing" }),
+    });
+    expect(form.status).toBe(303);
+    const location = form.headers.get("location")!;
+    expect(new URL(location, base).searchParams.get("error")).toContain("project is required");
+    expect(queued(dir)).toEqual([]);
+  });
+
   test("the form posted with the placeholder chosen goes back to /new and says a project is required (AC-2)", async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/create`, {
