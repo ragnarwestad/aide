@@ -369,13 +369,17 @@ function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean 
 export const roundUnderWayIn = (all: QueueRowView[]): QueueRowView | undefined => all.find(roundInFlight);
 
 /** The steps the spec's own files say are done, less every one a round
- *  under way has made history of. The file keeps "implement" in its
- *  Workflow steps completed through a round started at analyze, and a
- *  row reading that as done ticked and locked the very step the round
- *  exists to run again. */
+ *  under way has made history of and not yet run again itself. The file
+ *  keeps "implement" in its Workflow steps completed through a round
+ *  started at analyze, and a row reading that as done ticked and locked
+ *  the very step the round exists to run again. A step the round has
+ *  finished is this round's own, and done. */
 export function doneOutsideRound(done: string[], round: QueueRowView | undefined): string[] {
-  return round ? done.filter((step) => !comesAfterRoundStart(step, round)) : done;
+  return round ? done.filter((step) => !comesAfterRoundStart(step, round) || roundFinished(step, round)) : done;
 }
+
+const roundFinished = (step: string, round: QueueRowView): boolean =>
+  (round.results ?? []).some((r) => r.step === step && r.ok);
 
 /** Whether `step` lies after the step this round began at. A round
  *  started at analyze makes the implement and archive before it
