@@ -54,11 +54,14 @@ Usage:
    only when every phase is still ⬜ Not started.
 
 **Where a symbol is used or defined, ask the language server first.**
-When an `LSP` tool is available, use it (`findReferences`,
-`goToDefinition`) for where a function, type or constant is used or
-defined, before `grep`: it answers with the real references, not every
-line that happens to contain the name. `grep` stays the tool for text
-that is not a symbol — a message, a config key, a CSS class.
+When an `LSP` tool is listed, it is usually deferred: load it once with
+`ToolSearch` (`select:LSP`) before the first search, then make the FIRST
+search for where a function, type or constant is used or defined a
+`findReferences` or `goToDefinition` call — never `grep`. It answers with
+the real references, not every line that happens to contain the name.
+Fall back to `grep` only when the language server gives no answer (it
+errors, or the file's language has none), and for text that is not a
+symbol — a message, a config key, a CSS class.
 
 ### Phase 1: RED — Write failing tests
 
