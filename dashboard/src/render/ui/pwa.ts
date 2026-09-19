@@ -153,9 +153,11 @@ body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
 
 /** The service worker, as the browser will receive it.
  *
- *  It exists for two things: so the browser offers to install the page
- *  at all, and so an installed app says something honest when the
- *  server is not there. It caches NOTHING, and that is the design
+ *  It exists for three things: so the browser offers to install the
+ *  page at all, so an installed app says something honest when the
+ *  server is not there, and so a push from the server (a spec needs a
+ *  person) is shown as a notification. It caches NOTHING, and that is
+ *  the design
  *  rather than an omission — every line of this dashboard is live
  *  state, and a queue served out of yesterday's storage would be worse
  *  than no app at all. */
@@ -166,6 +168,25 @@ const OFFLINE_PAGE = ${JSON.stringify(OFFLINE_PAGE)};
 // be holding on to, so nothing is gained by waiting for the old worker.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
+// A push from the server (a spec needs a person). Every push shows a
+// notification, whatever it carries: iOS revokes a subscription that
+// receives a push and shows nothing. No tag, so a second event about the
+// same spec is a second notification and not a silent replacement.
+self.addEventListener("push", (event) => {
+  let n = {};
+  try { n = event.data.json(); } catch (e) {}
+  event.waitUntil(self.registration.showNotification(n.title || "aide -board", {
+    body: n.body || "",
+    data: { url: n.url || "/" },
+  }));
+});
+
+// A tap opens the spec the notification is about.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow(event.notification.data.url || "/"));
+});
 
 self.addEventListener("fetch", (event) => {
   // Page loads only. An image or an API call that fails is the page's

@@ -41,6 +41,9 @@ export const isQueuePath = (path: string) =>
   path === "/api/queue" ||
   path.startsWith("/api/queue/") ||
   path.startsWith("/queue/") ||
+  // A device turning notifications on or off (spec 501): a POST that
+  // changes what the server sends and where, guarded like every other.
+  path.startsWith("/api/push/") ||
   path.startsWith("/specs/") ||
   // The test board's own Stop control (spec 424, REQ-4) — a POST with
   // real consequences, guarded exactly like every other queue route.

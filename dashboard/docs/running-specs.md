@@ -553,6 +553,34 @@ The line reads, for example:
 aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
 ```
 
+### Push notifications on a phone or laptop
+
+The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
+
+- a step **failed**, ran out of **time**, hit the AI's **usage limit**, or was **cut off** (its process vanished, or the
+  server restarted under it) — the job entered `failed`, `stopped` or `interrupted`;
+- a step finished and its merge into main **did not finish**, or its **tests went red** on the merge;
+- an **archive is held back** on unticked acceptance criteria.
+
+Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A failed `create`
+and a scheduled job send nothing either: they have no spec page to name or to open.
+
+**Turning it on.** Settings, the Notifications tab, "Turn on". The device asks for its own permission first. The setting
+belongs to that device alone. On an iPhone or iPad it works only in the installed app, from iOS 16.4; a browser with no
+push support says so instead of offering the button. A device whose owner withdrew the permission is removed the next
+time the Notifications tab is opened, and one whose push service reports it gone (404 or 410) is removed at the next
+send.
+
+**What is sent.** A title with the project and the spec folder, one sentence in the language the device had chosen when
+it turned notifications on (it keeps that language until it is turned off and on again), and the spec's page path, which
+a tap opens. It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
+Microsoft) and is never in the clear there.
+
+**What is kept.** Two files under `~/.aide/dashboard/`, neither in a repo:
+`push-subscriptions.json` (one entry per device) and `push-key.json` (the server's own key pair, mode 0600, made the
+first time it is needed). If the key file is lost a new pair is made, and every device turns notifications on again.
+The Slack `notifyCommand` above is separate and unchanged.
+
 ## Live runs
 
 A spec's row shows a live indicator — session id, and (see below) liveness and cost so far — while an `/aide-*`

@@ -49,6 +49,8 @@ import { handleScheduleAdminRoutes } from "./schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./job-detail.ts";
 import { selfStopRoute } from "./self-stop.ts";
 import { selfRunRoute } from "./self-run.ts";
+import { handlePushRoutes } from "./push-routes.ts";
+import type { Push } from "../../push";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 /** Everything `handleRoutes` used to read off `createServer`'s own
@@ -140,6 +142,9 @@ export interface RoutesContext {
    *  `serve.ts`. A test seam, like `testServers.spawn`: no test should
    *  actually end the process running it. */
   selfStopExit: () => void;
+  /** The push notifications (spec 501): the subscribe and unsubscribe
+   *  routes, and the public key the Settings panel hands a device. */
+  push: Push;
 }
 
 export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
@@ -151,6 +156,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     (await handlePageRoutes(ctx, req, url, path)) ??
     handleQueueEvents(ctx, req, path) ??
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
+    (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??
     (await handleSpecEditRoutes(ctx, req, url, path, wantsJson)) ??
     (await handleSpecPdfRoute(ctx, req, path)) ??

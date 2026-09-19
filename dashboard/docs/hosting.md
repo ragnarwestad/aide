@@ -83,6 +83,11 @@ storage would be worse than no app at all: it passes every request through to th
 short "not reachable" page when the server is out of reach. That is all it is for — that, and being what a browser
 looks for before it offers to install anything.
 
+The worker also shows a notification for every push the server sends and opens the spec on a tap; which events send
+one, and what is kept, is in [Running specs](running-specs.md#push-notifications-on-a-phone-or-laptop). A device can
+receive them only where the worker can run, so the same HTTPS requirement applies, and on iOS only from the installed
+app.
+
 None of this works over plain HTTP: a service worker needs a secure context, which is what "HTTPS and other devices"
 above is about.
 The manifest and the icons are served either way, and the tags on the page are inert until then.

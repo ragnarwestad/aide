@@ -42,6 +42,7 @@ export async function projectPages(
       // What the last press of Check found, never a check run because
       // this page was opened.
       checks: lastChecks(),
+      pushPublicKey: await ctx.push.publicKey(),
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);

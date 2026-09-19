@@ -445,12 +445,12 @@ export const MESSAGES = {
     resolve: "run implement first",
   },
   "wordPhase.stopAcceptanceCriteriaUnticked": {
-    en: "the Acceptance criteria are not all ticked — tick them on the Status tab",
-    nb: "ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av på Status-fanen",
-    es: "no todos los criterios de Aceptación están marcados — márcalos en la pestaña Status",
-    de: "nicht alle Abnahmekriterien sind abgehakt — hake sie im Tab Status ab",
-    fr: "les critères d'Acceptation ne sont pas tous cochés — cochez-les dans l'onglet Status",
-    resolve: "tick them on the Status tab",
+    en: "the Acceptance criteria are not all ticked — tick them under › on the Specs list, or on the Status tab",
+    nb: "ikke alle punktene under Akseptansekriterier er avkrysset — kryss dem av under › på Specs-lista, eller på Status-fanen",
+    es: "no todos los criterios de Aceptación están marcados — márcalos bajo › en la lista Specs, o en la pestaña Status",
+    de: "nicht alle Abnahmekriterien sind abgehakt — hake sie unter › in der Specs-Liste ab, oder im Tab Status",
+    fr: "les critères d'Acceptation ne sont pas tous cochés — cochez-les sous › dans la liste Specs, ou dans l'onglet Status",
+    resolve: "tick them under › on the Specs list",
   },
   "wordPhase.stopNoPassingTestRecord": {
     en: "the project's tests did not pass for this commit — run implement again",
@@ -992,6 +992,58 @@ export const MESSAGES = {
     de: "{subject} konnte nicht gespeichert werden: {message}",
     fr: "{subject} n'a pas pu être enregistré : {message}",
     exempt: "an internal git/file failure with no separate location beyond the checkout the button already acts on",
+  },
+  // --- a spec that needs a person: the push notification's one sentence ------
+  // (src/push/attention.ts picks the key; `{step}` is the step's name and
+  // `{button}` the button that runs it again)
+
+  "push.archiveHeldBack": {
+    en: "Archive is held back — tick the Acceptance criteria to go on.",
+    nb: "Arkivering er holdt tilbake — kryss av akseptkriteriene for å gå videre.",
+    es: "El archivado está retenido — marca los criterios de aceptación para continuar.",
+    de: "Das Archivieren ist zurückgehalten — hake die Akzeptanzkriterien ab, um fortzufahren.",
+    fr: "L'archivage est retenu — cochez les critères d'acceptation pour continuer.",
+    resolve: "tick the Acceptance criteria",
+  },
+  "push.stoppedTimeout": {
+    en: "{step} ran out of time — it waits for you to press {button} again.",
+    nb: "{step} gikk tom for tid — den venter på at du trykker {button} igjen.",
+    es: "{step} se quedó sin tiempo — espera a que pulses {button} de nuevo.",
+    de: "{step} hat die Zeit überschritten — es wartet darauf, dass du erneut {button} klickst.",
+    fr: "{step} a manqué de temps — il attend que vous cliquiez de nouveau sur {button}.",
+    resolve: "press {button} again",
+  },
+  "push.stoppedProviderLimit": {
+    en: "{step} stopped on the AI's usage limit — it waits for you to press {button} again once the limit resets.",
+    nb: "{step} stoppet på AI-ens bruksgrense — den venter på at du trykker {button} igjen når grensen er nullstilt.",
+    es: "{step} se detuvo por el límite de uso de la IA — espera a que pulses {button} de nuevo cuando el límite se restablezca.",
+    de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es wartet darauf, dass du nach dem Zurücksetzen des Limits erneut {button} klickst.",
+    fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il attend que vous cliquiez de nouveau sur {button} une fois la limite réinitialisée.",
+    resolve: "press {button} again",
+  },
+  "push.stoppedTestsRed": {
+    en: "The tests went red as {step} was merged into main — it waits for a green run.",
+    nb: "Testene ble røde da {step} ble merget inn i main — den venter på en grønn kjøring.",
+    es: "Las pruebas se pusieron en rojo al hacer merge de {step} en main — espera una ejecución en verde.",
+    de: "Die Tests wurden rot, als {step} in main gemergt wurde — es wartet auf einen grünen Lauf.",
+    fr: "Les tests sont passés au rouge lors du merge de {step} dans main — il attend une exécution verte.",
+    resolve: "a green run",
+  },
+  "push.failed": {
+    en: "{step} failed — it waits for you to look at why and press {button} again.",
+    nb: "{step} feilet — den venter på at du ser hvorfor og trykker {button} igjen.",
+    es: "{step} falló — espera a que veas por qué y pulses {button} de nuevo.",
+    de: "{step} ist fehlgeschlagen — es wartet darauf, dass du nachsiehst, warum, und erneut {button} klickst.",
+    fr: "{step} a échoué — il attend que vous regardiez pourquoi et cliquiez de nouveau sur {button}.",
+    resolve: "press {button} again",
+  },
+  "push.interrupted": {
+    en: "{step} was cut off before it finished — it waits for you to press {button} again.",
+    nb: "{step} ble avbrutt før den var ferdig — den venter på at du trykker {button} igjen.",
+    es: "{step} se interrumpió antes de terminar — espera a que pulses {button} de nuevo.",
+    de: "{step} wurde abgebrochen, bevor es fertig war — es wartet darauf, dass du erneut {button} klickst.",
+    fr: "{step} a été interrompu avant d'avoir terminé — il attend que vous cliquiez de nouveau sur {button}.",
+    resolve: "press {button} again",
   },
 } as const satisfies Record<string, MessageEntry>;
 

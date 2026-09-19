@@ -2,6 +2,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { esc } from "../../ui/html.ts";
 import { backLink, btn, helpPopover } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
+import { notificationsPanel } from "./notifications.ts";
 import { TOOL_TABS, toolPanel } from "./tools.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { Language } from "../../../i18n";
@@ -11,9 +12,10 @@ import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 export const SETTINGS_ROUTE = "/settings";
 
 /** The page's own tabs. "phases" is the table this page has always been;
- *  the other four are one AI each. They are a row INSIDE the page, not
- *  the application's own tab bar, which this page hides. */
-export const SETTINGS_TABS = ["phases", ...TOOL_TABS] as const;
+ *  four are one AI each; "notifications" is the device's own. They are a
+ *  row INSIDE the page, not the application's own tab bar, which this
+ *  page hides. */
+export const SETTINGS_TABS = ["phases", ...TOOL_TABS, "notifications"] as const;
 
 /** The steps that act on a spec: what a reader presses on a row of the
  *  specs list. They are one group because that is the one thing they
@@ -82,6 +84,9 @@ export interface SettingsPageOptions {
    *  only when its button is pressed, so a tool with no entry has simply
    *  not been asked about. */
   checks?: Partial<Record<CheckableTool, ToolCheck>>;
+  /** The server's public key for push, which the Notifications tab's
+   *  script subscribes a device with (spec 501). */
+  pushPublicKey?: string;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -186,7 +191,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const bar = tabBar(SETTINGS_TABS, SETTINGS_ROUTE, current, {});
   const panel = current === "phases"
     ? phasesPanel
-    : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool]);
+    : current === "notifications"
+      ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
+      : toolPanel(current as CheckableTool, opts.checks?.[current as CheckableTool]);
   const body = `<main>${back}${bar}${panel}</main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,

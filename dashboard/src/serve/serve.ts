@@ -39,6 +39,7 @@ import { checkRequest, createHostAllowlist } from "./serve-helpers";
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
+import { setupPush } from "./setup/push.ts";
 import { createScheduleStore } from "../queue/schedule-store.ts";
 import { setupProjectResolution } from "./setup/project-resolution.ts";
 import { setupSchedules } from "./setup/schedules.ts";
@@ -120,6 +121,7 @@ export function createServer(opts: ServerOptions) {
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // spec 108 made the spec's own files the only answer to that.
+  const push = setupPush(opts, { jobs: () => queue.list() });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     pendingModelsPath: opts.pendingModelsPath,
@@ -128,7 +130,10 @@ export function createServer(opts: ServerOptions) {
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
     allowCreateProject: (project) => allowed.has(project),
-    onChange: watch.notifyQueueChanged,
+    onChange: () => {
+      watch.notifyQueueChanged();
+      push.observe();
+    },
   });
 
   // The runner exists only when a binary is configured. Spawned
@@ -266,6 +271,8 @@ export function createServer(opts: ServerOptions) {
 
   // On boot, resolve every job left `running` by the last restart
   // before anything new is started.
+  // Primed first, so the jobs the store already holds are not news.
+  push.prime();
   runner?.reconcile();
   const timer = runner
     ? setInterval(() => {
@@ -363,6 +370,7 @@ export function createServer(opts: ServerOptions) {
     pdfGeneratorBin,
     pdfToolAvailable,
     testServers: testServersCtx,
+    push,
   });
 
   const coreCtx: CoreRoutesContext = {

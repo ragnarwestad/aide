@@ -255,15 +255,44 @@ describe("the app's colours are the page's colours", () => {
  *  globals it uses. */
 function worker(networkAnswer: () => Promise<Response>) {
   const listeners: Record<string, (event: unknown) => void> = {};
+  const shown: { title: string; options: { body?: string; data?: { url?: string } } }[] = [];
+  const opened: string[] = [];
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
-    clients: { claim: () => Promise.resolve() },
+    clients: { claim: () => Promise.resolve(), openWindow: async (url: string) => void opened.push(url) },
+    registration: {
+      showNotification: async (title: string, options: { body?: string; data?: { url?: string } }) =>
+        void shown.push({ title, options }),
+    },
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
   new Function("self", "fetch", SERVICE_WORKER)(self, networkAnswer);
 
+  /** An event that collects what `waitUntil` was handed, so a test can
+   *  wait for the work the handler started. */
+  const event = (extra: object) => {
+    const waits: Promise<unknown>[] = [];
+    return { ev: { ...extra, waitUntil: (p: Promise<unknown>) => void waits.push(p) }, done: () => Promise.all(waits) };
+  };
+
   return {
     types: () => Object.keys(listeners),
+    shown,
+    opened,
+    /** A push message arriving; `data` is what `event.data.json()` does. */
+    push: async (json: () => unknown) => {
+      const e = event({ data: { json } });
+      listeners.push!(e.ev);
+      await e.done();
+    },
+    /** A tap on a notification. */
+    tap: async (url: string | undefined) => {
+      let closed = false;
+      const e = event({ notification: { close: () => void (closed = true), data: url === undefined ? {} : { url } } });
+      listeners.notificationclick!(e.ev);
+      await e.done();
+      return closed;
+    },
     /** One navigation through the worker. `undefined` means the worker
      *  declined to answer, which leaves the request to the browser. */
     navigate: async (mode = "navigate"): Promise<Response | undefined> => {
@@ -283,6 +312,8 @@ describe("the worker passes everything through and caches nothing", () => {
       "activate",
       "fetch",
       "install",
+      "notificationclick",
+      "push",
     ]);
   });
 
@@ -316,5 +347,39 @@ describe("the worker passes everything through and caches nothing", () => {
     expect(html.toLowerCase()).toContain("reach");
     // And it offers the one thing that helps: trying again.
     expect(html).toContain("Try again");
+  });
+});
+
+// --- push: what the worker does with a message and a tap (spec 501) ---------
+
+describe("the worker shows every push and opens the spec on a tap (criterion 10)", () => {
+  test("a push becomes a notification with the title, the body and the spec's path", async () => {
+    const w = worker(async () => new Response("ok"));
+    await w.push(() => ({ title: "aide · 81-x", body: "Implement failed.", url: "/specs/aide/81-x" }));
+    expect(w.shown).toEqual([{ title: "aide · 81-x", options: expect.objectContaining({ body: "Implement failed.", data: { url: "/specs/aide/81-x" } }) }]);
+  });
+
+  test("a push with no payload, or one that is not JSON, still shows a notification", async () => {
+    // iOS revokes a subscription that receives a push and shows nothing.
+    const w = worker(async () => new Response("ok"));
+    await w.push(() => {
+      throw new SyntaxError("not json");
+    });
+    await w.push(() => ({}));
+    expect(w.shown).toHaveLength(2);
+    expect(w.shown[0]!.title).toBeTruthy();
+    expect(w.shown[1]!.options.data?.url).toBe("/");
+  });
+
+  test("a tap closes the notification and opens the spec's path", async () => {
+    const w = worker(async () => new Response("ok"));
+    expect(await w.tap("/specs/aide/81-x")).toBe(true);
+    expect(w.opened).toEqual(["/specs/aide/81-x"]);
+  });
+
+  test("the notification has no tag, so a second event about a spec does not replace the first", async () => {
+    const w = worker(async () => new Response("ok"));
+    await w.push(() => ({ title: "t", body: "b", url: "/" }));
+    expect(w.shown[0]!.options).not.toHaveProperty("tag");
   });
 });

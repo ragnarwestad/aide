@@ -42,6 +42,7 @@ import { navigate } from "./navigation.ts";
 import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
+import { bindPushPanel } from "./push.ts";
 import { relabelRunButton } from "./row-swap.ts";
 import {
   bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
@@ -49,6 +50,10 @@ import {
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
+
+// The Settings page's Notifications tab, when it is the one open.
+const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;
+if (pushPanel) bindPushPanel(pushPanel);
 
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;

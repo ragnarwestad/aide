@@ -230,4 +230,15 @@ export interface ServerOptions {
    *  suite (2026-09-09). `findFreePort` has carried the parameter for
    *  exactly this since it was written; nothing reached it from here. */
   testServersPortProbe?: PortProbe;
+  /** Where the devices that turned push notifications on are kept (spec
+   *  501) — the `push-subscriptions.json` sibling of the queue mirror.
+   *  Absent keeps them in memory only, exactly as `testServersPath` absent
+   *  behaves for the board registry. */
+  pushSubscriptionsPath?: string;
+  /** Where the server's own push key pair is kept, mode 0600 (spec 501).
+   *  Absent keeps a pair for this process only. */
+  pushKeyPath?: string;
+  /** The request that carries a push to the device's push service. A test
+   *  seam: no test should send anything off the machine. */
+  pushFetch?: typeof fetch;
 }
