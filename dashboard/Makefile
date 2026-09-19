@@ -116,7 +116,12 @@ LABEL ?= com.aide-dashboard.serve
 # writes it — so this value is what a host with no such file yet starts
 # from, and is ignored once that file has a `projects` array. Changing it
 # here does not change the allowlist on a host that has one.
-QUEUE_PROJECTS ?= aide,aide-dashboard
+QUEUE_PROJECTS ?= aide
+# Localhost only: the server answers on this machine, and tailscale serve
+# (below) is the one way in from anywhere else. Set it to 0.0.0.0 to open
+# the dashboard on the local network, which install-serve then refuses to
+# put behind tailscale.
+BIND ?= 127.0.0.1
 REPO_URL := $(shell git config --get remote.origin.url)
 # How install-serve reaches the host: a shell there, started in its
 # $HOME, and where the rendered plist is copied to. install-local points
@@ -172,9 +177,12 @@ install-serve: require-host
 	@# rather than bootstrapping into a failure.
 	@# With no ROOT the projects root is the directory of links beside
 	@# the checkouts, and the dashboard's own checkout is its first link.
+	@# The generated pages (about.html, one per project) are written from
+	@# it on every install, since the server only serves them.
 	$(ON_HOST) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
 		$(if $(ROOT),,mkdir -p $(REMOTE_STATE)/projects; \
 		[ -L $(REMOTE_STATE)/projects/aide ] || [ -e $(REMOTE_STATE)/projects/aide ] || ln -s "$$HOME/$(MINI_REPO)" $(REMOTE_STATE)/projects/aide;) \
+		(cd $(MINI_SRC) && ~/$(REMOTE_BUN) run src/main.ts generate --root "$(if $(ROOT),$(ROOT),$$HOME/$(REMOTE_STATE)/projects)" --out "$$HOME/$(REMOTE_STATE)/site" >/dev/null); \
 		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true; \
 		for i in $$(seq 1 50); do \
 			launchctl print gui/$$(id -u)/$(LABEL) >/dev/null 2>&1 || break; \

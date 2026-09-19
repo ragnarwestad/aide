@@ -114,8 +114,17 @@ describe("install-serve gives a fresh host a projects root", () => {
 });
 
 describe("install-serve refuses a BIND the proxy cannot reach", () => {
-  test("the shipped default (BIND unset) is refused, not proxied", () => {
+  // A fresh install has no .env.deploy, so the default is what it gets:
+  // it must be the one value the proxy can reach.
+  test("the shipped default is 127.0.0.1, and is proxied", () => {
     const recipe = dryRunInstallServe();
+
+    expect(recipe).toContain('--bind "127.0.0.1"');
+    expect(recipe).toContain("tailscale serve --bg --https 443 http://127.0.0.1:8788");
+  });
+
+  test("BIND set empty is refused, not proxied", () => {
+    const recipe = dryRunInstallServe({ BIND: "" });
 
     expect(recipe).toContain("BIND is ''");
     expect(recipe).not.toContain("tailscale serve --bg");

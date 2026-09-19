@@ -78,6 +78,18 @@ describe("refreshSchedules (spec 259)", () => {
     expect(list.filter((j) => j.specFolder === "schedule-nightly-report")).toHaveLength(1);
   });
 
+  // A schedule job is not a spec, so a project that has none yet — a
+  // fresh install's own aide checkout — still gets its entries fired.
+  test("a due entry fires in an allowed project with no specs", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
+    });
+    mkdirSync(join(dir, "root", "fresh", ".aide"), { recursive: true });
+    writeSchedule(dir, "fresh", NIGHTLY.replace("name: aide", "name: fresh"));
+    const list = await jobsUntil(base, (l) => l.some((j) => j.project === "fresh"));
+    expect(list.find((j) => j.project === "fresh")?.specFolder).toBe("schedule-nightly-report");
+  });
+
   test("a project with no schedule entries gets nothing enqueued", async () => {
     const { base } = harness.start({
       extra: { driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },

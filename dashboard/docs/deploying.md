@@ -162,10 +162,10 @@ All paths are relative to the serving host's own `$HOME`.
 | `REMOTE_STATE`   | `.aide/dashboard`                     | site, mirrors, queue state                                        |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
 | `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
-| `QUEUE_PROJECTS` | `aide,aide-dashboard`                 | the allowlist's first-boot seed                                   |
+| `QUEUE_PROJECTS` | `aide`                                | the allowlist's first-boot seed                                   |
 | `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
 | `TEST_PORTS`     | `8801 8802 8803 8804 8805 8806`       | test boards' ports, each put behind tailscale serve               |
-| `BIND`           | unset                                 | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
+| `BIND`           | `127.0.0.1`                           | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list

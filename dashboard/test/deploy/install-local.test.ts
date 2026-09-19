@@ -40,6 +40,14 @@ describe("install-local is install-serve on this machine", () => {
     expect(recipe).toContain('cp "$plist" "$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist"');
   });
 
+  // The server serves about.html and the per-project pages but never
+  // writes them; without this a fresh install links to a 404.
+  test("it writes the generated pages into the site the server serves", () => {
+    expect(recipe).toContain(
+      'run src/main.ts generate --root "$HOME/.aide/dashboard/projects" --out "$HOME/.aide/dashboard/site"',
+    );
+  });
+
   test("it keeps install-serve's steps: the service's own checkout, and the wait before bootstrap", () => {
     expect(recipe).toContain("git -C .aide/dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("is still loaded after 10s");
@@ -64,10 +72,15 @@ describe("check-prerequisites.sh", () => {
   const scratch = mkdtempSync(join(tmpdir(), "aide-prereq-"));
   afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
-  function check(home: string): { code: number; err: string } {
+  // launchctl is a function handed down to the script, answering with the
+  // exit code asked for: a test cannot log a user in or out.
+  function check(home: string, launchctlExit = 0): { code: number; err: string } {
     const res = Bun.spawnSync(["bash", CHECK, BUN], {
       cwd: home,
-      env: { HOME: home, PATH: process.env.PATH ?? "/usr/bin:/bin" },
+      env: {
+        HOME: home, PATH: process.env.PATH ?? "/usr/bin:/bin",
+        "BASH_FUNC_launchctl%%": `() { return ${launchctlExit}; }`,
+      },
     });
     return { code: res.exitCode, err: new TextDecoder().decode(res.stderr) };
   }
@@ -80,6 +93,16 @@ describe("check-prerequisites.sh", () => {
     expect(code).toBe(1);
     expect(err).toContain("missing: Aide (~/.local/bin/aide-run-spec)");
     expect(err).toContain("./install-all.sh");
+  });
+
+  test("a user who has never logged in on the screen is refused, and told to", () => {
+    const home = join(scratch, "no-login");
+    mkdirSync(home);
+    const { code, err } = check(home, 1);
+
+    expect(code).toBe(1);
+    expect(err).toContain("missing: a login session for");
+    expect(err).toContain("on this machine's screen once");
   });
 
   test("a host with Aide and its bun passes", () => {

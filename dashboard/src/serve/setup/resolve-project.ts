@@ -38,8 +38,9 @@ export function createProjectResolver(
       archived.push(key.slice(prefix.length));
       if (state.scan?.refs.get(key)?.closed) closed.push(key.slice(prefix.length));
     }
-    return folders.length > 0 || archived.length > 0
-      ? { specFolders: folders, archivedFolders: archived, closedFolders: closed }
-      : null;
+    // An allowed project with no specs yet still resolves: a `schedule`
+    // job needs no spec folder, and every other step is refused below
+    // as an unknown folder, by name.
+    return { specFolders: folders, archivedFolders: archived, closedFolders: closed };
   };
 }

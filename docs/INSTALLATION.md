@@ -49,10 +49,11 @@ These steps apply regardless of which AI tool you use.
 
 **You must have:**
 
-- ✅ Git and `jq` installed (`brew install jq`) — every spec script needs `jq`
+- ✅ Git (`xcode-select --install`); macOS already has `jq`, which every spec script needs
 - ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
-  (markdownlint-cli2, gh, bun, pandoc, md-to-pdf) in place through it; without mise they are skipped with a warning
-- ✅ The CLI of the AI tool you will use, on PATH
+  (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) in place through it; without mise they are skipped with a
+  warning. `./install-all.sh` installs mise and node itself when they are missing
+- ✅ The CLI of the AI tool you will use, on PATH — `./install-all.sh` installs Claude Code when it is missing
 - ✅ Your projects cloned and working
 
 **Directory structure after setup:**

@@ -161,8 +161,10 @@ Clone the repo, then run the installer for your AI tool:
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 | OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
 
-`./install-all.sh` runs all four at once. Each installer is self-contained: instructions, commands/prompts, scripts and
-documentation, installed globally so any project can use them.
+`./install-all.sh` runs all four at once, and asks nothing. Before them it installs what they need when it is
+missing: [mise](https://mise.jdx.dev) with a node, and Claude Code; signing in to Claude Code is the one step left to
+you. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally
+so any project can use them.
 
 The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`: it starts every
 step through Aide's own scripts and skills, so they have to be there first, and the script checks that they are. See

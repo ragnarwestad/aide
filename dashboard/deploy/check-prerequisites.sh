@@ -26,8 +26,13 @@ warn() { # warn <what> <what does not work without it>
   echo "warning: $1 is not installed — $2" >&2
 }
 
-command -v launchctl >/dev/null 2>&1 ||
+if ! command -v launchctl >/dev/null 2>&1; then
   need "launchctl" "the dashboard runs as a launchd job, so it needs macOS"
+# The job lives in the user's login session, which exists only once the
+# user has logged in on the screen; ssh alone does not make one.
+elif ! launchctl print "gui/$(id -u)" >/dev/null 2>&1; then
+  need "a login session for $(id -un)" "log in as $(id -un) on this machine's screen once (it may stay locked); the dashboard runs inside that login"
+fi
 command -v git >/dev/null 2>&1 ||
   need "git" "xcode-select --install"
 # The plist names these by absolute path, because launchd's PATH has
