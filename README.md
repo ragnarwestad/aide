@@ -77,7 +77,8 @@ them.
    /aide-archive 55      # Land it, and feed what was learned back into the docs
    ```
 
-   Or let the dashboard run the steps for you: install it with `dashboard/install.sh`, open
+   Or let the dashboard run the steps for you: install it with `dashboard/install.sh` (on Linux, run
+   `dashboard/serve.sh`), open
    `http://127.0.0.1:8788`, and queue the spec there. See [The Aide dashboard](#the-aide-dashboard).
 
 More: [Install & Configuration](#install--configuration) for the other AI tools, and
@@ -204,8 +205,9 @@ The dashboard is installed after this, on the machine that will run it, with `da
 step through Aide's own scripts and skills, so they have to be there first, and the script checks that they are. See
 [Requirements in the dashboard's README](dashboard/README.md#requirements) for what else it needs.
 
-> **Windows users:** The scripts require WSL or Git Bash.
-> See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
+Aide runs on macOS and Linux; `scripts/test-linux-install` installs it on a clean Debian and takes a spec through the
+dashboard there. On Windows it runs inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), which is
+Linux; Git Bash is not enough.
 
 ### Per-project configuration
 

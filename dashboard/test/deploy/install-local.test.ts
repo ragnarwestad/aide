@@ -155,3 +155,16 @@ describe("check-prerequisites.sh", () => {
     expect(code).toBe(0);
   });
 });
+
+describe("install.sh on a machine with no launchd", () => {
+  test("it installs nothing and points to serve.sh", () => {
+    const empty = mkdtempSync(join(tmpdir(), "aide-no-launchd-"));
+    try {
+      const res = Bun.spawnSync(["/bin/bash", join(ROOT, "install.sh")], { env: { PATH: empty, HOME: empty } });
+      expect(res.exitCode).toBe(1);
+      expect(new TextDecoder().decode(res.stderr)).toContain("dashboard/serve.sh");
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+});

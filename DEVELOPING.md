@@ -60,7 +60,7 @@ aide/
 │   ├── src/                       # Site generator + the Bun server behind /live and /queue
 │   ├── deploy/                    # rsync publish, launchd plist rendering
 │   ├── test/                      # bun test — NOT part of the pytest suite at the root
-│   └── Makefile                   # generate / publish / serve-local / install-serve
+│   └── Makefile                   # generate / serve-local / install-serve
 │
 ├── implementations/               # AI-SPECIFIC ADAPTATIONS
 │   │

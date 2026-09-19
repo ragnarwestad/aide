@@ -237,6 +237,10 @@ tracked repo names nobody's machine, and this is where yours lives instead.
 check, checkout, plist and launchd job, with a local shell in place of ssh. It takes the same variables, except
 `MINI`.
 
+`dashboard/serve.sh` is the same service with no launchd, for Linux: the same arguments and state, run in a terminal
+until it is stopped. It refuses to start where the launchd service already runs, since two servers on one state would
+run the same queue twice.
+
 `make serve-local` generates the site and serves `out/` from the same machine — no ssh, no rsync, no launchd, no second
 host involved. `PORT=`
 and an optional `ROOT=` (the directory to scan for projects) are the only knobs. It serves the checkout it is run

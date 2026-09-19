@@ -17,20 +17,33 @@ const MAKEFILE = read("../../Makefile");
 const PARSE_ARGS = read("../../src/serve/serve-helpers/parse-args.ts");
 const INSTALL = read("../../deploy/install-after-merge.sh");
 const SHELL = read("../../src/render/ui/header-notices.ts");
+const SERVE_SH = read("../../serve.sh");
+
+const flagsIn = (text: string): string[] =>
+  [...new Set([...text.matchAll(/--[a-z][a-z-]*/g)].map((m) => m[0]))].sort();
+
+/** The flags install-serve hands to `serve`: the one backslash-continued
+ *  command, from `-- serve` to the first line that does not continue. */
+function installServeFlags(): string[] {
+  const target = /^install-serve: require-host$([\s\S]*?)^\S/m.exec(MAKEFILE)?.[1] ?? "";
+  const lines = target.slice(target.indexOf("-- serve")).split("\n");
+  const end = lines.findIndex((l) => !l.trimEnd().endsWith("\\"));
+  return flagsIn(lines.slice(0, end + 1).join("\n"));
+}
 
 describe("the serve job passes only options the code accepts", () => {
   test("every flag install-serve hands to serve is one parse-args accepts", () => {
-    // The one backslash-continued command, from `-- serve` to the first
-    // line that does not continue: anything after it is a different
-    // command with flags of its own.
-    const target = /^install-serve: require-host$([\s\S]*?)^\S/m.exec(MAKEFILE)?.[1] ?? "";
-    const lines = target.slice(target.indexOf("-- serve")).split("\n");
-    const end = lines.findIndex((l) => !l.trimEnd().endsWith("\\"));
-    const argv = lines.slice(0, end + 1).join("\n");
-    const flags = [...new Set([...argv.matchAll(/--[a-z][a-z-]*/g)].map((m) => m[0]))];
+    const flags = installServeFlags();
     expect(flags.length).toBeGreaterThan(5);
     const unknown = flags.filter((f) => !PARSE_ARGS.includes(`"${f}"`));
     expect(unknown).toEqual([]);
+  });
+
+  // serve.sh is the same service with no launchd, on Linux: what one
+  // runs, the other must run too.
+  test("serve.sh passes serve exactly the flags install-serve does", () => {
+    const argv = SERVE_SH.slice(SERVE_SH.indexOf("src/serve/serve.ts serve"));
+    expect(flagsIn(argv)).toEqual(installServeFlags());
   });
 
   // The installed job is machine state, so no test can read it. The

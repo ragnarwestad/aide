@@ -57,6 +57,7 @@ On that machine, or on another one over ssh:
 dashboard/install.sh                # on this machine — first install and every update
 MINI=<host> make install-serve      # on <host>, from dashboard/ — first install
 MINI=<host> make deploy-serve       # same — for updates
+dashboard/serve.sh                  # on Linux — runs it in this terminal
 ```
 
 Both check the requirements on the serving machine before they change anything. They stop on anything required that
@@ -64,8 +65,12 @@ is missing, saying how to install it, and warn about the optional ones. `MINI` h
 machine nobody named is worse than one that refuses to start.
 
 On macOS the install runs the dashboard as a launchd service, which starts on its own and keeps running; the user it
-runs as must have logged in on the machine's screen once, since the service runs inside that login. On other systems,
-`make serve-local` in `dashboard/` runs it without a service.
+runs as must have logged in on the machine's screen once, since the service runs inside that login.
+
+On Linux there is no launchd, and `install.sh` says so and installs nothing. `dashboard/serve.sh` runs the dashboard
+in a terminal instead, queue included, with the same arguments and the same state under `~/.aide/dashboard` as the
+service. It runs until it is stopped and does not start again after a reboot. `PORT`, `BIND`, `ROOT` and
+`QUEUE_PROJECTS` are set as `NAME=value` arguments. On Windows, all of this runs inside WSL.
 
 Once installed, the dashboard answers on that machine alone, at `http://127.0.0.1:8788`.
 [Hosting the dashboard](docs/hosting.md) covers the machine that serves it, keeping it up to date there, and installing

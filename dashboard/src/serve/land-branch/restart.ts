@@ -25,6 +25,12 @@ const LABEL = (): string => process.env.AIDE_DASH_LABEL ?? "com.aide-dashboard.s
 export function createLaunchdRestart(): RestartHook {
   return {
     async registered() {
+      // No launchd (Linux): nothing restarts the dashboard, and a landed
+      // change runs only once someone starts it again.
+      if (!Bun.which("launchctl", { PATH: process.env.PATH ?? "" })) {
+        console.error("queue: this machine has no launchd, so the dashboard is not restarted — restart it by hand to run the landed code");
+        return false;
+      }
       const proc = Bun.spawn({
         cmd: ["launchctl", "print", `gui/${process.getuid?.() ?? 0}/${LABEL()}`],
         stdout: "ignore",
