@@ -130,10 +130,18 @@ aide_config_get() {
 # gitignored-path list is a worktree that comes up missing what the
 # project's own commands need, with nothing said about it.
 aide_manifest_get() {
-  local key="$1" root="${2:-.}" file
+  local key="$1" root="${2:-.}" file value q
   file="$root/.aide/project.yaml"
   [ -f "$file" ] || return 0
-  sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//'
+  value="$(sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//')"
+  # A value quoted as a whole is a YAML string, and is read the way the
+  # dashboard's YAML parser reads it: without the quotes.
+  # shellcheck disable=SC1003 # a literal backslash, not an escaped quote
+  case "$value" in
+    '"'*'"') value="${value:1:${#value}-2}"; value="${value//\\\"/\"}"; value="${value//\\\\/\\}" ;;
+    "'"*"'") value="${value:1:${#value}-2}"; q="'"; value="${value//$q$q/$q}" ;;
+  esac
+  printf '%s\n' "$value"
 }
 
 # Resolve a key that MAY be set in either file, `.aide/config` winning

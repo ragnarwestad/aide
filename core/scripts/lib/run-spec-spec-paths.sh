@@ -72,9 +72,32 @@ repoint_specs_path() {
       rel="${specs_root#"$project_root"/}"
       [ -n "$rel" ] && specs_root_wt="$project_wt/$rel"
       if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
-        mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
-        ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
-        git_add_excludes+=(":(exclude,top)$rel")
+        if git -C "$project_root" check-ignore -q -- "$rel/.aide-probe" 2>/dev/null; then
+          mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
+          ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
+          git_add_excludes+=(":(exclude,top)$rel")
+        else
+          # Not ignored, only not committed yet — a new project's first
+          # spec. It belongs on the branch like any tracked specs root:
+          # a real directory here, carrying this step's own folder if the
+          # main checkout already has one, and committed with the step.
+          mkdir -p "$project_wt/$rel" 2>/dev/null || true
+          if [ -n "${spec_folder:-}" ] && [ -d "$specs_root/$spec_folder" ] && [ ! -e "$project_wt/$rel/$spec_folder" ]; then
+            cp -R "$specs_root/$spec_folder" "$project_wt/$rel/$spec_folder" 2>/dev/null || true
+          fi
+        fi
+      fi
+      # A .aide/config naming the specs root by its absolute path would
+      # send every skill in this run to the main checkout's copy, which
+      # nothing commits. Pointed at this worktree's own instead, as the
+      # separate-specs-repo branch above does; the file is never committed.
+      if [ -n "$rel" ] && [ -f "$project_root/.aide/config" ] &&
+         grep -q '^AIDE_SPECS_PATH=/' "$project_root/.aide/config" 2>/dev/null; then
+        cfg="$project_wt/.aide/config"
+        mkdir -p "$project_wt/.aide" 2>/dev/null || true
+        grep -v '^AIDE_SPECS_PATH=' "$project_root/.aide/config" > "$cfg" 2>/dev/null || true
+        printf 'AIDE_SPECS_PATH=%s\n' "$specs_root_wt" >> "$cfg"
+        git_add_excludes+=(":(exclude,top).aide/config")
       fi
       # Tracked or symlinked-in, the specs root's own changes are the
       # step's real output, not "the project changed" — whether or not
@@ -511,7 +534,10 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
       # config still names a default model for that step.
       model=""; effort=""
     else
-      terminal_reason="cli-error"
+      # The script's own refusal, before any AI ran: not the CLI failing,
+      # so nothing names a tool or a model for it.
+      terminal_reason="refused"
+      tool="none"; model=""; effort=""
       error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
     fi
   elif [ -n "$reset_no_ai" ]; then
@@ -522,7 +548,10 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reset_no_ai" ]; then
       tool="none"
       model=""; effort=""
     else
-      terminal_reason="cli-error"
+      # The script's own refusal, before any AI ran: not the CLI failing,
+      # so nothing names a tool or a model for it.
+      terminal_reason="refused"
+      tool="none"; model=""; effort=""
       error_msg="$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
     fi
   else

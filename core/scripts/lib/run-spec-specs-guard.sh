@@ -12,7 +12,9 @@
 # archive moves it to — may change, for every step but create, whose own
 # folder is the one it makes. Foreign changes are discarded here, before
 # the commit loop below can put them on the branch, and the step ends as
-# a scope violation naming them.
+# a scope violation naming them. Untracked files are listed one by one:
+# collapsed, a specs root not yet committed reads as the one path
+# `specs/`, outside every folder.
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ -n "$spec_folder" ]; then
   specs_repo_wt="${specs_wt:-$project_wt}"
   specs_root_rel="${specs_root_wt#"$specs_repo_wt"}"
@@ -28,7 +30,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
       "$root_prefix"*) foreign_paths="${foreign_paths}${changed_path}"$'\n' ;;
     esac
   done <<EOF_PATHS
-$( { git -C "$specs_repo_wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null \
+$( { git -C "$specs_repo_wt" status --porcelain --untracked-files=all -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null \
       | cut -c4- | sed 's/^.* -> //'; \
      [ -n "${specs_ref_before:-}" ] && git -C "$specs_repo_wt" diff --name-only "$specs_ref_before" HEAD -- . 2>/dev/null; } | sort -u)
 EOF_PATHS

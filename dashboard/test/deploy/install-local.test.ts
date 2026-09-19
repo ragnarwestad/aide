@@ -133,6 +133,14 @@ describe("check-prerequisites.sh", () => {
     expect(err).toContain("on this machine's screen once");
   });
 
+  test("a user with no git identity is warned, not refused", () => {
+    const home = join(scratch, "no-git-identity");
+    mkdirSync(home);
+    const { err } = check(home);
+
+    expect(err).toContain("warning: git has no user.email");
+  });
+
   test("a host with Aide and its bun passes", () => {
     const home = join(scratch, "ready");
     for (const file of [".local/bin/aide-run-spec", BUN]) {

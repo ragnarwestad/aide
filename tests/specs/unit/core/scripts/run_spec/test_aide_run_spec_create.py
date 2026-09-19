@@ -219,7 +219,9 @@ def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, wo
 
 def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace, fake_claude):
     """A refused aide-create-spec call (here: a malformed AC line) must
-    surface as ok:false, not be swallowed as a mechanical success."""
+    surface as ok:false, not be swallowed as a mechanical success — and
+    as the script's refusal, not the AI's failure: no AI ran, so none is
+    named for the reader to go and check."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(
         runner, workspace, claude,
@@ -227,7 +229,9 @@ def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace,
         no_ai_formulate=True,
     )
     assert out["ok"] is False, out
-    assert out["terminalReason"] == "cli-error", out
+    assert out["terminalReason"] == "refused", out
+    assert out.get("tool") in (None, "none"), out
+    assert "AC-n" in out.get("error", ""), out
 
 
 def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace, fake_claude):

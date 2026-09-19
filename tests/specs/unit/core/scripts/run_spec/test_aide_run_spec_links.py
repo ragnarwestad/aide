@@ -409,6 +409,37 @@ def test_a_gitignored_specs_root_inside_the_project_is_linked_and_not_committed(
     assert "specs/" not in files, files
 
 @pytest.mark.usefixtures("workspace")
+def test_a_new_projects_specs_root_inside_it_is_committed_not_linked(
+    runner, fake_claude, tmp_path
+):
+    """A project added from the dashboard with its specs inside it:
+    `specs/` is not ignored, only not committed yet, and .aide/config names
+    it by its absolute path in the main checkout. Linked in like aide's
+    ignored one, every spec file went to the main checkout and nothing
+    was ever committed or landed (2026-09-19, a fresh install's first run)."""
+    project = init_repo(tmp_path / "fresh")
+    (project / "specs" / "81-queue-and-runner").mkdir(parents=True)
+    (project / "specs" / "81-queue-and-runner" / "1-description.md").write_text("# X\n")
+    (project / ".aide").mkdir(exist_ok=True)
+    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={project / 'specs'}\n")
+    ws = {
+        "project": project, "specs": project / "specs",
+        "folder": "81-queue-and-runner", "wtbase": tmp_path / "wt-fresh",
+    }
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{ws["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude)
+    assert rc == 0, out
+    files = git(project, "show", "--name-only", "--pretty=", BRANCH)
+    assert "specs/81-queue-and-runner/2-analysis.md" in files, files
+    assert ".aide/config" not in files, files
+    assert not (project / "specs" / "81-queue-and-runner" / "2-analysis.md").exists()
+
+@pytest.mark.usefixtures("workspace")
 def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
     runner, fake_claude, tmp_path
 ):

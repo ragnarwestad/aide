@@ -267,6 +267,32 @@ class TestManifestGet:
         out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
         assert out == "deps"
 
+    def test_a_double_quoted_value_is_read_without_its_quotes(self, workspace_root, tmp_path):
+        """`testCmd: "sh test.sh"` is the YAML string `sh test.sh`, as the
+        dashboard reads it. Read with its quotes, the runner ran a command
+        named `"sh test.sh"` and reported the tests red (2026-09-19)."""
+        self._manifest(tmp_path, 'testCmd: "sh test.sh"\n')
+        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        assert out == "sh test.sh"
+
+    def test_escapes_inside_double_quotes_are_undone(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, 'testCmd: "echo \\"a\\" \\\\ b"\n')
+        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        assert out == 'echo "a" \\ b'
+
+    def test_a_single_quoted_value_is_read_without_its_quotes(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "testCmd: 'it''s here'\n")
+        out = _call(workspace_root, f'aide_manifest_get "testCmd" "{tmp_path}"')
+        assert out == "it's here"
+
+    def test_quotes_inside_an_unquoted_value_are_kept(self, workspace_root, tmp_path):
+        """aide's own testCmd: quotes in the middle of a plain scalar are
+        part of the command."""
+        line = 'export PATH="$HOME/bin:$PATH"; make test'
+        self._manifest(tmp_path, f"testCmd: {line}\n")
+        out = _call(workspace_root, f"aide_manifest_get testCmd '{tmp_path}'")
+        assert out == line
+
     def test_a_nested_key_of_the_same_name_is_not_read(self, workspace_root, tmp_path):
         """Only TOP-LEVEL keys. An indented `worktreeLinks:` belongs to
         whatever block it sits in, and reading it would hand the runner a

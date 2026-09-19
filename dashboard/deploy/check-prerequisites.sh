@@ -52,6 +52,8 @@ done
   warn "an AI CLI (claude, codex, opencode or copilot)" "no step can run until one is installed and signed in"
 [ -x "$HOME/.local/bin/aide-generate-pdf" ] && command -v md-to-pdf >/dev/null 2>&1 ||
   warn "md-to-pdf" "the PDF button on a spec's page fails"
+git config --global user.email >/dev/null 2>&1 ||
+  echo "warning: git has no user.email — the runs' commits are signed with one git makes up from the machine's name; set git config --global user.name and user.email" >&2
 command -v gh >/dev/null 2>&1 ||
   warn "gh" "a project with codeLanding: pr cannot open its pull request"
 
