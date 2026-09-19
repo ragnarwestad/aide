@@ -143,13 +143,25 @@ def test_a_push_that_cannot_reach_origin_is_retried_then_succeeds(
     project_bare = fetchable_origin_both_roots["project"]
     hidden = tmp_path / "hidden-origin.git"
     project_bare.rename(hidden)
+    ran = tmp_path / "step-ran"
+    # The restore runs HERE, not in the step: the runner stops whatever a
+    # turn leaves running when the turn ends, so a restore the step put
+    # in the background would die with it.
+    def restore():
+        while not ran.exists():
+            time.sleep(0.05)
+        time.sleep(2.5)
+        hidden.rename(project_bare)
+    restorer = threading.Thread(target=restore, daemon=True)
+    restorer.start()
     claude = fake_claude(
         "cat > /dev/null\n"
-        + f'( sleep 2.5 && mv "{hidden}" "{project_bare}" ) >/dev/null 2>&1 & disown\n'
         + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"touch {ran}\n"
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
+    restorer.join(timeout=10)
     assert rc == 0, out
     assert out["ok"] is True, out
     assert out.get("pushError") is None
