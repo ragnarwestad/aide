@@ -42,7 +42,7 @@ The machine that serves the dashboard needs, before it is installed:
 
 - **macOS, and a login on its screen** for the user the dashboard runs as. It runs as a launchd job inside that
   login; the screen may stay locked, and a login over ssh alone is not one.
-- **git** (`xcode-select --install`).
+- **git** (`xcode-select --install`), with `user.name` and `user.email` set: the runs commit as that user.
 - **Aide**: `./install-all.sh` at the repo root. It also installs mise, node and Claude Code when they are missing,
   and bun, jq, gh, pandoc and md-to-pdf through mise.
 - **An AI CLI, signed in**: run `claude` once and sign in. Codex, OpenCode or Copilot work too.

@@ -124,8 +124,11 @@ stops gets a line saying who asked and which process group was signalled.
 into and runs
 `AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
 no rule for a safe moment held up. It logs that the served page runs older code than main, and the user restarts
-when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts, and so does
-`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` on the host. The button answers before the restart
+when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts. The reinstall
+drops from the launchd job's plist every option the serve code no longer accepts, since a job still passing one would
+not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
+`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
+changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The button answers before the restart
 fires, says the dashboard is restarting, and reloads the page once the service answers again. While jobs are
 running the restart waits for them (two hours at most), and every page shows a warning line under the header naming
 them until it fires. Point the job anywhere else and a restart

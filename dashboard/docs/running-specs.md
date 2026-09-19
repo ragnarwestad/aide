@@ -492,6 +492,11 @@ checkout meanwhile. Two consequences worth knowing before changing anything here
   gitignore rule does not match a symlink. `.aide/config`'s `AIDE_WORKTREE_LINKS` is still read when the manifest names
   none — the manifest wins where both do, and the run reports which file it read (`worktreeLinksSource` in the result
   blob, and a line on stderr).
+- The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
+  specs root inside the project that git ignores — aide's own `/specs/` — is linked in from the main checkout and never
+  committed. One inside the project that is tracked, or not committed yet as in a new project's first spec, is part
+  of the branch and committed with the step. A `.aide/config` naming the specs root by absolute path is pointed at the
+  worktree's copy for the run.
 
 **A run reaches the project and its specs root, and nothing else.** A repo the run was not told about is not touched,
 and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
