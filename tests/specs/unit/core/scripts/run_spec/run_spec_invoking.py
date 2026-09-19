@@ -9,7 +9,7 @@ import json
 import os
 import pathlib
 import time
-from ..conftest import git, run, stand_in
+from ..conftest import git, run
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
     script itself, plus the files it reads relative to its own location
@@ -17,7 +17,8 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     and since spec 364 `lib/effort-levels.json` too, without which every
     command refuses)."""
     copy = tmp_path / name
-    stand_in(copy, pathlib.Path(runner).read_text())
+    copy.write_bytes(pathlib.Path(runner).read_bytes())
+    copy.chmod(0o755)
     (tmp_path / "_aide-spec-lib.sh").write_bytes(
         (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
     )

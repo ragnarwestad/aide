@@ -9,7 +9,7 @@ import json
 import pathlib
 import re
 import pytest
-from ..conftest import run, stand_in
+from ..conftest import run
 from .run_spec_fakes import creating_claude, specs_only_claude, writing_claude
 from .run_spec_invoking import CREATE_KEY, create
 from .run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
@@ -309,7 +309,8 @@ def test_runner_refuses_by_name_when_one_of_its_own_parts_is_missing(runner, wor
     and before the step runs, not at the line that sources it, which for a
     late phase would be after the money was spent."""
     lone_copy = tmp_path / "aide-run-spec-under-test"
-    stand_in(lone_copy, pathlib.Path(runner).read_text())
+    lone_copy.write_bytes(pathlib.Path(runner).read_bytes())
+    lone_copy.chmod(0o755)
     (tmp_path / "_aide-spec-lib.sh").write_bytes(
         (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
     )
@@ -333,7 +334,8 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     naming the file, rather than running with the four lists silently
     unset under `set -u`."""
     lone_copy = tmp_path / "aide-run-spec-under-test"
-    stand_in(lone_copy, pathlib.Path(runner).read_text())
+    lone_copy.write_bytes(pathlib.Path(runner).read_bytes())
+    lone_copy.chmod(0o755)
     # The shared spec-resolution library lives beside the script too, and
     # its absence would fail the run for an unrelated reason first — give
     # the stand-in one, exactly as the self-copy tests above do, so the

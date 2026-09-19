@@ -569,3 +569,16 @@ def test_every_stand_in_cli_runs_through_one_shared_file(fake_claude, fake_codex
     machine. Every stand-in is the same file underneath."""
     shared = {os.path.realpath(make("true")) for make in (fake_claude, fake_codex, fake_opencode)}
     assert len(shared) == 1
+
+
+def test_writing_through_a_stand_in_cannot_rewrite_the_shared_file(fake_claude):
+    """Every stand-in is a symlink to one file, so a test that writes to
+    its own stand-in would rewrite it for every test running beside it.
+    The write fails instead, and the shared file keeps its text."""
+    stand_in = fake_claude("true")
+    shared = os.path.realpath(stand_in)
+    before = open(shared).read()
+    with pytest.raises(PermissionError):
+        with open(stand_in, "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+    assert open(shared).read() == before

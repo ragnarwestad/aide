@@ -163,6 +163,11 @@ def fake_launcher_path():
         staged.write_text(FAKE_LAUNCHER)
         staged.chmod(0o755)
         os.replace(staged, path)
+    # Read-only: every stand-in is a symlink to this one file, so a test
+    # that writes to its stand-in would otherwise rewrite it for every
+    # test running at the same time. Such a write fails loudly instead.
+    if path.stat().st_mode & 0o777 != 0o555:
+        path.chmod(0o555)
     return path
 
 
