@@ -327,3 +327,11 @@ def test_implement_runs_the_browser_test_it_wrote_on_its_own():
     refactor = implement.split("### Phase 3: REFACTOR", 1)[1].split("\n## ", 1)[0]
     assert "each file on its own and once" in refactor
     assert "never\n   the project's whole browser suite" in refactor
+
+
+@pytest.mark.parametrize("skill", ["aide-analyze", "aide-implement"])
+def test_the_step_asks_the_language_server_before_grep(skill):
+    """Where a symbol is used is the language server's to answer when a
+    run has one; grep answers every line that contains the name."""
+    text = (CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8")
+    assert "When an `LSP` tool is available, use it (`findReferences`," in text

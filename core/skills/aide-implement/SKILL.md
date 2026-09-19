@@ -53,6 +53,13 @@ Usage:
    ⬜: keep the ✅ ones and resume at the first ⬜. Start at Phase 1
    only when every phase is still ⬜ Not started.
 
+**Where a symbol is used or defined, ask the language server first.**
+When an `LSP` tool is available, use it (`findReferences`,
+`goToDefinition`) for where a function, type or constant is used or
+defined, before `grep`: it answers with the real references, not every
+line that happens to contain the name. `grep` stays the tool for text
+that is not a symbol — a message, a config key, a CSS class.
+
 ### Phase 1: RED — Write failing tests
 
 Skip this phase entirely if Preparation step 5 found it already done;

@@ -80,6 +80,13 @@ Scale the analysis to the complexity:
 
 See `references/complexity-and-analysis.md` for detailed steps per level.
 
+**Where a symbol is used or defined, ask the language server first.**
+When an `LSP` tool is available, use it (`findReferences`,
+`goToDefinition`) for where a function, type or constant is used or
+defined, before `grep`: it answers with the real references, not every
+line that happens to contain the name. `grep` stays the tool for text
+that is not a symbol — a message, a config key, a CSS class.
+
 ### Step 4: Check for work already begun
 
 A step stopped by its own time limit still commits what it wrote, and
