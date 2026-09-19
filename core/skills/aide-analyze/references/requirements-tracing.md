@@ -45,6 +45,19 @@ in ascending id order, starting unticked:
 | AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
+A row's Notes cell stays empty when its requirement is tested as
+written by an ordinary test. Otherwise it carries ONE sentence, so the
+person ticking the row sees what the plan decided without reading it:
+
+- `Read as: <the reading>` — the plan chose what an unclear
+  requirement means.
+- `Not tested: <why>; check <what to look at>` — no criterion for this
+  id is verifiable by a test, and here is what to look at instead.
+- `Browser test: <what it shows>` — a criterion for this id is tagged
+  *(browser)*, and a browser test is its proof.
+
+Where more than one applies, the first in this list is the sentence.
+
 These rows are for the user the spec is for to judge and tick from the
 spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
 tick (spec 285). `aide-archive-spec` refuses to archive while any of

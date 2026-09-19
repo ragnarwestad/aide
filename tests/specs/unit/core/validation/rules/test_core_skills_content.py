@@ -258,3 +258,63 @@ class TestTheNotesCellIsRewrittenNotAppendedTo:
         assert "rewritten from" in cross_reference[1][:400], (
             "requirements-tracing.md must say the cell is rewritten each round"
         )
+
+
+class TestAcceptanceCriteriaReachTheirTests:
+    """Which test covers which requirement is read off the test's own
+    name, and a criterion only a browser can answer is tagged in the
+    plan so implement writes a browser test for it. Neither is left to
+    a model's habit: both are said where the step reads them."""
+
+    @pytest.fixture
+    def implement(self):
+        return (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+
+    @pytest.fixture
+    def analyze(self):
+        return (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
+
+    def test_implement_names_the_ac_id_in_the_test_name(self, implement):
+        red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
+        assert "carries that\n   id in its own name" in red, (
+            "aide-implement's RED phase must say a test carries its criterion's AC-id in its name"
+        )
+
+    def test_implement_writes_a_browser_test_for_a_tagged_criterion(self, implement):
+        red = implement.split("### Phase 1: RED", 1)[1].split("### Phase 2", 1)[0]
+        assert "*(browser)*" in red and "gets a browser test" in red, (
+            "aide-implement's RED phase must write a browser test for a *(browser)* criterion"
+        )
+
+    def test_analyze_tags_a_criterion_only_a_browser_can_answer(self, analyze):
+        assert "End a criterion with *(browser)* when only a real browser can answer it" in analyze, (
+            "aide-analyze must tag criteria only a browser can answer"
+        )
+
+    def test_the_solution_template_says_the_same(self):
+        template = (
+            CORE_SKILLS_DIR.parent / "templates" / "todo" / "3-solution.md.template"
+        ).read_text(encoding="utf-8")
+        assert "ends\nwith *(browser)*" in template, (
+            "3-solution.md.template must name the *(browser)* tag"
+        )
+
+
+class TestTheAcceptanceRowSaysWhatThePlanDecided:
+    """A reading the plan chose, a requirement no test covers, and a
+    browser test as the only proof are said on the row the user ticks,
+    not only deep in the plan's own review."""
+
+    @pytest.fixture
+    def step_8(self):
+        tracing = (
+            CORE_SKILLS_DIR / "aide-analyze" / "references" / "requirements-tracing.md"
+        ).read_text(encoding="utf-8")
+        return tracing.split("## Step 8", 1)[1].split("## A held-back", 1)[0]
+
+    @pytest.mark.parametrize("prefix", ["`Read as:", "`Not tested:", "`Browser test:"])
+    def test_each_decision_has_its_sentence(self, step_8, prefix):
+        assert prefix in step_8, f"Step 8 must name the {prefix} note"
+
+    def test_an_ordinary_row_says_nothing(self, step_8):
+        assert "Notes cell stays empty" in step_8
