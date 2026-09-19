@@ -149,6 +149,8 @@ const STRUCTURE = [
   // The implement run's own note on one acceptance row, under the
   // criterion it belongs to.
   "checknote",
+  "checktests",
+  "untested",
   // The line that layer carries when the wait is long enough that a
   // spinner alone says too little — a deploy, which takes the service
   // down under the page. A navigation passes none and it stays hidden.

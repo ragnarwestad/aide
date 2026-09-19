@@ -11,6 +11,7 @@
 // thin wrapper in serve.ts does the two assignments. Every other
 // function here is a plain read.
 
+import { readAcCoverage, withAcCoverage } from "../project/ac-coverage.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, sep, join } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
@@ -143,7 +144,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           acceptanceOpen,
           // The rows the list unfolds, from the same source order as
           // `acceptanceOpen`: the branch answer's, else the checkout's.
-          acceptance: acceptanceOpen ? (branchAnswer?.acceptance ?? acceptanceRowsOf(statusText)) : undefined,
+          acceptance: acceptanceOpen
+            ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), readAcCoverage(s.dir))
+            : undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.

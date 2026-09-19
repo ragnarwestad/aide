@@ -89,6 +89,9 @@ export const nb: Record<TranslationKey, string> = {
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
   "list.landedAfterRetry": "Merget etter et nytt forsøk: testene var røde første gang og grønne andre gang.",
+  "checks.coveredBy": "Tester: {names}",
+  "checks.noTestNames": "Ingen test nevner {id}.",
+  "checks.browserTest": "{name} (nettleser, kjørt i implement)",
   "list.branchLeftBehind":
     "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +
     "Slett den for hånd, i det lokale repoet på serveren.",

@@ -5,6 +5,7 @@
 // first phase section whose task table has unchecked rows; all
 // checked means "done".
 
+import type { AcTest } from "../ac-coverage.ts";
 import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export interface Progress {
@@ -221,6 +222,10 @@ export interface StatusCheck {
    *  because the person who ticks the box needs it before they tick,
    *  not after. */
   note: string;
+  /** The tests whose names carry this row's AC-id, and whether it has
+   *  none (`project/ac-coverage.ts`). Absent where nothing recorded it. */
+  tests?: AcTest[];
+  untested?: boolean;
 }
 
 const DONE_MARK = "✅";

@@ -2,6 +2,7 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
+import { readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
   specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText, stripDependsOnLine,
 } from "../../project/discover";
@@ -118,7 +119,7 @@ export async function specPageView(
     phase: parsedStatus.phase ?? undefined,
     acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
   };
-  const rows = parsedStatus.checks;
+  const rows = withAcCoverage(parsedStatus.checks, readAcCoverage(dir));
   // The Acceptance section alone: the Phase tables are the implement
   // run's own record and the Checks tab no longer offers them (see
   // `checklist`'s own comment), so a spec whose only open rows are

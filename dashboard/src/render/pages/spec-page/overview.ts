@@ -5,6 +5,7 @@
 import { helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { acTestsLine } from "../../ui/ac-tests.ts";
 import { dependsOnField } from "../new-spec-page.ts";
 import { t, type Language } from "../../../i18n";
 import { CLOSE_VS_RESET_SENTENCE } from "./close-page.ts";
@@ -265,7 +266,7 @@ export function checklist(view: SpecPageView, lang: Language = "en", mark = ""):
     row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
   const item = (row: SpecCheckView): string =>
     `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
-    `<span class="checktask">${esc(row.task)}</span>${note(row)}</li>`;
+    `<span class="checktask">${esc(row.task)}</span>${note(row)}${acTestsLine(row, lang)}</li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;

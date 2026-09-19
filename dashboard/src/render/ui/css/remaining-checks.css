@@ -26,6 +26,10 @@
    worth reading. */
 .check .checknote { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
   color: var(--muted); font-size: var(--fs-s); }
+/* The tests that prove the row, under its note; amber where none does. */
+.check .checktests { flex-basis: 100%; margin-left: calc(18px + var(--sp-2));
+  color: var(--muted); font-size: var(--fs-s); }
+.check .checktests.untested { color: var(--warn); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
    for a row that is still open (spec 188). Fixed width so every row

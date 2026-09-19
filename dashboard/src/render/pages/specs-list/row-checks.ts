@@ -5,6 +5,7 @@
 
 import { ICON_CHEVRON, btn } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { acTestsLine } from "../../ui/ac-tests.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, type SpecGroup, type SpecsFilter } from "./data-model";
@@ -55,6 +56,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
       `${row.done ? " checked" : ""}></label>` +
       `<span class="checktask">${esc(row.task)}</span>` +
       (row.note ? `<span class="checknote">${esc(row.note)}</span>` : "") +
+      acTestsLine(row, lang) +
       `</li>`
     );
   };

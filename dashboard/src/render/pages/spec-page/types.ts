@@ -1,5 +1,6 @@
 // The spec page's own view types.
 
+import type { AcTest } from "../../../project/ac-coverage.ts";
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
 import type { Phase, SpecTarget } from "../specs-list";
 
@@ -16,6 +17,9 @@ export interface SpecCheckView {
    *  delivered against this criterion. Absent, or empty, when the row
    *  wrote none; the two say the same thing here. */
   note?: string;
+  /** The tests that name this row's AC-id, or that none does. */
+  tests?: AcTest[];
+  untested?: boolean;
 }
 
 /** The spec's checks, on the Overview tab (specs 182, 188, 212).

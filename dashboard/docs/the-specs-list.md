@@ -98,6 +98,12 @@ ticks are stored the same way, and the message goes once every criterion is tick
 Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
 link to its Checks tab, in place of the list.
 
+**Each criterion names the tests that prove it**, here and on the Checks tab: the tests whose names carry its AC-id,
+from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
+(`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of many
+specs. A browser test is marked as run in implement, since the merge's test suite leaves it out. A criterion no test
+names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
+
 The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
 New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT
 folded in with them — "nothing here spends money" must not need a click.

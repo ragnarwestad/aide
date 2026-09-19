@@ -146,7 +146,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-publish.sh; do need_part "$_part"; done
+for _part in run-spec-arguments.sh run-spec-code-landing.sh run-spec-gates.sh run-spec-invocation.sh run-spec-checkouts.sh run-spec-worktree.sh run-spec-branch.sh run-spec-provider-limit.sh run-spec-spec-paths.sh run-spec-cleanup.sh run-spec-records.sh run-spec-status-line.sh run-spec-specs-guard.sh run-spec-boundary.sh run-spec-outcome.sh run-spec-ac-coverage.sh run-spec-publish.sh; do need_part "$_part"; done
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -236,6 +236,12 @@ if [ "$command_name" = "close" ] && [ "$terminal_reason" = "completed" ]; then
   close_after="$("$SCRIPT_DIR/aide-close-spec" "${close_args[@]}" 2>/dev/null)"
   close_outcome="$(jq -r '.terminalReason // empty' <<<"$close_after" 2>/dev/null)"
 fi
+
+# Which test covers which requirement, for the row the user ticks —
+# written before PASS 1 so it is committed with the step's own work.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec-ac-coverage.sh"
+write_ac_coverage
 
 # --- PASS 1: the step's own content, unconditionally, every command ---------
 commit_and_push_roots
