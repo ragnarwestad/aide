@@ -8,7 +8,6 @@ in conftest.py beside them.
 import json
 import os
 import subprocess
-import tempfile
 import pytest
 from ..conftest import STOP_DEADLINE_SEC, git, run
 from .run_spec_fakes import writing_claude
@@ -551,15 +550,15 @@ def test_help_flag_prints_usage_without_any_setup(runner):
     assert result.returncode == 0, result.stderr
     assert "usage" in result.stdout.lower(), result.stdout
 
-def test_help_flag_never_runs_the_self_copy(runner):
+def test_help_flag_never_runs_the_self_copy(runner, tmp_path):
     """AC-2: --help must exit before the mktemp self-copy (the
-    "Run from a private copy of ourselves" block) ever runs."""
-    tmpdir = tempfile.gettempdir()
-    before = set(os.listdir(tmpdir))
-    result = subprocess.run([str(runner), "--help"], capture_output=True, text=True)
-    after = set(os.listdir(tmpdir))
+    "Run from a private copy of ourselves" block) ever runs. The run
+    gets a TMPDIR of its own: the shared one also holds the copies of
+    every other test's run going on at the same time."""
+    env = {**os.environ, "TMPDIR": str(tmp_path)}
+    result = subprocess.run([str(runner), "--help"], capture_output=True, text=True, env=env)
     assert result.returncode == 0, result.stderr
-    leaked = [n for n in (after - before) if n.startswith("aide-run-spec")]
+    leaked = [n for n in os.listdir(tmp_path) if n.startswith("aide-run-spec")]
     assert not leaked, f"self-copy ran despite --help: {leaked}"
 
 
