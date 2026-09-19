@@ -235,7 +235,6 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 ## Further reading
 
 - `README.md` - User guide for Copilot
-- `../../COPILOT.md` - Quick start guide (workspace root)
 - `../../core/skills/workflows/SKILL.md` - The spec workflow
 - `../../DEVELOPING.md` - Developer guide for Aide
 
