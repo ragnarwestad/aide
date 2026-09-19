@@ -33,6 +33,7 @@ class Elem {
   className: string;
   attrs: Record<string, string>;
   open: boolean;
+  value = "";
   children: Elem[] = [];
   parentElement: Elem | null = null;
   rect: { left: number; right: number; top: number; bottom: number } = { left: 0, right: 0, top: 0, bottom: 0 };
@@ -88,6 +89,17 @@ class Elem {
     for (const fn of this.eventListeners[type] ?? []) fn({});
   }
 
+  /** Depth-first, any depth: the phone menu's `.morerows` sits inside
+   *  the panel, not directly under the menu. */
+  find(selector: string): Elem | null {
+    for (const c of this.children) {
+      if (c.matches(selector)) return c;
+      const deeper = c.find(selector);
+      if (deeper) return deeper;
+    }
+    return null;
+  }
+
   /** The one shape `menu-script.ts` queries with: `:scope > TAG`, a
    *  direct-child lookup — the only kind a real `querySelector` call
    *  in this file ever needs. */
@@ -138,7 +150,7 @@ class Elem {
  *  element outside either — everything `closeAll()` and its "except"
  *  lookup need to answer against. `innerWidth` stands in for the
  *  browser global `menu-script.ts`'s flip check reads. */
-function harness(opts: { innerWidth?: number } = {}) {
+function harness(opts: { innerWidth?: number; storageThrows?: boolean; flag?: string } = {}) {
   const body = new Elem("body");
   const menuDetails = new Elem("details", { className: "menu" });
   const menuSummary = new Elem("summary");
@@ -147,6 +159,12 @@ function harness(opts: { innerWidth?: number } = {}) {
   menuDetails.append(menuPanel);
   const aboutLink = new Elem("a", { attrs: { "data-about": "" } });
   menuPanel.append(aboutLink);
+  const moreRows = new Elem("div", { className: "morerows lang" });
+  menuPanel.append(moreRows);
+  const langSelect = new Elem("select", { attrs: { "data-lang-select": "" } });
+  moreRows.append(langSelect);
+  const themeButton = new Elem("button", { attrs: { "data-theme-choice": "dark" } });
+  moreRows.append(themeButton);
 
   const introDetails = new Elem("details", { className: "intro" });
   const introSummary = new Elem("summary");
@@ -174,13 +192,31 @@ function harness(opts: { innerWidth?: number } = {}) {
     },
     // Only reached by the About-dialog branch, which this file does not
     // exercise beyond "does not throw" — no `dialog.about` exists here.
-    querySelector: (): null => null,
+    // Also the reopen-after-language-change lookup for `.morerows`.
+    querySelector: (sel: string): Elem | null => body.find(sel),
   };
 
-  const window = { innerWidth: opts.innerWidth ?? 1024 };
+  const window = { innerWidth: opts.innerWidth ?? 1024, location: { href: "/specs?lang=nb" } };
+
+  const store: Record<string, string> = opts.flag ? { "menu-open": opts.flag } : {};
+  const throwing = () => {
+    throw new Error("storage is blocked");
+  };
+  const sessionStorage = opts.storageThrows
+    ? { getItem: throwing, setItem: throwing, removeItem: throwing }
+    : {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: (k: string, v: string) => void (store[k] = v),
+        removeItem: (k: string) => void delete store[k],
+      };
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
-  new Function("document", "HTMLDialogElement", "window", SOURCE)(document, HTMLDialogElement, window);
+  new Function("document", "HTMLDialogElement", "window", "sessionStorage", SOURCE)(
+    document,
+    HTMLDialogElement,
+    window,
+    sessionStorage,
+  );
 
   return {
     menuDetails,
@@ -191,6 +227,11 @@ function harness(opts: { innerWidth?: number } = {}) {
     introBody,
     outside,
     window,
+    store,
+    langSelect,
+    themeButton,
+    change: (target: Elem) => listeners.change?.({ target }),
+    load: () => listeners.DOMContentLoaded?.({}),
     click: (target: Elem) => listeners.click!({ target, preventDefault: () => {} }),
     escape: () => listeners.keydown!({ key: "Escape" }),
     /** Sets the popup's own position, opens or closes it, and fires the
@@ -349,5 +390,64 @@ describe("a '?' popup that overflows on its flipped side too is shifted the rest
     h.toggleIntro(false);
     h.toggleIntro(true, { left: 100, right: 300, top: 0, bottom: 50 });
     expect(h.introBody.style.transform).toBe("");
+  });
+});
+
+// Spec 507: the phone menu's language is a dropdown, and a dropdown
+// does not navigate on its own the way the header's links do.
+describe("the phone menu's language dropdown (spec 507)", () => {
+  test("a change on it sends the page to the chosen address (AC-3)", () => {
+    const h = harness();
+    h.langSelect.value = "/specs?lang=de";
+    h.change(h.langSelect);
+    expect(h.window.location.href).toBe("/specs?lang=de");
+  });
+
+  test("a change from any other element does nothing (AC-3)", () => {
+    const h = harness();
+    h.themeButton.value = "/specs?lang=de";
+    h.change(h.themeButton);
+    expect(h.window.location.href).toBe("/specs?lang=nb");
+    expect(h.store["menu-open"]).toBeUndefined();
+  });
+
+  test("a click on a theme button or the select inside the open menu leaves it open (AC-6)", () => {
+    const h = harness();
+    h.menuDetails.open = true;
+    h.click(h.themeButton);
+    expect(h.menuDetails.open).toBe(true);
+    h.click(h.langSelect);
+    expect(h.menuDetails.open).toBe(true);
+    h.click(h.outside);
+    expect(h.menuDetails.open).toBe(false);
+  });
+
+  test("a language change leaves a flag before the page moves (AC-6)", () => {
+    const h = harness();
+    h.langSelect.value = "/specs?lang=de";
+    h.change(h.langSelect);
+    expect(h.store["menu-open"]).toBe("1");
+  });
+
+  test("a load with the flag opens the menu and clears the flag (AC-6)", () => {
+    const h = harness({ flag: "1" });
+    h.load();
+    expect(h.menuDetails.open).toBe(true);
+    expect(h.store["menu-open"]).toBeUndefined();
+  });
+
+  test("a load without the flag leaves the menu closed (AC-6)", () => {
+    const h = harness();
+    h.load();
+    expect(h.menuDetails.open).toBe(false);
+  });
+
+  test("storage that throws stops nothing: the page still moves (AC-6)", () => {
+    const h = harness({ storageThrows: true });
+    h.langSelect.value = "/specs?lang=de";
+    expect(() => h.change(h.langSelect)).not.toThrow();
+    expect(h.window.location.href).toBe("/specs?lang=de");
+    expect(() => h.load()).not.toThrow();
+    expect(h.menuDetails.open).toBe(false);
   });
 });

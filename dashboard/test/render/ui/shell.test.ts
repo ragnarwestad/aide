@@ -232,19 +232,16 @@ describe("pageShell theme/language menus mark the chosen option (spec 475)", () 
 
   test("AC-4: the CSS bolds the chosen row for both button rows (theme) and <a> rows (language)", () => {
     expect(CSS).toContain(
-      ".menupanel > button[aria-current], .menu .morerows > button[aria-current],\n" +
-        ".menupanel > a[aria-current], .menu .morerows > a[aria-current] { font-weight: 600; }",
+      ".menupanel > button[aria-current],\n.menupanel > a[aria-current] { font-weight: 600; }",
     );
   });
 
   test("AC-4: the CSS gives each menu's chosen row its own colour, distinct from its unchosen rows", () => {
     expect(CSS).toContain(
-      ".menu.theme .menupanel > button, .menu .morerows.theme > button,\n" +
-        ".menu.lang .menupanel > a, .menu .morerows.lang > a { color: var(--muted); }",
+      ".menu.theme .menupanel > button,\n.menu.lang .menupanel > a { color: var(--muted); }",
     );
     expect(CSS).toContain(
-      ".menu.theme .menupanel > button[aria-current], .menu .morerows.theme > button[aria-current],\n" +
-        ".menu.lang .menupanel > a[aria-current], .menu .morerows.lang > a[aria-current] { color: var(--text); }",
+      ".menu.theme .menupanel > button[aria-current],\n.menu.lang .menupanel > a[aria-current] { color: var(--text); }",
     );
   });
 
@@ -269,26 +266,6 @@ describe("pageShell theme/language menus mark the chosen option (spec 475)", () 
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
     expect(html).toContain('<div class="morerows theme"><span class="lbl">Theme</span>');
     expect(html).toContain('<div class="morerows lang"><span class="lbl">Language</span>');
-  });
-
-  test("AC-7: the theme menu's content is identical in the standalone panel and the mobile copy", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
-    const standalone = html.match(
-      /<details class="menu theme">[\s\S]*?<div class="menupanel">([\s\S]*?)<\/div>\s*<\/details>/,
-    )![1]!;
-    const mobile = html.match(/<div class="morerows theme">([\s\S]*?)<\/div>/)![1]!;
-    expect(mobile).toBe(standalone);
-  });
-
-  test("AC-7: the language menu's content is identical in the standalone panel and the mobile copy", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
-      currentUrl: "/specs/aide/1-x",
-    });
-    const standalone = html.match(
-      /<details class="menu lang">[\s\S]*?<div class="menupanel">([\s\S]*?)<\/div>\s*<\/details>/,
-    )![1]!;
-    const mobile = html.match(/<div class="morerows lang">([\s\S]*?)<\/div>/)![1]!;
-    expect(mobile).toBe(standalone);
   });
 });
 
@@ -316,7 +293,7 @@ describe("pageShell header controls (spec 436)", () => {
     const morerows = [...menu.matchAll(/<div class="morerows (theme|lang|unit)">([\s\S]*?)<\/div>/g)];
     expect(morerows.map((m) => m[1])).toEqual(["theme", "lang", "unit"]);
     expect(morerows[0]![2]).toContain('data-theme-choice="dark"');
-    expect(morerows[1]![2]).toContain('href="/?lang=en"');
+    expect(morerows[1]![2]).toContain('<option value="/?lang=en"');
     expect(morerows[2]![2]).toContain('data-unit-choice="usd"');
     expect(menu).toContain('href="/settings"');
     expect(menu).toContain('href="/test-servers"');

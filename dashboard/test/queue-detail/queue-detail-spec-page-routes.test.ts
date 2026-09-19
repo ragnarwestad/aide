@@ -306,12 +306,14 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
   // what AC6 tests: strip the parts that are SUPPOSED to vary before
   // asserting the rest of the page is untouched. Spec 436 gave the
   // language links a second copy — the "…" menu's flat mobile rows,
-  // outside the standalone `.menu.lang` control — so both copies need
-  // stripping, not just the one `<details>` block.
+  // outside the standalone `.menu.lang` control (a dropdown's options
+  // since spec 507) — so both copies need stripping, not just the one
+  // `<details>` block.
   const withoutLangMenu = (html: string): string =>
     html
       .replace(/<details class="menu lang">[\s\S]*?<\/details>/, "")
-      .replace(/<a href="[^"]*[?&](?:amp;)?lang=[^"]*"[^>]*>.*?<\/a>/g, "");
+      .replace(/<a href="[^"]*[?&](?:amp;)?lang=[^"]*"[^>]*>.*?<\/a>/g, "")
+      .replace(/<option value="[^"]*[?&](?:amp;)?lang=[^"]*"[^>]*>.*?<\/option>/g, "");
 
   /** Two finished analyze jobs on one spec, oldest last — which is one
    *  more than the queue will accept through its own route, so the

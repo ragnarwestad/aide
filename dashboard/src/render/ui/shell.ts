@@ -11,7 +11,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { themeControl, themeChoiceRows, languageControl, languageChoiceLinks } from "./header-controls.ts";
+import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
@@ -279,10 +279,6 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   // Three blocks, one per control, since they come into the menu one at
   // a time as the page narrows — unit first, then language, then theme
   // — at the same widths the specs list drops its figure columns.
-  const mobileRows =
-    `<div class="morerows theme"><span class="lbl">${t(lang, "shell.theme")}</span>${themeChoiceRows(lang)}</div>` +
-    `<div class="morerows lang"><span class="lbl">${t(lang, "shell.language")}</span>${languageChoiceLinks(lang, currentUrl)}</div>` +
-    `<div class="morerows unit">${unitChoiceRows("more")}</div>`;
   return (
     `<header>${WORDMARK}${tabs}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
@@ -299,7 +295,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
     // Settings, then the board-wide test-server overview (spec 425),
     // then About.
-    `<div class="menupanel">${boardRow(lang)}${mobileRows}<a href="/settings">${t(lang, "shell.settings")}</a>` +
+    `<div class="menupanel">${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
     `<a href="about.html" data-about>${t(lang, "shell.about")}</a></div>` +
     `</details></div></header>`

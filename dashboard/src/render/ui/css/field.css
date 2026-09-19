@@ -16,7 +16,7 @@
    the text is set in, further down, and that is about what they HOLD
    — a model name is a value, an AI is a thing's name. */
 .field input, .field select, .field textarea,
-select[name^="model."], select[data-ai] {
+select[name^="model."], select[data-ai], select[data-lang-select] {
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
@@ -28,7 +28,7 @@ select[name^="model."], select[data-ai] {
    claude-sonnet-4-6, instead of over the end of it. The background is
    set piece by piece: the shorthand would drop the var(--surface)
    ground the rule above gives it. */
-.field select, select[name^="model."], select[data-ai] {
+.field select, select[name^="model."], select[data-ai], select[data-lang-select] {
   appearance: none; -webkit-appearance: none;
   padding-right: 26px;
   background-image: var(--chevron);
