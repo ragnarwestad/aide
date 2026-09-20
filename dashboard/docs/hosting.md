@@ -23,7 +23,7 @@ The dashboard binds `127.0.0.1` and answers on the machine it runs on alone, at 
 reaching it from a phone or another computer, come from a proxy on the serving host that terminates TLS and forwards
 to that address; the dashboard does no certificate handling of its own. Keep `BIND` at `127.0.0.1` behind such a
 proxy, so the port is not open on the local network too. The proxy passes the client's `Host` on, which has to be one
-of the dashboard's own names ("Who may call it" in `running-specs.md`); `allowedHosts` in `queue-config.json` adds
+of the dashboard's own names ("Which requests the dashboard answers" in `running-specs.md`); `allowedHosts` in `queue-config.json` adds
 the proxy's. The dashboard's README, under Installation, points to one way to set one up.
 
 Installing the dashboard as an app on a phone or a desktop needs HTTPS: a service worker needs a secure context.

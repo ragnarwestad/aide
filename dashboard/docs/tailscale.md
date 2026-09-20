@@ -54,8 +54,8 @@ them as before.
 
 ## The name the dashboard answers to
 
-The dashboard refuses a request whose `Host` is not one of its own names ("Who may call it" in
-[running-specs.md](running-specs.md)). On a host with Tailscale it adds the machine's Tailscale name to them, asked of
+The dashboard refuses a request whose `Host` is not one of its own names ("Which requests the dashboard
+answers" in [running-specs.md](running-specs.md)). On a host with Tailscale it adds the machine's Tailscale name to them, asked of
 `tailscale status --json` on the first request that needs it and again every 30 seconds until it answers, and writes
 the name to its log. The proxy passes the client's `Host` on, so a request through it is admitted.
 

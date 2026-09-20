@@ -15,8 +15,8 @@ Six pages sit beside this one:
 ## Table of contents
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
-- [Who may call it](#who-may-call-it)
-- [The time limit](#the-time-limit)
+- [Which requests the dashboard answers](#which-requests-the-dashboard-answers)
+- [The queue config](#the-queue-config)
 - [Which AI runs a step](#which-ai-runs-a-step)
 - [How the board finds a CLI](#how-the-board-finds-a-cli)
 - [Which effort level a step runs at](#which-effort-level-a-step-runs-at)
@@ -86,7 +86,7 @@ A job survives a restart: the runner spawns detached in its own process group, a
 contract — the scheduler polls the pid and the file, and a job left `running` is reconciled from both. A step that
 hits its own time limit is `stopped`, not `failed`. [A job's states](job-states.md) has both in full.
 
-## Who may call it
+## Which requests the dashboard answers
 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every
 route — the static site, `/live` and `POST /api/aide-run` included:
@@ -111,10 +111,11 @@ admits nobody the rule above does not.
 request, so a machine that can reach the port and sends `Host: localhost` is admitted. Bind loopback
 (`--bind 127.0.0.1`), which the install does by default.
 
-## The time limit
+## The queue config
 
-The one cap, checked BEFORE a step starts — a cap that only stops you afterwards is a report, not a cap. It lives in
-the queue config (`--queue-config`), so a wrong number costs a config edit and a restart:
+One file (`--queue-config`) holds the time limit, the permission mode, the model, the push mode, how many jobs run
+at once, the project allowlist and the notify command. A wrong value costs a config edit and a restart. The time
+limit is checked BEFORE a step starts — a cap that only stops a step afterwards is a report, not a cap:
 
 ```json
 {
