@@ -83,7 +83,8 @@ describe("the Add page", () => {
     const html = add();
     expect(html).toContain(">Save</button>");
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).not.toContain(">Cancel<");
+    // The page-wide leave box (spec 518) carries its own Cancel; the page's controls do not.
+    expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
   });
 
   // Spec 296: "Add project" sits beside ← Back, on one line.

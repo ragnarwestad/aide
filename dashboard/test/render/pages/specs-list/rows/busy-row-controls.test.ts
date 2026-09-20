@@ -346,9 +346,28 @@ describe("spec 423: a confirmation asks before Cancel takes effect", () => {
     // same route, by design (2-analysis.md, expanded-row-controls.test.ts).
     expect(cell.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(2);
     expect(cell).toContain(">OK</button>");
-    // The dismiss button reuses the row's own label, and structurally
-    // cannot post: `method="dialog"`, no `action` at all.
+    // The dismiss button structurally cannot post: `method="dialog"`,
+    // no `action` at all.
     expect(cell).toMatch(/<form method="dialog"><button class="btn" type="submit">Cancel<\/button><\/form>/);
+  });
+
+  test("the two answers share one row, OK first and primary, Cancel plain (AC-1, AC-3)", () => {
+    const cell = cellFor(row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }));
+    const box = cell.match(/<dialog class="confirmdialog">[\s\S]*?<\/dialog>/)![0];
+    expect(box).toMatch(/<\/p><div class="dialogactions"><form method="post"[^>]*class="actionform">[\s\S]*?<\/form><form method="dialog">/);
+    expect(box.match(/class="dialogactions"/g)).toHaveLength(1);
+    expect(box.indexOf("btn primary")).toBeLessThan(box.indexOf('<button class="btn" type="submit">'));
+  });
+
+  test("in Norwegian the dialog's answers read OK and Avbryt (AC-2)", () => {
+    const cell = cellFor(
+      row({ id: "j1", specFolder: "423-busy", steps: ["implement"], stepIndex: 0, state: "running" }),
+      "423-busy",
+      { lang: "nb" },
+    );
+    const box = cell.match(/<dialog class="confirmdialog">[\s\S]*?<\/dialog>/)![0];
+    expect(box).toContain(">OK</button>");
+    expect(box).toContain('<button class="btn" type="submit">Avbryt</button>');
   });
 
   test("the dismiss button carries no action — it cannot reach the server (criterion 1)", () => {

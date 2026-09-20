@@ -266,3 +266,20 @@ describe("the waiting layer is placed by its own rule, not the browser's default
     expect(note?.body).toMatch(/text-align:\s*center/);
   });
 });
+
+// --- spec 518: the confirm box's two answers share one row ------------------
+
+describe("the confirm box's answers sit side by side (spec 518, AC-1, AC-6)", () => {
+  test(".dialogactions is a flex row with a token gap, no margin of its own", () => {
+    const body = CSS.match(/\.dialogactions\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(body).toMatch(/display:\s*flex/);
+    expect(body).toMatch(/gap:\s*var\(--sp-\d+\)/);
+    expect(body).not.toContain("flex-direction: column");
+    expect(body).not.toContain("margin");
+  });
+
+  test(".dialogactions > form resets the margin a form's own class may carry", () => {
+    const body = CSS.match(/\.dialogactions\s*>\s*form\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(body).toMatch(/margin:\s*0/);
+  });
+});

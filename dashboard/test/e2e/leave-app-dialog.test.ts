@@ -91,10 +91,10 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
 
     // Cleanly closed for the next test, rather than left open.
-    await dialog.getByRole("button", { name: "Stay" }).click();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
   });
 
-  test('pressing "Stay" leaves no stray .awaiting link and no open pageoverlay behind', async () => {
+  test('pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind', async () => {
     await withTimeout(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
@@ -105,7 +105,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     const dialog = page.locator("dialog.leaveapp");
     await dialog.waitFor({ state: "visible" });
 
-    await dialog.getByRole("button", { name: "Stay" }).click();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
 
     await dialog.waitFor({ state: "hidden" });
     expect(page.url()).toContain(`/specs/aide/${FOLDER}`);
@@ -113,7 +113,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
     expect(await page.locator("dialog.pageoverlay").count()).toBe(0);
   });
 
-  test('pressing "Leave" navigates to the link\'s destination', async () => {
+  test('pressing OK navigates to the link\'s destination', async () => {
     await withTimeout(
       page.goto(`${base}/specs/aide/${FOLDER}?live=0`),
       10_000,
@@ -126,7 +126,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link (sp
 
     await Promise.all([
       page.waitForURL((url) => new URL(url).pathname === "/"),
-      dialog.getByRole("button", { name: "Leave" }).click(),
+      dialog.getByRole("button", { name: "OK" }).click(),
     ]);
     expect(new URL(page.url()).pathname).toBe("/");
   });

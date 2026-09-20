@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { ICON_CHEVRON, btn, stepLabel } from "../../ui/components";
+import { ICON_CHEVRON, btn, dialogAnswers, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -90,10 +90,12 @@ function actionForm(
     `<dialog class="confirmdialog"><div class="confirmpanel">` +
     `<h2>${esc(t(lang, "list.cancelConfirmTitle", { step }))}</h2>` +
     `<p class="muted">${esc(t(lang, "list.cancelConfirmBody", { step }))}</p>` +
-    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
-    btn({ label: t(lang, "list.cancelConfirmOk"), variant: "primary", pending: t(lang, "list.cancelling") }) +
-    `</form>` +
-    `<form method="dialog"><button class="btn" type="submit">${esc(t(lang, "list.cancel"))}</button></form>` +
+    dialogAnswers(
+      lang,
+      `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
+        btn({ label: t(lang, "dialog.ok"), variant: "primary", pending: t(lang, "list.cancelling") }) +
+        `</form>`,
+    ) +
     `</div></dialog>`
   );
 }

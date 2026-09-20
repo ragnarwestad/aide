@@ -126,6 +126,14 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
       expect(html).not.toContain('data-confirm="nightly-report"');
       expect(html).toContain('<form method="dialog">');
     });
+
+    test("the dialog's answers share one row: OK (red) first, Cancel plain, no Delete button (AC-1, AC-2, AC-3)", () => {
+      const box = listed().match(/<dialog class="confirmdialog">[\s\S]*?<\/dialog>/)![0];
+      expect(box.match(/class="dialogactions"/g)).toHaveLength(1);
+      expect(box).toMatch(/<div class="dialogactions"><form method="post"[^>]*class="scheduledeleteform">/);
+      expect(box).toMatch(/btn danger[^>]*>[\s\S]*?OK[\s\S]*?<\/form><form method="dialog"><button class="btn" type="submit">Cancel<\/button><\/form><\/div>/);
+      expect(box).not.toContain(">Delete</button>");
+    });
   });
 
   test("a disabled entry's checkbox is unchecked", () => {

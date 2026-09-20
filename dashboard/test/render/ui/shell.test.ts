@@ -378,23 +378,48 @@ describe("pageShell header unit control - desktop checked state (spec 469)", () 
 // an in-app link click — a real <dialog> is always positioned inside
 // the document's own viewport, not the OS screen.
 describe("pageShell leave-app dialog (spec 478)", () => {
-  test("AC-1/AC-2: renders dialog.leaveapp with the four translated strings", () => {
+  test("renders dialog.leaveapp with its heading, sentence and OK / Cancel (AC-2, AC-4)", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z");
     expect(html).toContain('<dialog class="leaveapp confirmdialog">');
-    expect(html).toContain("Leave app?");
+    expect(html).toContain("Leave page?");
+    expect(html).not.toContain("Leave app?");
     expect(html).toContain("Changes you made may not be saved.");
-    expect(html).toContain(">Leave<");
-    expect(html).toContain(">Stay<");
+    expect(html).toContain(">OK<");
+    expect(html).toContain(">Cancel<");
+    expect(html).not.toContain(">Leave<");
+    expect(html).not.toContain(">Stay<");
+  });
+
+  const leaveBox = (html: string) => html.match(/<dialog class="leaveapp confirmdialog">[\s\S]*?<\/dialog>/)![0];
+
+  test("the two answers sit in one row under the heading and sentence, OK first (AC-1, AC-3)", () => {
+    const box = leaveBox(pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z"));
+    expect(box).toContain(
+      '</p><div class="dialogactions">' +
+        '<form method="dialog"><button class="btn danger" type="submit" value="leave">OK</button></form>' +
+        '<form method="dialog"><button class="btn" type="submit">Cancel</button></form></div></div></dialog>',
+    );
+  });
+
+  test("the heading says page in all five languages (AC-4)", () => {
+    const heading = { en: "Leave page?", nb: "Forlat sida?", es: "¿Salir de la página?", de: "Seite verlassen?", fr: "Quitter la page ?" };
+    for (const [lang, h] of Object.entries(heading)) {
+      const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
+        lang: lang as "en",
+      });
+      expect(leaveBox(html)).toContain(`<h2>${h}</h2>`);
+    }
   });
 
   test("renders the Norwegian strings when lang is nb", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-16T00:00:00Z", undefined, {
       lang: "nb",
     });
-    expect(html).toContain("Forlat appen?");
+    expect(html).toContain("Forlat sida?");
     expect(html).toContain("Endringene du gjorde blir kanskje ikke lagret.");
-    expect(html).toContain(">Forlat<");
-    expect(html).toContain(">Bli<");
+    expect(html).toContain(">OK<");
+    expect(html).toContain(">Avbryt<");
+    expect(html).not.toContain(">Bli<");
   });
 
   test("UNSAVED_CHANGES_SCRIPT's own click interception runs before NAV_BUSY_SCRIPT/NAV_OVERLAY_SCRIPT see the same click", () => {

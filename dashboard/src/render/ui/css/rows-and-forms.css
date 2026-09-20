@@ -278,10 +278,12 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
   gap: var(--sp-3); }
 .confirmpanel h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
 .confirmpanel p { margin: 0; }
-/* The typed field over the two buttons, and the buttons themselves side
-   by side: Delete belongs to the form it submits, Cancel to the
-   `method="dialog"` form beside it, so the row they share is made by
-   the panel rather than by either form. */
+/* The two answers of a confirm box on one row (`dialogAnswers()`): the
+   affirmative belongs to the form it submits, Cancel to the
+   `method="dialog"` form beside it, so the row is made by this wrapper.
+   A form's own class may carry a margin, which the row resets. */
+.dialogactions { display: flex; gap: var(--sp-2); }
+.dialogactions > form { margin: 0; }
 .confirmpanel [data-confirm] { display: flex; flex-direction: column; gap: var(--sp-2);
   align-items: flex-start; }
 .confirmpanel [data-confirm] .field { width: 100%; }

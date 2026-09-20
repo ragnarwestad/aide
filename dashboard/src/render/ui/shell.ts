@@ -11,6 +11,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
+import { dialogAnswers } from "./components";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { headerNotices } from "./header-notices.ts";
@@ -179,10 +180,11 @@ function leaveAppDialog(lang: Language): string {
     `<dialog class="leaveapp confirmdialog"><div class="confirmpanel">` +
     `<h2>${esc(t(lang, "shell.leaveAppTitle"))}</h2>` +
     `<p class="muted">${esc(t(lang, "shell.leaveAppBody"))}</p>` +
-    `<form method="dialog"><button class="btn danger" type="submit" value="leave">` +
-    `${esc(t(lang, "shell.leaveAppLeave"))}</button></form>` +
-    `<form method="dialog"><button class="btn" type="submit">` +
-    `${esc(t(lang, "shell.leaveAppStay"))}</button></form>` +
+    dialogAnswers(
+      lang,
+      `<form method="dialog"><button class="btn danger" type="submit" value="leave">` +
+        `${esc(t(lang, "dialog.ok"))}</button></form>`,
+    ) +
     `</div></dialog>`
   );
 }

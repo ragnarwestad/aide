@@ -18,6 +18,7 @@
 // invented at this layer.
 
 import { esc } from "../html.ts";
+import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
 
@@ -471,3 +472,15 @@ import { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER } from "./icons.ts";
 
 // What used to live here too, in a part beside this file.
 export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, CHECKING } from "./icons.ts";
+
+/** The two answers a confirm box asks for, on one row: `affirmative` (a whole form — one posts, one returns a
+ *  value to the script that opened the box) first, then Cancel. Cancel is the platform's own close, a
+ *  `method="dialog"` form with no action and no id: it works with no script, and an id ending `-cancel` would
+ *  disarm the leave guard (`unsaved-changes.ts`). */
+export function dialogAnswers(lang: Language, affirmative: string): string {
+  return (
+    `<div class="dialogactions">${affirmative}` +
+    `<form method="dialog"><button class="btn" type="submit">${esc(t(lang, "dialog.cancel"))}</button></form>` +
+    `</div>`
+  );
+}

@@ -5,9 +5,9 @@
 // here, all three live on the detail page instead.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage } from "../../ui/components";
+import { ICON_CHEVRON, ICON_SEARCH, btn, dialogAnswers, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { modelFlag } from "./model-flag.ts";
 import { deleteSchedulePath, schedulePagePath } from "./tabs.ts";
 
@@ -152,15 +152,15 @@ function deleteCell(r: SchedulePageRow): string {
     `<h2>Delete ${esc(r.project)}:${esc(name)}?</h2>` +
     `<p class="muted">The entry is removed and stops firing. ` +
     `Its own run history stays in the queue.</p>` +
-    `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
-    // The dialog's own heading asks the question and the form beside
-    // this one answers "no": the press is the whole of "yes"
-    // (2026-09-08).
-    btn({ label: "Delete", variant: "danger", pending: "deleting…" }) +
-    `</form>` +
-    // The platform's own close: no script, and it works even where the
-    // one that opened the box did not run.
-    `<form method="dialog"><button class="btn" type="submit">Cancel</button></form>` +
+    // The dialog's own heading asks the question: the press is the
+    // whole of "yes". This page has no catalogue, so the box keeps to
+    // English.
+    dialogAnswers(
+      "en",
+      `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
+        btn({ label: t("en", "dialog.ok"), variant: "danger", pending: "deleting…" }) +
+        `</form>`,
+    ) +
     `</div></dialog></td>`
   );
 }

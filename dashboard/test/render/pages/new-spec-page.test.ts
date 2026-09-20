@@ -203,7 +203,8 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   test("exactly one back-navigation control, no separate Cancel", () => {
     const html = newPage();
     expect(html.match(/← Back/g)).toHaveLength(1);
-    expect(html).not.toContain(">Cancel<");
+    // The page-wide leave box (spec 518) carries its own Cancel; the page's controls do not.
+    expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
   });
 
   // Criterion 1.

@@ -480,7 +480,8 @@ describe("GET /new (spec 121)", () => {
     // Spec 252: the bottom Cancel beside Create is gone — the top-left
     // "← Back" is the one way out, falling back to `/` with no Referer.
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
-    expect(html).not.toContain(">Cancel<");
+    // The page-wide leave box (spec 518) carries its own Cancel; the page's controls do not.
+    expect(html.replace(/<dialog class="leaveapp[\s\S]*?<\/dialog>/, "")).not.toContain(">Cancel<");
     // No rows, and so nothing for the five-second swap to reach for.
     expect(html).not.toContain('id="jobrows"');
   });

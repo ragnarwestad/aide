@@ -278,7 +278,7 @@ describe("a same-document link click while dirty opens dialog.leaveapp instead o
     });
   }
 
-  test('pressing "Leave" navigates to the link\'s href and disarms the guard', () => {
+  test('pressing OK navigates to the link\'s href and disarms the guard', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     h.click(anchor({ href: "/other-page" }));
@@ -288,7 +288,7 @@ describe("a same-document link click while dirty opens dialog.leaveapp instead o
     expect(prevented).toBe(false);
   });
 
-  test('pressing "Stay" (or Escape) navigates nowhere and leaves the guard armed', () => {
+  test('pressing Cancel (or Escape) navigates nowhere and leaves the guard armed', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     h.click(anchor({ href: "/other-page" }));

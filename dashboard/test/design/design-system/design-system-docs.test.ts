@@ -25,3 +25,9 @@ describe("design-system.md names the switch (AC-6)", () => {
     expect(DOC).toContain("`switchControl()`");
   });
 });
+
+describe("design-system.md names the confirm box's two answers (spec 518, AC-6)", () => {
+  test("lists dialogAnswers() among the components", () => {
+    expect(DOC).toContain("`dialogAnswers()`");
+  });
+});

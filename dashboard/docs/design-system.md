@@ -55,6 +55,7 @@ act). `rowMessage()` alone turns a kind into a colour and an icon — never at t
 | `phaseChip()`     | `default`, `checked`, `done`, `off` (with the reason in `title`)                                                                      |
 | `rowMessage()`    | `info`, `waiting`, `failed`                                                                                                           |
 | `field()`         | label above any control, one height and one radius                                                                                    |
+| `dialogAnswers()` | a confirm box's two answers on one row: the affirmative first, then Cancel (the platform's own close)                                 |
 | `filterPills()`   | "Label · count", the chosen one marked with `aria-current`                                                                            |
 
 `STEP_LABELS` lives there too — a step's technical name mapped to a friendlier one shown to a reader, while

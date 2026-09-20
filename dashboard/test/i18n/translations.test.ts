@@ -6,6 +6,16 @@
 import { describe, expect, test } from "bun:test";
 import { t, LANGUAGES } from "../../src/i18n";
 
+describe("the confirm boxes' shared answers (spec 518, AC-2)", () => {
+  test("OK and Cancel in every language", () => {
+    const cancel = { en: "Cancel", nb: "Avbryt", es: "Cancelar", de: "Abbrechen", fr: "Annuler" } as const;
+    for (const lang of LANGUAGES) {
+      expect(t(lang, "dialog.ok")).toBe("OK");
+      expect(t(lang, "dialog.cancel")).toBe(cancel[lang]);
+    }
+  });
+});
+
 describe("t()", () => {
   test("returns the English source string for en", () => {
     expect(t("en", "shell.theme")).toBe("Theme");
