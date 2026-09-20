@@ -114,8 +114,8 @@ every row is ticked:
 
 ## Where Aide sits in spec-driven development
 
-Spec-driven development means writing a spec before an AI assistant writes code, and treating that spec as the
-source of truth for both the user and the assistant. Birgitta Böckeler's
+Spec-driven development means writing a spec before an AI tool writes code, and treating that spec as the source
+of truth for what gets built. Birgitta Böckeler's
 [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) names
 three levels of it:
 
@@ -125,13 +125,17 @@ three levels of it:
 | Spec-anchored  | is kept after the work and edited as the feature evolves                        |
 | Spec-as-source | is the only thing a user edits; the code is generated from it                   |
 
-Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a user
-declines to accept the result, they edit the spec's acceptance criteria and the same spec runs another round of
-analysis or implementation — a round that may only start once at least one criterion is new or reworded since the
-last one. When the user is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
-`archive/` with its history, and what it taught is written back into the project's living documentation, which is
-where the current state of the system is described. It is not spec-as-source: users and assistants still read and
-edit the code.
+Aide is spec-anchored. The spec is what you edit when the result is not what you wanted: you add or reword
+acceptance criteria, and run the same spec through analysis or implementation again. That is also what lets
+another round start — at least one criterion that is still unticked has to be new or reworded since the previous
+round. When every criterion is ticked, the spec is archived: it moves to `archive/` and keeps all four files. The
+archive step also writes what the change means for the project into the project's own documentation. An archived
+spec can be reopened later and taken through another round. It is not spec-as-source: you and the AI tool still
+read and edit the code.
+
+[docs/COMPARISON.md](docs/COMPARISON.md) puts the other spec-driven tools through the same criteria: document
+structure, which AI tools they run on, how they execute a step, what they do with the code, and what each one
+leaves behind in a repository.
 
 ---
 
