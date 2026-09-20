@@ -5,7 +5,7 @@ implementation and archiving.
 
 ## Table of contents
 
-- [What it is](#what-it-is)
+- [What Aide is](#what-aide-is)
 - [Quick start](#quick-start)
 - [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
@@ -19,39 +19,45 @@ implementation and archiving.
 
 ---
 
-## What it is
+## What Aide is
 
-An AI assistant is powerful but unpredictable when the requirements for a change live only in a chat history: the
-reasoning behind a decision disappears with the conversation, the next session starts from zero, and nobody else can
-review what was actually agreed before the code was written.
+Aide is a tool for spec-driven development: before an AI assistant writes code, it writes a specification — four
+plain-Markdown files (description, analysis, solution, status) that you and any AI tool can read, review and
+continue identically. The spec is committed to git, either in the project it describes or in a specs repository of
+its own.
 
-Aide's answer is spec-driven development (SDD): before any AI assistant writes code, it writes a specification — four
-plain-Markdown files (description, analysis, solution, status) that a user and any AI tool can read, review and
-continue identically, committed to git alongside the code it describes.
+### The skills
 
-**Everything can be done with the skills.** Each step — create, analyze, implement and archive — is an `aide-*`
-skill you run by hand, one spec at a time, inside Claude Code, Codex, OpenCode or GitHub Copilot.
+Each step of the workflow — create, analyze, implement and archive — is an `aide-*` skill: a command you type in
+Claude Code, Codex, OpenCode or GitHub Copilot, one spec at a time, and follow as it works.
 See [The aide-\* skills](#the-aide--skills).
 
-**The dashboard is the easier way to use them.** It works one level up: it lists every spec across every project Aide
-knows about and runs the same skills for you — queued and unattended, with a user stepping in only where a judgement
-is needed, such as ticking the acceptance criteria before archive. See [The Aide dashboard](#the-aide-dashboard).
+### The dashboard
 
-Either way, the spec is what lets any AI assistant:
+The dashboard is a web page, served by a small server you install and start yourself — on your own machine, or on
+one that stays on so runs continue after you close the lid. It lists every spec in every project Aide knows about, and it
+runs the same skills itself: you queue a spec, and it runs create, analyze, implement and archive one after the
+other, on the AI tool and model you pick for each step, with several specs running at once.
+It records what each step cost and how it ended, and it waits for you where a judgement is needed — you tick the
+acceptance criteria before archive. See [The Aide dashboard](#the-aide-dashboard).
 
-- Understand a spec and analyze the codebase automatically
-- Suggest concrete solutions with file references and line numbers,
-  reviewable as a diff before a line of code changes
-- Implement changes using Test-Driven Development (TDD)
-- Follow established plans for technical debt and modernization that
-  span many sessions, not one prompt
+### Aide is a personal tool
 
-**Not locked to one AI vendor.** The same spec is read and continued by Claude Code, Codex, OpenCode or Copilot,
-so each step can run on whichever tool suits it, and the spec is what carries the work between them.
+It is installed for one user on one machine, and the dashboard has no sign-in and no notion of who is using it:
+every run uses the AI account of the user it runs as. Nothing has to be committed to a project for Aide to work on
+it, which is what makes it usable on a repository someone else owns.
 
-**Aide is a personal tool.** It is installed for one user on one machine, and the dashboard has no sign-in and no
-notion of who is using it: every run uses the AI account of the user it runs as. Nothing has to be committed to a
-project for Aide to work on it, which is what makes it usable on a repository someone else owns.
+### It works with four AI tools
+
+Claude Code, Codex, OpenCode and Copilot read and continue the same spec, so each step can run on whichever tool
+suits it, and the spec is what carries the work between them.
+
+### What the spec is for
+
+Requirements that live only in a chat history disappear with it: the reasoning behind a decision is gone, the next
+session starts from zero, and you cannot go back and see what was agreed before the code was written. The spec
+holds what the chat loses — the affected files with their line numbers, the plan written before the code, and a
+record of what each step did — reviewable as a diff before a line of code changes, and still there a month later.
 
 ---
 
@@ -81,8 +87,8 @@ project for Aide to work on it, which is what makes it usable on a repository so
    ```
 
    Or let the dashboard run the steps for you: install it with `dashboard/install.sh` (on Linux, run
-   `dashboard/serve.sh`), open
-   `http://127.0.0.1:8788`, and queue the spec there. See [The Aide dashboard](#the-aide-dashboard).
+   `dashboard/serve.sh`), open `http://127.0.0.1:8788`, and queue the spec there.
+   See [The Aide dashboard](#the-aide-dashboard).
 
 More: [Install & Configuration](#install--configuration) for the other AI tools, and
 [AI-assisted workflow](#ai-assisted-workflow) for what each step does.
