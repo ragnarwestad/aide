@@ -46,3 +46,10 @@ def test_page_exists_and_carries_its_subject(question, page):
         f"{page} does not carry the subject its row claims ({question!r}); "
         f"none of {sorted(stems)} appears in it"
     )
+
+
+@pytest.mark.validation
+def test_the_http_routes_page_has_a_row_with_a_question_ac5():
+    rows = {page: question for question, page in table_rows()}
+    assert "dashboard/docs/http-routes.md" in rows, "the table has no row for the HTTP routes page"
+    assert rows["dashboard/docs/http-routes.md"].strip()

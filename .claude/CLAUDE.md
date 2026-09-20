@@ -82,6 +82,7 @@ pages run to 450; they are written to be searched. Where to look:
 | How a step's branch is merged, conflicts, unlanded work | `dashboard/docs/landing.md`        |
 | Tokens, components and the CSS class vocabulary         | `dashboard/docs/design-system.md`  |
 | Serving it, HTTPS, moving it to another host            | `dashboard/docs/hosting.md`        |
+| Every HTTP route: method, read or action, what it takes | `dashboard/docs/http-routes.md`    |
 | Installation layout, what goes where, the gotchas       | `.claude/rules/development.md`     |
 | Where the project came from and what is next            | `docs/ROADMAP.md`                  |
 | How Aide compares with other spec-driven tools          | `docs/COMPARISON.md`               |
