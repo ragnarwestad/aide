@@ -74,6 +74,22 @@ class TestTheRunnerScript:
             "a git-backed test beside another job's suite loses to load at " \
             "bun's own 5 s"
 
+    def test_it_says_something_while_it_runs(self, runner_script):
+        assert "still running" in runner_script, \
+            "one process per core printing into files says nothing for a " \
+            "minute — each worker must report as it finishes, with how " \
+            "many are left"
+
+    def test_a_failing_test_is_printed_while_the_run_is_still_going(self, runner_script):
+        assert "grep -h '^(fail)'" in runner_script, \
+            "a failing test must reach the reader when it fails, not only " \
+            "in the summary at the end"
+
+    def test_it_says_how_long_the_whole_run_took(self, runner_script):
+        assert "in $took" in runner_script and "started=$(date +%s)" in runner_script, \
+            "the last line must carry the wall-clock time, in minutes and " \
+            "seconds"
+
     def test_a_red_worker_prints_its_output(self, runner_script):
         assert 'cat "$OUT/out.$w"' in runner_script, \
             "CI reads the failing lines out of this output — a red worker " \

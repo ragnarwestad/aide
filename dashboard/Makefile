@@ -27,13 +27,14 @@ export AIDE_DASH_HOST
 # noticed. They also answer a different question from the one a merge
 # asks: whether the page looks right, not whether the change broke
 # something.
+# The type check first, since bun transpiles without type-checking, then
+# the suite over one bun process per core. The script holds the per-test
+# limit, the workers and the two directories that stay out of this target
+# — `make test-e2e` and `make test-slow` are those two. Comments live here
+# rather than in the recipe: make echoes a recipe line even when it is a
+# comment, and five of them buried the output.
 test:
 	bunx tsc --noEmit
-	# Several bun processes over disjoint paths, since one process runs one
-	# file at a time and `test/queue-routes` alone was four of the suite's
-	# six minutes. The script holds the per-test limit, the groups and the
-	# two directories that stay out; `make test-e2e` and `make test-slow`
-	# are those two.
 	bash scripts/run-tests.sh
 
 # The browser tests, on their own, for a quiet machine. Run them when
