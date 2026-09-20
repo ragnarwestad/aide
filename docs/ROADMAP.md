@@ -14,7 +14,6 @@ New contributors (human or AI): read this first.
   - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
   - [Parked: one project, several code repositories](#parked-one-project-several-code-repositories)
-- [Known quirks](#known-quirks)
 
 ---
 
@@ -275,21 +274,3 @@ The agreed shape:
   on origin, and names the repositories still waiting.
 - No merge across repositories at once is needed: the order and the
   review are the team's.
-
-## Known quirks
-
-- `specs/` is gitignored; only `specs/README.md` is force-tracked.
-- `scripts/generate-toc.py` and `scripts/normalize-specs.py` emit
-  "Table of contents" but still *detect* the legacy Norwegian heading
-  ("Innholdsfortegnelse") for old specs.
-- `AIDE_SPECS_PATH` in a project's `.aide/config` (optional) redirects
-  that project's spec output to an external directory/repo — Aide's
-  equivalent of OpenSpec's "Stores" idea, scoped per project since
-  spec 73 (the global environment variable is retired). Convention when
-  several projects share one specs repo: one subfolder per project
-  (`aide-specs/<project>/`), each with its own number sequence and
-  `archive/` — pointing every project at the repo ROOT would recreate
-  the shared pool.
-- The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
-  upgrades Copilot/Codex/OpenCode via mise and Claude Code via
-  `claude update`.

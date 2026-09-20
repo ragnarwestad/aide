@@ -219,6 +219,11 @@ in `.aide/config` in that project's root:
 AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
+Where several projects share one specs repo, give each its own subfolder
+(`my-specs-repo/<project>/`), so each keeps its own number sequence and
+its own `archive/`; pointing them all at the repo root puts every
+project's specs in one pool.
+
 **Default:** specs are written to `specs/` in the project root. The path
 is per-project configuration, not an environment variable — two projects
 can point at two different spec repos. Keep the personal config out of git
