@@ -12,7 +12,7 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 - [What is ticked, and why](#what-is-ticked-and-why)
 - [Which phases a spec has had](#which-phases-a-spec-has-had)
 - [The State column](#the-state-column)
-- [The notice line beside it](#the-notice-line-beside-it)
+- [The notice line under the name](#the-notice-line-under-the-name)
 - [Judging a held-back archive from the row](#judging-a-held-back-archive-from-the-row)
 - [Not verified, and Failed](#not-verified-and-failed)
 - [A phase's own transcript](#a-phases-own-transcript)
@@ -32,12 +32,13 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ## The row, open and shut
 
-One way in: the spec's own row. Shut is the default — see [How the list reads](#how-the-list-reads) — and shut it
-is information and nothing else: the fold control, the spec's name, its state, how long its phases have taken,
-what they cost, and when it was created. No button. Opening the row is what brings out the controls.
+One way in: the spec's own row. Shut is the default, and a shut row carries no control but the one that opens it:
+a chevron in front of the spec's name. Opening is a link — it adds the spec's key to `?open=<project>/<folder>,…`,
+which is what makes it survive the table's own row refresh and work with JavaScript switched off.
 
-Under the name sits the row's notice line, and under that, when the spec has one, the `N not verified` line. Both
-belong to the shut row: a collapsed row is told what went wrong without being opened.
+A shut row shows the spec's name, its state, how long its phases have taken, what they cost, and when it was
+created. Under the name sits the row's notice line, and under that, when the spec has one, the `N not verified`
+line. Both belong to the shut row, so a reader sees what went wrong without opening it.
 
 ## The row's controls
 
@@ -46,17 +47,21 @@ own AI select and its own model select — the AI select only when more than one
 is nothing to choose between. On a narrow screen the two selects collapse into one disclosure labelled with what
 they are set to, `Claude/sonnet`.
 
-The caption line carries the row's one action: **Run** while nothing of this spec is running, **Cancel** while
-something is. Run queues everything ticked as a single job, in the workflow's order — the browser submits
-checkboxes in the order they are drawn, so ticking `implement` before `analyze` still queues analyze first. Cancel
-opens a confirmation dialog over the row before it posts.
+The caption line carries the row's action, and the row draws one at a time. While nothing of this spec is
+running it is the run button, **labelled with the phase it would run** — "Implement", not "Run" — and disabled,
+still named, when that phase is unticked. Pressing it queues everything ticked as a single job in the workflow's
+order: the browser submits checkboxes in the order they are drawn, so ticking `implement` before `analyze` still
+queues analyze first. While something is running it is **Cancel** instead, which the page's script fronts with a
+confirmation dialog; with the script off the form posts directly. While `create` is the running step there is no
+button at all: cancelling it would throw away the title and the description with no spec left to run again from.
 
-There is no "stop for approval between steps" box. A reader who wants to stop between steps runs one phase at a
-time.
+A reader who wants to stop between steps runs one phase at a time.
 
 **A phase the running job has already passed is disabled; one still ahead of it is not.** The queue would refuse a
 duplicate of a phase the job already holds, so its box is shut. The phases in the job's tail are a different
-question, and they stay live — see [Changing a running job's tail](#changing-a-running-jobs-tail).
+question, and their boxes stay live: each posts itself to `POST /api/queue/<id>/steps` as it is ticked, with no
+button to press — see [Changing a running job's tail](#changing-a-running-jobs-tail). That one control needs the
+script; everything else on the row does not.
 
 ## What is ticked, and why
 
@@ -69,8 +74,8 @@ phase already done is left unticked either way; ticking it anyway is a rerun, an
 recorded choice that ticks nothing at all is honoured exactly as given, which is what keeps a finished-looking
 spec from offering an Archive nobody asked for.
 
-Two specs are offered a round rather than given one: a spec whose archive is held back on unticked acceptance
-criteria, and a spec reopened with its files kept, at implemented. For both, Analyze and Implement are offered but
+Two kinds of spec are offered a round rather than given one: a spec whose archive is held back on unticked
+acceptance criteria, and a spec reopened with its files kept whose implement has already run. For both, Analyze and Implement are offered but
 never ticked by default, whatever was recorded, and Archive is ticked — the recorded choice names the round that
 has just run, and a press meant for archive must not start another.
 
@@ -93,15 +98,15 @@ both read "0% done". The spec's own page shows it in full.
 
 ## The State column
 
-The State column carries the spec's own state and nothing else. While something runs it reads **Running**, or
-**Queued 3/11** with the pips saying which phase waits, or **Held back**. Once nothing is running it is one word:
+The State column carries the spec's own state and nothing else. A job in flight reads **Running**. A job waiting
+for a slot reads **Queued 3/11** — third of eleven queued — or, when it names the phase instead, "analyzing
+queued". A job the runner is holding back reads **Held back**. Once nothing is running the column is one word:
 **Ready**, **Done**, or **Stopped**.
 
-One word is the whole of it. What a reader presses is the button on the caption line, which names the phase it
-would run; why a spec stopped, or what it is held back on, is the row's notice line below. The column says what
-IS; the controls say what can be done.
+Nothing more goes in the column. Why a spec stopped, and what it is held back on, is the row's notice line
+underneath; which phase a press would run is on the button, which is labelled with it.
 
-## The notice line beside it
+## The notice line under the name
 
 A push that never reached origin, a landing that did not finish, a pull request the code is waiting on (or one
 `gh` could not open), an archived branch left open — these are facts about the work, not a second state the spec
@@ -120,7 +125,8 @@ adds or removes the spec's key in `?checks=<project>/<folder>,…`, kept by ever
 a checkbox for its state, and nothing from the phase tables.
 
 The one Save posts to the Status tab's own tick route with `?fromList=1`, so the ticks are stored the same way,
-and the message goes once every criterion is ticked. Saving does not start the archive. Ticks not yet saved
+and the message goes once every criterion is settled — ticked, or marked Not
+verified. Saving does not start the archive. Ticks not yet saved
 survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a link to its
 Status tab, in place of the list.
 
@@ -173,11 +179,11 @@ Every control here is a plain form first. Ticking phases and pressing Run works 
 so do Cancel and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/` is a
 layer ABOVE that floor, never the mechanism (see [what the script adds](#what-the-script-adds)).
 
-There is no form above the table with a spec dropdown of its own, and no New-spec panel: **New** is a link to
-`/new`, a page of its own. The row does everything such a form could, and a dropdown could not stay current — the
-row refresh deliberately replaces the ROWS alone, so a half-set control is never wiped, and a spec created since
-the page loaded would be in the list and not in the dropdown. The runner-unavailable notice stands outside any
-fold: "nothing here spends money" must not need a click.
+**New** is a link to `/new`, a page of its own; the list itself carries no form for making a spec. Such a form
+would need a spec dropdown, and a dropdown could not stay current — the row refresh deliberately replaces the ROWS
+alone, so a half-set control is never wiped, and a spec created since the page loaded would be in the list and not
+in the dropdown. The notice that says the runner is unavailable stands outside every fold, so that a reader is
+never a click away from learning that nothing here can spend money.
 
 The page is called Specs, not Queue. That a queue orders the runs is an implementation detail — `QueueStore`,
 `/api/queue`, `QUEUE_PROJECTS` and the rest keep the name; what a reader reads does not.
