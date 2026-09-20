@@ -276,35 +276,37 @@ dashboard calls phases, and what moves a spec from one to the next.
 
 ## The Aide dashboard
 
-All Aide skills can be run by hand, one spec at a time, in any of the four AI CLIs. The dashboard
-runs them for you, and adds what running them by hand does not give you:
+You add a project on the dashboard's Projects page. It clones the project into its own directory, keeps that
+clone to itself, and lists every spec it finds there — a directory under its projects root counts as a project
+when the dashboard holds settings for it, or when it has a `.aide/project.yaml` of its own. Each spec's phase is
+read from its `4-status.md`, so no list of specs is maintained anywhere.
 
-- **Every spec in one list** — across every project Aide knows about, with search and a state filter
-- **Unattended runs** — a spec is queued through `create` → `analyze` → `implement` → `archive`, with several
-  specs running at once
-- **The AI and model per step** — chosen for each phase of each spec
-- **Live progress** — the running step, its time and its tokens, on the spec's row
-- **Dependencies** — a spec that overlaps with another spec can be configured to wait to be implemented until the
-  first has completed
-- **Acceptance criteria** — when a spec has them, archive is held back until every row is ticked. The ticking is
-  the user's: they read the result, tick the rows on the Status tab and press Archive
-- **Modify and rerun** — if acceptance criteria are specified and not fulfilled by the implementation, the spec
-  description and criteria can be modified to be more precise, and the analyze and implement phases rerun. Criteria
-  that are already ticked are not touched by the rerun
+What the dashboard does that the skills alone do not:
+
+- **Every spec in one list** — every project it knows of in one table, with search and a filter for active or
+  archived
+- **Runs you do not have to sit through** — you queue a spec, and create, analyze, implement and archive run one
+  after the other, several specs at a time
+- **A choice of CLI and model per phase** — made in advance, on the spec's row, rather than by opening a
+  particular terminal
+- **Live progress** — the row shows the phase running now, how long it has been running and what it has spent
+- **Dependencies** — a spec can name another spec it depends on: its implement and archive then wait until that
+  spec is archived, while create and analyze run as usual
+- **Archive waits for you** — a spec with acceptance criteria is held before archive until you have ticked every
+  row on its Status tab and pressed Archive
+- **Another round keeps your ticks** — correct the description and the criteria, run analyze and implement again,
+  and the rows you had already ticked stay ticked
   (see [Another round on the same spec](dashboard/docs/spec-lifecycle.md#another-round-on-the-same-spec))
-- **Code that lands itself** — merged into the main branch once the tests pass, or left as a pull request for review
+- **The merge** — the spec's branch is merged into the default branch once the project's tests pass on the
+  merged result, or left open as a pull request
   (see [How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands))
-- **The whole history** — clicking a spec opens its description, analysis, plan, status and every job that has run
-  against it
+- **Every job that has run** — a spec's page holds its four files and the record of each job run against it,
+  with what it cost
 
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
-<p align="center"><em>The specs list: one row per spec, across every project, with the phase it has reached, the
-step running now, and the button for the step that comes next.</em></p>
-
-It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
-so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
-machine that stays on so runs continue after you close the lid.
+<p align="center"><em>The specs list: the phase each spec has reached, what is running now, and the controls that
+start the next phase.</em></p>
 
 It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](dashboard/README.md)**.
 
@@ -312,12 +314,22 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 ## Resources
 
-[How Aide compares with the other spec-driven tools](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD, GSD, OpenSpec,
-Tessl and the rest, one entry each.
+About Aide:
 
-- [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) - Birgitta Böckeler on the levels of spec-driven development and the tools behind them
-- [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
-- [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development)
+- [How Aide compares with the other spec-driven tools](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD, GSD, OpenSpec,
+  Tessl, Cursor's Plan Mode and Augment Code, each answered on the same criteria
+
+Reading:
+
+- [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) —
+  Birgitta Böckeler on the three levels of spec-driven development and the tools behind them
+- [Spec-driven development with AI](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
+  — GitHub's own introduction to Spec Kit
+- [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development) — a guide to the maturity
+  levels of spec-driven development, and when a spec compiler fits better than an agent workflow
+
+The tools themselves, for the ones compared above that publish their own documentation:
+
 - [GitHub Spec Kit](https://github.com/github/spec-kit)
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 - [Kiro](https://kiro.dev)
