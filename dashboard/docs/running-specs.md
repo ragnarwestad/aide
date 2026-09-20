@@ -52,8 +52,8 @@ model choice, drawn by the same pickers the spec's row on the list uses. `create
 turned off; the other three are on by default, so a form submitted without touching them queues all four phases in
 order, guarded and timed like any other job. Unticking a box before pressing Create is how a `create`-only job is
 queued. What was ticked here is recorded against the spec this job makes, and is what the row's own phase boxes
-show once the spec has a row — not re-derived on the next render, and not lost when this job finishes. It stands
-until someone re-ticks the row itself and presses Run.
+show once the spec has a row — see
+[What is ticked, and why](the-specs-list.md#what-is-ticked-and-why).
 
 Two things about the form are worth knowing:
 
