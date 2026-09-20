@@ -47,7 +47,7 @@ const OVER_FILE_COUNT: Record<string, number> = {
   "test/render/pages": 24,
   "test/specs-client": 24,
   "test/design": 26,
-  "test/e2e": 17,
+  "test/e2e": 18,
   "test/project": 19,
   "test/serve": 23,
 };

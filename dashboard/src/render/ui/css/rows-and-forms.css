@@ -304,10 +304,23 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
    height do not apply to an inline box, and the spinner drew as a thin
    sliver here while looking right inside a `.btn` — which is
    `inline-flex` and blockifies it. `place-items` centres it in the same
-   stroke. */
+   stroke.
+
+   Where it sits is stated, not left to the browser's default for a
+   modal dialog (which drew it low and to the right on a phone): while
+   open it is fixed, `inset: 0` with `margin: auto` centres it on both
+   axes, and that only centres because the size is `fit-content` — an
+   `auto` size would stretch to the edges. The limit is the viewport
+   minus a gap on every side, measured on the whole box (`border-box`),
+   and a taller layer scrolls inside itself. All of it sits on `[open]`,
+   so a closed layer is not placed. */
 dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surface);
   box-shadow: var(--overlay-shadow); padding: var(--sp-5);
   display: grid; place-items: center; }
+dialog.pageoverlay[open] { position: fixed; inset: 0; margin: auto;
+  box-sizing: border-box; width: fit-content; height: fit-content;
+  max-width: calc(100% - 2 * var(--sp-4)); max-height: calc(100% - 2 * var(--sp-4));
+  overflow: auto; }
 dialog.pageoverlay::backdrop { background: var(--backdrop); }
 /* A navigation shows the spinner alone; a deploy waits long enough that
    a bare spinner says too little, so it hands the layer a line of text. */
