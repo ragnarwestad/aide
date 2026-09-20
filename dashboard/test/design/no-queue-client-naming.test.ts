@@ -41,15 +41,14 @@ const SPECS_CLIENT_SRC_FILES = [
   "schedule-actions.ts", "state.ts", "tail-actions.ts",
 ];
 
+// The directory's own files, and the subdirectories its tests are
+// grouped into now that it is back under the 15-file limit.
 const SPECS_CLIENT_TEST_FILES = [
-  "add-form-and-tail-box.test.ts", "ai-fills-model.test.ts",
-  "ai-model-box.test.ts", "button-presses.test.ts", "cancel-confirm.test.ts",
-  "click-awaiting.test.ts", "deploy-wait.test.ts", "fixtures-controls.ts",
+  "add-form-and-tail-box.test.ts", "fixtures-controls.ts",
   "fixtures-events.ts", "fixtures-panels.ts", "fixtures-runtime.ts",
-  "fixtures-tbody.ts", "fixtures.ts", "live-model-pick.test.ts",
-  "live-reconnect.test.ts", "live-redraw.test.ts", "press-busy-state.test.ts",
-  "projects-panel.test.ts", "schedule-actions.test.ts",
-  "schedule-ai-picker.test.ts", "tick-and-stale-swap.test.ts",
+  "fixtures-tbody.ts", "fixtures.ts", "projects-panel.test.ts",
+  "schedule-actions.test.ts", "live/live-redraw.test.ts",
+  "pickers/ai-fills-model.test.ts", "presses/button-presses.test.ts",
 ];
 
 describe("the Specs page's browser code is named specs-client, not queue-client (spec 449)", () => {
@@ -67,7 +66,7 @@ describe("the Specs page's browser code is named specs-client, not queue-client 
     expect(existsSync(join(ROOT, "src", "queue-client.ts"))).toBe(false);
   });
 
-  test("test/specs-client/ exists with its 21 files, test/queue-client/ does not", () => {
+  test("test/specs-client/ exists with its own files, test/queue-client/ does not", () => {
     const dir = join(ROOT, "test", "specs-client");
     expect(existsSync(dir)).toBe(true);
     for (const file of SPECS_CLIENT_TEST_FILES) {

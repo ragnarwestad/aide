@@ -229,14 +229,12 @@ The dashboard's own source keeps five limits, checked by
   `en.ts` and `nb.ts` are exempt by filename — the message catalogues
   grow with every new string.
 - A test file stays at or under 800 lines.
-- A directory holds at most 15 `.ts` files directly inside it. Six are
-  over that already and are listed in the test with their EXACT count.
-  **Those numbers are never raised.** A new `.ts` file that would land in
-  one of them goes in a subdirectory of it instead, grouped by what the
-  files are about — `test/e2e/forms/…` — and the number stays as it is.
-  It goes DOWN as a directory is tidied, and the entry goes when the
-  directory is back under 15. A change that raises one is the exception
-  growing, which is what the list exists to stop.
+- A directory holds at most 15 `.ts` files directly inside it, with no
+  exceptions: the six that were over it are grouped into subdirectories
+  now, and the list of exceptions is gone. A new `.ts` file that would
+  take a directory past 15 goes in a subdirectory of it instead, named
+  for what those files are about — `test/e2e/phone/`, `test/serve/schedule/`.
+  A moved test's own imports gain one `../`.
 - As a rule, a source file's tests live under the matching path in
   `test/` — the test for `src/queue/store/index.ts` belongs under
   `test/queue/`. A small, tightly-coupled file may keep its test beside
