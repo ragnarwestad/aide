@@ -7,79 +7,69 @@
 - [Installation](#installation)
     - [Requirements](#requirements)
     - [Installing](#installing)
-    - [Remote connection](#remote-connection)
 - [Reference](#reference)
 
 ---
 
 ## What it is
 
-A dashboard that automates spec-driven development with **Aide**. Create a spec, queue it through
-`create` → `analyze` → `implement` → `archive`, and watch each step run — across every project
-**Aide** knows about, from one page.
+Aide's dashboard lists every spec in every project it has been given, and runs the workflow itself: you queue a
+spec, and create, analyze, implement and archive run in order, on the AI CLI and the model chosen for each phase,
+with several specs running at once.
 
-Under the hood: it scans a root for `.aide/project.yaml` manifests, resolves each project's specs
-root, parses spec progress/phase from `4-status.md` files, and renders a small static site — an
-overview page plus one page per project, all sharing a left-column nav. Generated where the repos
-live and served by a small Bun server that also receives live aide-run events; that server listens
-on localhost, and a proxy can put HTTPS in front of it
-(see [HTTPS and other devices](docs/hosting.md#https-and-other-devices)). Generator and
-server can run on the same machine or on two — no host is named anywhere in this repo.
+How a project gets in, and where its settings are kept, is in [Projects](docs/projects.md).
 
 ## How it's used
 
-Open the front page: it lists every spec across every project **Aide** knows about, grouped by
-phase. New makes a spec; queuing it runs it through `create` → `analyze` → `implement` →
-`archive`, and a queued job shows its live progress on the spec's row — cancel it, or add another
-step to it, from there. Click into a spec for the full picture: its description, analysis, plan,
-status, and every job that has run against it, in one page.
+The front page lists every spec, grouped by phase. **New** writes a spec; a queued job shows its progress on the
+spec's row, and can be cancelled or given another phase from there. A spec's own page holds its four files and
+every job that has run against it.
 
-See [The specs list and the spec page](docs/the-specs-list.md) for what each row and each control
-does, and [A spec's lifecycle](docs/spec-lifecycle.md) for the four phases and what moves a spec
-between them.
+[The specs list and the spec page](docs/the-specs-list.md) says what each row and each control does, and
+[A spec's lifecycle](docs/spec-lifecycle.md) covers the four phases and what moves a spec between them.
 
 ## Installation
 
 ### Requirements
 
-The machine that serves the dashboard needs, before it is installed:
+The installer checks all of this on the serving machine before it changes anything, and stops with instructions
+for whatever is missing. It is listed here so you can have it ready:
 
-- **git**, with `user.name` and `user.email` set: the runs commit as that user.
-- **Aide**: `./install-all.sh` at the repo root. It also installs mise, node and Claude Code when they are missing,
-  and bun, jq, gh, pandoc and md-to-pdf through mise.
-- **An AI CLI, signed in**: run `claude` once and sign in. Codex, OpenCode or Copilot work too.
+- **git**, with `user.name` and `user.email` set — a run commits as that user
+- **Aide itself**: `./install-all.sh` at the repository root, on that machine. Every phase the dashboard runs goes
+  through Aide's own scripts, so they have to be there first
+- **An AI CLI, signed in**: run `claude` on that machine and sign in. Codex, OpenCode or Copilot work too
 
 ### Installing
 
-On that machine, or on another one over ssh:
+Which command to run depends on where the dashboard will run:
 
-```bash
-dashboard/install.sh                # on this machine — first install and every update
-MINI=<host> make install-serve      # on <host>, from dashboard/ — first install
-MINI=<host> make deploy-serve       # same — for updates
-dashboard/serve.sh                  # on Linux — runs it in this terminal
-```
+| Where it will run               | Command, from the repository root                   |
+|---------------------------------|-----------------------------------------------------|
+| This machine, on macOS          | `dashboard/install.sh`                              |
+| Another macOS machine, over ssh | `MINI=<host> make install-serve`, from `dashboard/` |
+| Linux, which has no launchd     | `dashboard/serve.sh`                                |
 
-Both check the requirements on the serving machine before they change anything. They stop on anything required that
-is missing, saying how to install it, and warn about the optional ones. `MINI` has no default: a deploy aimed at a
-machine nobody named is worse than one that refuses to start.
+The first two are the same command for a first install and for every update after it. Over ssh, it clones the
+repository on that host the first time and pulls it on every later run, so nothing has to be put there by hand —
+but the sign-in is yours to do there, over ssh, since it is interactive. Set `MINI` to the host's name; it has no
+default.
 
-On macOS the install runs the dashboard as a launchd service, which starts on its own and keeps running; the user it
-runs as must have logged in on the machine's screen once, since the service runs inside that login.
+On macOS the install runs the dashboard as a launchd service, `com.aide-dashboard.serve`, which starts on its own
+and keeps running. The user it runs as must have logged in on the machine's screen once, since the service runs
+inside that login; without it, the job is installed and the port answers nothing.
+`launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it, and
+[Hosting the dashboard](docs/hosting.md) has the logs, the arguments it was loaded with, and how to remove it.
 
-On Linux there is no launchd, and `install.sh` says so and installs nothing. `dashboard/serve.sh` runs the dashboard
-in a terminal instead, queue included, with the same arguments and the same state under `~/.aide/dashboard` as the
-service. It runs until it is stopped and does not start again after a reboot. `PORT`, `BIND`, `ROOT` and
-`QUEUE_PROJECTS` are set as `NAME=value` arguments. On Windows, all of this runs inside WSL.
+`install.sh` does not support Linux: it says so and installs nothing. `dashboard/serve.sh` runs the dashboard in
+a terminal instead, queue included, with the same arguments and the same state under `~/.aide/dashboard` as the
+service, and checks the same requirements first. It runs until it is stopped and does not start again after a
+reboot. `PORT`, `BIND`, `ROOT` and `QUEUE_PROJECTS` are given to it as `NAME=value` arguments. On Windows, all of
+this runs inside WSL.
 
-Once installed, the dashboard answers on that machine alone, at `http://127.0.0.1:8788`.
-[Hosting the dashboard](docs/hosting.md) covers the machine that serves it, keeping it up to date there, and installing
-it as a browser app.
-
-### Remote connection
-
-Reaching the dashboard from a phone or another computer, over HTTPS, is an optional add-on with Tailscale: see
-[Tailscale (optional)](docs/tailscale.md). Nothing in the install depends on it.
+Once it is installed, the dashboard answers at `http://127.0.0.1:8788`, on that machine alone. Reaching it from
+another device is [Hosting the dashboard](docs/hosting.md) and [Tailscale](docs/tailscale.md). The first thing to
+do there is add a project, which [Projects](docs/projects.md) covers.
 
 ## Reference
 
@@ -93,3 +83,4 @@ Reaching the dashboard from a phone or another computer, over HTTPS, is an optio
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Hosting the dashboard](docs/hosting.md) — the machine that serves it, keeping it up to date, HTTPS, installing it as an app
+- [Tailscale](docs/tailscale.md) — optional: reaching the dashboard from a phone or another computer, over HTTPS
