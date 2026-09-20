@@ -2,7 +2,7 @@
 // `run-controls.ts` beside this file already established: a project/
 // specFolder path, `ctx.specRef` for the archived refusal, a redirect
 // back to the spec page for a no-JS form POST.
-import { specPagePath } from "../../../render";
+import { resolveBackHref, specPagePath } from "../../../render";
 import { startTestServer, stopTestServer } from "../../test-servers/lifecycle.ts";
 import { ARCHIVED_REFUSAL, json, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
 import type { RoutesContext } from "..";
@@ -47,7 +47,17 @@ export async function testServerControlRoutes(
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     stopTestServer(ctx.testServers, project!, specFolder!, "the Stop button on the spec row");
-    return wantsJson ? json({ ok: true }) : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
+    // Back to the page the form was posted from: this route is the Stop
+    // button on the Test servers list as well as on the spec's own page,
+    // and a fixed target took a reader off the list they pressed it on.
+    // Same-origin `Referer` only, falling back to the spec page.
+    return wantsJson
+      ? json({ ok: true })
+      : specsRedirect(
+          {},
+          undefined,
+          resolveBackHref(req.headers.get("referer"), new URL(req.url).origin, specPagePath(project!, specFolder!)),
+        );
   }
 
   return null;

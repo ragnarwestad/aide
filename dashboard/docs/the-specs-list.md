@@ -135,7 +135,8 @@ Status tab, in place of the list.
 **Each acceptance row has a second box, "Not verified".** It is offered beside the tick box under the › and on the
 Status tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a
 small line `N not verified` below the project and name on its list row — live and archived, not closed — linking
-to its Status tab. The State filter has a "Not verified" entry that shows only specs with such a row, archived
+to its Status tab. An archived row that draws the info line under its phase lines says the count there instead, and
+only there. The State filter has a "Not verified" entry that shows only specs with such a row, archived
 ones included.
 
 On an archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived
@@ -193,7 +194,8 @@ The page is called Specs, not Queue. That a queue orders the runs is an implemen
 One row per spec, not per job, and collapsed by default: name, title, one status line and the phase pips.
 Expanding it — the chevron in front of the name, `?open=…` — reveals the workflow phases underneath, always in
 that order, so how far a spec has got is readable without counting rows, and with them the run controls: a tick
-box, an AI select and a model select per phase, and Run or Cancel on the caption line above them. A phase never run
+box, an AI select and a model select per phase, and the action on the caption line above them. The phase lines sit
+directly under the row; its message rows — held-back, refusal, info line — come after them. A phase never run
 shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
 re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
 makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a user just acted

@@ -155,6 +155,35 @@ describe("POST /api/queue/projects/<name>/test-server/stop (AC-7)", () => {
     expect(server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY)).toBeUndefined();
   });
 
+  // Stopping a board must not move the reader: the Test servers page
+  // posts this same route with no script, and a fixed redirect to the
+  // Deploy tab took them off the page they were standing on.
+  test("a no-script POST comes back to the page it was posted from", async () => {
+    const { base, server } = start();
+    server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry());
+    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", referer: `${base}/test-servers` },
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/test-servers");
+  });
+
+  // A Referer from anywhere else is not followed: a string from the
+  // client, reflected into a redirect, is an open-redirect surface.
+  test("a Referer from another origin falls back to the Deploy tab", async () => {
+    const { base, server } = start();
+    server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry());
+    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", referer: "https://elsewhere.example/test-servers" },
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=deploy");
+  });
+
   // The Test servers list's own Stop form carries class="actionform",
   // which specs-client.ts posts as a JSON-wanting XHR — this route must
   // answer that shape too, not only the no-script redirect.

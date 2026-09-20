@@ -15,7 +15,7 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, addProjectTarget, assessProjectReadiness, commitManifestEdits, projectNameError, removeProject, updateProjectSettings } from "../../project/project-admin";
-import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS } from "../../render";
+import { NEW_SPEC_ROUTE, SETTINGS_ROUTE, SETTINGS_ROWS, resolveBackHref } from "../../render";
 import { bodyToObject, json, logRefusal, readBounded, specsRedirect } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import type { RoutesContext } from "./";
@@ -417,11 +417,24 @@ export async function handleQueueAdminRoutes(
       return new Response("no such project\n", { status: 404 });
     }
     stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY, "the Stop button on the Deploy tab");
+    // Back to the page the form was posted from, not to a fixed one:
+    // the Test servers list posts this same route with no script, and a
+    // reader who stopped a board there was taken off the page they were
+    // standing on. `resolveBackHref` follows a same-origin `Referer`
+    // only — a reflected redirect is an open-redirect surface — and
+    // falls back to the Deploy tab, where this route's only other
+    // caller lives.
     return wantsJson
       ? json({ ok: true })
       : new Response(null, {
           status: 303,
-          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+          headers: {
+            location: resolveBackHref(
+              req.headers.get("referer"),
+              new URL(req.url).origin,
+              `/projects/${encodeURIComponent(name)}?tab=deploy`,
+            ),
+          },
         });
   }
 

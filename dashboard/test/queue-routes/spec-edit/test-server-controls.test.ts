@@ -40,6 +40,31 @@ describe("spec 388: the board start/stop routes", () => {
     expect(res.status).toBe(404);
   });
 
+  // The Test servers list carries this same Stop button, and posts it
+  // with no script: a fixed redirect to the spec's own page took the
+  // reader off the list they pressed it on.
+  test("a no-script stop comes back to the page it was posted from", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", referer: `${base}/test-servers` },
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/test-servers");
+  });
+
+  test("a no-script stop with no Referer falls back to the spec's own page", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(`/specs/aide/${folder}`);
+  });
+
   test("an archived spec refuses with ARCHIVED_REFUSAL, for both start and stop", async () => {
     const archivedFolder = "82-archived";
     const { base } = harness.start({
