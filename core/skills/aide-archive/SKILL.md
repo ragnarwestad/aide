@@ -98,7 +98,16 @@ The folder keeps its `NN-slug` name once moved — the date lives in
 
 ### Step 2: Close the loop
 
-Read all four spec files and identify what should OUTLIVE the spec:
+First, what should NOT outlive it. **If this spec replaced behaviour, the
+tests for the behaviour it replaced are deleted here, before the commit
+in Step 3** (`core/rules/testing.md`, "Replaced behaviour takes its tests
+with it"): a test whose subject is gone, and a check that the old thing
+is still absent where the test already checks what replaced it. A check
+whose absence IS the rule stays. Run the project's tests afterwards, and
+name what was deleted in the summary — the reader has to see it, since
+this is the one step that can remove a test nobody asked about.
+
+Then read all four spec files and identify what should OUTLIVE the spec:
 
 - Decisions and their reasons (chosen approach, rejected alternatives)
 - New conventions or patterns the change introduced
