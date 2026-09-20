@@ -141,24 +141,29 @@ leaves behind in a repository.
 
 ## The aide-\* skills
 
-The four spec-workflow skills, in the order a spec moves through them:
+Once Aide is installed, a skill is a slash command you type in your AI tool — Claude Code, Codex, OpenCode or
+Copilot. It takes the spec's number: `/aide-analyze 55`. The dashboard runs the four workflow skills for you
+instead of you typing them, one after the other — see [AI-assisted workflow](#ai-assisted-workflow) and
+[The Aide dashboard](#the-aide-dashboard).
 
-| Skill             | Does                                                                                                                                           |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/aide-create`    | Creates a spec from a title and a description: the 4-file structure (description, analysis, solution, status)                                  |
-| `/aide-analyze`   | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan              |
-| `/aide-implement` | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution                                              |
-| `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
+The four workflow skills, in the order a spec moves through them:
 
-Supporting skills, used around that workflow rather than as a step in it:
+| Skill             | What it does                                                                                                                                                          |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/aide-create`    | Creates the spec's folder and its four files from a title and a description                                                                                           |
+| `/aide-analyze`   | Grades the change LOW, MEDIUM or HIGH and scales the analysis to that grade, maps the affected files with file:line references, and writes the plan implement follows |
+| `/aide-implement` | Writes the code test-first (RED → GREEN → REFACTOR), following the analysis and the plan                                                                              |
+| `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and writes what the change means for the project into the project's own documentation  |
 
-| Skill            | Does                                                                                                                    |
-|------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing          |
-| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                   |
-| `/aide-close`    | Closes a spec whose idea did not hold: records the reason, moves it to `archive/`, and deletes its code branch unmerged |
-| `/aide-reopen`   | Takes an archived spec back for another round; keeps every file unless asked to reset the analysis, plan and status     |
-| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                             |
+The other skills:
+
+| Skill            | What it does                                                                                                                                                           |
+|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/aide-explore`  | Weighs approaches and sharpens the scope before a spec is created; creates no files                                                                                    |
+| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                                                                  |
+| `/aide-close`    | Closes a spec you have decided not to build: records the reason, moves it to `archive/`, and deletes its code branch unmerged                                          |
+| `/aide-reopen`   | Takes an archived spec back into the active list for another round of analysis or implementation; keeps every file unless asked to reset the analysis, plan and status |
+| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                                                                            |
 
 ---
 
