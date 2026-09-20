@@ -184,11 +184,10 @@ The page is called Specs, not Queue. That a queue orders the runs is an implemen
 
 ## How the list reads
 
-One row per spec, not per job, and collapsed by default:
-name, title, one status line, the phase pips, and at most one action button. Expanding it (the chevron in front of the
-name, `?open=…`)
-reveals the workflow phases underneath, always in that order, so how far a spec has got is readable without counting
-rows, plus the run controls (phase checkboxes, model, the also-touches field after it, Run, Cancel). A phase never run
+One row per spec, not per job, and collapsed by default: name, title, one status line and the phase pips.
+Expanding it — the chevron in front of the name, `?open=…` — reveals the workflow phases underneath, always in
+that order, so how far a spec has got is readable without counting rows, and with them the run controls: a tick
+box, an AI select and a model select per phase, and Run or Cancel on the caption line above them. A phase never run
 shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
 re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
 makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a user just acted
@@ -221,10 +220,10 @@ spinner, a different fact with a different lifetime (see [what the script adds](
 `--accent` still, so a machine set to reduce motion still tells a running phase from a waiting one, just without the
 movement.
 
-The header carries what belongs to the spec rather than to one run, unconditionally (collapsed or expanded): the summed
-cost, one link per repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the
-most recent outcome. A collapsed row's single action button — the way out of a conflict, where the refusal is — sits
-there too, once per spec instead of once per job; Cancel is only offered once the row is expanded.
+The header carries what belongs to the spec rather than to one run, collapsed or expanded: the summed cost, one
+link per repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the most
+recent outcome. It carries no button: both Run and Cancel are on the caption line inside the fold, once per spec
+rather than once per job.
 
 Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
 cost sorts on the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer)
@@ -247,46 +246,46 @@ on the queue job, which the queue drops after 200 jobs. A create that failed bef
 
 ## Filtering and searching the list
 
-The chips are one axis, and `?state=` is where it lives: "All" (the default), "Active" (everything not archived and
-not closed), "Running" (only `running`, or a job whose branch is still landing), "Waiting" (`queued` — in queue or
-held back — or `done` with no landing in progress), "Stopped", "Failed" (`failed`, `interrupted`, `cancelled`, or an
-archived spec whose branch still exists on origin), "Archived" and "Closed". The default is `STATE_FILTERS[0]` and
-nothing else — moving an entry to the front changes the default for every reader. Every chip, including "All",
-carries its own `state=` value explicitly, so choosing one always overrides whatever is remembered (see below).
+The state filter is one axis, and `?state=` is where it lives. It is a dropdown: a trigger showing the chosen
+entry and its count, over a panel of radio links. The nine entries are "All" (the default), "Active" (everything
+not archived and not closed), "Running" (only `running`, or a job whose branch is still landing), "Waiting"
+(`queued` — in queue or held back — or `done` with no landing in progress), "Stopped", "Failed" (`failed`,
+`interrupted`, `cancelled`, or an archived spec whose branch still exists on origin), "Archived", "Closed" and
+"Not verified". The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
+default for every reader. Every entry, including "All", carries its own `state=` value explicitly, so choosing one
+always overrides whatever is remembered (see below).
 
-**The chosen chip is remembered across visits, the same way the sort column is.** Choosing a chip sets the
-`aide_state` cookie (`HttpOnly; SameSite=Lax`); a request with no `state=` in the query string — the Specs tab's own
+**The chosen entry is remembered across visits, the same way the sort column is.** Choosing one sets the
+`aide_state_<port>` cookie (`HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`), port-suffixed so a test board and
+the real one do not overwrite each other's memory; a request with no `state=` in the query string — the Specs tab's own
 link, a bookmark, the back button — falls back to that cookie instead of always landing on "All". An explicit
 `?state=` always wins and becomes the new memory. The search term (`?q=`) is never remembered this way.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
-row: the link to its own `/specs/<project>/<spec>` page, its whole description behind a two-line clamp, the date it was
-archived, what it cost in time, the "not landed" mark, and Reopen. Reopen is a link to a confirmation page
+row: the link to its own `/specs/<project>/<spec>` page, its name under a two-line clamp, what its phases came to in
+time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
+archive date: the Time column holds a duration and never a date. Reopen is a link to a confirmation page
 (`/specs/<project>/<spec>/reopen`) that asks whether to reset the analysis, the plan and the status as well; the
 answer comes back to the list, filter and all. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
-control that should not be drawn. The date is the `**Archived:**` stamp in `4-status.md`, or, where a folder carries no
-stamp, the commit that last touched it; a spec neither can date reads "date unknown" rather than leaving the column
-blank, and one with no `## Description` section reads as a dash.
+control that should not be drawn. The Created column is the one date on the row: a dash where git has no answer for a live
+spec, and "not registered" for a finished one.
 
 **What that row says a spec cost, in time,** is computed the same way whether the row is live or archived
 (`totalDuration()`, `data-model/phases.ts`): a queue-measured span per phase — the worktree, the AI session, the commit
 and the push, all of it — is preferred where the queue still remembers the job, and only where it does not (an archived
 spec older than the queue's 200-job memory, or a phase no job ever ran) does the phase's own file stamp stand in, which
-is the AI session's own duration alone. An archived row whose total leaned on that fallback for any phase carries a
-"part." mark beside the figure, so a reader is never shown a session-only duration as though it were the whole phase's
-time; a live row's own rare version of the same fallback stays unmarked. A total of `0` across every phase draws a bare
-date with no duration span, the same "nothing recorded" rule the Cost cell gives an all-zero `spentUsd`.
+is the AI session's own duration alone. A total of `0` across every phase reads `0s`, the same as a live row's.
 
-**Building archived rows is gated on the chip** (`filterShowsArchived` in `data-model/filter-sort.ts`, beside the
-chips, so the gate and the chips cannot disagree). A row costs two small file reads, Aide alone has archived well over
-a hundred specs, and this page rebuilds itself on every change event on every open tab — so a view whose chip cannot
-show an archived row builds nothing for one (a closed spec's folder is under `archive/` too, so the Closed chip
-opens the same walk). ONE exception: an archived spec whose own branch is still on origin is
-built whatever the chip, because it has NOT finished and the reading view is where that has to be seen. That is also
-why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is archived to the Archived
-chip, failed to the Failed chip, and not-archived to the chip defined by excluding archived specs, and all three
-fall out of the chip tables rather than out of an exception inside the filter.
+**Building archived rows is gated on the chosen filter** (`filterShowsArchived` in
+`data-model/filter-sort.ts`, beside the filter table, so the gate and the entries cannot disagree). A row costs two
+small file reads, Aide alone has archived well over a hundred specs, and this page rebuilds itself on every change
+event on every open tab — so a view that cannot show an archived row builds nothing for one (a closed spec's folder
+is under `archive/` too, so Closed opens the same walk). ONE exception: an archived spec whose own branch is still
+on origin is built whatever the filter says, because it has NOT finished and the reading view is where that has to
+be seen. That is also why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is
+archived to the Archived entry, failed to the Failed entry, and not-archived to the entry defined by excluding
+archived specs, and all three fall out of the filter tables rather than out of an exception inside the filter.
 
 **`?q=` is a plain search**, a GET form carrying the rest of the view as hidden fields, matching the folder, the title
 and the WHOLE description — including the part the clamp does not show, which the note under the field says out loud.
@@ -306,17 +305,18 @@ with one in flight it answers with the clash refusal.
 Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
-same criteria without boxes. An old `?tab=checks` link opens the Status tab. The banner above the tab row holds the
-state chip, the Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`) and two
-facts that belong to no single document: what the spec depends on, and whether it requires acceptance ticking — both
-editable in one form (`POST /api/queue/specs/<project>/<spec>/tracking`).
+same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
+checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. The banner above the
+tabs holds what belongs to the spec rather than to one document: whether it is archived or closed, the test
+server's state, any error, and two facts editable in one form — what the spec depends on, and whether it requires
+acceptance ticking (`POST /api/queue/specs/<project>/<spec>/tracking`).
 
 **The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
 the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
 `?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
 reloads itself** (`<meta refresh>`, ten seconds): it is the one that moves while a step runs, and every other tab
-carries a form a timer would wipe. The price is a state chip only as fresh as the last time the page was asked for,
-with Update beside it. Each step's raw log now sits behind a summary, drawn above it, never
+carries a form a timer would wipe. The price is a page only as fresh as the last time it was asked for,
+which is what Update is for. Each step's raw log now sits behind a summary, drawn above it, never
 behind its own fold: the files that step's own commit changed (with lines added/removed), the
 commands it ran with their outcome, its full final message, and the same time/cost/token/result
 numbers shown elsewhere on the row. A step with no log file says so instead of showing an empty
@@ -339,7 +339,7 @@ user owns: the other three are written by a step, and a hand edit there is overw
 runs. The `Depends on` picker used to sit on this tab; it moved into the banner above the tab row, since a dependency
 is a fact about the SPEC rather than about this one document.
 
-**The checks on Overview** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
+**The checks on the Status tab** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
 nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first
 phase section still carrying an open mark, the same one the spec list's column shows): a row already ticked is a check
 already made, and a row in a phase the workflow has not reached is a check nothing is waiting on. Both are shown,
@@ -349,14 +349,15 @@ mark, never its prose.
 ### Saving from the page
 
 `POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the open document tab's own form
-carried, on the specs repo's default branch, then returns to that tab. ONE commit, ONE file.
+carried, then returns to that tab. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
+one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes.
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: what the spec depends on and whether it
 requires acceptance ticking, both merged into `1-description.md`'s Tracking info in one commit, refused once
 `analyze` has already decided the acceptance half of the question.
 
-`POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own commit,
-back to Overview. It is a route of its own so that ticking a box does not mean opening the description's editor. A
+`POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
+commit, back to the Status tab. It is a route of its own so that ticking a box does not mean opening the description's editor. A
 tick's new text is computed on the server from the row it verified against the file on disk and never taken from the
 body, so no byte of `4-status.md` outside a Status cell can move. Two guards, not one: the file's `baseSha` as it was
 read at, and each ticked row's own exact text posted back — a row that no longer reads as it did is refused even when
@@ -366,8 +367,9 @@ nothing.
 
 Both routes refuse, with nothing written, when the checkout is dirty, on another branch, diverged or unreachable; a
 commit whose push fails is reset away, because an unpushed commit in the one shared specs checkout breaks the next
-fast-forward for every project in it. Both refuse an ARCHIVED spec, whose files are history — server-side, not by
-hiding a control. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
+fast-forward for every project in it. `/save` refuses an ARCHIVED spec, whose files are history — server-side, not by
+hiding a control. `/tick` refuses a CLOSED spec whole, and an archived one row by row: the one move it allows
+there is settling a row that was marked Not verified. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
 — and its own cap is 64 KiB.
 
 The two routes these replaced, `GET /specs/<project>/<spec>/edit` and `POST .../status/tick`, answer 404: a retired
@@ -375,8 +377,9 @@ route is removed, not redirected.
 
 ## What the script adds
 
-The page's own browser code does one thing to the controls: it keeps the reader where they are. Every one of them — Run,
-Cancel, Create — is a real `<form>` that works on its own, and the script only intercepts.
+The page's own browser code does one thing to the controls: it keeps the reader where they are. Both of them —
+Run and Cancel — are real `<form>`s that work on their own, and the script only intercepts. Cancel is intercepted
+twice over: once to open its confirmation dialog, and once for the press that follows.
 
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
@@ -396,10 +399,10 @@ Cancel, Create — is a real `<form>` that works on its own, and the script only
   `history.replaceState` — the same `?error=&errorSpec=` query the server's own 303 would have built — and the rows are
   re-asked with it, so the message comes back rendered on the spec's own row. The filter, the sort and the fold ride
   along in that query, which is why a refusal cannot throw the reader back to the default list.
-- **The New-spec form answers for itself.** It sits outside `#jobrows`
-  on purpose (a half-typed description must survive the row swap), so it is bound directly rather than by delegation,
-  and a refused create has no row to land on — the spec it named was never made. Its reason is written beside the form;
-  on success the form empties and shuts, and the new row arrives with the swap.
+- **The New-spec form is the one exception, and it is not on this page.** It is the whole of `/new`, so it is bound
+  directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to land
+  on — the spec it named was never made — so its reason is written beside the form; a successful one sends the
+  browser to the list, where the new job is a row.
 
 Without the script every one of those falls back to a form post and a 303 to the list: slower, and one full page load,
 but functionally complete.
@@ -471,8 +474,9 @@ The date comes from **git, never from the queue**. `QueueStore` is an LRU of 200
 `Job` record of its own beginning left; the specs repo still has the first commit that touched the folder, years on.
 `firstCommitAt` in
 `src/git/description-freshness.ts` asks for it and
-`SpecCreatedAtChecker` caches the answer, both shaped exactly like
-`DescriptionFreshnessChecker` beside them — same TTL, same key, same fail-to-nothing. `withFreshness` attaches it to
+`SpecCreatedAtChecker` caches the answer, shaped like
+`DescriptionFreshnessChecker` beside it — same key, same fail-to-nothing. The archived question keeps a cache of
+its own, with its own TTL, since the two questions go stale at different rates. `withFreshness` attaches it to
 each `SpecTarget`.
 
 Two traps worth knowing before touching this:
@@ -480,15 +484,18 @@ Two traps worth knowing before touching this:
 - **The oldest commit is not `git log -1 --reverse`.** `-1` limits the commit SELECTION, which runs newest-first, and
   `--reverse` only turns the already-limited output round — the two together still answer with the newest. The oldest is
   the last line of the unlimited log.
-- **A spec git cannot date shows a dash, and deliberately no fallback to a job's own time.** A `Job`-backed fallback
+- **A spec git cannot date shows a dash — "not registered" once it is finished — and deliberately no fallback to a
+  job's own time.** A `Job`-backed fallback
   would put the jumping straight back for exactly the specs that cannot be dated. The never-run tie-break in
   `sortGroups` therefore asks two things, not one: neither spec has a job AND neither has a date.
 - **An archived spec's folder has moved, and a plain path-filtered log only sees the move.** Once `aide-archive-spec`
   has `git mv`'d a spec's folder into `archive/<folder>`, `git log -- .` on the new path only shows the move commit and
   anything after it — every earlier commit touched the old path and is invisible to that query. `--follow` crosses
   exactly this kind of rename, but only for a single-file pathspec, not a directory — so an archived row's Created date
-  is read with `firstCommitAtFollowingRenames()` against `0-README.md` (written once by `/aide-create`, never
-  independently edited or renamed), not the plain directory lookup live rows use.
+  is read with `firstCommitAtFollowingRenames()` against `1-description.md`, not the plain directory lookup live
+  rows use. The file has to be one whose CONTENT is unique per spec: `--follow` matches renames on content
+  similarity, so `0-README.md` — the same fixed template in every spec — can be paired with an unrelated spec's
+  deleted copy and answer with a stranger's date.
 
 The other half is duration. A job carries a single `startedAt` however many steps it ran, so `finishedAt - startedAt`
 is the whole job's span and belongs to no one step of it — reaching for that is the mistake `phaseDuration` exists to
