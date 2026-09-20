@@ -9,88 +9,93 @@ decides whether a landing finished, and how a project keeps its code branch open
 - [Branches, and merging them](#branches-and-merging-them)
 - [Archive resolves the conflict itself](#archive-resolves-the-conflict-itself)
 - [Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)
+- [The tests run on the landing, once](#the-tests-run-on-the-landing-once)
+- [A root that is no longer on disk](#a-root-that-is-no-longer-on-disk)
 - [A project can ask for its code branch to stay open](#a-project-can-ask-for-its-code-branch-to-stay-open)
 
 ---
 
 ## Branches, and merging them
 
-A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard` exists
-in the project and in the specs repo, with different contents and two separate compare pages. Merging one does nothing
-for the other: each repo's branch is landed independently, asked of that repo's own checkout. A project whose specs
-live inside it has one repo and one branch for both, so a step that lands no code — `analyze`, `reopen`,
-`close` — copies the spec's own folder (and its `archive/` twin) from that branch onto the default branch as one
-commit, and leaves every other path as it was. The branch stays open for the next step, whose run merges the default
-branch in before it starts; a `close` deletes it afterwards. Code reaches the default branch through `archive` alone.
+### One branch per repository
 
-The badge says what the reader needs, not merely what git answered. A flat "not merged" is a fact about the BRANCH
-that reads as a verdict on the spec, and in the same amber while the step writing that branch
-is still running. So while the spec's job is in flight the badge names what it is doing (`analyze running`), and once
-nothing is running it says what is open and why — the one window that still exists being the code after
-`implement` and before `archive`.
+A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard`
+exists in the project and in the specs repo, with different contents and two separate compare pages. Merging one
+does nothing for the other: each repo's branch is landed on its own, asked of that repo's own checkout.
 
-**The page is settled before it can see the result.** The shared checkout's fast-forward is what makes a landed
-folder visible (the watcher rescans on it), so the merge calls back just before it: a create job takes its assigned
-folder as its key, and the cached open-branch set drops the branch (a delete that then fails puts it back). When the
-landing is over, the spec's cached git answers — its workflow history, the file steps on its branch — are marked
-due for a fresh read, as they are the moment any of its steps ends, so no row is drawn from what was true before.
+A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
+`analyze`, `reopen`, `close` — copies the spec's own folder, and its `archive/` twin, from the branch onto the
+default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,
+whose run merges the default branch in before it starts; a `close` deletes it afterwards.
 
-**Nothing here is merged by hand.** Every step lands its own work the moment it finishes: `create` and
-`analyze`
-merge the branch they pushed into that repo's default branch and delete it on origin; `implement` lands nothing, so the
-code stays on the branch for anyone who wants to read or test it first; `archive`
-merges every repo it was TOLD about — the roots its own run reported, plus the ones the queue's own history recorded for
-the spec — the specs repo first, the code last, so the code is the last word — runs
-`AIDE_INSTALL_CMD` after a code root, and then archives. It is not "every repo the
-spec's branch exists in":
-the loop can only merge what it knows about, which is why it ASKS ORIGIN afterwards, see
-[Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished). Leaving `archive`
-unticked IS the inspection point. A landing that cannot be made (a conflict with the default branch) is refused by name
-and the branch stays where it was — but
-`archive` settles most of those itself before it gets that far, see
-[Archive resolves the conflict itself](#archive-resolves-the-conflict-itself). A branch whose label is a known
-project name is that project's code; a label that is not any project on this machine is the specs repo, which is a
-closed set rather than a guess (`.claude/rules/development.md`: "the run only watches ... the roots it knows about").
+### What each step lands
 
-There is no Merge button and no Approve button: the step that made the work is what knows it is done.
+Nothing here is merged by hand. Every step lands its own work as it finishes, and there is no Merge button and no
+Approve button: the step that made the work is what knows it is done. Leaving `archive` unticked is the inspection
+point.
+
+- `create` and `analyze` merge the branch they pushed into that repo's default branch.
+- `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first.
+- `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's own
+  history recorded for the spec. **The code root goes first and the specs root last.** The specs root carries the
+  `Result: completed` stamp, and that stamp must not reach the default branch before the code landing is
+  confirmed — so a failed code merge stops the loop before the specs root is attempted. After a code root merges,
+  `AIDE_INSTALL_CMD` runs. Then the spec is archived.
+- A step that was stopped by its own time limit, or by a provider limit, still lands what it pushed outside the
+  code root.
+
+Code reaches the default branch through `archive` alone. The loop can only merge what it knows about, which is why
+it asks origin afterwards — see
+[Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished).
+
+### A merged branch is deleted
+
+Once the merge is on origin, the landing deletes the branch: first on origin, then locally. It happens after the
+push and never before, since the base has to be on origin before the only other copy of those commits is removed.
+A delete that fails is never fatal — the merge already happened — and is reported beside the merge, the way an
+install error is.
+
+### What is refused, and what is tried again
 
 A landing merges the spec branch into each repo's default branch and pushes, one repo at a time:
 
-- **A conflict refuses and names the repo.** The failed merge is aborted, so no half-merged tree is left behind — the
-  same shape
-  `aide-run-spec` already uses when it brings a reused branch up to date.
-- **A dirty tree decides nothing.** A run does not dirty the main tree — it works in a worktree of
-  its own and only ever fast-forwards this one — so a refusal over a dirty tree could only ever stop a merge over
-  somebody's unrelated uncommitted file. The `switch`, `pull` and
-  `merge` write nothing but what differs between the commits, and a file that genuinely collides raises git's own error
-  instead of a guess made in advance. What the two sides can still collide over is git's `index.lock`, and there the run
-  yields — its pull is a courtesy, recorded and never fatal.
+- **A conflict refuses and names the repo.** The failed merge is aborted, so no half-merged tree is left behind —
+  the same shape `aide-run-spec` already uses when it brings a reused branch up to date.
+- **A dirty tree decides nothing.** A run does not dirty the main tree: it works in a worktree of its own and only
+  ever fast-forwards this one. A refusal over a dirty tree could only stop a merge over somebody's unrelated
+  uncommitted file. A file that genuinely collides raises git's own error instead of a guess made in advance.
 - **A lost lock is not a conflict.** A run's own `aide-run-spec` writes refs in this same checkout at its start and
-  its end, so a landing in the same second can lose a race for `index.lock`, `packed-refs.lock` or a ref lock. That is
-  not a diverged base and must not be refused with the same sentence: the pull, and the merge itself, are retried up to
-  five times, under half a second apart, whenever git's own stderr names a lock; every other failure is refused on the
-  first attempt, with git's own words kept as the row's detail.
-- **Main moving under a landing is not a refusal.** A push origin answers and still rejects means the default branch
-  got commits while the tests ran. The local merge is dropped, the branch is merged again onto the base that moved,
-  the tests run again on that result, and the push is made once more — once. A second rejection refuses with the
-  checkout left level with origin, never ahead of it. And a base found ahead of origin only by commits origin already
-  holds (what an interrupted landing leaves) is reset before the pull, not refused: every later landing in that root
-  used to stop on "cannot fast-forward" behind one such leftover.
-- **The plan lands first, the code last.** A run records the project before its specs root, so the merge order is
-  reversed deliberately: the code is the one that matters, so it is the last word.
-- **A code merge can install.** Merged is not deployed: for a project that installs itself somewhere, the default branch
-  moving changes nothing on this machine. Set `AIDE_INSTALL_CMD` in that project's own
-  `.aide/config` and it is run in that checkout after its code merges — argv, no shell, bounded by a timeout, and
-  reported beside the merge rather than turning a completed merge into a failed one. Without the key nothing runs and
-  the result says plainly that deploying is still a hand step. Either way the sentence reaches the page — in the same
-  banner a refusal uses, whether the merge was posted from the page or by a plain form.
+  its end, so a landing in the same second can lose a race for `index.lock`, `packed-refs.lock` or a ref lock. That
+  is not a diverged base and must not be refused with the same sentence: the pull and the merge are retried up to
+  five times, 400 ms apart, whenever git's own stderr names a lock.
+- **A failed merge is tried again twice.** Beyond the lock retry, the whole per-repo merge is repeated up to three
+  times, 700 ms and then 1400 ms after the first. A red test gate is the one failure that is not retried this way.
+  Git's own words are kept as the row's detail.
+- **Main moving under a landing is not a refusal.** A push that origin answers and still rejects means the default
+  branch got commits while the tests ran. The local merge is dropped, the branch is merged again onto the base that
+  moved, the tests run again on that result, and the push is made once more — once. A second rejection refuses,
+  with the checkout left level with origin and never ahead of it.
+- **A base ahead of origin is refused only when the commits are its own.** What an interrupted landing leaves —
+  merge commits, and commits origin already holds — is not refused; the landing goes on. Unpushed work of
+  somebody's own on that branch is refused, loudly, by name.
+- **A code merge can install.** Merged is not deployed: for a project that installs itself somewhere, the default
+  branch moving changes nothing on this machine. The command comes from `AIDE_INSTALL_CMD` in the project's
+  `.aide/config`, or from `installCmd:` in its manifest, and is run in that checkout after its code merges — argv,
+  no shell, bounded by a timeout, and reported beside the merge rather than turning a completed merge into a failed
+  one. With neither set, nothing runs and the result says plainly that deploying is still a hand step.
 - **Conflicts are expected.** Two branches touching the same file conflict at merge time, and running several specs
   side by side makes it happen more often. Both sides refuse and name the repo rather than corrupting anything, and
   `archive` settles most of them itself (below).
-- **The report is per repo, never one collective "ok".** Several repos cannot be merged atomically, and one succeeding
-  while another fails is exactly what has to be readable.
-- **Nothing is deleted.** A merged branch is still worth reading, and deleting is the one step that cannot be undone
-  cheaply.
+- **The report is per repo, never one collective "ok".** Several repos cannot be merged atomically, and one
+  succeeding while another fails is exactly what has to be readable.
+
+### The page is settled before it can see the result
+
+The shared checkout's fast-forward is what makes a landed folder visible — the watcher rescans on it — so the merge
+calls back just before it. A create job takes its assigned folder as its key, and the cached open-branch set drops
+the branch; a delete that then fails puts it back. When the landing is over, the spec's cached git answers — its
+workflow history, the file steps on its branch — are marked due for a fresh read, as they are the moment any of its
+steps ends, so no row is drawn from what was true before.
 
 ## Archive resolves the conflict itself
 
@@ -99,8 +104,9 @@ treats a conflict there as a user's problem: the merge is aborted and the run re
 `errorReason: "conflict"`. `archive` is the exception, because
 `archive` is the step that LANDS the branch — a merge that fails is the merging step's problem, not a phase of its own.
 
-So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the worktree exactly as git left it: `MERGE_HEAD`
-set, the markers in the files. `/aide-archive`'s Step 1 checks for that and, when it finds it, follows
+So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the worktree with the merge still open:
+`MERGE_HEAD` set, the markers in the files. One conflict it settles itself first — a conflict confined to this
+spec's own `4-status.md`, where the default branch's copy wins — and only what is left over reaches the skill. `/aide-archive`'s Step 1 checks for that and, when it finds it, follows
 `core/skills/aide-archive/references/resolve-conflict.md` before anything else — read the conflict, resolve it or decide
 not to, finish the merge with `git commit --no-edit`, run the project's own test command — and only then goes on to
 archive the spec. The default branch is never touched by the step itself; the dashboard lands the resolved branch
@@ -112,8 +118,8 @@ and no control on the page draws off `errorReason`.
 - **The condition is the literal string `archive`, never a denylist.**
   A step this got backwards would carry conflict markers into a commit, which is worse than a refusal.
 - **It either finishes or puts the branch back.** Tests red, or a conflict the skill will not decide, and the merge is
-  undone to the commit the branch started on. `aide-run-spec` pushes a repo only when its `HEAD` moved, so a branch put
-  back never reaches origin — no new rollback machinery, the gate that already exists. A run interrupted mid-merge is
+  undone to the commit the branch started on. A branch put back never reaches origin, because a root whose
+  HEAD did not move is pushed only when the run ended `completed`, which a failed resolution does not. A run interrupted mid-merge is
   aborted by the script before the commit loop, so conflict markers are never committed either way.
 - **The test command is the gate the design rests on.** A machine resolving a conflict unattended and then landing it is
   defensible because a resolution that does not pass the project's own tests does not land.
@@ -132,12 +138,13 @@ when `command_name` is `archive` — every other step is unaffected. The "leaves
 a failed resolution therefore holds structurally, not only because the skill behaves well.
 
 **Most of what `archive` does is a script, not an AI session.** `core/scripts/aide-archive-spec` resolves the spec
-argument to a folder, checks whether a merge is open, reads `4-status.md`'s `Workflow steps completed:` bullet, and —
-when every step is there — stamps and moves the folder, before any model is asked to. It never inspects a Phase table's
-Status cell. The two things that genuinely need judgment stay with the skill: resolving an actual merge conflict, and
+argument to a folder, checks whether a merge is open, and asks `core/scripts/lib/transitions.json` whether the spec
+may move to `archived` — which asks whether `implement` has happened, not whether every step has. Then it stamps and
+moves the folder, before any model is asked to. It reads the spec's own state file, falling back to `4-status.md`'s
+`Workflow steps completed:` bullet, and never inspects a Phase table's Status cell. The two things that genuinely need judgment stay with the skill: resolving an actual merge conflict, and
 deciding what documentation should outlive the spec (`core/skills/aide-archive/SKILL.md`'s Step 2). `aide-run-spec`
 calls the same script once, right after worktree setup, purely to decide whether spawning `claude`/`codex` is worth
-doing at all — its `terminalReason` of `not-implemented-yet` or `held-back` skips the spawn entirely, the same "a
+doing at all — its `terminalReason` of `not-implemented-yet` or `acceptance-criteria-unticked` skips the spawn entirely, the same "a
 script decides success and reports it, no session runs" shape `already_landed()` has for a landed spec. Every other
 outcome (`conflict-open`, `archived`) still spawns the model, because Step 2's doc-feedback judgment needs it whenever
 the work is done, conflict or not.
@@ -168,7 +175,7 @@ land is not finished, and its row has to say so.**
 - **A failed landing moves the job to `failed`.** Every page reads the state through one path, so it reads as unfinished
   wherever the job is shown. Downgraded only from `done`: the runner may have queued the job's NEXT step in between, and
   a landing must not overwrite a job that has moved on.
-- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a user reads — the row carries one
+- **`errorReason` is `"conflict" | "held-back" | "tests-red" | "unlanded"`.** The class, beside the sentence a user reads — the row carries one
   sentence (several roots are named inside it; a second root's own failure goes behind it as hover detail), so nothing
   may match on it. Declared twice, in
   `src/queue/types.ts` and `src/render/ui/job-state/types.ts`, and pinned to each other by a test in `test/queue/requests/parsing-schedule-and-errors.test.ts` the way
@@ -185,10 +192,11 @@ land is not finished, and its row has to say so.**
   old job would resurrect a row
   for a spec that is genuinely finished.
 - **The way out is the step that already exists.** `archive` can be enqueued again for such a spec: `aide-run-spec`
-  hands it the open merge, `/aide-archive`'s Step 1 resolves it, Step 2 stops because the folder has already moved, and
-  the landing that follows merges cleanly. A set that has not been refreshed yet is empty, so the enqueue fails closed.
+  hands it the open merge, `/aide-archive`'s Step 1 resolves it, Step 2 still runs — `already-archived`
+  carries the same `needsDocFeedback` a fresh archive does — and the landing that follows merges cleanly. A set that has not been refreshed yet is empty, so the enqueue fails closed.
 - **What it does not do.** The Slack ping that already said "finished"
-  is not withdrawn — `announce` belongs to the Runner and fires before the landing exists. And a page loaded in the
+  is not withdrawn. The Runner starts the landing first and announces after, but it does not wait for the landing to
+  settle, so the ping goes out while the merge is still in flight. And a page loaded in the
   second between
   `complete()` writing `done` and the landing settling still reads
   `done`; the correction arrives a moment later.
@@ -203,8 +211,9 @@ further `archive`.
 ## The tests run on the landing, once
 
 The project's own test suite runs on the merged result before the push — in a throwaway worktree of that merge
-commit, never in the live checkout: a run's own git and a fast-forward of main moved the live checkout under a
-running suite once, so the tests on disk changed while the code they import was already loaded. The worktree
+commit rather than the live checkout: a run's own git and a fast-forward of main moved the live checkout under a
+running suite once, so the tests on disk changed while the code they import was already loaded. When
+`git worktree add` itself fails, the gate falls back to the live checkout and says so in its log. The worktree
 carries the project's `worktreeLinks` and its `.aide/config`, and is removed when the gate is over.
 `mergeBranchIntoDefault` hands the merge to the landing gate (`src/serve/land-branch/test-gate.ts`), which asks
 `aide-resolve-test-cmd` which command(s) the change calls for and runs them through `aide-record-test-run` (the
@@ -217,8 +226,8 @@ ran and the merge was built, and what is missing is a green suite.
 
 **A run the step already made is not made again.** A step that ended green reports what it saw green —
 `testedGreen` on its result: the tree, hashed by `aide_tree_hash` with the project's worktree links left out, and
-the commands. When the landing is about to run exactly those commands on exactly that tree (the archive's own run
-was on main merged in, and main has not moved since), it runs nothing, and the gate log says so
+the commands. Only an `implement` reports one, since it is the one step that runs the suite. When the landing is about to run
+exactly those commands on exactly that tree, it runs nothing, and the gate log says so
 (`src/serve/land-branch/seen-green.ts`). Another tree — main moved — or other commands, and it runs as above.
 
 This is the one place the suite runs for a change on its way to main after implement. The `archive` step runs none of
@@ -252,8 +261,9 @@ describing it, or a pull request merged past moments after it was opened. Four t
   gated position. A specs root INSIDE the project is the same repository and therefore the same branch, so a
   single-repo project leaves its one branch open and that IS the pull request.
 - **`errorReason` has no member for this.** A branch left open on purpose is a success; that pair classifies failures a
-  user can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen` in
-  `src/serve/serve.ts` is the subset that is open deliberately, and `PR_OPEN` in
-  `src/render/pages/specs-list/row-shared.ts` is what such a row says instead of `NOT_LANDED`. The set itself is the
+  user can act on. What splits instead is the WORDING of the branch-still-on-origin set: `prOpen`,
+  computed by `peekUnlanded` in `src/serve/spec-lookup.ts`, is the subset that is open deliberately, and such a row
+  says a pull request is waiting for review instead of wearing the "not landed" mark
+  (`archivedRowNotices` in `src/render/pages/specs-list/row-marks.ts`). The set itself is the
   same, so the row stays on the list and `archive` stays enqueueable for it. `assessProjectReadiness` never looks at
   `codeLanding`: every value is valid to run with, so it is never a reason to refuse a run.
