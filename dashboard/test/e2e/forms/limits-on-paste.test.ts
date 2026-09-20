@@ -3,7 +3,7 @@
 // a unit test can only stand in for the truncation.
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
-import { queueHarness } from "../helpers/queue-server.ts";
+import { queueHarness } from "../../helpers/queue-server.ts";
 
 setDefaultTimeout(20_000);
 
