@@ -98,6 +98,7 @@ select[name^="model."] {
 .scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
 .scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); }
 .scheduleform .rowmsg { grid-column: 1 / -1; }
+.scheduleform .schedulenotify { grid-column: 1 / -1; }
 .cron-input { font-family: var(--mono), monospace; }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 /* Spec 474: the two columns of the New-spec page's side-by-side

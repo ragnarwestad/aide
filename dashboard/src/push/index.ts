@@ -12,9 +12,11 @@ import { stepButton, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n";
 import { renderMessage, renderSentence } from "../i18n/message.ts";
 import type { Job } from "../queue/queue.ts";
+import { schedulePagePath } from "../render/pages/schedule-page/tabs.ts";
 import { specPagePath } from "../render/pages/spec-page/tabs.ts";
 import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
 import { attentionFor, messageKeyFor, seenOf, type Attention, type Seen } from "./attention.ts";
+import { scheduleNameOf, type ScheduleNotify } from "../queue/schedule.ts";
 import { sendPush } from "./send.ts";
 import { parseSubscribe, readSubscriptions, writeSubscriptions, type Subscription } from "./subscriptions.ts";
 import { loadOrCreateKeys } from "./vapid.ts";
@@ -28,6 +30,8 @@ export interface PushOptions {
   keyPath?: string;
   /** Where the failed creates are kept (spec 506). Absent keeps them in memory only. */
   failedCreatesPath?: string;
+  /** A scheduled job's own choice of when to notify, by project and tracking key; null when its entry is gone. Absent sends none. */
+  scheduleNotify?: (project: string, key: string) => ScheduleNotify | null;
   /** Tells the open pages something changed that the queue did not announce: a dismissed message. */
   notify?: () => void;
   /** The outgoing request; a test replaces it so nothing leaves the machine. */
@@ -63,6 +67,14 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
       title: `${r.project} · ${r.title}`,
       body: body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body,
       url: `/new?retry=${encodeURIComponent(r.id)}`,
+    };
+  }
+  if (a.kind === "schedule-run") {
+    const name = scheduleNameOf(job.specFolder);
+    return {
+      title: `${job.project} · ${name}`,
+      body: renderMessage(lang, { key: messageKeyFor(a) }),
+      url: schedulePagePath(job.project, name),
     };
   }
   const values = { step: stepLabel(a.step, lang), button: stepButton(a.step) };
@@ -138,7 +150,7 @@ export function createPush(opts: PushOptions): Push {
       const live = new Set<string>();
       for (const job of jobs) {
         live.add(job.id);
-        const a = attentionFor(seen.get(job.id), job);
+        const a = attentionFor(seen.get(job.id), job, () => opts.scheduleNotify?.(job.project, job.specFolder) ?? null);
         seen.set(job.id, seenOf(job));
         if (a?.kind === "create-failed") failedCreates.add(failedCreateFrom(job));
         if (a) start(a, job);

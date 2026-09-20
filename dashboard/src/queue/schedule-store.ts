@@ -12,7 +12,7 @@ import { CronExpressionParser } from "cron-parser";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
-import { escapesRoot, SCHEDULE_NAME_RE, type ScheduleEntry } from "./schedule.ts";
+import { escapesRoot, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry } from "./schedule.ts";
 
 export interface ScheduleStore {
   /** This project's entries, read fresh; [] for no file, an unreadable file or no key. */
@@ -24,7 +24,7 @@ export interface ScheduleStore {
 /** The entries in one project's list. Each is validated on its own and a
  *  bad one is dropped rather than carried through with a guess: a name
  *  that is not usable, a cron that does not parse, a prompt path that
- *  would leave the project root. An unusable `model` or `since` drops
+ *  would leave the project root. An unusable `model`, `since` or `notify` drops
  *  that field, not the entry — the fire is what the entry is for. */
 export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
   if (!Array.isArray(raw)) return [];
@@ -48,10 +48,12 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
     // enqueue time.
     const model = str(e.model);
     const since = str(e.since);
+    const notify = str(e.notify);
     entries.push({
       name, cron, prompt, enabled: e.enabled !== false,
       ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
+      ...(isScheduleNotify(notify) ? { notify } : {}),
     });
   }
   return entries;
@@ -66,6 +68,7 @@ function serialize(entry: ScheduleEntry): Record<string, unknown> {
     name: entry.name, cron: entry.cron, prompt: entry.prompt,
     ...(entry.model ? { model: entry.model } : {}),
     ...(entry.since ? { since: entry.since } : {}),
+    ...(entry.notify ? { notify: entry.notify } : {}),
     ...(entry.enabled ? {} : { enabled: false }),
   };
 }

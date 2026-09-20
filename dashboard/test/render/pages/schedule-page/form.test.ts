@@ -138,7 +138,7 @@ describe("renderScheduleForm", () => {
   // apart, reading as two unrelated fields.
   test("the AI and the model sit next to each other in one row, AI first", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule", modelChoices: TWO_TOOLS });
-    const row = html.match(/<span class="row">(.*?)<\/span><div class="factions"/s)?.[1] ?? "";
+    const row = html.match(/<span class="row">(.*?)<\/span><div class="schedulenotify"/s)?.[1] ?? "";
     expect(row).toContain('data-ai="model"');
     expect(row).toContain('<select name="model"');
     expect(row.indexOf("data-ai=")).toBeLessThan(row.indexOf('<select name="model"'));
@@ -158,5 +158,39 @@ describe("renderScheduleForm", () => {
       action: "/api/queue/schedule/aide/nightly",
     });
     expect(html).not.toContain('<select name="project">');
+  });
+});
+
+describe("the notification field", () => {
+  const selectedOf = (html: string): string =>
+    html.match(/<select name="notify"[^>]*>([\s\S]*?)<\/select>/)![1]!.match(/<option value="(\w+)" selected/)![1]!;
+
+  test("a new form offers three choices and starts on 'only when the run did not succeed' (AC-7)", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", fixedProject: "aide" });
+    expect(html).toContain('<select name="notify"');
+    expect(html).toContain(">Never<");
+    expect(html).toContain(">Only when the run did not succeed<");
+    expect(html).toContain(">Every run<");
+    expect(html.match(/<option value="(never|failure|always)"/g)).toHaveLength(3);
+    expect(selectedOf(html)).toBe("failure");
+  });
+
+  test("an entry that names a choice shows it, and one that names none shows the default (AC-7)", () => {
+    const entry = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
+    expect(selectedOf(renderScheduleForm({ action: "/a", entryName: "n", entry: { ...entry, notify: "always" } }))).toBe("always");
+    expect(selectedOf(renderScheduleForm({ action: "/a", entryName: "n", entry: { ...entry, notify: "never" } }))).toBe("never");
+    expect(selectedOf(renderScheduleForm({ action: "/a", entryName: "n", entry }))).toBe("failure");
+  });
+
+  test("it is drawn where the queue offers no model too, on a line of its own (AC-7)", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", modelChoices: [] });
+    expect(html).toContain('<select name="notify"');
+    expect(html).toContain('class="schedulenotify"');
+  });
+
+  test("its labels follow the language (AC-7)", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule" }, "nb");
+    expect(html).toContain('<select name="notify"');
+    expect(html).not.toContain(">Every run<");
   });
 });

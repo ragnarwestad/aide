@@ -9,7 +9,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
-import { escapesRoot, SCHEDULE_NAME_RE, type ScheduleEntry } from "../../queue/schedule.ts";
+import { escapesRoot, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export type ScheduleAdminResult = { ok: true } | { ok: false; error: string };
@@ -26,7 +26,7 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string },
+  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
   /** Every model name the queue config lists. Passed by the
@@ -72,8 +72,17 @@ export function scheduleEntryError(
       }
     }
   }
+  // Empty means "keep what the entry has" (an edit) or "none" (a create).
+  const notify = req.notify?.trim();
+  if (notify && !isScheduleNotify(notify)) return `"${notify}" is not a notification choice: never, failure or always`;
   return null;
 }
+
+/** The notification choice a request names, or `undefined` for none. */
+const postedNotify = (notify: string | undefined): ScheduleNotify | undefined => {
+  const posted = notify?.trim();
+  return isScheduleNotify(posted) ? posted : undefined;
+};
 
 /** The model an entry stores: the spelling the dashboard lists, when the
  *  posted one differs from it only in case. */
@@ -90,13 +99,14 @@ export function createScheduleEntry(
   store: ScheduleStore,
   project: string,
   projectDir: string,
-  req: { name: string; cron: string; prompt: string; model?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
   const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels);
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
+  const notify = postedNotify(req.notify);
   const entry: ScheduleEntry = {
     name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
     // Stamped on every save: a fire at or before this floor reads as
@@ -104,6 +114,7 @@ export function createScheduleEntry(
     // after the save, not whatever the cron's most recent fire already was.
     since: new Date().toISOString(),
     ...(model ? { model } : {}),
+    ...(notify ? { notify } : {}),
   };
   return saveEntries(store, project, [...existing, entry]);
 }
@@ -116,7 +127,7 @@ export function updateScheduleEntry(
   project: string,
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string; model?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; notify?: string },
   knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
@@ -125,6 +136,7 @@ export function updateScheduleEntry(
   const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels);
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
+  const posted = postedNotify(req.notify);
   const updated = existing.map((e) =>
     e.name === currentName
       ? {
@@ -138,6 +150,10 @@ export function updateScheduleEntry(
           // models configured), and pinning one there is a promise the
           // page is not making.
           ...(model ? { model } : {}),
+          // Unlike the model, an edit that posts no choice KEEPS the
+          // entry's own: a form drawn without the field is not asking
+          // for the default.
+          ...((posted ?? e.notify) ? { notify: (posted ?? e.notify)! } : {}),
         }
       : e,
   );

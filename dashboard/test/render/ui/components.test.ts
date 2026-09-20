@@ -3,7 +3,7 @@
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
 import { describe, expect, test } from "bun:test";
-import { backLink, helpPopover, resolveBackHref } from "../../../src/render/ui/components";
+import { backLink, helpPopover, resolveBackHref, switchControl } from "../../../src/render/ui/components";
 import { CSS } from "../../../src/render/ui/css";
 
 describe("backLink", () => {
@@ -104,5 +104,36 @@ describe(".intro popover CSS (spec 311)", () => {
 describe(".tabpanel details.intro CSS (spec 360)", () => {
   test("the mark floats right within the spec page's tab panel", () => {
     expect(CSS).toContain(".tabpanel details.intro { float: right; }");
+  });
+});
+
+describe("switchControl (AC-2, AC-6)", () => {
+  const on = switchControl({ id: "x", label: "Notify me", onWord: "On", offWord: "Off", checked: true });
+  const off = switchControl({ label: "Notify me", onWord: "On", offWord: "Off" });
+
+  test("is a button with the switch role, its checked state and one accessible name", () => {
+    expect(on).toContain('<button type="button" role="switch"');
+    expect(on).toContain('aria-checked="true"');
+    expect(off).toContain('aria-checked="false"');
+    expect(on).toContain('aria-label="Notify me"');
+    expect(off).toContain('aria-label="Notify me"');
+    expect(on).toContain('id="x"');
+    expect(off).not.toContain("id=");
+  });
+
+  test("shows the word for its position, and carries both words for the script", () => {
+    expect(on).toContain('<span class="switchword" aria-hidden="true">On</span>');
+    expect(off).toContain('<span class="switchword" aria-hidden="true">Off</span>');
+    expect(off).toContain('data-on="On"');
+    expect(off).toContain('data-off="Off"');
+  });
+
+  test("draws disabled when asked, and escapes its label", () => {
+    expect(switchControl({ label: "a", onWord: "On", offWord: "Off", disabled: true })).toContain(" disabled");
+    expect(switchControl({ label: "<script>", onWord: "On", offWord: "Off" })).not.toContain("<script>");
+  });
+
+  test("its position is styled from aria-checked in the bundled CSS", () => {
+    expect(CSS).toContain('.switch[aria-checked="true"]');
   });
 });

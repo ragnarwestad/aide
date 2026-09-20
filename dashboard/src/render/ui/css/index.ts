@@ -39,6 +39,7 @@ const SECTIONS = [
   "brand.css",
   "text-roles.css",
   "button.css",
+  "switch.css",
   "status-badge.css",
   "phase-chip.css",
   "remaining-checks.css",

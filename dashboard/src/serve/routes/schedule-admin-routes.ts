@@ -120,7 +120,7 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
     }, knownModels(ctx));
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
@@ -150,7 +150,7 @@ export async function handleScheduleAdminRoutes(
       return wantsJson ? json({ error: message }, 400) : specsRedirect(body, { error: message }, back);
     }
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify),
     }, knownModels(ctx));
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);

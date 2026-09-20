@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createScheduleStore, parseScheduleEntries } from "../../src/queue/schedule-store.ts";
-import type { ScheduleEntry } from "../../src/queue/schedule.ts";
+import { scheduleNotifyOf, type ScheduleEntry } from "../../src/queue/schedule.ts";
 
 let dir: string;
 let file: string;
@@ -187,5 +187,33 @@ describe("save", () => {
     createScheduleStore(file).save("aide", [entry()]);
     expect(existsSync(`${file}.tmp`)).toBe(false);
     mkdirSync(join(dir, "x"));
+  });
+});
+
+describe("an entry's notification choice", () => {
+  const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
+
+  test("each of the three values is read back (AC-7)", () => {
+    for (const notify of ["never", "failure", "always"] as const) {
+      expect(parseScheduleEntries([{ ...base, notify }])[0]!.notify).toBe(notify);
+    }
+  });
+
+  test("an entry with no choice, or an unusable one, is kept and read as failure (AC-7)", () => {
+    for (const notify of [undefined, "", "sometimes", 3, null]) {
+      const [kept] = parseScheduleEntries([{ ...base, notify }]);
+      expect(kept).toBeDefined();
+      expect(kept!.notify).toBeUndefined();
+      expect(scheduleNotifyOf(kept!)).toBe("failure");
+    }
+  });
+
+  test("a saved choice is written to the file and only when present (AC-7)", () => {
+    const store = createScheduleStore(file);
+    expect(store.save("aide", [entry({ notify: "always" }), entry({ name: "plain" })])).toBeNull();
+    const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
+    expect(written[0].notify).toBe("always");
+    expect("notify" in written[1]).toBe(false);
+    expect(store.list("aide")[0]!.notify).toBe("always");
   });
 });

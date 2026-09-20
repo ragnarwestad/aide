@@ -57,3 +57,16 @@ describe("a project's own Schedule tab, in Norwegian", () => {
     expect(html).toContain(">New job<");
   });
 });
+
+describe("a project's own Schedule tab carries the notification choice", () => {
+  test("the New-job form has the select, on the default, and so does an entry's Edit form (AC-7)", () => {
+    const html = renderProjectPage(project(), { hasConfigFile: false, rows: [] }, null, "2026-09-17T00:00:00Z", NAV, {
+      worktreeLinkCandidates: [],
+      editing: false,
+      tab: "schedule",
+      lang: "en",
+    });
+    expect(html).toContain('<select name="notify"');
+    expect(html).toMatch(/<option value="failure" selected/);
+  });
+});

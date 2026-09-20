@@ -45,15 +45,16 @@ act). `rowMessage()` alone turns a kind into a colour and an icon — never at t
 
 `src/render/ui/components/index.ts` is the one place markup for them is built:
 
-| Component       | Variants                                                                                                                              |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`                                                                |
-| `.iconlink`     | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
-| `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`                                                                  |
-| `phaseChip()`   | `default`, `checked`, `done`, `off` (with the reason in `title`)                                                                      |
-| `rowMessage()`  | `info`, `waiting`, `failed`                                                                                                           |
-| `field()`       | label above any control, one height and one radius                                                                                    |
-| `filterPills()` | "Label · count", the chosen one marked with `aria-current`                                                                            |
+| Component         | Variants                                                                                                                              |
+|-------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `btn()`           | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`                                                                |
+| `switchControl()` | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
+| `.iconlink`       | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
+| `badge()`         | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`                                                                  |
+| `phaseChip()`     | `default`, `checked`, `done`, `off` (with the reason in `title`)                                                                      |
+| `rowMessage()`    | `info`, `waiting`, `failed`                                                                                                           |
+| `field()`         | label above any control, one height and one radius                                                                                    |
+| `filterPills()`   | "Label · count", the chosen one marked with `aria-current`                                                                            |
 
 `STEP_LABELS` lives there too — a step's technical name mapped to a friendlier one shown to a reader, while
 `data-phase`, the checkbox
