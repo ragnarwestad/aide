@@ -7,6 +7,17 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ## Table of contents
 
+- [The row, open and shut](#the-row-open-and-shut)
+- [The row's controls](#the-rows-controls)
+- [What is ticked, and why](#what-is-ticked-and-why)
+- [Which phases a spec has had](#which-phases-a-spec-has-had)
+- [The State column](#the-state-column)
+- [The notice line beside it](#the-notice-line-beside-it)
+- [Judging a held-back archive from the row](#judging-a-held-back-archive-from-the-row)
+- [Not verified, and Failed](#not-verified-and-failed)
+- [A phase's own transcript](#a-phases-own-transcript)
+- [Which tests prove a criterion](#which-tests-prove-a-criterion)
+- [Plain forms first](#plain-forms-first)
 - [How the list reads](#how-the-list-reads)
 - [A failed create](#a-failed-create)
 - [Filtering and searching the list](#filtering-and-searching-the-list)
@@ -19,140 +30,157 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ---
 
-One way in: the spec's own row, expanded — collapsed is the default;
-see [How the list reads](#how-the-list-reads). It carries a checkbox per phase, a model dropdown, and one Run button
-that queues everything ticked as a single job in the workflow's order — the browser submits checkboxes in the order they
-are drawn, so ticking `implement`
-before `analyze` still queues analyze first. After the model, quiet and small-text on that same controls line — no
-disclosure to open — sits the one thing nobody sets every time: which other repos the job will touch. There is no "stop
-for approval between steps" box: a reader who wants to stop between steps runs one phase at a time.
+## The row, open and shut
 
-**Every phase the job in flight was queued with shows its box disabled**, not merely the step it has reached, because
-the queue would refuse any of them anyway (see
-[the duplicate guard](running-specs.md#notifications)). A box left tickable for a step the job already holds is a box whose press
-answers "already running on this spec". The box says why on hover ("analyze is running"), in the same words the state
-chip uses.
+One way in: the spec's own row. Shut is the default — see [How the list reads](#how-the-list-reads) — and shut it
+is information and nothing else: the fold control, the spec's name, its state, how long its phases have taken,
+what they cost, and when it was created. No button. Opening the row is what brings out the controls.
 
-What is ticked is a recorded CHOICE, not a fresh guess on every render: the phases posted from New spec at create
-time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more recently. That
-choice sticks until the reader changes it themselves, by re-ticking the row's own boxes and pressing the row's button again. A spec
-that has never had either — a create or a Run — recorded under it falls back to ticking every phase it has not had, the
-same default it always had; a fresh spec, or one whose only recorded choice is empty, starts from there. A phase
-already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A spec whose
-archive is held back on unticked acceptance criteria is the one exception: its Analyze and Implement boxes are offered
-for another round but never ticked by default, whatever was recorded, and Archive is — the recorded choice names the
-round that has just run, and a press meant for archive must not start another.
+Under the name sits the row's notice line, and under that, when the spec has one, the `N not verified` line. Both
+belong to the shut row: a collapsed row is told what went wrong without being opened.
 
-The button names the FIRST of the ticked phases and not the whole list — a label is a name, not a summary, and the
-boxes are on the row that the press acts on. When that phase is not ticked — and no later phase is either — the button
-still names it, but sits disabled: a press that could not do anything is named rather than hidden, so the row still
-says what it is waiting on. `archive` is the exception the FALLBACK'S rule needs, not the recorded choice's: a spec
-still on this list is by definition not archived, so the fallback counts it as outstanding however the history reads —
-but a recorded choice that ticks nothing at all is honoured exactly as given, which is what keeps a finished-looking
-spec from offering an active Archive nobody asked for.
+## The row's controls
 
-**Which phases a spec has HAD is read off one line, and nothing else:**
-`- **Workflow steps completed:** create, analyze` in the Tracking info of its `4-status.md`. Each step
-writes its own name there once it has succeeded, and `core/rules/spec-structure.md` § 4-status is where that contract
-lives. Nothing is inferred from a file's size, from a heading being present, or from a percentage — each of those is a
-proxy for the question rather than an answer to it, and a proxy that reads a spec as analysed before analyze has run
-sends the next step off an empty template.
+An open row adds one line per phase, and a caption line above them. Each phase line carries its own tick box, its
+own AI select and its own model select — the AI select only when more than one tool is configured, since one tool
+is nothing to choose between. On a narrow screen the two selects collapse into one disclosure labelled with what
+they are set to, `Claude/sonnet`.
 
-The percentage keeps its own job: it says how far the TDD phases
-INSIDE implement have got, which is a different question from whether implement ran. It is not shown on the row —
-implement is ONE step, so the figure reads 0 until implement finishes and 90-something after, never
-anything between, and two specs of entirely different sizes both read "0% done".
-The spec's own page shows it in full.
+The caption line carries the row's one action: **Run** while nothing of this spec is running, **Cancel** while
+something is. Run queues everything ticked as a single job, in the workflow's order — the browser submits
+checkboxes in the order they are drawn, so ticking `implement` before `analyze` still queues analyze first. Cancel
+opens a confirmation dialog over the row before it posts.
 
-A status file carrying no such line has had nothing as far as the page is concerned. That is deliberate: a spec
-that reads as unfinished is visible and is fixed by running the step, where a silent guess is neither.
+There is no "stop for approval between steps" box. A reader who wants to stop between steps runs one phase at a
+time.
 
-The State column answers what a reader came to find out, and its FIRST line is one of two things, always: the
-verb for what is happening — "analyzing", "implementing" — or its place in the queue, "queued 7/11", with the pips
-saying which phase it waits for — or, once nothing is running, the
-resting state and what can happen next —
-"ready for implement", "implementing held back", "archive held back — the Slack webhook", "done — nothing
-waiting on you". The bare words
-"done" and "queued" are neither, and neither appears alone: "done" says nothing about WHAT was done, and "queued"
-nothing about which step is waiting, while both facts are known.
+**A phase the running job has already passed is disabled; one still ahead of it is not.** The queue would refuse a
+duplicate of a phase the job already holds, so its box is shut. The phases in the job's tail are a different
+question, and they stay live — see [Changing a running job's tail](#changing-a-running-jobs-tail).
 
-There is no second line telling a reader to press the button beside it. The row's
-button stands next to the badge and NAMES the phase it would run — active when that phase is ticked, disabled and
-still named when it is not. The page says what IS; the controls say what can be done.
-The pips answer their own narrower question beside it.
+## What is ticked, and why
 
-The State column carries only the spec's own state — the running/resting word, and nothing beside it. A push that
-never reached origin, a landing that did not finish, a pull request the code is waiting on (or one `gh` could not
-open), or an archived branch left open (whether because a landing's own delete failed, or because nothing has
-landed it at all) are facts about the work, not a second state the spec is IN, so none of them draw a badge in that
-column. Each is said once in the row's own notice line instead, ranked, joined with " · " when more than one
-applies, in a sentence written for a user — what happened and what to do, never git's own stderr — and each
-keeping its own link where it has one, so a reader never loses one fact's link by another fact joining it on the
-same line. The exception is the held-back message and the test server's: each stands in a box of its own, never joined
-on one line.
+What is ticked is a recorded CHOICE, not a fresh guess on every render. It is the phases posted from New spec at
+create time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more
+recently. That choice sticks until the reader changes it, by re-ticking the row's boxes and pressing Run again.
 
-**A held-back archive can be judged from the row.** The held-back message carries a › to its left. It adds or removes
-the spec's key in `?checks=<project>/<folder>,…`, kept by every sort and filter link like `?open=`, and unfolds the
-spec's acceptance criteria under the message: every criterion with its Notes cell and a checkbox for its state, and
-nothing from the phase tables. The one Save posts to the Status tab's own tick route with `?fromList=1`, so the
-ticks are stored the same way, and the message goes once every criterion is ticked. Saving does not start the archive.
-Ticks not yet saved survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a
-link to its Status tab, in place of the list.
+A spec with no such choice recorded — no create, no Run — falls back to ticking every phase it has not had. A
+phase already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A
+recorded choice that ticks nothing at all is honoured exactly as given, which is what keeps a finished-looking
+spec from offering an Archive nobody asked for.
 
-**Each acceptance row has a second box, "Not verified".** It is offered beside the tick box under the › and on the Status
-tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a small line
-`N not verified` below the project and name on its list row (live and archived, not closed), linking to its Status tab.
-An archived row that draws the info line under its phase lines says the count there instead, and only there.
-The State filter has a "Not verified" entry that shows only specs with such a row, archived ones included. On an
-archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived row's own
-line on the list: it can be ticked, or marked Failed with a note saying what did not hold. Those two are the only
-changes the archive accepts. Ticking the last Not verified row removes the line and the spec leaves the filter.
+Two specs are offered a round rather than given one: a spec whose archive is held back on unticked acceptance
+criteria, and a spec reopened with its files kept, at implemented. For both, Analyze and Implement are offered but
+never ticked by default, whatever was recorded, and Archive is ticked — the recorded choice names the round that
+has just run, and a press meant for archive must not start another.
 
-**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The line under the name reads
-`N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least one row of
-either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note; the only way out of that
-state is the Reopen button on the row, which opens the same confirmation page as the row's own Reopen. Reopen puts the
-Failed rows back to open and keeps their notes; such a note counts as a changed criterion for the rule that a new round
-needs at least one.
+## Which phases a spec has had
 
-**A phase that has run unfolds to its own transcript.** Every phase line of an open row that has run or is
-running starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in
-`?phases=<key>,…`, kept by every sort and filter link and every redirect after a press like `?open=`, and it is a plain
-link, so it works with script off. The unfolded row lists what the newest attempt that ran the step said AND what it
-did — its own messages, the commands it ran and the files it wrote — at most the last 200, oldest first, each one line
-clipped at 160 characters, and a link to that step on the Logs tab. The messages alone were too little to follow a run
-by: a session that works through commands writes a sentence every few minutes, and the row read as frozen while the
-step was busy. Once the phase has finished the last message is the phase's final message, whole up to 2,000
-characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself. A
-phase that is only queued, or that nothing touched, has no ›.
+**One line decides it, and nothing else:** `- **Workflow steps completed:** create, analyze` in the Tracking info
+of its `4-status.md`. Each step writes its own name there once it has succeeded, and `core/rules/spec-structure.md`
+§ 4-status is where that contract lives.
 
-**Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its AC-id,
-from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
-(`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of many
-specs. A browser test is marked as run in implement, since the merge's test suite leaves it out. A criterion no test
-names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
+Nothing is inferred from a file's size, from a heading being present, or from a percentage. Each of those is a
+proxy for the question rather than an answer to it, and a proxy that reads a spec as analysed before analyze has
+run sends the next step off an empty template. A status file carrying no such line has had nothing as far as the
+page is concerned: a spec that reads as unfinished is visible and is fixed by running the step, where a silent
+guess is neither.
 
-The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
-New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT
-folded in with them — "nothing here spends money" must not need a click.
+The percentage keeps its own job. It says how far the TDD phases INSIDE implement have got, which is a different
+question from whether implement ran. It is not shown on the row — implement is ONE step, so the figure reads 0
+until implement finishes and 90-something after, never anything between, and two specs of entirely different sizes
+both read "0% done". The spec's own page shows it in full.
 
-There is no form above the table with a spec dropdown of its own. The row does everything such a form could, and a
-dropdown could not stay current: the row refresh deliberately replaces the ROWS alone, so a half-set control is never
-wiped — and a spec created since the page loaded would be in the list and not in the dropdown.
+## The State column
 
-Every control here is a plain form first: ticking phases and pressing Run works with JavaScript switched off, and so do
-Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/index.ts` is a
-layer ABOVE that floor, never the mechanism (see
-[what the script adds](#what-the-script-adds)). It cannot `import` anything: `specsClientScript()` runs
-`Bun.Transpiler.transformSync` over it and inlines the result into a plain `<script>` tag — that transpiles, it does not
-bundle. An
-`import` survives as an ESM import inside a classic inline script (a 404, since this server does not serve that path),
-and an `export` is a syntax error. Any shared, unit-testable browser module needs a bundle step or a `type="module"` tag
-first; the expand/collapse link was built to need neither.
+The State column carries the spec's own state and nothing else. While something runs it reads **Running**, or
+**Queued 3/11** with the pips saying which phase waits, or **Held back**. Once nothing is running it is one word:
+**Ready**, **Done**, or **Stopped**.
+
+One word is the whole of it. What a reader presses is the button on the caption line, which names the phase it
+would run; why a spec stopped, or what it is held back on, is the row's notice line below. The column says what
+IS; the controls say what can be done.
+
+## The notice line beside it
+
+A push that never reached origin, a landing that did not finish, a pull request the code is waiting on (or one
+`gh` could not open), an archived branch left open — these are facts about the work, not a second state the spec
+is IN, so none of them draws a badge in the State column. Each is said once in the row's own notice line instead.
+
+The notices are ranked, and joined with " · " when more than one applies, in a sentence written for a user: what
+happened and what to do, never git's own stderr. Each keeps its own link where it has one, so a reader never loses
+one fact's link by another fact joining it on the same line. Two stand in a box of their own and are never joined:
+the held-back message, and the test server's.
+
+## Judging a held-back archive from the row
+
+**A held-back archive can be judged without leaving the list.** The held-back message carries a › to its left. It
+adds or removes the spec's key in `?checks=<project>/<folder>,…`, kept by every sort and filter link the way
+`?open=` is, and unfolds the spec's acceptance criteria under the message: every criterion with its Notes cell and
+a checkbox for its state, and nothing from the phase tables.
+
+The one Save posts to the Status tab's own tick route with `?fromList=1`, so the ticks are stored the same way,
+and the message goes once every criterion is ticked. Saving does not start the archive. Ticks not yet saved
+survive the list's live redraw. A spec whose rows cannot be read draws one line saying so, with a link to its
+Status tab, in place of the list.
+
+## Not verified, and Failed
+
+**Each acceptance row has a second box, "Not verified".** It is offered beside the tick box under the › and on the
+Status tab. A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps a
+small line `N not verified` below the project and name on its list row — live and archived, not closed — linking
+to its Status tab. The State filter has a "Not verified" entry that shows only specs with such a row, archived
+ones included.
+
+On an archived spec a Not verified row stays open to change, on the Status tab and under the › of the archived
+row's own line. It can be ticked, or marked Failed with a note saying what did not hold. Those two are the only
+changes an archived spec accepts. Ticking the last Not verified row removes the line and the spec leaves the
+filter.
+
+**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The line under the name
+reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
+one row of either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note. The only
+way out of that state is the Reopen button on the row, which opens the same confirmation page as the row's own
+Reopen. Reopen puts the Failed rows back to open and keeps their notes; such a note counts as a changed criterion
+for the rule that a new round needs at least one.
+
+## A phase's own transcript
+
+**A phase that has run unfolds to its own transcript.** Every phase line of an open row that has run or is running
+starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
+every sort and filter link and every redirect after a press the way `?open=` is, and it is a plain link, so it
+works with script off.
+
+The unfolded row lists what the newest attempt that ran the step said AND what it did — its own messages, the
+commands it ran and the files it wrote — at most the last 200, oldest first, each one line clipped at 160
+characters, and a link to that step on the Logs tab. The messages alone were too little to follow a run by: a
+session that works through commands writes a sentence every few minutes, and the row read as frozen while the step
+was busy. Once the phase has finished, the last message is the phase's final message, whole up to 2,000
+characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
+A phase that is only queued, or that nothing touched, has no ›.
+
+## Which tests prove a criterion
+
+**Each criterion names the tests that prove it**, here and on the Status tab: the tests whose names carry its
+AC-id, from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
+(`core/scripts/lib/run-spec-ac-coverage.sh`). Only lines the branch added count, since `AC-1` is in the tests of
+many specs. A browser test is marked as run in implement, since the merge's test suite leaves it out. A criterion
+no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
+
+## Plain forms first
+
+Every control here is a plain form first. Ticking phases and pressing Run works with JavaScript switched off, and
+so do Cancel and expanding a row — each posts its form and follows a 303 back to the list. `specs-client/` is a
+layer ABOVE that floor, never the mechanism (see [what the script adds](#what-the-script-adds)).
+
+There is no form above the table with a spec dropdown of its own, and no New-spec panel: **New** is a link to
+`/new`, a page of its own. The row does everything such a form could, and a dropdown could not stay current — the
+row refresh deliberately replaces the ROWS alone, so a half-set control is never wiped, and a spec created since
+the page loaded would be in the list and not in the dropdown. The runner-unavailable notice stands outside any
+fold: "nothing here spends money" must not need a click.
 
 The page is called Specs, not Queue. That a queue orders the runs is an implementation detail — `QueueStore`,
-`/api/queue`, `QUEUE_PROJECTS`
-and the rest keep the name; what a reader reads does not.
+`/api/queue`, `QUEUE_PROJECTS` and the rest keep the name; what a reader reads does not.
 
 ## How the list reads
 
@@ -160,8 +188,7 @@ One row per spec, not per job, and collapsed by default:
 name, title, one status line, the phase pips, and at most one action button. Expanding it (the chevron in front of the
 name, `?open=…`)
 reveals the workflow phases underneath, always in that order, so how far a spec has got is readable without counting
-rows, plus the run controls (phase checkboxes, model, the also-touches field after it, Run, Cancel). The phase lines sit
-directly under the row; its message rows (held-back, refusal, info line) come after them. A phase never run
+rows, plus the run controls (phase checkboxes, model, the also-touches field after it, Run, Cancel). A phase never run
 shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
 re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
 makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a user just acted
