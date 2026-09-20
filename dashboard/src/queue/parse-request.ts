@@ -289,9 +289,13 @@ export function parseJobRequest(
 /** How long the two free-text fields may be. Bounded for the same reason
  *  every other field here is: they end up as arguments to an unattended
  *  run, and a prompt is not the place to discover that somebody pasted a
- *  document into a title. */
+ *  document into a title.
+ *
+ *  A description holds a problem, a solution and a table of acceptance
+ *  criteria, and 2,000 characters cut a spec of eleven criteria off in
+ *  the middle (2026-09-20). */
 const TITLE_MAX = 120;
-const DESCRIPTION_MAX = 2000;
+const DESCRIPTION_MAX = 5000;
 
 /** Anything a terminal, an argv or a prompt would read as structure. A
  *  newline is allowed in the description and nowhere else: a description

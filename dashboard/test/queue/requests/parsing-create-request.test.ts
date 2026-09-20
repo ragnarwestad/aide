@@ -32,6 +32,18 @@ const resolve = (project: string) =>
 // and carries a provisional key until `/aide-create` decides the real
 // name.
 describe("parseCreateRequest", () => {
+  // A description holds a problem, a solution and an acceptance table:
+  // 2,000 characters cut a spec of eleven criteria off mid-sentence
+  // (2026-09-20), and the New-spec textarea dropped the rest silently.
+  test("a description of 5,000 characters is accepted, and one longer is refused", () => {
+    const at = (len: number) =>
+      parseCreateRequest({ ...CREATE, description: "x".repeat(len) }, { allow, defaults: DEFAULTS });
+    expect(at(5000).ok).toBe(true);
+    const over = at(5001);
+    expect(over.ok).toBe(false);
+    if (!over.ok) expect(over.error).toContain("5000");
+  });
+
   const allow = (project: string) => project === "aide" || project === "brandnew";
   const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
 
@@ -77,7 +89,7 @@ describe("parseCreateRequest", () => {
       { ...CREATE, title: "" },
       { ...CREATE, title: "x".repeat(200) },
       { ...CREATE, description: "" },
-      { ...CREATE, description: "x".repeat(5000) },
+      { ...CREATE, description: "x".repeat(6000) },
       { ...CREATE, title: 7 },
       {},
     ]) {
