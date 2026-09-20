@@ -9,9 +9,9 @@ import { acTestsLine } from "../../ui/ac-tests.ts";
 import { checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
-import { groupKey, isArchivedRow, CLOSED_STATE, type SpecGroup, type SpecsFilter } from "./data-model";
+import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { queueHref } from "./filter-bar.ts";
-import { filterFields } from "./row-shared.ts";
+import { drawsChecksLine, filterFields } from "./row-shared.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
 export const unfoldedKeys = (f: SpecsFilter): Set<string> =>
@@ -88,8 +88,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
  *  row has: the choice "under ›" belongs on every row a criterion is decided
  *  on. A closed spec has none, and nothing is drawn without rows to show. */
 export function archivedChecksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number): string {
-  if (!isArchivedRow(g) || g.state === CLOSED_STATE || (g.acceptance ?? []).length === 0) return "";
-  if ((g.notVerified ?? 0) + (g.failed ?? 0) === 0) return "";
+  if (!drawsChecksLine(g)) return "";
   const parts = [
     ...((g.notVerified ?? 0) > 0 ? [t(lang, "list.notVerifiedMark", { n: g.notVerified! })] : []),
     ...((g.failed ?? 0) > 0 ? [t(lang, "list.failedMark", { n: g.failed! })] : []),

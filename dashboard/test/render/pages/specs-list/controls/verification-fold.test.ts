@@ -80,3 +80,68 @@ describe("an archived row with criteria waiting for a check has a › of its own
     expect(only).toContain(`href="/specs/aide/${FOLDER}/reopen"`);
   });
 });
+
+// --- spec 520: the count is said once, and an open row reads phase lines first --
+
+describe("an archived row says its count once, on the info line (AC-1, AC-2, AC-3)", () => {
+  const count = (html: string, text: string) => html.split(text).length - 1;
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const twoNv = archived({ notVerified: 2, failed: undefined, acceptance: [DONE, NV, NV].map(rowOf) });
+
+  test("2 not verified: once in the info line, no line under the title (AC-1)", () => {
+    const html = draw(twoNv);
+    expect(count(html, "2 not verified")).toBe(1);
+    expect(notice(html)).toContain("2 not verified");
+    expect(head(html)).not.toContain("spec-notverified");
+  });
+
+  test("one not verified and one failed: once, in the info line (AC-1)", () => {
+    const html = draw(archived());
+    expect(count(html, "1 not verified · 1 failed")).toBe(1);
+    expect(notice(html)).toContain("1 not verified · 1 failed");
+    expect(html).not.toContain("spec-notverified");
+  });
+
+  test("only Failed rows: 3 failed once, in the info line (AC-1)", () => {
+    const html = draw(archived({ notVerified: undefined, failed: 3, acceptance: [DONE, FAILED, FAILED, FAILED].map(rowOf) }));
+    expect(count(html, "3 failed")).toBe(1);
+    expect(notice(html)).toContain("3 failed");
+    expect(html).not.toContain("spec-notverified");
+  });
+
+  test("a count with no readable acceptance rows keeps the line under the title (AC-3)", () => {
+    const html = draw(archived({ acceptance: undefined }));
+    expect(head(html)).toContain("spec-notverified");
+    expect(notice(html)).toBe("");
+  });
+
+  test("a closed spec draws neither (AC-3)", () => {
+    const html = draw(archived({ closed: true }));
+    expect(html).not.toContain("spec-notverified");
+    expect(notice(html)).toBe("");
+  });
+
+  test("open: the first phase line follows the head row, the info line follows the last (AC-2)", () => {
+    const html = draw(archived(), { open: KEY });
+    const at = (s: string) => html.indexOf(s);
+    const subrows = [...html.matchAll(/<tr class="subrow/g)].map((m) => m.index!);
+    expect(subrows.length).toBeGreaterThan(0);
+    const headEnd = html.indexOf("</tr>", at("spechead")) + "</tr>".length;
+    expect(html.slice(headEnd, subrows[0]!).trim()).toBe("");
+    expect(at('<tr class="specnotice"')).toBeGreaterThan(subrows[subrows.length - 1]!);
+  });
+
+  test("collapsed: the head row, then the info line, as before (AC-2, AC-4)", () => {
+    const html = draw(archived());
+    expect(html).not.toContain("subrow");
+    expect(html.indexOf('<tr class="specnotice"')).toBeGreaterThan(html.indexOf("spechead"));
+  });
+
+  test("open with checks: the list sits in the info line, after the last phase line (AC-3)", () => {
+    const html = draw(archived(), { open: KEY, checks: KEY });
+    const list = html.indexOf('class="checklist"');
+    const subrows = [...html.matchAll(/<tr class="subrow/g)].map((m) => m.index!);
+    expect(list).toBeGreaterThan(subrows[subrows.length - 1]!);
+    expect(list).toBeGreaterThan(html.indexOf('<tr class="specnotice"'));
+  });
+});

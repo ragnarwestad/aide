@@ -518,7 +518,8 @@ table.list tr.spechead td { border-bottom: none; border-top: 2px solid var(--lin
    the specs; this only gathers what is already inside one. */
 table.list tr.spechead:has(+ tr.subrow) td,
 table.list tr.subrow td,
-table.list tr.specnotice:has(+ tr.subrow) td { background: var(--surface-2); }
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice td,
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice td { background: var(--surface-2); }
 table.list tbody tr.spechead:first-child td { border-top: none; }
 /* The row's message panel (spec 143): part of the row above it, not a
    row of its own. It draws no rule and adds no padding the message's
@@ -543,6 +544,13 @@ table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom:
    way for a spacing detail to degrade. */
 table.list tr.subrow:last-child td,
 table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
+/* An open row's message rows come after its phase lines: air above the
+   first, and the closing air the last phase line had under the last.
+   Each selector is tied to the row before it, so a collapsed row's
+   message rows are not touched. */
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice td { padding-top: var(--sp-2); }
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice:is(:last-child, :has(+ tr.spechead)) td,
+table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:is(:last-child, :has(+ tr.spechead)) td { padding-bottom: var(--sp-3); }
 /* A phase line is TWO cells since spec 192 — the name, then the three
    choices the line offers together. It was three real columns from spec
    165 (the name, the phase's AI, the model with the box beside it), and

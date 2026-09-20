@@ -238,14 +238,17 @@ function groupRows(
       //
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head =
-        specHeadRow(g, opts, opened) +
-        specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
-          filter: opts.filter,
-        });
+      //
+      // An open row reads head row, phase lines, then the message rows:
+      // the detail the chevron opens sits directly under the row, and
+      // every message keeps that one place.
+      const head = specHeadRow(g, opts, opened);
+      const notice = specNoticeRow(g, refusalFor(g, opts), now, opts.lang ?? "en", testServerAvailable, {
+        filter: opts.filter,
+      });
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + phaseSubRows(g, opts, now)
-        : head;
+        ? head + phaseSubRows(g, opts, now) + notice
+        : head + notice;
     })
     .join("");
 }

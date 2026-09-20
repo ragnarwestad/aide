@@ -258,3 +258,24 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     expect(CSS).toContain(".phase.off input { display: none; }");
   });
 });
+
+// --- spec 520: the message rows now come last, so they carry the air -------
+
+describe("an open row's message rows have air above the first and under the last (spec 520, AC-2)", () => {
+  test("the first message row after the phase lines has air above it", async () => {
+    const { CSS } = await import("../../../src/render/ui/css");
+    const rule = CSS.match(/([^\n}]*tr\.specnotice td[^{]*)\{([^}]*padding-top: var\(--sp-2\)[^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
+    expect(rule[1] ?? "").toContain("tr.subrow");
+    expect(rule[1] ?? "").toContain("tr.phasemsgs");
+    expect(rule[1] ?? "").toContain("+ tr.specnotice");
+  });
+
+  test("the last message row of the open row has the closing air, and a bare specnotice does not", async () => {
+    const { CSS } = await import("../../../src/render/ui/css");
+    const rule = CSS.match(/([^\n}]*:last-child[^{]*tr\.specnotice[^{]*|[^\n}]*tr\.specnotice:is\(:last-child[^{]*)\{([^}]*)\}/) ?? ([] as unknown as RegExpMatchArray);
+    expect(rule[2] ?? "").toContain("padding-bottom: var(--sp-3)");
+    expect(rule[1] ?? "").toContain("tr.phasemsgs");
+    expect(rule[1] ?? "").toContain("tr.spechead");
+    expect(CSS).not.toMatch(/(^|\n)table\.list tr\.specnotice(:last-child)? td \{[^}]*var\(--sp-3\)/);
+  });
+});

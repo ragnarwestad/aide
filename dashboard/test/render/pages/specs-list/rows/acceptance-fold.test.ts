@@ -148,3 +148,25 @@ describe("the held-back message and the test server's each stand on a line of th
     expect(html).toContain('href="https://github.test/aide/pull/7"');
   });
 });
+
+// --- spec 520: an open row reads phase lines first, held-back message last ---
+
+describe("an open held-back row puts its phase lines before the message (spec 520, AC-3, AC-4)", () => {
+  const html = (filter: SpecsFilter) =>
+    renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], { runnerAvailable: true, targets: [target()], filter });
+
+  test("the phase lines come before the held-back message (AC-4)", () => {
+    const out = html({ open: KEY });
+    const lastSub = out.lastIndexOf('<tr class="subrow');
+    expect(lastSub).toBeGreaterThan(-1);
+    expect(out.indexOf('<tr class="specnotice"')).toBeGreaterThan(lastSub);
+  });
+
+  test("the opened list stays under the message, before the test server's box (AC-3)", () => {
+    const out = html({ open: KEY, checks: KEY });
+    const list = out.indexOf("AC-1: it folds");
+    expect(list).toBeGreaterThan(out.lastIndexOf('<tr class="subrow'));
+    expect(list).toBeGreaterThan(out.indexOf("Archive held back"));
+    expect(out.indexOf("Test server")).toBeGreaterThan(list);
+  });
+});

@@ -720,3 +720,37 @@ describe("the not-verified mark on a row's name cell", () => {
     expect(html).not.toContain("spec-notverified");
   });
 });
+
+// --- spec 520: the mark stays where no info line says the count -------------
+
+describe("the not-verified mark stays when no info line says the count (spec 520, AC-1)", () => {
+  const LIVE = "520-live-spec";
+  const ARCH = "520-archived-spec";
+  const rowsOf = [{ phase: "Acceptance criteria", line: "| AC-1: x | Not verified | |", task: "AC-1: x", done: true, notVerified: true, note: "" }];
+  const archived = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder: ARCH,
+    archivedAt: "2026-09-15",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: {},
+    notVerified: 2,
+    ...over,
+  });
+  const cell = (html: string, folder: string) => specCell(html, folder);
+
+  test("a live row keeps the mark under the title (AC-1)", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets: [{ project: "aide", specFolder: LIVE, title: "t", notVerified: 2 }] });
+    expect(cell(html, LIVE)).toContain("2 not verified");
+  });
+
+  test("an archived row whose acceptance rows cannot be read keeps the mark (AC-1)", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [archived({ acceptance: [] })] });
+    expect(cell(html, ARCH)).toContain("2 not verified");
+  });
+
+  test("an archived row with readable rows has no mark under the title (AC-1)", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [archived({ acceptance: rowsOf })] });
+    expect(cell(html, ARCH)).not.toContain("not verified");
+  });
+});

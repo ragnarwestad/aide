@@ -229,6 +229,15 @@ describe("spec 143: a long message gets a panel row of its own", () => {
 
   // The refusal answers the press just made, so it outranks a standing
   // note about an archive that declined earlier.
+  test("an open row has its phase lines before the refusal; a collapsed row is head then message (AC-2, AC-4, spec 520)", () => {
+    const opts = { error: REFUSAL, errorSpec: "aide/150-one-page" };
+    const open = rows([], [target("150-one-page")], true, opts);
+    expect(open.indexOf('<tr class="specnotice"')).toBeGreaterThan(open.lastIndexOf('<tr class="subrow'));
+    const shut = rows([], [target("150-one-page")], false, opts);
+    expect(shut).not.toContain("subrow");
+    expect(shut.indexOf('<tr class="specnotice"')).toBeGreaterThan(shut.indexOf("spechead"));
+  });
+
   test("the refusal outranks the spec's own held-back note", () => {
     const html = rows([], [target("150-one-page", { done: BUILT, archiveHeldBack: { reason: REASON } })], true, {
       error: REFUSAL,

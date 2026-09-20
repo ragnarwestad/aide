@@ -784,3 +784,15 @@ describe("spec 474: the New-spec page's Depends-on columns sit side by side, fra
     expect(NARROW).toMatch(/\.depends-pair \{[^}]*flex-direction:\s*column/);
   });
 });
+
+// --- spec 520: message rows come after the phase lines and keep the ground ---
+
+describe("a message row after the phase lines has the open row's ground on a phone (AC-2)", () => {
+  test("the ground rule names a message row that follows tr.subrow or tr.phasemsgs", () => {
+    const rule = NARROW.match(/([^\n}]*tr\.spechead:has\(\+ tr\.subrow\)[^{]*)\{([^}]*)\}/)?.[0] ?? "";
+    expect(rule).toContain("background: var(--surface-2)");
+    expect(rule).toContain("tr.specnotice");
+    expect(rule).toContain("tr.phasemsgs");
+    expect(rule).not.toContain("tr.specnotice:has(+ tr.subrow)");
+  });
+});

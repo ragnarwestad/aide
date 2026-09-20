@@ -227,7 +227,8 @@
      that spans the group here, so it carries the ground. */
   table.list tr.spechead:has(+ tr.subrow),
   table.list tr.subrow,
-  table.list tr.specnotice:has(+ tr.subrow) { background: var(--surface-2); }
+  table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice,
+  table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice { background: var(--surface-2); }
   table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
