@@ -1061,6 +1061,43 @@ export const MESSAGES = {
     fr: "La création de la spec a échoué : {reason} — touchez pour réessayer avec ce que vous avez saisi.",
     resolve: "tap to try again",
   },
+  // --- a scheduled job's run that ended: the push notification's sentence ------
+  // (src/push/attention.ts picks the key by how the run ended; the title
+  // already names the project and the job, and the notification opens the
+  // job's own page, where the newest run's report stands)
+
+  "push.scheduleDone": {
+    en: "The run finished — open the job to read its report.",
+    nb: "Kjøringen ble ferdig — åpne jobben for å lese rapporten.",
+    es: "La ejecución terminó — abre el trabajo para leer su informe.",
+    de: "Der Lauf ist fertig — öffne den Job, um den Bericht zu lesen.",
+    fr: "L'exécution est terminée — ouvrez la tâche pour lire son rapport.",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+  },
+  "push.scheduleFailed": {
+    en: "The run failed — open the job to see why.",
+    nb: "Kjøringen feilet — åpne jobben for å se hvorfor.",
+    es: "La ejecución falló — abre el trabajo para ver por qué.",
+    de: "Der Lauf ist fehlgeschlagen — öffne den Job, um zu sehen, warum.",
+    fr: "L'exécution a échoué — ouvrez la tâche pour voir pourquoi.",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+  },
+  "push.scheduleStopped": {
+    en: "The run was stopped before it finished — open the job to see where.",
+    nb: "Kjøringen ble stoppet før den var ferdig — åpne jobben for å se hvor.",
+    es: "La ejecución se detuvo antes de terminar — abre el trabajo para ver dónde.",
+    de: "Der Lauf wurde gestoppt, bevor er fertig war — öffne den Job, um zu sehen, wo.",
+    fr: "L'exécution s'est arrêtée avant d'être terminée — ouvrez la tâche pour voir où.",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+  },
+  "push.scheduleInterrupted": {
+    en: "The run was cut off before it finished — open the job to see how far it got.",
+    nb: "Kjøringen ble avbrutt før den var ferdig — åpne jobben for å se hvor langt den kom.",
+    es: "La ejecución se interrumpió antes de terminar — abre el trabajo para ver hasta dónde llegó.",
+    de: "Der Lauf wurde abgebrochen, bevor er fertig war — öffne den Job, um zu sehen, wie weit er kam.",
+    fr: "L'exécution a été interrompue avant d'être terminée — ouvrez la tâche pour voir jusqu'où elle est allée.",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+  },
 } as const satisfies Record<string, MessageEntry>;
 
 export type MessageKey = keyof typeof MESSAGES;

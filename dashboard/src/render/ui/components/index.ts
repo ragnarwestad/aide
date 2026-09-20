@@ -1,4 +1,4 @@
-// The seven things this dashboard is built from: a button, a status
+// The things this dashboard is built from: a button, a switch, a status
 // badge, a phase chip, a row-level message, a field, a filter pill and
 // a back link.
 //
@@ -323,6 +323,30 @@ export function field(
       `<span class="fieldend">${trail}</span></span>`
     : `<span>${esc(label)}</span>`;
   return `<${tag} class="field${o.wide ? " wide" : ""}">${head}${control}</${tag}>`;
+}
+
+// --- switch ----------------------------------------------------------------------
+
+/** An on/off control whose position IS the state: a button with the
+ *  switch role, drawn from `aria-checked` alone (`switch.css`). Both words
+ *  ride on it so `setSwitch` (`specs-client/press.ts`) can move it without
+ *  the page repeating them; its accessible name stays one label in every
+ *  state, and the word beside it is for the eye only. */
+export function switchControl(o: {
+  id?: string;
+  label: string;
+  onWord: string;
+  offWord: string;
+  checked?: boolean;
+  disabled?: boolean;
+}): string {
+  return (
+    `<button type="button" role="switch" class="switch"${o.id ? ` id="${esc(o.id)}"` : ""} ` +
+    `aria-checked="${o.checked ? "true" : "false"}" aria-label="${esc(o.label)}" ` +
+    `data-on="${esc(o.onWord)}" data-off="${esc(o.offWord)}"${o.disabled ? " disabled" : ""}>` +
+    `<span class="switchtrack" aria-hidden="true"><span class="switchknob"></span></span>` +
+    `<span class="switchword" aria-hidden="true">${esc(o.checked ? o.onWord : o.offWord)}</span></button>`
+  );
 }
 
 // --- help popover ----------------------------------------------------------------

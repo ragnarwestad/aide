@@ -142,3 +142,49 @@ test("with no subscription file at all, nothing is written and nothing throws", 
   expect(b.sent.calls).toHaveLength(0);
   expect(existsSync(b.subscriptionsPath)).toBe(false);
 });
+
+describe("what a scheduled run's notification says (AC-9)", () => {
+  async function scheduledBoard() {
+    const tmp = tempDir();
+    cleanups.push(tmp.done);
+    const sent = fakeFetch();
+    let push!: ReturnType<typeof createPush>;
+    const store = makeStore(() => push.observe());
+    push = createPush({ jobs: () => store.list(), fetch: sent.fetch, scheduleNotify: () => "always" });
+    const keys = await deviceKeys();
+    const nb = await deviceKeys();
+    await push.subscribe({ endpoint: "https://fcm.googleapis.com/fcm/send/en", keys: { p256dh: keys.p256dh, auth: keys.auth }, lang: "en" }, "https://board.test");
+    await push.subscribe({ endpoint: "https://fcm.googleapis.com/fcm/send/nb", keys: { p256dh: nb.p256dh, auth: nb.auth }, lang: "nb" }, "https://board.test");
+    return { store, push, sent, en: keys, nb };
+  }
+
+  const ENDINGS = {
+    done: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-succeeded-last", { results: [result("schedule")] }),
+    failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("schedule", "error", false)] }),
+    stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] }),
+    interrupted: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "process-gone", { finishedAt: new Date().toISOString() }),
+  };
+  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
+
+  for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
+    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is the job's page (AC-9)`, async () => {
+      const b = await scheduledBoard();
+      ENDINGS[ending](b.store, runningJob(b.store, ["schedule"], "schedule-nightly-report").id);
+      await b.push.idle();
+      expect(b.sent.calls).toHaveLength(2);
+      const forEn = await openCall(b.sent.calls.find((c) => c.url.endsWith("/en"))!, b.en);
+      const forNb = await openCall(b.sent.calls.find((c) => c.url.endsWith("/nb"))!, b.nb);
+      expect(forEn.title).toBe("aide · nightly-report");
+      expect(forEn.url).toBe("/schedule/aide/nightly-report");
+      expect(forEn.body).toBe(renderMessage("en", { key: KEYS[ending] }));
+      expect(forNb.body).toBe(renderMessage("nb", { key: KEYS[ending] }));
+      expect(forNb.body).not.toBe(forEn.body);
+      expect(forEn.body).not.toContain("push.schedule");
+    });
+  }
+
+  test("the four outcomes each have a sentence of their own (AC-9)", () => {
+    const bodies = Object.values(KEYS).map((key) => renderMessage("en", { key }));
+    expect(new Set(bodies).size).toBe(4);
+  });
+});

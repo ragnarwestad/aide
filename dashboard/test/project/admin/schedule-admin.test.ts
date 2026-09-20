@@ -249,3 +249,39 @@ describe("a model name that differs from a listed one only in case", () => {
     expect(result.error).toContain("SONNET");
   });
 });
+
+describe("an entry's notification choice", () => {
+  test("a create stores the posted choice, and none when none is posted (AC-7)", () => {
+    const a = setup();
+    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), notify: "always" }).ok).toBe(true);
+    expect(a.stored()[0]!.notify).toBe("always");
+    const b = setup();
+    expect(createScheduleEntry(b.store, PROJECT, b.dir, req()).ok).toBe(true);
+    expect(b.stored()[0]!.notify).toBeUndefined();
+  });
+
+  test("a value that is none of the three is refused and nothing is written (AC-7)", () => {
+    const { dir, store, stored } = setup();
+    const result = createScheduleEntry(store, PROJECT, dir, { ...req(), notify: "sometimes" });
+    expect(result.ok).toBe(false);
+    expect(stored()).toHaveLength(0);
+    expect(scheduleEntryError(dir, { ...req(), notify: "sometimes" }, [])).toContain("sometimes");
+    expect(scheduleEntryError(dir, { ...req(), notify: "never" }, [])).toBeNull();
+  });
+
+  test("an edit replaces the choice, and keeps the current one when none is posted or it is empty (AC-7)", () => {
+    const { dir, store, stored } = setup([{ name: "nightly", notify: "never" }]);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "always" }).ok).toBe(true);
+    expect(stored()[0]!.notify).toBe("always");
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(stored()[0]!.notify).toBe("always");
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "" }).ok).toBe(true);
+    expect(stored()[0]!.notify).toBe("always");
+  });
+
+  test("an edit that posts a bad choice is refused and the entry is untouched (AC-7)", () => {
+    const { dir, store, stored } = setup([{ name: "nightly", notify: "never" }]);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "bogus" }).ok).toBe(false);
+    expect(stored()[0]!.notify).toBe("never");
+  });
+});

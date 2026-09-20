@@ -5,7 +5,7 @@
 // `data-cron-next` hook below — a debounced fetch against
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
-import { nextFireTime } from "../../../queue/schedule.ts";
+import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../queue/schedule.ts";
 import { btn, field } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
@@ -16,7 +16,7 @@ export interface ScheduleFormOptions {
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string };
+  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify };
   action: string;
   error?: string;
   /** Every allowed project (spec 278): draws a `<select name="project">`
@@ -101,6 +101,21 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   );
 }
 
+/** When a run sends a push: its own line under the model, drawn whether
+ *  or not the queue offers a model. Starts on what an entry naming no
+ *  choice is read as. */
+function notifyField(opts: ScheduleFormOptions, lang: Language): string {
+  const chosen = scheduleNotifyOf(opts.entry ?? {});
+  const options = ([
+    ["never", "schedule.notifyNever"],
+    ["failure", "schedule.notifyFailure"],
+    ["always", "schedule.notifyAlways"],
+  ] as const)
+    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
+    .join("");
+  return `<div class="schedulenotify">${field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`)}</div>`;
+}
+
 export const CRON_NEXT_HOOK = "cron-next";
 
 export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "en"): string {
@@ -140,6 +155,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     // `display: contents`, which would hand the grid the two fields
     // separately again; this row is one item, in the first column.
     models +
+    notifyField(opts, lang) +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}</div>` +
     `</form>`
   );

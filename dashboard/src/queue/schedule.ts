@@ -40,7 +40,23 @@ export interface ScheduleEntry {
    *  which keeps firing on its very first eligible window exactly as
    *  every entry did before this field existed. */
   since?: string;
+  /** When a run of this entry sends a push. Absent reads as
+   *  `DEFAULT_SCHEDULE_NOTIFY`. */
+  notify?: ScheduleNotify;
 }
+
+/** When a scheduled job's run sends a push: never, when the run did not
+ *  succeed (`failed`, `stopped` or `interrupted`), or every run. */
+export const SCHEDULE_NOTIFY = ["never", "failure", "always"] as const;
+export type ScheduleNotify = (typeof SCHEDULE_NOTIFY)[number];
+/** What an entry that names no choice is read as. */
+export const DEFAULT_SCHEDULE_NOTIFY: ScheduleNotify = "failure";
+/** The one place the default is applied: the observer, the form and the
+ *  store's readers all ask here. */
+export const scheduleNotifyOf = (entry: Pick<ScheduleEntry, "notify">): ScheduleNotify =>
+  entry.notify ?? DEFAULT_SCHEDULE_NOTIFY;
+export const isScheduleNotify = (v: unknown): v is ScheduleNotify =>
+  typeof v === "string" && (SCHEDULE_NOTIFY as readonly string[]).includes(v);
 
 /** Whether `path`, read relative to the project root, could resolve
  *  outside it — an absolute path, or one whose `..` segments climb past
@@ -59,6 +75,10 @@ export function escapesRoot(path: string): boolean {
  *  (`parseJobRequest`'s own exemption for it). Obviously not a spec
  *  folder, on purpose, the same way `create`'s provisional key is. */
 export const scheduleTrackingKey = (name: string): string => `schedule-${name}`;
+
+/** The entry name inside a scheduled job's tracking key: the inverse of
+ *  `scheduleTrackingKey`. */
+export const scheduleNameOf = (key: string): string => key.slice("schedule-".length);
 
 /** The most recent time `cron` was due at or before `now`, or `null` for
  *  a `cron` string that does not parse — which, since the store
