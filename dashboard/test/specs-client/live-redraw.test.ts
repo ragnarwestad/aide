@@ -227,11 +227,15 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     h.visibility("visible");
     expect(h.sources).toHaveLength(2);
     expect(h.live()).not.toBeNull();
-    // The resync is the `open` the fresh connection reports.
-    h.live()!.emit("open");
+    // Coming back fetches at once, without waiting for the stream
+    // (2026-09-20), and the fresh connection's own `open` resyncs after
+    // it — two fetches, the rows drawn from the first of them.
     await flush();
     expect(rowFetches(h)).toHaveLength(1);
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+    h.live()!.emit("open");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(2);
   });
 
   test("a visible page told it is visible again does not stack connections", () => {

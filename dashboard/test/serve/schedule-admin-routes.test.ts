@@ -222,6 +222,41 @@ describe("the entry's model, over the wire", () => {
   });
 });
 
+describe("the entry's notification choice, over the wire", () => {
+  test("create stores the posted choice, from JSON and from a form (AC-7)", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ notify: "always" }) }));
+    expect(res.status).toBe(200);
+    expect(t.stored()[0]!.notify).toBe("always");
+
+    const form = start();
+    const posted = await fetch(`${form.base}/api/queue/schedule`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", notify: "never" }),
+    });
+    expect(posted.status).toBeGreaterThanOrEqual(300);
+    expect(posted.status).toBeLessThan(400);
+    expect(form.stored()[0]!.notify).toBe("never");
+  });
+
+  test("editing replaces the choice, and an edit that posts none keeps it (AC-7)", async () => {
+    const t = start([nightly({ notify: "never" })]);
+    expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ notify: "always" })))).status).toBe(200);
+    expect(t.stored()[0]!.notify).toBe("always");
+    expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly()))).status).toBe(200);
+    expect(t.stored()[0]!.notify).toBe("always");
+  });
+
+  test("a choice that is none of the three is refused, and nothing is written (AC-7)", async () => {
+    const t = start();
+    const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ notify: "sometimes" }) }));
+    expect(res.status).toBe(400);
+    expect(t.stored()).toHaveLength(0);
+  });
+});
+
 describe("POST /api/queue/schedule/<project>/<name>/run", () => {
   test("enqueues the schedule job under the entry's tracking key", async () => {
     const t = start([nightly()]);

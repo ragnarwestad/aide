@@ -6,7 +6,7 @@ import { ROOT, RENDER_FILES } from "./css-guard-fixtures.ts";
 
 // --- the class vocabulary ---------------------------------------------------
 
-/** The six components and their documented modifiers. Anything a page
+/** The components and their documented modifiers. Anything a page
  *  wants to look like has to be one of these. */
 const COMPONENTS = [
   "btn", "primary", "ok", "danger", "busy", "spin",
@@ -83,12 +83,17 @@ const JS_HOOKS = [
   // listener that opens its confirmation dialog can find it without
   // matching every `.actionform` on the page.
   "cancelform",
+  // the on/off switch (`switchControl()`): a track, its knob and the
+  // word beside it.
+  "switch", "switchtrack", "switchknob", "switchword",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks
  *  like. Short on purpose — a new entry here is a decision, and it
  *  shows up in the diff as one. */
 const STRUCTURE = [
+  // the schedule form's notification choice: one full-width line.
+  "schedulenotify",
   // the frame — "menu" and "menupanel" are the "…" disclosure in the
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "actionslot",

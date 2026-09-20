@@ -191,3 +191,34 @@ describe("the stream follows the address's phases (spec 500)", () => {
     expect(h.sources[0]!.closed).toBe(false);
   });
 });
+
+// A phone coming back from the lock screen took seconds to show a list
+// that had moved on: the page waited for its stream to reopen before it
+// redrew (2026-09-20).
+describe("coming back into focus", () => {
+  test("the rows are fetched at once, before the stream is up", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    await flush();
+    h.rows.innerHTML = "<tr>stale</tr>";
+    h.visibility("hidden");
+
+    h.visibility("visible");
+    await flush();
+
+    // Redrawn without any `open` event of the new source.
+    expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+  });
+
+  test("a hidden page fetches nothing", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    await flush();
+    h.rows.innerHTML = "<tr>stale</tr>";
+
+    h.visibility("hidden");
+    await flush();
+
+    expect(h.rows.innerHTML).toBe("<tr>stale</tr>");
+  });
+});

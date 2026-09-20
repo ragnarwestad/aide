@@ -4,7 +4,7 @@
 // language the device reads, which is stored with its subscription so a
 // notification is written in it.
 
-import { btn } from "../../ui/components";
+import { switchControl } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
 
@@ -16,9 +16,10 @@ export function notificationsPanel(publicKey: string | undefined, lang: Language
     `Tapping it opens the spec.</p>` +
     `<p class="muted">This is a setting of this device only. On an iPhone or iPad it works in the ` +
     `installed app, from iOS 16.4.</p>` +
+    switchControl({ id: "push-toggle", label: "Notifications for this device", onWord: "On", offWord: "Off", disabled: true }) +
     `<p class="muted" data-push-status aria-live="polite">Checking this device…</p>` +
-    `<div class="configactions">` +
-    btn({ id: "push-toggle", label: "Turn on", type: "button", variant: "primary", disabled: true }) +
-    `</div></section>`
+    `<p class="muted">A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. ` +
+    `It is set on the job's form, on the project's Schedule tab.</p>` +
+    `</section>`
   );
 }

@@ -19,3 +19,9 @@ describe("design-system.md names the three row-message kinds (REQ-6)", () => {
     expect(DOC).toContain("never at the call site");
   });
 });
+
+describe("design-system.md names the switch (AC-6)", () => {
+  test("lists switchControl() among the components", () => {
+    expect(DOC).toContain("`switchControl()`");
+  });
+});

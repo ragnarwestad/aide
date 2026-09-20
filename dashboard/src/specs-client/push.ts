@@ -9,6 +9,8 @@
 // been made under a key the server has since lost), and post to the
 // server only once a subscription exists.
 
+import { setSwitch } from "./press.ts";
+
 interface SubscriptionLike {
   endpoint: string;
   toJSON(): { endpoint?: string; keys?: Record<string, string> };
@@ -122,37 +124,39 @@ export function pushControl(deps: PushDeps) {
   };
 }
 
-/** The real browser objects, read off the page. */
-export function bindPushPanel(panel: HTMLElement): void {
+/** The real browser objects, read off the page. `deps` stands in for them in a test. */
+export function bindPushPanel(panel: HTMLElement, deps?: Omit<PushDeps, "publicKey" | "lang">): void {
   const status = panel.querySelector("[data-push-status]") as HTMLElement | null;
-  const toggle = panel.querySelector("#push-toggle") as HTMLButtonElement | null;
+  const toggle = panel.querySelector("#push-toggle") as HTMLElement | null;
   if (!status || !toggle) return;
   const control = pushControl({
     publicKey: panel.dataset.key ?? "",
     lang: panel.dataset.lang ?? "en",
-    supported: "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
-    permission: () => Notification.permission,
-    requestPermission: () => Notification.requestPermission(),
-    registration: () => navigator.serviceWorker.ready as unknown as ReturnType<PushDeps["registration"]>,
-    post: async (path, body) => {
-      const res = await fetch(path, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      return { ok: res.ok };
-    },
+    ...(deps ?? {
+      supported: "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+      permission: () => Notification.permission,
+      requestPermission: () => Notification.requestPermission(),
+      registration: () => navigator.serviceWorker.ready as unknown as ReturnType<PushDeps["registration"]>,
+      post: async (path: string, body: unknown) => {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        return { ok: res.ok };
+      },
+    }),
   });
   let state: PushView["state"] = "off";
+  // The switch moves only here, once an answer is in. Where the browser
+  // refuses (blocked, or no push support) it is off and unpressable.
   const show = (view: PushView) => {
     state = view.state;
     status.textContent = view.message;
-    toggle.textContent = view.state === "on" ? "Turn off" : "Turn on";
-    toggle.hidden = view.state === "unsupported";
-    toggle.disabled = false;
+    setSwitch(toggle, { checked: view.state === "on", disabled: view.state === "blocked" || view.state === "unsupported" });
   };
   toggle.addEventListener("click", () => {
-    toggle.disabled = true;
+    setSwitch(toggle, { checked: state === "on", disabled: true });
     void (state === "on" ? control.turnOff() : control.turnOn()).then(show);
   });
   void control.load().then(show);

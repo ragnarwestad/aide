@@ -251,3 +251,12 @@ export async function postForm(
     for (const [el, was] of before) if (el.isConnected) el.disabled = was;
   }
 }
+
+/** Moves a `switchControl()` button: its position, the word beside it and
+ *  whether it can be pressed, from one call so the three cannot disagree. */
+export function setSwitch(el: HTMLElement, s: { checked: boolean; disabled: boolean }): void {
+  el.setAttribute("aria-checked", String(s.checked));
+  (el as HTMLButtonElement).disabled = s.disabled;
+  const word = el.querySelector(".switchword");
+  if (word) word.textContent = (s.checked ? el.dataset.on : el.dataset.off) ?? "";
+}

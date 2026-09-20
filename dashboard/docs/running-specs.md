@@ -348,6 +348,9 @@ under a `schedules` key keyed by project name:
 }
 ```
 
+An entry may also carry `"notify": "never" | "failure" | "always"`, set on its New-job and Edit forms and read as
+`failure` when absent (see [Push notifications](#push-notifications-on-a-phone-or-laptop)).
+
 A fresh install has no scheduled jobs, whatever the projects it serves contain. A project's own files never carry a
 schedule; a job belongs to the installation that fires it.
 
@@ -566,17 +569,24 @@ The dashboard also sends a push notification to each device that turned them on,
 - an **archive is held back** on unticked acceptance criteria;
 - a **create ends without a spec**: it failed, stopped, was interrupted, or its own merge failed.
 
-Nothing is sent for a step that finishes normally, an archive that merges, a job someone cancels, or a scheduled job's
-failure: a scheduled job has no spec page to name or to open. A create that is still under way, including one whose merge
-is running, sends nothing until it is over.
+Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A create that is
+still under way, including one whose merge is running, sends nothing until it is over.
+
+A **scheduled job** notifies by its own choice, not by the rules above: when a run ends, the entry's `notify` says
+whether to send. `never` sends nothing, `failure` sends when the run ended `failed`, `stopped` or `interrupted`, and
+`always` sends for every run, including one that succeeded. An entry that names none is read as `failure`, so a job that
+already exists notifies when a run does not succeed. A run someone cancels sends nothing whatever the choice, and neither
+does a run whose entry has since been deleted or renamed. The choice is read when the run ends, so an edit made while it
+runs applies to it. The title names the project and the job, the sentence says how the run ended, and a tap opens
+`/schedule/<project>/<name>`, where the newest run's report stands.
 
 A failed create names the project and the title it was given, says why in the device's own language (cut at 500
 characters), and a tap opens New spec at `/new?retry=<job id>` with project, title and description filled in. The same
 moment writes a message at the top of the Specs list; see [the specs list](the-specs-list.md#a-failed-create).
 
-**Turning it on.** Settings, the Notifications tab, "Turn on". The device asks for its own permission first. The setting
+**Turning it on.** Settings, the Notifications tab, the switch. Pressing it subscribes or unsubscribes this device, and it moves only once the answer is in. The device asks for its own permission first. The setting
 belongs to that device alone. On an iPhone or iPad it works only in the installed app, from iOS 16.4; a browser with no
-push support says so instead of offering the button. A device whose owner withdrew the permission is removed the next
+push support says so beside a switch that stays off, and so does a site the browser blocks. A device whose owner withdrew the permission is removed the next
 time the Notifications tab is opened, and one whose push service reports it gone (404 or 410) is removed at the next
 send.
 

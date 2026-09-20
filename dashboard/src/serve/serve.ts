@@ -121,7 +121,7 @@ export function createServer(opts: ServerOptions) {
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // spec 108 made the spec's own files the only answer to that.
-  const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged() });
+  const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     pendingModelsPath: opts.pendingModelsPath,
