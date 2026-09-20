@@ -230,7 +230,10 @@ export function parseJobRequest(
     if (typeof r.closeReason !== "string" || r.closeReason.trim() === "") {
       return { ok: false, error: invalidRequest("a close step requires a reason") };
     }
-    if (r.closeReason.length > DESCRIPTION_MAX) {
+    // A form posts a textarea's line break as CRLF, and the field counts it as
+    // one character: fold it as `text()` does, or a reason the field holds
+    // at its bound is refused here.
+    if (r.closeReason.replace(/\r\n?/g, "\n").length > DESCRIPTION_MAX) {
       return { ok: false, error: invalidRequest(`closeReason may be at most ${DESCRIPTION_MAX} characters`) };
     }
     closeReason = r.closeReason.trim();
@@ -294,8 +297,8 @@ export function parseJobRequest(
  *  A description holds a problem, a solution and a table of acceptance
  *  criteria, and 2,000 characters cut a spec of eleven criteria off in
  *  the middle (2026-09-20). */
-const TITLE_MAX = 120;
-const DESCRIPTION_MAX = 5000;
+export const TITLE_MAX = 120;
+export const DESCRIPTION_MAX = 5000;
 
 /** Anything a terminal, an argv or a prompt would read as structure. A
  *  newline is allowed in the description and nowhere else: a description

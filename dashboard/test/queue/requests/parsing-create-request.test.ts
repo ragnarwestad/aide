@@ -3,6 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   parseCreateRequest,
+  parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
 
@@ -42,6 +43,20 @@ describe("parseCreateRequest", () => {
     const over = at(5001);
     expect(over.ok).toBe(false);
     if (!over.ok) expect(over.error).toContain("5000");
+  });
+
+  // Spec 513: the bounds are named in the refusal, so a reader with script
+  // off learns what to shorten it to.
+  test("a title of 121 characters is refused, naming 120 (AC-5)", () => {
+    const r = parseCreateRequest({ ...CREATE, title: "t".repeat(121) }, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("120");
+  });
+
+  test("a description of 5,001 characters is refused, naming 5000 (AC-5)", () => {
+    const r = parseCreateRequest({ ...CREATE, description: "d".repeat(5001) }, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("5000");
   });
 
   const allow = (project: string) => project === "aide" || project === "brandnew";
@@ -416,4 +431,27 @@ describe("parseCreateRequest — aiFormulateAcceptance", () => {
       expect(r.ok && r.job.createNoAiFormulate).toBe(true);
     },
   );
+});
+
+// --- spec 513: a close reason is held to the description's bound ---------------
+
+describe("a close request's reason", () => {
+  const close = (closeReason: string) =>
+    parseJobRequest(
+      { project: "aide", specFolder: "81-queue-and-runner", steps: ["close"], closeReason },
+      { resolve, defaults: DEFAULTS },
+    );
+
+  test("of 5,001 characters is refused, naming 5000 (AC-6)", () => {
+    const r = close("r".repeat(5001));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("5000");
+  });
+
+  test("of 4,990 characters with 20 line breaks posted as CRLF is accepted (AC-6)", () => {
+    // A form posts a textarea's line break as CRLF; the field counted it as one.
+    const reason = ("r".repeat(4970) + "\n".repeat(20)).replace(/\n/g, "\r\n");
+    expect(reason.length).toBe(5010);
+    expect(close(reason).ok).toBe(true);
+  });
 });

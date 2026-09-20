@@ -144,3 +144,16 @@ describe("the Close page covers the page while the work runs", () => {
     expect(form).toContain('data-overlay="lukker…"');
   });
 });
+
+// Spec 513: the Close reason's bound reaches the script as data, and the
+// browser applies none of its own with script off.
+describe("spec 513: the Close reason's bound", () => {
+  test("carries data-maxlength and no maxlength, and no count is drawn (AC-5)", () => {
+    const html = renderCloseSpecPage("aide", view().specFolder, NAV, GENERATED, {});
+    const reason = /<textarea name="reason"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(reason).toContain('data-maxlength="5000"');
+    expect(reason).not.toMatch(/\smaxlength=/);
+    // The stylesheet names the markers; no element may carry one.
+    expect(html).not.toMatch(/<[a-z]+ [^>]*data-limit/);
+  });
+});

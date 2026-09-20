@@ -12,6 +12,7 @@
 // stays a real form rather than a button this code has to give meaning
 // to.
 
+import { refreshLimit } from "./limits/index.ts";
 import { ACTIONS, postForm } from "./press.ts";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
@@ -194,6 +195,7 @@ export function bindProposals(form: HTMLFormElement): void {
     for (const { name, input } of fields) {
       if (!input || typed.has(name)) continue;
       input.value = proposed?.[name] ?? "";
+      refreshLimit(input);
     }
   });
 }

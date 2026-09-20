@@ -132,3 +132,13 @@ select[name^="model."] {
    it — including a chip the browser just moved there, which is why this
    is a sibling rule rather than something the server decides. */
 .phases.picked:not(:empty) + [data-none] { display: none; }
+
+/* The count under a bounded text field, and the line of its own after a paste
+   or a drop was cut down to the bound. Both are drawn by the script
+   (specs-client/limits), so a page with script off shows neither. The line
+   draws nothing while it is empty. */
+[data-limit], [data-limit-note] { display: block; font-size: var(--fs-s); color: var(--muted);
+  text-align: right; }
+[data-limit="near"] { color: var(--warn); }
+[data-limit-note]:not(:empty) { color: var(--warn); }
+[data-limit-note]:empty { display: none; }

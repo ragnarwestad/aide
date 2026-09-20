@@ -37,6 +37,7 @@ import {
   syncDependsOn,
 } from "./forms.ts";
 import { formatElapsed } from "./elapsed.ts";
+import { bindLimits } from "./limits/index.ts";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
 import { postPendingModel } from "./pending-model.ts";
@@ -50,6 +51,10 @@ import {
 import { NEW_SPEC_FORM } from "./state.ts";
 import { postTailModel, postTailStep } from "./tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
+
+// The count under every bounded text field: drawn first, so a binding below
+// that reads or fills a field finds it already counted.
+bindLimits(document);
 
 // The Settings page's Notifications tab, when it is the one open.
 const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;

@@ -19,6 +19,7 @@
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
 import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, stepLabel, helpPopover} from "../ui/components";
+import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import { esc } from "../ui/html.ts";
 import { t, type Language } from "../../i18n";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
@@ -378,7 +379,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     `</span>` +
     field(
       "Title",
-      `<input type="text" name="title" maxlength="120" required ` +
+      `<input type="text" name="title" maxlength="${TITLE_MAX}" required ` +
         (opts.prefill ? `value="${esc(opts.prefill.title)}" ` : "") +
         `placeholder="what the spec is about, in a few words">`,
       { wide: true },
@@ -386,7 +387,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     `<span class="frow">` +
     field(
       "Description",
-      `<textarea name="description" rows="10" maxlength="5000" required ` +
+      `<textarea name="description" rows="10" maxlength="${DESCRIPTION_MAX}" required ` +
         `placeholder="the problem, and what you want instead">${esc(opts.prefill?.description ?? "")}</textarea>`,
       { wide: true },
     ) +

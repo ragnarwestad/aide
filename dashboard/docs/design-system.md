@@ -11,6 +11,7 @@ and the layout rules that keep them consistent.
 - [Spacing lives in the container, not the component](#spacing-lives-in-the-container-not-the-component)
 - [One busy flag, not a per-step lookup](#one-busy-flag-not-a-per-step-lookup)
 - [A structural marker with no CSS rule uses data-*, not a class](#a-structural-marker-with-no-css-rule-uses-data--not-a-class)
+- [The length count under a bounded text field](#the-length-count-under-a-bounded-text-field)
 - [`form="<id>"` only wires submission, not event bubbling](#formid-only-wires-submission-not-event-bubbling)
 - [Theme choice](#theme-choice)
 - [Language choice](#language-choice)
@@ -121,6 +122,14 @@ to find — should not grow that vocabulary for a class that carries no CSS rule
 (`Phase` / `Model` above the phase lines' pickers) is marked
 `data-caption="1"` for exactly this reason: every entry in the guard's allow-list is meant to declare tokens, and this
 one would declare nothing.
+
+## The length count under a bounded text field
+
+Every text input and textarea that carries `maxlength`, and any that carries `data-maxlength` (a bound the server holds
+but the browser is not to apply, such as the Close reason), gets two spans from `specs-client/limits` after it:
+`data-limit="ok|near"`, the count, marked `near` from 90% of the bound; and `data-limit-note`, a `role="status"` line
+that names how many characters a paste or a drop lost, and is empty otherwise. The server draws neither, so a page with
+script off is unchanged, and a bounded field added later is covered by the selector alone.
 
 ## `form="<id>"` only wires submission, not event bubbling
 

@@ -5,6 +5,7 @@
 // why this page, not a modal, is the right shape for Close.
 
 import { backLink, field, rowMessage, saveCancelActions } from "../../ui/components";
+import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { specPagePath } from "./tabs.ts";
@@ -38,7 +39,10 @@ export function renderCloseSpecPage(
       `data-overlay="${t(opts.lang ?? "en", "shell.overlayClosing")}">` +
     `<div class="panelhead"><h2>Close</h2>${saveCancelActions()}</div>` +
     `<span class="frow">` +
-    field("Reason", `<textarea name="reason" rows="4" required></textarea>`) +
+    // A data attribute, not maxlength: with script off the server's own
+    // refusal stays what a too-long reason meets; the script reads it and
+    // applies the bound.
+    field("Reason", `<textarea name="reason" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`) +
     `</span></form>`;
   return pageShell(title, entries, "/", body, generatedAt, undefined, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
