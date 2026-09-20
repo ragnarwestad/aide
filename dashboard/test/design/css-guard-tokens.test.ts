@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { REPORT_FRAME_CSS } from "../../src/render/ui/css";
+import { LOADING_CSS, REPORT_FRAME_CSS } from "../../src/render/ui/css";
 import { CSS, RENDER_FILES, COLOUR, outsideTokens, tokensAfter, oneRule } from "./css-guard-fixtures.ts";
 
 describe("css.ts uses tokens and nothing else", () => {
@@ -167,5 +167,22 @@ describe("the report frame's stylesheet uses tokens and nothing else (spec 495)"
   test("no raw length outside a var(--…), but the 1px hairline the page's own borders use", () => {
     const flat = REPORT_FRAME_CSS.replace(/\/\*[\s\S]*?\*\//g, "").replace(/var\([^)]*\)/g, "").replace(/\b1px\b/g, "");
     expect(flat.match(/\d+(\.\d+)?(px|rem|em)\b/g) ?? []).toEqual([]);
+  });
+});
+
+// Spec 515. The loading element's stylesheet is not one of the page's
+// sections either (it is sent with the spec page's first chunk only, so the
+// generated pages' stylesheet stays as it was); it holds itself to the same
+// rules here.
+describe("the loading element's stylesheet uses tokens and nothing else (spec 515)", () => {
+  test("it styles the element and stops its bars for reduced motion", () => {
+    expect(LOADING_CSS).toContain(".pageloading");
+    expect(LOADING_CSS).toContain("prefers-reduced-motion");
+  });
+
+  test("no colour literal, and no font-size that is not a scale step", () => {
+    expect([...LOADING_CSS.matchAll(COLOUR)].map((m) => m[0])).toEqual([]);
+    const sizes = [...LOADING_CSS.matchAll(/font-size:\s*([^;}]+)/g)].map((m) => m[1]!.trim());
+    expect(sizes.filter((v) => !/^var\(--fs-[a-z]+\)$/.test(v))).toEqual([]);
   });
 });

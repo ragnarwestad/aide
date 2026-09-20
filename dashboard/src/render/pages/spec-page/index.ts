@@ -51,7 +51,9 @@ import { badge, helpPopover, rowMessage } from "../../ui/components";
 import { gerund } from "../../../format/gerund.ts";
 import { esc } from "../../ui/html.ts";
 import type { Language } from "../../../i18n";
-import { pageShell, type NavEntry } from "../../ui/shell.ts";
+import { pageShell, refreshMeta, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
+import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
+import { t } from "../../../i18n";
 import { landingRefusal, stepResults, tabBar, tabbedBody } from "../job-page";
 import {
   actionsHelp, archivedLine, testServerStatus, closedLine, closeControl, pdfControl,
@@ -59,7 +61,7 @@ import {
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP,
+  RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES, TAB_HELP, type SpecTab,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
@@ -71,21 +73,20 @@ export {
 export { renderCloseSpecPage } from "./close-page.ts";
 export { renderReopenSpecPage } from "./reopen-page.ts";
 
-export function renderSpecPage(
-  view: SpecPageView,
-  generatedAt: string,
-  entries: NavEntry[],
-  opts: {
-    tab?: string;
-    step?: string;
-    only?: LogFilter;
-    now?: number;
-    script?: string;
-    scriptSrc?: string;
-    lang?: Language;
-    currentUrl?: string;
-  } = {},
-): string {
+interface SpecPageOpts {
+  tab?: string;
+  step?: string;
+  only?: LogFilter;
+  now?: number;
+  script?: string;
+  scriptSrc?: string;
+  lang?: Language;
+  currentUrl?: string;
+}
+
+/** The page's body and the tab it is on — what `renderSpecPage` and the
+ *  streamed second half (`renderSpecPageRest`) both draw. */
+function specPageBody(view: SpecPageView, opts: SpecPageOpts): { body: string; tab: SpecTab } {
   const now = opts.now ?? Date.now();
   // Description, whatever is running. The JOB page opens on the
   // activity while a step runs, because that page is about the run;
@@ -187,6 +188,16 @@ export function renderSpecPage(
     headTrailing,
   );
 
+  return { body, tab };
+}
+
+export function renderSpecPage(
+  view: SpecPageView,
+  generatedAt: string,
+  entries: NavEntry[],
+  opts: SpecPageOpts = {},
+): string {
+  const { body, tab } = specPageBody(view, opts);
   return pageShell(
     view.specFolder,
     entries,
@@ -203,4 +214,46 @@ export function renderSpecPage(
       currentUrl: opts.currentUrl,
     },
   );
+}
+
+/** The spec page's first chunk (spec 515): the document up to `<body>`, the
+ *  stylesheet and scripts, and the loading element. Needs only what the
+ *  route knows before any view data exists. */
+export function renderSpecPageHead(specFolder: string, lang: Language): string {
+  return shellHead(specFolder, { lang }) + loadingBlock(lang);
+}
+
+/** The second chunk: the same document `renderSpecPage` draws, from the
+ *  header on, with the rule that hides the loading element right after
+ *  `</main>`. The Steps tab's meta refresh starts it, since the 10 seconds
+ *  count from when the page is complete. */
+export function renderSpecPageRest(
+  view: SpecPageView,
+  _generatedAt: string,
+  entries: NavEntry[],
+  opts: SpecPageOpts = {},
+): string {
+  const { body, tab } = specPageBody(view, opts);
+  return shellRest(entries, "/", view.specFolder, body, {
+    script: opts.script,
+    scriptSrc: opts.scriptSrc,
+    hideHeading: true,
+    hideTabBar: true,
+    lang: opts.lang,
+    currentUrl: opts.currentUrl,
+    refresh: refreshMeta(RELOADING_TABS.includes(tab) ? 10 : undefined),
+    afterMain: LOADING_HIDE_RULE,
+  });
+}
+
+/** What ends a spec page whose second half failed after the head was sent:
+ *  the loading element hidden and one sentence saying what to do. */
+export function renderSpecPageFailedRest(entries: NavEntry[], lang: Language, currentUrl?: string): string {
+  return shellRest(entries, "/", "", rowMessage("failed", t(lang, "shell.pageFailed"), { tag: "p" }), {
+    hideHeading: true,
+    hideTabBar: true,
+    lang,
+    currentUrl,
+    afterMain: LOADING_HIDE_RULE,
+  });
 }

@@ -306,6 +306,8 @@ const STRUCTURE = [
   // spec 495: a scheduled run's report on the entry's page — the panel,
   // its header line and the sandboxed frame.
   "reportpanel", "reporthead", "reportframe",
+  // spec 515: the loading element the spec page's first chunk carries.
+  "pageloading",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

@@ -2,7 +2,8 @@
 // every response the server answers — never to the one response
 // (/api/queue/events, text/event-stream) that must stay unbuffered.
 import { afterEach, describe, expect, test } from "bun:test";
-import { compressResponse } from "../../src/serve/serve-helpers";
+import { gunzipSync, constants } from "node:zlib";
+import { compressResponse, streamedPage } from "../../src/serve/serve-helpers";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 const gzipReq = () => new Request("http://x/", { headers: { "accept-encoding": "gzip, deflate, br" } });
@@ -81,6 +82,46 @@ describe("compressResponse (unit)", () => {
       expect(res.headers.get("content-encoding")).toBe("gzip");
     });
   }
+});
+
+// Spec 515: a streamed page is gzipped as a stream, flushed after every
+// chunk, so what has been sent is decodable before the rest exists.
+describe("compressResponse (a streamed page)", () => {
+  const decode = (bytes: Uint8Array) =>
+    gunzipSync(bytes, { finishFlush: constants.Z_SYNC_FLUSH }).toString("utf-8");
+
+  /** Collects what the reader delivers, so a read is never left pending
+   *  (and never swallows a chunk) between two looks at what has arrived. */
+  function collect(reader: ReadableStreamDefaultReader<Uint8Array>) {
+    const parts: Uint8Array[] = [];
+    const done = (async () => {
+      for (;;) {
+        const next = await reader.read();
+        if (next.done) return;
+        parts.push(next.value);
+      }
+    })();
+    return { so_far: () => new Uint8Array(Buffer.concat(parts)), done };
+  }
+  const quiet = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  test("the head is decodable before the rest exists, and the whole page after it (AC-4)", async () => {
+    const head = `<!doctype html><body>${"filler ".repeat(30_000)}<div class="pageloading">MARKER</div>`;
+    let release!: (s: string) => void;
+    const held = new Promise<string>((r) => { release = r; });
+    const streamed = streamedPage({ head, rest: () => held, failedRest: "<failed>", headers: new Headers({ "content-type": "text/html" }) });
+    const res = await compressResponse(gzipReq(), streamed);
+    expect(res.headers.get("content-encoding")).toBe("gzip");
+    expect(res.headers.get("vary")).toBe("accept-encoding");
+    const got = collect(res.body!.getReader());
+    await quiet(300);
+    const early = decode(got.so_far());
+    expect(early).toContain("MARKER");
+    expect(early).not.toContain("REST-DONE");
+    release("<main>REST-DONE</main>");
+    await got.done;
+    expect(decode(got.so_far())).toContain("REST-DONE");
+  });
 });
 
 describe("compressResponse, wired into the real server", () => {

@@ -59,6 +59,11 @@ const REGISTRY: RegistryEntry[] = [
     text: "4-status.md has changed since you opened it for editing — nothing was saved, open it again",
     resolve: "open it again",
   },
+  {
+    name: "the spec page failed after its head was sent (i18n shell.pageFailed)",
+    text: t("en", "shell.pageFailed"),
+    resolve: "Reload the page",
+  },
 ];
 
 /** One spec's whole rendered block — head row, phase lines and notice

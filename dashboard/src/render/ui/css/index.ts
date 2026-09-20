@@ -62,3 +62,8 @@ export const TOKENS_CSS = readFileSync(join(import.meta.dir, "tokens.css"), "utf
 /** Element rules for a report shown in its sandboxed frame. Not one of
  *  `SECTIONS`: it belongs to the framed document, not to the page. */
 export const REPORT_FRAME_CSS = readFileSync(join(import.meta.dir, "report-frame.css"), "utf-8");
+
+/** The loading element's own stylesheet (spec 515), sent in the spec page's
+ *  first chunk. Not one of `SECTIONS`, like the report frame's: the
+ *  generated pages' stylesheet stays byte for byte as it is. */
+export const LOADING_CSS = readFileSync(join(import.meta.dir, "loading.css"), "utf-8");
