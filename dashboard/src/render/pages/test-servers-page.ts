@@ -42,21 +42,36 @@ export interface TestServersPageOptions {
 // "running" one does, and a "failed" entry otherwise has no way to be
 // cleared from this page at all, so every row gets the same form
 // regardless of status (Plan review, Scope guardian must-fix).
+// The link shows the address's host and port, never its scheme, path or
+// token; a string that does not parse is shown as it is.
+const addressText = (url: string): string => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+};
+
+// The columns have names of their own (`ts-*`), so no rule written for the
+// specs list's `data-col`s reaches this table.
+const COLUMNS = ["ts-project", "ts-spec", "ts-branch", "ts-status", "ts-address", "ts-stop"] as const;
+const th = (col: (typeof COLUMNS)[number], label: string): string => `<th data-col="${col}">${label}</th>`;
+
 const row = (r: TestServerRow): string => {
   const address =
     r.status === "running" && r.url
-      ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">Open</a>`
+      ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(addressText(r.url))}</a>`
       : `<span class="muted">—</span>`;
   return (
     `<tr>` +
-    `<td>${esc(r.project)}</td>` +
+    `<td data-col="ts-project">${esc(r.project)}</td>` +
     // AC-7: a board tracked under a non-spec key (`MAIN_TEST_SERVER_KEY`) has no
     // spec page to link to.
-    `<td>${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
-    `<td>${esc(r.branch)}</td>` +
-    `<td>${esc(r.status)}</td>` +
-    `<td>${address}</td>` +
-    `<td><form class="actionform" method="post" action="${esc(r.stopAction)}">` +
+    `<td data-col="ts-spec">${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
+    `<td data-col="ts-branch">${esc(r.branch)}</td>` +
+    `<td data-col="ts-status">${esc(r.status)}</td>` +
+    `<td data-col="ts-address">${address}</td>` +
+    `<td data-col="ts-stop"><form class="actionform" method="post" action="${esc(r.stopAction)}">` +
     `<button class="btn" type="submit">Stop</button></form></td>` +
     `</tr>`
   );
@@ -74,9 +89,11 @@ export function renderTestServersPage(
   // broken rather than as the ordinary case.
   const body = !rows.length
     ? `<main>${back}<p class="muted">No test server is running right now.</p></main>`
-    : `<main>${back}<table class="settingstable"><thead><tr>` +
-      `<th>Project</th><th>Spec</th><th>Branch</th><th>Status</th><th>Address</th><th></th>` +
-      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></main>`;
+    : `<main>${back}<div class="tablewrap"><table class="list testservers">` +
+      `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
+      th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
+      th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
+      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div></main>`;
   return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, undefined, {
     hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

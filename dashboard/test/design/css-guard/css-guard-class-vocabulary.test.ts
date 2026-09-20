@@ -299,6 +299,9 @@ const STRUCTURE = [
   // rather than stretching to the frame, the same idea as "speclist"
   // scoped to this one table.
   "settingstable",
+  // the Test servers page's own table (spec 519): a list table with
+  // fixed, named columns that fill the page's frame.
+  "testservers",
   // the Settings form itself (spec 409): the third dirty-latch prefix
   // spec-form-actions.ts's bind() loop registers, beside "specform" and
   // "trackingform".

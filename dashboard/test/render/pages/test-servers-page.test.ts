@@ -62,9 +62,10 @@ describe("the test servers overview", () => {
     expect(html).toContain(`action="${r.stopAction}"`);
   });
 
-  test("a running row links to the board, by name, not by its raw address", () => {
+  test("a running row links to the board, by its host and port, not by the word Open", () => {
     const html = renderTestServersPage(NAV, GENERATED, [row()]);
     expect(html).toContain('href="http://127.0.0.1:8801/"');
+    expect(html).toContain(">127.0.0.1:8801</a>");
     expect(html).toContain(`action="${row().stopAction}"`);
   });
 
@@ -110,7 +111,7 @@ describe("the test servers overview", () => {
     });
     const html = renderTestServersPage(NAV, GENERATED, [r]);
     expect(html).not.toContain(`<a href="${r.specHref}">main</a>`);
-    expect(html).toContain("<td>main</td>");
+    expect(html).toContain('<td data-col="ts-spec">main</td>');
     expect(html).toContain(`action="${r.stopAction}"`);
   });
 
@@ -119,5 +120,37 @@ describe("the test servers overview", () => {
     const r = row();
     const html = renderTestServersPage(NAV, GENERATED, [r]);
     expect(html).toContain(`<a href="${r.specHref}">${r.specFolder}</a>`);
+  });
+
+  test("the table is a list table wrapped in .tablewrap, with six named columns (AC-1)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [row()]);
+    expect(html).toContain('<div class="tablewrap"><table class="list testservers">');
+    const cols = [...html.matchAll(/<col data-col="([\w-]+)">/g)].map((m) => m[1]);
+    const names = ["ts-project", "ts-spec", "ts-branch", "ts-status", "ts-address", "ts-stop"];
+    expect(cols).toEqual(names);
+    for (const n of names) {
+      expect(html).toContain(`<th data-col="${n}">`);
+      expect(html).toContain(`<td data-col="${n}">`);
+    }
+  });
+
+  test("the table is a list table and not a settingstable (AC-2)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [row()]);
+    expect(html).toContain('class="list testservers"');
+    expect(html).not.toContain('<table class="settingstable"');
+  });
+
+  test("the link's text is the host and port, without scheme, path or token (AC-5)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [
+      row({ url: "https://rw-macmini.ts.net:8801/?token=t0ken" }),
+    ]);
+    expect(html).toContain(">rw-macmini.ts.net:8801</a>");
+    expect(html).not.toContain(">Open<");
+    expect(html).not.toMatch(/>[^<]*t0ken[^<]*</);
+  });
+
+  test("an address that does not parse is shown as it is, escaped (AC-5)", () => {
+    const html = renderTestServersPage(NAV, GENERATED, [row({ url: "not a <url>" })]);
+    expect(html).toContain(">not a &lt;url&gt;</a>");
   });
 });
