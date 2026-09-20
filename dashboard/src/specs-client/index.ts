@@ -252,6 +252,11 @@ for (const el of document.querySelectorAll("a[data-delete-schedule]")) {
 }
 
 document.addEventListener("visibilitychange", onVisibility);
+// An installed app coming back to the foreground can be restored from
+// the browser's own back/forward cache instead of being drawn again, and
+// that restore is a `pageshow` with no `visibilitychange` behind it. The
+// same answer either way: fetch the rows, then make sure the stream is up.
+if (typeof window !== "undefined") window.addEventListener("pageshow", onVisibility);
 // The first paint: the server draws every model, and each select is
 // narrowed to the tool its own value belongs to.
 offerEachToItsTool(document);

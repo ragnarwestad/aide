@@ -309,6 +309,12 @@ export interface Job {
    *  lands. `errorReason`/`error` still say what is happening RIGHT
    *  NOW; this says what already went wrong and was never resolved. */
   landingError?: Sentence | Sentence[];
+  /** The raw words behind `landingError` — what the script or git said
+   *  when that landing failed. Kept beside it for the same reason it is:
+   *  `errorDetail` belongs to what the row is waiting for right now, and
+   *  a job that has moved on has already overwritten it, so the one
+   *  chance to find out why a landing failed was gone (2026-09-20). */
+  landingErrorDetail?: string;
   /** Raw git/tool output behind `error` (spec 352, REQ-5) — never part
    *  of `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence. Hover-only detail for whoever needs the exact words. */
