@@ -42,7 +42,7 @@ test:
 # `test`, so a landing never runs them. CI's dashboard job does, as its
 # own step after `make test`.
 test-e2e:
-	bun test --timeout 20000 test/e2e
+	bash scripts/run-tests.sh test/e2e
 
 # The round's own tests, on their own: each starts a real board and does
 # real git work, and on a machine running other suites they lose to load

@@ -3,7 +3,7 @@
 // stay inside the box at phone width. Layout exists only in a browser.
 // Run by the user.
 
-import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, setDefaultTimeout, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -36,7 +36,19 @@ beforeAll(async () => {
   );
   base = harness.start({ extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile } }).base;
   browser = await chromium.launch();
+});
+
+// A page of its own per test, rather than one shared by all sixteen. Every
+// test here opens a modal, and several measure it without closing it — run
+// in sequence on one page, the first test of the second box hung on its own
+// click until the 30 s limit killed it, and the killed browser failed the
+// nine tests behind it. Alone, every one of them passes.
+beforeEach(async () => {
   page = await browser.newPage();
+});
+
+afterEach(async () => {
+  await page.close();
 });
 
 afterAll(async () => {

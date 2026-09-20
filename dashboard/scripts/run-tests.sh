@@ -27,10 +27,17 @@ LIMIT=20000
 CPUS=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
 
-# Tests live under `src/` too (the message catalogues' own), so both trees
-# are collected.
-files=$(find src test -name '*.test.ts' \
-  -not -path 'test/e2e/*' -not -path 'test/round/*' | sort)
+# With no argument: the suite `make test` runs. Tests live under `src/` too
+# (the message catalogues' own), so both trees are collected, and the two
+# directories that start a real browser and a real board are left out —
+# they have `make test-e2e` and `make test-slow`, which pass their own
+# directory as that argument and get the same workers.
+if [ "$#" -gt 0 ]; then
+  files=$(find "$@" -name '*.test.ts' | sort)
+else
+  files=$(find src test -name '*.test.ts' \
+    -not -path 'test/e2e/*' -not -path 'test/round/*' | sort)
+fi
 [ -n "$files" ] || { echo "no test files found"; exit 1; }
 
 started=$(date +%s)
@@ -87,7 +94,8 @@ while :; do
   # cores the quickest of them takes half a minute.
   beat=$(( beat + 2 ))
   if [ $(( beat % 15 )) -lt 2 ]; then
-    printf -- '... %s s, %s workers running\n' "$(( $(date +%s) - started ))" "$left"
+    [ "$left" -eq 1 ] && word=worker || word=workers
+    printf -- '... %s s, %s %s running\n' "$(( $(date +%s) - started ))" "$left" "$word"
   fi
   sleep 2
 done
