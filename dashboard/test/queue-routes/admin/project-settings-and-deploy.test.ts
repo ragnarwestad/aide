@@ -191,6 +191,10 @@ describe("a project's settings route (spec 184)", () => {
     for (const args of [["add", "-A"], ["commit", "-qm", "codeLanding"], ["push", "-q"]]) {
       Bun.spawnSync(["git", ...args], { cwd: project });
     }
+    // The page reads the manifest a run reads — the dashboard's own
+    // checkout's (spec 512), once it has one — so that has the commit too.
+    const owned = join(dir, "owned", "aide", "code");
+    if (existsSync(join(owned, ".git"))) Bun.spawnSync(["git", "pull", "-q", "--ff-only"], { cwd: owned });
     // Spec 255: Code landing's `<select>` only exists in edit mode now.
     const form = await (await fetch(`${base}/projects/aide?edit=1`, )).text();
     expect(form).toContain('name="codeLanding"');

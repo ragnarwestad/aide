@@ -133,6 +133,9 @@ matter cannot be derived without guessing, so the project states them.
 They are in the manifest rather than in `.aide/config` because they are
 true of the project on ANY machine, while `.aide/config` is kept out of
 git — so the answer was lost every time the project met a new machine.
+A project that does not track a manifest keeps them in the dashboard's own
+settings file, `checkouts/<name>/settings.yaml`, which reaches a run as an
+untracked, uncommitted `.aide/project.yaml`; a tracked manifest wins.
 `.aide/config`'s older `AIDE_WORKTREE_LINKS` is still read
 when the manifest names none; the manifest wins where both do, and the
 run's own output says which file it read.

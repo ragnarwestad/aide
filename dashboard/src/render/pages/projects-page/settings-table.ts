@@ -25,8 +25,12 @@ const CONFIGURED_SOURCE_LABEL: Record<string, string> = {
  *  names its scripts differently would be shown a command that does not
  *  work, and a reader has to be able to see that it was worked out
  *  rather than checked. Nothing on this page is ever executed. */
-function originText(r: SettingRow): string {
+function originText(r: SettingRow, home?: ProjectPageOptions["settingsHome"]): string {
   if (r.origin === "configured") {
+    // The manifest a run reads is a copy of the dashboard's own file
+    // when the project tracks none, and the page names the file a
+    // person would change.
+    if (r.source === "project.yaml" && home === "dashboard") return "configured, from the dashboard's settings.yaml";
     return r.source ? `configured, from ${esc(CONFIGURED_SOURCE_LABEL[r.source] ?? r.source)}` : "configured";
   }
   if (r.origin === "unset") return "not set";
@@ -122,6 +126,27 @@ function codeLandingRow(codeLanding: "merge" | "pr", editing: boolean, defaultBr
   return `<tr><td>Code landing</td><td>${value}</td><td>What happens to code when a spec is archived</td></tr>`;
 }
 
+/** Where the settings are kept, in one sentence above the table (spec
+ *  512). Empty when the page was built with no answer. */
+function settingsHomeSentence(home: ProjectPageOptions["settingsHome"]): string {
+  const say = (text: string) => `<p class="muted" data-settings-home="${home}">${text}</p>`;
+  if (home === "dashboard") {
+    return say(
+      "These settings are kept in the dashboard, in <code>settings.yaml</code> beside its checkouts — " +
+        "nothing of them is in the project's repository.",
+    );
+  }
+  if (home === "project") return say("These settings are kept in the project's own <code>.aide/project.yaml</code>.");
+  if (home === "shadowed") {
+    return say(
+      "These settings are kept in the project's own <code>.aide/project.yaml</code>. " +
+        "The dashboard's copy, <code>settings.yaml</code>, is not used.",
+    );
+  }
+  if (home === "none") return say("No settings are stored yet.");
+  return "";
+}
+
 /** The one settings table (spec 255, replacing `settingsTable()` plus
  *  the separate plain-text summary and `<details>` editor it used to sit
  *  beside): Name/Value/Comment columns, the seven `SETTING_KEYS` rows
@@ -154,11 +179,12 @@ export function unifiedSettingsTable(
         return (
           `<tr><td>${esc(SETTING_LABELS[r.key] ?? r.key)} <span class="muted">${esc(r.key)}</span></td>` +
           `<td>${unsetTest && !editing ? `<span class="muted">–</span>` : settingValueCell(r, editing, opts)}</td>` +
-          `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r) : originText(r)}${problem}</td></tr>`
+          `<td>${esc(r.purpose)} — ${unsetTest ? unsetTestComment(r) : originText(r, opts.settingsHome)}${problem}</td></tr>`
         );
       })
       .join("") + codeLandingRow(codeLanding, editing, opts.defaultBranch ?? null);
   const table =
+    settingsHomeSentence(opts.settingsHome) +
     `<div class="tablewrap"><table class="list">` +
     `<colgroup><col data-col="setting-name"><col data-col="setting-value"><col data-col="setting-comment"></colgroup>` +
     `<thead><tr><th>Name</th><th>Value</th>` +

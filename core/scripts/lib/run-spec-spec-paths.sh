@@ -109,6 +109,31 @@ repoint_specs_path() {
 }
 repoint_specs_path
 
+# A project keeps nothing of Aide's in its repository (spec 512): an
+# untracked `.aide/project.yaml` in the main checkout — the dashboard's
+# derived copy of the settings it keeps, or a draft — is what
+# `aide-resolve-test-cmd --project-dir .` reads inside this worktree, and
+# a worktree carries tracked files only. Copied in when the worktree does
+# not track one, and kept out of the commit by a pathspec whenever it was
+# copied. The rule, stated once (tests/fixtures/manifest-carry.json):
+# tracked in the worktree -> leave it alone; git unable to say -> leave it
+# alone; untracked with a source -> copy it in and exclude it.
+# STRICTLY AFTER update_branch_to_base, like repoint_specs_path: a merge
+# that brings in a tracked manifest must not meet an untracked one.
+carry_manifest_into_worktree() {
+  local src="$project_root/.aide/project.yaml" dst="$project_wt/.aide/project.yaml" rc
+  [ "$project_wt" != "$project_root" ] || return 0
+  [ -f "$src" ] || return 0
+  rc=0
+  git -C "$project_wt" ls-files --error-unmatch -- .aide/project.yaml >/dev/null 2>&1 || rc=$?
+  [ "$rc" -eq 1 ] || return 0
+  mkdir -p "$project_wt/.aide" 2>/dev/null || return 0
+  cp "$src" "$dst" 2>/dev/null || return 0
+  git_add_excludes+=(":(exclude,top).aide/project.yaml")
+  return 0
+}
+carry_manifest_into_worktree
+
 # A passenger repo is addressed by absolute path and nothing else, so
 # without this the step writes into the MAIN checkout: the commit loop
 # (now on the worktree) would commit nothing, the result would report

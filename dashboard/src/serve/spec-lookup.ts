@@ -19,7 +19,7 @@ import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
-  discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
+  discoverProjects, manifestInside, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
   acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus, reopenedRound,
@@ -89,7 +89,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
   const dirs = new Map<string, string>();
   const specsRoots = new Map<string, string>();
   if (ctx.projectRoot) {
-    for (const p of discoverProjects(ctx.projectRoot, ctx.ownedSpecsRoot)) {
+    for (const p of discoverProjects(ctx.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))) {
       if (!ctx.allowed.has(p.name)) continue;
       specsRoots.set(p.name, p.specsRoot);
       for (const s of p.specs) {
@@ -355,7 +355,7 @@ export function specRef(ctx: SpecLookupContext, project: string, specFolder: str
 export function dependencyFolders(ctx: SpecLookupContext, project: string, dir: string): string[] {
   const ids = specDependsOn(dir);
   if (ids.length === 0 || !ctx.projectRoot) return [];
-  const discovered = discoverProjects(ctx.projectRoot).find((p) => p.name === project);
+  const discovered = discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project);
   if (!discovered) return [];
   // An archived dependency counts. It is dropped from what HOLDS a
   // step back — an archived one holds nothing — but the spec still

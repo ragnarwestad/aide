@@ -212,6 +212,11 @@ export async function assessProjectReadiness(
   run: GitRunner,
   projectDir: string,
   machineryDir?: string,
+  /** The manifest to read the manifest-backed rows from, when it is not
+   *  the project's own `.aide/project.yaml` (spec 512): the dashboard's
+   *  settings file, right after an Add. Without it the dashboard's own
+   *  clone is asked, since that is the file a run reads. */
+  manifestFile?: string,
 ): Promise<ProjectReadiness> {
   const checks: ReadinessCheck[] = [];
 
@@ -310,7 +315,11 @@ export async function assessProjectReadiness(
   //    (spec 184), which is the order `aide-run-spec` itself reads them
   //    in — a check that looked at only one of the two would report a
   //    project unconfigured that a run links perfectly well.
-  const { links, source } = resolveWorktreeLinks(projectDir);
+  const machineryManifest = machineryDir ? join(machineryDir, ".aide", "project.yaml") : undefined;
+  const { links, source } = resolveWorktreeLinks(
+    projectDir,
+    manifestFile ?? (machineryManifest && existsSync(machineryManifest) ? machineryManifest : undefined),
+  );
   const linkError = links
     ? worktreeLinksError(links, source === ".aide/config" ? "AIDE_WORKTREE_LINKS" : "worktreeLinks")
     : null;

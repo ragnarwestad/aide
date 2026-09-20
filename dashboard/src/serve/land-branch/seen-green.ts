@@ -17,7 +17,10 @@ import { runScript, scriptFor } from "./run-script.ts";
  *  when the hash cannot be taken, which skips nothing. */
 async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promise<string | undefined> {
   const lib = scriptFor("_aide-spec-lib.sh", { beside: scriptDir, override: process.env.AIDE_SPEC_LIB });
-  const links = resolveWorktreeLinks(liveRoot).links ?? "";
+  // The live checkout's own answer first; the tree's when it has none —
+  // a project that keeps its settings in the dashboard has them in an
+  // untracked manifest the gate copied into the tree (spec 512).
+  const links = resolveWorktreeLinks(liveRoot).links || resolveWorktreeLinks(dir).links || "";
   const hashed = await runScript(
     ["/bin/bash", "-c", 'source "$1" && aide_tree_hash "$2" "$3"', "_", lib, dir, links],
     dir,

@@ -316,7 +316,10 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(body.ok).toBe(true);
     expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
     expect(body.results.every((r) => r.ok)).toBe(true);
-    expect(existsSync(join(dir, "root", "newproj", ".aide", "project.yaml"))).toBe(true);
+    // Spec 512: nothing of Aide's is written into the clone; the
+    // dashboard keeps the settings beside its own checkouts.
+    expect(existsSync(join(dir, "root", "newproj", ".aide", "project.yaml"))).toBe(false);
+    expect(existsSync(join(dir, "owned", "newproj", "settings.yaml"))).toBe(true);
     // On the allowlist the MOMENT it is done — no restart, and no
     // waiting for the five-second scan: the New-spec form's project
     // list is the raw allowlist, so it shows a project with no spec yet.

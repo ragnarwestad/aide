@@ -1,3 +1,4 @@
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -90,14 +91,15 @@ describe("a project name has to be safe before anything is touched", () => {
 
 describe("adding a project by cloning it", () => {
   // Criterion 1.
-  test("clones into <root>/<name>, writes a minimal manifest, reports every step", async () => {
+  test("clones into <root>/<name>, keeps a minimal manifest in the dashboard's settings file, reports every step", async () => {
     const projectsRoot = root();
+    const base = root();
     const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "newproj",
       gitUrl: "https://example.com/newproj.git",
       description: "What it is for",
-    });
+    }, base);
     expect(result.ok).toBe(true);
     expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
     expect(result.steps.every((s) => s.ok)).toBe(true);
@@ -112,7 +114,9 @@ describe("adding a project by cloning it", () => {
         args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "newproj"],
       },
     ]);
-    const manifest = join(projectsRoot, "newproj", ".aide", "project.yaml");
+    // Spec 512: nothing of Aide's is written into the clone.
+    expect(existsSync(join(projectsRoot, "newproj", ".aide", "project.yaml"))).toBe(false);
+    const manifest = dashboardSettingsFile(base, "newproj");
     expect(existsSync(manifest)).toBe(true);
     const parsed = parseManifest(readFileSync(manifest, "utf-8"));
     expect(parsed).toEqual({ ok: true, data: { name: "newproj", description: "What it is for" } });
@@ -176,7 +180,8 @@ describe("adding a project on a host whose projects root holds links", () => {
     const link = join(projectsRoot, "newproj");
     expect(lstatSync(link).isSymbolicLink()).toBe(true);
     expect(readlinkSync(link)).toBe(join(base, "newproj", "code"));
-    expect(existsSync(join(base, "newproj", "code", ".aide", "project.yaml"))).toBe(true);
+    expect(existsSync(join(base, "newproj", "code", ".aide", "project.yaml"))).toBe(false);
+    expect(existsSync(dashboardSettingsFile(base, "newproj"))).toBe(true);
   });
 
   test("a checkout the dashboard already has is linked, not cloned again", async () => {
@@ -202,7 +207,7 @@ describe("adding a project on a host whose projects root holds links", () => {
     }, base);
     expect(result.ok).toBe(true);
     expect(lstatSync(join(projectsRoot, "newproj")).isDirectory()).toBe(true);
-    expect(existsSync(join(base, "newproj"))).toBe(false);
+    expect(existsSync(join(base, "newproj", "code"))).toBe(false);
   });
 });
 
@@ -277,14 +282,15 @@ describe("a clone that cannot authenticate", () => {
   // `credential.helper`, so clearing the helper changes nothing for it.
   test("an SSH address still clones", async () => {
     const projectsRoot = root();
+    const base = root();
     const git = cloningGit();
     const result = await addProject(git.run, projectsRoot, {
       name: "bykey",
       gitUrl: "git@example.com:owner/bykey.git",
-    });
+    }, base);
     expect(result.ok).toBe(true);
     expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
-    expect(existsSync(join(projectsRoot, "bykey", ".aide", "project.yaml"))).toBe(true);
+    expect(existsSync(dashboardSettingsFile(base, "bykey"))).toBe(true);
   });
 });
 
@@ -313,20 +319,22 @@ describe("adding a checkout that is already on the host", () => {
   // Criterion 6: the same registration, with no manifest there. It
   // succeeds — and SAYS a manifest had to be made, because the operator
   // has a `/aide-manifest` run to do afterwards.
-  test("a checkout with no manifest gets a minimal one, and the answer says so", async () => {
+  test("a checkout with no manifest gets a minimal one in the dashboard's settings file, and the answer says so", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "bare");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "bare",
       existingPath: dir,
       description: "A checkout that predates its manifest",
-    });
+    }, base);
     expect(result.ok).toBe(true);
     const manifest = result.steps.find((s) => s.step === "manifest")!;
     expect(manifest.ok).toBe(true);
     expect(manifest.note).toMatch(/aide-manifest/);
-    expect(parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"))).toEqual({
+    expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
+    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "bare"), "utf-8"))).toEqual({
       ok: true,
       data: { name: "bare", description: "A checkout that predates its manifest" },
     });
@@ -359,17 +367,18 @@ describe("adding a checkout that is already on the host", () => {
   // follows from the pick rather than being typed a second time.
   test("a picked directory name settles the path and the name together", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "atlasaurus");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "",
       existingPath: "atlasaurus",
       description: "picked, not typed",
-    });
+    }, base);
     expect(result.ok).toBe(true);
     // The manifest is where criterion 5 actually bites: the name written
     // there has to be the picked one, not the blank the reader left.
-    expect(parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"))).toEqual({
+    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "atlasaurus"), "utf-8"))).toEqual({
       ok: true,
       data: { name: "atlasaurus", description: "picked, not typed" },
     });
@@ -383,17 +392,18 @@ describe("adding a checkout that is already on the host", () => {
   // message naming a path that does not exist.
   test("a typed name that does not match the picked directory loses to the pick", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "skjer");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "Skjer",
       existingPath: "skjer",
       description: "picked as skjer, typed as Skjer",
-    });
+    }, base);
     expect(result.ok).toBe(true);
     // The directory's own name is what the manifest — and so the
     // allowlist, and `discoverProjects` — ends up carrying.
-    expect(parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"))).toEqual({
+    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "skjer"), "utf-8"))).toEqual({
       ok: true,
       data: { name: "skjer", description: "picked as skjer, typed as Skjer" },
     });

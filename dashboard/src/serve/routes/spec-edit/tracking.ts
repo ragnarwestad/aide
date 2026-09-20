@@ -7,7 +7,7 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  discoverProjects, specFileText, withAcceptanceLine, withDependsOnLine,
+  discoverProjects, manifestInside, specFileText, withAcceptanceLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, specPagePath } from "../../../render";
@@ -110,7 +110,7 @@ export async function trackingRoutes(
     .filter(Boolean);
   if (ids.length > 0) {
     const discovered = ctx.opts.projectRoot
-      ? discoverProjects(ctx.opts.projectRoot).find((p) => p.name === project)
+      ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
       : undefined;
     if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
     for (const id of ids) {

@@ -49,8 +49,8 @@ export type WorktreeLinksSource = "project.yaml" | ".aide/config";
  *  sides are checked against. */
 export function resolveWorktreeLinks(
   projectDir: string,
+  manifestFile: string = join(projectDir, ".aide", "project.yaml"),
 ): { links: string; source: WorktreeLinksSource | null } {
-  const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (existsSync(manifestFile)) {
     const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
     const fromManifest = parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";

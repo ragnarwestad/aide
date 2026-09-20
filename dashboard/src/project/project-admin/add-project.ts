@@ -1,20 +1,20 @@
-// Clone or register a project under the projects root, give it a
-// manifest if it has none, and point it at its specs root if one was
-// named.
+// Clone or register a project under the projects root, keep its
+// settings in the dashboard's own file, and point it at its specs root
+// if one was named.
 
-import { existsSync, mkdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, statSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import { dashboardCheckoutRoot, dashboardProjectsRoot } from "../../git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import {
   addProjectTarget,
   minimalManifest,
   projectNameError,
-  upsertManifestScalar,
   worktreeLinksError,
   writeAideConfig,
 } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
+import { applySettingsEdits, manifestTracked, seedSettingsFile } from "./settings-state.ts";
 import { fail, type AddProjectRequest, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
 
 /** Whether a failed clone's stderr is git giving up on a login nobody
@@ -162,23 +162,40 @@ export async function addProject(
     steps.push({ step: "register", ok: true });
   }
 
-  // Never clobbered: an operator may well be registering a checkout
-  // that already has a full manifest from `/aide-manifest`.
-  const manifest = join(dir, ".aide", "project.yaml");
+  // A project keeps nothing of Aide's in its repository. What Add would
+  // have written into the checkout goes to the dashboard's own settings
+  // file instead, and a manifest the checkout already has — tracked or
+  // not — is never written to: an untracked one only seeds the settings
+  // file, so what somebody drafted with `/aide-manifest` is not lost.
+  const own = join(dir, ".aide", "project.yaml");
+  const settingsFile = checkoutBase ? dashboardSettingsFile(checkoutBase, name) : null;
+  // Only a yes counts as tracked. A git that cannot say (the directory is
+  // no repository, which the readiness check reports by name) leaves the
+  // settings file as the place to write: nothing here touches the
+  // project's own files either way.
+  const tracked = (await manifestTracked(run, dir)).tracked === true;
   try {
-    if (existsSync(manifest)) {
-      steps.push({ step: "manifest", ok: true, note: "kept the .aide/project.yaml already there" });
-    } else {
-      mkdirSync(join(dir, ".aide"), { recursive: true });
-      writeFileSync(manifest, minimalManifest(name, req.description));
+    if (tracked) {
       steps.push({
         step: "manifest",
         ok: true,
-        note: "wrote a minimal .aide/project.yaml — name and description only; run /aide-manifest to fill in the rest",
+        note: "the project's own manifest (.aide/project.yaml) is used — change its worktree links and code landing there",
+      });
+    } else if (!settingsFile) {
+      steps.push({ step: "manifest", ok: true, note: "no dashboard checkout root is set, so no settings are kept for it" });
+    } else {
+      const existed = existsSync(settingsFile);
+      seedSettingsFile(settingsFile, [own], minimalManifest(name, req.description));
+      steps.push({
+        step: "manifest",
+        ok: true,
+        note: existed
+          ? "kept the settings the dashboard already holds for it"
+          : `the dashboard keeps its settings in ${settingsFile}, not in the project — run /aide-manifest to fill in the rest`,
       });
     }
   } catch (err) {
-    return stop("manifest", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
+    return stop("manifest", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Both keys go into the one file, and an unusable links value is
@@ -223,12 +240,13 @@ export async function addProject(
       return stop("specsConfig", `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-  if (links) {
+  const settingsEdits = !tracked && settingsFile;
+  if (links && settingsEdits) {
     try {
-      upsertManifestScalar(manifest, "worktreeLinks", links);
+      applySettingsEdits(settingsFile, [{ key: "worktreeLinks", value: links }], [own]);
       steps.push({ step: "worktreeLinks", ok: true });
     } catch (err) {
-      return stop("worktreeLinks", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
+      return stop("worktreeLinks", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   // Only `pr` is written: `merge` is what an absent key already means,
@@ -241,11 +259,13 @@ export async function addProject(
     if (landing !== "pr") {
       return stop("codeLanding", `code landing must be merge or pr — not "${landing}"`);
     }
-    try {
-      upsertManifestScalar(manifest, "codeLanding", landing);
-      steps.push({ step: "codeLanding", ok: true });
-    } catch (err) {
-      return stop("codeLanding", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
+    if (settingsEdits) {
+      try {
+        applySettingsEdits(settingsFile, [{ key: "codeLanding", value: landing }], [own]);
+        steps.push({ step: "codeLanding", ok: true });
+      } catch (err) {
+        return stop("codeLanding", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 
@@ -254,5 +274,5 @@ export async function addProject(
   // assessment goes looking for, and an assessment taken before it
   // would report a project unable to run over a path this very call
   // had just configured.
-  return { ...done(), readiness: await assessProjectReadiness(run, dir) };
+  return { ...done(), readiness: await assessProjectReadiness(run, dir, undefined, !tracked && settingsFile && existsSync(settingsFile) ? settingsFile : undefined) };
 }

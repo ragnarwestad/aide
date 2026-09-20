@@ -1,0 +1,7 @@
+{
+  "rows": [
+    { "name": "untracked with a source", "sourceHasManifest": true, "trackedInTree": false, "copied": true },
+    { "name": "tracked in the tree", "sourceHasManifest": true, "trackedInTree": true, "copied": false },
+    { "name": "no source", "sourceHasManifest": false, "trackedInTree": false, "copied": false }
+  ]
+}

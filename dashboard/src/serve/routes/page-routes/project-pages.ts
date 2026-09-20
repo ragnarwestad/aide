@@ -5,11 +5,13 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
+import { buildProjectViews, manifestInside, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
 import { lastChecks } from "../../tool-check.ts";
-import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
+import { assessProjectReadiness, manifestTracked, settingsHome, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderRemoveProjectPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
@@ -94,7 +96,7 @@ export async function projectPages(
     }
     // Read fresh per request, the way /projects reads its own scan:
     // a checkout that appeared on the host a minute ago is offered.
-    const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot);
+    const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot, manifestInside(ctx.machineryProjectDir));
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       script: await specsClientScript(),
@@ -199,7 +201,7 @@ export async function projectPages(
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
     // this page, so a scan per request is the cost `make generate`
     // already treats as cheap — and no invalidation to get wrong.
-    const view = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot).find((p) => p.name === name);
+    const view = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === name);
     if (!view) return new Response("no such project\n", { status: 404 });
     const dir = ctx.displayProjectDir(name);
     // Fail open, the way the drift check on `/projects` does. Every
@@ -244,10 +246,15 @@ export async function projectPages(
             return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
+    // The manifest a run reads is the dashboard's own checkout's (spec
+    // 512). A clone that is still being made, or has none yet, answers
+    // with the project's own directory, as everything did before.
+    const machinery = ctx.machineryProjectDir(name);
+    const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
     const html = renderProjectPage(
       view,
-      projectSettings(dir, readiness),
+      projectSettings(dir, readiness, manifestDir),
       readiness,
       new Date().toISOString(),
       ctx.nav(),
@@ -258,7 +265,13 @@ export async function projectPages(
         // above already resolved both, and the table draws its Value
         // cells straight off those same rows — one read per row's
         // data, not two that could drift.
-        codeLanding: resolveCodeLanding(dir),
+        codeLanding: resolveCodeLanding(manifestDir),
+        settingsHome: settingsHome(
+          // Fail open like the readiness above: a git that is not there
+          // leaves the page standing, and counts as "cannot say".
+          (await manifestTracked(ctx.gitRun, ctx.machineryProjectDir(name)).catch(() => ({ tracked: null }))).tracked,
+          existsSync(dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name)),
+        ),
         // The one resolver, never a second copy of the question: two
         // would eventually disagree, and the one that decides where a
         // merge lands is not the one to get it wrong
@@ -307,7 +320,7 @@ export async function projectPages(
     // Read fresh, uncached: unlike `/` nothing polls this page, so a
     // scan per request is the same cost `make generate` already treats
     // as cheap — and no invalidation to get wrong.
-    const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot);
+    const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir));
     // Spec 184: whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who

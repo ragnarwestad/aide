@@ -29,6 +29,9 @@ export interface ProjectPageOptions {
   defaultBranch?: string;
   script?: string;
   codeLanding?: "merge" | "pr";
+  /** Where the settings are kept (spec 512), so the page says so above
+   *  the table. Absent for a page built with no checkout to ask. */
+  settingsHome?: "project" | "dashboard" | "shadowed" | "none";
   /** This project's own recurring jobs (spec 259). Absent or empty
    *  means no Schedule section renders at all. */
   schedule?: readonly ScheduleEntry[];

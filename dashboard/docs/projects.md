@@ -20,8 +20,27 @@ listing it changes, which it can because the overview is a served page with a se
 takes a name plus either a git URL (cloned to
 `<projects root>/<name>` — or, when the projects root is the directory of links beside the dashboard's own checkouts,
 cloned to `checkouts/<name>/code` with a link to it at `<projects root>/<name>`) or a path to a checkout already there, and optionally a specs root and a one-line description.
-It writes a minimal manifest — the name and that description, nothing else — only when the checkout has none; filling in
-the rest is `/aide-manifest`'s job afterwards, and the form says so.
+**A project keeps nothing of Aide's in its repository.** What Add would have written into the checkout — the name, the
+description, worktree links, code landing — goes to the dashboard's own settings file,
+`checkouts/<name>/settings.yaml`, in the manifest's own format. A manifest the checkout already tracks is the team's and
+is never written to; Add says so in its manifest step and writes nothing for the links and the landing. An untracked
+`.aide/project.yaml` in the checkout (a draft from `/aide-manifest`) is left as it is and seeds the settings file, so what
+it said is not lost. Filling in the rest is `/aide-manifest`'s job afterwards, and the form says so.
+
+**Two homes for a project's manifest keys, one winner.** "Tracked" means `git ls-files --error-unmatch
+.aide/project.yaml` in the checkout answers yes (exit 0); exit 1 is not tracked, and any other answer means git cannot
+say, so nothing is written, committed or overwritten for a manifest key and the save names why. A tracked manifest
+wins as a whole file: the settings file is then read by nothing, and the project's page says so. Without a tracked
+manifest the settings file is the manifest. A Settings save commits and pushes only where the manifest is tracked;
+otherwise it writes the settings file and waits for a fresh `ensureDashboardCheckout` to carry it.
+
+**How the settings reach a run.** `ensureDashboardCheckout` writes the settings file as an ignored
+`.aide/project.yaml` in the dashboard's own clone (listed in that clone's `.git/info/exclude` before any
+fast-forward, so the day the team commits a manifest the pull overwrites the copy instead of refusing). `aide-run-spec`
+copies it from the main checkout into a step's worktree and keeps it out of the commit and out of `aide_tree_hash`;
+the landing's test gate copies it into its tree, and reads the worktree links from there. Every reader of
+`<dir>/.aide/project.yaml` — TypeScript and bash — therefore finds it unchanged. Discovery and the project page read a
+project's manifest from the clone when the project's own directory holds none.
 
 ### Whether a run can start there
 
@@ -54,7 +73,7 @@ not refuse on either today, a known asymmetry recorded in
 | `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out                                                            |
 | `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                                                                                 |
 
-`worktreeLinks` is read from the project's committed `.aide/project.yaml`
+`worktreeLinks` is read from the project's `.aide/project.yaml` (the committed one, else the dashboard's derived copy)
 first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second — the same order, and the same winner, as
 `aide-run-spec` itself reads them in.
 `tests/fixtures/worktree-links-precedence.json` is the one table both sides are tested against, because the two are
@@ -106,10 +125,9 @@ unable to run over a directory that is not there is a refusal over a path known 
 creates it, with the `archive/` beside it that a run walks. A creation that fails is not a refusal of the add:
 the step says what happened, and the `specsRoot` check below reads the real state either way.
 
-**Nothing is appended to `.git/info/exclude`.** No run refuses over a dirty tree, so an untracked manifest Add has
-just written needs no getting out of. Where a manifest belongs
-is a question with two answers — in git in a project of one's own, out of it in an employer's checkout — and nothing an
-Add can decide; it is not a question anybody is forced to answer before running anything.
+**Nothing is appended to `.git/info/exclude` of a checkout a person edits.** Add writes nothing into it, so there is
+nothing to get out of git. The dashboard's own clone, which nobody edits, lists its derived `.aide/project.yaml` in its
+own `.git/info/exclude`, the way its `.aide/config` is already ignored.
 
 **Worktree links are suggested from the checkout's own `.gitignore`.**
 Nothing can derive which gitignored paths a project's commands need, which is why the field exists — but the checkouts
@@ -149,8 +167,9 @@ in the queue, and a config file edited between merges would be described there a
 **A project's settings can be changed after it is added.** Its own
 `/projects/<name>` page keeps the current values and the read-only settings overview visible while Edit opens Specs
 root, Worktree links and Code landing inline. Save and Cancel return to the same project page. The same writer still
-saves the specs path to `.aide/config` and the other two settings to
-`.aide/project.yaml`; unchanged values are not rewritten. `/projects/<name>/settings` redirects to the project page.
+saves the specs path to `.aide/config` and the other two settings to the project's `.aide/project.yaml` when it is
+tracked, else to the dashboard's settings file; unchanged values are not rewritten. The page says above the table where
+the settings are kept. `/projects/<name>/settings` redirects to the project page.
 
 **And the readiness note is recomputed on every visit.** Each row that cannot run carries its own note, beside the
 Settings link that acts on it — a note shown once, in the query string of the redirect an Add lands on, leaves an
@@ -189,7 +208,7 @@ the archived spec waits in the same pull request as the code.
 A pull request is opened with `gh` on the machine that runs the dashboard, so `gh` has to be logged in there. When it
 is not, the run still succeeds, and the row says no pull request was opened and that one can be opened by hand.
 
-The choice is saved as `codeLanding: merge` or `codeLanding: pr` in the project's committed `.aide/project.yaml`, so
+The choice is saved as `codeLanding: merge` or `codeLanding: pr` in the project's `.aide/project.yaml` — the committed one where the project tracks its manifest, otherwise the dashboard's settings file, which reaches a run as a copy — so
 every machine and every teammate lands the same way. It is never read from `.aide/config`, which stays out of git.
 
 It applies only to what the dashboard lands. `/aide-archive` run by hand in an AI assistant archives the spec and leaves

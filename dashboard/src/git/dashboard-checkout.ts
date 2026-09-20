@@ -32,6 +32,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, 
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
+import { carryManifest, excludeDerivedManifest } from "./checkout-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../project/discover";
 
 /** Where the dashboard keeps its own clones when nothing says otherwise.
@@ -87,6 +88,13 @@ export function dashboardCheckoutRoot(base: string, project: string): string {
  *  second clone when they are. */
 export function dashboardSpecsRepo(base: string, project: string): string {
   return join(base, project, "specs");
+}
+
+/** The settings the dashboard keeps for a project whose own manifest is
+ *  not tracked: beside the checkouts, in the manifest's own format, and
+ *  never inside any repository. */
+export function dashboardSettingsFile(base: string, project: string): string {
+  return join(base, project, "settings.yaml");
 }
 
 /** The dashboard's own copy of a spec folder the display found in the
@@ -196,7 +204,10 @@ async function isUsable(run: GitRunner, dir: string): Promise<boolean> {
  *  refusal the readiness check already reports by name, and this is not
  *  the place to turn it into a clone that failed. */
 function linkWorktreePaths(personDir: string, code: string): void {
-  const { links } = resolveWorktreeLinks(personDir);
+  // The clone's own manifest first: it carries the links of a project
+  // whose settings the dashboard keeps, and the person's checkout has none.
+  const fromClone = resolveWorktreeLinks(code).links;
+  const links = fromClone || resolveWorktreeLinks(personDir).links;
   for (const entry of (links ?? "").split(/\s+/).filter(Boolean)) {
     const source = join(personDir, entry);
     const target = join(code, entry);
@@ -253,7 +264,9 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     const failed = await cloneFrom(run, req.personDir, code);
     if (failed) return { ok: false, error: failed, cloned: false };
     cloned = true;
+    await excludeDerivedManifest(run, code);
   } else {
+    await excludeDerivedManifest(run, code);
     await bringUpToDate(run, code);
   }
   // `.aide/config` is gitignored, so `git clone` never carries it —
@@ -275,6 +288,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   // it and ran archive against the wrong checkout (2026-09-03).
   const personConfig = join(req.personDir, ".aide", "config");
   const personConfigText = existsSync(personConfig) ? readFileSync(personConfig, "utf-8") : null;
+  await carryManifest(run, { code, personDir: req.personDir, settingsFile: dashboardSettingsFile(req.base, req.project) });
   linkWorktreePaths(req.personDir, code);
 
   const personSpecs = configValue(req.personDir, "AIDE_SPECS_PATH");

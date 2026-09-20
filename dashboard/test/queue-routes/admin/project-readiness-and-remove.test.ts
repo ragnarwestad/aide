@@ -144,7 +144,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Spec 184 moved this key: it is true of the project on any machine,
   // and `.aide/config` is dropped by a global ignore rule, so a clone
   // arrived on the next machine with the answer gone.
-  test("worktree links are written to the project's own committed manifest", async () => {
+  test("worktree links are written to the dashboard's settings file, not the project", async () => {
     const { base, dir } = start({ gitRun: readyGit() });
     const path = join(dir, "root", "withlinks");
     mkdirSync(join(path, "node_modules"), { recursive: true });
@@ -154,9 +154,10 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       body: JSON.stringify({ name: "withlinks", existingPath: path, worktreeLinks: "node_modules" }),
     });
     expect(res.status).toBe(200);
-    expect(readFileSync(join(path, ".aide", "project.yaml"), "utf-8")).toContain(
+    expect(readFileSync(join(dir, "owned", "withlinks", "settings.yaml"), "utf-8")).toContain(
       "worktreeLinks: node_modules",
     );
+    expect(existsSync(join(path, ".aide", "project.yaml"))).toBe(false);
     expect(existsSync(join(path, ".aide", "config"))).toBe(false);
   });
 

@@ -1,3 +1,4 @@
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { tmpdir } from "node:os";
 // Writing .aide/config: what a save accepts, what it refuses, and what
 // it leaves alone.
@@ -49,19 +50,21 @@ describe("writing .aide/config (spec 138)", () => {
   // back in the shape the runner reads, from wherever it is kept.
   test("worktree links are written in the format the runner reads them in", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "links");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "links",
       existingPath: dir,
       worktreeLinks: ".venv dashboard/node_modules",
-    });
+    }, base);
     expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir).links).toBe(".venv dashboard/node_modules");
+    expect(resolveWorktreeLinks(dir, dashboardSettingsFile(base, "links")).links).toBe(".venv dashboard/node_modules");
   });
 
   test("both fields at once, over a config that already has comments and other keys", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "both");
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(
@@ -73,18 +76,19 @@ describe("writing .aide/config (spec 138)", () => {
       existingPath: dir,
       specsPath: "/repos/aide-specs/both",
       worktreeLinks: ".venv",
-    });
+    }, base);
     expect(result.ok).toBe(true);
+    const settingsFile = dashboardSettingsFile(base, "both");
     const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
     expect(text).toContain("# personal — kept out of git");
     expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/repos/aide-specs/both");
-    expect(resolveWorktreeLinks(dir).source).toBe("project.yaml");
+    expect(resolveWorktreeLinks(dir, settingsFile).source).toBe("project.yaml");
     // Once each: two lines for one key is a file whose meaning depends
     // on which reader you ask.
     expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
     expect(
-      readFileSync(join(dir, ".aide", "project.yaml"), "utf-8").match(/^worktreeLinks:/gm)!.length,
+      readFileSync(settingsFile, "utf-8").match(/^worktreeLinks:/gm)!.length,
     ).toBe(1);
   });
 

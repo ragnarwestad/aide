@@ -272,8 +272,9 @@ export function renderAddProjectPage(
     // manifest can be, and the rest is a separate job.
     rowMessage(
       "info",
-      "A minimal .aide/project.yaml is written — the name and the description, nothing else. " +
-        "Run /aide-manifest in the project afterwards to fill in the stack, deployment and docs.",
+      "The dashboard keeps the name and the description in its own settings file — nothing is written " +
+        "into the project's repository. Run /aide-manifest in the project afterwards to fill in the stack, " +
+        "deployment and docs.",
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue/projects" class="newspecform addprojectform"` +

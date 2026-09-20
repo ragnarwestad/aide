@@ -497,6 +497,9 @@ AIDE_EOF
 # out different. A caller whose checkout does not carry the list — a
 # fresh worktree has no `.aide/config` — passes it as the second
 # argument; with none, the checkout's own files are read.
+#
+# An untracked `.aide/project.yaml` is left out as well (spec 512), unless
+# HEAD has it.
 #   aide_tree_hash <dir> [links]
 aide_tree_hash() {
   local dir="$1" given_links="${2:-}" idx
@@ -513,6 +516,13 @@ aide_tree_hash() {
     for link in $links; do
       git rm -r -q --cached --ignore-unmatch -- "$link" >/dev/null 2>&1 || true
     done
+    # An untracked manifest is the dashboard's derived copy of its own
+    # settings (spec 512), copied into a worktree and kept out of the
+    # commit — so it is not part of the tree that lands either. One the
+    # commit already has stays.
+    if ! git cat-file -e HEAD:.aide/project.yaml >/dev/null 2>&1; then
+      git rm -q --cached --ignore-unmatch -- .aide/project.yaml >/dev/null 2>&1 || true
+    fi
     git write-tree
   )
   local rc=$?

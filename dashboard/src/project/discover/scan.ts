@@ -99,17 +99,48 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
  *  checkout to offer and passes nothing. */
 export type OwnedSpecsRoot = (project: string) => string | undefined;
 
-export function discoverProjects(root: string, ownedSpecsRoot?: OwnedSpecsRoot): DiscoveredProject[] {
+/** Where a project's manifest is read from when its own directory holds
+ *  none (spec 512): the dashboard's clone carries the manifest a run
+ *  reads — the team's tracked one, else a copy of the settings the
+ *  dashboard keeps — so a project added with no manifest in its
+ *  repository is still a project. Same shape as `OwnedSpecsRoot`, for the
+ *  same reason: this module knows nothing about clones. */
+export type ManifestFallback = (project: string) => string | undefined;
+
+/** The fallback that names the manifest inside whichever directory
+ *  `dirOf` gives for a project — the dashboard's own checkout, for every
+ *  caller that has `machineryProjectDir`; none for a caller that has no
+ *  checkout to ask. */
+export const manifestInside = (dirOf?: (project: string) => string): ManifestFallback | undefined =>
+  dirOf && ((project) => join(dirOf(project), ".aide", "project.yaml"));
+
+/** The manifest a project is read from: the fallback's file when it
+ *  exists (the file a run reads), else the entry's own. `null` for a
+ *  project with neither. */
+function manifestOf(dir: string, entry: string, fallback?: ManifestFallback): string | null {
+  const derived = fallback?.(entry);
+  if (derived && existsSync(derived)) return derived;
+  const own = join(dir, ".aide", "project.yaml");
+  return existsSync(own) ? own : null;
+}
+
+export function discoverProjects(
+  root: string,
+  ownedSpecsRoot?: OwnedSpecsRoot,
+  manifestFallback?: ManifestFallback,
+): DiscoveredProject[] {
   const projects: DiscoveredProject[] = [];
   if (!existsSync(root)) return projects;
   for (const entry of readdirSync(root)) {
     const dir = join(root, entry);
-    const manifestPath = join(dir, ".aide", "project.yaml");
+    let manifestPath: string | null;
     try {
-      if (!statSync(dir).isDirectory() || !existsSync(manifestPath)) continue;
+      if (!statSync(dir).isDirectory()) continue;
+      manifestPath = manifestOf(dir, entry, manifestFallback);
     } catch {
       continue; // dangling symlink or unreadable entry — not a project
     }
+    if (!manifestPath) continue;
     const specsRoot = configSpecsPath(dir) ?? join(dir, "specs");
     // `specsRoot` on the result stays the person's own even when the
     // folders come from somewhere else: the write path's translation
@@ -139,14 +170,14 @@ export function discoverProjects(root: string, ownedSpecsRoot?: OwnedSpecsRoot):
  *  — offering it would only produce a refusal nobody could act on. The
  *  try/catch is `discoverProjects`' own: a dangling symlink is not a
  *  checkout, and it is not a crash either. */
-export function discoverUnclaimedDirectories(root: string): string[] {
+export function discoverUnclaimedDirectories(root: string, manifestFallback?: ManifestFallback): string[] {
   const found: string[] = [];
   if (!existsSync(root)) return found;
   for (const entry of readdirSync(root)) {
     if (projectNameError(entry) !== null) continue;
     const dir = join(root, entry);
     try {
-      if (!statSync(dir).isDirectory() || existsSync(join(dir, ".aide", "project.yaml"))) continue;
+      if (!statSync(dir).isDirectory() || manifestOf(dir, entry, manifestFallback)) continue;
     } catch {
       continue; // dangling symlink or unreadable entry — nothing to offer
     }
@@ -192,8 +223,12 @@ export function gitignoreCandidates(dir: string): string[] {
  *
  *  A spec with no `4-status.md` gets `null`, never an invented zero: the
  *  page tells "not started" and "nothing written down" apart. */
-export function buildProjectViews(root: string, ownedSpecsRoot?: OwnedSpecsRoot): ProjectView[] {
-  return discoverProjects(root, ownedSpecsRoot).map((p) => ({
+export function buildProjectViews(
+  root: string,
+  ownedSpecsRoot?: OwnedSpecsRoot,
+  manifestFallback?: ManifestFallback,
+): ProjectView[] {
+  return discoverProjects(root, ownedSpecsRoot, manifestFallback).map((p) => ({
     name: p.name,
     manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
     specs: p.specs.map((s) => {

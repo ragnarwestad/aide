@@ -1,10 +1,15 @@
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
+
+/** Where the dashboard keeps its settings files in these tests (spec 512),
+ *  under the projects root so the same cleanup removes it. */
+const checkoutsUnder = (projectsRoot: string): string => join(projectsRoot, ".dashboard-checkouts");
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -76,7 +81,7 @@ describe("whether a run could start there (spec 138)", () => {
       name: dir.split("/").pop()!,
       existingPath: dir,
       ...req,
-    });
+    }, checkoutsUnder(projectsRoot));
   }
 
   /** A checkout under a projects root, with a specs directory beside it
@@ -441,9 +446,12 @@ describe("whether a run could start there (spec 138)", () => {
   // does — a project that must never merge straight into its main
   // branch should not spend its first specs doing exactly that.
   describe("Code landing, asked at Add", () => {
-    const manifestOf = (dir: string) => readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
+    // Spec 512: the project's repository holds none — the dashboard's
+    // own settings file does.
+    const manifestOf = (dir: string) =>
+      readFileSync(dashboardSettingsFile(checkoutsUnder(dirname(dir)), basename(dir)), "utf-8");
 
-    test("pr is written into the project's own manifest", async () => {
+    test("pr is written into the dashboard's settings file", async () => {
       const { projectsRoot, dir } = checkout("alpha");
       const r = await assess(dir, projectsRoot, {}, { codeLanding: "pr" });
       expect(r.steps.find((s) => s.step === "codeLanding")?.ok).toBe(true);

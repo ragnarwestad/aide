@@ -7,6 +7,7 @@ import { configValue } from "../discover";
 import { parseManifest } from "../parse-manifest.ts";
 import { upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
+import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
 import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
 
 /** What a project may say about where its archived code goes (spec
@@ -66,7 +67,12 @@ export async function updateProjectSettings(
      *  same way: the Settings page's "Use this" posts it alone. */
     testCmd?: string;
   },
-  opts: { saveManifest?: SaveManifest } = {},
+  opts: {
+    saveManifest?: SaveManifest;
+    /** The dashboard's own settings file (spec 512), where the manifest
+     *  keys go when the project's manifest is not tracked. */
+    settingsFile?: string;
+  } = {},
 ): Promise<ProjectAdminResult> {
   const links = (req.worktreeLinks ?? "").trim();
   if (links) {
@@ -120,12 +126,31 @@ export async function updateProjectSettings(
   // the repo. Compared against the resolved value, that save would find
   // nothing changed and the migration would never happen.
   const manifest = join(projectDir, ".aide", "project.yaml");
+  // Spec 512: where the manifest keys go depends on whether the project
+  // tracks its own manifest. Tracked, it is the team's and is committed
+  // as before; not tracked, the dashboard's own settings file holds them
+  // and nothing reaches the project's repository; git unable to say
+  // writes nothing for a manifest key. Callers that give no settings
+  // file keep the older behaviour.
+  const home = opts.settingsFile ? await manifestTracked(run, projectDir) : { tracked: true as boolean | null };
+  const settingsFile = home.tracked === false ? opts.settingsFile : undefined;
+  const readPath = settingsFile ? (existsSync(settingsFile) ? settingsFile : manifest) : manifest;
+  const settingsEdits: { key: string; value: string }[] = [];
   // Where a manifest edit goes: into the file here, or — when the
   // caller commits it (the Settings route, into the dashboard's own
   // checkout) — gathered and handed over once at the end, so three keys
   // changed in one save are one commit and nothing is left on disk.
   const manifestEdits: { key: string; value: string; step: ProjectStepName }[] = [];
   const writeManifest = (key: string, value: string, step: ProjectStepName): void => {
+    if (home.tracked === null) {
+      steps.push({ step, ok: false, error: home.why ?? "git could not say whether .aide/project.yaml is tracked" });
+      return;
+    }
+    if (settingsFile) {
+      settingsEdits.push({ key, value });
+      steps.push({ step, ok: true });
+      return;
+    }
     if (opts.saveManifest) {
       manifestEdits.push({ key, value, step });
       return;
@@ -141,9 +166,9 @@ export async function updateProjectSettings(
       });
     }
   };
-  const stored = existsSync(manifest)
+  const stored = existsSync(readPath)
     ? (() => {
-        const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+        const parsed = parseManifest(readFileSync(readPath, "utf-8"));
         return parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
       })()
     : "";
@@ -154,9 +179,9 @@ export async function updateProjectSettings(
   // default, so choosing it takes the key OUT rather than spelling
   // today's behaviour into every project's manifest — which is exactly
   // what `upsertManifestScalar` does with an empty value.
-  const storedLanding = existsSync(manifest)
+  const storedLanding = existsSync(readPath)
     ? (() => {
-        const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+        const parsed = parseManifest(readFileSync(readPath, "utf-8"));
         return parsed.ok ? (parsed.data.codeLanding ?? "") : "";
       })()
     : "";
@@ -189,9 +214,9 @@ export async function updateProjectSettings(
   // a machine whose `.aide/config` shadows it does not rewrite the
   // manifest on every save.
   if (req.previewCmd !== undefined) {
-    const storedPreview = existsSync(manifest)
+    const storedPreview = existsSync(readPath)
       ? (() => {
-          const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+          const parsed = parseManifest(readFileSync(readPath, "utf-8"));
           return parsed.ok ? (parsed.data.previewCmd ?? "").trim() : "";
         })()
       : "";
@@ -199,9 +224,9 @@ export async function updateProjectSettings(
     if (preview !== storedPreview) writeManifest("previewCmd", preview, "previewCmd");
   }
   if (req.testCmd !== undefined) {
-    const storedTest = existsSync(manifest)
+    const storedTest = existsSync(readPath)
       ? (() => {
-          const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+          const parsed = parseManifest(readFileSync(readPath, "utf-8"));
           return parsed.ok ? (parsed.data.testCmd ?? "").trim() : "";
         })()
       : "";
@@ -209,6 +234,16 @@ export async function updateProjectSettings(
     if (test !== storedTest) writeManifest("testCmd", test, "testCmd");
   }
 
+  if (settingsFile && settingsEdits.length) {
+    try {
+      applySettingsEdits(settingsFile, settingsEdits, [manifest]);
+    } catch (err) {
+      for (const edit of settingsEdits) {
+        const failed = steps.find((st) => st.ok && st.step === (edit.key as ProjectStepName));
+        if (failed) Object.assign(failed, { ok: false, error: `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
+  }
   if (opts.saveManifest && manifestEdits.length) {
     const saved = await opts.saveManifest(manifestEdits.map(({ key, value }) => ({ key, value })));
     for (const edit of manifestEdits) {

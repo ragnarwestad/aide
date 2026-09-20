@@ -493,7 +493,8 @@ checkout meanwhile. Two consequences worth knowing before changing anything here
   in that path after the run is over, and a worktree path is deleted when the run ends. `repos[].worktree` carries the
   throwaway one.
 - A worktree carries tracked files only, so `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in
-  the COMMITTED `.aide/project.yaml` — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
+  the `.aide/project.yaml` (committed, or the dashboard's untracked copy, which the run copies into the worktree and
+  keeps out of the commit) — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
   gitignore rule does not match a symlink. `.aide/config`'s `AIDE_WORKTREE_LINKS` is still read when the manifest names
   none — the manifest wins where both do, and the run reports which file it read (`worktreeLinksSource` in the result
   blob, and a line on stderr).

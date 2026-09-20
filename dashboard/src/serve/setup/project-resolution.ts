@@ -137,7 +137,8 @@ export function setupProjectResolution(
    *  A project whose clone CANNOT be made — no origin, an unreachable
    *  one — answers `undefined`, and every caller falls back to the
    *  checkout it used before this spec. */
-  const ensureCheckout = (project: string): Promise<DashboardCheckout | undefined> => checkoutEnsurer.get(project);
+  const ensureCheckout = (project: string, opts?: { fresh?: boolean }): Promise<DashboardCheckout | undefined> =>
+    opts?.fresh ? checkoutEnsurer.fresh(project) : checkoutEnsurer.get(project);
   // One runner, two users now: the read path asks whether a branch
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();

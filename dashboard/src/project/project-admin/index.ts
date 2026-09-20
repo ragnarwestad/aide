@@ -37,6 +37,7 @@ export {
   deleteScheduleEntry,
 } from "./schedule-admin.ts";
 
+export { manifestTracked, applySettingsEdits, seedSettingsFile, settingsHome, type SettingsHome } from "./settings-state.ts";
 export { assessProjectReadiness } from "./readiness.ts";
 export { addProject } from "./add-project.ts";
 export { updateProjectSettings } from "./update-settings.ts";

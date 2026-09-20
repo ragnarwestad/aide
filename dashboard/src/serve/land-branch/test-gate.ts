@@ -100,7 +100,23 @@ async function checkoutForGate(root: string): Promise<{ dir: string; remove: () 
     mkdirSync(join(dir, ".aide"), { recursive: true });
     copyFileSync(config, join(dir, ".aide", "config"));
   }
-  for (const entry of resolveWorktreeLinks(root).links.split(/[\s,]+/).filter(Boolean)) {
+  // Spec 512: a project that keeps its settings in the dashboard has an
+  // untracked `.aide/project.yaml` in the checkout, which a worktree of
+  // HEAD does not carry — and a tree with none finds no test command,
+  // which is "nothing to run", a landing merged untested. Copied in
+  // under the runner's rule (`carry_manifest_into_worktree`): tracked in
+  // the tree or git unable to say → leave it alone; untracked with a
+  // source → copy it. The links are read from the tree afterwards, so
+  // the ones the copy names are made too.
+  const manifestSource = [join(root, ".aide", "project.yaml"), join(owner, ".aide", "project.yaml")].find((p) => existsSync(p));
+  if (manifestSource) {
+    const tracked = await runScript(["git", "ls-files", "--error-unmatch", "--", ".aide/project.yaml"], dir, 30_000);
+    if (tracked.code === 1) {
+      mkdirSync(join(dir, ".aide"), { recursive: true });
+      copyFileSync(manifestSource, join(dir, ".aide", "project.yaml"));
+    }
+  }
+  for (const entry of resolveWorktreeLinks(dir).links.split(/[\s,]+/).filter(Boolean)) {
     const source = [join(root, entry), join(owner, entry)].find((p) => existsSync(p));
     const target = join(dir, entry);
     if (!source || existsSync(target)) continue;

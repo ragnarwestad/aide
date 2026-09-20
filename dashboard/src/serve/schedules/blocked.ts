@@ -4,7 +4,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { discoverProjects } from "../../project/discover";
+import { discoverProjects, manifestInside } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
@@ -58,7 +58,7 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Map<str
   // Not `targets()`: that drops archived specs, and an archived
   // dependency is precisely the case that must resolve — to
   // "satisfied", without asking origin anything.
-  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
@@ -134,7 +134,7 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     return job.steps[job.stepIndex] === "implement";
   });
   if (waiting.length === 0) return blocked;
-  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
@@ -158,7 +158,7 @@ export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
   if (!ctx.projectRoot) return open;
   const waiting = ctx.queue.list().filter((job) => job.state === "queued" && job.steps[job.stepIndex] === "archive");
   if (waiting.length === 0) return open;
-  const projects = new Map(discoverProjects(ctx.projectRoot).map((p) => [p.name, p]));
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
     const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;

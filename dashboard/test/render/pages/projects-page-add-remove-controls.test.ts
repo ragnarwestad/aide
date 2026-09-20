@@ -95,10 +95,11 @@ describe("the Add page", () => {
     expect(html.match(/<h1>Add project<\/h1>/g)?.length ?? 0).toBe(1);
   });
 
-  test("it says the manifest it writes is minimal", () => {
+  test("it says the dashboard keeps the settings itself and writes nothing into the project (AC-1)", () => {
     const html = add();
     expect(html).toContain("/aide-manifest");
-    expect(html.toLowerCase()).toContain("minimal");
+    expect(html).toContain("nothing is written into the project's repository");
+    expect(html).not.toContain("A minimal .aide/project.yaml is written");
   });
 
   test("a refusal carried back in the query string is shown here", () => {

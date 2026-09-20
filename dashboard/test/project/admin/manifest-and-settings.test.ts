@@ -1,3 +1,4 @@
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -207,72 +208,79 @@ describe("a refused link names the file it came out of (spec 184)", () => {
   });
 });
 
-describe("adding a project writes its links to the committed file (spec 184)", () => {
-  test("worktree links go into .aide/project.yaml, not .aide/config", async () => {
+describe("adding a project keeps its links in the dashboard's settings file (spec 184, 512)", () => {
+  const settingsOf = (base: string, name: string) => readFileSync(dashboardSettingsFile(base, name), "utf-8");
+
+  test("worktree links go into the settings file, not .aide/config and not the checkout", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "travels");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "travels",
       existingPath: dir,
       worktreeLinks: ".venv dashboard/node_modules",
-    });
+    }, base);
     expect(result.ok).toBe(true);
-    const parsed = parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"));
+    const parsed = parseManifest(settingsOf(base, "travels"));
     expect(parsed.ok && parsed.data.worktreeLinks).toBe(".venv dashboard/node_modules");
     expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
+    expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
   });
 
-  // A checkout that already came with a full manifest keeps it: the key
-  // is upserted into the file that is there, never written over it.
-  test("an existing manifest keeps every key it had", async () => {
+  // A checkout that already came with a full, untracked manifest keeps
+  // it untouched; the settings file starts from it, so nothing it said
+  // is lost.
+  test("an existing untracked manifest seeds the settings file and stays as it was", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "hasmanifest");
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "name: hasmanifest\ndescription: written by /aide-manifest\nstack:\n  backend: none\n",
-    );
+    const drafted = "name: hasmanifest\ndescription: written by /aide-manifest\nstack:\n  backend: none\n";
+    writeFileSync(join(dir, ".aide", "project.yaml"), drafted);
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "hasmanifest",
       existingPath: dir,
       worktreeLinks: "node_modules",
-    });
+    }, base);
     expect(result.ok).toBe(true);
-    const text = readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
+    const text = settingsOf(base, "hasmanifest");
     expect(text).toContain("description: written by /aide-manifest");
     expect(text).toContain("  backend: none");
     expect(text).toContain("worktreeLinks: node_modules");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(drafted);
   });
 
-  test("the specs path still goes to .aide/config, and the manifest is left alone", async () => {
+  test("the specs path still goes to .aide/config, and the settings file has no links", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "specsonly");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "specsonly",
       existingPath: dir,
       specsPath: join(root(), "aide-specs", "specsonly"),
-    });
+    }, base);
     expect(result.ok).toBe(true);
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBeTruthy();
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("worktreeLinks");
+    expect(settingsOf(base, "specsonly")).not.toContain("worktreeLinks");
   });
 
   test("an unusable links value is still refused before anything is written", async () => {
     const projectsRoot = root();
+    const base = root();
     const dir = join(projectsRoot, "stillrefused");
     mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
       name: "stillrefused",
       existingPath: dir,
       worktreeLinks: "/etc",
-    });
+    }, base);
     expect(result.ok).toBe(false);
-    // The manifest itself IS written — registering the project is what
+    // The settings file IS written — registering the project is what
     // makes it — but nothing about the links reached it, and the config
     // was never opened.
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("worktreeLinks");
+    expect(settingsOf(base, "stillrefused")).not.toContain("worktreeLinks");
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 });

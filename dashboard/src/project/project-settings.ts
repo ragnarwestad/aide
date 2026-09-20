@@ -131,15 +131,19 @@ export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(Objec
  *  the manifest's `worktreeLinks:` entirely, so on a project where both
  *  files name a value the row could show one a run would never use
  *  (spec 255). */
-function configuredValue(projectDir: string, key: string): { value: string; source?: string } | null {
+function configuredValue(
+  projectDir: string,
+  key: string,
+  manifestDir: string,
+): { value: string; source?: string } | null {
   if (key === "AIDE_WORKTREE_LINKS") {
-    const { links, source } = resolveWorktreeLinks(projectDir);
+    const { links, source } = resolveWorktreeLinks(manifestDir);
     return links ? { value: links, source: source ?? undefined } : null;
   }
   if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "AIDE_PREVIEW_CMD") {
     const resolve =
       key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : key === "AIDE_TEST_CMD" ? resolveTestCmd : resolvePreviewCmd;
-    const { value, source } = resolve(projectDir);
+    const { value, source } = resolve(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }
   const value = configValue(projectDir, key);
@@ -155,11 +159,15 @@ function configuredValue(projectDir: string, key: string): { value: string; sour
 export function projectSettings(
   projectDir: string,
   readiness: ProjectReadiness | null = null,
+  /** Where the manifest-backed rows are read from (spec 512): the
+   *  dashboard's own checkout, which carries the manifest a run reads.
+   *  The specs path and the config-file flag stay on `projectDir`. */
+  manifestDir: string = projectDir,
 ): ProjectSettingsView {
-  const detected = detectProjectCommands(projectDir);
+  const detected = detectProjectCommands(manifestDir);
   const rows = SETTING_KEYS.map((key): SettingRow => {
     const purpose = PURPOSE[key]!;
-    const configured = configuredValue(projectDir, key);
+    const configured = configuredValue(projectDir, key, manifestDir);
     if (configured !== null) {
       const check = RESOLVED_BY[key];
       // Read verbatim, and only from a check that FAILED: the

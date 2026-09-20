@@ -18,7 +18,7 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/w
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import {
-  SPEC_FILES, buildProjectViews, resolveInstallCmd, specArchivedDate,
+  SPEC_FILES, buildProjectViews, manifestInside, resolveInstallCmd, specArchivedDate,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { QueueStore } from "../../queue/queue.ts";
@@ -97,7 +97,7 @@ export interface ScheduleContext {
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
   if (!ctx.projectRoot) return;
   await Promise.all(
-    buildProjectViews(ctx.projectRoot).map(async (p) => {
+    buildProjectViews(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map(async (p) => {
       const root = ctx.machineryProjectDir(p.name);
       if (!resolveInstallCmd(root).value) return;
       // Each call try/catches internally and degrades to null, so one

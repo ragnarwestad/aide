@@ -6,7 +6,7 @@ import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { renderSentence } from "../../i18n/message.ts";
 import { fastForwardToOrigin } from "../../git/branch-merge.ts";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { runningJobNames } from "../land-branch";
@@ -211,6 +211,11 @@ export async function handleQueueAdminRoutes(
       // checkout that now exists, not the one that did not a moment
       // ago.
       await ctx.ensureCheckout(name);
+      // Again, after the ensure: the invalidation above can be refilled
+      // by a request that lands while the clone is still being made, and
+      // the clone's derived manifest is what lists a project whose own
+      // checkout holds none.
+      ctx.invalidateScan();
       readiness = await assessProjectReadiness(
         ctx.gitRun,
         join(ctx.opts.projectRoot, name),
@@ -253,6 +258,7 @@ export async function handleQueueAdminRoutes(
     // serving host that entry is a link to the dashboard's own checkout
     // (projects.md), so the lock is taken on the directory it resolves
     // to: the same key a landing into that checkout takes.
+    const checkoutBase = ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
     const settingsDir = join(ctx.opts.projectRoot, name);
     const codeRoot = realpathOr(settingsDir);
     const saveManifest = (edits: { key: string; value: string }[]) =>
@@ -274,7 +280,7 @@ export async function handleQueueAdminRoutes(
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
-    }, { saveManifest });
+    }, { saveManifest, settingsFile: dashboardSettingsFile(checkoutBase, name) });
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
     // would still read the old one.
@@ -285,8 +291,11 @@ export async function handleQueueAdminRoutes(
     // across. Without this the next run would still read the old
     // specs root — silently, which is the whole hazard of two config
     // files.
+    // A fresh one, not any answer: a settings file saved a moment ago
+    // reaches the clone's derived manifest only in an ensure that
+    // started after the save.
     const readiness = result.ok
-      ? await ctx.ensureCheckout(name).then(() =>
+      ? await ctx.ensureCheckout(name, { fresh: true }).then(() =>
           assessProjectReadiness(ctx.gitRun, join(ctx.opts.projectRoot!, name), ctx.machineryProjectDir(name)).catch(
             () => result.readiness,
           ),
