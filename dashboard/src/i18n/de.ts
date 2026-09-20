@@ -26,6 +26,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.overlayRemoving": "wird entfernt…",
   "shell.overlaySaving": "wird gespeichert…",
   "shell.overlayLoading": "wird geladen…",
+  "shell.loadingPage": "Wird geladen …",
+  "shell.pageFailed": "Beim Aufbau der Seite ist etwas schiefgegangen. Lade die Seite neu; schlägt es weiter fehl, sieh im Log des Dashboards auf dem Server nach.",
   "shell.leaveAppTitle": "App verlassen?",
   "shell.leaveAppBody": "Die von dir vorgenommenen Änderungen werden möglicherweise nicht gespeichert.",
   "shell.leaveAppLeave": "Verlassen",

@@ -17,6 +17,9 @@ const RECONNECT_MAX_MS = 30_000;
 let source: EventSource | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let backoffMs = RECONNECT_BASE_MS;
+/** Whether this page has been hidden since it was drawn — what tells a
+ *  return to the foreground from the first paint. */
+let wasHidden = false;
 
 function clearReconnectTimer(): void {
   if (reconnectTimer) clearTimeout(reconnectTimer);
@@ -81,6 +84,17 @@ export function disconnect(): void {
 // the same reason the timer used to skip while hidden, applied to the
 // connection itself.
 export function onVisibility(): void {
-  if (document.visibilityState === "visible") connect();
-  else disconnect();
+  if (document.visibilityState !== "visible") {
+    wasHidden = true;
+    disconnect();
+    return;
+  }
+  // Coming BACK: the rows first, then the connection. A phone coming
+  // back from the lock screen takes seconds to get its stream up again,
+  // and the page used to wait for `open` before redrawing — long enough
+  // to read a list that had moved on minutes ago (2026-09-20). The first
+  // paint is not this: the server has just drawn the page.
+  if (wasHidden && press.inFlight === 0) void swapRows();
+  wasHidden = false;
+  connect();
 }

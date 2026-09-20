@@ -40,7 +40,7 @@ import { installAfterMerge } from "./install.ts";
 import { handedToMerge, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
-import { keepsItsStopReason } from "./stopped-reason.ts";
+import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
@@ -85,30 +85,8 @@ export async function landBranch(
   outcome: Partial<StepOutcome>,
   what: Landing,
 ): Promise<void> {
-  // Set once: the FIRST landing failure a job hits is the one worth
-  // keeping (spec 327) — a later step's own failure is a symptom as
-  // often as a second, unrelated problem (the incident this spec is
-  // named for was exactly that: an `analyze` push failure, followed
-  // minutes later by an `archive` "cannot fast-forward main" that was
-  // really the same unpushed commit, not a second bug). Shared by the
-  // failure branch and the catch block below, the two places a landing
-  // can fail.
-  //
-  // "stopped", never "failed", when the project's own suite is what
-  // refused the merge: the row says stopped and draws it amber, and a
-  // sentence that says failed beside it is the row disagreeing with
-  // itself.
-  // The step-name/stopped-or-failed prefix this used to compose is
-  // redundant with the badge label the one display site
-  // (`row-marks.ts`'s `liveMarks()`) already shows beside it — and a
-  // landing runs with nobody's browser attached, so there is no `lang`
-  // here to render `msg` with anyway (REQ-1/REQ-3).
   const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>
-    ctx.queue.get(job.id)?.landingError ?? {
-      key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const),
-      values: { step: what.step },
-      inner: msg,
-    };
+    firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step, held);
   try {
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
@@ -396,6 +374,7 @@ export async function landBranch(
         errorDetail: detail.length ? detail.join("\n") : undefined,
         errorReason: reason,
         landingError: firstLandingError(first, held),
+        landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
       const result = takeLandingCancel(job.id) ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
@@ -407,7 +386,7 @@ export async function landBranch(
       // job that has moved on is waiting for something else — only
       // `landingError`, the permanent record of this attempt,
       // survives onto it (spec 393).
-      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError });
+      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
       return;
     }
     // Landed. The branch is on the default branch now, so the job stops
@@ -426,8 +405,12 @@ export async function landBranch(
     // a link that is not there.
     const review = stillOpen.length ? ctx.queue.pullRequestFor(job.project, job.specFolder) : {};
     const keepsItsReason = keepsItsStopReason(ctx.queue.get(job.id));
+    // This step's own landing resolves this step's own failure
+    // (`stopped-reason.ts`).
+    const cleared = clearsLandingError(ctx.queue.get(job.id), what.step);
     ctx.queue.update(job.id, {
       ...what.landed,
+      ...cleared,
       branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
       branchUrls: stillOpen,
       prUrl: review.prUrl,
@@ -488,11 +471,12 @@ export async function landBranch(
       // whole run at a problem it cannot fix.
       errorReason: undefined,
       landingError: firstLandingError(note),
+      landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? rawMsg,
     };
     const result = ctx.queue.transition(job.id, "landing-failed", patch);
     // Same reasoning as the ordinary failure branch above (spec 393):
     // a job that has moved on keeps only the permanent record.
-    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError });
+    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.

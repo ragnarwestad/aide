@@ -58,7 +58,7 @@ export interface LandingRefusal {
 }
 
 export function landingRefusal(
-  job: { landingError?: unknown; errorReason?: string; errorDetail?: string },
+  job: { landingError?: unknown; errorReason?: string; errorDetail?: string; landingErrorDetail?: string },
   lang: Language,
 ): LandingRefusal | undefined {
   const e = job.landingError;
@@ -72,7 +72,7 @@ export function landingRefusal(
     // tests refused: the step ran and the merge was built, and what is
     // missing is a green suite. Everything else is a failure.
     word: job.errorReason === "tests-red" ? "merge stopped" : "merge failed",
-    detail: [sentence, job.errorDetail].filter(Boolean).join("\n") || undefined,
+    detail: [sentence, job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
   };
 }
 

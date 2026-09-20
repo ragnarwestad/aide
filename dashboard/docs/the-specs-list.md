@@ -414,7 +414,12 @@ reopened after a wait that grows on each further failure up to a ceiling and res
 opens, and the same `open`-redraws-the-rows resync above is what a proxied restart heals through too.
 A hidden tab closes its connection and
 opens a fresh one when it comes back, which is the
-"the timer already stops for a hidden tab" behaviour applied to a socket.
+"the timer already stops for a hidden tab" behaviour applied to a socket. A tab that comes BACK fetches the rows at
+once, before that connection is up: an installed app returning from a phone's lock screen took ten to fifteen seconds
+to show a list that had moved on, because the redraw waited for the stream (2026-09-20). Only a tab that has been
+hidden does it — the first paint is the server's own — and a restore from the browser's back/forward cache
+(`pageshow`) counts as coming back, since Android can bring the app forward that way without the page ever being told
+it was hidden.
 
 Two things this deliberately does NOT do. There is no periodic server-side broadcast to reconcile drift — an idle page
 must issue no requests and redraw not at all, which is the whole point; the transcript check above is the one exception,
@@ -483,7 +488,8 @@ the redraw rule above holds.
 
 **`formatElapsed` there is HAND-PAIRED with `durationLabel` in
 `src/render/ui/job-state/index.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
-so the wording rule exists twice. `test/specs-client/live-redraw.test.ts`'s "the page words a duration exactly as the server does"
+so the wording rule exists twice. The test `test/specs-client/live/live-redraw.test.ts`
+holds them together: "the page words a duration exactly as the server does"
 runs a tick against the imported
 `durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the
 first time the clock ticks over the figure the server drew.

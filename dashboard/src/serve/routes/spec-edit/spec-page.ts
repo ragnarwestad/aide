@@ -7,8 +7,8 @@ import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { resolveLogFilter } from "../../../queue/parse-stream";
-import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPage, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect } from "../../serve-helpers";
+import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, renderSpecPageFailedRest, renderSpecPageHead, renderSpecPageRest, resolveBackHref, resolveSpecTab, specPagePath, specTabPath } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, specsRedirect, streamedPage } from "../../serve-helpers";
 
 import type { RoutesContext } from "..";
 
@@ -91,51 +91,62 @@ export async function specPageRoutes(
       return waitingForTestServerPage(project!, specFolder!);
     }
     const only = resolveLogFilter(url.searchParams.get("only") ?? undefined);
-    const view = await ctx.specPageView(
-      project!,
-      specFolder!,
-      url.searchParams.get("tab") ?? undefined,
-      only,
-    );
-    if (!view) return new Response("not found", { status: 404 });
+    // The 404 is decided BEFORE anything is sent: once the head has gone the
+    // status is fixed, and `specDir` is the only place a spec can be missing.
+    if (!ctx.specDir(project!, specFolder!)) return new Response("not found", { status: 404 });
     // Resolved through the SAME function the render side uses
     // (`spec-page.ts`), rather than each computing its own default —
     // that mismatch was spec 303's actual bug: a bare URL rendered the
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     const langResult = languageChoice(url, req);
-    const html = renderSpecPage(
-      {
-        ...view,
-        error: url.searchParams.get("error") ?? undefined,
-        notice: url.searchParams.get("notice")
-          ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
-          : undefined,
-        backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
-      },
-      new Date().toISOString(),
-      ctx.nav(),
-      {
-        tab,
-        step: url.searchParams.get("step") ?? undefined,
-        only,
-        currentUrl: langResult.currentUrl,
-        // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
-        // reference to whichever bundle's own route this tab's panel
-        // actually mounts (`documentTabScript`, the same predicate
-        // `panels.ts` uses to decide what to draw) — the editor for a
-        // writable tab, the lighter viewer for a locked one with real
-        // text, or no script at all.
-        scriptSrc:
-          documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
-          documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
-          undefined,
-        lang: langResult.lang,
-      },
-    );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
+    // Spec 515: the head and a loading element go out at once, the rest when
+    // the view is ready.
+    return streamedPage({
+      head: renderSpecPageHead(specFolder!, langResult.lang),
+      rest: async () => {
+        const view = await ctx.specPageView(
+          project!,
+          specFolder!,
+          url.searchParams.get("tab") ?? undefined,
+          only,
+        );
+        if (!view) throw new Error("spec folder disappeared while the page was built");
+        return renderSpecPageRest(
+          {
+            ...view,
+            error: url.searchParams.get("error") ?? undefined,
+            notice: url.searchParams.get("notice")
+              ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
+              : undefined,
+            backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
+          },
+          new Date().toISOString(),
+          ctx.nav(),
+          {
+            tab,
+            step: url.searchParams.get("step") ?? undefined,
+            only,
+            currentUrl: langResult.currentUrl,
+            // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src=
+            // reference to whichever bundle's own route this tab's panel
+            // actually mounts (`documentTabScript`, the same predicate
+            // `panels.ts` uses to decide what to draw) — the editor for a
+            // writable tab, the lighter viewer for a locked one with real
+            // text, or no script at all.
+            scriptSrc:
+              documentTabScript(view, tab) === "editor" ? SPEC_EDITOR_ASSET_PATH :
+              documentTabScript(view, tab) === "viewer" ? SPEC_VIEWER_ASSET_PATH :
+              undefined,
+            lang: langResult.lang,
+          },
+        );
+      },
+      failedRest: renderSpecPageFailedRest(ctx.nav(), langResult.lang, langResult.currentUrl),
+      headers,
+    });
   }
 
   const update = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/update$/);

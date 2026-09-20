@@ -113,7 +113,10 @@ from `done`: the runner may have queued the job's next step in between, and a la
 has moved on; the table simply has no entry for that case, so the attempt is refused. `error`/`errorReason`/
 `stopReason` say what a row is waiting for RIGHT NOW, so none of them are written onto a job that has moved on — only
 `landingError`, the permanent record of that attempt, survives there, exactly as it already does on the `done`/
-`stopped` path below. See [Branches and landing](landing.md).
+`stopped` path below, and `landingErrorDetail` carries the raw words behind it — `errorDetail` belongs to what the row
+waits for now, and a job that has moved on has overwritten it. The record names the step it belongs to, and that
+step's OWN landing clears it when it succeeds later; a LATER step's success leaves it alone. See
+[Branches and landing](landing.md).
 
 **Done to stopped** is the same transition for the one landing failure that is nobody's fault. The landing runs the
 project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`

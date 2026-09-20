@@ -31,6 +31,8 @@ export {
 
 export { compressResponse } from "./compression.ts";
 
+export { streamedPage, isStreamedPage } from "./streamed-page.ts";
+
 export {
   resolveTimeoutSec, resolveStepPermissionMode, resolveStepModel, resolveStepEffort, runnerArgv,
 } from "./runner-argv.ts";

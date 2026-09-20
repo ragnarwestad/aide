@@ -12,6 +12,7 @@ import {
 } from "../../../src/render";
 import { stateChip, stateLabel } from "../../../src/render/ui/job-state";
 import { resolveOpenStep, specFilePanel, stepResults } from "../../../src/render/pages/job-page";
+import { landingRefusal } from "../../../src/render/pages/job-page/steps-table.ts";
 import {
   NAV,
   detail,
@@ -30,6 +31,25 @@ import {
 // `<meta http-equiv="refresh">`, a full navigation rather than a DOM
 // patch, so a `<details open>` set by a click is gone on the very next
 // refresh. The open row has to be a property of the URL instead.
+// The raw words behind a landing failure are kept on the job beside the
+// sentence (2026-09-20): `errorDetail` belongs to what the row waits for
+// now, and a job that has moved on has already overwritten it.
+describe("a landing refusal's detail", () => {
+  test("prefers the landing's own kept detail over the job's current one", () => {
+    const refusal = landingRefusal(
+      {
+        landingError: { key: "landing.stepFailed", values: { step: "create" }, inner: { key: "landing.createAssignNumberFailed" } },
+        landingErrorDetail: "aide-create-spec: the specs root moved under the worktree",
+        errorDetail: "something else entirely",
+      },
+      "en",
+    );
+    expect(refusal?.step).toBe("create");
+    expect(refusal?.detail).toContain("the specs root moved under the worktree");
+    expect(refusal?.detail).not.toContain("something else entirely");
+  });
+});
+
 describe("spec 240: resolveOpenStep", () => {
   test("no query and nothing running: nothing is open (AC2)", () => {
     expect(resolveOpenStep(undefined, false)).toBeUndefined();
