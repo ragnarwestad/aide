@@ -6,7 +6,6 @@ implementation and archiving.
 ## Table of contents
 
 - [What Aide is](#what-aide-is)
-- [Quick start](#quick-start)
 - [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
@@ -58,40 +57,6 @@ Requirements that live only in a chat history disappear with it: the reasoning b
 session starts from zero, and you cannot go back and see what was agreed before the code was written. The spec
 holds what the chat loses — the affected files with their line numbers, the plan written before the code, and a
 record of what each step did — reviewable as a diff before a line of code changes, and still there a month later.
-
----
-
-## Quick start
-
-1. **Install Aide.** Clone the repo and run the installer. It also installs mise, node and Claude Code when they are
-   missing; signing in to Claude Code is the one step left to you.
-
-   ```bash
-   git clone https://github.com/ragnarwestad/aide.git
-   cd aide && ./install-all.sh
-   claude    # sign in once, then /exit
-   ```
-
-2. **Make a spec.** In a project of your own, start Claude Code and give it a title and a description:
-
-   ```text
-   /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-   ```
-
-3. **Run it**, one step at a time by hand. The spec gets a number, say 55:
-
-   ```text
-   /aide-analyze 55      # Analyze the codebase and write the plan
-   /aide-implement 55    # Implement with TDD
-   /aide-archive 55      # Land it, and feed what was learned back into the docs
-   ```
-
-   Or let the dashboard run the steps for you: install it with `dashboard/install.sh` (on Linux, run
-   `dashboard/serve.sh`), open `http://127.0.0.1:8788`, and queue the spec there.
-   See [The Aide dashboard](#the-aide-dashboard).
-
-More: [Install & Configuration](#install--configuration) for the other AI tools, and
-[AI-assisted workflow](#ai-assisted-workflow) for what each step does.
 
 ---
 
@@ -195,7 +160,17 @@ Supporting skills, used around that workflow rather than as a step in it:
 
 ## Install & Configuration
 
-Clone the repo, then run the installer for your AI tool:
+Clone the repo and run the installer. It installs mise with a node, and Claude Code, when they are missing;
+signing in to Claude Code is the one step left to you. Nothing is installed into the project you will use Aide on
+— the skills go in your home directory, and any project can then use them.
+
+```bash
+git clone https://github.com/ragnarwestad/aide.git
+cd aide && ./install-all.sh
+claude    # sign in once, then /exit
+```
+
+`./install-all.sh` runs the installer for all four AI tools and asks nothing. To install for one tool only:
 
 | AI tool        | Install                                  | Documentation                                        |
 |----------------|------------------------------------------|------------------------------------------------------|
@@ -204,13 +179,13 @@ Clone the repo, then run the installer for your AI tool:
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 | OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
 
-`./install-all.sh` runs all four at once, and asks nothing. Before them it installs what they need when it is
-missing: [mise](https://mise.jdx.dev) with a node, and Claude Code; signing in to Claude Code is the one step left to
-you. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally
-so any project can use them.
+Each installer is self-contained: instructions, commands, scripts and documentation. [mise](https://mise.jdx.dev)
+is what `install-all.sh` uses to install bun, jq, gh, pandoc and md-to-pdf.
 
-The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`: it starts every
-step through Aide's own scripts and skills, so they have to be there first, and the script checks that they are. See
+The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`, which sets it
+up as a service that starts by itself. On Linux there is no such service: `dashboard/serve.sh` runs it in a
+terminal instead. Either way it starts every step through Aide's own scripts and skills, so those have to be
+installed first, and the script checks that they are. See
 [Requirements in the dashboard's README](dashboard/README.md#requirements) for what else it needs.
 
 Aide runs on macOS and Linux; `scripts/test-linux-install` installs it on a clean Debian and takes a spec through the
@@ -266,6 +241,18 @@ All AI tools follow the same basic workflow:
    ↓
    Lands the code on the default branch → Feeds what was learned back into the docs
 ```
+
+Run by hand, that is four commands in an AI CLI, in the project you are working on. The spec gets a number when it
+is created, say 55:
+
+```text
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
+/aide-analyze 55      # Analyze the codebase and write the plan
+/aide-implement 55    # Implement with TDD
+/aide-archive 55      # Land it, and feed what was learned back into the docs
+```
+
+On the dashboard, the same four steps are ticked off on a spec's row and run in order without you typing anything.
 
 **See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
 
