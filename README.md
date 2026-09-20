@@ -33,12 +33,12 @@ See [The aide-\* skills](#the-aide--skills).
 
 ### The dashboard
 
-The dashboard is a web page, served by a small server you install and start yourself — on your own machine, or on
-one that stays on so runs continue after you close the lid. It lists every spec in every project Aide knows about, and it
-runs the same skills itself: you queue a spec, and it runs create, analyze, implement and archive one after the
-other, on the AI tool and model you pick for each step, with several specs running at once.
-It records what each step cost and how it ended, and it waits for you where a judgement is needed — you tick the
-acceptance criteria before archive. See [The Aide dashboard](#the-aide-dashboard).
+The dashboard is a local web application. You install it on one machine — your own, or one that is always on — and
+open it in a browser at `http://127.0.0.1:8788`. It lists every spec in every project Aide knows about, and runs
+the skills itself: you queue a spec, and it runs create, analyze, implement and archive in order, on the AI tool
+and model chosen for each step, several specs at a time. It records each step's cost, token count and outcome, and
+holds a spec before archive until you have ticked its acceptance criteria.
+See [The Aide dashboard](#the-aide-dashboard).
 
 ### Aide is a personal tool
 
