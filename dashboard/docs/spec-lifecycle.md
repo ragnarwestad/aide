@@ -213,11 +213,13 @@ not queue steps the runner decides on its own.
     stamp with no `**Reopened:**` or `**Reset:**` mark between (`reopenedRound`, `held-back.ts`). Analyze and Implement
     are accepted once one criterion is new, or reworded with its row unticked, since that boundary; the specs list
     offers them unticked beside a ticked Archive.
-  - **Reset (`resetFiles`, runner flag `--reset-files`).** A model turn runs `/aide-reopen`: it records
-    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md` and resets `2-analysis.md`,
-    `3-solution.md` and `4-status.md` while keeping `0-README.md` and `1-description.md`. The sha is the boundary
+  - **Reset (`resetFiles`, runner flag `--reset-files`).** No model here either: `aide-reopen-spec` moves the folder
+    back and `aide-reset-spec` then writes `2-analysis.md`, `3-solution.md` and `4-status.md` from the templates,
+    keeping `0-README.md` and `1-description.md`. The step records
+    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`. The sha is the boundary
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
-    line.
+    line. It drops the spec's recorded phase choice too, the way a reset does: those ticks belonged to the round just
+    discarded.
 
   A stamp with a later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark after it is history: the phase
   reads `archived` or `closed` only while no such mark follows the stamp, in `spec-transitions.sh`, `spec-state.sh` and

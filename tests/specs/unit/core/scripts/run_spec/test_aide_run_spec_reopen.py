@@ -57,7 +57,6 @@ def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_cl
     rc, out, _ = run(runner, workspace, claude, command="reopen", dry_run=True, reset_files=True)
     assert rc == 0, out
     assert out["prompt"].startswith("/aide-reopen 81"), out["prompt"]
-    assert "Reset the analysis, the plan and the status as well" in out["prompt"], out["prompt"]
 
 def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     runner, workspace, fake_claude
@@ -67,30 +66,26 @@ def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     — an analyze step writes only in the specs repo, and its branch is
     just as much in the way."""
     archive_the_spec(workspace)
-    old_project = make_branch(workspace["project"], BRANCH)
+    make_branch(workspace["project"], BRANCH)
     old_specs = make_branch(workspace["specs"], BRANCH)
-    # The step leaves work in both roots — in the ARCHIVED folder, which
-    # is where a reopen finds the spec. Since spec 215 a branch carrying
-    # nothing is deleted at the end of the run that cut it, so a step
-    # committing nothing would leave no branch of the run's own to look
-    # for here.
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + 'echo "reopened" > "$PWD/new-code.txt"\n'
-        + f'echo "reopened" > "$specs/archive/{workspace["folder"]}/2-analysis.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=True)
     assert rc == 0, out
     # The run cuts its own branch of the same name from the default
     # branch, so what has to be gone is the earlier round's TIP — not the
-    # name.
-    for root, old in ((workspace["project"], old_project), (workspace["specs"], old_specs)):
-        assert has_branch(root, BRANCH), "the run's own branch"
-        reachable = git(root, "rev-list", BRANCH)
-        base = git(root, "rev-parse", f"{old}")
-        assert base in reachable, "the default branch's history is still there"
+    # name. A reopen writes spec files only, so the code root's branch
+    # carries nothing and is deleted at the end of the run that cut it
+    # (spec 215); the specs root keeps its own, cut from main.
+    # The code root's leftover is simply gone: a reopen writes spec files
+    # only, so the branch this run cut there carries nothing and is deleted
+    # at the end of the run that cut it (spec 215).
+    assert not has_branch(workspace["project"], BRANCH), "the leftover in the code root"
+    # The specs root has the name again — the run's own branch, cut from the
+    # default branch, carrying the reopen's commit and main's history.
+    assert has_branch(workspace["specs"], BRANCH), "the run's own branch"
+    reachable = git(workspace["specs"], "rev-list", BRANCH)
+    assert old_specs in reachable, "the default branch's history is still there"
+    assert git(workspace["specs"], "rev-parse", BRANCH) != old_specs, "a commit of its own"
 
 @pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
 def test_reopen_takes_the_branch_off_origin_in_both_roots(
@@ -325,26 +320,23 @@ def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files_AC_2(
 def test_a_reopen_with_reset_files_regenerates_three_files_and_stamps_reopened_AC_3(
     runner, workspace, fake_claude, origin
 ):
-    """The reset mode is today's behaviour: the model turn regenerates the
-    analysis, the plan and the status, and the runner stamps the mark."""
+    """The reset mode runs no model either: aide-reopen-spec moves the folder
+    back out of archive/ and aide-reset-spec writes the three files from the
+    templates, the pair a model turn used to be asked to imitate."""
     archived_with_files(workspace)
     land_the_archive(workspace)
-    folder = workspace["folder"]
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'mv "$specs/archive/{folder}" "$specs/{folder}"\n'
-        + f'echo "# Queue - Analysis" > "$specs/{folder}/2-analysis.md"\n'
-        + f'echo "# Queue - Solution" > "$specs/{folder}/3-solution.md"\n'
-        + f'printf "# Queue - Status\\n\\n## Tracking info\\n\\n**Archived:** 2026-09-01\\n" > "$specs/{folder}/4-status.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=True, push="branch")
     assert rc == 0, out
-    assert fake_claude.calls.exists(), "the reset mode runs the model"
+    assert not fake_claude.calls.exists(), "the reset mode runs no model"
+    assert out["tool"] == "none", out
     specs = origin["specs"]
+    # The two files a reset keeps, byte for byte.
     assert branch_file(specs, "0-README.md", workspace) == FULL_FILES["0-README.md"].rstrip("\n")
-    assert branch_file(specs, "2-analysis.md", workspace) == "# Queue - Analysis"
+    # And the three it writes from the templates: the earlier round's own
+    # text is gone.
+    analysis = branch_file(specs, "2-analysis.md", workspace)
+    assert FULL_FILES["2-analysis.md"].strip() not in analysis, analysis
     status = branch_file(specs, "4-status.md", workspace)
     assert "**Reopened:**" in status and "**Round boundary:**" not in status, status
     state = json.loads(branch_file(specs, "4-status.json", workspace))

@@ -40,7 +40,11 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
   // before the step's own landing, and only on a finished one.
   test("a finished reset forgets the spec's phase choice, and nothing else does", () => {
     const okBranch = /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
-    expect(okBranch).toContain('if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);');
+    // A reopen that reset the files discarded the round the same way, so it
+    // is the second — and last — press that drops the choice.
+    expect(okBranch).toContain(
+      'if (step === "reset" || (step === "reopen" && job.resetFiles)) ctx.store.forgetPendingSteps(job.project, job.specFolder);',
+    );
     expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("landStepBranch"));
     expect(RUNNER_SETUP.split("forgetPendingSteps").length - 1).toBe(1);
   });

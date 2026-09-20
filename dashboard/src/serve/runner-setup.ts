@@ -278,8 +278,10 @@ export function stepDoneHandler(
       // somebody in a terminal.
       // A finished reset takes the round's phase choice with it, so
       // the row's boxes and button start over from Analyze rather than
-      // from whatever was ticked for the round just discarded.
-      if (step === "reset") ctx.store.forgetPendingSteps(job.project, job.specFolder);
+      // from whatever was ticked for the round just discarded. A reopen
+      // that reset the files discarded the same round, so it does the
+      // same; a reopen that kept them keeps the choice too.
+      if (step === "reset" || (step === "reopen" && job.resetFiles)) ctx.store.forgetPendingSteps(job.project, job.specFolder);
       if (step === "analyze" || step === "reopen" || step === "reset") {
         return ctx.landStepBranch(job, step, outcome);
       }

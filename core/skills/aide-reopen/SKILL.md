@@ -36,9 +36,9 @@ round that is running.
 
 Then ask: "Reset the analysis, the plan and the status as well?
 (default: no)". No, or no answer, is the keep mode; yes is the reset
-mode. A headless run has already answered: without `--reset-files` the
-runner runs `aide-reopen-spec` itself and this skill is not started, and
-a prompt that says the person chose to reset means yes. Do not ask again.
+mode. A headless run never reaches this skill at all: the runner runs
+`aide-reopen-spec` itself, and for `--reset-files` `aide-reset-spec`
+after it. This skill is the keyboard's path to the same two scripts.
 
 ### Step 2: Remove the branch the earlier round left behind
 
@@ -83,11 +83,10 @@ reused, and the spec is the same spec.
 
 ### Step 4: Reset three files, keep two (reset mode only)
 
-**Regenerate** `2-analysis.md`, `3-solution.md` and `4-status.md`
-exactly as `/aide-create` Step 4 would for a new spec — from
-`core/skills/aide-create/references/file-templates.md`, with the same
-placeholders replaced (TITLE, FOLDER, DATE). Do not describe the layout
-here.
+**Run `aide-reset-spec --specs-root <specs-root> --spec <NN-slug>`** over
+the folder Step 3 moved back. It writes `2-analysis.md`, `3-solution.md`
+and `4-status.md` from the templates itself, which is the same writer
+`/aide-create` uses — never write those three by hand.
 
 **Leave `1-description.md` and `0-README.md` byte for byte as they are.**
 The description is why the spec exists, and it is what the new round is
