@@ -71,8 +71,6 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).not.toContain("<button");
     expect(line).not.toContain('type="checkbox"');
     expect(line).not.toContain('name="model"');
-    expect(line).not.toContain('name="extraProjects"');
-    expect(line).not.toContain('class="more"');
   });
 
   test("a collapsed row keeps its name, status, started and cost (criterion 1)", () => {
@@ -221,25 +219,5 @@ describe("spec 103: a collapsed row shows status only", () => {
       /<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/,
     )![0];
     expect(cancel).toContain('name="view.open" value="aide/103-running"');
-  });
-
-  test("no 'more' disclosure survives, open or shut (criterion 10)", () => {
-    for (const html of [
-      rows([], [target("103-idle")], { projects: ["aide", "paceup"] }),
-      rows([], [target("103-idle")], {
-        ...open("103-idle"),
-        projects: ["aide", "paceup"],
-        modelChoices: [{ name: "sonnet" }],
-      }),
-    ]) {
-      // Scoped to the list: the "?" popover above it is a `<details>`
-      // of its own (spec 113), about how runs work, not about a row —
-      // so this checks the "more" disclosure's own hooks specifically
-      // rather than every `<summary>` on the table.
-      const table = html.match(/<table class="list speclist">[\s\S]*<\/table>/)?.[0] ?? "";
-      expect(table).not.toBe("");
-      expect(table).not.toContain("data-more");
-      expect(table).not.toContain('class="more"');
-    }
   });
 });

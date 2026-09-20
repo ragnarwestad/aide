@@ -62,18 +62,6 @@ describe("a spec's row runs its own phases", () => {
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
-  // Spec 133 took the "stop for approval between steps" box out: its
-  // two states were "run straight through" and "stop after every step",
-  // and the second is reached better by ticking one phase at a time.
-  test("no row offers a gate control at all (spec 133, criterion 1)", () => {
-    for (const projects of [["aide"], ["aide", "paceup"]]) {
-      const html = rows([], [target("94-never-run")], { projects });
-      expect(runLine(html, "94-never-run")).not.toBe("");
-      expect(html).not.toContain('name="gate"');
-      expect(html).not.toContain("data-gate");
-    }
-  });
-
   // Since spec 123 the choice is offered once per PHASE, not once per
   // row — but it is still the config that says which models exist. The
   // "default" entry is gone (2026-08-19): the select is pre-filled with

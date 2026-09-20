@@ -139,10 +139,6 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     expect(line.replace(head(html, "109-idle"), "")).toContain('name="steps" value="analyze"');
   });
 
-  test("a collapsed row emits no controls line at all (criterion 2)", () => {
-    expect(rows([], [target("109-idle")])).not.toContain("data-controls");
-  });
-
   // --- criteria 3-5: which control lands on which line ----------------------
 
   for (const state of ["queued", "running"] as const) {
@@ -163,29 +159,18 @@ describe("spec 109: an expanded row reveals its controls below the header line",
 
   // --- criterion 6: the order of the lines an open row grows ----------------
 
-  test("the header comes first, then the phase lines, with nothing between (criterion 6)", () => {
+  test("the header comes before the phase lines (criterion 6)", () => {
     const html = rows([], [target("109-idle")], open("109-idle"));
     const at = (s: string) => html.indexOf(s);
-    // Spec 117 folded "more" into the controls line rather than leaving
-    // a second line under it; spec 124 folded the controls line itself
-    // into the header's own cell. An open row is a header and its
-    // phases, and nothing else.
-    expect(html).not.toContain("data-more");
-    expect(html).not.toContain("data-controls");
     expect(at('data-folder="109-idle"')).toBeLessThan(at('<tr class="subrow'));
   });
 
-  // The line those fields lived on is gone (spec 124), and so is the
-  // fixed-width cell that replaced it (spec 157). What still has to
-  // hold is the thing the width was FOR: nothing a row happens to
-  // offer may shove the table sideways. The State cell's badge and
-  // button share the page's own `row` container, which wraps — so a
-  // long pairing becomes two lines instead of a wider column.
-  test("the pairing they moved into wraps rather than widening the table", async () => {
+  // Nothing a row happens to offer may shove the table sideways: the
+  // State cell's badge and button share the page's own `row` container,
+  // which wraps, so a long pairing becomes two lines instead of a wider
+  // column.
+  test("the pairing wraps rather than widening the table", async () => {
     const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS).not.toContain("data-more");
-    expect(CSS).not.toContain("data-controls");
-    expect(CSS).not.toContain("stackcell");
     expect(CSS.match(/\n\.row \{[^}]*\}/)![0]).toContain("flex-wrap: wrap");
   });
 

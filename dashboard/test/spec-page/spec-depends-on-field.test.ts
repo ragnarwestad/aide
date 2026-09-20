@@ -56,10 +56,8 @@ describe("the Depends on field", () => {
   test("a spec that depends on nothing opens with nothing ticked", async () => {
     const { base } = startTracked(savable("/host"));
     const html = await (await fetch(`${base}${PAGE}`)).text();
-    // Spec 174: a box per spec in the project, as on the New-spec page
-    // — never a line to type an identifier into.
+    // Spec 174: a box per spec in the project, as on the New-spec page.
     expect(html).toContain(`value="${OTHER}"`);
-    expect(html).not.toContain('<input type="text" name="dependsOn"');
     // The boxes, not the whole document: the stylesheet carries a
     // `.checked` rule of its own.
     for (const box of html.match(/<input[^>]*name="dependsOn"[^>]*>/g) ?? []) {

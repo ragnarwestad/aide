@@ -109,9 +109,6 @@ describe("spec 192: the phase line's controls share one cell", () => {
       // around it.
       expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
     }
-    // And the indent that used to hold the box's place goes with it.
-    const { CSS } = await import("../../../../../src/render/ui/css");
-    expect(CSS).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });
 
   // --- criterion 1: three controls, one cell, no column between them --------

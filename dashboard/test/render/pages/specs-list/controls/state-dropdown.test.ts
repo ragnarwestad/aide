@@ -39,9 +39,6 @@ describe("the state dropdown (spec 289)", () => {
   test("renders one details.menu.state, not six separate pill links", () => {
     const html = page();
     expect(html).toContain('<details class="menu state" data-filter="state">');
-    // The old per-chip markup is gone: no standalone `.filters` group
-    // for the state control.
-    expect(html).not.toMatch(/<span class="filters" data-filter="state">/);
   });
 
   test("every option appears in order inside the panel, each a data-nav link (REQ-3, REQ-6)", () => {

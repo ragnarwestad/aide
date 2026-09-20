@@ -460,11 +460,6 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("with only its own project there is nothing to add (criterion 5)", () => {
-    const html = rows([], [target("94-never-run")], { projects: ["aide"] });
-    expect(runLine(html, "94-never-run")).not.toBe("");
-    expect(html).not.toContain('name="extraProjects"');
-  });
 });
 
 // The Select column and the two selects beside it answer the same

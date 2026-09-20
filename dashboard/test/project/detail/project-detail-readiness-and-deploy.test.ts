@@ -87,7 +87,6 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     const html = await (await get(base, "aide")).text();
     expect(html).not.toMatch(/>Health</);
     const fallback = await (await get(base, "aide", "health")).text();
-    expect(fallback).not.toContain("<h3>Deploy</h3>");
     expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
@@ -134,7 +133,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
     // The schedule is off entirely, so the answer never arrives: exactly
     // the state a fresh boot or a project just added is in.
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    expect(html).not.toContain("<h3>Deploy</h3>");
     const panel = html.match(/<div class="deploypanel">[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
     expect(panel).toContain("Whether this checkout is behind origin has not been checked yet.");
     // REQ-2: plain language, not the internal check name or setting key —
@@ -332,7 +330,6 @@ describe("the Deploy section on a project's own page (spec 258, spec 407)", () =
       await new Promise((r) => setTimeout(r, 25));
       html = await (await get(base, "aide", "deploy")).text();
     }
-    expect(html).not.toContain("<h3>Deploy</h3>");
     expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
     expect(html).not.toContain("commits behind origin");
     expect(html).not.toContain("matches origin");

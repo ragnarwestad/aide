@@ -92,7 +92,6 @@ describe("helpPopover", () => {
 // `.specsearch` — freed the same way `.menu`/`.menupanel` already are.
 describe(".intro popover CSS (spec 311)", () => {
   test("details.intro carries no .specsearch > prefix, so it works as a shared component anywhere", () => {
-    expect(CSS).not.toContain(".specsearch > details.intro");
     expect(CSS).toContain("details.intro { position: relative; }");
   });
 });

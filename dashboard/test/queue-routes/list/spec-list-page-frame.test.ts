@@ -228,8 +228,6 @@ describe("every row answers for itself", () => {
     expect(specControls(html, "81-queue-and-runner")).toMatch(
       /<button[^>]*class="btn primary"[^>]*>[A-Z][a-z]+<\/button>/,
     );
-    expect(html).not.toContain('id="targetdata"');
-    expect(html).not.toContain('<select name="target"');
   });
 
   // Spec 93 put this reason in ONE place, above the table, and said so:

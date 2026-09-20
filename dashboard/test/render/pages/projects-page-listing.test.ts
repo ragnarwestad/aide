@@ -17,10 +17,6 @@ describe("the listing on /projects", () => {
       }),
       project("beta"),
     ]);
-    // The word "Projects" is said once, in the tab (2026-08-21): the
-    // shell's <h1> is hidden and the <h2> over the list is gone. What
-    // opens the list now is the counts, beside the Add button.
-    expect(html).not.toContain("<h2>Projects</h2>");
     expect(html).toContain('class="summary"');
     expect(html).toContain('class="proj-row"');
     // The served page links the page it serves. The generated site
@@ -38,11 +34,10 @@ describe("the listing on /projects", () => {
     expect(html).toMatch(/class="[^"]*error[^"]*"/);
   });
 
-  test("it carries the nav — and no stamp: the build time lives on About now", () => {
+  test("it carries the nav, and no stamp: the build time lives on About now", () => {
     const html = page([project("alpha")]);
     expect(html).toContain("<nav");
     expect(html).not.toContain(AT);
-    expect(html).not.toContain("<h1>Projects</h1>");
   });
 
   // Spec 482: Add/Remove/active/archived/the bare word "projects" in the

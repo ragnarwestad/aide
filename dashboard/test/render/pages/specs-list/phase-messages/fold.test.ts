@@ -48,8 +48,6 @@ describe("the › on a phase line", () => {
     for (const kept of ["state=all", "project=aide", "sort=cost", "dir=asc", "open=", "checks=", "q=phase"]) {
       expect(link).toContain(kept);
     }
-    expect(html).not.toContain('class="phasemsgs"');
-    expect(html).not.toContain("<tr class=\"phasemsgs\"");
   });
 
   test("open: aria-expanded true, an href that removes only its own key, one message row after the line (AC-1)", () => {

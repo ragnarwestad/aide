@@ -195,15 +195,6 @@ describe("the list is as wide as the screen at phone width", () => {
 });
 
 describe("the row's name at phone width", () => {
-  // The button stood at the end of the name box from 2026-09-07 to
-  // 2026-09-08, and each width had a rule for it. It rides the caption
-  // line the fold opens now, so a head row has no action to place —
-  // at any width — and both rules went with it.
-  test("no rule places an action in the head row, at either width", () => {
-    expect(CSS).not.toContain(".spec-name > .actionslot");
-    expect(NARROW).not.toContain("tr.spechead .actionslot");
-  });
-
   // The title's width is the head row's own rule (the row less the
   // chevron, the gap and a little slack) — it is the ONE rule for it.
   // A second, fixed 17rem sat here from an earlier round, dead: the

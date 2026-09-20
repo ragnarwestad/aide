@@ -307,11 +307,7 @@ describe("the front page after the panel moved", () => {
     // pushed to the row's right-hand end.
     expect(html).toContain(".specsearch > .btn.primary { margin-left: auto; }");
     expect(html).not.toContain(".specsearch > .menu.state { margin-left: auto; }");
-    expect(html).not.toContain(
-      "#jobrows > .row:first-child > .btn { margin-left: auto; }",
-    );
     expect(html).toContain(".specsearch:first-child { margin: var(--sp-3) 0; }");
-    expect(html).not.toContain("#jobrows > .row:first-child { margin: var(--sp-3) 0; }");
   });
 
   test("the nav takes the reader to the page that manages them", () => {

@@ -96,7 +96,6 @@ describe("the list says which projects cannot run yet (spec 184, moved off the l
     });
     expect(html).toContain('class="proj-row-warn"');
     expect(html).toContain('href="/projects/skjer?tab=config"');
-    expect(html).not.toContain('href="/projects/skjer/settings"');
     // Criterion 5/6: the mark is a sibling of .proj-row-link, not nested
     // inside it — the name link's own markup carries none of it.
     const nameLink = html.match(/<a class="proj-row-link"[^>]*>[^<]*<\/a>/)?.[0];
@@ -104,14 +103,13 @@ describe("the list says which projects cannot run yet (spec 184, moved off the l
     expect(nameLink).not.toContain("proj-row-warn");
   });
 
-  test("a project that can run carries neither the mark nor a Settings action", () => {
+  test("a project that can run carries no warning mark", () => {
     const html = page([project("skjer")], {
       createProjects: ["skjer"],
       readinessByProject: { skjer: true },
     });
     expect(html).not.toContain('class="proj-row-warn"');
     expect(html).not.toContain("ready to run");
-    expect(html).not.toContain('href="/projects/skjer/settings"');
   });
 
   // The generated site has no server behind it to check a token

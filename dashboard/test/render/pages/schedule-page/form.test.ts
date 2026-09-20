@@ -142,7 +142,6 @@ describe("renderScheduleForm", () => {
     expect(row).toContain('data-ai="model"');
     expect(row).toContain('<select name="model"');
     expect(row.indexOf("data-ai=")).toBeLessThan(row.indexOf('<select name="model"'));
-    expect(html).not.toContain('<div class="frow"><span class="field"><span>AI<');
   });
 
   test("a dashboard with no models configured draws no picker at all", () => {

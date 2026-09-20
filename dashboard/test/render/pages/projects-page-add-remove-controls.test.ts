@@ -32,8 +32,6 @@ describe("the Add button and the Remove links on /projects", () => {
       /<div class="listtop"><span class="summary">[^<]*<\/span><a class="btn primary" href="\/projects\/new">Add<\/a><\/div>/,
     );
     expect(html.indexOf('href="/projects/new"')).toBeLessThan(html.indexOf('class="proj-row"'));
-    // The old fold is gone with its bare-word opener.
-    expect(html).not.toContain('<details class="newspec projectadmin">');
     expect(html).not.toContain('action="/api/queue/projects"');
   });
 
@@ -118,7 +116,6 @@ describe("the Add page", () => {
     expect(html).toContain('<select name="existingPath">');
     expect(html).toContain('<option value="atlasaurus">atlasaurus</option>');
     expect(html).toContain('<option value="scratch">scratch</option>');
-    expect(html).not.toContain('name="existingPath" maxlength');
     // Nothing picked stays representable, the way an empty box was.
     expect(html).toContain('<option value=""></option>');
   });

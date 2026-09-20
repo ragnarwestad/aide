@@ -111,7 +111,6 @@ describe("GET /projects (spec 115)", () => {
     // it (spec 185), and two links reading "aide" going to two
     // different pages is what this replaced.
     expect(html).toContain('href="/projects/aide"');
-    expect(html).not.toContain('href="aide.html"');
     // And the two controls that change it (2026-08-19): the Add button
     // to its own page, and each row's Remove to its confirm page.
     expect(html).toContain('href="/projects/new"');

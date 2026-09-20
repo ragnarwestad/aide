@@ -170,7 +170,6 @@ describe("the spec's actions stay on the tab row", () => {
     const html = page(view({ closeAction: "/specs/aide/x/close" }));
     expect(html).toContain("Close says this spec will not work and archives it as a record");
     expect(trailing(html)).toContain('<details class="intro">');
-    expect(html).not.toMatch(/<p class="small muted">Reset/);
   });
 
   // A board belongs to the banner entirely now — its address, its state

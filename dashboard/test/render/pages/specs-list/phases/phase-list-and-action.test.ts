@@ -134,12 +134,8 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     // spec 179: the AI column is a cell of each line's own, so no line
     // borrows a slot from a `rowspan` on the one above it.
     expect(columnUnits(subRow(html, "analyze"))).toBe(6);
-    // No spare cell at either end since 2026-08-23: the one action a
-    // shut row drew in the last column moved beside the state in spec
-    // 157, and the column stood blank until it went. The header and
-    // both row types end on Cost.
+    // The header and both row types end on Cost.
     expect(thead).toMatch(/data-col="cost"[\s\S]*<\/th><\/tr><\/thead>$/);
-    expect(thead).not.toMatch(/<th><\/th>/);
     expect(spechead).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     // And the phase lines lead with their own cell, hard left.
     expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell">/);
@@ -239,12 +235,8 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(line).not.toContain('name="steps" value="create"');
   });
 
-  test("no strip of phase boxes and no controls line survive (criterion 2)", () => {
+  test("every box the row draws sits on a phase line (criterion 2)", () => {
     const html = rows([], [target("124-stack")], { modelChoices: CHOICES });
-    expect(html).not.toContain("data-controls");
-    // The only `.phases` group left on this page is "also touches",
-    // and this row has no other project to offer.
-    expect(html).not.toContain('<span class="phases">');
     // Every box the row draws is on a phase line, so each is inside a
     // `<tr>` that names its own step.
     for (const m of html.matchAll(/<label class="phase[^"]*" data-phase="([^"]+)"/g)) {

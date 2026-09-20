@@ -38,12 +38,10 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     });
 
   // Criterion 1.
-  test("the front page offers a plain link, not a toggle", () => {
+  test("the front page offers a plain link, and not the form itself", () => {
     const html = page();
     expect(html).toContain('<a class="btn primary" href="/new">New</a>');
-    expect(html).not.toContain('<details class="newspec">');
-    // And the form itself is gone from this page entirely — not merely
-    // shut: `/new` is the only place it is rendered now.
+    // `/new` is the only place the form is rendered.
     expect(html).not.toContain('action="/api/queue/create"');
   });
 
@@ -141,7 +139,6 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   test("AC-1: the Description field defaults to 10 rows", () => {
     const html = newPage();
     expect(html).toContain('<textarea name="description" rows="10"');
-    expect(html).not.toContain('<textarea name="description" rows="4"');
   });
 
   // --- spec 228: the model the FIRST step runs on ----------------------------

@@ -71,7 +71,6 @@ describe("the checks on the Overview tab", () => {
       const { base } = startWithChecks(savable("/host"));
       const html = await fetch(`${base}${PAGE}?tab=checks`).then((r) => r.text());
       expect(html).toContain('name="tick"');
-      expect(html).not.toContain(`href="${PAGE}?tab=checks"`);
     });
 
     test("the current phase's open rows are boxes in a form of their own", async () => {

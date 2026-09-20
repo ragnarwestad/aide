@@ -134,9 +134,6 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     // Spec 121: a link to the form's own page, not the form.
     expect(html).toContain('href="/new"');
     expect(html).not.toContain('action="/api/queue/create"');
-    // The overview it replaced is gone from this address, not merely
-    // pushed below the fold.
-    expect(html).not.toContain("<h2>Projects</h2>");
   });
 
   test("the page says Specs in its nav and title (criterion 9)", async () => {

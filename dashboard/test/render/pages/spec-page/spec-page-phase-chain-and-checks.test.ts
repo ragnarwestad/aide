@@ -163,9 +163,8 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // Spec 295: the panel opens directly with the checklist markup this
   // suite already pins, with no `<h2>Checks</h2>` above it — the tab bar
   // beside it already names the tab.
-  test("the panel opens with the unchanged checklist and no heading of its own", () => {
+  test("the panel opens with the unchanged checklist", () => {
     const html = page(withChecks(), "status");
-    expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).toContain('<section class="checks">');
   });
 

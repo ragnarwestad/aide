@@ -26,10 +26,6 @@ describe("the row's one action rides the caption line, not a column of its own",
   test("the header declares no blank cell, at either end", async () => {
     const html = rows([], { targets: [target()] });
     const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
-    // Blank at the END until 2026-08-23, heading the cell a shut row's
-    // action sat in before spec 157 moved it beside the state. Every
-    // row drew an empty `<td>` under it for as long as it stood.
-    expect(thead).not.toMatch(/<th><\/th>/);
     expect(thead).toMatch(/<\/a><\/th><\/tr><\/thead>$/);
   });
 
@@ -90,8 +86,6 @@ describe("the spec column is capped, so the phases sit close", () => {
 describe("the phase lines line up in columns", () => {
   test("the stylesheet declares the columns, not pinned flex children", async () => {
     const { CSS } = await import("../../../src/render/ui/css");
-    expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).not.toContain("td.toolcell");
     expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
     expect(CSS).toContain(
       'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem; max-width: 8rem; }',

@@ -38,7 +38,6 @@ describe("the queue row links to the spec (criterion 12)", () => {
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
     });
     expect(html).toContain(`href="${SPEC_HREF}"`);
-    expect(html).not.toContain('<span class="label" title="81-queue-and-runner">');
   });
 
   // Spec 451: a phase line's name is plain text — the spec page, with

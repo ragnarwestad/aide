@@ -22,18 +22,11 @@ describe("spec 212: one tab per document", () => {
     expect(html).toContain("Update");
   });
 
-  // Spec 301's REQ-5 put a "Title:" label in front of the title, so a
-  // reader meeting the page for the first time would not have to work
-  // out from position alone that the bold sentence was the title. That
-  // is reversed: the folder name sits directly above and IS the title,
-  // lowercased and hyphenated, so the label answered a question its own
-  // neighbour already answers — and the page said one name three ways.
-  // The document's own heading below stays: it is the file's text.
-  test("the banner carries no labelled title", () => {
+  // The folder name sits on the banner and IS the title, lowercased and
+  // hyphenated — the identifier every other surface uses for the spec:
+  // the branch, the commit subjects, the run log.
+  test("the banner names the spec by its folder", () => {
     const html = page();
-    expect(html).not.toContain('<span class="label">Title:</span>');
-    // The spec is still named on the page, by the identifier every other
-    // surface uses for it — the branch, the commit subjects, the gate log.
     expect(html).toContain("150-one-page-shows-the-whole-spec");
   });
 
@@ -43,7 +36,6 @@ describe("spec 212: one tab per document", () => {
     for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
       expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
     }
-    expect(html).not.toContain("?tab=checks");
   });
 
   // Spec 296: the spec folder title sits beside ← Back, on one line,

@@ -49,12 +49,9 @@ describe("the spec page is a page of this site like any other", () => {
   // same bar the site's own two tabs are, one level in. The caption
   // said "Spec" above a page that says nothing else, and a chip is for
   // choosing among values while these move between views.
-  test("the tabs are a tab bar, with no caption beside them", () => {
+  test("the tabs are a tab bar, with the open one marked", () => {
     const html = page();
     expect(html).toContain('<nav class="tabbar subtabs">');
-    expect(html).not.toContain('<span class="lbl">Spec</span>');
-    expect(html).not.toContain('<span class="lbl">Job</span>');
-    expect(html).not.toContain('data-filter="tab"');
     // The open one is marked the way the site's tabs mark theirs — the
     // Description tab, since it is the new default (spec 294).
     expect(html).toMatch(

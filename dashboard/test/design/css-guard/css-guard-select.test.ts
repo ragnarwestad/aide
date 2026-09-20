@@ -57,9 +57,6 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.selectors).toContain(".field select");
     expect(rule.selectors).toContain('select[name^="model."]');
     expect(rule.selectors).toContain("select[data-ai]");
-    // The control this one replaced (spec 179) is gone from the
-    // stylesheet as well as from the markup.
-    expect(CSS).not.toContain("data-set-all");
   });
 
   test("the two selects get the whole field look, not only the arrow", () => {

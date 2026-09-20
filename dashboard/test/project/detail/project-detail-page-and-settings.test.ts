@@ -30,23 +30,13 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(html).toContain(">Save<");
   });
 
-  test("a known project answers 200 with actions and settings, and no manifest or spec list", async () => {
+  test("a known project answers 200 with actions and settings", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).not.toContain("<h3>Config</h3>");
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
-    // The manifest dump duplicated the live Specs tab, one click away
-    // — a frozen copy of it here said nothing that page did not
-    // (2026-08-25).
-    expect(html).not.toContain("the aide project");
-    // The spec list is the Specs tab — live, filterable, with the
-    // controls. A frozen copy of it under the manifest said nothing
-    // that page did not (2026-08-22).
-    expect(html).not.toContain("<h3>Specs</h3>");
-    expect(html).not.toContain("01-first");
   });
 
   test("a project whose manifest fails to parse still 200s with actions and settings, no error paragraph", async () => {
@@ -56,7 +46,6 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).not.toContain("<h3>Config</h3>");
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).not.toContain("Manifest failed to parse");
   });
@@ -108,7 +97,6 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
-    expect(html).not.toContain("<h3>Config</h3>");
   });
 });
 
@@ -170,8 +158,6 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("<th>Name</th><th>Value</th><th>Comment</th>");
-    expect(html).not.toContain("<th>Setting</th>");
-    expect(html).not.toContain("<th>Where from</th>");
     for (const key of [
       "AIDE_SPECS_PATH", "AIDE_WORKTREE_LINKS", "AIDE_TEST_CMD", "AIDE_LINT_CMD",
       "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD",

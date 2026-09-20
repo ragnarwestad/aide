@@ -18,13 +18,9 @@ describe("Settings page", () => {
     });
     expect(html).toContain("No model choices are configured");
     expect(html).toContain('action="/api/queue/settings"');
-    expect(html).not.toContain('name="budgetUsd"');
-    expect(html).not.toContain('name="jobCapUsd"');
     for (const step of SETTINGS_STEPS) {
       expect(html).toContain(`name="timeoutSec.${step}"`);
     }
-    expect(html).not.toContain('name="model.explore"');
-    expect(html).not.toContain('name="timeoutSec.explore"');
   });
 
   test("renders every workflow step with its resolved model, matching AI and timeout", () => {

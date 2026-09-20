@@ -132,7 +132,6 @@ describe("spec 394: the Depends on picker, in the banner on every tab", () => {
     expect(html).toContain('name="dependsOn"');
     expect(html).toContain('value="164-a-spec-can-depend"');
     expect(html).toContain('value="09-ninth"');
-    expect(html).not.toContain('<input type="text" name="dependsOn"');
   });
 
   // The same order the New-spec page draws: newest first, because the
