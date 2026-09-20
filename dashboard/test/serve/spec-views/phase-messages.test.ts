@@ -46,13 +46,34 @@ const queueOf = (jobs: Job[]) =>
   ({ get: (id: string) => jobs.find((j) => j.id === id), list: () => jobs, defaults: {} }) as never;
 
 describe("phaseMessagesFor", () => {
-  test("Claude: the last ten messages oldest first, nothing from a tool call (AC-2)", () => {
+  // Spec 500 kept the model's own messages alone. A session that works
+  // through commands writes a sentence every few minutes, so the row read
+  // as frozen while the step was busy: what it DID belongs here too.
+  test("Claude: what the run said and what it did, oldest first", () => {
     const lines: unknown[] = [];
-    for (let i = 1; i <= 12; i++) lines.push(said(`m${i}`), ran(`cmd ${i}`));
+    for (let i = 1; i <= 3; i++) lines.push(said(`m${i}`), ran(`cmd ${i}`));
     const j = job("a", { results: [finishedStep("analyze", lines)] });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
-    expect(got?.messages).toEqual(Array.from({ length: 10 }, (_, i) => `m${i + 3}`));
+    expect(got?.messages).toEqual(["m1", "Bash cmd 1", "m2", "Bash cmd 2", "m3", "Bash cmd 3"]);
     expect(got?.running).toBe(false);
+  });
+
+  test("a file a step wrote is a line of its own", () => {
+    const wrote = { type: "assistant", message: { content: [{ type: "tool_use", id: "w1", name: "Write", input: { file_path: "/x/2-analysis.md" } }] } };
+    const j = job("a", { results: [finishedStep("analyze", [wrote])] });
+    expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages).toEqual(["Write /x/2-analysis.md"]);
+  });
+
+  // The last 200, so a long implement keeps its newest lines and the row
+  // cannot grow without bound.
+  test("the last 200 lines are kept, newest last", () => {
+    const lines: unknown[] = [];
+    for (let i = 1; i <= 250; i++) lines.push(ran(`cmd ${i}`));
+    const j = job("a", { results: [finishedStep("analyze", lines)] });
+    const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages ?? [];
+    expect(got).toHaveLength(200);
+    expect(got[0]).toBe("Bash cmd 51");
+    expect(got[got.length - 1]).toBe("Bash cmd 250");
   });
 
   test("a newer job only queued for the step does not hide the older one that ran it; two finished jobs give the newer (AC-2)", () => {
@@ -79,14 +100,14 @@ describe("phaseMessagesFor", () => {
     expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.messages).toEqual(["first", "Analysis complete: 12 files affected"]);
   });
 
-  test("a transcript that ends after a tool call gets the final message appended, and the list stays at ten (AC-4)", () => {
+  test("a transcript that ends after a tool call gets the final message appended, and the list stays at its cap (AC-4)", () => {
     const lines: unknown[] = [];
-    for (let i = 1; i <= 10; i++) lines.push(said(`m${i}`));
+    for (let i = 1; i <= 200; i++) lines.push(said(`m${i}`));
     lines.push(ran("ls"), result("The end"));
     const got = phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", lines)] })]), ["a"], "analyze");
-    expect(got?.messages).toHaveLength(10);
+    expect(got?.messages).toHaveLength(200);
     expect(got?.messages.at(-1)).toBe("The end");
-    expect(got?.messages[0]).toBe("m2");
+    expect(got?.messages.at(-2)).toBe("Bash ls");
   });
 
   test("the final message is shown whole at 500 characters and cut with … past 2,000 (AC-4)", () => {

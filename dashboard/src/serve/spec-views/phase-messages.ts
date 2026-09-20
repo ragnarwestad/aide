@@ -1,13 +1,18 @@
-// What a phase's unfolded row shows (spec 500): the model's own messages
-// from the newest attempt that ran the step, and where that step is on the
-// spec's Logs tab.
+// What a phase's unfolded row shows (spec 500): the transcript of the
+// newest attempt that ran the step — what the run said AND what it did —
+// and where that step is on the spec's Logs tab.
+//
+// The model's own messages alone were too little to follow a run by: a
+// session that works through commands writes a sentence every few
+// minutes (512's implement: nine in 33 minutes, over 107 commands), so
+// the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
 import { finalMessage, summarizeEntries } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFile } from "../serve-helpers";
 import { stepKey, workRoundJobs } from "./work-round.ts";
 
-const KEPT = 10;
+const KEPT = 200;
 const FINAL_MAX = 2000;
 
 /** The final message is already escaped, so a cut must not leave half an
@@ -43,7 +48,7 @@ export function phaseMessagesFor(
     const file = running ? job.streamFile : result?.streamFile;
     const text = file ? tailFile(file) : "";
     const tool = result?.tool;
-    const messages = summarizeEntries(text, { tool, only: "messages", max: KEPT }).map((e) => e.text);
+    const messages = summarizeEntries(text, { tool, only: "all", max: KEPT }).map((e) => e.text);
     const final = running ? undefined : finalMessage(text, { tool });
     if (final) {
       if (messages.length && isFinal(messages[messages.length - 1]!, final)) messages.pop();

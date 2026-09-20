@@ -76,7 +76,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.checksOpenTab": "Ouvrir l'onglet Status",
   "list.phaseFoldTitle": "{action} les derniers messages de {phase}",
   "list.phaseNoneKept": "Aucun message n'est conservé pour cette phase.",
-  "list.phaseNoMessages": "Le modèle n'a encore rien écrit.",
+  "list.phaseNoMessages": "Rien n'a encore été capturé de cette étape.",
   "list.phaseOpenLog": "Ouvrir le journal de cette phase",
   "list.cancel": "Annuler",
   "list.cancelling": "annulation…",

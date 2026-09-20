@@ -76,7 +76,7 @@ export const de: Record<TranslationKey, string> = {
   "list.checksOpenTab": "Den Tab „Status“ öffnen",
   "list.phaseFoldTitle": "{action} die letzten Meldungen von {phase}",
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",
-  "list.phaseNoMessages": "Das Modell hat noch nichts geschrieben.",
+  "list.phaseNoMessages": "Von diesem Schritt wurde noch nichts erfasst.",
   "list.phaseOpenLog": "Das Protokoll dieser Phase öffnen",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",

@@ -77,7 +77,7 @@ export const en = {
   "list.checksOpenTab": "Open the Status tab",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
-  "list.phaseNoMessages": "The model has not written anything yet.",
+  "list.phaseNoMessages": "Nothing has been captured from this step yet.",
   "list.phaseOpenLog": "Open this phase's log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",

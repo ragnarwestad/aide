@@ -114,12 +114,14 @@ state is the Reopen button on the row, which opens the same confirmation page as
 Failed rows back to open and keeps their notes; such a note counts as a changed criterion for the rule that a new round
 needs at least one.
 
-**A phase that has run unfolds to the model's latest messages.** Every phase line of an open row that has run or is
+**A phase that has run unfolds to its own transcript.** Every phase line of an open row that has run or is
 running starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in
 `?phases=<key>,…`, kept by every sort and filter link and every redirect after a press like `?open=`, and it is a plain
-link, so it works with script off. The unfolded row lists the model's own messages from the newest attempt that ran the
-step — at most ten, oldest first, each one line clipped at 160 characters, nothing from a tool call — and a link to
-that step on the Logs tab. Once the phase has finished the last message is the phase's final message, whole up to 2,000
+link, so it works with script off. The unfolded row lists what the newest attempt that ran the step said AND what it
+did — its own messages, the commands it ran and the files it wrote — at most the last 200, oldest first, each one line
+clipped at 160 characters, and a link to that step on the Logs tab. The messages alone were too little to follow a run
+by: a session that works through commands writes a sentence every few minutes, and the row read as frozen while the
+step was busy. Once the phase has finished the last message is the phase's final message, whole up to 2,000
 characters. A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself. A
 phase that is only queued, or that nothing touched, has no ›.
 

@@ -71,7 +71,7 @@ describe("the message row", () => {
   test("a running phase with no message yet says so and links to the live step (AC-3)", () => {
     const running = row({ id: "job-r", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "running" });
     const html = panel(render([running], () => ({ messages: [], step: "live", running: true })));
-    expect(html).toContain("The model has not written anything yet.");
+    expect(html).toContain("Nothing has been captured from this step yet.");
     expect(html).toContain("step=live");
   });
 
