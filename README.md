@@ -46,9 +46,12 @@ Either way, the spec is what lets any AI assistant:
 - Follow established plans for technical debt and modernization that
   span many sessions, not one prompt
 
-**Key benefit:** Not locked to a single AI vendor - teams can pick the
-best tool for each task, and the spec is what carries the work between
-them.
+**Not locked to one AI vendor.** The same spec is read and continued by Claude Code, Codex, OpenCode or Copilot,
+so each step can run on whichever tool suits it, and the spec is what carries the work between them.
+
+**Aide is a personal tool.** It is installed for one user on one machine, and the dashboard has no sign-in and no
+notion of who is using it: every run uses the AI account of the user it runs as. Nothing has to be committed to a
+project for Aide to work on it, which is what makes it usable on a repository someone else owns.
 
 ---
 
@@ -226,10 +229,11 @@ project's specs in one pool.
 
 **Default:** specs are written to `specs/` in the project root. The path
 is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep the personal config out of git
-with a global personal gitignore (`core.excludesFile`) containing
-`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
-and belongs in git.
+can point at two different spec repos. Keep `.aide/config` out of git with a personal global
+gitignore (`core.excludesFile`); it holds one machine's own settings.
+The manifest `.aide/project.yaml` describes the project itself — its
+test command, the directories a run has to borrow, how its code lands —
+and is committed where a project uses it.
 
 ---
 
@@ -267,14 +271,14 @@ All Aide skills can be run by hand, one spec at a time, in any of the AI CLI ass
 runs them for you, and adds what running them by hand does not give you:
 
 - **Every spec in one list** — across every project Aide knows about, with search and a state filter
-- **Unattended runs** — a spec is queued through `create` → `analyze` → `implement` → `archive`, potentially in
-  parallel
+- **Unattended runs** — a spec is queued through `create` → `analyze` → `implement` → `archive`, with several
+  specs running at once
 - **The AI and model per step** — chosen for each phase of each spec
 - **Live progress** — the running step, its time and its tokens, on the spec's row
 - **Dependencies** — a spec that overlaps with another spec can be configured to wait to be implemented until the
   first has completed
-- **Acceptance criteria** (optional) can be specified. If desired, the dashboard can stop before archiving and prompt
-  the user to verify them before continuing
+- **Acceptance criteria** — when a spec has them, archive is held back until every row is ticked. The ticking is
+  the user's: they read the result, tick the rows on the Status tab and press Archive
 - **Modify and rerun** — if acceptance criteria are specified and not fulfilled by the implementation, the spec
   description and criteria can be modified to be more precise, and the analyze and implement phases rerun. Criteria
   that are already ticked are not touched by the rerun
@@ -285,6 +289,9 @@ runs them for you, and adds what running them by hand does not give you:
   against it
 
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
+
+<p align="center"><em>The specs list: one row per spec, across every project, with the phase it has reached, the
+step running now, and the button for the step that comes next.</em></p>
 
 It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
 so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
