@@ -1,7 +1,7 @@
 // Split out of css-token-guard.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { CSS } from "../css-guard-fixtures.ts";
+import { CSS, oneRule, rules } from "../css-guard-fixtures.ts";
 
 // --- the gap lives in the container (spec 120) ------------------------------
 //
@@ -195,4 +195,74 @@ test("a criterion's text takes the room beside its box and wraps inside it", () 
   expect(CSS).toMatch(/\.check \.checktask \{[^}]*flex: 1 1 0;[^}]*min-width: 0;[^}]*\}/);
   // The row still wraps: the note under a criterion depends on it.
   expect(CSS).toMatch(/\.check \{[^}]*flex-wrap: wrap;[^}]*\}/);
+});
+
+// --- the waiting layer states where it sits (spec 516) ----------------------
+//
+// A modal dialog's centring is the browser's own default, and on a phone
+// it came up low and to the right. The layer now says it itself, on the
+// open state only, so a closed one is left as it was.
+
+/** The bodies of every `@media` block, brace-matched. */
+function mediaBlocks(css: string): string[] {
+  const out: string[] = [];
+  let at = css.indexOf("@media");
+  while (at !== -1) {
+    const open = css.indexOf("{", at);
+    let depth = 1;
+    let i = open + 1;
+    for (; i < css.length && depth > 0; i++) {
+      if (css[i] === "{") depth++;
+      else if (css[i] === "}") depth--;
+    }
+    out.push(css.slice(open + 1, i - 1));
+    at = css.indexOf("@media", i);
+  }
+  return out;
+}
+
+describe("the waiting layer is placed by its own rule, not the browser's default", () => {
+  const stripped = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+  const open = () => oneRule(stripped, (r) => r.selectors.trim() === "dialog.pageoverlay[open]").body;
+  const base = () => oneRule(stripped, (r) => r.selectors.trim() === "dialog.pageoverlay").body;
+
+  test("the open layer is fixed, inset 0, auto margin and fit-content sized (AC-1)", () => {
+    const body = open();
+    expect(body).toMatch(/position:\s*fixed/);
+    expect(body).toMatch(/inset:\s*0\b/);
+    expect(body).toMatch(/margin:\s*auto/);
+    expect(body).toMatch(/width:\s*fit-content/);
+    expect(body).toMatch(/height:\s*fit-content/);
+  });
+
+  test("the base rule places nothing, so a closed layer is not placed (AC-1)", () => {
+    const body = base();
+    for (const prop of ["position", "inset", "margin", "width", "height"]) {
+      expect([prop, new RegExp(`(^|[;\\s])${prop}\\s*:`).test(body)]).toEqual([prop, false]);
+    }
+  });
+
+  test("no media block restyles a dialog, so the installed app draws the same rule (AC-2)", () => {
+    for (const block of mediaBlocks(stripped)) {
+      expect(block).not.toMatch(/dialog|pageoverlay/);
+    }
+  });
+
+  test("a tall layer is limited to the screen and scrolls inside itself (AC-4)", () => {
+    const body = open();
+    expect(body).toMatch(/box-sizing:\s*border-box/);
+    expect(body).toMatch(/max-width:\s*calc\(100%\s*-/);
+    expect(body).toMatch(/max-height:\s*calc\(100%\s*-/);
+    expect(body).toMatch(/overflow:\s*auto/);
+  });
+
+  test("the grid, the backdrop and the note keep their rules (AC-5)", () => {
+    expect(base()).toMatch(/display:\s*grid/);
+    expect(base()).toMatch(/place-items:\s*center/);
+    const backdrop = rules(stripped).find((r) => r.selectors.trim() === "dialog.pageoverlay::backdrop");
+    expect(backdrop?.body).toMatch(/background:\s*var\(--backdrop\)/);
+    const note = rules(stripped).find((r) => r.selectors.trim() === "dialog.pageoverlay > .overlaynote");
+    expect(note?.body).toMatch(/max-width:\s*22rem/);
+    expect(note?.body).toMatch(/text-align:\s*center/);
+  });
 });
