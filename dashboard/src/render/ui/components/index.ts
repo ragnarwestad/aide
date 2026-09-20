@@ -406,7 +406,14 @@ export function backLink(href: string, title?: string, trailing = ""): string {
  *  in a shared link, which is why `serve.ts` is the only caller. A
  *  string ultimately sourced from the client, reflected into a link the
  *  reader's own browser will follow, is a standard open-redirect
- *  surface; same-origin is the guard. */
+ *  surface; same-origin is the guard.
+ *
+ *  HOST AND PORT, never the scheme — the same comparison the admission
+ *  check makes (`serve-helpers/request-guard.ts`). The board is reached
+ *  through a proxy that ends TLS and forwards to `127.0.0.1:8788`, so
+ *  the browser's `Referer` says https while the request the server sees
+ *  says http. Comparing the whole origin threw every "← Back" on that
+ *  address onto the fallback. */
 export function resolveBackHref(
   referer: string | null,
   requestOrigin: string,
@@ -414,12 +421,14 @@ export function resolveBackHref(
 ): string {
   if (!referer) return fallback;
   let refUrl: URL;
+  let ownUrl: URL;
   try {
     refUrl = new URL(referer);
+    ownUrl = new URL(requestOrigin);
   } catch {
     return fallback;
   }
-  if (refUrl.origin !== requestOrigin) return fallback;
+  if (refUrl.host !== ownUrl.host) return fallback;
   return refUrl.pathname + refUrl.search;
 }
 

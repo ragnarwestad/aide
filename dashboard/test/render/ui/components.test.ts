@@ -56,6 +56,23 @@ describe("resolveBackHref", () => {
     expect(resolveBackHref("https://evil.example/", ORIGIN, "/fallback")).toBe("/fallback");
   });
 
+  // Behind the HTTPS proxy the board is reached through, the browser's
+  // own `Referer` says https and the server's request says http: the
+  // proxy ends TLS and forwards to `127.0.0.1:8788`. Comparing the
+  // scheme threw every "← Back" on that address onto the fallback, and
+  // took a reader who stopped a test server off the page they were on.
+  // The same rule the admission check already follows: host and port,
+  // never the scheme (`serve-helpers/request-guard.ts`).
+  test("a proxy that ended TLS is the same origin — the scheme is not compared", () => {
+    expect(resolveBackHref("https://dash.example/test-servers", "http://dash.example", "/fallback")).toBe(
+      "/test-servers",
+    );
+  });
+
+  test("a different port is a different origin, scheme or no scheme", () => {
+    expect(resolveBackHref("https://dash.example:8443/x", "http://dash.example", "/fallback")).toBe("/fallback");
+  });
+
   test("a malformed referer falls back rather than throwing", () => {
     expect(resolveBackHref("not a url", ORIGIN, "/fallback")).toBe("/fallback");
   });
