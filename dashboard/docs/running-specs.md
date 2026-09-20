@@ -1,11 +1,11 @@
 # Running specs
 
 How a spec becomes a run: the form that makes one, who the dashboard answers, what decides a step's time limit, AI
-and model, how many run at once, and what it tells you while they do. What a run then does to the repositories is
-on [The runner and its checkouts](the-runner.md).
+and model, how many run at once, and what it tells you while they do.
 
-Five pages sit beside this one:
+Six pages sit beside this one:
 
+- [The runner and its checkouts](the-runner.md) — what a run does to the repositories it touches
 - [A spec's lifecycle](spec-lifecycle.md) — the four phases, and what moves a spec between them
 - [A job's states](job-states.md) — the job's state machine, in one place
 - [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
@@ -36,12 +36,15 @@ step that ends either advances the job or ends it, and several jobs run at once 
 
 ## Making a spec from the page
 
-Every spec that exists is a row on the list, and every row can be run. A spec that does not exist yet has no row,
-so above the table there is a **New spec** button — a plain link to `/new`. That page is the form and nothing
-else: a project, what the spec builds on, a title, a description, a phase table, and two buttons, Create and
-Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. Both
-work with no script at all — a link and a form POST — and a refused submission comes back to `/new?error=…`, where
-what was typed can be corrected. The browser holds Create at an empty project, title or description, and the
+Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
+above the table there is a **New spec** button — a plain link to `/new`. That page is the form and nothing
+else: a project, a **Depends on** field naming a spec this one has to wait for, a title, a description, a phase table,
+and two buttons, Create and Cancel. Create posts to `POST /api/queue/create` and returns to the list; Cancel returns having done nothing. A refused
+submission comes back to `/new?error=…`, where what was typed can be corrected.
+
+**The new spec is not on the list when you get back.** The `create` step has to run first, and its folder has to
+reach the default branch, which the landing does — see below. Until then the job is on the list as a queued
+create, under a provisional name. The browser holds Create at an empty project, title or description, and the
 server refuses a request with no project as well.
 
 The phase table has one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a
@@ -59,24 +62,25 @@ Two things about the form are worth knowing:
   one is about a project whose FIRST spec may not, and such a project appears in no other list here.
   `/api/queue` is unchanged and still refuses a project with no discovered spec.
 - **Nothing here names the spec.** The job carries a provisional key (`new-abc123de`) which names its branch, its
-  worktree and its folder on disk — the `create` step writes its five files under that literal name, choosing no
+  worktree and its folder on disk — the `create` step writes the spec's files under that literal name, choosing no
   number and no slug. `aide-run-spec` reports that same folder as `specFolder` in its result.
 
-**The number and the slug are the landing's to assign, not the step's.** When the step succeeds the dashboard lands
-the branch itself: under the specs repo's own merge lock — the one point where two landings for the same repo are
+**The number and the slug are assigned when the branch lands, not when the folder is written.** Landing is the
+merge of a step's branch into the repository's default branch, which the dashboard does itself once the step
+succeeds ([Branches and landing](landing.md) has it in full). For a `create` it does this: under the specs repo's own merge lock — the one point where two landings for the same repo are
 already serialized — it counts the folders already there, takes the next number, and renames the provisional folder
-to it before the merge is pushed. That is not a convenience. The list shows what is on disk in the main checkout,
+to it before the merge is pushed. The list shows what is on disk in the main checkout,
 which every run keeps on its default branch, so a created spec that only ever reached a branch would appear
 nowhere. A job that ticked further phases runs its next step under the real folder name. A landing that fails
-leaves the provisional key in place and says which repo and why. Two `create` jobs for one project start in the
-same tick, since there is no longer a number for them to collide over. A landing holds nothing back any more: it
-merges in a worktree of its own and touches the shared checkout for one fast-forward at the end. Only the job being
-landed waits for it, and a second `archive` in the same project.
+leaves the provisional name in place and says which repo and why. Two `create` jobs for one project can start in
+the same scheduler pass: there is no number for them to collide over.
+
+A landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the end, so it
+holds back two things and nothing else: the job being landed, and a second `archive` in the same project.
 
 **The list holds specs, not the machine's whole run history.** An archived spec leaves the page along with the jobs
-it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A
-project the server knows no specs for keeps every row it has: an empty spec list means "we cannot tell", never
-"everything here is archived".
+it had. Nothing is destroyed — `/api/queue` still returns every job and `/specs/<id>` still renders each one. A project whose specs the server cannot read this time keeps the rows it
+already had: an empty answer means "we cannot tell", never "everything here is archived".
 
 A job survives a restart: the runner spawns detached in its own process group, and the result file is the
 contract — the scheduler polls the pid and the file, and a job left `running` is reconciled from both. A step that
@@ -149,8 +153,7 @@ minutes and an `implement` on a twenty-file change is the better part of an hour
 with its tests already green. `analyze` carries a longer-than-default ceiling of its own — 2400s — because the
 three-reviewer-perspective routine runs inside it. A tightening
 override is checked against each step's OWN ceiling, so a job holding both steps cannot buy `analyze` more time by
-naming `implement`. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand,
-the same direction every other malformed key here fails in.
+naming `implement`. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand.
 
 `projects` is the odd one out in that file: it is the only key the server WRITES as well as reads. It is the queue's
 allowlist, and the Projects panel on `/` rewrites it on every Add and Remove — which is what makes those take
