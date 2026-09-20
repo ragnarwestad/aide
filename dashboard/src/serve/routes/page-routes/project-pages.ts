@@ -71,7 +71,8 @@ export async function projectPages(
         specHref: specPagePath(project, specFolder),
         branch: entry!.branch,
         status: entry!.status,
-        url: entry!.url,
+        // The address the READER can reach: the round prints a loopback one.
+        url: entry!.url ? testServerUrlFor(req, entry!.url) : undefined,
         // AC-7: `MAIN_TEST_SERVER_KEY` has no real spec to be scoped to — the
         // spec-scoped route would 404 on it.
         stopAction: isSpecFolder(specFolder)

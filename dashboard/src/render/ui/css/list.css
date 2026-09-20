@@ -235,6 +235,69 @@ table.speclist > colgroup > col[data-col="cost"] { width: 11.7117%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
   table.speclist > colgroup > col[data-col="created"] { width: 0; }
 }
+/* The Test servers table (spec 519): a `table.list` with columns of its
+   own, so nothing written for the specs list's `data-col`s reaches it.
+   Its width is 100% of the page's frame and its six columns are
+   percentages of that, the way the specs list's are; text wraps inside
+   its cell, so a longer name makes the row taller and never a column
+   wider. Its body cells are the specs list's spec-row cells — the rule
+   above each row — through the two selectors at `tr.spechead` below. */
+table.list.testservers { table-layout: fixed; width: 100%; }
+table.testservers td { overflow-wrap: anywhere; }
+table.testservers .btn { white-space: nowrap; }
+/* Measured in Chromium with this stylesheet: the frame is the window less
+   129px, up to 1088px. The cells that cannot wrap hold at these widths
+   with a little to spare — Project's longest name in 96px, Status "starting"
+   in 76, Stop's button (56px, with its padding 80) in 76 — and Spec and
+   Branch, which are folder names, wrap inside their cell at any width.
+   The six percentages give exactly those widths at the last window that
+   shows all six (929px, a 800px frame). */
+table.testservers > colgroup > col[data-col="ts-project"] { width: 12%; }
+table.testservers > colgroup > col[data-col="ts-spec"] { width: 24%; }
+table.testservers > colgroup > col[data-col="ts-branch"] { width: 22.5%; }
+table.testservers > colgroup > col[data-col="ts-status"] { width: 9.5%; }
+table.testservers > colgroup > col[data-col="ts-address"] { width: 22.5%; }
+table.testservers > colgroup > col[data-col="ts-stop"] { width: 9.5%; }
+/* Branch is `aide/<spec folder>`, which the Spec column already says, so
+   it leaves first; then Project, which is in the Spec link's own path;
+   then Status. Spec, Address and Stop stay at every width. A column
+   leaves as a COLUMN (`visibility: collapse` on its <col>), never by
+   hiding its cells: a fixed layout hands the widths to the cells that
+   are left by their position, so a cell taken out of the middle of a row
+   would put every cell after it under the wrong column's width. The
+   <col> keeps a width of 0 so the six are still laid out. */
+/* The steps are where the columns still shown stop holding their cells
+   at the next percentages: 58rem, 46.5rem and 42rem. Measured one pixel
+   either side of each, no cell's content is wider than its cell, and the
+   last set holds Spec, Address and Stop in the 296px a 360px phone
+   leaves. */
+@media (max-width: 58rem) {
+  table.testservers > colgroup > col[data-col="ts-branch"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 15.4%; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 30.8%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 12.3%; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 29.2%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 12.3%; }
+}
+@media (max-width: 46.5rem) {
+  table.testservers > colgroup > col[data-col="ts-project"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 14.5%; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 34.5%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 14.5%; }
+}
+@media (max-width: 42rem) {
+  table.testservers > colgroup > col[data-col="ts-status"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 27%; }
+}
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
 thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
@@ -509,7 +572,8 @@ table.list tr.spechead:has(.fold[aria-expanded="true"]) .pipslot { display: none
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
-table.list tr.spechead td { border-bottom: none; border-top: 2px solid var(--line-strong);
+table.list tr.spechead td,
+table.list.testservers tbody td { border-bottom: none; border-top: 2px solid var(--line-strong);
   padding-top: var(--sp-3); }
 /* An OPEN spec is one thing, not a header and some loose lines under it:
    its own faint ground holds the phase lines and the button together, so
@@ -519,7 +583,8 @@ table.list tr.spechead td { border-bottom: none; border-top: 2px solid var(--lin
 table.list tr.spechead:has(+ tr.subrow) td,
 table.list tr.subrow td,
 table.list tr.specnotice:has(+ tr.subrow) td { background: var(--surface-2); }
-table.list tbody tr.spechead:first-child td { border-top: none; }
+table.list tbody tr.spechead:first-child td,
+table.list.testservers tbody tr:first-child td { border-top: none; }
 /* The row's message panel (spec 143): part of the row above it, not a
    row of its own. It draws no rule and adds no padding the message's
    own box already brings — the separator a reader sees is still the
