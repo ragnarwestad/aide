@@ -82,6 +82,9 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 - [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
+- [Error sentences](docs/error-sentences.md) — the one rule every error the board shows follows
+- [The dashboard's HTTP routes](docs/http-routes.md) — every path, its method, whether it reads or acts
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
+- [The hand-paired bash/TypeScript pairs](docs/bash-typescript-decisions.md) — the decisions made twice, and the tests that pin them together
 - [Hosting the dashboard](docs/hosting.md) — the machine that serves it, keeping it up to date, HTTPS, installing it as an app
 - [Tailscale](docs/tailscale.md) — optional: reaching the dashboard from a phone or another computer, over HTTPS
