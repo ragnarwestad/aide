@@ -296,6 +296,9 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 ## Resources
 
+[How Aide compares with the other spec-driven tools](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD, GSD, OpenSpec,
+Tessl and the rest, one entry each.
+
 - [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) - Birgitta Böckeler on the levels of spec-driven development and the tools behind them
 - [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
 - [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development)

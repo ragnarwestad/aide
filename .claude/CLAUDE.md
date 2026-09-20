@@ -84,6 +84,7 @@ pages run to 450; they are written to be searched. Where to look:
 | Serving it, HTTPS, moving it to another host            | `dashboard/docs/hosting.md`        |
 | Installation layout, what goes where, the gotchas       | `.claude/rules/development.md`     |
 | Where the project came from and what is next            | `docs/ROADMAP.md`                  |
+| How Aide compares with other spec-driven tools          | `docs/COMPARISON.md`               |
 | What each AI tool supports, verified                    | `docs/AI_SUPPORT_MATRIX.md`        |
 | How to write a skill                                    | `docs/SKILL_GUIDE.md`              |
 
