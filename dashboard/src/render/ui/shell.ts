@@ -344,54 +344,80 @@ function tabBar(entries: NavEntry[], currentPath: string, lang: Language): strin
   );
 }
 
-export function pageShell(
+/** Everything `pageShell` takes beyond the title, the tabs and the body. */
+export interface PageShellOpts {
+  refreshInNoscript?: boolean;
+  script?: string;
+  /** A second, distinct script tag (spec 315) — `src=` rather than
+   *  inline text, for the one script this dashboard wants a browser
+   *  to fetch once and reuse rather than re-send with every page. */
+  scriptSrc?: string;
+  docTitle?: string;
+  hideHeading?: boolean;
+  /** When this page is part of a static build: its generation time,
+   *  shown labelled at the bottom of the About dialog. */
+  buildStamp?: string;
+  /** Spec 350. Absent (never required) on every page — every call site
+   *  passes some real `lang` since spec 408 (REQ-1, guarded at runtime
+   *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
+   *  means "nothing chose otherwise" rather than an unwired page. */
+  lang?: Language;
+  /** The exact request address (path + query, `lang` included) the
+   *  reader is ON right now — what the language links point at, `lang`
+   *  swapped. Absent means `/`: the two build-time pages in
+   *  `projects-page.ts` have no request to read one from, and always link
+   *  home exactly as every page already did before this field existed. */
+  currentUrl?: string;
+  /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
+   *  offers, so it draws no tab bar at all. Absent (never required)
+   *  on every other page. */
+  hideTabBar?: boolean;
+}
+
+/** The meta refresh, as the text a head (or, for a streamed page, the
+ *  start of its second half) carries. A meta refresh is fine on a page you
+ *  only read. On a page with a FORM it is hostile: it wipes what you were
+ *  half-way through filling in. The spec list therefore refreshes its table
+ *  from script and keeps the blunt refresh as the fallback for a browser
+ *  that did not run it. */
+export function refreshMeta(refreshSeconds?: number, inNoscript?: boolean): string {
+  const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
+  return !meta ? "" : inNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
+}
+
+/** The document up to and including `<body …>`: what a streamed page can
+ *  send before it knows anything about its content (spec 515). */
+export function shellHead(
   title: string,
+  opts: { lang?: Language; docTitle?: string; refresh?: string } = {},
+): string {
+  const lang = opts.lang ?? "en";
+  return `<!doctype html>
+<html lang="${lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">${opts.refresh ?? ""}
+<title>${esc(opts.docTitle ?? `aide -board · ${title}`)}</title>
+${ICON_LINKS}
+${PWA_LINKS}
+<style>${CSS}</style>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
+</head>
+<body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">`;
+}
+
+/** The rest of the document, from the header to `</html>`. `refresh` is
+ *  written at its very start and `afterMain` right after `</main>`, both
+ *  for a streamed page's second half; `pageShell` passes neither. */
+export function shellRest(
   entries: NavEntry[],
   currentPath: string,
+  title: string,
   body: string,
-  // Kept in the signature for the callers' sake; the stamp itself moved
-  // to the About page (2026-08-19) — an unlabelled ISO timestamp in the
-  // corner of every page read as noise.
-  _generatedAt: string,
-  refreshSeconds?: number,
-  opts: {
-    refreshInNoscript?: boolean;
-    script?: string;
-    /** A second, distinct script tag (spec 315) — `src=` rather than
-     *  inline text, for the one script this dashboard wants a browser
-     *  to fetch once and reuse rather than re-send with every page. */
-    scriptSrc?: string;
-    docTitle?: string;
-    hideHeading?: boolean;
-    /** When this page is part of a static build: its generation time,
-     *  shown labelled at the bottom of the About dialog. */
-    buildStamp?: string;
-    /** Spec 350. Absent (never required) on every page — every call site
-     *  passes some real `lang` since spec 408 (REQ-1, guarded at runtime
-     *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
-     *  means "nothing chose otherwise" rather than an unwired page. */
-    lang?: Language;
-    /** The exact request address (path + query, `lang` included) the
-     *  reader is ON right now — what the language links point at, `lang`
-     *  swapped. Absent means `/`: the two build-time pages in
-     *  `projects-page.ts` have no request to read one from, and always link
-     *  home exactly as every page already did before this field existed. */
-    currentUrl?: string;
-    /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
-     *  offers, so it draws no tab bar at all. Absent (never required)
-     *  on every other page. */
-    hideTabBar?: boolean;
-  } = {},
+  opts: PageShellOpts & { refresh?: string; afterMain?: string } = {},
 ): string {
   const lang = opts.lang ?? "en";
   const currentUrl = opts.currentUrl ?? "/";
-  // A meta refresh is fine on a page you only read. On a page with a
-  // FORM it is hostile: it wipes what you were half-way through
-  // filling in. The spec list therefore refreshes its table from
-  // script and keeps the blunt refresh as the fallback for a browser
-  // that did not run it.
-  const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
-  const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
   // At the END of the body: a page's own code wires up elements, and an
   // inline script in the head runs before they exist, so every listener
   // it tries to attach silently attaches to nothing. (Which is exactly
@@ -402,18 +428,7 @@ export function pageShell(
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
   const tabs = opts.hideTabBar ? "" : tabBar(entries, currentPath, lang);
-  return `<!doctype html>
-<html lang="${lang}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
-<title>${esc(opts.docTitle ?? `aide -board · ${title}`)}</title>
-${ICON_LINKS}
-${PWA_LINKS}
-<style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}</script>
-</head>
-<body data-overlay-note="${esc(t(lang, "shell.overlayLoading"))}">
+  return `${opts.refresh ?? ""}
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
 ${aboutDialog(opts.buildStamp)}
@@ -421,8 +436,29 @@ ${leaveAppDialog(lang)}
 ${tabs}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
-</main>${script}${scriptSrc}
+</main>${opts.afterMain ?? ""}${script}${scriptSrc}
 </body>
 </html>
 `;
+}
+
+export function pageShell(
+  title: string,
+  entries: NavEntry[],
+  currentPath: string,
+  body: string,
+  // Kept in the signature for the callers' sake; the stamp itself moved
+  // to the About page (2026-08-19) — an unlabelled ISO timestamp in the
+  // corner of every page read as noise.
+  _generatedAt: string,
+  refreshSeconds?: number,
+  opts: PageShellOpts = {},
+): string {
+  return (
+    shellHead(title, {
+      lang: opts.lang,
+      docTitle: opts.docTitle,
+      refresh: refreshMeta(refreshSeconds, opts.refreshInNoscript),
+    }) + shellRest(entries, currentPath, title, body, opts)
+  );
 }

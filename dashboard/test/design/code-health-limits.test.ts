@@ -43,14 +43,6 @@ const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts"];
 // Rule 3: directories already over the 15-.ts-file limit, keyed by their
 // path relative to the dashboard root, with the count measured when this
 // list was written.
-const OVER_FILE_COUNT: Record<string, number> = {
-  "test/render/pages": 24,
-  "test/specs-client": 24,
-  "test/design": 26,
-  "test/e2e": 18,
-  "test/project": 19,
-  "test/serve": 23,
-};
 
 // Rule 4: top-level test/ directories that group tests by feature rather
 // than by a matching src/ directory name — a deliberate, existing
@@ -108,11 +100,6 @@ describe("dashboard code health (spec 443)", () => {
     for (const dir of dirs) {
       const count = readdirSync(dir).filter((name) => name.endsWith(".ts") && statSync(join(dir, name)).isFile()).length;
       const rel = relPath(dir);
-      const recorded = OVER_FILE_COUNT[rel];
-      if (recorded !== undefined) {
-        if (count !== recorded) bad.push(`${rel}: ${count} files (recorded ${recorded} — update or remove the exception)`);
-        continue;
-      }
       if (count > 15) bad.push(`${rel}: ${count} files`);
     }
     expect(bad).toEqual([]);

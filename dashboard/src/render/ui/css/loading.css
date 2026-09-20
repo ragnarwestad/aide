@@ -1,0 +1,36 @@
+/* The loading element the spec page's first chunk carries (spec 515): the
+   mark's four bars pulsing, and one word under it, over the whole viewport
+   until the page's own rule after </main> hides it. It is not one of the
+   page's sections: it is sent with that one page's head only, so the
+   generated pages' stylesheet stays as it was. Tokens only.
+   Fixed and full-screen so the header, which arrives in the second chunk
+   and may be painted before the hide rule is, is never seen half-drawn
+   behind it; above the header's own z-index of 100. */
+.pageloading { position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3); background: var(--bg); color: var(--muted);
+  font-size: var(--fs-l); }
+.pageloading .mark, .pageloading .mark svg { display: block; width: 64px; height: 64px; }
+/* The mark's theme swap, the four groups of rules tokens.css writes for
+   .brand, restated for this element. */
+.pageloading .mark-d { display: none; }
+@media (prefers-color-scheme: dark) {
+.pageloading .mark-l { display: none; }
+.pageloading .mark-d { display: block; }
+}
+:root[data-theme="dark"] .pageloading .mark-l { display: none; }
+:root[data-theme="dark"] .pageloading .mark-d { display: block; }
+:root[data-theme="light"] .pageloading .mark-l { display: block; }
+:root[data-theme="light"] .pageloading .mark-d { display: none; }
+.pageloading rect { transform-box: fill-box; transform-origin: center;
+  animation: pageloading-bar 1s ease-in-out infinite; }
+.pageloading rect:nth-child(2) { animation-delay: 0.12s; }
+.pageloading rect:nth-child(3) { animation-delay: 0.24s; }
+.pageloading rect:nth-child(4) { animation-delay: 0.36s; }
+@keyframes pageloading-bar {
+  0%, 100% { transform: scaleY(0.55); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+.pageloading rect { animation: none; }
+}

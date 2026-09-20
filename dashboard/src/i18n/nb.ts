@@ -26,6 +26,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.overlayRemoving": "fjerner…",
   "shell.overlaySaving": "lagrer…",
   "shell.overlayLoading": "laster…",
+  "shell.loadingPage": "Laster …",
+  "shell.pageFailed": "Noe gikk galt mens siden ble bygget. Last siden på nytt; feiler det fortsatt, se i dashboardets logg på verten som kjører det.",
   "shell.leaveAppTitle": "Forlat appen?",
   "shell.leaveAppBody": "Endringene du gjorde blir kanskje ikke lagret.",
   "shell.leaveAppLeave": "Forlat",

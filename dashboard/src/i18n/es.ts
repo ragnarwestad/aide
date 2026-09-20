@@ -26,6 +26,8 @@ export const es: Record<TranslationKey, string> = {
   "shell.overlayRemoving": "eliminando…",
   "shell.overlaySaving": "guardando…",
   "shell.overlayLoading": "cargando…",
+  "shell.loadingPage": "Cargando …",
+  "shell.pageFailed": "Algo salió mal al construir la página. Recarga la página; si sigue fallando, mira el registro del panel en el equipo que lo sirve.",
   "shell.leaveAppTitle": "¿Salir de la app?",
   "shell.leaveAppBody": "Es posible que los cambios que hiciste no se guarden.",
   "shell.leaveAppLeave": "Salir",

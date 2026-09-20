@@ -1,88 +1,61 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/aide-wordmark-dark.svg"><img src="docs/assets/aide-wordmark-light.svg" alt="Aide" height="40"></picture>
 
-Spec-driven development for AI assistants: every change starts as a spec, and a dashboard runs it through analysis,
+Spec-driven development for AI CLIs: every change starts as a spec, and a dashboard runs it through analysis,
 implementation and archiving.
 
 ## Table of contents
 
-- [What it is](#what-it-is)
-- [Quick start](#quick-start)
+- [What Aide is](#what-aide-is)
 - [What a spec looks like](#what-a-spec-looks-like)
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
 - [Install & Configuration](#install--configuration)
     - [Per-project configuration](#per-project-configuration)
-        - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
-- [AI-assisted workflow](#ai-assisted-workflow)
+- [The workflow, step by step](#the-workflow-step-by-step)
 - [The Aide dashboard](#the-aide-dashboard)
 - [Resources](#resources)
 
 ---
 
-## What it is
+## What Aide is
 
-An AI assistant is powerful but unpredictable when the requirements for a change live only in a chat history: the
-reasoning behind a decision disappears with the conversation, the next session starts from zero, and nobody else can
-review what was actually agreed before the code was written.
+Aide is a tool for spec-driven development: before an AI CLI writes code, it writes a specification — four
+plain-Markdown files (description, analysis, solution, status) that you and any AI CLI can read, review and
+continue identically. The spec is committed to git, either in the project it describes or in a specs repository of
+its own.
 
-Aide's answer is spec-driven development (SDD): before any AI assistant writes code, it writes a specification — four
-plain-Markdown files (description, analysis, solution, status) that a user and any AI tool can read, review and
-continue identically, committed to git alongside the code it describes.
+### The skills
 
-**Everything can be done with the skills.** Each step — create, analyze, implement and archive — is an `aide-*`
-skill you run by hand, one spec at a time, inside Claude Code, Codex, OpenCode or GitHub Copilot.
+Each step of the workflow — create, analyze, implement and archive — is an `aide-*` skill: a command you type in
+Claude Code, Codex, OpenCode or GitHub Copilot, one spec at a time, and follow as it works.
 See [The aide-\* skills](#the-aide--skills).
 
-**The dashboard is the easier way to use them.** It works one level up: it lists every spec across every project Aide
-knows about and runs the same skills for you — queued and unattended, with a user stepping in only where a judgement
-is needed, such as ticking the acceptance criteria before archive. See [The Aide dashboard](#the-aide-dashboard).
+### The dashboard
 
-Either way, the spec is what lets any AI assistant:
+The dashboard is a local web application. You install it on one machine — your own, or one that is always on — and
+open it in a browser at `http://127.0.0.1:8788`. It lists every spec in every project Aide knows about, and runs
+the skills itself: you queue a spec, and it runs create, analyze, implement and archive in order, on the AI CLI
+and model chosen for each step, several specs at a time. It records each step's cost, token count and outcome, and
+holds a spec before archive until you have ticked its acceptance criteria.
+See [The Aide dashboard](#the-aide-dashboard).
 
-- Understand a spec and analyze the codebase automatically
-- Suggest concrete solutions with file references and line numbers,
-  reviewable as a diff before a line of code changes
-- Implement changes using Test-Driven Development (TDD)
-- Follow established plans for technical debt and modernization that
-  span many sessions, not one prompt
+### Aide is a personal tool
 
-**Key benefit:** Not locked to a single AI vendor - teams can pick the
-best tool for each task, and the spec is what carries the work between
-them.
+It is installed for one user on one machine, and the dashboard has no sign-in and no notion of who is using it:
+every run uses the AI account of the user it runs as. Nothing has to be committed to a project for Aide to work on
+it, which is what makes it usable on a repository someone else owns.
 
----
+### It works with four AI CLIs
 
-## Quick start
+Claude Code, Codex, OpenCode and Copilot read and continue the same spec, so each step can run on whichever tool
+suits it, and the spec is what carries the work between them.
 
-1. **Install Aide.** Clone the repo and run the installer. It also installs mise, node and Claude Code when they are
-   missing; signing in to Claude Code is the one step left to you.
+### What the spec is for
 
-   ```bash
-   git clone https://github.com/ragnarwestad/aide.git
-   cd aide && ./install-all.sh
-   claude    # sign in once, then /exit
-   ```
-
-2. **Make a spec.** In a project of your own, start Claude Code and give it a title and a description:
-
-   ```text
-   /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-   ```
-
-3. **Run it**, one step at a time by hand. The spec gets a number, say 55:
-
-   ```text
-   /aide-analyze 55      # Analyze the codebase and write the plan
-   /aide-implement 55    # Implement with TDD
-   /aide-archive 55      # Land it, and feed what was learned back into the docs
-   ```
-
-   Or let the dashboard run the steps for you: install it with `dashboard/install.sh` (on Linux, run
-   `dashboard/serve.sh`), open
-   `http://127.0.0.1:8788`, and queue the spec there. See [The Aide dashboard](#the-aide-dashboard).
-
-More: [Install & Configuration](#install--configuration) for the other AI tools, and
-[AI-assisted workflow](#ai-assisted-workflow) for what each step does.
+Requirements that live only in a chat history disappear with it: the reasoning behind a decision is gone, the next
+session starts from zero, and you cannot go back and see what was agreed before the code was written. The spec
+holds what the chat loses — the affected files with their line numbers, the plan written before the code, and a
+record of what each step did — reviewable as a diff before a line of code changes, and still there a month later.
 
 ---
 
@@ -140,8 +113,8 @@ every row is ticked:
 
 ## Where Aide sits in spec-driven development
 
-Spec-driven development means writing a spec before an AI assistant writes code, and treating that spec as the
-source of truth for both the user and the assistant. Birgitta Böckeler's
+Spec-driven development means writing a spec before an AI tool writes code, and treating that spec as the source
+of truth for what gets built. Birgitta Böckeler's
 [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) names
 three levels of it:
 
@@ -151,139 +124,189 @@ three levels of it:
 | Spec-anchored  | is kept after the work and edited as the feature evolves                        |
 | Spec-as-source | is the only thing a user edits; the code is generated from it                   |
 
-Aide is spec-anchored. A spec stays open while the change it describes is still being shaped: when a user
-declines to accept the result, they edit the spec's acceptance criteria and the same spec runs another round of
-analysis or implementation — a round that may only start once at least one criterion is new or reworded since the
-last one. When the user is satisfied, they tick the criteria and archive it. A spec is never discarded: it moves to
-`archive/` with its history, and what it taught is written back into the project's living documentation, which is
-where the current state of the system is described. It is not spec-as-source: users and assistants still read and
-edit the code.
+Aide is spec-anchored. The spec is what you edit when the result is not what you wanted: you add or reword
+acceptance criteria, and run the same spec through analysis or implementation again. That is also what lets
+another round start — at least one criterion that is still unticked has to be new or reworded since the previous
+round. When every criterion is ticked, the spec is archived: it moves to `archive/` and keeps all four files. The
+archive step also writes what the change means for the project into the project's own documentation. An archived
+spec can be reopened later and taken through another round. It is not spec-as-source: you and the AI CLI still
+read and edit the code.
+
+[docs/COMPARISON.md](docs/COMPARISON.md) puts the other spec-driven tools through the same criteria: document
+structure, which AI tools they run on, how they execute a step, what they do with the code, and what each one
+leaves behind in a repository.
 
 ---
 
 ## The aide-\* skills
 
-The four spec-workflow skills, in the order a spec moves through them:
+Once Aide is installed, a skill is a slash command you type in your AI CLI — Claude Code, Codex, OpenCode or
+Copilot. It takes the spec's number: `/aide-analyze 55`. The dashboard runs the four workflow skills for you
+instead of you typing them, one after the other — see [The workflow, step by step](#the-workflow-step-by-step) and
+[The Aide dashboard](#the-aide-dashboard).
 
-| Skill             | Does                                                                                                                                           |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/aide-create`    | Creates a spec from a title and a description: the 4-file structure (description, analysis, solution, status)                                  |
-| `/aide-analyze`   | Analyzes the codebase, detects LOW/MEDIUM/HIGH complexity, maps affected files with file:line references, and writes the TDD plan              |
-| `/aide-implement` | Implements the plan with TDD (RED → GREEN → REFACTOR), reading the existing analysis and solution                                              |
-| `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and feeds durable knowledge back into the project's living docs |
+The four workflow skills, in the order a spec moves through them:
 
-Supporting skills, used around that workflow rather than as a step in it:
+| Skill             | What it does                                                                                                                                                          |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/aide-create`    | Creates the spec's folder and its four files from a title and a description                                                                                           |
+| `/aide-analyze`   | Grades the change LOW, MEDIUM or HIGH and scales the analysis to that grade, maps the affected files with file:line references, and writes the plan implement follows |
+| `/aide-implement` | Writes the code test-first (RED → GREEN → REFACTOR), following the analysis and the plan                                                                              |
+| `/aide-archive`   | Archives a finished spec, resolves any merge conflict with the default branch, and writes what the change means for the project into the project's own documentation  |
 
-| Skill            | Does                                                                                                                    |
-|------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `/aide-explore`  | A no-stakes thinking partner before `/aide-create` — weighs approaches and sharpens the scope, creates nothing          |
-| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                   |
-| `/aide-close`    | Closes a spec whose idea did not hold: records the reason, moves it to `archive/`, and deletes its code branch unmerged |
-| `/aide-reopen`   | Takes an archived spec back for another round; keeps every file unless asked to reset the analysis, plan and status     |
-| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                             |
+The other skills:
+
+| Skill            | What it does                                                                                                                                                           |
+|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/aide-explore`  | Weighs approaches and sharpens the scope before a spec is created; creates no files                                                                                    |
+| `/aide-manifest` | Drafts or refreshes a project's `.aide/project.yaml` manifest (stack, dependencies, deployment, docs)                                                                  |
+| `/aide-close`    | Closes a spec you have decided not to build: records the reason, moves it to `archive/`, and deletes its code branch unmerged                                          |
+| `/aide-reopen`   | Takes an archived spec back into the active list for another round of analysis or implementation; keeps every file unless asked to reset the analysis, plan and status |
+| `/aide-to-pdf`   | Generates a PDF from a spec's documentation                                                                                                                            |
 
 ---
 
 ## Install & Configuration
 
-Clone the repo, then run the installer for your AI tool:
+Clone the repo and run the installer. It installs mise, Node.js and Claude Code where they are missing, and sets
+up Aide's skills for all four AI CLIs. Nothing is installed into the project you will use Aide on — the skills go
+in your home directory, and any project can then use them.
 
-| AI tool        | Install                                  | Documentation                                        |
+```bash
+git clone https://github.com/ragnarwestad/aide.git
+cd aide && ./install-all.sh
+```
+
+The installer adds a PATH line to your shell's startup file, so open a new terminal before the next step. Signing
+in to Claude Code is left to you, and is done once:
+
+```bash
+claude    # sign in, then /exit
+```
+
+Codex, Copilot and OpenCode are not installed for you. Their installers set up Aide's skills and configuration for
+them and say so when the tool itself is missing; install the ones you want to use yourself.
+
+[mise](https://mise.jdx.dev) is what `install-all.sh` uses to install the tools the skills and scripts call: bun,
+jq, gh, pandoc and md-to-pdf.
+
+`./install-all.sh` runs all four installers and asks nothing. The only questions any of them has are Codex's two
+optional MCP servers — browser testing and Context7 — and run from here, both are answered no. To be asked them,
+or to install for one tool only, run that tool's installer on its own:
+
+| AI CLI         | Install                                  | Documentation                                        |
 |----------------|------------------------------------------|------------------------------------------------------|
 | Claude Code    | `implementations/claude-code/install.sh` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
 | GitHub Copilot | `implementations/copilot/install.sh`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
 | Codex          | `implementations/codex/install.sh`       | [README.md](implementations/codex/README.md)         |
 | OpenCode       | `implementations/opencode/install.sh`    | [README.md](implementations/opencode/README.md)      |
 
-`./install-all.sh` runs all four at once, and asks nothing. Before them it installs what they need when it is
-missing: [mise](https://mise.jdx.dev) with a node, and Claude Code; signing in to Claude Code is the one step left to
-you. Each installer is self-contained: instructions, commands/prompts, scripts and documentation, installed globally
-so any project can use them.
-
-The dashboard is installed after this, on the machine that will run it, with `dashboard/install.sh`: it starts every
-step through Aide's own scripts and skills, so they have to be there first, and the script checks that they are. See
+The dashboard is installed afterwards, on the one machine that will run it, and serves at
+`http://127.0.0.1:8788`. On macOS that is `dashboard/install.sh`, which sets it up as a service that starts when
+you log in. On Linux there is no such service, and `install.sh` refuses: `dashboard/serve.sh` runs the dashboard
+in a terminal instead. Either way the dashboard starts every step through Aide's own scripts and skills, so run
+`./install-all.sh` on that machine too. See
 [Requirements in the dashboard's README](dashboard/README.md#requirements) for what else it needs.
 
-Aide runs on macOS and Linux; `scripts/test-linux-install` installs it on a clean Debian and takes a spec through the
-dashboard there. On Windows it runs inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), which is
-Linux; Git Bash is not enough.
+Aide runs on macOS and Linux, and the Linux install is tested end to end on a clean Debian. On Windows it runs
+inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), which is Linux; Git Bash is not enough.
 
 ### Per-project configuration
 
-#### AIDE_SPECS_PATH (optional, per project)
-
-Store specs outside a project — set the key
-in `.aide/config` in that project's root:
+**`AIDE_SPECS_PATH`** stores a project's specs outside the project. Set it in `.aide/config` in the project's
+root:
 
 ```text
 AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
-**Default:** specs are written to `specs/` in the project root. The path
-is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep the personal config out of git
-with a global personal gitignore (`core.excludesFile`) containing
-`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
-and belongs in git.
+Without it, specs are written to `specs/` in the project root. Where several projects share one specs repo, give
+each its own subfolder (`my-specs-repo/<project>/`): each then keeps its own number sequence and its own
+`archive/`. Point them all at the repo root and they share one sequence, so a spec's number no longer tells you
+which project it belongs to.
+
+`.aide/config` holds one machine's own settings for that project, and is not meant to be committed — a personal
+global gitignore (`core.excludesFile`) keeps it out without touching the project's own `.gitignore`. The other
+file, `.aide/project.yaml`, describes the project itself: the command that runs its tests, the directories a run
+needs that git does not track (`node_modules`, `.env` and the like), and whether its code is merged or left open
+as a pull request. It does not have to be there at all — the dashboard keeps those settings in its own state,
+outside the project — and the dashboard writes the file only in a project that already tracks one.
 
 ---
 
-## AI-assisted workflow
-
-All AI tools follow the same basic workflow:
+## The workflow, step by step
 
 ```text
-   (EXPLORE — optional: think the idea through first, no files yet)
+   (/aide-explore — optional, before a spec exists)
 
-1. CREATE the spec
+1. CREATE
    ↓
-   A title and a description → 4 files (description/analysis/solution/status)
-
-2. ANALYZE the codebase
+2. ANALYZE
    ↓
-   Reads the code → Identifies affected files → Writes the plan, and reviews it
-
-3. IMPLEMENT the solution
+3. IMPLEMENT — ends when the project's own test suite runs green
    ↓
-   RED: Write tests → GREEN: Implement → REFACTOR — the phase ends on a green test run
-
-4. ARCHIVE
-   ↓
-   Lands the code on the default branch → Feeds what was learned back into the docs
+4. ARCHIVE — the spec moves to archive/, and the code is merged into the default branch
 ```
 
-**See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
+Run by hand, that is four commands in your AI CLI, in the project's directory. `/aide-create` takes a quoted title
+and then the description, and reports the number it gave the spec — 55 here. The three later commands take that
+number:
+
+```text
+/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
+/aide-analyze 55      # writes 2-analysis.md and 3-solution.md
+/aide-implement 55    # writes the tests and the code
+/aide-archive 55      # moves the spec to archive/, and lands the code
+```
+
+Nothing pauses between analyze and implement, so read the plan in `3-solution.md` before you start implement. That
+is where a wrong plan is cheapest to change.
+
+A red test run goes back to the same session to be fixed, twice. Still red after that, and implement fails with
+the failing tests reported; what fixes it is another implement round, not a retry of the same one.
+
+On the dashboard you type none of this. A spec that already exists has a row: tick the phases to run under
+**Select**, pick the AI and the model, and press **Run**. A spec that does not exist yet is written on the New
+spec form, which queues create and the phases after it.
+
+**See:** [dashboard/docs/spec-lifecycle.md](dashboard/docs/spec-lifecycle.md) — the same four steps, which the
+dashboard calls phases, and what moves a spec from one to the next.
 
 ---
 
 ## The Aide dashboard
 
-All Aide skills can be run by hand, one spec at a time, in any of the AI CLI assistants Aide supports. The dashboard
-runs them for you, and adds what running them by hand does not give you:
+You add a project on the dashboard's Projects page. It clones the project into its own directory, keeps that
+clone to itself, and lists every spec it finds there — a directory under its projects root counts as a project
+when the dashboard holds settings for it, or when it has a `.aide/project.yaml` of its own. Each spec's phase is
+read from its `4-status.md`, so no list of specs is maintained anywhere.
 
-- **Every spec in one list** — across every project Aide knows about, with search and a state filter
-- **Unattended runs** — a spec is queued through `create` → `analyze` → `implement` → `archive`, potentially in
-  parallel
-- **The AI and model per step** — chosen for each phase of each spec
-- **Live progress** — the running step, its time and its tokens, on the spec's row
-- **Dependencies** — a spec that overlaps with another spec can be configured to wait to be implemented until the
-  first has completed
-- **Acceptance criteria** (optional) can be specified. If desired, the dashboard can stop before archiving and prompt
-  the user to verify them before continuing
-- **Modify and rerun** — if acceptance criteria are specified and not fulfilled by the implementation, the spec
-  description and criteria can be modified to be more precise, and the analyze and implement phases rerun. Criteria
-  that are already ticked are not touched by the rerun
+What the dashboard does that the skills alone do not:
+
+- **Every spec in one list** — every project it knows of in one table, with search and a filter for active or
+  archived
+- **Runs you do not have to sit through** — you queue a spec, and create, analyze, implement and archive run one
+  after the other, several specs at a time
+- **A choice of CLI and model per phase** — made in advance, on the spec's row, rather than by opening a
+  particular terminal
+- **Live progress** — the row shows the phase running now, how long it has been running and what it has spent
+- **Dependencies** — a spec can name another spec it depends on: its implement and archive then wait until that
+  spec is archived, while create and analyze run as usual
+- **Archive waits for you** — a spec with acceptance criteria is held before archive until you have ticked every
+  row on its Status tab and pressed Archive
+- **Another round keeps your ticks** — correct the description and the criteria, run analyze and implement again,
+  and the rows you had already ticked stay ticked
   (see [Another round on the same spec](dashboard/docs/spec-lifecycle.md#another-round-on-the-same-spec))
-- **Code that lands itself** — merged into the main branch once the tests pass, or left as a pull request for review
+- **The merge** — the spec's branch is merged into the default branch once the project's tests pass on the
+  merged result, or left open as a pull request
   (see [How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands))
-- **The whole history** — clicking a spec opens its description, analysis, plan, status and every job that has run
-  against it
+- **Every job that has run** — a spec's page holds its four files and the record of each job run against it,
+  with what it cost
 
 <p align="center"><img src="docs/assets/aide-board-specs-list.png" alt="The specs list on the Aide dashboard" width="50%"></p>
 
-It finds projects by scanning for `.aide/project.yaml` manifests and reads each spec's phase from its `4-status.md`,
-so nothing has to be registered by hand. It runs as a small server on a machine of your choosing — a laptop, or a
-machine that stays on so runs continue after you close the lid.
+<p align="center"><em>The specs list: the phase each spec has reached, what is running now, and the controls that
+start the next phase.</em></p>
 
 It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](dashboard/README.md)**.
 
@@ -291,9 +314,22 @@ It lives in `dashboard/` and has its own documentation: **[dashboard/README.md](
 
 ## Resources
 
-- [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) - Birgitta Böckeler on the levels of spec-driven development and the tools behind them
-- [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
-- [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development)
+About Aide:
+
+- [How Aide compares with the other spec-driven tools](docs/COMPARISON.md) — Kiro, Spec Kit, BMAD, GSD, OpenSpec,
+  Tessl, Cursor's Plan Mode and Augment Code, each answered on the same criteria
+
+Reading:
+
+- [Understanding Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) —
+  Birgitta Böckeler on the three levels of spec-driven development and the tools behind them
+- [Spec-driven development with AI](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
+  — GitHub's own introduction to Spec Kit
+- [Anioko/spec-driven-development](https://github.com/Anioko/spec-driven-development) — a guide to the maturity
+  levels of spec-driven development, and when a spec compiler fits better than an agent workflow
+
+The tools themselves, for the ones compared above that publish their own documentation:
+
 - [GitHub Spec Kit](https://github.com/github/spec-kit)
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 - [Kiro](https://kiro.dev)

@@ -27,6 +27,8 @@ export const en = {
   "shell.overlayRemoving": "removing…",
   "shell.overlaySaving": "saving…",
   "shell.overlayLoading": "loading…",
+  "shell.loadingPage": "Loading …",
+  "shell.pageFailed": "Something went wrong while the page was being built. Reload the page; if it keeps failing, look in the dashboard's log on the serving host.",
   "shell.leaveAppTitle": "Leave app?",
   "shell.leaveAppBody": "Changes you made may not be saved.",
   "shell.leaveAppLeave": "Leave",
